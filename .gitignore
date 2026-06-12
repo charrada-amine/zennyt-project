@@ -1,0 +1,59 @@
+# ───────────── Java / Maven (backend) ─────────────
+backend/target/
+backend/!.mvn/wrapper/maven-wrapper.jar
+backend/!**/src/main/**/target/
+backend/!**/src/test/**/target/
+*.class
+*.jar
+*.war
+*.log
+hs_err_pid*
+
+# ───────────── Flutter / Dart (mobile) ─────────────
+mobile/.dart_tool/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/.packages
+mobile/build/
+mobile/.pub-cache/
+mobile/.pub/
+mobile/ios/Pods/
+mobile/ios/.symlinks/
+mobile/ios/Flutter/Flutter.framework
+mobile/ios/Flutter/Flutter.podspec
+mobile/android/.gradle/
+mobile/android/captures/
+mobile/android/local.properties
+mobile/android/key.properties
+mobile/android/app/upload-keystore.jks
+mobile/android/keystore.jks
+mobile/**/*.g.dart
+mobile/**/*.freezed.dart
+mobile/coverage/
+
+# ───────────── IDE ─────────────
+.idea/
+*.iml
+.vscode/
+*.swp
+.DS_Store
+*.code-workspace
+
+# ───────────── Azure / secrets ─────────────
+*.publishsettings
+*.azurePubxml
+local.settings.json
+.env
+.env.*
+!.env.example
+*.pfx
+*.p12
+*.mobileprovision
+*.cer
+appsettings.Local.json
+
+# ───────────── Divers ─────────────
+node_modules/
+*.tmp
+*.bak
+/tmp/

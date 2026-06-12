@@ -1,0 +1,97 @@
+openapi: 3.0.3
+info:
+  title: Zennyt — Composants partagés
+  description: >
+    Schémas, réponses et schéma de sécurité communs à tous les bounded contexts.
+    Référencés par les autres contrats via $ref distant, ex :
+    `$ref: './common.openapi.yaml#/components/schemas/Error'`.
+  version: 1.0.0
+
+# Ce fichier ne définit pas de paths : il sert uniquement de bibliothèque de composants.
+paths: {}
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >
+        Jeton d'accès JWT (RS256) émis par le contexte Identity.
+        À placer dans l'en-tête : `Authorization: Bearer <accessToken>`.
+
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      description: Numéro de page (0-indexé)
+      schema: { type: integer, minimum: 0, default: 0 }
+    SizeParam:
+      name: size
+      in: query
+      description: Taille de page
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+    SortParam:
+      name: sort
+      in: query
+      description: "Tri au format champ,direction — ex : createdAt,desc"
+      schema: { type: string }
+
+  schemas:
+    Error:
+      type: object
+      description: Format d'erreur unifié (RFC 7807 simplifié).
+      required: [timestamp, status, error, message, path]
+      properties:
+        timestamp: { type: string, format: date-time }
+        status: { type: integer, example: 400 }
+        error: { type: string, example: "Bad Request" }
+        message: { type: string, example: "Le champ email est invalide." }
+        path: { type: string, example: "/api/v1/auth/login" }
+        traceId: { type: string, description: "Identifiant de corrélation App Insights" }
+        fieldErrors:
+          type: array
+          description: Détail des erreurs de validation par champ.
+          items:
+            type: object
+            properties:
+              field: { type: string, example: "email" }
+              message: { type: string, example: "doit être une adresse valide" }
+
+    PageMeta:
+      type: object
+      description: Métadonnées de pagination renvoyées avec les listes.
+      properties:
+        page: { type: integer, example: 0 }
+        size: { type: integer, example: 20 }
+        totalElements: { type: integer, format: int64, example: 137 }
+        totalPages: { type: integer, example: 7 }
+        first: { type: boolean }
+        last: { type: boolean }
+
+  responses:
+    BadRequest:
+      description: Requête invalide
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unauthorized:
+      description: Authentification requise ou jeton invalide
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: Droits insuffisants pour cette ressource
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: Ressource introuvable
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Conflict:
+      description: Conflit avec l'état actuel de la ressource
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }

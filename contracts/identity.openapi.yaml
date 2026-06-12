@@ -1,0 +1,797 @@
+openapi: 3.0.3
+info:
+  title: Zennyt - Identity API
+  description: >
+    Identity bounded context: local, Google, and Apple authentication, JWT lifecycle,
+    candidate/student and recruiter onboarding, and professional profiles.
+  version: 2.0.0
+
+servers:
+  - url: https://api.zennyt.com/api/v1
+    description: Production
+  - url: https://api-staging.zennyt.com/api/v1
+    description: Staging
+
+tags:
+  - name: Auth
+  - name: Users
+  - name: Onboarding
+  - name: Profiles
+
+security:
+  - bearerAuth: []
+
+paths:
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Create a local account
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegisterRequest' }
+      responses:
+        '201':
+          description: Account created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthTokens' }
+        '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
+        '409': { $ref: './common.openapi.yaml#/components/responses/Conflict' }
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Authenticate with email and password
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: Authenticated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthTokens' }
+        '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
+        '401': { $ref: './common.openapi.yaml#/components/responses/Unauthorized' }
+
+  /auth/social:
+    post:
+      tags: [Auth]
+      summary: Authenticate with a Google or Apple ID token
+      description: >
+        Validates the provider ID token and exchanges it for a Zennyt access and
+        refresh token pair. Role, terms acceptance, and usable names are required
+        only when the provider identity creates a new account.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SocialLoginRequest' }
+      responses:
+        '200':
+          description: Authenticated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthTokens' }
+        '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
+        '401': { $ref: './common.openapi.yaml#/components/responses/Unauthorized' }
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Rotate a refresh token and issue a new token pair
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RefreshTokenRequest' }
+      responses:
+        '200':
+          description: Token pair rotated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthTokens' }
+        '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Revoke a refresh token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RefreshTokenRequest' }
+      responses:
+        '204': { description: Refresh token revoked }
+        '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Get the authenticated account
+      responses:
+        '200':
+          description: Current account
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '401': { $ref: './common.openapi.yaml#/components/responses/Unauthorized' }
+
+  /users/me:
+    put:
+      tags: [Users]
+      summary: Update common account fields
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UserUpdate' }
+      responses:
+        '200':
+          description: Account updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
+
+  /users/me/role:
+    patch:
+      tags: [Users]
+      summary: Change the account role
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role]
+              properties:
+                role: { $ref: '#/components/schemas/Role' }
+      responses:
+        '200':
+          description: Role changed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
+
+  /onboarding/candidate-student:
+    post:
+      tags: [Onboarding]
+      summary: Create candidate or student onboarding information
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CandidateStudentOnboardingInput' }
+      responses:
+        '201':
+          description: Onboarding created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CandidateStudentOnboarding' }
+        '403': { $ref: './common.openapi.yaml#/components/responses/Forbidden' }
+        '409': { $ref: './common.openapi.yaml#/components/responses/Conflict' }
+
+  /onboarding/candidate-student/me:
+    get:
+      tags: [Onboarding]
+      summary: Get current candidate or student onboarding information
+      responses:
+        '200':
+          description: Current onboarding
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CandidateStudentOnboarding' }
+        '404': { $ref: './common.openapi.yaml#/components/responses/NotFound' }
+    put:
+      tags: [Onboarding]
+      summary: Update current candidate or student onboarding information
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CandidateStudentOnboardingInput' }
+      responses:
+        '200':
+          description: Onboarding updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CandidateStudentOnboarding' }
+
+  /onboarding/recruiter:
+    post:
+      tags: [Onboarding]
+      summary: Create recruiter onboarding information
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RecruiterOnboardingInput' }
+      responses:
+        '201':
+          description: Onboarding created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RecruiterOnboarding' }
+        '403': { $ref: './common.openapi.yaml#/components/responses/Forbidden' }
+        '409': { $ref: './common.openapi.yaml#/components/responses/Conflict' }
+
+  /onboarding/recruiter/me:
+    get:
+      tags: [Onboarding]
+      summary: Get current recruiter onboarding information
+      responses:
+        '200':
+          description: Current onboarding
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RecruiterOnboarding' }
+        '404': { $ref: './common.openapi.yaml#/components/responses/NotFound' }
+    put:
+      tags: [Onboarding]
+      summary: Update current recruiter onboarding information
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RecruiterOnboardingInput' }
+      responses:
+        '200':
+          description: Onboarding updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RecruiterOnboarding' }
+
+  /profiles:
+    post:
+      tags: [Profiles]
+      summary: Create the current candidate or student profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProfileInput' }
+      responses:
+        '201':
+          description: Profile created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Profile' }
+        '403': { $ref: './common.openapi.yaml#/components/responses/Forbidden' }
+        '409': { $ref: './common.openapi.yaml#/components/responses/Conflict' }
+
+  /profiles/me:
+    get:
+      tags: [Profiles]
+      summary: Get the current professional profile
+      responses:
+        '200':
+          description: Current profile
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Profile' }
+        '404': { $ref: './common.openapi.yaml#/components/responses/NotFound' }
+    put:
+      tags: [Profiles]
+      summary: Update the current professional profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProfileInput' }
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Profile' }
+
+  /profiles/{profileId}:
+    get:
+      tags: [Profiles]
+      summary: Get a professional profile by ID
+      parameters:
+        - $ref: '#/components/parameters/ProfileId'
+      responses:
+        '200':
+          description: Profile
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Profile' }
+        '404': { $ref: './common.openapi.yaml#/components/responses/NotFound' }
+
+  /profiles/me/skills:
+    get:
+      tags: [Profiles]
+      summary: List skills, optionally filtered by type
+      parameters:
+        - name: type
+          in: query
+          schema: { $ref: '#/components/schemas/SkillType' }
+      responses:
+        '200':
+          description: Skills
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Skill' }
+    post:
+      tags: [Profiles]
+      summary: Add a skill
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SkillInput' }
+      responses:
+        '201':
+          description: Skill added
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Skill' }
+
+  /profiles/me/skills/{id}:
+    put:
+      tags: [Profiles]
+      summary: Update a skill
+      parameters:
+        - $ref: '#/components/parameters/ItemId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SkillInput' }
+      responses:
+        '200':
+          description: Skill updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Skill' }
+    delete:
+      tags: [Profiles]
+      summary: Delete a skill
+      parameters:
+        - $ref: '#/components/parameters/ItemId'
+      responses:
+        '204': { description: Skill deleted }
+
+  /profiles/me/positions:
+    get:
+      tags: [Profiles]
+      summary: List positions
+      responses:
+        '200':
+          description: Positions
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Position' }
+    post:
+      tags: [Profiles]
+      summary: Add a position
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PositionInput' }
+      responses:
+        '201':
+          description: Position added
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Position' }
+
+  /profiles/me/positions/{id}:
+    put:
+      tags: [Profiles]
+      summary: Update a position
+      parameters:
+        - $ref: '#/components/parameters/ItemId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PositionInput' }
+      responses:
+        '200':
+          description: Position updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Position' }
+    delete:
+      tags: [Profiles]
+      summary: Delete a position
+      parameters:
+        - $ref: '#/components/parameters/ItemId'
+      responses:
+        '204': { description: Position deleted }
+
+  /profiles/me/certifications:
+    get:
+      tags: [Profiles]
+      summary: List certifications
+      responses:
+        '200':
+          description: Certifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Certification' }
+    post:
+      tags: [Profiles]
+      summary: Add a certification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CertificationInput' }
+      responses:
+        '201':
+          description: Certification added
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Certification' }
+
+  /profiles/me/certifications/{id}:
+    put:
+      tags: [Profiles]
+      summary: Update a certification
+      parameters:
+        - $ref: '#/components/parameters/ItemId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CertificationInput' }
+      responses:
+        '200':
+          description: Certification updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Certification' }
+    delete:
+      tags: [Profiles]
+      summary: Delete a certification
+      parameters:
+        - $ref: '#/components/parameters/ItemId'
+      responses:
+        '204': { description: Certification deleted }
+
+  /profiles/me/education:
+    get:
+      tags: [Profiles]
+      summary: List education records
+      responses:
+        '200':
+          description: Education records
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Education' }
+    post:
+      tags: [Profiles]
+      summary: Add an education record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EducationInput' }
+      responses:
+        '201':
+          description: Education record added
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Education' }
+
+  /profiles/me/education/{id}:
+    put:
+      tags: [Profiles]
+      summary: Update an education record
+      parameters:
+        - $ref: '#/components/parameters/ItemId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EducationInput' }
+      responses:
+        '200':
+          description: Education record updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Education' }
+    delete:
+      tags: [Profiles]
+      summary: Delete an education record
+      parameters:
+        - $ref: '#/components/parameters/ItemId'
+      responses:
+        '204': { description: Education record deleted }
+
+components:
+  securitySchemes:
+    bearerAuth: { $ref: './common.openapi.yaml#/components/securitySchemes/bearerAuth' }
+
+  parameters:
+    ProfileId:
+      name: profileId
+      in: path
+      required: true
+      schema: { type: integer, format: int64, minimum: 1 }
+    ItemId:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer, format: int64, minimum: 1 }
+
+  schemas:
+    Role:
+      type: string
+      enum: [CANDIDATE, STUDENT, RECRUITER, ADMIN]
+
+    RegisterRequest:
+      type: object
+      required: [firstName, lastName, email, password, role, termsAccepted]
+      properties:
+        firstName: { type: string, maxLength: 100 }
+        lastName: { type: string, maxLength: 100 }
+        email: { type: string, format: email, maxLength: 150 }
+        phoneNumber: { type: string, maxLength: 30 }
+        password: { type: string, format: password, minLength: 8, maxLength: 72 }
+        role:
+          type: string
+          enum: [CANDIDATE, STUDENT, RECRUITER]
+        city: { type: string, maxLength: 100 }
+        country: { type: string, maxLength: 100 }
+        address: { type: string, maxLength: 255 }
+        termsAccepted: { type: boolean }
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, format: password }
+
+    SocialProvider:
+      type: string
+      enum: [GOOGLE, APPLE]
+
+    SocialLoginRequest:
+      type: object
+      required: [provider, idToken]
+      properties:
+        provider: { $ref: '#/components/schemas/SocialProvider' }
+        idToken:
+          type: string
+          description: ID token issued by Google or Apple for a configured client ID
+        firstName:
+          type: string
+          maxLength: 100
+          description: Required for new accounts when absent from provider claims
+        lastName:
+          type: string
+          maxLength: 100
+          description: Required for new accounts when absent from provider claims
+        role:
+          type: string
+          enum: [CANDIDATE, STUDENT, RECRUITER]
+          description: Required only when creating a new account
+        termsAccepted:
+          type: boolean
+          default: false
+          description: Must be true when creating a new account
+
+    RefreshTokenRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken: { type: string }
+
+    AuthTokens:
+      type: object
+      required: [accessToken, refreshToken, tokenType, expiresIn]
+      properties:
+        accessToken: { type: string }
+        refreshToken: { type: string }
+        tokenType: { type: string, example: Bearer }
+        expiresIn: { type: integer, format: int64, example: 900 }
+
+    UserUpdate:
+      type: object
+      required: [firstName, lastName]
+      properties:
+        firstName: { type: string, maxLength: 100 }
+        lastName: { type: string, maxLength: 100 }
+        phoneNumber: { type: string, maxLength: 30 }
+        city: { type: string, maxLength: 100 }
+        country: { type: string, maxLength: 100 }
+        address: { type: string, maxLength: 255 }
+        profileImageUrl: { type: string, maxLength: 500 }
+
+    User:
+      allOf:
+        - $ref: '#/components/schemas/UserUpdate'
+        - type: object
+          required: [id, email, role, termsAccepted, emailVerified, active, createdAt, updatedAt]
+          properties:
+            id: { type: integer, format: int64 }
+            email: { type: string, format: email }
+            role: { $ref: '#/components/schemas/Role' }
+            termsAccepted: { type: boolean }
+            emailVerified: { type: boolean }
+            active: { type: boolean }
+            createdAt: { type: string, format: date-time }
+            updatedAt: { type: string, format: date-time }
+
+    CandidateStudentOnboardingInput:
+      type: object
+      properties:
+        school: { type: string, maxLength: 150 }
+        educationLevel: { type: string, maxLength: 150 }
+        fieldOfWork: { type: string, maxLength: 150 }
+        lastPositionHeld: { type: string, maxLength: 150 }
+        yearsOfExperience: { type: integer, minimum: 0 }
+        cvFileUrl: { type: string, maxLength: 500 }
+
+    CandidateStudentOnboarding:
+      allOf:
+        - $ref: '#/components/schemas/CandidateStudentOnboardingInput'
+        - $ref: '#/components/schemas/OwnedResource'
+
+    RecruiterOnboardingInput:
+      type: object
+      required:
+        [jobTitle, companyName, companySize, fieldOfWork, companyLocation, companyRegistrationNumber]
+      properties:
+        jobTitle: { type: string, maxLength: 150 }
+        companyName: { type: string, maxLength: 150 }
+        companySize: { type: string, maxLength: 100 }
+        companyLogoUrl: { type: string, maxLength: 500 }
+        fieldOfWork: { type: string, maxLength: 150 }
+        companyLocation: { type: string, maxLength: 150 }
+        companyRegistrationNumber: { type: string, maxLength: 100 }
+
+    RecruiterOnboarding:
+      allOf:
+        - $ref: '#/components/schemas/RecruiterOnboardingInput'
+        - $ref: '#/components/schemas/OwnedResource'
+
+    ProfileInput:
+      type: object
+      properties:
+        currentPosition: { type: string, maxLength: 150 }
+        lookingFor: { type: string, maxLength: 150 }
+        workplaceType:
+          type: string
+          enum: [ONSITE, REMOTE, HYBRID, FLEXIBLE]
+        jobType:
+          type: string
+          enum: [FULL_TIME, PART_TIME, INTERNSHIP, FREELANCE, CONTRACT]
+        targetJobLocation: { type: string, maxLength: 150 }
+        yearsOfExperience: { type: integer, minimum: 0 }
+        softSkillsScore: { type: integer, minimum: 0, maximum: 100 }
+        aboutMe: { type: string }
+        openInternationally: { type: boolean, default: false }
+        availabilityType:
+          type: string
+          enum: [IMMEDIATELY, SELECT_DATE]
+        availabilityDate: { type: string, format: date }
+        resumeAiUrl: { type: string, maxLength: 500 }
+        portfolioUrl: { type: string, maxLength: 500 }
+
+    Profile:
+      allOf:
+        - $ref: '#/components/schemas/ProfileInput'
+        - $ref: '#/components/schemas/OwnedResource'
+        - type: object
+          properties:
+            skills:
+              type: array
+              items: { $ref: '#/components/schemas/Skill' }
+            positions:
+              type: array
+              items: { $ref: '#/components/schemas/Position' }
+            certifications:
+              type: array
+              items: { $ref: '#/components/schemas/Certification' }
+            education:
+              type: array
+              items: { $ref: '#/components/schemas/Education' }
+
+    SkillType:
+      type: string
+      enum: [TECHNICAL, SOFT]
+
+    SkillInput:
+      type: object
+      required: [name, type]
+      properties:
+        name: { type: string, maxLength: 100 }
+        type: { $ref: '#/components/schemas/SkillType' }
+        level: { type: integer, minimum: 1, maximum: 5 }
+
+    Skill:
+      allOf:
+        - $ref: '#/components/schemas/SkillInput'
+        - $ref: '#/components/schemas/ProfileItem'
+
+    PositionInput:
+      type: object
+      required: [title]
+      properties:
+        title: { type: string, maxLength: 150 }
+        companyName: { type: string, maxLength: 150 }
+        location: { type: string, maxLength: 150 }
+        description: { type: string }
+        startDate: { type: string, format: date }
+        endDate: { type: string, format: date }
+        current: { type: boolean, default: false }
+
+    Position:
+      allOf:
+        - $ref: '#/components/schemas/PositionInput'
+        - $ref: '#/components/schemas/ProfileItem'
+
+    CertificationInput:
+      type: object
+      required: [title]
+      properties:
+        title: { type: string, maxLength: 150 }
+        issuer: { type: string, maxLength: 150 }
+        completionDate: { type: string, format: date }
+        credentialId: { type: string, maxLength: 150 }
+        credentialUrl: { type: string, maxLength: 500 }
+
+    Certification:
+      allOf:
+        - $ref: '#/components/schemas/CertificationInput'
+        - $ref: '#/components/schemas/ProfileItem'
+
+    EducationInput:
+      type: object
+      required: [degree]
+      properties:
+        degree: { type: string, maxLength: 150 }
+        school: { type: string, maxLength: 150 }
+        fieldOfStudy: { type: string, maxLength: 150 }
+        description: { type: string }
+        startDate: { type: string, format: date }
+        endDate: { type: string, format: date }
+
+    Education:
+      allOf:
+        - $ref: '#/components/schemas/EducationInput'
+        - $ref: '#/components/schemas/ProfileItem'
+
+    OwnedResource:
+      type: object
+      required: [id, userId, createdAt, updatedAt]
+      properties:
+        id: { type: integer, format: int64 }
+        userId: { type: integer, format: int64 }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    ProfileItem:
+      type: object
+      required: [id, createdAt, updatedAt]
+      properties:
+        id: { type: integer, format: int64 }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }

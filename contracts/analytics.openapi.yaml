@@ -1,0 +1,101 @@
+openapi: 3.0.3
+info:
+  title: Zennyt — Analytics API
+  description: >
+    Bounded context Analytics : tableaux de bord candidat et recruteur.
+    Principalement en lecture — les données sont alimentées par les Domain Events
+    des autres contextes, jamais écrites directement par le client.
+  version: 1.0.0
+
+servers:
+  - url: https://api.zennyt.com/api/v1
+    description: Production
+  - url: https://api-staging.zennyt.com/api/v1
+    description: Staging
+
+tags:
+  - name: Analytics
+    description: Insights et statistiques
+
+security:
+  - bearerAuth: []
+
+paths:
+  /analytics/candidate/me:
+    get:
+      tags: [Analytics]
+      summary: Tableau de bord du candidat connecté
+      responses:
+        '200':
+          description: Insights candidat
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CandidateInsights' }
+        '403': { $ref: './common.openapi.yaml#/components/responses/Forbidden' }
+
+  /analytics/recruiter/me:
+    get:
+      tags: [Analytics]
+      summary: Statistiques du recruteur connecté
+      responses:
+        '200':
+          description: Statistiques recruteur
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RecruiterStats' }
+        '403': { $ref: './common.openapi.yaml#/components/responses/Forbidden' }
+
+  /analytics/jobs/{jobId}:
+    parameters:
+      - { name: jobId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Analytics]
+      summary: Statistiques d'une offre (recruteur propriétaire)
+      responses:
+        '200':
+          description: Statistiques de l'offre
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/JobStats' }
+        '404': { $ref: './common.openapi.yaml#/components/responses/NotFound' }
+
+components:
+  securitySchemes:
+    bearerAuth: { $ref: './common.openapi.yaml#/components/securitySchemes/bearerAuth' }
+
+  schemas:
+    CandidateInsights:
+      type: object
+      properties:
+        profileViews: { type: integer }
+        profileViewsLast30Days: { type: integer }
+        applicationsSubmitted: { type: integer }
+        applicationsByStatus:
+          type: object
+          additionalProperties: { type: integer }
+          example: { SUBMITTED: 5, VIEWED: 3, INTERVIEW: 1, REJECTED: 2 }
+        profileCompleteness: { type: integer, minimum: 0, maximum: 100, description: "Pourcentage" }
+
+    RecruiterStats:
+      type: object
+      properties:
+        jobsPosted: { type: integer }
+        activeJobs: { type: integer }
+        totalApplications: { type: integer }
+        avgResponseTimeHours: { type: number, format: float }
+        responseRate: { type: number, format: float, description: "Ratio 0..1" }
+
+    JobStats:
+      type: object
+      properties:
+        jobId: { type: string, format: uuid }
+        views: { type: integer }
+        applications: { type: integer }
+        conversionRate: { type: number, format: float, description: "candidatures / vues" }
+        viewsTimeline:
+          type: array
+          items:
+            type: object
+            properties:
+              date: { type: string, format: date }
+              count: { type: integer }

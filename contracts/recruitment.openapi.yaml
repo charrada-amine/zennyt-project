@@ -1,0 +1,335 @@
+openapi: 3.0.3
+info:
+  title: Zennyt — Recruitment API
+  description: >
+    Bounded context Recruitment : publication et recherche d'offres,
+    candidatures et suivi de leur statut, offres sauvegardées.
+  version: 1.0.0
+
+servers:
+  - url: https://api.zennyt.com/api/v1
+    description: Production
+  - url: https://api-staging.zennyt.com/api/v1
+    description: Staging
+
+tags:
+  - name: Jobs
+    description: Offres d'emploi
+  - name: Applications
+    description: Candidatures
+  - name: SavedJobs
+    description: Offres sauvegardées
+
+security:
+  - bearerAuth: []
+
+paths:
+  # ───────────── JOBS ─────────────
+  /jobs:
+    get:
+      tags: [Jobs]
+      summary: Rechercher et filtrer les offres
+      security: []
+      parameters:
+        - { name: q, in: query, description: "Recherche plein texte", schema: { type: string } }
+        - { name: location, in: query, schema: { type: string } }
+        - { name: contractType, in: query, schema: { $ref: '#/components/schemas/ContractType' } }
+        - { name: experienceLevel, in: query, schema: { $ref: '#/components/schemas/ExperienceLevel' } }
+        - { name: remoteAllowed, in: query, schema: { type: boolean } }
+        - { $ref: './common.openapi.yaml#/components/parameters/PageParam' }
+        - { $ref: './common.openapi.yaml#/components/parameters/SizeParam' }
+        - { $ref: './common.openapi.yaml#/components/parameters/SortParam' }
+      responses:
+        '200':
+          description: Page d'offres correspondant aux critères
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/JobPage' }
+    post:
+      tags: [Jobs]
+      summary: Publier une nouvelle offre (recruteur)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/JobPostCreate' }
+      responses:
+        '201':
+          description: Offre créée
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/JobPost' }
+        '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
+        '403': { $ref: './common.openapi.yaml#/components/responses/Forbidden' }
+
+  /jobs/{jobId}:
+    parameters:
+      - { name: jobId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Jobs]
+      summary: Détail d'une offre
+      security: []
+      responses:
+        '200':
+          description: Détail de l'offre
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/JobPost' }
+        '404': { $ref: './common.openapi.yaml#/components/responses/NotFound' }
+    put:
+      tags: [Jobs]
+      summary: Mettre à jour une offre (recruteur propriétaire)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/JobPostCreate' }
+      responses:
+        '200':
+          description: Offre mise à jour
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/JobPost' }
+        '403': { $ref: './common.openapi.yaml#/components/responses/Forbidden' }
+        '404': { $ref: './common.openapi.yaml#/components/responses/NotFound' }
+
+  /jobs/{jobId}/status:
+    parameters:
+      - { name: jobId, in: path, required: true, schema: { type: string, format: uuid } }
+    patch:
+      tags: [Jobs]
+      summary: Changer le statut d'une offre (DRAFT → PUBLISHED → PAUSED → CLOSED)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { $ref: '#/components/schemas/JobStatus' }
+      responses:
+        '200':
+          description: Statut mis à jour
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/JobPost' }
+
+  /jobs/matching:
+    get:
+      tags: [Jobs]
+      summary: Offres recommandées pour le candidat connecté (matching)
+      parameters:
+        - { $ref: './common.openapi.yaml#/components/parameters/PageParam' }
+        - { $ref: './common.openapi.yaml#/components/parameters/SizeParam' }
+      responses:
+        '200':
+          description: Offres triées par score de pertinence
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/JobPage' }
+
+  # ───────────── APPLICATIONS ─────────────
+  /applications:
+    get:
+      tags: [Applications]
+      summary: Lister mes candidatures (candidat) ou les candidatures reçues (recruteur)
+      parameters:
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/ApplicationStatus' } }
+        - { $ref: './common.openapi.yaml#/components/parameters/PageParam' }
+        - { $ref: './common.openapi.yaml#/components/parameters/SizeParam' }
+      responses:
+        '200':
+          description: Page de candidatures
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApplicationPage' }
+    post:
+      tags: [Applications]
+      summary: Soumettre une candidature (candidat)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ApplicationCreate' }
+      responses:
+        '201':
+          description: Candidature soumise
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Application' }
+        '409':
+          description: Candidature déjà existante pour cette offre
+        '403': { $ref: './common.openapi.yaml#/components/responses/Forbidden' }
+
+  /applications/{applicationId}:
+    parameters:
+      - { name: applicationId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Applications]
+      summary: Détail d'une candidature avec son historique de statuts
+      responses:
+        '200':
+          description: Détail de la candidature
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApplicationDetail' }
+        '404': { $ref: './common.openapi.yaml#/components/responses/NotFound' }
+
+  /applications/{applicationId}/status:
+    parameters:
+      - { name: applicationId, in: path, required: true, schema: { type: string, format: uuid } }
+    patch:
+      tags: [Applications]
+      summary: Faire évoluer le statut d'une candidature (recruteur)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { $ref: '#/components/schemas/ApplicationStatus' }
+                note: { type: string }
+      responses:
+        '200':
+          description: Statut mis à jour
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Application' }
+        '403': { $ref: './common.openapi.yaml#/components/responses/Forbidden' }
+
+  # ───────────── SAVED JOBS ─────────────
+  /saved-jobs:
+    get:
+      tags: [SavedJobs]
+      summary: Lister les offres sauvegardées du candidat
+      responses:
+        '200':
+          description: Offres sauvegardées
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/JobPost' }
+    post:
+      tags: [SavedJobs]
+      summary: Sauvegarder une offre
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [jobId]
+              properties:
+                jobId: { type: string, format: uuid }
+      responses:
+        '201': { description: Offre sauvegardée }
+
+components:
+  securitySchemes:
+    bearerAuth: { $ref: './common.openapi.yaml#/components/securitySchemes/bearerAuth' }
+
+  schemas:
+    ContractType:
+      type: string
+      enum: [FULL_TIME, PART_TIME, CONTRACT, INTERNSHIP, FREELANCE]
+    ExperienceLevel:
+      type: string
+      enum: [JUNIOR, MID, SENIOR, LEAD]
+    JobStatus:
+      type: string
+      enum: [DRAFT, PUBLISHED, PAUSED, CLOSED]
+    ApplicationStatus:
+      type: string
+      enum: [SUBMITTED, VIEWED, SHORTLISTED, INTERVIEW, OFFER, REJECTED, WITHDRAWN]
+
+    JobPost:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        recruiterId: { type: string, format: uuid }
+        companyName: { type: string }
+        companyLogoUrl: { type: string, format: uri }
+        title: { type: string }
+        description: { type: string }
+        contractType: { $ref: '#/components/schemas/ContractType' }
+        location: { type: string }
+        remoteAllowed: { type: boolean }
+        salaryRange: { type: string, example: "45k-60k EUR" }
+        experienceLevel: { $ref: '#/components/schemas/ExperienceLevel' }
+        requiredSkills:
+          type: array
+          items: { type: string }
+        status: { $ref: '#/components/schemas/JobStatus' }
+        viewsCount: { type: integer }
+        hasApplied: { type: boolean, description: "Vrai si le candidat connecté a déjà postulé" }
+        publishedAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+
+    JobPostCreate:
+      type: object
+      required: [title, description, contractType, location, experienceLevel]
+      properties:
+        title: { type: string, minLength: 3 }
+        description: { type: string, minLength: 20 }
+        contractType: { $ref: '#/components/schemas/ContractType' }
+        location: { type: string }
+        remoteAllowed: { type: boolean, default: false }
+        salaryRange: { type: string }
+        experienceLevel: { $ref: '#/components/schemas/ExperienceLevel' }
+        requiredSkills:
+          type: array
+          items: { type: string }
+
+    JobPage:
+      type: object
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/JobPost' }
+        page: { $ref: './common.openapi.yaml#/components/schemas/PageMeta' }
+
+    Application:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        candidateId: { type: string, format: uuid }
+        jobId: { type: string, format: uuid }
+        jobTitle: { type: string }
+        currentStatus: { $ref: '#/components/schemas/ApplicationStatus' }
+        appliedAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    ApplicationCreate:
+      type: object
+      required: [jobId]
+      properties:
+        jobId: { type: string, format: uuid }
+        coverLetter: { type: string }
+
+    ApplicationDetail:
+      allOf:
+        - { $ref: '#/components/schemas/Application' }
+        - type: object
+          properties:
+            coverLetter: { type: string }
+            cvSnapshotUrl: { type: string, format: uri }
+            statusHistory:
+              type: array
+              items:
+                type: object
+                properties:
+                  status: { $ref: '#/components/schemas/ApplicationStatus' }
+                  note: { type: string }
+                  changedAt: { type: string, format: date-time }
+
+    ApplicationPage:
+      type: object
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/Application' }
+        page: { $ref: './common.openapi.yaml#/components/schemas/PageMeta' }

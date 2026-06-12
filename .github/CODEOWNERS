@@ -1,0 +1,31 @@
+# CODEOWNERS — Progress Careers
+# Chaque squad est propriétaire de son bounded context.
+# Une PR touchant un chemin requiert l'approbation du ou des owners correspondants.
+# Remplacez les @équipes par les vrais noms d'équipes GitHub une fois créées.
+
+# ───────────── Bounded contexts backend ─────────────
+/backend/src/main/java/com/progresscareers/identity/      @progress-careers/squad-identity
+/backend/src/main/java/com/progresscareers/recruitment/   @progress-careers/squad-jobs
+/backend/src/main/java/com/progresscareers/engagement/    @progress-careers/squad-engagement
+/backend/src/main/java/com/progresscareers/analytics/     @progress-careers/squad-engagement
+
+# ───────────── Modules Flutter ─────────────
+/mobile/lib/features/auth/            @progress-careers/squad-identity
+/mobile/lib/features/profile/         @progress-careers/squad-identity
+/mobile/lib/features/jobs/            @progress-careers/squad-jobs
+/mobile/lib/features/applications/    @progress-careers/squad-jobs
+/mobile/lib/features/chat/            @progress-careers/squad-engagement
+/mobile/lib/features/notifications/   @progress-careers/squad-engagement
+
+# ───────────── Zones partagées — approbation des référents ─────────────
+/backend/src/main/java/com/progresscareers/shared/   @progress-careers/tech-lead @progress-careers/referent-plateforme
+/mobile/lib/core/                                      @progress-careers/referent-design-system
+/mobile/lib/shared/                                    @progress-careers/referent-design-system
+/contracts/                                            @progress-careers/tech-lead
+/infra/                                                @progress-careers/referent-plateforme
+/.github/                                              @progress-careers/referent-plateforme @progress-careers/tech-lead
+
+# ───────────── Fichiers racine sensibles ─────────────
+/Dockerfile                @progress-careers/referent-plateforme
+/backend/Dockerfile        @progress-careers/referent-plateforme
+/backend/pom.xml           @progress-careers/tech-lead

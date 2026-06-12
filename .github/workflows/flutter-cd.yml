@@ -1,0 +1,113 @@
+name: flutter-cd
+
+on:
+  push:
+    branches: [develop, "release/**", main]
+    paths: ["mobile/**", ".github/workflows/flutter-cd.yml"]
+  pull_request:
+    branches: [develop]
+    paths: ["mobile/**"]
+
+env:
+  FLUTTER_VERSION: "3.32.0"
+
+jobs:
+  # ───────────── CI : tests + analyse ─────────────
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - run: flutter pub get
+      - name: Format check
+        run: dart format --set-exit-if-changed .
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos
+      - name: Tests + couverture
+        run: flutter test --coverage
+      - name: Golden tests
+        run: flutter test test/golden/ --update-goldens=false
+      - name: Publier la couverture
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-coverage
+          path: mobile/coverage/lcov.info
+
+  # ───────────── CD : build Android (AAB) ─────────────
+  build-android:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17" }
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - name: Restaurer le keystore (depuis secret base64)
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_B64 }}" | base64 -d > android/keystore.jks
+          cat > android/key.properties <<EOF
+          storeFile=keystore.jks
+          storePassword=${{ secrets.ANDROID_STORE_PASSWORD }}
+          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          EOF
+      - run: flutter pub get
+      - name: Build AAB
+        run: |
+          flutter build appbundle --release \
+            --dart-define=ENV=production \
+            --dart-define=API_BASE_URL=${{ vars.API_BASE_URL_PROD }} \
+            --dart-define=SIGNALR_URL=${{ vars.SIGNALR_URL_PROD }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-aab
+          path: mobile/build/app/outputs/bundle/release/*.aab
+
+  # ───────────── CD : build iOS (IPA) ─────────────
+  build-ios:
+    needs: test
+    runs-on: macos-latest
+    if: github.event_name == 'push'
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - name: Installer certificat + provisioning profile
+        run: |
+          echo "${{ secrets.IOS_CERT_P12_B64 }}" | base64 -d > /tmp/cert.p12
+          security create-keychain -p "" build.keychain
+          security import /tmp/cert.p12 -k build.keychain \
+            -P "${{ secrets.IOS_CERT_PASSWORD }}" -T /usr/bin/codesign
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "${{ secrets.IOS_PROFILE_B64 }}" | base64 -d > \
+            ~/Library/MobileDevice/Provisioning\ Profiles/app.mobileprovision
+      - run: flutter pub get
+      - name: Build IPA
+        run: |
+          flutter build ipa --release \
+            --dart-define=ENV=production \
+            --dart-define=API_BASE_URL=${{ vars.API_BASE_URL_PROD }} \
+            --export-options-plist=ios/ExportOptions.plist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-ipa
+          path: mobile/build/ios/ipa/*.ipa

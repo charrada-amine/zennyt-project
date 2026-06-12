@@ -1,0 +1,234 @@
+openapi: 3.0.3
+info:
+  title: Zennyt — Engagement API
+  description: >
+    Bounded context Engagement : messagerie candidat/recruteur, notifications,
+    enregistrement des appareils push et négociation de la connexion temps réel SignalR.
+  version: 1.0.0
+
+servers:
+  - url: https://api.zennyt.com/api/v1
+    description: Production
+  - url: https://api-staging.zennyt.com/api/v1
+    description: Staging
+
+tags:
+  - name: Conversations
+    description: Fils de discussion
+  - name: Messages
+    description: Messages d'une conversation
+  - name: Notifications
+    description: Centre de notifications
+  - name: Realtime
+    description: Connexion temps réel (SignalR) et appareils push
+
+security:
+  - bearerAuth: []
+
+paths:
+  # ───────────── CONVERSATIONS ─────────────
+  /conversations:
+    get:
+      tags: [Conversations]
+      summary: Lister les conversations de l'utilisateur connecté
+      parameters:
+        - { $ref: './common.openapi.yaml#/components/parameters/PageParam' }
+        - { $ref: './common.openapi.yaml#/components/parameters/SizeParam' }
+      responses:
+        '200':
+          description: Page de conversations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: array
+                    items: { $ref: '#/components/schemas/Conversation' }
+                  page: { $ref: './common.openapi.yaml#/components/schemas/PageMeta' }
+    post:
+      tags: [Conversations]
+      summary: Démarrer une conversation liée à une candidature
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [applicationId]
+              properties:
+                applicationId: { type: string, format: uuid }
+      responses:
+        '201':
+          description: Conversation créée (ou existante)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Conversation' }
+
+  /conversations/{conversationId}/messages:
+    parameters:
+      - { name: conversationId, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [Messages]
+      summary: Lister les messages d'une conversation (paginé, plus récents d'abord)
+      parameters:
+        - { name: before, in: query, description: "Curseur — messages avant cet ID", schema: { type: string } }
+        - { $ref: './common.openapi.yaml#/components/parameters/SizeParam' }
+      responses:
+        '200':
+          description: Messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Message' }
+        '404': { $ref: './common.openapi.yaml#/components/responses/NotFound' }
+    post:
+      tags: [Messages]
+      summary: Envoyer un message
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MessageCreate' }
+      responses:
+        '201':
+          description: Message envoyé
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Message' }
+
+  /conversations/{conversationId}/read:
+    parameters:
+      - { name: conversationId, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [Messages]
+      summary: Marquer la conversation comme lue
+      responses:
+        '204': { description: Marquée comme lue }
+
+  # ───────────── NOTIFICATIONS ─────────────
+  /notifications:
+    get:
+      tags: [Notifications]
+      summary: Lister les notifications de l'utilisateur
+      parameters:
+        - { name: unreadOnly, in: query, schema: { type: boolean, default: false } }
+        - { $ref: './common.openapi.yaml#/components/parameters/PageParam' }
+        - { $ref: './common.openapi.yaml#/components/parameters/SizeParam' }
+      responses:
+        '200':
+          description: Page de notifications + compteur non lues
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  unreadCount: { type: integer }
+                  content:
+                    type: array
+                    items: { $ref: '#/components/schemas/Notification' }
+                  page: { $ref: './common.openapi.yaml#/components/schemas/PageMeta' }
+
+  /notifications/{notificationId}/read:
+    parameters:
+      - { name: notificationId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Notifications]
+      summary: Marquer une notification comme lue
+      responses:
+        '204': { description: Marquée comme lue }
+
+  /notifications/read-all:
+    post:
+      tags: [Notifications]
+      summary: Tout marquer comme lu
+      responses:
+        '204': { description: Toutes marquées comme lues }
+
+  # ───────────── REALTIME ─────────────
+  /realtime/negotiate:
+    post:
+      tags: [Realtime]
+      summary: Obtenir l'URL et le jeton de connexion SignalR
+      responses:
+        '200':
+          description: Informations de connexion SignalR
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url: { type: string, format: uri }
+                  accessToken: { type: string }
+
+  /realtime/devices:
+    post:
+      tags: [Realtime]
+      summary: Enregistrer un appareil pour les notifications push
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PushDeviceRegistration' }
+      responses:
+        '201': { description: Appareil enregistré }
+
+components:
+  securitySchemes:
+    bearerAuth: { $ref: './common.openapi.yaml#/components/securitySchemes/bearerAuth' }
+
+  schemas:
+    Conversation:
+      type: object
+      properties:
+        id: { type: string }
+        applicationId: { type: string, format: uuid }
+        jobTitle: { type: string }
+        counterpartName: { type: string, description: "Nom de l'interlocuteur" }
+        counterpartPhotoUrl: { type: string, format: uri }
+        lastMessagePreview: { type: string }
+        lastMessageAt: { type: string, format: date-time }
+        unreadCount: { type: integer }
+
+    Message:
+      type: object
+      properties:
+        id: { type: string }
+        conversationId: { type: string }
+        senderId: { type: string, format: uuid }
+        senderRole: { type: string, enum: [CANDIDATE, RECRUITER, SYSTEM] }
+        content: { type: string }
+        contentType: { type: string, enum: [TEXT, IMAGE, FILE, SYSTEM], default: TEXT }
+        attachmentUrl: { type: string, format: uri }
+        sentAt: { type: string, format: date-time }
+        readAt: { type: string, format: date-time, nullable: true }
+
+    MessageCreate:
+      type: object
+      required: [content]
+      properties:
+        content: { type: string, minLength: 1 }
+        contentType: { type: string, enum: [TEXT, IMAGE, FILE], default: TEXT }
+        attachmentUrl: { type: string, format: uri }
+
+    Notification:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        type:
+          type: string
+          enum: [APPLICATION_VIEWED, APPLICATION_STATUS_CHANGED, NEW_MESSAGE, JOB_MATCH, PROFILE_VIEWED]
+        title: { type: string }
+        body: { type: string }
+        actionUrl: { type: string, description: "Deep link in-app, ex: /applications/{id}" }
+        isRead: { type: boolean }
+        createdAt: { type: string, format: date-time }
+
+    PushDeviceRegistration:
+      type: object
+      required: [token, platform]
+      properties:
+        token: { type: string, description: "Jeton FCM ou APNs" }
+        platform: { type: string, enum: [ANDROID, IOS] }
+        deviceName: { type: string }

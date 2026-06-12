@@ -1,0 +1,67 @@
+spring:
+  application:
+    name: zennyt-api
+  jpa:
+    hibernate:
+      ddl-auto: validate          # le schéma est géré par migrations (Flyway/Liquibase), jamais auto
+    properties:
+      hibernate:
+        default_schema: public
+identity:
+  jwt:
+    access-ttl: ${JWT_ACCESS_TTL:PT15M}
+    refresh-ttl: ${JWT_REFRESH_TTL:P30D}
+  social:
+    google:
+      issuer: https://accounts.google.com
+      jwk-set-uri: https://www.googleapis.com/oauth2/v3/certs
+      client-ids: ${GOOGLE_CLIENT_IDS:}
+    apple:
+      issuer: https://appleid.apple.com
+      jwk-set-uri: https://appleid.apple.com/auth/keys
+      client-ids: ${APPLE_CLIENT_IDS:}
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true             # liveness/readiness pour App Service
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+
+---
+# Profil DEV
+spring:
+  config:
+    activate:
+      on-profile: dev
+  datasource:
+    url: jdbc:postgresql://localhost:5432/zennyt
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+
+---
+# Profil PROD (valeurs injectées depuis Key Vault via App Service)
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+  jpa:
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC

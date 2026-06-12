@@ -1,0 +1,181 @@
+name: backend-cd
+
+on:
+  push:
+    branches: [develop, "release/**", main]
+    paths: ["backend/**", ".github/workflows/backend-cd.yml"]
+  pull_request:
+    branches: [develop]
+    paths: ["backend/**"]
+
+env:
+  ACR_REGISTRY: progresscareers.azurecr.io
+  IMAGE_NAME: progress-careers-api
+
+permissions:
+  id-token: write        # requis pour l'authentification OIDC (Workload Identity)
+  contents: read
+
+jobs:
+  # ───────────── CI : build + test + qualité ─────────────
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Build + tests + couverture
+        working-directory: backend
+        run: ./mvnw clean verify
+      - name: SonarCloud
+        if: github.event_name == 'push'
+        working-directory: backend
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: ./mvnw sonar:sonar -Dsonar.projectKey=progress-careers
+      - name: Publier le rapport de tests
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: backend/target/surefire-reports/
+
+  # ───────────── CI : build image + scan + push ACR ─────────────
+  build-image:
+    needs: build-test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    outputs:
+      image-tag: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Login ACR
+        run: az acr login --name progresscareers
+      - name: Build image
+        working-directory: backend
+        run: |
+          docker build -t $ACR_REGISTRY/$IMAGE_NAME:${{ github.sha }} \
+                       -t $ACR_REGISTRY/$IMAGE_NAME:latest .
+      - name: Scan Trivy (bloquant sur CRITICAL)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.ACR_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          exit-code: "1"
+          severity: CRITICAL
+          ignore-unfixed: true
+      - name: Push ACR
+        run: |
+          docker push $ACR_REGISTRY/$IMAGE_NAME:${{ github.sha }}
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            docker push $ACR_REGISTRY/$IMAGE_NAME:latest
+          fi
+
+  # ───────────── CD : DEV (auto sur develop) ─────────────
+  deploy-dev:
+    needs: build-image
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    environment: dev
+    steps:
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Déployer sur App Service dev
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: progress-careers-dev
+          images: ${{ env.ACR_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+  # ───────────── CD : STAGING (sur release/*) ─────────────
+  deploy-staging:
+    needs: build-image
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/heads/release/')
+    environment: staging
+    steps:
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Déployer sur App Service staging
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: progress-careers-staging
+          images: ${{ env.ACR_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+      - name: Smoke tests staging
+        run: |
+          for i in $(seq 1 5); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" \
+              https://progress-careers-staging.azurewebsites.net/actuator/health)
+            if [ "$code" = "200" ]; then echo "OK ($i)"; else echo "FAIL $code"; exit 1; fi
+            sleep 10
+          done
+
+  # ───────────── CD : PRODUCTION (slot swap, sur main) ─────────────
+  deploy-prod:
+    needs: build-image
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment: production        # ← protection + approbation Tech Lead/PO configurée dans GitHub
+    steps:
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Déployer sur le SLOT staging (pas production)
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: progress-careers-prod
+          slot-name: staging
+          images: ${{ env.ACR_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+      - name: Smoke tests slot staging
+        run: |
+          for i in $(seq 1 5); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" \
+              https://progress-careers-prod-staging.azurewebsites.net/actuator/health)
+            if [ "$code" = "200" ]; then echo "OK ($i)"; else echo "FAIL $code"; exit 1; fi
+            sleep 10
+          done
+      - name: Swap atomique staging vers production
+        run: |
+          az webapp deployment slot swap \
+            --resource-group rg-progress-careers-prod \
+            --name progress-careers-prod \
+            --slot staging --target-slot production
+      - name: Observation post-swap (rollback auto si error rate > 1%)
+        run: |
+          END=$(( $(date +%s) + 600 ))
+          while [ $(date +%s) -lt $END ]; do
+            RATE=$(az monitor metrics list \
+              --resource "${{ secrets.APPINSIGHTS_RESOURCE_ID }}" \
+              --metric "requests/failed" --interval PT1M \
+              --query 'value[0].timeseries[0].data[-1].average' -o tsv)
+            RATE=${RATE:-0}
+            echo "Error rate: $RATE%"
+            if awk "BEGIN{exit !($RATE > 1.0)}"; then
+              echo "Seuil dépassé — rollback par swap inverse"
+              az webapp deployment slot swap \
+                --resource-group rg-progress-careers-prod \
+                --name progress-careers-prod \
+                --slot production --target-slot staging
+              exit 1
+            fi
+            sleep 60
+          done
+          echo "Production stable"

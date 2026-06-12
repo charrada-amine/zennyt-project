@@ -1,0 +1,58 @@
+package com.zennyt.identity.infrastructure.persistence;
+
+import com.zennyt.identity.domain.model.User;
+import com.zennyt.identity.domain.repository.UserRepository;
+import com.zennyt.shared.domain.vo.Email;
+import org.springframework.stereotype.Component;
+
+import java.util.Optional;
+import java.util.UUID;
+
+@Component
+public class UserRepositoryAdapter implements UserRepository {
+    private final JpaUserRepository jpa;
+
+    public UserRepositoryAdapter(JpaUserRepository jpa) {
+        this.jpa = jpa;
+    }
+
+    @Override
+    public User save(User user) {
+        return toDomain(jpa.save(toEntity(user)));
+    }
+
+    @Override
+    public Optional<User> findById(Long id) {
+        return jpa.findById(id).map(this::toDomain);
+    }
+
+    @Override
+    public Optional<User> findByEmail(String email) {
+        return jpa.findByEmailIgnoreCase(email).map(this::toDomain);
+    }
+
+    @Override
+    public Optional<User> findByPublicId(UUID publicId) {
+        return jpa.findByPublicId(publicId).map(this::toDomain);
+    }
+
+    @Override
+    public boolean existsByEmail(String email) {
+        return jpa.existsByEmailIgnoreCase(email);
+    }
+
+    private UserEntity toEntity(User user) {
+        return new UserEntity(user.id(), user.publicId(), user.firstName(), user.lastName(),
+            user.email().value(), user.phoneNumber(), user.passwordHash(), user.role(), user.city(),
+            user.country(), user.address(), user.profileImageUrl(), user.termsAccepted(),
+            user.emailVerified(), user.active(), user.createdAt(), user.updatedAt());
+    }
+
+    private User toDomain(UserEntity entity) {
+        return User.rehydrate(entity.getId(), entity.getPublicId(), entity.getFirstName(),
+            entity.getLastName(), new Email(entity.getEmail()), entity.getPhoneNumber(),
+            entity.getPasswordHash(), entity.getRole(), entity.getCity(), entity.getCountry(),
+            entity.getAddress(), entity.getProfileImageUrl(), entity.isTermsAccepted(),
+            entity.isEmailVerified(), entity.isActive(), entity.getCreatedAt(), entity.getUpdatedAt());
+    }
+}
