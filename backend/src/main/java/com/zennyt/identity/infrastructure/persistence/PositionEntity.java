@@ -2,13 +2,19 @@ package com.zennyt.identity.infrastructure.persistence;
 
 import com.zennyt.identity.domain.model.Position;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 import java.time.LocalDate;
 
 @Entity
 @Table(name = "positions")
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PositionEntity {
+    @Getter(AccessLevel.PACKAGE)
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "profile_id", nullable = false)
@@ -32,13 +38,12 @@ public class PositionEntity {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    protected PositionEntity() {}
     PositionEntity(ProfileEntity profile, Position value) {
         this.profile = profile;
         this.createdAt = value.createdAt();
         updateFrom(value);
     }
-    Long getId() { return id; }
+
     void updateFrom(Position value) {
         this.title = value.title();
         this.companyName = value.companyName(); this.location = value.location();
@@ -46,6 +51,7 @@ public class PositionEntity {
         this.endDate = value.endDate(); this.current = value.current();
         this.updatedAt = value.updatedAt();
     }
+
     Position toDomain() {
         return new Position(id, title, companyName, location, description, startDate, endDate,
             current, createdAt, updatedAt);

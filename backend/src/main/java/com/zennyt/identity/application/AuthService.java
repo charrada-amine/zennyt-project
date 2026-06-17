@@ -10,6 +10,7 @@ import com.zennyt.identity.domain.repository.SocialIdentityRepository;
 import com.zennyt.identity.domain.repository.UserRepository;
 import com.zennyt.shared.application.exception.ConflictException;
 import com.zennyt.shared.domain.vo.Email;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -20,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class AuthService {
     private final UserRepository users;
     private final PasswordEncoder passwordEncoder;
@@ -27,18 +29,6 @@ public class AuthService {
     private final TokenService tokens;
     private final SocialIdentityRepository socialIdentities;
     private final SocialIdentityVerifier socialIdentityVerifier;
-
-    public AuthService(UserRepository users, PasswordEncoder passwordEncoder,
-                       AuthenticationManager authenticationManager, TokenService tokens,
-                       SocialIdentityRepository socialIdentities,
-                       SocialIdentityVerifier socialIdentityVerifier) {
-        this.users = users;
-        this.passwordEncoder = passwordEncoder;
-        this.authenticationManager = authenticationManager;
-        this.tokens = tokens;
-        this.socialIdentities = socialIdentities;
-        this.socialIdentityVerifier = socialIdentityVerifier;
-    }
 
     @Transactional
     public TokenService.TokenPair register(String firstName, String lastName, String email,

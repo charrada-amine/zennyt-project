@@ -1,12 +1,19 @@
 package com.zennyt.identity.infrastructure.persistence;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
 @Table(name = "refresh_sessions")
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PACKAGE)
 public class RefreshSessionEntity {
     @Id
     private UUID id;
@@ -20,17 +27,4 @@ public class RefreshSessionEntity {
     private Instant createdAt;
     @Column(name = "revoked_at")
     private Instant revokedAt;
-
-    protected RefreshSessionEntity() {}
-    RefreshSessionEntity(UUID id, Long userId, String tokenHash, Instant expiresAt,
-                         Instant createdAt, Instant revokedAt) {
-        this.id = id; this.userId = userId; this.tokenHash = tokenHash; this.expiresAt = expiresAt;
-        this.createdAt = createdAt; this.revokedAt = revokedAt;
-    }
-    public UUID getId() { return id; }
-    public Long getUserId() { return userId; }
-    public String getTokenHash() { return tokenHash; }
-    public Instant getExpiresAt() { return expiresAt; }
-    public Instant getCreatedAt() { return createdAt; }
-    public Instant getRevokedAt() { return revokedAt; }
 }

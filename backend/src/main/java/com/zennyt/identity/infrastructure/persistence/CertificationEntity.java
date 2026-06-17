@@ -2,13 +2,19 @@ package com.zennyt.identity.infrastructure.persistence;
 
 import com.zennyt.identity.domain.model.Certification;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 import java.time.LocalDate;
 
 @Entity
 @Table(name = "certifications")
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class CertificationEntity {
+    @Getter(AccessLevel.PACKAGE)
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "profile_id", nullable = false)
@@ -28,19 +34,19 @@ public class CertificationEntity {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    protected CertificationEntity() {}
     CertificationEntity(ProfileEntity profile, Certification value) {
         this.profile = profile;
         this.createdAt = value.createdAt();
         updateFrom(value);
     }
-    Long getId() { return id; }
+
     void updateFrom(Certification value) {
         this.title = value.title();
         this.issuer = value.issuer(); this.completionDate = value.completionDate();
         this.credentialId = value.credentialId(); this.credentialUrl = value.credentialUrl();
         this.updatedAt = value.updatedAt();
     }
+
     Certification toDomain() {
         return new Certification(id, title, issuer, completionDate, credentialId, credentialUrl,
             createdAt, updatedAt);

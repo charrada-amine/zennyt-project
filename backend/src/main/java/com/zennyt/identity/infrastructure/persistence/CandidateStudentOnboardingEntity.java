@@ -1,11 +1,18 @@
 package com.zennyt.identity.infrastructure.persistence;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 
 @Entity
 @Table(name = "candidate_student_onboarding_infos")
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 public class CandidateStudentOnboardingEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -28,33 +35,4 @@ public class CandidateStudentOnboardingEntity {
     private Instant createdAt;
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
-
-    protected CandidateStudentOnboardingEntity() {}
-
-    public CandidateStudentOnboardingEntity(Long id, Long userId, String school,
-                                             String educationLevel, String fieldOfWork,
-                                             String lastPositionHeld, Integer yearsOfExperience,
-                                             String cvFileUrl, Instant createdAt, Instant updatedAt) {
-        this.id = id;
-        this.userId = userId;
-        this.school = school;
-        this.educationLevel = educationLevel;
-        this.fieldOfWork = fieldOfWork;
-        this.lastPositionHeld = lastPositionHeld;
-        this.yearsOfExperience = yearsOfExperience;
-        this.cvFileUrl = cvFileUrl;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-    }
-
-    public Long getId() { return id; }
-    public Long getUserId() { return userId; }
-    public String getSchool() { return school; }
-    public String getEducationLevel() { return educationLevel; }
-    public String getFieldOfWork() { return fieldOfWork; }
-    public String getLastPositionHeld() { return lastPositionHeld; }
-    public Integer getYearsOfExperience() { return yearsOfExperience; }
-    public String getCvFileUrl() { return cvFileUrl; }
-    public Instant getCreatedAt() { return createdAt; }
-    public Instant getUpdatedAt() { return updatedAt; }
 }

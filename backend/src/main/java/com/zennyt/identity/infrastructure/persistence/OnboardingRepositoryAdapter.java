@@ -3,20 +3,16 @@ package com.zennyt.identity.infrastructure.persistence;
 import com.zennyt.identity.domain.model.CandidateStudentOnboarding;
 import com.zennyt.identity.domain.model.RecruiterOnboarding;
 import com.zennyt.identity.domain.repository.OnboardingRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
 
 @Component
+@RequiredArgsConstructor
 public class OnboardingRepositoryAdapter implements OnboardingRepository {
     private final JpaCandidateStudentOnboardingRepository candidateStudentJpa;
     private final JpaRecruiterOnboardingRepository recruiterJpa;
-
-    public OnboardingRepositoryAdapter(JpaCandidateStudentOnboardingRepository candidateStudentJpa,
-                                       JpaRecruiterOnboardingRepository recruiterJpa) {
-        this.candidateStudentJpa = candidateStudentJpa;
-        this.recruiterJpa = recruiterJpa;
-    }
 
     @Override
     public CandidateStudentOnboarding saveCandidateStudent(CandidateStudentOnboarding value) {

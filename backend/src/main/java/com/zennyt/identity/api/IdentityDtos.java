@@ -4,13 +4,14 @@ import com.zennyt.identity.application.IdentityService;
 import com.zennyt.identity.application.port.TokenService;
 import com.zennyt.identity.domain.model.*;
 import jakarta.validation.constraints.*;
+import lombok.experimental.UtilityClass;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
+@UtilityClass
 public final class IdentityDtos {
-    private IdentityDtos() {}
 
     public record RegisterRequest(
         @NotBlank @Size(max = 100) String firstName,

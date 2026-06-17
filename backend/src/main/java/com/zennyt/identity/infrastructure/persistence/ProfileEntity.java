@@ -2,6 +2,9 @@ package com.zennyt.identity.infrastructure.persistence;
 
 import com.zennyt.identity.domain.model.*;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -11,6 +14,8 @@ import java.util.Objects;
 
 @Entity
 @Table(name = "profiles")
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ProfileEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -59,8 +64,6 @@ public class ProfileEntity {
     private List<CertificationEntity> certifications = new ArrayList<>();
     @OneToMany(mappedBy = "profile", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<EducationEntity> education = new ArrayList<>();
-
-    protected ProfileEntity() {}
 
     public ProfileEntity(Profile profile) {
         this.userId = profile.userId();
@@ -157,26 +160,4 @@ public class ProfileEntity {
             }
         });
     }
-
-    public Long getId() { return id; }
-    public Long getUserId() { return userId; }
-    public String getCurrentPosition() { return currentPosition; }
-    public String getLookingFor() { return lookingFor; }
-    public WorkplaceType getWorkplaceType() { return workplaceType; }
-    public JobType getJobType() { return jobType; }
-    public String getTargetJobLocation() { return targetJobLocation; }
-    public Integer getYearsOfExperience() { return yearsOfExperience; }
-    public Integer getSoftSkillsScore() { return softSkillsScore; }
-    public String getAboutMe() { return aboutMe; }
-    public boolean isOpenInternationally() { return openInternationally; }
-    public AvailabilityType getAvailabilityType() { return availabilityType; }
-    public LocalDate getAvailabilityDate() { return availabilityDate; }
-    public String getResumeAiUrl() { return resumeAiUrl; }
-    public String getPortfolioUrl() { return portfolioUrl; }
-    public Instant getCreatedAt() { return createdAt; }
-    public Instant getUpdatedAt() { return updatedAt; }
-    public List<SkillEntity> getSkills() { return skills; }
-    public List<PositionEntity> getPositions() { return positions; }
-    public List<CertificationEntity> getCertifications() { return certifications; }
-    public List<EducationEntity> getEducation() { return education; }
 }

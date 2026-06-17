@@ -2,17 +2,15 @@ package com.zennyt.identity.infrastructure.persistence;
 
 import com.zennyt.identity.domain.model.Profile;
 import com.zennyt.identity.domain.repository.ProfileRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
 
 @Component
+@RequiredArgsConstructor
 public class ProfileRepositoryAdapter implements ProfileRepository {
     private final JpaProfileRepository jpa;
-
-    public ProfileRepositoryAdapter(JpaProfileRepository jpa) {
-        this.jpa = jpa;
-    }
 
     @Override
     public Profile save(Profile profile) {

@@ -1,76 +1,77 @@
 package com.zennyt.identity.api;
 
 import com.zennyt.identity.application.IdentityService;
+import com.zennyt.identity.api.security.CandidateOrStudentOnly;
+import com.zennyt.identity.api.security.RecruiterOnly;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
 import static com.zennyt.identity.api.IdentityDtos.*;
+import com.zennyt.identity.api.security.CurrentUserId;
 
 @RestController
 @RequestMapping("/api/v1/onboarding")
+@RequiredArgsConstructor
 public class OnboardingController {
     private final IdentityService identity;
 
-    public OnboardingController(IdentityService identity) {
-        this.identity = identity;
-    }
-
     @PostMapping("/candidate-student")
+    @CandidateOrStudentOnly
     public ResponseEntity<CandidateStudentOnboardingResponse> createCandidateStudent(
-        @AuthenticationPrincipal Jwt jwt,
+        @CurrentUserId UUID userId,
         @Valid @RequestBody CandidateStudentOnboardingRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(
-            CandidateStudentOnboardingResponse.from(identity.saveCandidateStudent(subject(jwt),
+            CandidateStudentOnboardingResponse.from(identity.saveCandidateStudent(userId,
                 request.school(), request.educationLevel(), request.fieldOfWork(),
                 request.lastPositionHeld(), request.yearsOfExperience(), request.cvFileUrl(), true)));
     }
 
     @GetMapping("/candidate-student/me")
-    public CandidateStudentOnboardingResponse getCandidateStudent(@AuthenticationPrincipal Jwt jwt) {
+    @CandidateOrStudentOnly
+    public CandidateStudentOnboardingResponse getCandidateStudent(@CurrentUserId UUID userId) {
         return CandidateStudentOnboardingResponse.from(
-            identity.candidateStudentOnboarding(subject(jwt)));
+            identity.candidateStudentOnboarding(userId));
     }
 
     @PutMapping("/candidate-student/me")
+    @CandidateOrStudentOnly
     public CandidateStudentOnboardingResponse updateCandidateStudent(
-        @AuthenticationPrincipal Jwt jwt,
+        @CurrentUserId UUID userId,
         @Valid @RequestBody CandidateStudentOnboardingRequest request) {
-        return CandidateStudentOnboardingResponse.from(identity.saveCandidateStudent(subject(jwt),
+        return CandidateStudentOnboardingResponse.from(identity.saveCandidateStudent(userId,
             request.school(), request.educationLevel(), request.fieldOfWork(),
             request.lastPositionHeld(), request.yearsOfExperience(), request.cvFileUrl(), false));
     }
 
     @PostMapping("/recruiter")
+    @RecruiterOnly
     public ResponseEntity<RecruiterOnboardingResponse> createRecruiter(
-        @AuthenticationPrincipal Jwt jwt, @Valid @RequestBody RecruiterOnboardingRequest request) {
+        @CurrentUserId UUID userId, @Valid @RequestBody RecruiterOnboardingRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(
-            RecruiterOnboardingResponse.from(identity.saveRecruiter(subject(jwt),
+            RecruiterOnboardingResponse.from(identity.saveRecruiter(userId,
                 request.jobTitle(), request.companyName(), request.companySize(),
                 request.companyLogoUrl(), request.fieldOfWork(), request.companyLocation(),
                 request.companyRegistrationNumber(), true)));
     }
 
     @GetMapping("/recruiter/me")
-    public RecruiterOnboardingResponse getRecruiter(@AuthenticationPrincipal Jwt jwt) {
-        return RecruiterOnboardingResponse.from(identity.recruiterOnboarding(subject(jwt)));
+    @RecruiterOnly
+    public RecruiterOnboardingResponse getRecruiter(@CurrentUserId UUID userId) {
+        return RecruiterOnboardingResponse.from(identity.recruiterOnboarding(userId));
     }
 
     @PutMapping("/recruiter/me")
+    @RecruiterOnly
     public RecruiterOnboardingResponse updateRecruiter(
-        @AuthenticationPrincipal Jwt jwt, @Valid @RequestBody RecruiterOnboardingRequest request) {
-        return RecruiterOnboardingResponse.from(identity.saveRecruiter(subject(jwt),
+        @CurrentUserId UUID userId, @Valid @RequestBody RecruiterOnboardingRequest request) {
+        return RecruiterOnboardingResponse.from(identity.saveRecruiter(userId,
             request.jobTitle(), request.companyName(), request.companySize(),
             request.companyLogoUrl(), request.fieldOfWork(), request.companyLocation(),
             request.companyRegistrationNumber(), false));
-    }
-
-    private UUID subject(Jwt jwt) {
-        return UUID.fromString(jwt.getSubject());
     }
 }

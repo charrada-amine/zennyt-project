@@ -1,10 +1,16 @@
 package com.zennyt.identity.domain.model;
 
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.experimental.Accessors;
+
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+@Getter
+@Accessors(fluent = true)
 public class Profile {
     private final Long id;
     private final Long userId;
@@ -23,9 +29,13 @@ public class Profile {
     private String portfolioUrl;
     private final Instant createdAt;
     private Instant updatedAt;
+    @Getter(AccessLevel.NONE)
     private final List<Skill> skills;
+    @Getter(AccessLevel.NONE)
     private final List<Position> positions;
+    @Getter(AccessLevel.NONE)
     private final List<Certification> certifications;
+    @Getter(AccessLevel.NONE)
     private final List<Education> education;
 
     private Profile(Long id, Long userId, String currentPosition, String lookingFor,
@@ -135,8 +145,6 @@ public class Profile {
     }
     public void removeEducation(Long id) { remove(education, id); }
 
-    private interface Identified { Long id(); }
-
     private static <T> T find(List<T> values, Long id) {
         return values.stream()
             .filter(value -> ((Record) value).toString() != null && recordId(value).equals(id))
@@ -168,23 +176,6 @@ public class Profile {
         throw new IllegalArgumentException("Type d'élément de profil inconnu");
     }
 
-    public Long id() { return id; }
-    public Long userId() { return userId; }
-    public String currentPosition() { return currentPosition; }
-    public String lookingFor() { return lookingFor; }
-    public WorkplaceType workplaceType() { return workplaceType; }
-    public JobType jobType() { return jobType; }
-    public String targetJobLocation() { return targetJobLocation; }
-    public Integer yearsOfExperience() { return yearsOfExperience; }
-    public Integer softSkillsScore() { return softSkillsScore; }
-    public String aboutMe() { return aboutMe; }
-    public boolean openInternationally() { return openInternationally; }
-    public AvailabilityType availabilityType() { return availabilityType; }
-    public LocalDate availabilityDate() { return availabilityDate; }
-    public String resumeAiUrl() { return resumeAiUrl; }
-    public String portfolioUrl() { return portfolioUrl; }
-    public Instant createdAt() { return createdAt; }
-    public Instant updatedAt() { return updatedAt; }
     public List<Skill> skills() { return List.copyOf(skills); }
     public List<Position> positions() { return List.copyOf(positions); }
     public List<Certification> certifications() { return List.copyOf(certifications); }

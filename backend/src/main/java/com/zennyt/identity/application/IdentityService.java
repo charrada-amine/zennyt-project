@@ -7,6 +7,7 @@ import com.zennyt.identity.domain.repository.UserRepository;
 import com.zennyt.shared.application.exception.ConflictException;
 import com.zennyt.shared.application.exception.ForbiddenException;
 import com.zennyt.shared.application.exception.NotFoundException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,17 +16,11 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class IdentityService {
     private final UserRepository users;
     private final OnboardingRepository onboarding;
     private final ProfileRepository profiles;
-
-    public IdentityService(UserRepository users, OnboardingRepository onboarding,
-                           ProfileRepository profiles) {
-        this.users = users;
-        this.onboarding = onboarding;
-        this.profiles = profiles;
-    }
 
     @Transactional(readOnly = true)
     public User currentUser(UUID publicId) {

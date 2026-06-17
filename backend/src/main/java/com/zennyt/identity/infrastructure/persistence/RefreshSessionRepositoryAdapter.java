@@ -2,17 +2,15 @@ package com.zennyt.identity.infrastructure.persistence;
 
 import com.zennyt.identity.domain.model.RefreshSession;
 import com.zennyt.identity.domain.repository.RefreshSessionRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
 
 @Component
+@RequiredArgsConstructor
 public class RefreshSessionRepositoryAdapter implements RefreshSessionRepository {
     private final JpaRefreshSessionRepository jpa;
-
-    public RefreshSessionRepositoryAdapter(JpaRefreshSessionRepository jpa) {
-        this.jpa = jpa;
-    }
 
     @Override
     public RefreshSession save(RefreshSession value) {

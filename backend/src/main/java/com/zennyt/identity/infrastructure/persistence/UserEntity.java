@@ -2,12 +2,19 @@ package com.zennyt.identity.infrastructure.persistence;
 
 import com.zennyt.identity.domain.model.Role;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
 @Table(name = "users")
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 public class UserEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -61,47 +68,4 @@ public class UserEntity {
 
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
-
-    protected UserEntity() {}
-
-    public UserEntity(Long id, UUID publicId, String firstName, String lastName, String email,
-                      String phoneNumber, String passwordHash, Role role, String city, String country,
-                      String address, String profileImageUrl, boolean termsAccepted,
-                      boolean emailVerified, boolean active, Instant createdAt, Instant updatedAt) {
-        this.id = id;
-        this.publicId = publicId;
-        this.firstName = firstName;
-        this.lastName = lastName;
-        this.email = email;
-        this.phoneNumber = phoneNumber;
-        this.passwordHash = passwordHash;
-        this.role = role;
-        this.city = city;
-        this.country = country;
-        this.address = address;
-        this.profileImageUrl = profileImageUrl;
-        this.termsAccepted = termsAccepted;
-        this.emailVerified = emailVerified;
-        this.active = active;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-    }
-
-    public Long getId() { return id; }
-    public UUID getPublicId() { return publicId; }
-    public String getFirstName() { return firstName; }
-    public String getLastName() { return lastName; }
-    public String getEmail() { return email; }
-    public String getPhoneNumber() { return phoneNumber; }
-    public String getPasswordHash() { return passwordHash; }
-    public Role getRole() { return role; }
-    public String getCity() { return city; }
-    public String getCountry() { return country; }
-    public String getAddress() { return address; }
-    public String getProfileImageUrl() { return profileImageUrl; }
-    public boolean isTermsAccepted() { return termsAccepted; }
-    public boolean isEmailVerified() { return emailVerified; }
-    public boolean isActive() { return active; }
-    public Instant getCreatedAt() { return createdAt; }
-    public Instant getUpdatedAt() { return updatedAt; }
 }

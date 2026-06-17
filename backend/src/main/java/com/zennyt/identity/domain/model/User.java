@@ -1,10 +1,14 @@
 package com.zennyt.identity.domain.model;
 
 import com.zennyt.shared.domain.vo.Email;
+import lombok.Getter;
+import lombok.experimental.Accessors;
 
 import java.time.Instant;
 import java.util.UUID;
 
+@Getter
+@Accessors(fluent = true)
 public class User {
     private final Long id;
     private final UUID publicId;
@@ -110,22 +114,4 @@ public class User {
         }
         return value.trim();
     }
-
-    public Long id() { return id; }
-    public UUID publicId() { return publicId; }
-    public String firstName() { return firstName; }
-    public String lastName() { return lastName; }
-    public Email email() { return email; }
-    public String phoneNumber() { return phoneNumber; }
-    public String passwordHash() { return passwordHash; }
-    public Role role() { return role; }
-    public String city() { return city; }
-    public String country() { return country; }
-    public String address() { return address; }
-    public String profileImageUrl() { return profileImageUrl; }
-    public boolean termsAccepted() { return termsAccepted; }
-    public boolean emailVerified() { return emailVerified; }
-    public boolean active() { return active; }
-    public Instant createdAt() { return createdAt; }
-    public Instant updatedAt() { return updatedAt; }
 }

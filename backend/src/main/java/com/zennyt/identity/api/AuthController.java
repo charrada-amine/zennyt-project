@@ -2,11 +2,12 @@ package com.zennyt.identity.api;
 
 import com.zennyt.identity.application.AuthService;
 import com.zennyt.identity.application.IdentityService;
+import com.zennyt.identity.api.security.Authenticated;
+import com.zennyt.identity.api.security.CurrentUserId;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -15,14 +16,10 @@ import static com.zennyt.identity.api.IdentityDtos.*;
 
 @RestController
 @RequestMapping("/api/v1/auth")
+@RequiredArgsConstructor
 public class AuthController {
     private final AuthService auth;
     private final IdentityService identity;
-
-    public AuthController(AuthService auth, IdentityService identity) {
-        this.auth = auth;
-        this.identity = identity;
-    }
 
     @PostMapping("/register")
     public ResponseEntity<TokenResponse> register(@Valid @RequestBody RegisterRequest request) {
@@ -56,7 +53,8 @@ public class AuthController {
     }
 
     @GetMapping("/me")
-    public UserResponse me(@AuthenticationPrincipal Jwt jwt) {
-        return UserResponse.from(identity.currentUser(UUID.fromString(jwt.getSubject())));
+    @Authenticated
+    public UserResponse me(@CurrentUserId UUID userId) {
+        return UserResponse.from(identity.currentUser(userId));
     }
 }

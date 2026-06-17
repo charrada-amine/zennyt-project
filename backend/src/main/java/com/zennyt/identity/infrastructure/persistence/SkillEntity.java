@@ -3,12 +3,18 @@ package com.zennyt.identity.infrastructure.persistence;
 import com.zennyt.identity.domain.model.Skill;
 import com.zennyt.identity.domain.model.SkillType;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 
 @Entity
 @Table(name = "skills")
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class SkillEntity {
+    @Getter(AccessLevel.PACKAGE)
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "profile_id", nullable = false)
@@ -23,16 +29,16 @@ public class SkillEntity {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    protected SkillEntity() {}
     SkillEntity(ProfileEntity profile, Skill value) {
         this.profile = profile;
         this.createdAt = value.createdAt();
         updateFrom(value);
     }
-    Long getId() { return id; }
+
     void updateFrom(Skill value) {
         this.name = value.name(); this.type = value.type(); this.level = value.level();
         this.updatedAt = value.updatedAt();
     }
+
     Skill toDomain() { return new Skill(id, name, type, level, createdAt, updatedAt); }
 }

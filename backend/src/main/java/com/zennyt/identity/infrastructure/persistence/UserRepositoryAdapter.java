@@ -3,18 +3,16 @@ package com.zennyt.identity.infrastructure.persistence;
 import com.zennyt.identity.domain.model.User;
 import com.zennyt.identity.domain.repository.UserRepository;
 import com.zennyt.shared.domain.vo.Email;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
 import java.util.UUID;
 
 @Component
+@RequiredArgsConstructor
 public class UserRepositoryAdapter implements UserRepository {
     private final JpaUserRepository jpa;
-
-    public UserRepositoryAdapter(JpaUserRepository jpa) {
-        this.jpa = jpa;
-    }
 
     @Override
     public User save(User user) {
