@@ -9,11 +9,16 @@ import com.zennyt.identity.domain.model.SkillType;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static com.zennyt.identity.api.IdentityDtos.*;
@@ -22,6 +27,11 @@ import static com.zennyt.identity.api.IdentityDtos.*;
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
 public class ProfileController {
+    private static final Set<String> ALLOWED_CV_TYPES = Set.of(
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+
     private final IdentityService identity;
 
     @PutMapping("/users/me")
@@ -64,6 +74,30 @@ public class ProfileController {
     @GetMapping("/profiles/{profileId}")
     public ProfileResponse publicProfile(@PathVariable Long profileId) {
         return ProfileResponse.from(identity.publicProfile(profileId));
+    }
+
+    @PostMapping(value = "/profiles/me/cv", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @CandidateOrStudentOnly
+    public ProfileResponse uploadCv(@CurrentUserId UUID userId,
+                                    @RequestParam("file") MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("Le fichier CV est obligatoire");
+        }
+        if (!ALLOWED_CV_TYPES.contains(file.getContentType())) {
+            throw new IllegalArgumentException("Format de CV non supporté (PDF, DOC ou DOCX attendu)");
+        }
+        try {
+            return ProfileResponse.from(identity.uploadCv(userId, file.getBytes(),
+                file.getOriginalFilename(), file.getContentType()));
+        } catch (IOException e) {
+            throw new UncheckedIOException("Échec de la lecture du fichier CV", e);
+        }
+    }
+
+    @DeleteMapping("/profiles/me/cv")
+    @CandidateOrStudentOnly
+    public ProfileResponse deleteCv(@CurrentUserId UUID userId) {
+        return ProfileResponse.from(identity.deleteCv(userId));
     }
 
     @GetMapping("/profiles/me/skills")

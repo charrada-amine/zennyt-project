@@ -27,6 +27,8 @@ public class Profile {
     private LocalDate availabilityDate;
     private String resumeAiUrl;
     private String portfolioUrl;
+    private String cvUrl;
+    private String cvPublicId;
     private final Instant createdAt;
     private Instant updatedAt;
     @Getter(AccessLevel.NONE)
@@ -43,12 +45,14 @@ public class Profile {
                     Integer yearsOfExperience, Integer softSkillsScore, String aboutMe,
                     boolean openInternationally, AvailabilityType availabilityType,
                     LocalDate availabilityDate, String resumeAiUrl, String portfolioUrl,
-                    Instant createdAt, Instant updatedAt, List<Skill> skills,
-                    List<Position> positions, List<Certification> certifications,
-                    List<Education> education) {
+                    String cvUrl, String cvPublicId, Instant createdAt, Instant updatedAt,
+                    List<Skill> skills, List<Position> positions,
+                    List<Certification> certifications, List<Education> education) {
         this.id = id;
         this.userId = userId;
         this.createdAt = createdAt;
+        this.cvUrl = cvUrl;
+        this.cvPublicId = cvPublicId;
         this.skills = new ArrayList<>(skills);
         this.positions = new ArrayList<>(positions);
         this.certifications = new ArrayList<>(certifications);
@@ -68,7 +72,7 @@ public class Profile {
         Instant now = Instant.now();
         return new Profile(null, userId, currentPosition, lookingFor, workplaceType, jobType,
             targetJobLocation, yearsOfExperience, softSkillsScore, aboutMe, openInternationally,
-            availabilityType, availabilityDate, resumeAiUrl, portfolioUrl, now, now,
+            availabilityType, availabilityDate, resumeAiUrl, portfolioUrl, null, null, now, now,
             List.of(), List.of(), List.of(), List.of());
     }
 
@@ -78,13 +82,26 @@ public class Profile {
                                     Integer softSkillsScore, String aboutMe,
                                     boolean openInternationally, AvailabilityType availabilityType,
                                     LocalDate availabilityDate, String resumeAiUrl,
-                                    String portfolioUrl, Instant createdAt, Instant updatedAt,
+                                    String portfolioUrl, String cvUrl, String cvPublicId,
+                                    Instant createdAt, Instant updatedAt,
                                     List<Skill> skills, List<Position> positions,
                                     List<Certification> certifications, List<Education> education) {
         return new Profile(id, userId, currentPosition, lookingFor, workplaceType, jobType,
             targetJobLocation, yearsOfExperience, softSkillsScore, aboutMe, openInternationally,
-            availabilityType, availabilityDate, resumeAiUrl, portfolioUrl, createdAt, updatedAt,
-            skills, positions, certifications, education);
+            availabilityType, availabilityDate, resumeAiUrl, portfolioUrl, cvUrl, cvPublicId,
+            createdAt, updatedAt, skills, positions, certifications, education);
+    }
+
+    public void updateCv(String cvUrl, String cvPublicId) {
+        this.cvUrl = cvUrl;
+        this.cvPublicId = cvPublicId;
+        this.updatedAt = Instant.now();
+    }
+
+    public void clearCv() {
+        this.cvUrl = null;
+        this.cvPublicId = null;
+        this.updatedAt = Instant.now();
     }
 
     public void update(String currentPosition, String lookingFor, WorkplaceType workplaceType,

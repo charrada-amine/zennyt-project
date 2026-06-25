@@ -297,6 +297,41 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Profile' }
 
+  /profiles/me/cv:
+    post:
+      tags: [Profiles]
+      summary: Upload (or replace) the current profile's CV
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: CV file (PDF, DOC or DOCX, max 5MB).
+      responses:
+        '200':
+          description: CV uploaded; profile with cvUrl set
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Profile' }
+        '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
+        '404': { $ref: './common.openapi.yaml#/components/responses/NotFound' }
+    delete:
+      tags: [Profiles]
+      summary: Remove the current profile's CV
+      responses:
+        '200':
+          description: CV removed; profile with cvUrl cleared
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Profile' }
+        '404': { $ref: './common.openapi.yaml#/components/responses/NotFound' }
+
   /profiles/{profileId}:
     get:
       tags: [Profiles]
@@ -701,6 +736,11 @@ components:
         - $ref: '#/components/schemas/OwnedResource'
         - type: object
           properties:
+            cvUrl:
+              type: string
+              maxLength: 500
+              readOnly: true
+              description: URL of the uploaded CV (set via POST /profiles/me/cv).
             skills:
               type: array
               items: { $ref: '#/components/schemas/Skill' }

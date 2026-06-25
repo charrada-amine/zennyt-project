@@ -141,7 +141,7 @@ public final class IdentityDtos {
         WorkplaceType workplaceType, JobType jobType, String targetJobLocation,
         Integer yearsOfExperience, Integer softSkillsScore, String aboutMe,
         boolean openInternationally, AvailabilityType availabilityType,
-        LocalDate availabilityDate, String resumeAiUrl, String portfolioUrl,
+        LocalDate availabilityDate, String resumeAiUrl, String portfolioUrl, String cvUrl,
         Instant createdAt, Instant updatedAt, List<SkillResponse> skills,
         List<PositionResponse> positions, List<CertificationResponse> certifications,
         List<EducationResponse> education
@@ -151,7 +151,7 @@ public final class IdentityDtos {
                 value.lookingFor(), value.workplaceType(), value.jobType(),
                 value.targetJobLocation(), value.yearsOfExperience(), value.softSkillsScore(),
                 value.aboutMe(), value.openInternationally(), value.availabilityType(),
-                value.availabilityDate(), value.resumeAiUrl(), value.portfolioUrl(),
+                value.availabilityDate(), value.resumeAiUrl(), value.portfolioUrl(), value.cvUrl(),
                 value.createdAt(), value.updatedAt(),
                 value.skills().stream().map(SkillResponse::from).toList(),
                 value.positions().stream().map(PositionResponse::from).toList(),

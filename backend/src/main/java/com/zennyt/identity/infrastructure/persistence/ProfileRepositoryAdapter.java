@@ -40,6 +40,7 @@ public class ProfileRepositoryAdapter implements ProfileRepository {
             value.getTargetJobLocation(), value.getYearsOfExperience(), value.getSoftSkillsScore(),
             value.getAboutMe(), value.isOpenInternationally(), value.getAvailabilityType(),
             value.getAvailabilityDate(), value.getResumeAiUrl(), value.getPortfolioUrl(),
+            value.getCvUrl(), value.getCvPublicId(),
             value.getCreatedAt(), value.getUpdatedAt(),
             value.getSkills().stream().map(SkillEntity::toDomain).toList(),
             value.getPositions().stream().map(PositionEntity::toDomain).toList(),

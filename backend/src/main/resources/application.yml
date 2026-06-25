@@ -7,6 +7,14 @@ spring:
     properties:
       hibernate:
         default_schema: public
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 5MB
+cloudinary:
+  cloud-name: ${CLOUDINARY_CLOUD_NAME:}
+  api-key: ${CLOUDINARY_API_KEY:}
+  api-secret: ${CLOUDINARY_API_SECRET:}
 identity:
   jwt:
     access-ttl: ${JWT_ACCESS_TTL:PT15M}

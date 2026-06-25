@@ -1,5 +1,6 @@
 package com.zennyt.identity.application;
 
+import com.zennyt.identity.application.port.FileStoragePort;
 import com.zennyt.identity.domain.model.*;
 import com.zennyt.identity.domain.repository.OnboardingRepository;
 import com.zennyt.identity.domain.repository.ProfileRepository;
@@ -21,6 +22,7 @@ public class IdentityService {
     private final UserRepository users;
     private final OnboardingRepository onboarding;
     private final ProfileRepository profiles;
+    private final FileStoragePort fileStorage;
 
     @Transactional(readOnly = true)
     public User currentUser(UUID publicId) {
@@ -131,6 +133,31 @@ public class IdentityService {
     public Profile publicProfile(Long profileId) {
         return profiles.findById(profileId)
             .orElseThrow(() -> new NotFoundException("Profil introuvable"));
+    }
+
+    @Transactional
+    public Profile uploadCv(UUID publicId, byte[] content, String filename, String contentType) {
+        Profile profile = currentProfile(publicId);
+        String previousPublicId = profile.cvPublicId();
+        FileStoragePort.StoredFile stored = fileStorage.upload(content, filename, contentType);
+        profile.updateCv(stored.url(), stored.publicId());
+        Profile saved = profiles.save(profile);
+        if (previousPublicId != null) {
+            fileStorage.delete(previousPublicId);
+        }
+        return saved;
+    }
+
+    @Transactional
+    public Profile deleteCv(UUID publicId) {
+        Profile profile = currentProfile(publicId);
+        String previousPublicId = profile.cvPublicId();
+        profile.clearCv();
+        Profile saved = profiles.save(profile);
+        if (previousPublicId != null) {
+            fileStorage.delete(previousPublicId);
+        }
+        return saved;
     }
 
     @Transactional

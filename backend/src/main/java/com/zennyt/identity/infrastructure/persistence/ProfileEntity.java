@@ -51,6 +51,10 @@ public class ProfileEntity {
     private String resumeAiUrl;
     @Column(name = "portfolio_url", length = 500)
     private String portfolioUrl;
+    @Column(name = "cv_url", length = 500)
+    private String cvUrl;
+    @Column(name = "cv_public_id", length = 255)
+    private String cvPublicId;
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
     @Column(name = "updated_at", nullable = false)
@@ -97,6 +101,8 @@ public class ProfileEntity {
         this.availabilityDate = profile.availabilityDate();
         this.resumeAiUrl = profile.resumeAiUrl();
         this.portfolioUrl = profile.portfolioUrl();
+        this.cvUrl = profile.cvUrl();
+        this.cvPublicId = profile.cvPublicId();
         this.updatedAt = profile.updatedAt();
     }
 
