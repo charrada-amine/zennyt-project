@@ -115,6 +115,52 @@ paths:
         '204': { description: Refresh token revoked }
         '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
 
+  /auth/change-password:
+    post:
+      tags: [Auth]
+      summary: Change the password of the authenticated account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ChangePasswordRequest' }
+      responses:
+        '204': { description: Password changed; all sessions revoked }
+        '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
+        '401': { $ref: './common.openapi.yaml#/components/responses/Unauthorized' }
+
+  /auth/forgot-password:
+    post:
+      tags: [Auth]
+      summary: Request a password reset code by email
+      description: >-
+        Always returns 202 regardless of whether the email exists,
+        to avoid account enumeration.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ForgotPasswordRequest' }
+      responses:
+        '202':
+          description: If the account exists, a reset code has been sent
+        '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
+
+  /auth/reset-password:
+    post:
+      tags: [Auth]
+      summary: Reset the password using the emailed OTP code
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ResetPasswordRequest' }
+      responses:
+        '204': { description: Password reset; all sessions revoked }
+        '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
+
   /auth/me:
     get:
       tags: [Auth]
@@ -143,6 +189,55 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/User' }
         '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
+    delete:
+      tags: [Users]
+      summary: Delete the current account (soft delete and anonymization)
+      responses:
+        '204': { description: Account deleted }
+        '401': { $ref: './common.openapi.yaml#/components/responses/Unauthorized' }
+
+  /users/me/avatar:
+    post:
+      tags: [Users]
+      summary: Upload (or replace) the current account avatar
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Image file (PNG, JPEG or WEBP, max 5MB).
+      responses:
+        '200':
+          description: Avatar uploaded; account with profileImageUrl set
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
+        '404': { $ref: './common.openapi.yaml#/components/responses/NotFound' }
+    delete:
+      tags: [Users]
+      summary: Remove the current account avatar
+      responses:
+        '200':
+          description: Avatar removed; account with profileImageUrl cleared
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '404': { $ref: './common.openapi.yaml#/components/responses/NotFound' }
+
+  /users/me/deactivate:
+    post:
+      tags: [Users]
+      summary: Deactivate the current account (reversible at next login)
+      responses:
+        '204': { description: Account deactivated }
+        '401': { $ref: './common.openapi.yaml#/components/responses/Unauthorized' }
 
   /users/me/role:
     patch:
@@ -252,6 +347,41 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/RecruiterOnboarding' }
+
+  /onboarding/recruiter/me/logo:
+    post:
+      tags: [Onboarding]
+      summary: Upload (or replace) the company logo
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Image file (PNG, JPEG or WEBP, max 5MB).
+      responses:
+        '200':
+          description: Logo uploaded; onboarding with companyLogoUrl set
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RecruiterOnboarding' }
+        '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
+        '404': { $ref: './common.openapi.yaml#/components/responses/NotFound' }
+    delete:
+      tags: [Onboarding]
+      summary: Remove the company logo
+      responses:
+        '200':
+          description: Logo removed; onboarding with companyLogoUrl cleared
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RecruiterOnboarding' }
+        '404': { $ref: './common.openapi.yaml#/components/responses/NotFound' }
 
   /profiles:
     post:
@@ -638,6 +768,27 @@ components:
       properties:
         refreshToken: { type: string }
 
+    ChangePasswordRequest:
+      type: object
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword: { type: string }
+        newPassword: { type: string, minLength: 8, maxLength: 72 }
+
+    ForgotPasswordRequest:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string, format: email, maxLength: 150 }
+
+    ResetPasswordRequest:
+      type: object
+      required: [email, code, newPassword]
+      properties:
+        email: { type: string, format: email, maxLength: 150 }
+        code: { type: string, minLength: 4, maxLength: 10, description: OTP code received by email }
+        newPassword: { type: string, minLength: 8, maxLength: 72 }
+
     AuthTokens:
       type: object
       required: [accessToken, refreshToken, tokenType, expiresIn]
@@ -657,7 +808,6 @@ components:
         city: { type: string, maxLength: 100 }
         country: { type: string, maxLength: 100 }
         address: { type: string, maxLength: 255 }
-        profileImageUrl: { type: string, maxLength: 500 }
 
     User:
       allOf:
@@ -668,6 +818,8 @@ components:
             id: { type: integer, format: int64 }
             email: { type: string, format: email }
             role: { $ref: '#/components/schemas/Role' }
+            # L'avatar est en lecture seule : il se gère via POST/DELETE /users/me/avatar.
+            profileImageUrl: { type: string, maxLength: 500, readOnly: true }
             termsAccepted: { type: boolean }
             emailVerified: { type: boolean }
             active: { type: boolean }
@@ -697,7 +849,6 @@ components:
         jobTitle: { type: string, maxLength: 150 }
         companyName: { type: string, maxLength: 150 }
         companySize: { type: string, maxLength: 100 }
-        companyLogoUrl: { type: string, maxLength: 500 }
         fieldOfWork: { type: string, maxLength: 150 }
         companyLocation: { type: string, maxLength: 150 }
         companyRegistrationNumber: { type: string, maxLength: 100 }
@@ -706,6 +857,10 @@ components:
       allOf:
         - $ref: '#/components/schemas/RecruiterOnboardingInput'
         - $ref: '#/components/schemas/OwnedResource'
+        - type: object
+          properties:
+            # Le logo est en lecture seule : il se gère via POST/DELETE /onboarding/recruiter/me/logo.
+            companyLogoUrl: { type: string, maxLength: 500, readOnly: true }
 
     ProfileInput:
       type: object

@@ -9,6 +9,7 @@ public record RecruiterOnboarding(
     String companyName,
     String companySize,
     String companyLogoUrl,
+    String companyLogoPublicId,
     String fieldOfWork,
     String companyLocation,
     String companyRegistrationNumber,
@@ -27,11 +28,20 @@ public record RecruiterOnboarding(
 
     public static RecruiterOnboarding create(Long userId, String jobTitle, String companyName,
                                               String companySize, String companyLogoUrl,
-                                              String fieldOfWork, String companyLocation,
+                                              String companyLogoPublicId, String fieldOfWork,
+                                              String companyLocation,
                                               String companyRegistrationNumber) {
         Instant now = Instant.now();
         return new RecruiterOnboarding(null, userId, jobTitle, companyName, companySize,
-            companyLogoUrl, fieldOfWork, companyLocation, companyRegistrationNumber, now, now);
+            companyLogoUrl, companyLogoPublicId, fieldOfWork, companyLocation,
+            companyRegistrationNumber, now, now);
+    }
+
+    /** Retourne une copie avec un nouveau logo (URL + public_id), sans toucher au reste. */
+    public RecruiterOnboarding withLogo(String companyLogoUrl, String companyLogoPublicId) {
+        return new RecruiterOnboarding(id, userId, jobTitle, companyName, companySize,
+            companyLogoUrl, companyLogoPublicId, fieldOfWork, companyLocation,
+            companyRegistrationNumber, createdAt, Instant.now());
     }
 
     private static String requireText(String value, String message) {

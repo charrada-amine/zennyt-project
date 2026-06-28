@@ -1,6 +1,8 @@
 package com.zennyt.identity.application;
 
 import com.zennyt.identity.application.port.FileStoragePort;
+import com.zennyt.identity.application.port.FileStoragePort.ResourceType;
+import com.zennyt.identity.application.port.TokenService;
 import com.zennyt.identity.domain.model.*;
 import com.zennyt.identity.domain.repository.OnboardingRepository;
 import com.zennyt.identity.domain.repository.ProfileRepository;
@@ -19,10 +21,15 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class IdentityService {
+    private static final String CV_FOLDER = "zennyt/cv";
+    private static final String AVATAR_FOLDER = "zennyt/avatars";
+    private static final String LOGO_FOLDER = "zennyt/logos";
+
     private final UserRepository users;
     private final OnboardingRepository onboarding;
     private final ProfileRepository profiles;
     private final FileStoragePort fileStorage;
+    private final TokenService tokens;
 
     @Transactional(readOnly = true)
     public User currentUser(UUID publicId) {
@@ -32,10 +39,69 @@ public class IdentityService {
 
     @Transactional
     public User updateUser(UUID publicId, String firstName, String lastName, String phoneNumber,
-                           String city, String country, String address, String profileImageUrl) {
+                           String city, String country, String address) {
         User user = currentUser(publicId);
-        user.updateIdentity(firstName, lastName, phoneNumber, city, country, address, profileImageUrl);
+        user.updateIdentity(firstName, lastName, phoneNumber, city, country, address);
         return users.save(user);
+    }
+
+    @Transactional
+    public User uploadAvatar(UUID publicId, byte[] content, String filename, String contentType) {
+        User user = currentUser(publicId);
+        String previousPublicId = user.profileImagePublicId();
+        FileStoragePort.StoredFile stored = fileStorage.upload(content, filename, contentType,
+            AVATAR_FOLDER, ResourceType.IMAGE);
+        user.updateAvatar(stored.url(), stored.publicId());
+        User saved = users.save(user);
+        if (previousPublicId != null) {
+            fileStorage.delete(previousPublicId, ResourceType.IMAGE);
+        }
+        return saved;
+    }
+
+    @Transactional
+    public User deleteAvatar(UUID publicId) {
+        User user = currentUser(publicId);
+        String previousPublicId = user.profileImagePublicId();
+        user.clearAvatar();
+        User saved = users.save(user);
+        if (previousPublicId != null) {
+            fileStorage.delete(previousPublicId, ResourceType.IMAGE);
+        }
+        return saved;
+    }
+
+    @Transactional
+    public void deactivateAccount(UUID publicId) {
+        User user = currentUser(publicId);
+        user.deactivate();
+        users.save(user);
+        tokens.revokeAll(user.id());
+    }
+
+    @Transactional
+    public void deleteAccount(UUID publicId) {
+        User user = currentUser(publicId);
+        // Nettoyage best-effort des fichiers Cloudinary avant l'anonymisation.
+        safeDelete(user.profileImagePublicId(), ResourceType.IMAGE);
+        profiles.findByUserId(user.id())
+            .ifPresent(profile -> safeDelete(profile.cvPublicId(), ResourceType.RAW));
+        onboarding.findRecruiterByUserId(user.id())
+            .ifPresent(recruiter -> safeDelete(recruiter.companyLogoPublicId(), ResourceType.IMAGE));
+        user.softDelete();
+        users.save(user);
+        tokens.revokeAll(user.id());
+    }
+
+    private void safeDelete(String publicId, ResourceType resourceType) {
+        if (publicId == null || publicId.isBlank()) {
+            return;
+        }
+        try {
+            fileStorage.delete(publicId, resourceType);
+        } catch (RuntimeException ignored) {
+            // La suppression du compte ne doit pas échouer si le fichier distant est déjà absent.
+        }
     }
 
     @Transactional
@@ -75,7 +141,7 @@ public class IdentityService {
     @Transactional
     public RecruiterOnboarding saveRecruiter(
         UUID publicId, String jobTitle, String companyName, String companySize,
-        String companyLogoUrl, String fieldOfWork, String companyLocation,
+        String fieldOfWork, String companyLocation,
         String companyRegistrationNumber, boolean createOnly) {
         User user = requireRole(publicId, Role.RECRUITER);
         RecruiterOnboarding existing = onboarding.findRecruiterByUserId(user.id()).orElse(null);
@@ -83,13 +149,44 @@ public class IdentityService {
             throw new ConflictException("L'onboarding recruteur existe déjà");
         }
         Instant now = Instant.now();
+        // Le logo est géré par des endpoints dédiés : on préserve l'existant lors d'une édition texte.
         RecruiterOnboarding value = existing == null
             ? RecruiterOnboarding.create(user.id(), jobTitle, companyName, companySize,
-                companyLogoUrl, fieldOfWork, companyLocation, companyRegistrationNumber)
+                null, null, fieldOfWork, companyLocation, companyRegistrationNumber)
             : new RecruiterOnboarding(existing.id(), user.id(), jobTitle, companyName, companySize,
-                companyLogoUrl, fieldOfWork, companyLocation, companyRegistrationNumber,
-                existing.createdAt(), now);
+                existing.companyLogoUrl(), existing.companyLogoPublicId(), fieldOfWork,
+                companyLocation, companyRegistrationNumber, existing.createdAt(), now);
         return onboarding.saveRecruiter(value);
+    }
+
+    @Transactional
+    public RecruiterOnboarding uploadCompanyLogo(UUID publicId, byte[] content, String filename,
+                                                 String contentType) {
+        User user = requireRole(publicId, Role.RECRUITER);
+        RecruiterOnboarding existing = onboarding.findRecruiterByUserId(user.id())
+            .orElseThrow(() -> new NotFoundException("Onboarding recruteur introuvable"));
+        String previousPublicId = existing.companyLogoPublicId();
+        FileStoragePort.StoredFile stored = fileStorage.upload(content, filename, contentType,
+            LOGO_FOLDER, ResourceType.IMAGE);
+        RecruiterOnboarding saved = onboarding.saveRecruiter(
+            existing.withLogo(stored.url(), stored.publicId()));
+        if (previousPublicId != null) {
+            fileStorage.delete(previousPublicId, ResourceType.IMAGE);
+        }
+        return saved;
+    }
+
+    @Transactional
+    public RecruiterOnboarding deleteCompanyLogo(UUID publicId) {
+        User user = requireRole(publicId, Role.RECRUITER);
+        RecruiterOnboarding existing = onboarding.findRecruiterByUserId(user.id())
+            .orElseThrow(() -> new NotFoundException("Onboarding recruteur introuvable"));
+        String previousPublicId = existing.companyLogoPublicId();
+        RecruiterOnboarding saved = onboarding.saveRecruiter(existing.withLogo(null, null));
+        if (previousPublicId != null) {
+            fileStorage.delete(previousPublicId, ResourceType.IMAGE);
+        }
+        return saved;
     }
 
     @Transactional(readOnly = true)
@@ -139,11 +236,12 @@ public class IdentityService {
     public Profile uploadCv(UUID publicId, byte[] content, String filename, String contentType) {
         Profile profile = currentProfile(publicId);
         String previousPublicId = profile.cvPublicId();
-        FileStoragePort.StoredFile stored = fileStorage.upload(content, filename, contentType);
+        FileStoragePort.StoredFile stored = fileStorage.upload(content, filename, contentType,
+            CV_FOLDER, ResourceType.RAW);
         profile.updateCv(stored.url(), stored.publicId());
         Profile saved = profiles.save(profile);
         if (previousPublicId != null) {
-            fileStorage.delete(previousPublicId);
+            fileStorage.delete(previousPublicId, ResourceType.RAW);
         }
         return saved;
     }
@@ -155,7 +253,7 @@ public class IdentityService {
         profile.clearCv();
         Profile saved = profiles.save(profile);
         if (previousPublicId != null) {
-            fileStorage.delete(previousPublicId);
+            fileStorage.delete(previousPublicId, ResourceType.RAW);
         }
         return saved;
     }

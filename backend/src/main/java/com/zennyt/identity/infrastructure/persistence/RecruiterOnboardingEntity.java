@@ -27,6 +27,8 @@ public class RecruiterOnboardingEntity {
     private String companySize;
     @Column(name = "company_logo_url", length = 500)
     private String companyLogoUrl;
+    @Column(name = "company_logo_public_id", length = 255)
+    private String companyLogoPublicId;
     @Column(name = "field_of_work", nullable = false, length = 150)
     private String fieldOfWork;
     @Column(name = "company_location", nullable = false, length = 150)

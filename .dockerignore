@@ -1,0 +1,13 @@
+# Contexte de build = racine du projet (voir backend/Dockerfile).
+# On exclut tout ce qui n'est pas nécessaire à l'image pour accélérer le build
+# et éviter d'embarquer des secrets ou des artefacts locaux.
+**/target/
+**/.git/
+**/.idea/
+**/.vscode/
+**/*.iml
+.env
+**/.env
+**/node_modules/
+**/.DS_Store
+*.log

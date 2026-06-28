@@ -86,6 +86,11 @@ public class JwtTokenService implements TokenService {
             .ifPresent(session -> sessions.save(session.revoke()));
     }
 
+    @Override
+    public void revokeAll(Long userId) {
+        sessions.revokeAllForUser(userId);
+    }
+
     private String hash(String token) {
         if (token == null || token.isBlank()) {
             throw new IllegalArgumentException("Refresh token obligatoire");

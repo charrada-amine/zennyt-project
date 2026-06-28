@@ -81,6 +81,13 @@
             <version>2.4.0</version>
         </dependency>
 
+        <!-- Envoi d'e-mails transactionnels (réinitialisation mot de passe) via Resend -->
+        <dependency>
+            <groupId>com.resend</groupId>
+            <artifactId>resend-java</artifactId>
+            <version>4.13.0</version>
+        </dependency>
+
         <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>

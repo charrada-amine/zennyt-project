@@ -1,8 +1,10 @@
 package com.zennyt.identity.application;
 
+import com.zennyt.identity.application.port.EmailPort;
 import com.zennyt.identity.application.port.SocialIdentityVerifier;
 import com.zennyt.identity.application.port.TokenService;
 import com.zennyt.identity.domain.model.*;
+import com.zennyt.identity.domain.repository.PasswordResetCodeRepository;
 import com.zennyt.identity.domain.repository.SocialIdentityRepository;
 import com.zennyt.identity.domain.repository.UserRepository;
 import com.zennyt.shared.domain.vo.Email;
@@ -12,6 +14,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
@@ -26,6 +29,8 @@ class AuthServiceTest {
     private TokenService tokens;
     private SocialIdentityRepository socialIdentities;
     private SocialIdentityVerifier verifier;
+    private PasswordResetCodeRepository passwordResetCodes;
+    private EmailPort email;
     private AuthService service;
 
     @BeforeEach
@@ -35,8 +40,10 @@ class AuthServiceTest {
         tokens = mock(TokenService.class);
         socialIdentities = mock(SocialIdentityRepository.class);
         verifier = mock(SocialIdentityVerifier.class);
+        passwordResetCodes = mock(PasswordResetCodeRepository.class);
+        email = mock(EmailPort.class);
         service = new AuthService(users, passwordEncoder, mock(AuthenticationManager.class),
-            tokens, socialIdentities, verifier);
+            tokens, socialIdentities, verifier, passwordResetCodes, email, Duration.ofMinutes(10));
     }
 
     @Test
@@ -113,7 +120,8 @@ class AuthServiceTest {
     private static User persisted(User user, Long id) {
         return User.rehydrate(id, user.publicId(), user.firstName(), user.lastName(), user.email(),
             user.phoneNumber(), user.passwordHash(), user.role(), user.city(), user.country(),
-            user.address(), user.profileImageUrl(), user.termsAccepted(), user.emailVerified(),
-            user.active(), user.createdAt(), user.updatedAt());
+            user.address(), user.profileImageUrl(), user.profileImagePublicId(),
+            user.termsAccepted(), user.emailVerified(), user.active(), user.deletedAt(),
+            user.createdAt(), user.updatedAt());
     }
 }

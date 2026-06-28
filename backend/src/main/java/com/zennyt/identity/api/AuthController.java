@@ -52,6 +52,26 @@ public class AuthController {
         auth.logout(request.refreshToken());
     }
 
+    @PostMapping("/change-password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Authenticated
+    public void changePassword(@CurrentUserId UUID userId,
+                               @Valid @RequestBody ChangePasswordRequest request) {
+        auth.changePassword(userId, request.currentPassword(), request.newPassword());
+    }
+
+    @PostMapping("/forgot-password")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public void forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        auth.forgotPassword(request.email());
+    }
+
+    @PostMapping("/reset-password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        auth.resetPassword(request.email(), request.code(), request.newPassword());
+    }
+
     @GetMapping("/me")
     @Authenticated
     public UserResponse me(@CurrentUserId UUID userId) {

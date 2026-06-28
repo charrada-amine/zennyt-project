@@ -59,7 +59,9 @@ public class SecurityConfig {
                     "/api/v1/auth/login",
                     "/api/v1/auth/social",
                     "/api/v1/auth/refresh",
-                    "/api/v1/auth/logout"
+                    "/api/v1/auth/logout",
+                    "/api/v1/auth/forgot-password",
+                    "/api/v1/auth/reset-password"
                 ).permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/jobs", "/api/v1/jobs/**").permitAll()
                 .requestMatchers(new RegexRequestMatcher("^/api/v1/profiles/\\d+$", "GET")).permitAll()

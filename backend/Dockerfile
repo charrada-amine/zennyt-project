@@ -1,20 +1,31 @@
 # syntax=docker/dockerfile:1.7
 # ─────────────────────────────────────────────────────────────
+# IMPORTANT : le contexte de build est la RACINE du projet (zennyt-project/),
+# car le build Maven lit les contrats OpenAPI dans ../contracts (openapi-generator).
+# Construire avec :
+#   docker build -f backend/Dockerfile -t zennyt-backend .
+# (le « . » final = racine du dépôt, pas le dossier backend/)
+# ─────────────────────────────────────────────────────────────
+
+# ─────────────────────────────────────────────────────────────
 # Stage 1 — Build (Maven + JDK 21)
 # ─────────────────────────────────────────────────────────────
-FROM eclipse-temurin:21-jdk-alpine AS build
+FROM maven:3.9.9-eclipse-temurin-21 AS build
 WORKDIR /workspace
 
-# Copier d'abord les descripteurs Maven pour profiter du cache de couches :
-# tant que pom.xml ne change pas, les dépendances ne sont pas re-téléchargées.
-COPY .mvn/ .mvn/
-COPY mvnw pom.xml ./
-RUN --mount=type=cache,target=/root/.m2 ./mvnw dependency:go-offline -B
+# Les contrats sont requis par openapi-generator (backend/pom.xml référence ../contracts).
+COPY contracts/ contracts/
 
-# Copier le code source et compiler
-COPY src/ src/
-RUN --mount=type=cache,target=/root/.m2 ./mvnw clean package -DskipTests -B \
-    && java -Djarmode=layertools -jar target/*.jar extract --destination target/extracted
+# Descripteur Maven d'abord : tant que pom.xml ne change pas, les dépendances
+# restent en cache de couche et ne sont pas re-téléchargées.
+COPY backend/pom.xml backend/pom.xml
+RUN --mount=type=cache,target=/root/.m2 mvn -f backend/pom.xml dependency:go-offline -B
+
+# Code source puis build. Les tests tournent dans la CI, pas dans l'image.
+COPY backend/src backend/src
+RUN --mount=type=cache,target=/root/.m2 mvn -f backend/pom.xml clean package -DskipTests -B \
+    && java -Djarmode=layertools -jar backend/target/*.jar extract \
+       --destination backend/target/extracted
 
 # ─────────────────────────────────────────────────────────────
 # Stage 2 — Runtime (JRE seul, image minimale)
@@ -27,7 +38,7 @@ RUN addgroup -S spring && adduser -S spring -G spring -u 1000
 USER spring:spring
 
 # Copier les couches Spring Boot séparément (meilleur cache au redéploiement)
-ARG EXTRACTED=/workspace/target/extracted
+ARG EXTRACTED=/workspace/backend/target/extracted
 COPY --from=build --chown=spring:spring ${EXTRACTED}/dependencies/ ./
 COPY --from=build --chown=spring:spring ${EXTRACTED}/spring-boot-loader/ ./
 COPY --from=build --chown=spring:spring ${EXTRACTED}/snapshot-dependencies/ ./

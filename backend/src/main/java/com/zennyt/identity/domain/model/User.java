@@ -14,24 +14,27 @@ public class User {
     private final UUID publicId;
     private String firstName;
     private String lastName;
-    private final Email email;
+    private Email email;
     private String phoneNumber;
-    private final String passwordHash;
+    private String passwordHash;
     private Role role;
     private String city;
     private String country;
     private String address;
     private String profileImageUrl;
+    private String profileImagePublicId;
     private final boolean termsAccepted;
     private boolean emailVerified;
     private boolean active;
+    private Instant deletedAt;
     private final Instant createdAt;
     private Instant updatedAt;
 
     private User(Long id, UUID publicId, String firstName, String lastName, Email email,
                  String phoneNumber, String passwordHash, Role role, String city, String country,
-                 String address, String profileImageUrl, boolean termsAccepted,
-                 boolean emailVerified, boolean active, Instant createdAt, Instant updatedAt) {
+                 String address, String profileImageUrl, String profileImagePublicId,
+                 boolean termsAccepted, boolean emailVerified, boolean active, Instant deletedAt,
+                 Instant createdAt, Instant updatedAt) {
         this.id = id;
         this.publicId = publicId;
         this.firstName = requireText(firstName, "Le prénom est obligatoire");
@@ -44,9 +47,11 @@ public class User {
         this.country = country;
         this.address = address;
         this.profileImageUrl = profileImageUrl;
+        this.profileImagePublicId = profileImagePublicId;
         this.termsAccepted = termsAccepted;
         this.emailVerified = emailVerified;
         this.active = active;
+        this.deletedAt = deletedAt;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -59,7 +64,7 @@ public class User {
         }
         Instant now = Instant.now();
         return new User(null, UUID.randomUUID(), firstName, lastName, email, phoneNumber,
-            passwordHash, role, city, country, address, null, true, false, true, now, now);
+            passwordHash, role, city, country, address, null, null, true, false, true, null, now, now);
     }
 
     public static User registerSocial(String firstName, String lastName, Email email,
@@ -70,29 +75,81 @@ public class User {
         }
         Instant now = Instant.now();
         return new User(null, UUID.randomUUID(), firstName, lastName, email, null,
-            passwordHash, role, null, null, null, profileImageUrl, true, true, true, now, now);
+            passwordHash, role, null, null, null, profileImageUrl, null, true, true, true, null, now, now);
     }
 
     public static User rehydrate(Long id, UUID publicId, String firstName, String lastName,
                                  Email email, String phoneNumber, String passwordHash, Role role,
                                  String city, String country, String address, String profileImageUrl,
-                                 boolean termsAccepted, boolean emailVerified, boolean active,
+                                 String profileImagePublicId, boolean termsAccepted,
+                                 boolean emailVerified, boolean active, Instant deletedAt,
                                  Instant createdAt, Instant updatedAt) {
         return new User(id, publicId, firstName, lastName, email, phoneNumber, passwordHash, role,
-            city, country, address, profileImageUrl, termsAccepted, emailVerified, active,
-            createdAt, updatedAt);
+            city, country, address, profileImageUrl, profileImagePublicId, termsAccepted,
+            emailVerified, active, deletedAt, createdAt, updatedAt);
     }
 
+    /**
+     * Met à jour les informations d'identité textuelles. L'avatar n'est volontairement
+     * pas géré ici : il passe par {@link #updateAvatar} / {@link #clearAvatar} pour éviter
+     * qu'une édition de profil n'efface l'image téléversée.
+     */
     public void updateIdentity(String firstName, String lastName, String phoneNumber, String city,
-                               String country, String address, String profileImageUrl) {
+                               String country, String address) {
         this.firstName = requireText(firstName, "Le prénom est obligatoire");
         this.lastName = requireText(lastName, "Le nom est obligatoire");
         this.phoneNumber = phoneNumber;
         this.city = city;
         this.country = country;
         this.address = address;
-        this.profileImageUrl = profileImageUrl;
         this.updatedAt = Instant.now();
+    }
+
+    public void updateAvatar(String profileImageUrl, String profileImagePublicId) {
+        this.profileImageUrl = profileImageUrl;
+        this.profileImagePublicId = profileImagePublicId;
+        this.updatedAt = Instant.now();
+    }
+
+    public void clearAvatar() {
+        this.profileImageUrl = null;
+        this.profileImagePublicId = null;
+        this.updatedAt = Instant.now();
+    }
+
+    public void changePassword(String newPasswordHash) {
+        this.passwordHash = requireText(newPasswordHash, "Le mot de passe chiffré est obligatoire");
+        this.updatedAt = Instant.now();
+    }
+
+    public void deactivate() {
+        this.active = false;
+        this.updatedAt = Instant.now();
+    }
+
+    /**
+     * Suppression logique : anonymise les données personnelles, libère l'adresse e-mail
+     * (afin qu'elle puisse être réutilisée) et désactive le compte. La ligne est conservée
+     * pour préserver l'intégrité référentielle (candidatures, historique).
+     */
+    public void softDelete() {
+        Instant now = Instant.now();
+        this.active = false;
+        this.deletedAt = now;
+        this.email = new Email("deleted+" + UUID.randomUUID() + "@deleted.zennyt.local");
+        this.firstName = "Compte";
+        this.lastName = "supprimé";
+        this.phoneNumber = null;
+        this.city = null;
+        this.country = null;
+        this.address = null;
+        this.profileImageUrl = null;
+        this.profileImagePublicId = null;
+        this.updatedAt = now;
+    }
+
+    public boolean isDeleted() {
+        return deletedAt != null;
     }
 
     public void changeRole(Role role) {

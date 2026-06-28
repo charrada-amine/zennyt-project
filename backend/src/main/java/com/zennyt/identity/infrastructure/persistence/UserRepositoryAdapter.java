@@ -26,31 +26,33 @@ public class UserRepositoryAdapter implements UserRepository {
 
     @Override
     public Optional<User> findByEmail(String email) {
-        return jpa.findByEmailIgnoreCase(email).map(this::toDomain);
+        return jpa.findByEmailIgnoreCaseAndDeletedAtIsNull(email).map(this::toDomain);
     }
 
     @Override
     public Optional<User> findByPublicId(UUID publicId) {
-        return jpa.findByPublicId(publicId).map(this::toDomain);
+        return jpa.findByPublicIdAndDeletedAtIsNull(publicId).map(this::toDomain);
     }
 
     @Override
     public boolean existsByEmail(String email) {
-        return jpa.existsByEmailIgnoreCase(email);
+        return jpa.existsByEmailIgnoreCaseAndDeletedAtIsNull(email);
     }
 
     private UserEntity toEntity(User user) {
         return new UserEntity(user.id(), user.publicId(), user.firstName(), user.lastName(),
             user.email().value(), user.phoneNumber(), user.passwordHash(), user.role(), user.city(),
-            user.country(), user.address(), user.profileImageUrl(), user.termsAccepted(),
-            user.emailVerified(), user.active(), user.createdAt(), user.updatedAt());
+            user.country(), user.address(), user.profileImageUrl(), user.profileImagePublicId(),
+            user.termsAccepted(), user.emailVerified(), user.active(), user.deletedAt(),
+            user.createdAt(), user.updatedAt());
     }
 
     private User toDomain(UserEntity entity) {
         return User.rehydrate(entity.getId(), entity.getPublicId(), entity.getFirstName(),
             entity.getLastName(), new Email(entity.getEmail()), entity.getPhoneNumber(),
             entity.getPasswordHash(), entity.getRole(), entity.getCity(), entity.getCountry(),
-            entity.getAddress(), entity.getProfileImageUrl(), entity.isTermsAccepted(),
-            entity.isEmailVerified(), entity.isActive(), entity.getCreatedAt(), entity.getUpdatedAt());
+            entity.getAddress(), entity.getProfileImageUrl(), entity.getProfileImagePublicId(),
+            entity.isTermsAccepted(), entity.isEmailVerified(), entity.isActive(),
+            entity.getDeletedAt(), entity.getCreatedAt(), entity.getUpdatedAt());
     }
 }

@@ -54,6 +54,9 @@ public class UserEntity {
     @Column(name = "profile_image_url", length = 500)
     private String profileImageUrl;
 
+    @Column(name = "profile_image_public_id", length = 255)
+    private String profileImagePublicId;
+
     @Column(name = "terms_accepted", nullable = false)
     private boolean termsAccepted;
 
@@ -62,6 +65,9 @@ public class UserEntity {
 
     @Column(name = "is_active", nullable = false)
     private boolean active;
+
+    @Column(name = "deleted_at")
+    private Instant deletedAt;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;

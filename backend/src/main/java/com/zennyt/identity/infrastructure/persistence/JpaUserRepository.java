@@ -6,7 +6,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 interface JpaUserRepository extends JpaRepository<UserEntity, Long> {
-    Optional<UserEntity> findByEmailIgnoreCase(String email);
-    Optional<UserEntity> findByPublicId(UUID publicId);
-    boolean existsByEmailIgnoreCase(String email);
+    Optional<UserEntity> findByEmailIgnoreCaseAndDeletedAtIsNull(String email);
+    Optional<UserEntity> findByPublicIdAndDeletedAtIsNull(UUID publicId);
+    boolean existsByEmailIgnoreCaseAndDeletedAtIsNull(String email);
 }

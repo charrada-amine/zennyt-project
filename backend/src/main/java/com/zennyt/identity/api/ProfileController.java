@@ -31,6 +31,8 @@ public class ProfileController {
         "application/pdf",
         "application/msword",
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+    private static final Set<String> ALLOWED_IMAGE_TYPES = Set.of(
+        "image/png", "image/jpeg", "image/webp");
 
     private final IdentityService identity;
 
@@ -40,7 +42,45 @@ public class ProfileController {
                                    @Valid @RequestBody UserUpdateRequest request) {
         return UserResponse.from(identity.updateUser(userId, request.firstName(),
             request.lastName(), request.phoneNumber(), request.city(), request.country(),
-            request.address(), request.profileImageUrl()));
+            request.address()));
+    }
+
+    @PostMapping(value = "/users/me/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Authenticated
+    public UserResponse uploadAvatar(@CurrentUserId UUID userId,
+                                     @RequestParam("file") MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("Le fichier image est obligatoire");
+        }
+        if (!ALLOWED_IMAGE_TYPES.contains(file.getContentType())) {
+            throw new IllegalArgumentException("Format d'image non supporté (PNG, JPEG ou WEBP attendu)");
+        }
+        try {
+            return UserResponse.from(identity.uploadAvatar(userId, file.getBytes(),
+                file.getOriginalFilename(), file.getContentType()));
+        } catch (IOException e) {
+            throw new UncheckedIOException("Échec de la lecture du fichier image", e);
+        }
+    }
+
+    @DeleteMapping("/users/me/avatar")
+    @Authenticated
+    public UserResponse deleteAvatar(@CurrentUserId UUID userId) {
+        return UserResponse.from(identity.deleteAvatar(userId));
+    }
+
+    @PostMapping("/users/me/deactivate")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Authenticated
+    public void deactivateAccount(@CurrentUserId UUID userId) {
+        identity.deactivateAccount(userId);
+    }
+
+    @DeleteMapping("/users/me")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Authenticated
+    public void deleteAccount(@CurrentUserId UUID userId) {
+        identity.deleteAccount(userId);
     }
 
     @PatchMapping("/users/me/role")

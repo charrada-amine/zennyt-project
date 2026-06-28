@@ -1,16 +1,22 @@
 package com.zennyt.identity.application;
 
+import com.zennyt.identity.application.port.EmailPort;
 import com.zennyt.identity.application.port.TokenService;
 import com.zennyt.identity.application.port.SocialIdentityVerifier;
+import com.zennyt.identity.domain.model.PasswordResetCode;
 import com.zennyt.identity.domain.model.Role;
 import com.zennyt.identity.domain.model.SocialIdentity;
 import com.zennyt.identity.domain.model.SocialProvider;
 import com.zennyt.identity.domain.model.User;
+import com.zennyt.identity.domain.repository.PasswordResetCodeRepository;
 import com.zennyt.identity.domain.repository.SocialIdentityRepository;
 import com.zennyt.identity.domain.repository.UserRepository;
 import com.zennyt.shared.application.exception.ConflictException;
+import com.zennyt.shared.application.exception.NotFoundException;
 import com.zennyt.shared.domain.vo.Email;
-import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -18,17 +24,46 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.SecureRandom;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.HexFormat;
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
 public class AuthService {
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
+    private static final int MAX_RESET_ATTEMPTS = 5;
+
     private final UserRepository users;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final TokenService tokens;
     private final SocialIdentityRepository socialIdentities;
     private final SocialIdentityVerifier socialIdentityVerifier;
+    private final PasswordResetCodeRepository passwordResetCodes;
+    private final EmailPort email;
+    private final Duration resetCodeTtl;
+    private final SecureRandom secureRandom = new SecureRandom();
+
+    public AuthService(UserRepository users, PasswordEncoder passwordEncoder,
+                       AuthenticationManager authenticationManager, TokenService tokens,
+                       SocialIdentityRepository socialIdentities,
+                       SocialIdentityVerifier socialIdentityVerifier,
+                       PasswordResetCodeRepository passwordResetCodes, EmailPort email,
+                       @Value("${identity.password-reset.code-ttl:PT10M}") Duration resetCodeTtl) {
+        this.users = users;
+        this.passwordEncoder = passwordEncoder;
+        this.authenticationManager = authenticationManager;
+        this.tokens = tokens;
+        this.socialIdentities = socialIdentities;
+        this.socialIdentityVerifier = socialIdentityVerifier;
+        this.passwordResetCodes = passwordResetCodes;
+        this.email = email;
+        this.resetCodeTtl = resetCodeTtl;
+    }
 
     @Transactional
     public TokenService.TokenPair register(String firstName, String lastName, String email,
@@ -117,6 +152,83 @@ public class AuthService {
     @Transactional
     public void logout(String refreshToken) {
         tokens.revoke(refreshToken);
+    }
+
+    /** Changement de mot de passe par un utilisateur connecté (vérifie le mot de passe actuel). */
+    @Transactional
+    public void changePassword(UUID publicId, String currentPassword, String newPassword) {
+        User user = users.findByPublicId(publicId)
+            .orElseThrow(() -> new NotFoundException("Utilisateur introuvable"));
+        if (!passwordEncoder.matches(currentPassword, user.passwordHash())) {
+            throw new BadCredentialsException("Mot de passe actuel incorrect");
+        }
+        user.changePassword(passwordEncoder.encode(newPassword));
+        users.save(user);
+        tokens.revokeAll(user.id());
+    }
+
+    /**
+     * Démarre une réinitialisation : génère un code OTP, l'envoie par e-mail.
+     * Ne révèle jamais si l'e-mail existe (anti-énumération) : renvoie toujours sans erreur.
+     */
+    @Transactional
+    public void forgotPassword(String rawEmail) {
+        Email normalizedEmail;
+        try {
+            normalizedEmail = new Email(rawEmail);
+        } catch (RuntimeException invalid) {
+            return;
+        }
+        users.findByEmail(normalizedEmail.value()).filter(User::active).ifPresent(user -> {
+            passwordResetCodes.invalidateAllForUser(user.id());
+            String code = generateCode();
+            passwordResetCodes.save(PasswordResetCode.issue(user.id(), hash(code),
+                Instant.now().plus(resetCodeTtl)));
+            // Un échec d'envoi (fournisseur indisponible/mal configuré) ne doit ni propager une
+            // erreur ni révéler que le compte existe : on journalise et on renvoie quand même 202.
+            try {
+                email.sendPasswordResetCode(user.email().value(), user.firstName(), code);
+            } catch (RuntimeException ex) {
+                log.warn("Échec de l'envoi du code de réinitialisation pour l'utilisateur {}",
+                    user.id(), ex);
+            }
+        });
+    }
+
+    /** Termine la réinitialisation : valide le code OTP et applique le nouveau mot de passe. */
+    @Transactional
+    public void resetPassword(String rawEmail, String code, String newPassword) {
+        User user = users.findByEmail(new Email(rawEmail).value())
+            .filter(User::active)
+            .orElseThrow(() -> new BadCredentialsException("Code de réinitialisation invalide"));
+        PasswordResetCode resetCode = passwordResetCodes.findLatestActiveByUserId(user.id())
+            .filter(value -> value.usableAt(Instant.now()))
+            .orElseThrow(() -> new BadCredentialsException("Code de réinitialisation invalide ou expiré"));
+        if (resetCode.attempts() >= MAX_RESET_ATTEMPTS) {
+            throw new BadCredentialsException("Trop de tentatives, demandez un nouveau code");
+        }
+        if (!MessageDigest.isEqual(hash(code).getBytes(StandardCharsets.UTF_8),
+                resetCode.codeHash().getBytes(StandardCharsets.UTF_8))) {
+            passwordResetCodes.save(resetCode.withIncrementedAttempts());
+            throw new BadCredentialsException("Code de réinitialisation invalide");
+        }
+        passwordResetCodes.save(resetCode.consume());
+        user.changePassword(passwordEncoder.encode(newPassword));
+        users.save(user);
+        tokens.revokeAll(user.id());
+    }
+
+    private String generateCode() {
+        return String.format("%06d", secureRandom.nextInt(1_000_000));
+    }
+
+    private String hash(String value) {
+        try {
+            return HexFormat.of().formatHex(
+                MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8)));
+        } catch (Exception ex) {
+            throw new IllegalStateException("SHA-256 indisponible", ex);
+        }
     }
 
     private User requireActiveUser(Long userId) {

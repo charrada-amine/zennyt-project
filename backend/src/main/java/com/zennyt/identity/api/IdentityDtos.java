@@ -38,6 +38,19 @@ public final class IdentityDtos {
     public record RefreshRequest(@NotBlank String refreshToken) {}
     public record RoleRequest(@NotNull Role role) {}
 
+    public record ChangePasswordRequest(
+        @NotBlank String currentPassword,
+        @NotBlank @Size(min = 8, max = 72) String newPassword
+    ) {}
+
+    public record ForgotPasswordRequest(@NotBlank @Email @Size(max = 150) String email) {}
+
+    public record ResetPasswordRequest(
+        @NotBlank @Email @Size(max = 150) String email,
+        @NotBlank @Size(min = 4, max = 10) String code,
+        @NotBlank @Size(min = 8, max = 72) String newPassword
+    ) {}
+
     public record TokenResponse(String accessToken, String refreshToken, String tokenType,
                                 long expiresIn) {
         static TokenResponse from(TokenService.TokenPair pair) {
@@ -52,8 +65,7 @@ public final class IdentityDtos {
         @Size(max = 30) String phoneNumber,
         @Size(max = 100) String city,
         @Size(max = 100) String country,
-        @Size(max = 255) String address,
-        @Size(max = 500) String profileImageUrl
+        @Size(max = 255) String address
     ) {}
 
     public record UserResponse(
@@ -95,7 +107,6 @@ public final class IdentityDtos {
         @NotBlank @Size(max = 150) String jobTitle,
         @NotBlank @Size(max = 150) String companyName,
         @NotBlank @Size(max = 100) String companySize,
-        @Size(max = 500) String companyLogoUrl,
         @NotBlank @Size(max = 150) String fieldOfWork,
         @NotBlank @Size(max = 150) String companyLocation,
         @NotBlank @Size(max = 100) String companyRegistrationNumber

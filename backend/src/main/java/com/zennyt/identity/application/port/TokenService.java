@@ -7,5 +7,8 @@ public interface TokenService {
     TokenPair rotate(String refreshToken);
     void revoke(String refreshToken);
 
+    /** Révoque toutes les sessions de rafraîchissement de l'utilisateur (déconnexion globale). */
+    void revokeAll(Long userId);
+
     record TokenPair(String accessToken, String refreshToken, String tokenType, long expiresIn) {}
 }

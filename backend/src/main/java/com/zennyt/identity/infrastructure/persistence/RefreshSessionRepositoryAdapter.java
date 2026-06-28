@@ -24,6 +24,11 @@ public class RefreshSessionRepositoryAdapter implements RefreshSessionRepository
         return jpa.findByTokenHash(tokenHash).map(this::toDomain);
     }
 
+    @Override
+    public void revokeAllForUser(Long userId) {
+        jpa.revokeAllForUser(userId, java.time.Instant.now());
+    }
+
     private RefreshSession toDomain(RefreshSessionEntity value) {
         return new RefreshSession(value.getId(), value.getUserId(), value.getTokenHash(),
             value.getExpiresAt(), value.getCreatedAt(), value.getRevokedAt());
