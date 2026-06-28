@@ -1,0 +1,49 @@
+/// Centralized route paths and names for the app's [GoRouter] configuration.
+///
+/// Using constants avoids magic strings scattered across the codebase and keeps
+/// navigation type-safe and refactor-friendly.
+class AppRoutes {
+  AppRoutes._();
+
+  static const String splash = '/';
+
+  static const String onboarding = '/onboarding';
+
+  static const String login = '/login';
+
+  static const String signup = '/signup';
+  static const String otp = '/signup/otp';
+  static const String changePhone = '/signup/change-phone';
+
+  static const String profileSetup = '/profile-setup';
+  static const String fieldOfWork = '/profile-setup/field-of-work';
+
+  static const String home = '/home';
+  static const String profileSettings = '/profile-settings';
+  static const String accountCenter = '/profile-settings/account-center';
+  static const String personalInformations = '/profile-settings/account-center/personal-informations';
+  static const String privacyPolicy = '/profile-settings/account-center/privacy-policy';
+  static const String userProfile = '/user-profile';
+  static const String editProfile = '/edit-profile';
+  static const String sharePost = '/share-post';
+  static const String languageSettings = '/language-settings';
+
+  // Route names (used with context.goNamed / pushNamed).
+  static const String nSplash = 'splash';
+  static const String nOnboarding = 'onboarding';
+  static const String nLogin = 'login';
+  static const String nSignup = 'signup';
+  static const String nOtp = 'otp';
+  static const String nChangePhone = 'changePhone';
+  static const String nProfileSetup = 'profileSetup';
+  static const String nFieldOfWork = 'fieldOfWork';
+  static const String nHome = 'home';
+  static const String nProfileSettings = 'profileSettings';
+  static const String nAccountCenter = 'accountCenter';
+  static const String nPersonalInformations = 'personalInformations';
+  static const String nPrivacyPolicy = 'privacyPolicy';
+  static const String nUserProfile = 'userProfile';
+  static const String nEditProfile = 'editProfile';
+  static const String nSharePost = 'sharePost';
+  static const String nLanguageSettings = 'languageSettings';
+}

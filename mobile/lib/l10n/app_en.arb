@@ -1,0 +1,107 @@
+{
+  "@@locale": "en",
+
+  "appName": "ZENNYT",
+  "appTagline": "Careers",
+
+  "onbWelcomeTitle": "Welcome to Zennyt Careers !",
+  "onbWelcomeBody": "Reveal your true professional potential.",
+  "onbGamesBody": "Play cognitive games grounded in research and discover your strengths.",
+  "onbSkillsBody": "Turn your performance into measurable insights that recruiters understand.",
+  "onbOpportunitiesBody": "Get matched based on skills — not just a resume.",
+  "next": "Next",
+  "getStarted": "Get started",
+
+  "loginTitle": "Log in to your account",
+  "email": "Email",
+  "password": "Password",
+  "forgotPassword": "Forgot Password?",
+  "signIn": "Sign In",
+  "orLogInWith": "Or log in with",
+  "continueWithGoogle": "Continue with Google",
+  "continueWithGitHub": "Continue with GitHub",
+  "noAccount": "Don't have an account?",
+  "signUp": "Sign up",
+  "haveAccount": "Already have an account? ",
+
+  "createAccountTitle": "Create your account",
+  "firstName": "First name",
+  "lastName": "Last name",
+  "emailHyphen": "E-mail",
+  "phone": "Phone number",
+  "cityCountry": "City / Country",
+  "country": "Country",
+  "city": "City",
+  "confirmPassword": "Confirm password",
+  "continueLabel": "Continue",
+  "acceptPrefix": "I accept the ",
+  "termsAndConditions": "terms and conditions",
+
+  "fieldRequired": "{field} is required.",
+  "@fieldRequired": {
+    "description": "Generic required-field validation message",
+    "placeholders": {
+      "field": { "type": "String", "example": "First name" }
+    }
+  },
+  "emailRequired": "Email is required.",
+  "emailInvalid": "Enter a valid email address.",
+  "phoneRequired": "Phone number is required.",
+  "phoneInvalid": "Enter a valid phone number.",
+  "passwordRequired": "Password is required.",
+  "passwordTooShort": "Password must be at least 6 characters.",
+  "confirmPasswordRequired": "Please confirm your password.",
+  "passwordsDoNotMatch": "Passwords do not match.",
+  "cityCountryRequired": "Please select your city / country.",
+  "countryRequired": "Please select your country.",
+  "cityRequired": "Please enter your city.",
+  "termsRequired": "You must accept the terms and conditions.",
+
+  "incorrectPassword": "Incorrect password. Try again or click \"Forgot your password\" to reset it.",
+  "connectionErrorTitle": "Error connecting",
+  "connectionFailed": "There is an error during your connection !",
+  "errorGeneric": "Something went wrong. Please try again.",
+
+  "changeLanguage": "Change language",
+  "language": "Language",
+  "languageScreenHint": "Choose the language used across the app.",
+
+  "profileAndSettings": "Profile & Settings",
+  "seeYourProfile": "See your profile",
+  "addYourCard": "Add your card",
+  "inviteFriends": "Invite Friends",
+  "referral": "Referral",
+  "accountCenter": "Account Center",
+  "notifications": "Notifications",
+  "theme": "Theme",
+  "accessibility": "Accessibility",
+  "helpCenter": "Help Center",
+  "termsOfServiceAndConditions": "Terms of Service & Conditions",
+  "logOut": "Log out",
+  "profileUserName": "Millie Brown",
+
+  "personalInformations": "Personal informations",
+  "changePassword": "Change Password",
+  "currentPassword": "Current password",
+  "lastUpdated": "Last updated: {date}",
+  "@lastUpdated": {
+    "placeholders": {
+      "date": { "type": "String", "example": "Jun 9, 2024" }
+    }
+  },
+  "privacyPolicy": "Privacy Policy",
+  "securityMonitoring": "Security monitoring",
+  "securityMonitoringDesc": "To ensure a fair and secure assessment process, monitoring measures will be in place and are required to proceed.",
+  "viewPrivacyPolicy": "View Privacy Policy",
+  "cookiesPreferences": "Cookies preferences",
+  "necessaryCookies": "Necessary Cookies",
+  "necessaryCookiesDesc": "Required for core plateform functionality and security.",
+  "analyticsCookies": "Analytics Cookies",
+  "analyticsCookiesDesc": "Help us understand platform usage and improve performance.",
+  "marketingCookies": "Marketing Cookies",
+  "marketingCookiesDesc": "Used to measure campaign performance and deliver relevant ads",
+  "deleteAccount": "Delete Account",
+  "currentLocation": "Current location",
+  "displayCurrentCity": "Display your current city on your profile",
+  "saveChanges": "Save changes"
+}
