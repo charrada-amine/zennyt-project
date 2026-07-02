@@ -35,7 +35,7 @@ class ArchitectureTest {
      */
     @Test
     void boundedContextsDoNotDependOnEachOthersInternals() {
-        for (String ctx : new String[]{"identity", "recruitment", "engagement", "analytics"}) {
+        for (String ctx : new String[]{"identity", "recruitment", "engagement", "analytics", "games"}) {
             noClasses()
                 .that().resideInAPackage("..%s..".formatted(ctx))
                 .should().dependOnClassesThat()
@@ -77,7 +77,7 @@ class ArchitectureTest {
 
     /** Construit la liste des packages internes des AUTRES contextes (hors event). */
     private static String[] otherContextInternals(String current) {
-        String[] all = {"identity", "recruitment", "engagement", "analytics"};
+        String[] all = {"identity", "recruitment", "engagement", "analytics", "games"};
         return java.util.Arrays.stream(all)
             .filter(c -> !c.equals(current))
             // on autorise ..<ctx>.domain.event.. (écoute d'événements) mais pas le reste du domaine/app

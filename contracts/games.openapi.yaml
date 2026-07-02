@@ -1,0 +1,140 @@
+openapi: 3.0.3
+info:
+  title: Zennyt — Games API
+  description: >
+    Bounded context Games : jeux sérieux d'évaluation cognitive (Planifik,
+    Memory Quest, Choix&Cap). Le client démarre une session, joue les mini-jeux
+    et remonte des MÉTRIQUES objectives ; le score déterministe est calculé
+    côté serveur. Ce contexte est indépendant : il n'expose et ne consomme aucun
+    autre contexte, et publie son résultat via l'événement games.result.recorded.
+  version: 1.0.0
+
+servers:
+  - url: https://api.zennyt.com/api/v1
+    description: Production
+  - url: https://api-staging.zennyt.com/api/v1
+    description: Staging
+
+tags:
+  - name: Games
+    description: Sessions de jeux sérieux et scoring
+
+security:
+  - bearerAuth: []
+
+paths:
+  /games/sessions:
+    post:
+      tags: [Games]
+      summary: Démarrer une session de jeu pour le joueur connecté
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/StartSessionRequest' }
+      responses:
+        '201':
+          description: Session créée (statut IN_PROGRESS)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GameSession' }
+        '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
+        '401': { $ref: './common.openapi.yaml#/components/responses/Unauthorized' }
+
+  /games/sessions/{sessionId}/results:
+    parameters:
+      - { name: sessionId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Games]
+      summary: Soumettre les métriques d'un mini-jeu terminé
+      description: >
+        Le client n'envoie jamais de score, seulement des métriques mesurées.
+        Le serveur calcule le score du mini-jeu ; au dernier mini-jeu du type,
+        la session passe COMPLETED et l'événement games.result.recorded est émis.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SubmitResultRequest' }
+      responses:
+        '200':
+          description: Résultat enregistré, session mise à jour
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GameSession' }
+        '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
+        '404': { $ref: './common.openapi.yaml#/components/responses/NotFound' }
+
+components:
+  securitySchemes:
+    bearerAuth: { $ref: './common.openapi.yaml#/components/securitySchemes/bearerAuth' }
+
+  schemas:
+    GameType:
+      type: string
+      description: Type de jeu sérieux. Seul PLANIFIK est implémenté.
+      enum: [PLANIFIK, MEMORY_QUEST, DECISION]
+
+    MiniGame:
+      type: string
+      description: Mini-jeu de Planifik. Seul OPTIMAL_PATH est implémenté.
+      enum: [OPTIMAL_PATH, TASK_SCHEDULING, PREVISION_PUZZLE]
+
+    SessionStatus:
+      type: string
+      enum: [IN_PROGRESS, COMPLETED, ABANDONED]
+
+    StartSessionRequest:
+      type: object
+      required: [gameType]
+      properties:
+        gameType: { $ref: '#/components/schemas/GameType' }
+
+    OptimalPathMetrics:
+      type: object
+      description: Métriques objectives du mini-jeu « Chemin Optimal ».
+      required: [attempts, pathLength, optimalLength, costlyZonesAvoided, secondaryObjectives]
+      properties:
+        attempts: { type: integer, minimum: 1, description: "Essais avant validation" }
+        pathLength: { type: integer, minimum: 0, description: "Longueur du chemin tracé" }
+        optimalLength: { type: integer, minimum: 1, description: "Longueur du chemin optimal" }
+        costlyZonesAvoided: { type: boolean }
+        secondaryObjectives: { type: integer, minimum: 0 }
+
+    SubmitResultRequest:
+      type: object
+      required: [miniGame, metrics]
+      properties:
+        miniGame: { $ref: '#/components/schemas/MiniGame' }
+        metrics: { $ref: '#/components/schemas/OptimalPathMetrics' }
+
+    Score:
+      type: object
+      properties:
+        rawPoints: { type: integer, example: 8 }
+        maxPoints: { type: integer, example: 10 }
+        normalized: { type: number, format: double, example: 80.0 }
+        level: { type: string, example: "Bon à excellent" }
+
+    Attempt:
+      type: object
+      properties:
+        miniGame: { $ref: '#/components/schemas/MiniGame' }
+        score: { $ref: '#/components/schemas/Score' }
+        recordedAt: { type: string, format: date-time }
+
+    GameSession:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        playerId: { type: string, format: uuid }
+        gameType: { $ref: '#/components/schemas/GameType' }
+        status: { $ref: '#/components/schemas/SessionStatus' }
+        compositeRaw: { type: integer, example: 24 }
+        compositeMax: { type: integer, example: 30 }
+        normalized: { type: number, format: double, example: 80.0 }
+        attempts:
+          type: array
+          items: { $ref: '#/components/schemas/Attempt' }
+        startedAt: { type: string, format: date-time }
+        completedAt: { type: string, format: date-time, nullable: true }

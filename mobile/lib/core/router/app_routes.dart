@@ -19,6 +19,11 @@ class AppRoutes {
   static const String fieldOfWork = '/profile-setup/field-of-work';
 
   static const String home = '/home';
+
+  // Games (jeux sérieux cognitifs)
+  static const String games = '/games';
+  static const String gamesPlanifik = '/games/planifik';
+
   static const String profileSettings = '/profile-settings';
   static const String accountCenter = '/profile-settings/account-center';
   static const String personalInformations = '/profile-settings/account-center/personal-informations';
@@ -38,6 +43,8 @@ class AppRoutes {
   static const String nProfileSetup = 'profileSetup';
   static const String nFieldOfWork = 'fieldOfWork';
   static const String nHome = 'home';
+  static const String nGames = 'games';
+  static const String nGamesPlanifik = 'gamesPlanifik';
   static const String nProfileSettings = 'profileSettings';
   static const String nAccountCenter = 'accountCenter';
   static const String nPersonalInformations = 'personalInformations';

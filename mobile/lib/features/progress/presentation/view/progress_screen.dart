@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/constants/app_strings.dart';
-import '../../../../shared/widgets/placeholder_screen.dart';
+import '../../../games/presentation/view/games_hub_screen.dart';
 
+/// Onglet « Progrès » : héberge le hub des jeux sérieux cognitifs (Planifik,
+/// Memory Quest, Choix&Cap). Point d'entrée de la feature games depuis la
+/// barre de navigation.
 class ProgressScreen extends StatelessWidget {
   const ProgressScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const PlaceholderScreen(
-      icon: Icons.auto_graph_rounded,
-      label: AppStrings.tabProgress,
-    );
+    return const GamesHubScreen();
   }
 }

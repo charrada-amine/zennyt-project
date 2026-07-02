@@ -19,6 +19,8 @@ import '../../features/profile_settings/presentation/view/account_center_screen.
 import '../../features/profile_settings/presentation/view/personal_informations_screen.dart';
 import '../../features/profile_settings/presentation/view/privacy_policy_screen.dart';
 import '../../features/navigation/presentation/view/main_navigation_screen.dart';
+import '../../features/games/presentation/view/games_hub_screen.dart';
+import '../../features/games/presentation/view/planifik_screen.dart';
 import '../../features/splash/presentation/view/splash_screen.dart';
 import 'app_routes.dart';
 
@@ -124,6 +126,17 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       path: AppRoutes.home,
       name: AppRoutes.nHome,
       builder: (context, state) => const MainNavigationScreen(),
+    ),
+    // Games (jeux sérieux cognitifs) — feature indépendante
+    GoRoute(
+      path: AppRoutes.games,
+      name: AppRoutes.nGames,
+      builder: (context, state) => const GamesHubScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.gamesPlanifik,
+      name: AppRoutes.nGamesPlanifik,
+      builder: (context, state) => const PlanifikScreen(),
     ),
     GoRoute(
       path: AppRoutes.profileSettings,

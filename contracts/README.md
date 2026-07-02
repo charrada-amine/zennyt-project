@@ -13,6 +13,7 @@ le contrat est rédigé et validé **avant** l'implémentation.
 | `recruitment.openapi.yaml` | Recruitment | Offres, recherche, candidatures, favoris |
 | `engagement.openapi.yaml` | Engagement | Chat, notifications, temps réel SignalR |
 | `analytics.openapi.yaml` | Analytics | Insights candidat & recruteur (lecture) |
+| `games.openapi.yaml` | Games | Jeux sérieux cognitifs, sessions & scoring |
 
 ## Règles de travail
 

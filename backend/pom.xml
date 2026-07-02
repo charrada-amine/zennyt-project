@@ -210,6 +210,22 @@
                             </configOptions>
                         </configuration>
                     </execution>
+                    <execution>
+                        <id>games-api</id>
+                        <goals><goal>generate</goal></goals>
+                        <configuration>
+                            <inputSpec>${project.basedir}/../contracts/games.openapi.yaml</inputSpec>
+                            <generatorName>spring</generatorName>
+                            <library>spring-boot</library>
+                            <apiPackage>com.zennyt.games.api.generated</apiPackage>
+                            <modelPackage>com.zennyt.games.api.generated.dto</modelPackage>
+                            <configOptions>
+                                <interfaceOnly>true</interfaceOnly>
+                                <useSpringBoot3>true</useSpringBoot3>
+                                <useTags>true</useTags>
+                            </configOptions>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
         </plugins>
