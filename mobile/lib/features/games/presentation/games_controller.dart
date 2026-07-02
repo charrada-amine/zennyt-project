@@ -2,8 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../domain/entities/game_session.dart';
 import '../domain/entities/game_type.dart';
+import '../domain/entities/game_metrics.dart';
 import '../domain/entities/mini_game.dart';
-import '../domain/entities/planifik_metrics.dart';
 import 'games_providers.dart';
 
 /// Source de vérité de la session de jeu courante.
@@ -27,18 +27,20 @@ class GamesController extends AsyncNotifier<GameSession?> {
   /// Soumet les métriques d'un mini-jeu terminé sur la session courante.
   Future<void> submit({
     required MiniGame miniGame,
-    required PlanifikMetrics metrics,
+    required GameMetrics metrics,
   }) async {
     final session = state.value;
     if (session == null) return;
     // Pas d'AsyncLoading ici : on garde la session (board) affichée pendant
     // l'appel ; l'écran gère son propre indicateur « busy » local.
     state = await AsyncValue.guard(
-      () => ref.read(gamesRepositoryProvider).submitResult(
-        sessionId: session.id,
-        miniGame: miniGame,
-        metrics: metrics,
-      ),
+      () => ref
+          .read(gamesRepositoryProvider)
+          .submitResult(
+            sessionId: session.id,
+            miniGame: miniGame,
+            metrics: metrics,
+          ),
     );
   }
 }

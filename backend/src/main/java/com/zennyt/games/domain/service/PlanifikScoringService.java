@@ -1,6 +1,8 @@
 package com.zennyt.games.domain.service;
 
 import com.zennyt.games.domain.vo.PlanifikMetrics;
+import com.zennyt.games.domain.vo.GameType;
+import com.zennyt.games.domain.vo.MoveFastMetrics;
 import com.zennyt.games.domain.vo.Score;
 
 /**
@@ -50,6 +52,54 @@ public class PlanifikScoringService {
         return new Score(points, 10, interpretMiniGame(points));
     }
 
+    /**
+     * Barème « Je bouge / Move Fast » :
+     * <ul>
+     *   <li>Multiplicateur initial x1, maximum x10</li>
+     *   <li>Réponse correcte : 50 × multiplicateur courant</li>
+     *   <li>4 bonnes réponses consécutives : multiplicateur +1, compteur remis à 0</li>
+     *   <li>Erreur avec compteur partiel : compteur remis à 0</li>
+     *   <li>Erreur avec compteur vide : multiplicateur -1, minimum x1</li>
+     *   <li>Bonus final : 250 × multiplicateur de fin</li>
+     * </ul>
+     */
+    public Score scoreMoveFast(MoveFastMetrics m) {
+        int points = replayMoveFastScore(m.correctResponses());
+        int maxPoints = replayMoveFastScore(allCorrect(m.responseCount()));
+
+        return new Score(points, maxPoints, interpretMoveFast(points * 100.0 / maxPoints));
+    }
+
+    private int replayMoveFastScore(Iterable<Boolean> responses) {
+        int points = 0;
+        int multiplier = 1;
+        int streakCounter = 0;
+
+        for (boolean correct : responses) {
+            if (correct) {
+                points += 50 * multiplier;
+                streakCounter++;
+                if (streakCounter == 4) {
+                    streakCounter = 0;
+                    multiplier = Math.min(10, multiplier + 1);
+                }
+                continue;
+            }
+
+            if (streakCounter > 0) {
+                streakCounter = 0;
+            } else {
+                multiplier = Math.max(1, multiplier - 1);
+            }
+        }
+
+        return points + (250 * multiplier);
+    }
+
+    private Iterable<Boolean> allCorrect(int count) {
+        return java.util.Collections.nCopies(count, true);
+    }
+
     /** Interprétation « Chemin Optimal » : 0–3 Très faible, 4–6 Moyen, 7–10 Bon à excellent. */
     private String interpretMiniGame(int points) {
         if (points <= 3) return "Très faible";
@@ -66,6 +116,22 @@ public class PlanifikScoringService {
         if (totalRaw <= 17) return "Moyen faible";
         if (totalRaw <= 23) return "Moyen";
         if (totalRaw <= 27) return "Bon";
+        return "Excellent";
+    }
+
+    public String interpretGlobal(GameType gameType, int totalRaw, double normalized) {
+        return switch (gameType) {
+            case PLANIFIK -> interpretGlobal(totalRaw);
+            case MOVE_FAST -> interpretMoveFast(normalized);
+            case MEMORY_QUEST, DECISION -> "Non interprété";
+        };
+    }
+
+    private String interpretMoveFast(double normalized) {
+        if (normalized < 40) return "Très faible";
+        if (normalized < 60) return "Moyen faible";
+        if (normalized < 75) return "Moyen";
+        if (normalized < 90) return "Bon";
         return "Excellent";
     }
 }

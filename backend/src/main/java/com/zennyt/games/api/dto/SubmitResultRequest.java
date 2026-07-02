@@ -1,10 +1,15 @@
 package com.zennyt.games.api.dto;
 
 import com.zennyt.games.domain.model.MiniGame;
+import com.zennyt.games.domain.vo.GameMetrics;
+import com.zennyt.games.domain.vo.MoveFastMetrics;
 import com.zennyt.games.domain.vo.PlanifikMetrics;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+
+import java.util.List;
 
 /**
  * DTO de requête : soumettre les métriques d'un mini-jeu.
@@ -14,20 +19,38 @@ import jakarta.validation.constraints.NotNull;
  */
 public record SubmitResultRequest(
     @NotNull MiniGame miniGame,
-    @NotNull @Valid OptimalPathMetrics metrics
+    @NotNull @Valid Metrics metrics
 ) {
-    /** Métriques du mini-jeu « Chemin Optimal ». */
-    public record OptimalPathMetrics(
-        @Min(1) int attempts,
-        @Min(0) int pathLength,
-        @Min(1) int optimalLength,
-        boolean costlyZonesAvoided,
-        @Min(0) int secondaryObjectives
+    /** Payload union. The [miniGame] value selects which fields are required. */
+    public record Metrics(
+        @Min(1) Integer attempts,
+        @Min(0) Integer pathLength,
+        @Min(1) Integer optimalLength,
+        Boolean costlyZonesAvoided,
+        @Min(0) Integer secondaryObjectives,
+        @Size(min = 1) List<Boolean> correctResponses,
+        List<@Min(0) Integer> reactionTimesMs
     ) {}
 
-    public PlanifikMetrics toMetrics() {
-        return new PlanifikMetrics(
-            metrics.attempts(), metrics.pathLength(), metrics.optimalLength(),
-            metrics.costlyZonesAvoided(), metrics.secondaryObjectives());
+    public GameMetrics toMetrics() {
+        return switch (miniGame) {
+            case OPTIMAL_PATH -> new PlanifikMetrics(
+                required(metrics.attempts(), "attempts"),
+                required(metrics.pathLength(), "pathLength"),
+                required(metrics.optimalLength(), "optimalLength"),
+                required(metrics.costlyZonesAvoided(), "costlyZonesAvoided"),
+                required(metrics.secondaryObjectives(), "secondaryObjectives"));
+            case MOVE_FAST_CORE -> new MoveFastMetrics(
+                metrics.correctResponses(), metrics.reactionTimesMs());
+            case TASK_SCHEDULING, PREVISION_PUZZLE -> throw new IllegalArgumentException(
+                "Métriques non encore implémentées pour " + miniGame);
+        };
+    }
+
+    private static <T> T required(T value, String field) {
+        if (value == null) {
+            throw new IllegalArgumentException("Champ métrique requis : " + field);
+        }
+        return value;
     }
 }

@@ -1,9 +1,11 @@
+import 'game_metrics.dart';
+
 /// Métriques objectives du mini-jeu « Chemin Optimal » (Value Object).
 ///
 /// Ce sont des mesures collectées pendant le jeu — jamais un score. Elles sont
 /// envoyées au serveur qui calcule le score. Aligné sur OptimalPathMetrics du
 /// contrat games.openapi.yaml.
-class PlanifikMetrics {
+class PlanifikMetrics extends GameMetrics {
   const PlanifikMetrics({
     required this.attempts,
     required this.pathLength,
@@ -18,6 +20,7 @@ class PlanifikMetrics {
   final bool costlyZonesAvoided;
   final int secondaryObjectives;
 
+  @override
   Map<String, dynamic> toJson() => {
     'attempts': attempts,
     'pathLength': pathLength,

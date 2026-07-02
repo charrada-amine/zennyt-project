@@ -5,10 +5,12 @@ import com.zennyt.games.domain.model.GameSession;
 import com.zennyt.games.domain.model.MiniGame;
 import com.zennyt.games.domain.service.PlanifikScoringService;
 import com.zennyt.games.domain.vo.GameType;
+import com.zennyt.games.domain.vo.MoveFastMetrics;
 import com.zennyt.games.domain.vo.PlanifikMetrics;
 import com.zennyt.games.domain.vo.Score;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -38,6 +40,40 @@ class GameSessionTest {
             new PlanifikMetrics(1, 13, 10, true, 0));
 
         assertEquals(5, score.rawPoints()); // 0 + 3 (1 essai) + 2 (zones) + 0
+    }
+
+    @Test
+    void moveFast_four_correct_responses_increase_multiplier_and_bonus() {
+        Score score = scoring.scoreMoveFast(
+            new MoveFastMetrics(List.of(true, true, true, true), List.of(500, 510, 520, 530)));
+
+        assertEquals(700, score.rawPoints()); // 4 × 50 at x1 + final bonus 250 × x2
+        assertEquals(700, score.maxPoints());
+        assertEquals("Excellent", score.level());
+    }
+
+    @Test
+    void moveFast_wrong_response_resets_partial_counter_without_lowering_multiplier() {
+        Score score = scoring.scoreMoveFast(
+            new MoveFastMetrics(List.of(true, true, false, true), List.of()));
+
+        assertEquals(400, score.rawPoints()); // 3 correct at x1 + final bonus 250 × x1
+        assertEquals(700, score.maxPoints());
+        assertEquals("Moyen faible", score.level());
+    }
+
+    @Test
+    void moveFast_session_completes_after_single_core_game() {
+        GameSession session = GameSession.start(UUID.randomUUID(), GameType.MOVE_FAST);
+        Score score = scoring.scoreMoveFast(
+            new MoveFastMetrics(List.of(true, true, true, true), List.of()));
+
+        session.recordResult(MiniGame.MOVE_FAST_CORE, score, scoring);
+
+        assertEquals(700, session.compositeRaw());
+        assertEquals(700, session.compositeMax());
+        assertEquals(1, session.domainEvents().size());
+        assertInstanceOf(GameResultRecordedEvent.class, session.domainEvents().get(0));
     }
 
     @Test

@@ -15,7 +15,9 @@ public enum MiniGame {
     /** Planifik #2 — « Ordonnancement de tâches » (à venir). */
     TASK_SCHEDULING(GameType.PLANIFIK, 10),
     /** Planifik #3 — « Le Puzzle Prévisionnel » (à venir). */
-    PREVISION_PUZZLE(GameType.PLANIFIK, 10);
+    PREVISION_PUZZLE(GameType.PLANIFIK, 10),
+    /** Move Fast #1 — « Je bouge ». Barème dynamique selon le nombre de réponses. */
+    MOVE_FAST_CORE(GameType.MOVE_FAST, 0);
 
     private final GameType gameType;
     private final int maxPoints;

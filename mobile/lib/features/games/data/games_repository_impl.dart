@@ -3,8 +3,8 @@ import 'package:dio/dio.dart';
 import '../../../core/error/api_exception.dart';
 import '../domain/entities/game_session.dart';
 import '../domain/entities/game_type.dart';
+import '../domain/entities/game_metrics.dart';
 import '../domain/entities/mini_game.dart';
-import '../domain/entities/planifik_metrics.dart';
 import '../domain/repositories/games_repository.dart';
 import 'dtos/game_session_dto.dart';
 
@@ -32,7 +32,7 @@ class GamesRepositoryImpl implements GamesRepository {
   Future<GameSession> submitResult({
     required String sessionId,
     required MiniGame miniGame,
-    required PlanifikMetrics metrics,
+    required GameMetrics metrics,
   }) {
     return _guard(() async {
       final res = await _dio.post<Map<String, dynamic>>(

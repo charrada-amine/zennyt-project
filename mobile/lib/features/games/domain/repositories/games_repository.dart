@@ -1,7 +1,7 @@
 import '../entities/game_session.dart';
 import '../entities/game_type.dart';
+import '../entities/game_metrics.dart';
 import '../entities/mini_game.dart';
-import '../entities/planifik_metrics.dart';
 
 /// Abstraction sur les sessions de jeux sérieux. La présentation dépend
 /// uniquement de cette interface.
@@ -17,6 +17,6 @@ abstract class GamesRepository {
   Future<GameSession> submitResult({
     required String sessionId,
     required MiniGame miniGame,
-    required PlanifikMetrics metrics,
+    required GameMetrics metrics,
   });
 }

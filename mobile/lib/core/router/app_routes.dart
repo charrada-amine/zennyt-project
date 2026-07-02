@@ -23,11 +23,14 @@ class AppRoutes {
   // Games (jeux sérieux cognitifs)
   static const String games = '/games';
   static const String gamesPlanifik = '/games/planifik';
+  static const String gamesMoveFast = '/games/move-fast';
 
   static const String profileSettings = '/profile-settings';
   static const String accountCenter = '/profile-settings/account-center';
-  static const String personalInformations = '/profile-settings/account-center/personal-informations';
-  static const String privacyPolicy = '/profile-settings/account-center/privacy-policy';
+  static const String personalInformations =
+      '/profile-settings/account-center/personal-informations';
+  static const String privacyPolicy =
+      '/profile-settings/account-center/privacy-policy';
   static const String userProfile = '/user-profile';
   static const String editProfile = '/edit-profile';
   static const String sharePost = '/share-post';
@@ -45,6 +48,7 @@ class AppRoutes {
   static const String nHome = 'home';
   static const String nGames = 'games';
   static const String nGamesPlanifik = 'gamesPlanifik';
+  static const String nGamesMoveFast = 'gamesMoveFast';
   static const String nProfileSettings = 'profileSettings';
   static const String nAccountCenter = 'accountCenter';
   static const String nPersonalInformations = 'personalInformations';

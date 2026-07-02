@@ -1,7 +1,7 @@
 package com.zennyt.games.application.command;
 
 import com.zennyt.games.domain.model.MiniGame;
-import com.zennyt.games.domain.vo.PlanifikMetrics;
+import com.zennyt.games.domain.vo.GameMetrics;
 
 import java.util.UUID;
 
@@ -14,5 +14,5 @@ import java.util.UUID;
 public record SubmitGameResultCommand(
     UUID sessionId,
     MiniGame miniGame,
-    PlanifikMetrics metrics
+    GameMetrics metrics
 ) {}

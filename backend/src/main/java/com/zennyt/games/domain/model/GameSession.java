@@ -88,7 +88,7 @@ public class GameSession extends AggregateRoot {
         registerEvent(GameResultRecordedEvent.of(
             id, playerId, gameType,
             compositeRaw(), compositeMax(), normalizedScore(),
-            scoring.interpretGlobal(compositeRaw())));
+            scoring.interpretGlobal(gameType, compositeRaw(), normalizedScore())));
     }
 
     private boolean isRecorded(MiniGame miniGame) {
@@ -105,6 +105,9 @@ public class GameSession extends AggregateRoot {
     }
 
     public int compositeMax() {
+        if (status == SessionStatus.COMPLETED && attempts.size() == expectedMiniGames().size()) {
+            return attempts.stream().mapToInt(a -> a.score().maxPoints()).sum();
+        }
         return expectedMiniGames().stream().mapToInt(MiniGame::maxPoints).sum();
     }
 

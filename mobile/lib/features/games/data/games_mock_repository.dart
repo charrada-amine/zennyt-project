@@ -1,7 +1,9 @@
 import '../domain/entities/game_score.dart';
 import '../domain/entities/game_session.dart';
 import '../domain/entities/game_type.dart';
+import '../domain/entities/game_metrics.dart';
 import '../domain/entities/mini_game.dart';
+import '../domain/entities/move_fast_metrics.dart';
 import '../domain/entities/planifik_metrics.dart';
 import '../domain/repositories/games_repository.dart';
 
@@ -17,14 +19,16 @@ class GamesMockRepository implements GamesRepository {
 
   @override
   Future<GameSession> startSession(GameType gameType) async {
-    await Future<void>.delayed(const Duration(milliseconds: 150)); // simule le réseau
+    await Future<void>.delayed(
+      const Duration(milliseconds: 150),
+    ); // simule le réseau
     final id = 'mock-session-${++_counter}';
     final session = GameSession(
       id: id,
       gameType: gameType,
       status: 'IN_PROGRESS',
       compositeRaw: 0,
-      compositeMax: 30,
+      compositeMax: gameType == GameType.moveFast ? 0 : 30,
       normalized: 0,
       attempts: const [],
       startedAt: DateTime.now(),
@@ -37,7 +41,7 @@ class GamesMockRepository implements GamesRepository {
   Future<GameSession> submitResult({
     required String sessionId,
     required MiniGame miniGame,
-    required PlanifikMetrics metrics,
+    required GameMetrics metrics,
   }) async {
     await Future<void>.delayed(const Duration(milliseconds: 150));
     final current = _sessions[sessionId];
@@ -45,23 +49,35 @@ class GamesMockRepository implements GamesRepository {
       throw StateError('Session mock introuvable : $sessionId');
     }
 
-    final score = _scoreOptimalPath(metrics);
+    final score = switch (miniGame) {
+      MiniGame.optimalPath => _scoreOptimalPath(metrics as PlanifikMetrics),
+      MiniGame.moveFastCore => _scoreMoveFast(metrics as MoveFastMetrics),
+      MiniGame.taskScheduling || MiniGame.previsionPuzzle => throw StateError(
+        'Barème mock non implémenté pour ${miniGame.wire}',
+      ),
+    };
     final attempts = [
       ...current.attempts,
       GameAttempt(miniGame: miniGame, score: score, recordedAt: DateTime.now()),
     ];
     final raw = attempts.fold<int>(0, (sum, a) => sum + a.score.rawPoints);
+    final complete =
+        miniGame == MiniGame.moveFastCore ||
+        attempts.length >= _expectedMiniGames(current.gameType);
+    final max = complete
+        ? attempts.fold<int>(0, (sum, a) => sum + a.score.maxPoints)
+        : current.compositeMax;
 
     final updated = GameSession(
       id: current.id,
       gameType: current.gameType,
-      status: current.status,
+      status: complete ? 'COMPLETED' : current.status,
       compositeRaw: raw,
-      compositeMax: current.compositeMax,
-      normalized: raw * 100.0 / current.compositeMax,
+      compositeMax: max,
+      normalized: max == 0 ? 0 : raw * 100.0 / max,
       attempts: attempts,
       startedAt: current.startedAt,
-      completedAt: current.completedAt,
+      completedAt: complete ? DateTime.now() : current.completedAt,
     );
     _sessions[sessionId] = updated;
     return updated;
@@ -72,7 +88,11 @@ class GamesMockRepository implements GamesRepository {
     var points = 0;
     final deviation = (m.pathLength - m.optimalLength).abs() / m.optimalLength;
     if (deviation <= 0.10) points += 4;
-    points += switch (m.attempts) { 1 => 3, 2 => 2, _ => 1 };
+    points += switch (m.attempts) {
+      1 => 3,
+      2 => 2,
+      _ => 1,
+    };
     if (m.costlyZonesAvoided) points += 2;
     if (m.secondaryObjectives > 0) points += 1;
 
@@ -87,5 +107,60 @@ class GamesMockRepository implements GamesRepository {
       normalized: points * 10.0,
       level: level,
     );
+  }
+
+  GameScore _scoreMoveFast(MoveFastMetrics m) {
+    final points = _replayMoveFastScore(m.correctResponses);
+    final maxPoints = _replayMoveFastScore(
+      List<bool>.filled(m.correctResponses.length, true),
+    );
+    final normalized = points * 100.0 / maxPoints;
+    final level = normalized < 40
+        ? 'Très faible'
+        : normalized < 60
+        ? 'Moyen faible'
+        : normalized < 75
+        ? 'Moyen'
+        : normalized < 90
+        ? 'Bon'
+        : 'Excellent';
+
+    return GameScore(
+      rawPoints: points,
+      maxPoints: maxPoints,
+      normalized: normalized,
+      level: level,
+    );
+  }
+
+  int _replayMoveFastScore(Iterable<bool> responses) {
+    var points = 0;
+    var multiplier = 1;
+    var streakCounter = 0;
+
+    for (final correct in responses) {
+      if (correct) {
+        points += 50 * multiplier;
+        streakCounter++;
+        if (streakCounter == 4) {
+          streakCounter = 0;
+          multiplier = (multiplier + 1).clamp(1, 10).toInt();
+        }
+      } else if (streakCounter > 0) {
+        streakCounter = 0;
+      } else {
+        multiplier = (multiplier - 1).clamp(1, 10).toInt();
+      }
+    }
+
+    return points + (250 * multiplier);
+  }
+
+  int _expectedMiniGames(GameType gameType) {
+    return switch (gameType) {
+      GameType.planifik => 3,
+      GameType.moveFast => 1,
+      GameType.memoryQuest || GameType.decision => 0,
+    };
   }
 }

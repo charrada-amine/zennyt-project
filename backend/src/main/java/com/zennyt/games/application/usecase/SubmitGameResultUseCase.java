@@ -5,6 +5,8 @@ import com.zennyt.games.domain.model.GameSession;
 import com.zennyt.games.domain.model.MiniGame;
 import com.zennyt.games.domain.repository.GameSessionRepository;
 import com.zennyt.games.domain.service.PlanifikScoringService;
+import com.zennyt.games.domain.vo.MoveFastMetrics;
+import com.zennyt.games.domain.vo.PlanifikMetrics;
 import com.zennyt.games.domain.vo.Score;
 import com.zennyt.shared.application.exception.NotFoundException;
 import org.springframework.context.ApplicationEventPublisher;
@@ -57,9 +59,18 @@ public class SubmitGameResultUseCase {
     /** Sélectionne le barème selon le mini-jeu. Seul OPTIMAL_PATH est implémenté. */
     private Score computeScore(MiniGame miniGame, SubmitGameResultCommand command) {
         return switch (miniGame) {
-            case OPTIMAL_PATH -> scoring.scoreOptimalPath(command.metrics());
+            case OPTIMAL_PATH -> scoring.scoreOptimalPath(expectMetrics(command, PlanifikMetrics.class));
+            case MOVE_FAST_CORE -> scoring.scoreMoveFast(expectMetrics(command, MoveFastMetrics.class));
             case TASK_SCHEDULING, PREVISION_PUZZLE -> throw new IllegalArgumentException(
                 "Barème non encore implémenté pour " + miniGame);
         };
+    }
+
+    private <T> T expectMetrics(SubmitGameResultCommand command, Class<T> type) {
+        if (!type.isInstance(command.metrics())) {
+            throw new IllegalArgumentException(
+                "Métriques incompatibles avec " + command.miniGame());
+        }
+        return type.cast(command.metrics());
     }
 }

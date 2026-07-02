@@ -3,10 +3,11 @@ info:
   title: Zennyt — Games API
   description: >
     Bounded context Games : jeux sérieux d'évaluation cognitive (Planifik,
-    Memory Quest, Choix&Cap). Le client démarre une session, joue les mini-jeux
-    et remonte des MÉTRIQUES objectives ; le score déterministe est calculé
-    côté serveur. Ce contexte est indépendant : il n'expose et ne consomme aucun
-    autre contexte, et publie son résultat via l'événement games.result.recorded.
+    Move Fast, Memory Quest, Choix&Cap). Le client démarre une session, joue
+    les mini-jeux et remonte des MÉTRIQUES objectives ; le score déterministe
+    est calculé côté serveur. Ce contexte est indépendant : il n'expose et ne
+    consomme aucun autre contexte, et publie son résultat via l'événement
+    games.result.recorded.
   version: 1.0.0
 
 servers:
@@ -72,13 +73,13 @@ components:
   schemas:
     GameType:
       type: string
-      description: Type de jeu sérieux. Seul PLANIFIK est implémenté.
-      enum: [PLANIFIK, MEMORY_QUEST, DECISION]
+      description: Type de jeu sérieux.
+      enum: [PLANIFIK, MOVE_FAST, MEMORY_QUEST, DECISION]
 
     MiniGame:
       type: string
-      description: Mini-jeu de Planifik. Seul OPTIMAL_PATH est implémenté.
-      enum: [OPTIMAL_PATH, TASK_SCHEDULING, PREVISION_PUZZLE]
+      description: Mini-jeu évalué dans une session.
+      enum: [OPTIMAL_PATH, TASK_SCHEDULING, PREVISION_PUZZLE, MOVE_FAST_CORE]
 
     SessionStatus:
       type: string
@@ -101,12 +102,34 @@ components:
         costlyZonesAvoided: { type: boolean }
         secondaryObjectives: { type: integer, minimum: 0 }
 
+    MoveFastMetrics:
+      type: object
+      description: >
+        Métriques objectives du jeu « Je bouge / Move Fast ». Le serveur rejoue
+        la séquence correct/incorrect pour appliquer le barème en escalade.
+      required: [correctResponses]
+      properties:
+        correctResponses:
+          type: array
+          minItems: 1
+          items: { type: boolean }
+          description: "Résultats dans l'ordre de jeu ; true = réponse correcte."
+        reactionTimesMs:
+          type: array
+          items: { type: integer, minimum: 0 }
+          description: "Temps de réaction par réponse, alignés avec correctResponses."
+
+    GameMetrics:
+      oneOf:
+        - $ref: '#/components/schemas/OptimalPathMetrics'
+        - $ref: '#/components/schemas/MoveFastMetrics'
+
     SubmitResultRequest:
       type: object
       required: [miniGame, metrics]
       properties:
         miniGame: { $ref: '#/components/schemas/MiniGame' }
-        metrics: { $ref: '#/components/schemas/OptimalPathMetrics' }
+        metrics: { $ref: '#/components/schemas/GameMetrics' }
 
     Score:
       type: object

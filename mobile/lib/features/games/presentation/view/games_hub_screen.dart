@@ -19,6 +19,13 @@ class GamesHubScreen extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         children: [
           _GameTile(
+            title: 'Move Fast — Je Bouge',
+            subtitle: 'Flexibilité cognitive · règles Orientation / Mouvement',
+            icon: Icons.near_me,
+            enabled: true,
+            onTap: () => context.push(AppRoutes.gamesMoveFast),
+          ),
+          _GameTile(
             title: 'Planifik — Je planifie',
             subtitle: 'Évalue la planification · mini-jeu « Chemin Optimal »',
             icon: Icons.route,

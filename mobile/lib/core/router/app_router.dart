@@ -20,6 +20,7 @@ import '../../features/profile_settings/presentation/view/personal_informations_
 import '../../features/profile_settings/presentation/view/privacy_policy_screen.dart';
 import '../../features/navigation/presentation/view/main_navigation_screen.dart';
 import '../../features/games/presentation/view/games_hub_screen.dart';
+import '../../features/games/presentation/view/move_fast_screen.dart';
 import '../../features/games/presentation/view/planifik_screen.dart';
 import '../../features/splash/presentation/view/splash_screen.dart';
 import 'app_routes.dart';
@@ -82,227 +83,254 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
-    GoRoute(
-      path: AppRoutes.splash,
-      name: AppRoutes.nSplash,
-      builder: (context, state) => const SplashScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.onboarding,
-      name: AppRoutes.nOnboarding,
-      builder: (context, state) => const OnboardingScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.login,
-      name: AppRoutes.nLogin,
-      builder: (context, state) => const LoginScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.signup,
-      name: AppRoutes.nSignup,
-      builder: (context, state) => const CreateAccountScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.otp,
-      name: AppRoutes.nOtp,
-      builder: (context, state) => const OtpScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.changePhone,
-      name: AppRoutes.nChangePhone,
-      builder: (context, state) => const ChangePhoneScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.profileSetup,
-      name: AppRoutes.nProfileSetup,
-      builder: (context, state) => const ProfileSetupScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.fieldOfWork,
-      name: AppRoutes.nFieldOfWork,
-      builder: (context, state) => const FieldOfWorkScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.home,
-      name: AppRoutes.nHome,
-      builder: (context, state) => const MainNavigationScreen(),
-    ),
-    // Games (jeux sérieux cognitifs) — feature indépendante
-    GoRoute(
-      path: AppRoutes.games,
-      name: AppRoutes.nGames,
-      builder: (context, state) => const GamesHubScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.gamesPlanifik,
-      name: AppRoutes.nGamesPlanifik,
-      builder: (context, state) => const PlanifikScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.profileSettings,
-      name: AppRoutes.nProfileSettings,
-      pageBuilder: (context, state) {
-        return CustomTransitionPage(
-          key: state.pageKey,
-          child: const ProfileSettingsScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            // Slide in from the left, like a drawer
-            const begin = Offset(-1.0, 0.0);
-            const end = Offset.zero;
-            const curve = Curves.easeInOutCubic;
+      GoRoute(
+        path: AppRoutes.splash,
+        name: AppRoutes.nSplash,
+        builder: (context, state) => const SplashScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.onboarding,
+        name: AppRoutes.nOnboarding,
+        builder: (context, state) => const OnboardingScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.login,
+        name: AppRoutes.nLogin,
+        builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.signup,
+        name: AppRoutes.nSignup,
+        builder: (context, state) => const CreateAccountScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.otp,
+        name: AppRoutes.nOtp,
+        builder: (context, state) => const OtpScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.changePhone,
+        name: AppRoutes.nChangePhone,
+        builder: (context, state) => const ChangePhoneScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.profileSetup,
+        name: AppRoutes.nProfileSetup,
+        builder: (context, state) => const ProfileSetupScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.fieldOfWork,
+        name: AppRoutes.nFieldOfWork,
+        builder: (context, state) => const FieldOfWorkScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.home,
+        name: AppRoutes.nHome,
+        builder: (context, state) => const MainNavigationScreen(),
+      ),
+      // Games (jeux sérieux cognitifs) — feature indépendante
+      GoRoute(
+        path: AppRoutes.games,
+        name: AppRoutes.nGames,
+        builder: (context, state) => const GamesHubScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.gamesPlanifik,
+        name: AppRoutes.nGamesPlanifik,
+        builder: (context, state) => const PlanifikScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.gamesMoveFast,
+        name: AppRoutes.nGamesMoveFast,
+        builder: (context, state) => const MoveFastScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.profileSettings,
+        name: AppRoutes.nProfileSettings,
+        pageBuilder: (context, state) {
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: const ProfileSettingsScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  // Slide in from the left, like a drawer
+                  const begin = Offset(-1.0, 0.0);
+                  const end = Offset.zero;
+                  const curve = Curves.easeInOutCubic;
 
-            final tween = Tween(
-              begin: begin,
-              end: end,
-            ).chain(CurveTween(curve: curve));
-            final offsetAnimation = animation.drive(tween);
+                  final tween = Tween(
+                    begin: begin,
+                    end: end,
+                  ).chain(CurveTween(curve: curve));
+                  final offsetAnimation = animation.drive(tween);
 
-            return SlideTransition(position: offsetAnimation, child: child);
-          },
-        );
-      },
-    ),
-    GoRoute(
-      path: AppRoutes.languageSettings,
-      name: AppRoutes.nLanguageSettings,
-      pageBuilder: (context, state) {
-        return CustomTransitionPage(
-          key: state.pageKey,
-          child: const LanguageSettingsScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            const begin = Offset(1.0, 0.0);
-            const end = Offset.zero;
-            const curve = Curves.easeOutCubic;
+                  return SlideTransition(
+                    position: offsetAnimation,
+                    child: child,
+                  );
+                },
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.languageSettings,
+        name: AppRoutes.nLanguageSettings,
+        pageBuilder: (context, state) {
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: const LanguageSettingsScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  const begin = Offset(1.0, 0.0);
+                  const end = Offset.zero;
+                  const curve = Curves.easeOutCubic;
 
-            final tween = Tween(
-              begin: begin,
-              end: end,
-            ).chain(CurveTween(curve: curve));
-            final offsetAnimation = animation.drive(tween);
+                  final tween = Tween(
+                    begin: begin,
+                    end: end,
+                  ).chain(CurveTween(curve: curve));
+                  final offsetAnimation = animation.drive(tween);
 
-            return SlideTransition(
-              position: offsetAnimation,
-              child: FadeTransition(opacity: animation, child: child),
-            );
-          },
-        );
-      },
-    ),
-    GoRoute(
-      path: AppRoutes.userProfile,
-      name: AppRoutes.nUserProfile,
-      builder: (context, state) => const UserProfileScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.editProfile,
-      name: AppRoutes.nEditProfile,
-      pageBuilder: (context, state) {
-        return CustomTransitionPage(
-          key: state.pageKey,
-          child: const EditProfileScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            const begin = Offset(1.0, 0.0);
-            const end = Offset.zero;
-            const curve = Curves.easeOutCubic;
+                  return SlideTransition(
+                    position: offsetAnimation,
+                    child: FadeTransition(opacity: animation, child: child),
+                  );
+                },
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.userProfile,
+        name: AppRoutes.nUserProfile,
+        builder: (context, state) => const UserProfileScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.editProfile,
+        name: AppRoutes.nEditProfile,
+        pageBuilder: (context, state) {
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: const EditProfileScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  const begin = Offset(1.0, 0.0);
+                  const end = Offset.zero;
+                  const curve = Curves.easeOutCubic;
 
-            final tween = Tween(
-              begin: begin,
-              end: end,
-            ).chain(CurveTween(curve: curve));
-            final offsetAnimation = animation.drive(tween);
+                  final tween = Tween(
+                    begin: begin,
+                    end: end,
+                  ).chain(CurveTween(curve: curve));
+                  final offsetAnimation = animation.drive(tween);
 
-            return SlideTransition(
-              position: offsetAnimation,
-              child: FadeTransition(opacity: animation, child: child),
-            );
-          },
-        );
-      },
-    ),
-    GoRoute(
-      path: AppRoutes.sharePost,
-      name: AppRoutes.nSharePost,
-      pageBuilder: (context, state) {
-        return CustomTransitionPage(
-          key: state.pageKey,
-          child: const SharePostScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            const begin = Offset(0.0, 1.0); // Slide up
-            const end = Offset.zero;
-            const curve = Curves.easeOutCubic;
+                  return SlideTransition(
+                    position: offsetAnimation,
+                    child: FadeTransition(opacity: animation, child: child),
+                  );
+                },
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.sharePost,
+        name: AppRoutes.nSharePost,
+        pageBuilder: (context, state) {
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: const SharePostScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  const begin = Offset(0.0, 1.0); // Slide up
+                  const end = Offset.zero;
+                  const curve = Curves.easeOutCubic;
 
-            final tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-            return SlideTransition(
-              position: animation.drive(tween),
-              child: child,
-            );
-          },
-        );
-      },
-    ),
-    GoRoute(
-      path: AppRoutes.accountCenter,
-      name: AppRoutes.nAccountCenter,
-      pageBuilder: (context, state) {
-        return CustomTransitionPage(
-          key: state.pageKey,
-          child: const AccountCenterScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            const begin = Offset(1.0, 0.0);
-            const end = Offset.zero;
-            const curve = Curves.easeOutCubic;
+                  final tween = Tween(
+                    begin: begin,
+                    end: end,
+                  ).chain(CurveTween(curve: curve));
+                  return SlideTransition(
+                    position: animation.drive(tween),
+                    child: child,
+                  );
+                },
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.accountCenter,
+        name: AppRoutes.nAccountCenter,
+        pageBuilder: (context, state) {
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: const AccountCenterScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  const begin = Offset(1.0, 0.0);
+                  const end = Offset.zero;
+                  const curve = Curves.easeOutCubic;
 
-            final tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-            return SlideTransition(
-              position: animation.drive(tween),
-              child: FadeTransition(opacity: animation, child: child),
-            );
-          },
-        );
-      },
-    ),
-    GoRoute(
-      path: AppRoutes.personalInformations,
-      name: AppRoutes.nPersonalInformations,
-      pageBuilder: (context, state) {
-        return CustomTransitionPage(
-          key: state.pageKey,
-          child: const PersonalInformationsScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            const begin = Offset(1.0, 0.0);
-            const end = Offset.zero;
-            const curve = Curves.easeOutCubic;
+                  final tween = Tween(
+                    begin: begin,
+                    end: end,
+                  ).chain(CurveTween(curve: curve));
+                  return SlideTransition(
+                    position: animation.drive(tween),
+                    child: FadeTransition(opacity: animation, child: child),
+                  );
+                },
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.personalInformations,
+        name: AppRoutes.nPersonalInformations,
+        pageBuilder: (context, state) {
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: const PersonalInformationsScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  const begin = Offset(1.0, 0.0);
+                  const end = Offset.zero;
+                  const curve = Curves.easeOutCubic;
 
-            final tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-            return SlideTransition(
-              position: animation.drive(tween),
-              child: FadeTransition(opacity: animation, child: child),
-            );
-          },
-        );
-      },
-    ),
-    GoRoute(
-      path: AppRoutes.privacyPolicy,
-      name: AppRoutes.nPrivacyPolicy,
-      pageBuilder: (context, state) {
-        return CustomTransitionPage(
-          key: state.pageKey,
-          child: const PrivacyPolicyScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            const begin = Offset(1.0, 0.0);
-            const end = Offset.zero;
-            const curve = Curves.easeOutCubic;
+                  final tween = Tween(
+                    begin: begin,
+                    end: end,
+                  ).chain(CurveTween(curve: curve));
+                  return SlideTransition(
+                    position: animation.drive(tween),
+                    child: FadeTransition(opacity: animation, child: child),
+                  );
+                },
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.privacyPolicy,
+        name: AppRoutes.nPrivacyPolicy,
+        pageBuilder: (context, state) {
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: const PrivacyPolicyScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  const begin = Offset(1.0, 0.0);
+                  const end = Offset.zero;
+                  const curve = Curves.easeOutCubic;
 
-            final tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-            return SlideTransition(
-              position: animation.drive(tween),
-              child: FadeTransition(opacity: animation, child: child),
-            );
-          },
-        );
-      },
-    ),
-  ],
+                  final tween = Tween(
+                    begin: begin,
+                    end: end,
+                  ).chain(CurveTween(curve: curve));
+                  return SlideTransition(
+                    position: animation.drive(tween),
+                    child: FadeTransition(opacity: animation, child: child),
+                  );
+                },
+          );
+        },
+      ),
+    ],
   );
 });

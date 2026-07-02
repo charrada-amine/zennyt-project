@@ -2,6 +2,7 @@
 /// contracts/games.openapi.yaml. Seul [GameType.planifik] est implémenté.
 enum GameType {
   planifik('PLANIFIK'),
+  moveFast('MOVE_FAST'),
   memoryQuest('MEMORY_QUEST'),
   decision('DECISION');
 

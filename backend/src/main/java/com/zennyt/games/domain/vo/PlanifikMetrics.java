@@ -20,7 +20,7 @@ public record PlanifikMetrics(
     int optimalLength,
     boolean costlyZonesAvoided,
     int secondaryObjectives
-) {
+) implements GameMetrics {
     public PlanifikMetrics {
         if (attempts < 1) {
             throw new IllegalArgumentException("attempts doit être ≥ 1");
