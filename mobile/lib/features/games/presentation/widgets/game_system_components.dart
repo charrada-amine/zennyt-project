@@ -404,52 +404,59 @@ class GameDirectionControls extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final buttonSize = compact ? 64.0 : 72.0;
-    return SizedBox(
-      height: compact ? 190 : 222,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Align(
-            alignment: Alignment.topCenter,
-            child: _DirectionButton(
-              direction: GameDirection.up,
-              size: buttonSize,
-              enabled: enabled,
-              state: _buttonState(GameDirection.up),
-              onTap: onDirection,
+    final gap = compact ? 14.0 : 18.0;
+    // Croix compacte (D-pad) centrée comme la maquette Figma : les boutons
+    // gauche/droite restent proches du centre au lieu d'être collés aux bords.
+    final crossExtent = buttonSize * 3 + gap * 2;
+    return Center(
+      child: SizedBox(
+        width: crossExtent,
+        height: crossExtent,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Align(
+              alignment: Alignment.topCenter,
+              child: _DirectionButton(
+                direction: GameDirection.up,
+                size: buttonSize,
+                enabled: enabled,
+                state: _buttonState(GameDirection.up),
+                onTap: onDirection,
+              ),
             ),
-          ),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: _DirectionButton(
-              direction: GameDirection.left,
-              size: buttonSize,
-              enabled: enabled,
-              state: _buttonState(GameDirection.left),
-              onTap: onDirection,
+            Align(
+              alignment: Alignment.centerLeft,
+              child: _DirectionButton(
+                direction: GameDirection.left,
+                size: buttonSize,
+                enabled: enabled,
+                state: _buttonState(GameDirection.left),
+                onTap: onDirection,
+              ),
             ),
-          ),
-          Align(
-            alignment: Alignment.centerRight,
-            child: _DirectionButton(
-              direction: GameDirection.right,
-              size: buttonSize,
-              enabled: enabled,
-              state: _buttonState(GameDirection.right),
-              onTap: onDirection,
+            Align(
+              alignment: Alignment.centerRight,
+              child: _DirectionButton(
+                direction: GameDirection.right,
+                size: buttonSize,
+                enabled: enabled,
+                state: _buttonState(GameDirection.right),
+                onTap: onDirection,
+              ),
             ),
-          ),
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: _DirectionButton(
-              direction: GameDirection.down,
-              size: buttonSize,
-              enabled: enabled,
-              state: _buttonState(GameDirection.down),
-              onTap: onDirection,
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: _DirectionButton(
+                direction: GameDirection.down,
+                size: buttonSize,
+                enabled: enabled,
+                state: _buttonState(GameDirection.down),
+                onTap: onDirection,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
