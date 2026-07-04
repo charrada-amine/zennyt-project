@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 
@@ -7,7 +8,7 @@ import '../../domain/entities/planifik_metrics.dart';
 import 'cell_component.dart';
 import 'grid_config.dart';
 
-/// Mini-jeu Flame « Chemin Optimal » (Planifik #1).
+/// Mini-jeu Flame « Chemin Optimal » (Optimal Path).
 ///
 /// Le joueur trace un chemin de la case départ à la case arrivée en touchant
 /// des cases adjacentes, en évitant obstacles et zones coûteuses. Le jeu ne
@@ -15,21 +16,26 @@ import 'grid_config.dart';
 /// couche présentation envoie au serveur (ou au mock) pour la notation.
 ///
 /// Découplage avec Flutter/Riverpod : le jeu n'appelle aucun provider. Il
-/// expose [canValidate] (pour activer le bouton) et [buildMetrics] (lu par
-/// l'écran au clic sur « Valider »).
+/// expose [canValidate] et [revision] (pour rafraîchir l'UI) plus des getters
+/// live lus par l'écran (compteur de pas, bonus, undo…).
 class PlanifikGame extends FlameGame {
-  PlanifikGame({this.config = GridConfig.demo});
+  PlanifikGame({this.config = GridConfig.level1});
 
   final GridConfig config;
 
   /// Passe à `true` dès que le chemin tracé atteint l'arrivée.
   final ValueNotifier<bool> canValidate = ValueNotifier<bool>(false);
 
+  /// Incrémenté à chaque modification du tracé — l'écran l'écoute pour
+  /// rafraîchir le HUD (pas, bonus) et l'état des boutons undo/clear.
+  final ValueNotifier<int> revision = ValueNotifier<int>(0);
+
   final List<CellComponent> _cells = [];
   final List<int> _path = []; // indices des cases du chemin, dans l'ordre
+  double _cellSize = 0;
 
   @override
-  Color backgroundColor() => const Color(0xFFFAFAFA);
+  Color backgroundColor() => const Color(0x00000000); // transparent (plateau violet)
 
   @override
   Future<void> onLoad() async {
@@ -48,6 +54,7 @@ class PlanifikGame extends FlameGame {
         add(cell);
       }
     }
+    add(_RouteLineComponent(this)..priority = 100);
     _layout(size);
     _resetPath();
   }
@@ -58,20 +65,17 @@ class PlanifikGame extends FlameGame {
     if (_cells.isNotEmpty) _layout(size);
   }
 
-  /// Calcule taille et position des cases pour occuper une grille carrée centrée.
+  /// Calcule taille et position des cellules pour remplir la zone (grille
+  /// col×row, cellules pouvant être non carrées, nœud circulaire centré).
   void _layout(Vector2 available) {
     if (available.x <= 0 || available.y <= 0) return;
-    final board = math.min(available.x, available.y);
-    final cellSize = board / math.max(config.cols, config.rows);
-    final offsetX = (available.x - cellSize * config.cols) / 2;
-    final offsetY = (available.y - cellSize * config.rows) / 2;
+    final cellW = available.x / config.cols;
+    final cellH = available.y / config.rows;
+    _cellSize = math.min(cellW, cellH);
 
     for (final cell in _cells) {
-      cell.size = Vector2.all(cellSize);
-      cell.position = Vector2(
-        offsetX + cell.col * cellSize,
-        offsetY + cell.row * cellSize,
-      );
+      cell.size = Vector2(cellW, cellH);
+      cell.position = Vector2(cell.col * cellW, cell.row * cellH);
     }
   }
 
@@ -86,7 +90,7 @@ class PlanifikGame extends FlameGame {
 
   void _handleTap(int row, int col) {
     final index = config.index(row, col);
-    if (config.kindOf(index) == CellKind.obstacle) return;
+    if (!config.isWalkable(index)) return; // obstacle infranchissable
 
     // Premier appui : doit partir de la case départ.
     if (_path.isEmpty) {
@@ -98,11 +102,7 @@ class PlanifikGame extends FlameGame {
 
     // Retoucher la dernière case = annuler (sans jamais retirer le départ).
     if (index == last) {
-      if (_path.length > 1) {
-        _path.removeLast();
-        _cellAt(index).inPath = false;
-      }
-      _refresh();
+      undo();
       return;
     }
 
@@ -120,12 +120,26 @@ class PlanifikGame extends FlameGame {
 
   void _refresh() {
     canValidate.value = _path.isNotEmpty && _path.last == config.end;
+    revision.value++;
   }
 
-  /// Réinitialise le tracé (garde uniquement la case départ sélectionnée).
+  /// Annule le dernier pas (garde toujours la case départ).
+  void undo() {
+    if (_path.length > 1) {
+      final removed = _path.removeLast();
+      _cellAt(removed).inPath = false;
+      _refresh();
+    }
+  }
+
+  /// Efface tout le tracé (revient au seul point de départ).
+  void clear() => _resetPath();
+
+  /// Alias historique conservé pour compatibilité.
   void resetPath() => _resetPath();
 
   void _resetPath() {
+    if (_cells.isEmpty) return; // pas encore chargé
     for (final c in _cells) {
       c.inPath = false;
     }
@@ -136,8 +150,26 @@ class PlanifikGame extends FlameGame {
     _refresh();
   }
 
+  // ───────────── Getters live (lus par l'écran) ─────────────
+
   /// Le chemin est-il complet (relie départ → arrivée) ?
   bool get isComplete => _path.isNotEmpty && _path.last == config.end;
+
+  /// Nombre de déplacements du tracé courant.
+  int get stepCount => math.max(0, _path.length - 1);
+
+  /// Objectifs secondaires touchés par le tracé.
+  int get bonusCount => _path.where(config.objectives.contains).length;
+
+  /// Le tracé passe-t-il par une zone coûteuse ?
+  bool get crossesCostly => _path.any(config.costlyZones.contains);
+
+  /// Peut-on annuler (au moins un pas après le départ) ?
+  bool get canUndo => _path.length > 1;
+
+  int get optimalLength => config.optimalLength;
+
+  int get totalObjectives => config.objectives.length;
 
   /// Construit les métriques objectives à partir du tracé courant.
   ///
@@ -145,22 +177,55 @@ class PlanifikGame extends FlameGame {
   /// Retourne `null` si le chemin n'atteint pas encore l'arrivée.
   PlanifikMetrics? buildMetrics({required int attempts}) {
     if (!isComplete) return null;
-    final pathLength = _path.length - 1; // nombre de déplacements
-    final avoidedCostly = !_path.any(config.costlyZones.contains);
-    final objectivesHit = _path.where(config.objectives.contains).length;
-
     return PlanifikMetrics(
       attempts: attempts,
-      pathLength: pathLength,
+      pathLength: stepCount,
       optimalLength: config.optimalLength,
-      costlyZonesAvoided: avoidedCostly,
-      secondaryObjectives: objectivesHit,
+      costlyZonesAvoided: !crossesCostly,
+      secondaryObjectives: bonusCount,
     );
   }
 
   @override
   void onRemove() {
     canValidate.dispose();
+    revision.dispose();
     super.onRemove();
+  }
+}
+
+/// Trace la « planned route line » (magenta) reliant le centre des cases du
+/// chemin — composant partagé de la charte Optimal Path.
+class _RouteLineComponent extends PositionComponent {
+  _RouteLineComponent(this._game);
+
+  final PlanifikGame _game;
+
+  @override
+  void render(Canvas canvas) {
+    final path = _game._path;
+    if (path.length < 2) return;
+
+    final line = Path();
+    for (var i = 0; i < path.length; i++) {
+      final cell = _game._cellAt(path[i]);
+      final center = cell.position + cell.size / 2;
+      if (i == 0) {
+        line.moveTo(center.x, center.y);
+      } else {
+        line.lineTo(center.x, center.y);
+      }
+    }
+
+    final width = math.max(3.0, _game._cellSize * 0.14);
+    canvas.drawPath(
+      line,
+      Paint()
+        ..color = BoardPalette.route
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = width
+        ..strokeJoin = StrokeJoin.round
+        ..strokeCap = StrokeCap.round,
+    );
   }
 }
