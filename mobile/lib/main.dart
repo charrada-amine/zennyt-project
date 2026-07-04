@@ -11,10 +11,11 @@ import 'core/storage/shared_preferences_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Load environment variables from .env file
-  await dotenv.load(fileName: ".env");
-  
+
+  // Optional local overrides. AppConfig has platform defaults and also accepts
+  // --dart-define=API_BASE_URL=..., so an empty/missing .env must not block startup.
+  await dotenv.load(fileName: ".env", isOptional: true);
+
   final prefs = await SharedPreferences.getInstance();
 
   runApp(

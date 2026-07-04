@@ -40,6 +40,7 @@ enum _PlanifikStage { intro, howToPlay, gameplay, score, comparison }
 class _PlanifikScreenState extends ConsumerState<PlanifikScreen> {
   // Recréé à chaque partie : évite tout état résiduel / re-onLoad de Flame.
   PlanifikGame _game = PlanifikGame();
+  List<GridConfig> _levelConfigs = GridConfig.randomLevels();
 
   _PlanifikStage _stage = _PlanifikStage.intro;
   int _attempts = 0;
@@ -50,9 +51,10 @@ class _PlanifikScreenState extends ConsumerState<PlanifikScreen> {
 
   Future<void> _beginGame() async {
     setState(() {
+      _levelConfigs = GridConfig.randomLevels();
       _level = 0;
       _score = 0;
-      _game = PlanifikGame(config: GridConfig.levels[_level]);
+      _game = PlanifikGame(config: _levelConfigs[_level]);
       _stage = _PlanifikStage.gameplay;
       _attempts = 0;
       _lastMetrics = null;
@@ -64,10 +66,10 @@ class _PlanifikScreenState extends ConsumerState<PlanifikScreen> {
   /// dernier niveau, soumission au backend et écran de score.
   void _onCorrectRoute() {
     _score += 250;
-    if (_level < GridConfig.levels.length - 1) {
+    if (_level < _levelConfigs.length - 1) {
       setState(() {
         _level++;
-        _game = PlanifikGame(config: GridConfig.levels[_level]);
+        _game = PlanifikGame(config: _levelConfigs[_level]);
       });
     } else {
       _submitFinal();
@@ -105,9 +107,9 @@ class _PlanifikScreenState extends ConsumerState<PlanifikScreen> {
     ref.listen(gamesControllerProvider, (_, next) {
       if (next.hasError && mounted) {
         setState(() => _busy = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${next.error}')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('${next.error}')));
       }
     });
 
@@ -142,7 +144,7 @@ class _PlanifikScreenState extends ConsumerState<PlanifikScreen> {
         busy: _busy,
         score: _score,
         level: _level + 1,
-        totalLevels: GridConfig.levels.length,
+        totalLevels: _levelConfigs.length,
         onCorrect: _onCorrectRoute,
         onWrong: _onWrongRoute,
         onExit: () => context.go(AppRoutes.games),
@@ -191,79 +193,89 @@ class _IntroView extends StatelessWidget {
           ),
           const SizedBox(height: 20), // header → hero
           // Hero card « Path Mind » (violet plein #4F46E5).
-          Container(
-            height: 288,
-            padding: const EdgeInsets.all(AppSpacing.xl),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(28),
-              color: const Color(0xFF4F46E5),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x334F46E5),
-                  blurRadius: 28,
-                  offset: Offset(0, 14),
-                ),
-              ],
-            ),
-            child: Stack(
-              clipBehavior: Clip.hardEdge,
-              children: [
-                Positioned(
-                  right: -22,
-                  top: 0,
-                  bottom: 0,
-                  child: SizedBox(
-                    width: 210,
-                    child: CustomPaint(painter: _PathMindArt()),
-                  ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.lg,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(
-                          AppSpacing.radiusFull,
-                        ),
-                      ),
-                      child: Text(
-                        'Cognitive Flexibility',
-                        style: AppTypography.labelMedium.copyWith(
-                          color: ZennytGamePalette.blue,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    const Text(
-                      'Path\nMind',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 44,
-                        height: 1.05,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      'Connect the optimal path.\nBe strategic.',
-                      style: AppTypography.titleMedium.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        height: 1.3,
-                        letterSpacing: 0,
-                      ),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final heroHeight = math.max(340.0, constraints.maxWidth * 0.9);
+              return Container(
+                height: heroHeight,
+                padding: const EdgeInsets.all(AppSpacing.xl),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(28),
+                  color: const Color(0xFF4F46E5),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x334F46E5),
+                      blurRadius: 28,
+                      offset: Offset(0, 14),
                     ),
                   ],
                 ),
-              ],
-            ),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Positioned(
+                      right: -78,
+                      top: 0,
+                      bottom: 0,
+                      width: constraints.maxWidth * 0.86,
+                      child: CustomPaint(painter: _PathMindHeroBackground()),
+                    ),
+                    Positioned(
+                      right: 10,
+                      top: 38,
+                      bottom: 34,
+                      width: constraints.maxWidth * 0.48,
+                      child: CustomPaint(painter: _PathMindArt()),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.lg,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(
+                              AppSpacing.radiusFull,
+                            ),
+                          ),
+                          child: Text(
+                            'Spatial Planning',
+                            style: AppTypography.labelMedium.copyWith(
+                              color: ZennytGamePalette.blue,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.xl),
+                        const Text(
+                          'Path\nMind',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 52,
+                            height: 1.08,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          'Connect the optimal\npath. Be strategic.',
+                          style: AppTypography.headlineSmall.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            height: 1.28,
+                            letterSpacing: 0,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
           const SizedBox(height: 18), // hero → stats
           // Ligne meta : 3 cartes blanches sur fond gris.
@@ -276,7 +288,9 @@ class _IntroView extends StatelessWidget {
             ),
             child: const Row(
               children: [
-                Expanded(child: _MetaCell(label: 'Goal', value: 'Planning')),
+                Expanded(
+                  child: _MetaCell(label: 'Goal', value: 'Planning'),
+                ),
                 SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: _MetaCell(
@@ -286,7 +300,9 @@ class _IntroView extends StatelessWidget {
                   ),
                 ),
                 SizedBox(width: AppSpacing.sm),
-                Expanded(child: _MetaCell(label: 'Format', value: 'Mobile')),
+                Expanded(
+                  child: _MetaCell(label: 'Format', value: 'Mobile'),
+                ),
               ],
             ),
           ),
@@ -412,23 +428,47 @@ class _MetaCell extends StatelessWidget {
   }
 }
 
+/// Cercles décoratifs de fond de la carte hero.
+class _PathMindHeroBackground extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final purple = Paint()
+      ..color = const Color(0xFF6B5CF6).withValues(alpha: 0.28);
+    final pink = Paint()
+      ..color = const Color(0xFFE85B9A).withValues(alpha: 0.10);
+    final cyan = Paint()
+      ..color = const Color(0xFF4FC3E8).withValues(alpha: 0.06);
+
+    canvas.drawCircle(
+      Offset(size.width * 0.84, size.height * 0.50),
+      size.width * 0.43,
+      purple,
+    );
+    canvas.drawCircle(
+      Offset(size.width * 1.18, size.height * 0.36),
+      size.width * 0.24,
+      pink,
+    );
+    canvas.drawCircle(
+      Offset(size.width * 1.00, size.height * 0.82),
+      size.width * 0.25,
+      cyan,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
 /// Illustration de la carte hero : grille 3×3 avec chemin magenta,
-/// case départ (blanche) et arrivée (verte), sur des cercles décoratifs.
+/// case départ (blanche) et arrivée (verte).
 class _PathMindArt extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    // Cercles décoratifs colorés translucides et subtils (profondeur Figma).
-    final lilac = Paint()..color = Colors.white.withValues(alpha: 0.11);
-    final pink = Paint()..color = const Color(0xFFE85B9A).withValues(alpha: 0.16);
-    final cyan = Paint()..color = const Color(0xFF4FC3E8).withValues(alpha: 0.14);
-    canvas.drawCircle(Offset(size.width * 0.52, size.height * 0.44), size.width * 0.72, lilac);
-    canvas.drawCircle(Offset(size.width * 1.05, size.height * 0.32), size.width * 0.42, pink);
-    canvas.drawCircle(Offset(size.width * 0.78, size.height * 1.0), size.width * 0.40, cyan);
-
     // Positions de la grille 3×3 (plus grande, remplit la zone).
     Offset node(int col, int row) => Offset(
       size.width * (0.16 + col * 0.34),
-      size.height * (0.14 + row * 0.36),
+      size.height * (0.18 + row * 0.32),
     );
 
     final path = <Offset>[
@@ -443,7 +483,7 @@ class _PathMindArt extends CustomPainter {
     final line = Paint()
       ..color = const Color(0xFFD12E7D)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 8
+      ..strokeWidth = size.width * 0.07
       ..strokeJoin = StrokeJoin.round
       ..strokeCap = StrokeCap.round;
     final p = Path()..moveTo(path.first.dx, path.first.dy);
@@ -460,7 +500,11 @@ class _PathMindArt extends CustomPainter {
       }
     }
     // Départ : cercle blanc + anneau rose (comme le logo Figma).
-    canvas.drawCircle(node(0, 0), size.width * 0.105, Paint()..color = Colors.white);
+    canvas.drawCircle(
+      node(0, 0),
+      size.width * 0.105,
+      Paint()..color = Colors.white,
+    );
     canvas.drawCircle(
       node(0, 0),
       size.width * 0.105,
@@ -470,7 +514,11 @@ class _PathMindArt extends CustomPainter {
         ..strokeWidth = size.width * 0.03,
     );
     // Arrivée (vert).
-    canvas.drawCircle(node(2, 2), size.width * 0.10, Paint()..color = const Color(0xFF22C55E));
+    canvas.drawCircle(
+      node(2, 2),
+      size.width * 0.10,
+      Paint()..color = const Color(0xFF22C55E),
+    );
   }
 
   @override
@@ -894,21 +942,51 @@ class _StationsArt extends CustomPainter {
 
     final radius = size.height * 0.155;
 
-    _node(canvas, lab, radius, fill: Colors.white,
-        border: const Color(0xFF6C8CF5), label: 'LAB');
-    _node(canvas, a, radius, fill: const Color(0xFF6C8CF5),
-        border: const Color(0xFF6C8CF5), label: 'A', labelColor: Colors.white);
+    _node(
+      canvas,
+      lab,
+      radius,
+      fill: Colors.white,
+      border: const Color(0xFF6C8CF5),
+      label: 'LAB',
+    );
+    _node(
+      canvas,
+      a,
+      radius,
+      fill: const Color(0xFF6C8CF5),
+      border: const Color(0xFF6C8CF5),
+      label: 'A',
+      labelColor: Colors.white,
+    );
     // Station étoile (documents).
-    _node(canvas, star, radius, fill: const Color(0xFFF9D9E7),
-        border: ZennytGamePalette.magenta);
+    _node(
+      canvas,
+      star,
+      radius,
+      fill: const Color(0xFFF9D9E7),
+      border: ZennytGamePalette.magenta,
+    );
     _star(canvas, star, radius * 0.62, const Color(0xFFF5B800));
     // Arrivée MTG.
-    _node(canvas, mtg, radius, fill: const Color(0xFF22C55E),
-        border: const Color(0xFF22C55E), label: 'MTG', labelColor: Colors.white,
-        labelSize: 8);
+    _node(
+      canvas,
+      mtg,
+      radius,
+      fill: const Color(0xFF22C55E),
+      border: const Color(0xFF22C55E),
+      label: 'MTG',
+      labelColor: Colors.white,
+      labelSize: 8,
+    );
     // Nœud bloqué (éclair).
-    _node(canvas, blocked, radius, fill: const Color(0xFFFBE0E0),
-        border: const Color(0xFFEF5B5B));
+    _node(
+      canvas,
+      blocked,
+      radius,
+      fill: const Color(0xFFFBE0E0),
+      border: const Color(0xFFEF5B5B),
+    );
     _bolt(canvas, blocked, radius * 0.7, const Color(0xFFEF5B5B));
   }
 
@@ -1190,7 +1268,8 @@ class _GameplayViewState extends State<_GameplayView> {
                 Expanded(
                   flex: 3,
                   child: _ValidateButton(
-                    enabled: game.stepCount >= 1 &&
+                    enabled:
+                        game.stepCount >= 1 &&
                         !widget.busy &&
                         _feedback == _Feedback.none,
                     busy: widget.busy,
@@ -1230,11 +1309,17 @@ class _OptimalHud extends StatelessWidget {
       children: [
         Row(
           children: [
-            Expanded(child: _HudStatPill(label: 'Score', value: '$score')),
+            Expanded(
+              child: _HudStatPill(label: 'Score', value: '$score'),
+            ),
             const SizedBox(width: AppSpacing.sm),
-            Expanded(child: _HudStatPill(label: 'Timer', value: timeLabel)),
+            Expanded(
+              child: _HudStatPill(label: 'Timer', value: timeLabel),
+            ),
             const SizedBox(width: AppSpacing.sm),
-            Expanded(child: _HudStatPill(label: 'Tries', value: '$tries/3')),
+            Expanded(
+              child: _HudStatPill(label: 'Tries', value: '$tries/3'),
+            ),
             const SizedBox(width: AppSpacing.sm),
             _HudIconButton(icon: Icons.pause_rounded, onTap: onPause),
           ],
@@ -1340,7 +1425,9 @@ class _FeedbackBanner extends StatelessWidget {
         Text(
           text,
           style: TextStyle(
-            color: correct ? ZennytGamePalette.success : ZennytGamePalette.error,
+            color: correct
+                ? ZennytGamePalette.success
+                : ZennytGamePalette.error,
             fontSize: 17,
             fontWeight: FontWeight.w800,
           ),
@@ -1617,13 +1704,17 @@ class _PauseDialogState extends State<_PauseDialog> {
               onPressed: () => Navigator.of(context).pop(_PauseAction.exit),
               style: OutlinedButton.styleFrom(
                 foregroundColor: ZennytGamePalette.error,
-                backgroundColor: ZennytGamePalette.error.withValues(alpha: 0.06),
+                backgroundColor: ZennytGamePalette.error.withValues(
+                  alpha: 0.06,
+                ),
                 side: const BorderSide(color: ZennytGamePalette.error),
                 minimumSize: const Size.fromHeight(52),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
                 ),
-                textStyle: AppTypography.buttonMedium.copyWith(letterSpacing: 0),
+                textStyle: AppTypography.buttonMedium.copyWith(
+                  letterSpacing: 0,
+                ),
               ),
               child: const Text('Exit mission'),
             ),
@@ -1847,90 +1938,153 @@ class _ScoreView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final attempt = session?.lastAttempt;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
+    final scorePercent = attempt?.score.normalized.round() ?? 0;
+    final rawScore = attempt?.score.rawPoints;
+    final routeEfficiency = metrics == null
+        ? 0
+        : ((metrics!.optimalLength /
+                      math.max(metrics!.pathLength, metrics!.optimalLength)) *
+                  100)
+              .round();
+    final delta = metrics == null
+        ? 0
+        : metrics!.pathLength - metrics!.optimalLength;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(24, 18, 24, 24),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          Align(
+            alignment: Alignment.centerLeft,
+            child: _SquareIconButton(icon: Icons.chevron_left, onTap: onBack),
+          ),
           Text(
-            'Result',
-            textAlign: TextAlign.center,
-            style: AppTypography.headlineMedium.copyWith(
-              color: ZennytGamePalette.ink,
+            'Results',
+            style: AppTypography.displaySmall.copyWith(
+              color: ZennytGamePalette.blue,
               letterSpacing: 0,
             ),
           ),
-          const SizedBox(height: AppSpacing.lg),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Result card.
-                  GamePanel(
-                    padding: const EdgeInsets.all(AppSpacing.xl),
-                    child: Column(
-                      children: [
-                        Text(
-                          attempt == null
-                              ? '—'
-                              : '${attempt.score.rawPoints} / ${attempt.score.maxPoints}',
-                          style: AppTypography.displaySmall.copyWith(
-                            color: ZennytGamePalette.gameBlue,
-                            letterSpacing: 0,
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.xs),
-                        Text(
-                          'points',
-                          style: AppTypography.bodyMedium.copyWith(
-                            color: ZennytGamePalette.muted,
-                            letterSpacing: 0,
-                          ),
-                        ),
-                        if (attempt != null) ...[
-                          const SizedBox(height: AppSpacing.md),
-                          GameRuleChip(
-                            label: attempt.score.level,
-                            color: ZennytGamePalette.gameBlue,
-                            filled: true,
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  if (metrics != null)
-                    _ScoreBreakdownPanel(metrics: metrics!),
-                ],
-              ),
+          Text(
+            attempt == null ? 'Synchronizing score...' : 'Path Mind completed',
+            style: AppTypography.bodyMedium.copyWith(
+              color: ZennytGamePalette.muted,
+              letterSpacing: 0,
             ),
           ),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: AppSpacing.xl),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(AppSpacing.xl),
+            decoration: BoxDecoration(
+              color: ZennytGamePalette.gameBlue,
+              borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+            ),
+            child: Column(
+              children: [
+                Text(
+                  'Cognitive score',
+                  style: AppTypography.titleSmall.copyWith(
+                    color: Colors.white,
+                    letterSpacing: 0,
+                  ),
+                ),
+                Text(
+                  '$scorePercent%',
+                  style: AppTypography.displayLarge.copyWith(
+                    color: Colors.white,
+                    fontSize: 56,
+                    letterSpacing: 0,
+                  ),
+                ),
+                Text(
+                  rawScore == null
+                      ? 'Planning score is being calculated.'
+                      : '$rawScore points calculated by the server.',
+                  textAlign: TextAlign.center,
+                  style: AppTypography.bodyLarge.copyWith(
+                    color: Colors.white,
+                    letterSpacing: 0,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xl),
           Row(
             children: [
               Expanded(
-                child: GameOutlineButton(
-                  label: 'Compare',
-                  icon: Icons.insights_rounded,
-                  onPressed: onCompare,
+                child: ResultStatTile(
+                  label: 'Efficiency',
+                  value: '$routeEfficiency%',
+                  valueColor: ZennytGamePalette.success,
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
-                child: GamePrimaryButton(
-                  label: 'Replay',
-                  icon: Icons.replay_rounded,
-                  color: ZennytGamePalette.gameBlue,
-                  onPressed: onReplay,
+                child: ResultStatTile(
+                  label: 'Route',
+                  value: metrics == null ? '—' : '${metrics!.pathLength}',
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: ResultStatTile(
+                  label: 'Delta',
+                  value: metrics == null
+                      ? '—'
+                      : delta <= 0
+                      ? 'Optimal'
+                      : '+$delta',
+                  valueColor: delta <= 0
+                      ? ZennytGamePalette.success
+                      : ZennytGamePalette.magenta,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.sm),
-          TextButton(
-            onPressed: onBack,
-            child: const Text('Back to games'),
+          const SizedBox(height: AppSpacing.xxl),
+          GamePanel(
+            backgroundColor: ZennytGamePalette.mist,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Summary insight',
+                  style: AppTypography.titleMedium.copyWith(
+                    color: ZennytGamePalette.blue,
+                    letterSpacing: 0,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Text(
+                  'The player plans a route under constraints, balances optional objectives, and compares the chosen path with the optimal graph route.',
+                  style: AppTypography.bodyLarge.copyWith(
+                    color: ZennytGamePalette.muted,
+                    letterSpacing: 0,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (metrics != null) ...[
+            const SizedBox(height: AppSpacing.xl),
+            _ScoreBreakdownPanel(metrics: metrics!),
+          ],
+          const SizedBox(height: AppSpacing.xxl),
+          Row(
+            children: [
+              Expanded(
+                child: GamePrimaryButton(label: 'Replay', onPressed: onReplay),
+              ),
+              const SizedBox(width: AppSpacing.lg),
+              Expanded(
+                child: GameOutlineButton(
+                  label: 'Compare',
+                  onPressed: onCompare,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -1974,7 +2128,8 @@ class _ScoreBreakdownPanel extends StatelessWidget {
           const SizedBox(height: AppSpacing.md),
           _BreakdownRow(
             label: 'Optimal route (±10%)',
-            detail: '${metrics.pathLength} steps · optimal ${metrics.optimalLength}',
+            detail:
+                '${metrics.pathLength} steps · optimal ${metrics.optimalLength}',
             points: pathPts,
             max: 4,
           ),
@@ -1986,7 +2141,9 @@ class _ScoreBreakdownPanel extends StatelessWidget {
           ),
           _BreakdownRow(
             label: 'Cost zones avoided',
-            detail: metrics.costlyZonesAvoided ? 'Clean route' : 'Crossed a cost zone',
+            detail: metrics.costlyZonesAvoided
+                ? 'Clean route'
+                : 'Crossed a cost zone',
             points: costPts,
             max: 2,
           ),
@@ -2023,7 +2180,9 @@ class _BreakdownRow extends StatelessWidget {
       child: Row(
         children: [
           Icon(
-            earned ? Icons.check_circle_rounded : Icons.remove_circle_outline_rounded,
+            earned
+                ? Icons.check_circle_rounded
+                : Icons.remove_circle_outline_rounded,
             color: earned ? ZennytGamePalette.success : ZennytGamePalette.muted,
             size: 22,
           ),
@@ -2087,95 +2246,181 @@ class _ComparisonView extends StatelessWidget {
     final m = metrics;
     final steps = m?.pathLength ?? 0;
     final delta = steps - optimalLength;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 12, 24, 28),
+    final rank = delta <= 0 ? '#1' : '#${math.min(99, 12 + delta)}';
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(24, 18, 24, 24),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              IconButton(
-                onPressed: onBack,
-                icon: const Icon(Icons.chevron_left),
-              ),
-              Text(
-                'Comparative results',
-                style: AppTypography.titleLarge.copyWith(
-                  color: ZennytGamePalette.ink,
-                  letterSpacing: 0,
+          _SquareIconButton(icon: Icons.chevron_left, onTap: onBack),
+          Center(
+            child: Column(
+              children: [
+                Text(
+                  'Comparative Results',
+                  style: AppTypography.headlineLarge.copyWith(
+                    color: ZennytGamePalette.blue,
+                    letterSpacing: 0,
+                  ),
                 ),
+                Text(
+                  'Optimal route benchmark',
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: ZennytGamePalette.muted,
+                    letterSpacing: 0,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xl),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(AppSpacing.xl),
+            decoration: BoxDecoration(
+              color: ZennytGamePalette.gameBlue,
+              borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+            ),
+            child: Row(
+              children: [
+                Text(
+                  rank,
+                  style: AppTypography.displayLarge.copyWith(
+                    color: Colors.white,
+                    fontSize: 48,
+                    letterSpacing: 0,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.lg),
+                Expanded(
+                  child: Text(
+                    'against the optimal planning route',
+                    style: AppTypography.titleLarge.copyWith(
+                      color: Colors.white,
+                      letterSpacing: 0,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xl),
+          GridView.count(
+            crossAxisCount: 2,
+            childAspectRatio: 1.95,
+            mainAxisSpacing: AppSpacing.md,
+            crossAxisSpacing: AppSpacing.md,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            children: [
+              ResultStatTile(
+                label: 'Your route',
+                value: '$steps',
+                valueColor: ZennytGamePalette.blue,
+              ),
+              ResultStatTile(
+                label: 'Optimal',
+                value: '$optimalLength',
+                valueColor: ZennytGamePalette.blue,
+              ),
+              ResultStatTile(
+                label: 'Difference',
+                value: delta <= 0 ? 'Optimal' : '+$delta steps',
+                valueColor: ZennytGamePalette.blue,
+              ),
+              ResultStatTile(
+                label: 'Level',
+                value: session?.lastAttempt?.score.level ?? '—',
+                valueColor: ZennytGamePalette.blue,
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.lg),
-          Row(
-            children: [
-              Expanded(
-                child: ResultStatTile(
-                  label: 'Your route',
-                  value: '$steps',
-                  valueColor: ZennytGamePalette.magenta,
+          const SizedBox(height: AppSpacing.xl),
+          GamePanel(
+            backgroundColor: ZennytGamePalette.mist,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Performance evolution',
+                  style: AppTypography.titleMedium.copyWith(
+                    color: ZennytGamePalette.blue,
+                    letterSpacing: 0,
+                  ),
                 ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: ResultStatTile(
-                  label: 'Optimal',
-                  value: '$optimalLength',
-                  valueColor: ZennytGamePalette.success,
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  (m?.costlyZonesAvoided ?? true)
+                      ? 'The route avoided costly zones and stayed close to the optimal graph solution.'
+                      : 'The route reached the goal, but crossed a costly zone. Replay to improve the benchmark.',
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: ZennytGamePalette.muted,
+                    letterSpacing: 0,
+                  ),
                 ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: ResultStatTile(
-                  label: 'Delta',
-                  value: delta <= 0 ? 'Optimal' : '+$delta',
-                  valueColor: delta <= 0
-                      ? ZennytGamePalette.success
-                      : ZennytGamePalette.ruleOrange,
-                ),
-              ),
-            ],
+                const SizedBox(height: AppSpacing.base),
+                const _EvolutionTrack(),
+              ],
+            ),
           ),
-          const SizedBox(height: AppSpacing.md),
-          Row(
-            children: [
-              Expanded(
-                child: ResultStatTile(
-                  label: 'Cost zones',
-                  value: (m?.costlyZonesAvoided ?? true) ? 'Avoided' : 'Crossed',
-                  valueColor: (m?.costlyZonesAvoided ?? true)
-                      ? ZennytGamePalette.success
-                      : ZennytGamePalette.ruleOrange,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: ResultStatTile(
-                  label: 'Bonus',
-                  value: '${m?.secondaryObjectives ?? 0}',
-                  valueColor: ZennytGamePalette.gameBlue,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: ResultStatTile(
-                  label: 'Level',
-                  value: session?.lastAttempt?.score.level ?? '—',
-                  valueColor: ZennytGamePalette.blue,
-                ),
-              ),
-            ],
-          ),
-          const Spacer(),
+          const SizedBox(height: AppSpacing.xl),
           GamePrimaryButton(
-            label: 'Replay',
-            icon: Icons.replay_rounded,
-            color: ZennytGamePalette.gameBlue,
+            label: 'Replay to improve ranking',
             onPressed: onReplay,
           ),
         ],
       ),
     );
   }
+}
+
+class _EvolutionTrack extends StatelessWidget {
+  const _EvolutionTrack();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 30,
+      child: CustomPaint(
+        painter: _EvolutionTrackPainter(),
+        child: const SizedBox.expand(),
+      ),
+    );
+  }
+}
+
+class _EvolutionTrackPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final base = Paint()
+      ..color = ZennytGamePalette.border
+      ..strokeWidth = 4
+      ..strokeCap = StrokeCap.round;
+    final active = Paint()
+      ..color = ZennytGamePalette.magenta
+      ..strokeWidth = 4
+      ..strokeCap = StrokeCap.round;
+    final y = size.height / 2;
+    canvas.drawLine(Offset(0, y), Offset(size.width, y), base);
+    canvas.drawLine(Offset(0, y), Offset(size.width * 0.78, y), active);
+    for (final x in [size.width * 0.16, size.width * 0.44]) {
+      canvas.drawCircle(Offset(x, y), 9, Paint()..color = Colors.white);
+      canvas.drawCircle(
+        Offset(x, y),
+        9,
+        Paint()
+          ..color = ZennytGamePalette.magenta
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3,
+      );
+    }
+    canvas.drawCircle(
+      Offset(size.width * 0.78, y),
+      14,
+      Paint()..color = ZennytGamePalette.magenta,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

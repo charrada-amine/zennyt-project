@@ -87,6 +87,7 @@ flutter:
 
   assets:
     - assets/images/
+    - assets/04 Optimal Path/
     - .env
 
   # Inter is bundled as a variable font (single TTF covers w100..w900).

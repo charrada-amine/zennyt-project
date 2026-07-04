@@ -132,6 +132,8 @@ attempts.size == expectedMiniGames.size ?
 
 Racine : `mobile/lib/features/games/` — **Clean Architecture** (domain / data / presentation).
 Routage : `mobile/lib/core/router/app_router.dart` (`/games`, `/games/planifik`, `/games/move-fast`).
+`/games` ouvre le shell `MainNavigationScreen(initialTab: 2)` afin de conserver la bottom nav
+sur l'onglet Careers/Progress ; les routes de jeu restent plein écran.
 
 ### Arborescence & rôle de chaque fichier
 
@@ -150,13 +152,13 @@ Routage : `mobile/lib/core/router/app_router.dart` (`/games`, `/games/planifik`,
 | | `data/games_mock_repository.dart` | Impl **MOCK** en mémoire : reproduit le barème serveur → jouable **sans backend**. |
 | **presentation** | `presentation/games_providers.dart` | Bascule mock/backend via `--dart-define=GAMES_MOCK` (défaut `true`). |
 | | `presentation/games_controller.dart` | `AsyncNotifier<GameSession?>` : `start()` / `submit()`. |
-| | `presentation/view/games_hub_screen.dart` | Hub listant les jeux (aussi onglet « Progrès »). |
+| | `presentation/view/games_hub_screen.dart` | Hub jeux style maquette Progress : header « Play & discover your talent », couverture, 5 cartes de domaines cognitifs, assets `assets/04 Optimal Path/`, bottom nav via `ProgressScreen`. |
 | | `presentation/view/planifik_screen.dart` | Flow complet **Optimal Path** (intro Path Mind, How To Play, gameplay **multi-niveaux**, score, comparaison) + HUD stations, **menu pause** (`_PauseDialog`), légende, contrôles. Voir [Flow Optimal Path](#-flow-optimal-path-mobile). |
 | | `presentation/view/move_fast_screen.dart` | Écran complet « Je bouge » (intro, tutoriels, gameplay **à 3 niveaux**, transitions de règle, résultats). Voir [Niveaux Move Fast](#-niveaux-move-fast-mobile). |
 | | `presentation/widgets/game_system_components.dart` | Design system jeux : palette, boutons, HUD, ruban de séries, contrôles directionnels, avion, tuiles de résultat. |
 | **presentation / flame** | `presentation/flame/planifik_game.dart` | **`FlameGame`** stations : tracé, `undo`/`clear`, `revision` (HUD live), ligne de route magenta, `buildMetrics()`, layout col×row remplissant. Ne calcule **pas** de score. |
 | | `presentation/flame/cell_component.dart` | Station **circulaire** tactile + `BoardPalette` : LAB, MTG, bloc (éclair), étoile, chemin. |
-| | `presentation/flame/grid_config.dart` | `CellKind` + `GridConfig` + **4 niveaux progressifs** (`level1`…`level4`, `levels`), `isWalkable`. |
+| | `presentation/flame/grid_config.dart` | `CellKind` + `GridConfig` + générateur `GridConfig.randomLevels()` : graphes de grille solvables par BFS, difficulté croissante, fallback déterministe `levels`. |
 
 ### Le jeu Flame « Chemin Optimal » (`planifik_game.dart`)
 
@@ -167,6 +169,26 @@ Routage : `mobile/lib/core/router/app_router.dart` (`/games`, `/games/planifik`,
   `secondaryObjectives`, `optimalLength` — **jamais de score** (calculé côté serveur/mock).
 - Découplé de Riverpod : le jeu n'appelle aucun provider ; l'écran lit `canValidate` / `buildMetrics`.
 
+### Hub Games / Progress (`games_hub_screen.dart`)
+
+Le hub n'est plus une liste `ListTile` générique. Il suit la maquette fournie :
+
+- Header : bouton retour carré, titre centré **« Play & discover your talent »**, avatar/menu à droite.
+- Indicateur **Coverage 0%** en magenta.
+- 5 cartes bordées bleu : Cognitive Flexibility, Working Memory, Decision-Making,
+  Executive Planning, Emotional Regulation.
+- Chaque carte affiche : titre + chevron, swatches couleur, durée `10-13mins`,
+  `N° aptitudes`, illustration PNG.
+- Assets déclarés dans `mobile/pubspec.yaml` :
+  `assets/04 Optimal Path/` (`image 120.png`, `image 120-1.png`, `image 121.png`,
+  `image 121-1.png`, `image 121-2.png`).
+- Routes actives : Cognitive Flexibility → `/games/move-fast`, Executive Planning →
+  `/games/planifik`. Les autres domaines sont visuels pour l'instant.
+
+Navigation : `ProgressScreen` héberge `GamesHubScreen`. La route `/games` rend
+`MainNavigationScreen(initialTab: 2)`, et `AppBottomNav` accepte un `selectedTab` local afin
+d'afficher l'onglet Careers/Progress sans modifier `navTabProvider` pendant `initState`.
+
 ### 🗺️ Flow Optimal Path (mobile)
 
 `planifik_screen.dart` est un flow multi-étapes (comme Move Fast), aligné sur les maquettes
@@ -174,23 +196,29 @@ Figma **« Optimal Path »**. `enum _PlanifikStage { intro, howToPlay, gameplay,
 
 | Étape | Contenu |
 |-------|---------|
-| **Intro (Path Mind)** | Écran **pixel-perfect** : carte hero violet plein `#4F46E5` (illustration grille `_PathMindArt` + glows roses/cyan), chip « Cognitive Flexibility », 3 mini-cartes meta (Goal/Duration/Format), carte « Simple rule » (bordure périwinkle), **bouton capsule Start**. Marges 24, gaps 20/18/16/22, ombres douces, top-aligné. |
+| **Intro (Path Mind)** | Écran **pixel-perfect** : carte hero violet plein `#4F46E5` (illustration grille `_PathMindArt` + cercles de fond roses/cyan/violets en overflow hors carte), chip « Spatial Planning », 3 mini-cartes meta (Goal/Duration/Format), carte « Simple rule » (bordure périwinkle), **bouton capsule Start**. Marges 24, gaps 20/18/16/22, ombres douces, top-aligné. |
 | **How To Play** | Carousel 2 pages (PageView) : « Connect the Stations » (illustration `_StationsArt`) et « Scoring Breakdown » (barème tutoriel). |
 | **Gameplay (multi-niveaux)** | Fond violet, **HUD** (Score/Timer/Tries + Pause) + barre de progression, **plateau de stations circulaires** (`GameWidget`), bannière **Correct!/Wrong route!**, légende Start/Goal/Block/★/Path, boutons **Clear / Validate route**. |
-| **Score** | Result card (points + niveau) + **Score breakdown panel** (barème reconstruit : chemin optimal 4pts, essais 3pts, zones coûteuses 2pts, bonus 1pt). |
-| **Comparison** | Tuiles comparatives : votre route vs optimal, delta, zones coûteuses, bonus, niveau. |
+| **Score** | Même structure visuelle que Move Fast : titre Results, carte bleue **Cognitive score**, 3 tuiles de stats, panneau Summary insight, puis **Score breakdown panel** (barème reconstruit : chemin optimal 4pts, essais 3pts, zones coûteuses 2pts, bonus 1pt). |
+| **Comparison** | Même structure visuelle que Move Fast : titre Comparative Results, carte bleue benchmark/ranking, grille 2×2 de stats, panneau Performance evolution + CTA Replay. |
 
-**🎚️ Niveaux progressifs** (`GridConfig.levels`, difficulté croissante) : le joueur enchaîne
-level1 → level4 ; une route correcte (**+250**) fait passer au niveau suivant (plus grand,
-plus de blocs), une route incomplète donne **−2** et « Wrong route! ». Au dernier niveau →
-soumission backend + écran Score. Chaque niveau recrée un plateau frais (`key: ValueKey(_level)`).
+**🎚️ Niveaux progressifs randomisés** (`GridConfig.randomLevels()`) : une nouvelle séquence de 4
+cartes est générée à chaque Start/Replay. Le générateur construit des graphes de grille, place
+départ/arrivée/obstacles, résout chaque candidat par **BFS** et ne garde que les cartes solvables
+dont le plus court chemin devient progressivement plus long, plus tortueux et plus contraint.
+Le joueur enchaîne niveau 1 → 4 ; une route correcte (**+250**) fait passer au niveau suivant,
+une route incomplète donne **−2** et « Wrong route! ». Au dernier niveau → soumission backend +
+écran Score. Chaque niveau recrée un plateau frais (`key: ValueKey(_level)`).
 
-| Niveau | Grille | Blocs | Optimal |
-|--------|--------|-------|---------|
-| level1 | 5×6 | 6 | 9 |
-| level2 | 5×7 | 13 | 10 |
-| level3 | 5×8 | 12 | 9 |
-| level4 | 6×8 | 18 | 12 |
+| Niveau | Génération | Contraintes principales |
+|--------|------------|-------------------------|
+| 1 | 5×6 | court chemin cible 8–12, faible densité d'obstacles, 1 objectif, 2 zones coûteuses |
+| 2 | 6×6 | chemin cible 10–15, plus de détours/tournants, 1 objectif, 3 zones coûteuses |
+| 3 | 6×7 | chemin cible 12–18, densité supérieure, 2 objectifs, 4 zones coûteuses |
+| 4 | 8×8 | chemin cible 17–30, expert, plus de décisions, 2 objectifs, 5 zones coûteuses |
+
+`GridConfig.levels` (`level1`…`level4`) reste présent comme suite de secours déterministe
+pour previews/tests figés, mais le gameplay utilise `_levelConfigs = GridConfig.randomLevels()`.
 
 **⏸️ Menu pause** (`_PauseDialog`, calqué sur Move Fast) : stats **Time / Attempts**, options
 audio (Sound effects / Music), **Resume** (magenta) / **View rules** (`_OptimalRulesDialog`) /
@@ -278,9 +306,10 @@ Schémas : `GameType`, `MiniGame`, `SessionStatus`, `StartSessionRequest`, `Opti
 |---------|--------|
 | Planifik #1 « Chemin Optimal » (Flame + barème + persistance) | 🟢 Fait |
 | Optimal Path — flow complet mobile (intro Path Mind, How To Play, gameplay, score, comparaison) | 🟢 Fait |
-| Optimal Path — **4 niveaux progressifs** + plateau de stations + **menu pause** | 🟢 Fait |
+| Optimal Path — **4 niveaux randomisés par graphe BFS** + plateau de stations + **menu pause** | 🟢 Fait |
 | Move Fast « Je bouge » (écran + barème escalade) | 🟢 Fait |
 | Move Fast — 3 niveaux (Orientation → Mouvement → **règle aléatoire**) | 🟢 Fait |
+| Hub Games / Progress — maquette 5 domaines cognitifs + assets `04 Optimal Path` + bottom nav conservée | 🟢 Fait |
 | Planifik #2 `TASK_SCHEDULING`, #3 `PREVISION_PUZZLE` | 🔴 Barème `throw` — non implémenté |
 | `MEMORY_QUEST`, `DECISION` | 🔴 Déclarés au contrat, non implémentés |
 | Bascule mock ⇄ backend | 🟢 `--dart-define=GAMES_MOCK` |
@@ -307,12 +336,14 @@ vous touchez à l'un de ces chemins :
 - [ ] Un nouveau jeu/mini-jeu devient jouable → mettre à jour le **tableau de statut** et la **roadmap**.
 - [ ] Mettre à jour la ligne ci-dessous.
 
-**Dernière mise à jour** : 2026-07-04 — Optimal Path : **plateau de stations circulaires**,
-**4 niveaux progressifs**, **menu pause** (Time/Attempts + audio), écran **Path Mind pixel-perfect**
-(hero violet plein, mini-cartes meta, bouton capsule, ombres douces). Antérieur : flow Optimal Path (intro/briefing/
-gameplay/score/comparaison, charte couleurs Figma, undo/clear/validate, warning banner, score
-breakdown). Antérieur : niveau 3 Move Fast (règle aléatoire) + améliorations UI ;
-génération initiale Planifik « Chemin Optimal » + Move Fast.
+**Dernière mise à jour** : 2026-07-05 — Hub Games / Progress refait selon la maquette
+(5 domaines cognitifs, assets `assets/04 Optimal Path/`, bottom nav conservée via `/games` →
+`MainNavigationScreen(initialTab: 2)`) ; Planifik utilise maintenant `GridConfig.randomLevels()`
+avec génération de graphes solvables par BFS et difficulté croissante ; écrans Score/Comparison
+Planifik alignés sur la structure Move Fast ; intro Path Mind ajustée (chip Spatial Planning,
+cercles décoratifs en overflow). Antérieur : Optimal Path plateau de stations circulaires,
+menu pause (Time/Attempts + audio), score breakdown ; niveau 3 Move Fast (règle aléatoire) +
+améliorations UI ; génération initiale Planifik « Chemin Optimal » + Move Fast.
 
 > 💡 Astuce équipe : ajoutez ce fichier aux `CODEOWNERS` du dossier `games` et référencez-le dans la
 > description de vos PR pour qu'il reste « à la une ».

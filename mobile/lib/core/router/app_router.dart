@@ -24,7 +24,6 @@ import '../../features/profile_settings/presentation/view/account_center_screen.
 import '../../features/profile_settings/presentation/view/personal_informations_screen.dart';
 import '../../features/profile_settings/presentation/view/privacy_policy_screen.dart';
 import '../../features/navigation/presentation/view/main_navigation_screen.dart';
-import '../../features/games/presentation/view/games_hub_screen.dart';
 import '../../features/games/presentation/view/move_fast_screen.dart';
 import '../../features/games/presentation/view/planifik_screen.dart';
 import '../../features/splash/presentation/view/splash_screen.dart';
@@ -161,7 +160,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.games,
         name: AppRoutes.nGames,
-        builder: (context, state) => const GamesHubScreen(),
+        builder: (context, state) => const MainNavigationScreen(initialTab: 2),
       ),
       GoRoute(
         path: AppRoutes.gamesPlanifik,

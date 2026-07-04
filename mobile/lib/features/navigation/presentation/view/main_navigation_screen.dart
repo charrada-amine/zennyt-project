@@ -13,12 +13,37 @@ import '../widgets/app_bottom_nav.dart';
 /// The main app navigation shown after authentication. Hosts the five
 /// bottom-nav destinations in an [IndexedStack] (state is preserved across tab
 /// switches) and renders the shared [AppBottomNav].
-class MainNavigationScreen extends ConsumerWidget {
-  const MainNavigationScreen({super.key});
+class MainNavigationScreen extends ConsumerStatefulWidget {
+  const MainNavigationScreen({super.key, this.initialTab});
+
+  final int? initialTab;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final tab = ref.watch(navTabProvider);
+  ConsumerState<MainNavigationScreen> createState() =>
+      _MainNavigationScreenState();
+}
+
+class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
+  int? _localTab;
+
+  @override
+  void initState() {
+    super.initState();
+    _localTab = widget.initialTab;
+  }
+
+  @override
+  void didUpdateWidget(covariant MainNavigationScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final initialTab = widget.initialTab;
+    if (initialTab != null && initialTab != oldWidget.initialTab) {
+      _localTab = initialTab;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tab = _localTab ?? ref.watch(navTabProvider);
     final colors = context.colors;
 
     return Scaffold(
@@ -33,7 +58,13 @@ class MainNavigationScreen extends ConsumerWidget {
           NotificationsScreen(),
         ],
       ),
-      bottomNavigationBar: const AppBottomNav(),
+      bottomNavigationBar: AppBottomNav(
+        selectedTab: tab,
+        onSelect: (index) {
+          setState(() => _localTab = null);
+          ref.read(navTabProvider.notifier).select(index);
+        },
+      ),
     );
   }
 }

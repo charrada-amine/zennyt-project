@@ -10,15 +10,25 @@ import 'app_nav_item.dart';
 /// The app's main bottom navigation bar: Home, Fits, Progress, Search,
 /// Notifications. Drives [navTabProvider].
 class AppBottomNav extends ConsumerWidget {
-  const AppBottomNav({super.key});
+  const AppBottomNav({super.key, this.selectedTab, this.onSelect});
+
+  final int? selectedTab;
+  final ValueChanged<int>? onSelect;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tab = ref.watch(navTabProvider);
+    final tab = selectedTab ?? ref.watch(navTabProvider);
     final isDark = ref.watch(themeProvider) == ThemeMode.dark;
     final colors = context.colors;
 
-    void select(int i) => ref.read(navTabProvider.notifier).select(i);
+    void select(int i) {
+      final overrideSelect = onSelect;
+      if (overrideSelect != null) {
+        overrideSelect(i);
+        return;
+      }
+      ref.read(navTabProvider.notifier).select(i);
+    }
 
     return Container(
       decoration: BoxDecoration(
