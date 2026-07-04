@@ -109,18 +109,19 @@ public final class IdentityDtos {
         @NotBlank @Size(max = 100) String companySize,
         @NotBlank @Size(max = 150) String fieldOfWork,
         @NotBlank @Size(max = 150) String companyLocation,
-        @NotBlank @Size(max = 100) String companyRegistrationNumber
+        @NotBlank @Size(max = 100) String companyRegistrationNumber,
+        @Size(max = 1000) String aboutMe
     ) {}
 
     public record RecruiterOnboardingResponse(
         Long id, Long userId, String jobTitle, String companyName, String companySize,
         String companyLogoUrl, String fieldOfWork, String companyLocation,
-        String companyRegistrationNumber, Instant createdAt, Instant updatedAt
+        String companyRegistrationNumber, String aboutMe, Instant createdAt, Instant updatedAt
     ) {
         static RecruiterOnboardingResponse from(RecruiterOnboarding value) {
             return new RecruiterOnboardingResponse(value.id(), value.userId(), value.jobTitle(),
                 value.companyName(), value.companySize(), value.companyLogoUrl(), value.fieldOfWork(),
-                value.companyLocation(), value.companyRegistrationNumber(), value.createdAt(),
+                value.companyLocation(), value.companyRegistrationNumber(), value.aboutMe(), value.createdAt(),
                 value.updatedAt());
         }
     }

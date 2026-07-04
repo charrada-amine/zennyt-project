@@ -61,7 +61,8 @@ class AuthInterceptor extends QueuedInterceptor {
     final response = err.response;
     final requestOptions = err.requestOptions;
 
-    final shouldAttemptRefresh = response?.statusCode == 401 &&
+    final shouldAttemptRefresh =
+        response?.statusCode == 401 &&
         !_isAuthPath(requestOptions.path) &&
         requestOptions.extra['retried'] != true;
 

@@ -13,6 +13,7 @@ public record RecruiterOnboarding(
     String fieldOfWork,
     String companyLocation,
     String companyRegistrationNumber,
+    String aboutMe,
     Instant createdAt,
     Instant updatedAt
 ) {
@@ -30,18 +31,19 @@ public record RecruiterOnboarding(
                                               String companySize, String companyLogoUrl,
                                               String companyLogoPublicId, String fieldOfWork,
                                               String companyLocation,
-                                              String companyRegistrationNumber) {
+                                              String companyRegistrationNumber,
+                                              String aboutMe) {
         Instant now = Instant.now();
         return new RecruiterOnboarding(null, userId, jobTitle, companyName, companySize,
             companyLogoUrl, companyLogoPublicId, fieldOfWork, companyLocation,
-            companyRegistrationNumber, now, now);
+            companyRegistrationNumber, aboutMe, now, now);
     }
 
     /** Retourne une copie avec un nouveau logo (URL + public_id), sans toucher au reste. */
     public RecruiterOnboarding withLogo(String companyLogoUrl, String companyLogoPublicId) {
         return new RecruiterOnboarding(id, userId, jobTitle, companyName, companySize,
             companyLogoUrl, companyLogoPublicId, fieldOfWork, companyLocation,
-            companyRegistrationNumber, createdAt, Instant.now());
+            companyRegistrationNumber, aboutMe, createdAt, Instant.now());
     }
 
     private static String requireText(String value, String message) {

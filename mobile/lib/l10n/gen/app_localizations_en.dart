@@ -204,6 +204,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get termsOfServiceAndConditions => 'Terms of Service & Conditions';
 
   @override
+  String get hiredCandidates => 'Hired candidates';
+
+  @override
+  String get plansAndPricing => 'Plans & Pricing';
+
+  @override
+  String get contrast => 'Contrast';
+
+  @override
+  String get textSize => 'Text Size';
+
+  @override
+  String get preview => 'Preview';
+
+  @override
+  String get accessibilityPreviewText =>
+      'The application text adjusts based on your selected font size.';
+
+  @override
   String get logOut => 'Log out';
 
   @override
@@ -271,4 +290,128 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get saveChanges => 'Save changes';
+
+  @override
+  String get forgotPasswordTitle => 'Forgot Password';
+
+  @override
+  String get chooseResetMethod => 'How would you like to reset your password?';
+
+  @override
+  String get resetViaEmail => 'Reset via Email';
+
+  @override
+  String get resetViaEmailDesc =>
+      'We\'ll send a verification code to your email address';
+
+  @override
+  String get resetViaSms => 'Reset via SMS';
+
+  @override
+  String get resetViaSmsDesc =>
+      'We\'ll send a verification code to your phone number';
+
+  @override
+  String get comingSoon => 'Coming soon';
+
+  @override
+  String get enterYourEmail => 'Enter your email address';
+
+  @override
+  String get enterEmailDesc =>
+      'We\'ll send a 6-digit verification code to your email address to reset your password.';
+
+  @override
+  String get sendCode => 'Send Code';
+
+  @override
+  String get otpVerificationTitle => 'Verify Code';
+
+  @override
+  String otpVerificationSubtitle(String email) {
+    return 'Enter the 6-digit code sent to $email';
+  }
+
+  @override
+  String get resendCode => 'Resend Code';
+
+  @override
+  String get newPassword => 'New password';
+
+  @override
+  String get confirmNewPassword => 'Confirm new password';
+
+  @override
+  String get resetPasswordBtn => 'Reset Password';
+
+  @override
+  String get passwordResetSuccess =>
+      'Your password has been reset successfully!';
+
+  @override
+  String get backToLogin => 'Back to Login';
+
+  @override
+  String get updatePassword => 'Update Password';
+
+  @override
+  String get cancel => 'Cancel';
+
+  @override
+  String get passwordChangedSuccess => 'Password updated successfully!';
+
+  @override
+  String get currentPasswordHint => 'Current password';
+
+  @override
+  String get newPasswordHint => 'New password';
+
+  @override
+  String get confirmNewPasswordHint => 'Confirm new password';
+
+  @override
+  String get deleteAccountTitle => 'Delete Account';
+
+  @override
+  String get deleteAccountMessage =>
+      'Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently removed.';
+
+  @override
+  String get yesDeleteAccount => 'Yes, Delete Account';
+
+  @override
+  String get accountDeleted => 'Your account has been deleted.';
+
+  @override
+  String get choosePhoto => 'Choose from Gallery';
+
+  @override
+  String get takePhoto => 'Take a Photo';
+
+  @override
+  String get removePhoto => 'Remove Photo';
+
+  @override
+  String get avatarUpdated => 'Profile photo updated!';
+
+  @override
+  String get avatarRemoved => 'Profile photo removed.';
+
+  @override
+  String get uploadCv => 'Upload CV';
+
+  @override
+  String get replaceCv => 'Replace CV';
+
+  @override
+  String get deleteCv => 'Delete CV';
+
+  @override
+  String get cvUploaded => 'CV uploaded successfully!';
+
+  @override
+  String get cvDeleted => 'CV deleted.';
+
+  @override
+  String get noCvUploaded => 'No CV uploaded yet';
 }

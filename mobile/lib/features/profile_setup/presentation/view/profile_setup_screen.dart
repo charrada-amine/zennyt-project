@@ -115,9 +115,9 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
 
     final validationError = _validate(setup);
     if (validationError != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(validationError)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(validationError)));
       return;
     }
 

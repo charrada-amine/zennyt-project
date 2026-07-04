@@ -33,7 +33,7 @@ public class OnboardingRepositoryAdapter implements OnboardingRepository {
         RecruiterOnboardingEntity saved = recruiterJpa.save(new RecruiterOnboardingEntity(
             value.id(), value.userId(), value.jobTitle(), value.companyName(), value.companySize(),
             value.companyLogoUrl(), value.companyLogoPublicId(), value.fieldOfWork(),
-            value.companyLocation(), value.companyRegistrationNumber(), value.createdAt(),
+            value.companyLocation(), value.companyRegistrationNumber(), value.aboutMe(), value.createdAt(),
             value.updatedAt()));
         return toDomain(saved);
     }
@@ -54,6 +54,6 @@ public class OnboardingRepositoryAdapter implements OnboardingRepository {
         return new RecruiterOnboarding(value.getId(), value.getUserId(), value.getJobTitle(),
             value.getCompanyName(), value.getCompanySize(), value.getCompanyLogoUrl(),
             value.getCompanyLogoPublicId(), value.getFieldOfWork(), value.getCompanyLocation(),
-            value.getCompanyRegistrationNumber(), value.getCreatedAt(), value.getUpdatedAt());
+            value.getCompanyRegistrationNumber(), value.getAboutMe(), value.getCreatedAt(), value.getUpdatedAt());
     }
 }

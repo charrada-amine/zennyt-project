@@ -69,14 +69,16 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
       duration: const Duration(milliseconds: 600),
     );
     _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
-    _slideAnim = Tween<Offset>(
-      begin: const Offset(0, 0.08),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic));
+    _slideAnim = Tween<Offset>(begin: const Offset(0, 0.08), end: Offset.zero)
+        .animate(
+          CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic),
+        );
 
     final state = ref.read(candidateProfileProvider);
     _positionController = TextEditingController(text: state.role);
-    _lookingForController = TextEditingController(text: state.lookingFor.jobPosition);
+    _lookingForController = TextEditingController(
+      text: state.lookingFor.jobPosition,
+    );
     _workplaceType = state.lookingFor.workplaceType;
     _jobType = state.lookingFor.jobType;
     _targetLocation = state.lookingFor.targetLocation;
@@ -120,7 +122,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
     setState(() => _saving = true);
 
     try {
-      await ref.read(candidateProfileProvider.notifier).saveLookingFor(
+      await ref
+          .read(candidateProfileProvider.notifier)
+          .saveLookingFor(
             role: _positionController.text.trim(),
             lookingFor: LookingFor(
               jobPosition: _lookingForController.text.trim(),
@@ -205,7 +209,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
                         decoration: BoxDecoration(
                           color: colors.backButtonBg,
                           shape: BoxShape.circle,
-                          border: Border.all(color: colors.backButtonBorder, width: 1),
+                          border: Border.all(
+                            color: colors.backButtonBorder,
+                            width: 1,
+                          ),
                         ),
                         child: IconButton(
                           onPressed: () => context.pop(),
@@ -268,7 +275,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
                             label: 'Type of workplace',
                             value: _workplaceType,
                             options: _workplaceOptions,
-                            onChanged: (v) => setState(() => _workplaceType = v!),
+                            onChanged: (v) =>
+                                setState(() => _workplaceType = v!),
                           ),
                         ),
                         const SizedBox(height: AppSpacing.lg),
@@ -294,7 +302,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
                             label: 'Target job location',
                             value: _targetLocation,
                             options: _locationOptions,
-                            onChanged: (v) => setState(() => _targetLocation = v!),
+                            onChanged: (v) =>
+                                setState(() => _targetLocation = v!),
                           ),
                         ),
                         const SizedBox(height: AppSpacing.lg),
@@ -318,7 +327,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
                         _AnimatedField(
                           delay: 7,
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.xxl,
+                            ),
                             child: PrimaryButton(
                               label: 'Submit',
                               loading: _saving,
@@ -419,10 +430,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
               dropdownColor: colors.scaffoldBg,
               borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
               items: options.map((opt) {
-                return DropdownMenuItem(
-                  value: opt,
-                  child: Text(opt),
-                );
+                return DropdownMenuItem(value: opt, child: Text(opt));
               }).toList(),
               onChanged: onChanged,
             ),
@@ -636,10 +644,7 @@ class _AnimatedFieldState extends State<_AnimatedField>
   Widget build(BuildContext context) {
     return FadeTransition(
       opacity: _opacity,
-      child: SlideTransition(
-        position: _offset,
-        child: widget.child,
-      ),
+      child: SlideTransition(position: _offset, child: widget.child),
     );
   }
 }
@@ -677,7 +682,9 @@ class _AvailabilityOption extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
             border: Border.all(
-              color: isSelected ? colors.primary : colors.border.withValues(alpha: 0.4),
+              color: isSelected
+                  ? colors.primary
+                  : colors.border.withValues(alpha: 0.4),
               width: isSelected ? 1.5 : 1,
             ),
           ),

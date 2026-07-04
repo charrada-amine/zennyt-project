@@ -142,7 +142,7 @@ public class IdentityService {
     public RecruiterOnboarding saveRecruiter(
         UUID publicId, String jobTitle, String companyName, String companySize,
         String fieldOfWork, String companyLocation,
-        String companyRegistrationNumber, boolean createOnly) {
+        String companyRegistrationNumber, String aboutMe, boolean createOnly) {
         User user = requireRole(publicId, Role.RECRUITER);
         RecruiterOnboarding existing = onboarding.findRecruiterByUserId(user.id()).orElse(null);
         if (createOnly && existing != null) {
@@ -152,10 +152,10 @@ public class IdentityService {
         // Le logo est géré par des endpoints dédiés : on préserve l'existant lors d'une édition texte.
         RecruiterOnboarding value = existing == null
             ? RecruiterOnboarding.create(user.id(), jobTitle, companyName, companySize,
-                null, null, fieldOfWork, companyLocation, companyRegistrationNumber)
+                null, null, fieldOfWork, companyLocation, companyRegistrationNumber, aboutMe)
             : new RecruiterOnboarding(existing.id(), user.id(), jobTitle, companyName, companySize,
                 existing.companyLogoUrl(), existing.companyLogoPublicId(), fieldOfWork,
-                companyLocation, companyRegistrationNumber, existing.createdAt(), now);
+                companyLocation, companyRegistrationNumber, aboutMe, existing.createdAt(), now);
         return onboarding.saveRecruiter(value);
     }
 

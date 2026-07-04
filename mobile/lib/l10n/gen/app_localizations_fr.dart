@@ -209,6 +209,25 @@ class AppLocalizationsFr extends AppLocalizations {
   String get termsOfServiceAndConditions => 'Conditions d\'utilisation';
 
   @override
+  String get hiredCandidates => 'Candidats embauchés';
+
+  @override
+  String get plansAndPricing => 'Forfaits et tarifs';
+
+  @override
+  String get contrast => 'Contraste';
+
+  @override
+  String get textSize => 'Taille du texte';
+
+  @override
+  String get preview => 'Aperçu';
+
+  @override
+  String get accessibilityPreviewText =>
+      'Le texte de l\'application s\'ajuste en fonction de la taille de police sélectionnée.';
+
+  @override
   String get logOut => 'Déconnexion';
 
   @override
@@ -277,4 +296,129 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get saveChanges => 'Enregistrer les modifications';
+
+  @override
+  String get forgotPasswordTitle => 'Mot de passe oublié';
+
+  @override
+  String get chooseResetMethod =>
+      'Comment souhaitez-vous réinitialiser votre mot de passe ?';
+
+  @override
+  String get resetViaEmail => 'Réinitialiser par e-mail';
+
+  @override
+  String get resetViaEmailDesc =>
+      'Nous enverrons un code de vérification à votre adresse e-mail';
+
+  @override
+  String get resetViaSms => 'Réinitialiser par SMS';
+
+  @override
+  String get resetViaSmsDesc =>
+      'Nous enverrons un code de vérification à votre numéro de téléphone';
+
+  @override
+  String get comingSoon => 'Bientôt disponible';
+
+  @override
+  String get enterYourEmail => 'Saisissez votre adresse e-mail';
+
+  @override
+  String get enterEmailDesc =>
+      'Nous enverrons un code de vérification à 6 chiffres à votre adresse e-mail pour réinitialiser votre mot de passe.';
+
+  @override
+  String get sendCode => 'Envoyer le code';
+
+  @override
+  String get otpVerificationTitle => 'Vérifier le code';
+
+  @override
+  String otpVerificationSubtitle(String email) {
+    return 'Saisissez le code à 6 chiffres envoyé à $email';
+  }
+
+  @override
+  String get resendCode => 'Renvoyer le code';
+
+  @override
+  String get newPassword => 'Nouveau mot de passe';
+
+  @override
+  String get confirmNewPassword => 'Confirmer le nouveau mot de passe';
+
+  @override
+  String get resetPasswordBtn => 'Réinitialiser le mot de passe';
+
+  @override
+  String get passwordResetSuccess =>
+      'Votre mot de passe a été réinitialisé avec succès !';
+
+  @override
+  String get backToLogin => 'Retour à la connexion';
+
+  @override
+  String get updatePassword => 'Mettre à jour le mot de passe';
+
+  @override
+  String get cancel => 'Annuler';
+
+  @override
+  String get passwordChangedSuccess => 'Mot de passe mis à jour avec succès !';
+
+  @override
+  String get currentPasswordHint => 'Mot de passe actuel';
+
+  @override
+  String get newPasswordHint => 'Nouveau mot de passe';
+
+  @override
+  String get confirmNewPasswordHint => 'Confirmer le nouveau mot de passe';
+
+  @override
+  String get deleteAccountTitle => 'Supprimer le compte';
+
+  @override
+  String get deleteAccountMessage =>
+      'Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible et toutes vos données seront définitivement supprimées.';
+
+  @override
+  String get yesDeleteAccount => 'Oui, supprimer le compte';
+
+  @override
+  String get accountDeleted => 'Votre compte a été supprimé.';
+
+  @override
+  String get choosePhoto => 'Choisir depuis la galerie';
+
+  @override
+  String get takePhoto => 'Prendre une photo';
+
+  @override
+  String get removePhoto => 'Supprimer la photo';
+
+  @override
+  String get avatarUpdated => 'Photo de profil mise à jour !';
+
+  @override
+  String get avatarRemoved => 'Photo de profil supprimée.';
+
+  @override
+  String get uploadCv => 'Téléverser le CV';
+
+  @override
+  String get replaceCv => 'Remplacer le CV';
+
+  @override
+  String get deleteCv => 'Supprimer le CV';
+
+  @override
+  String get cvUploaded => 'CV téléversé avec succès !';
+
+  @override
+  String get cvDeleted => 'CV supprimé.';
+
+  @override
+  String get noCvUploaded => 'Aucun CV téléversé';
 }

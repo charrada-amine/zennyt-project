@@ -852,6 +852,7 @@ components:
         fieldOfWork: { type: string, maxLength: 150 }
         companyLocation: { type: string, maxLength: 150 }
         companyRegistrationNumber: { type: string, maxLength: 100 }
+        aboutMe: { type: string, maxLength: 1000 }
 
     RecruiterOnboarding:
       allOf:

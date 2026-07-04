@@ -1,20 +1,13 @@
 /// Request body for `POST /profiles/me/skills` and `PUT /profiles/me/skills/{id}`.
 class SkillInput {
-  const SkillInput({
-    required this.name,
-    required this.type,
-    this.level,
-  });
+  const SkillInput({required this.name, required this.type, this.level});
 
   final String name;
   final String type; // TECHNICAL | SOFT
   final int? level;
 
   Map<String, dynamic> toJson() {
-    final map = <String, dynamic>{
-      'name': name,
-      'type': type,
-    };
+    final map = <String, dynamic>{'name': name, 'type': type};
     if (level != null) map['level'] = level;
     return map;
   }

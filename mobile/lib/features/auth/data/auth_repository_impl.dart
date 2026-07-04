@@ -1,9 +1,12 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 
 import '../../../core/enums/user_role.dart';
 import '../../../core/error/api_exception.dart';
 import '../../../core/storage/token_storage.dart';
 import '../domain/entities/app_user.dart';
+import '../../profile_settings/domain/entities/recruiter_profile.dart';
 import '../domain/repositories/auth_repository.dart';
 import 'dtos/auth_tokens.dart';
 import 'dtos/login_request.dart';
@@ -120,6 +123,74 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    return _guard(() async {
+      await _dio.post<void>(
+        '/auth/change-password',
+        data: {'currentPassword': currentPassword, 'newPassword': newPassword},
+      );
+    });
+  }
+
+  @override
+  Future<void> forgotPassword({required String email}) async {
+    return _guard(() async {
+      await _dio.post<void>('/auth/forgot-password', data: {'email': email});
+    });
+  }
+
+  @override
+  Future<void> resetPassword({
+    required String email,
+    required String code,
+    required String newPassword,
+  }) async {
+    return _guard(() async {
+      await _dio.post<void>(
+        '/auth/reset-password',
+        data: {'email': email, 'code': code, 'newPassword': newPassword},
+      );
+    });
+  }
+
+  @override
+  Future<void> deleteAccount() async {
+    return _guard(() async {
+      await _dio.delete<void>('/users/me');
+      await _tokenStorage.clear();
+    });
+  }
+
+  @override
+  Future<AppUser> uploadAvatar(Uint8List bytes, String filename) async {
+    return _guard(() async {
+      final formData = FormData.fromMap({
+        'file': MultipartFile.fromBytes(bytes, filename: filename),
+      });
+      final res = await _dio.post<Map<String, dynamic>>(
+        '/users/me/avatar',
+        data: formData,
+      );
+      final user = AppUser.fromJson(res.data!);
+      await _tokenStorage.saveUser(user.encode());
+      return user;
+    });
+  }
+
+  @override
+  Future<AppUser> deleteAvatar() async {
+    return _guard(() async {
+      final res = await _dio.delete<Map<String, dynamic>>('/users/me/avatar');
+      final user = AppUser.fromJson(res.data!);
+      await _tokenStorage.saveUser(user.encode());
+      return user;
+    });
+  }
+
+  @override
   Future<void> submitCandidateStudentOnboarding({
     String? school,
     String? educationLevel,
@@ -155,6 +226,7 @@ class AuthRepositoryImpl implements AuthRepository {
     required String companyLocation,
     required String companyRegistrationNumber,
     String? companyLogoUrl,
+    String? aboutMe,
   }) async {
     return _guard(() async {
       final body = <String, dynamic>{
@@ -168,7 +240,32 @@ class AuthRepositoryImpl implements AuthRepository {
       if (companyLogoUrl != null && companyLogoUrl.isNotEmpty) {
         body['companyLogoUrl'] = companyLogoUrl;
       }
+      if (aboutMe != null && aboutMe.isNotEmpty) {
+        body['aboutMe'] = aboutMe;
+      }
       await _dio.post<void>('/onboarding/recruiter', data: body);
+    });
+  }
+
+  @override
+  Future<RecruiterProfile?> getRecruiterProfile() async {
+    try {
+      final res = await _dio.get<Map<String, dynamic>>('/onboarding/recruiter/me');
+      if (res.data == null) return null;
+      return RecruiterProfile.fromJson(res.data!);
+    } on DioException catch (e) {
+      final ex = ApiException.fromDio(e);
+      if (ex is NotFoundException) return null;
+      throw ex;
+    }
+  }
+
+  @override
+  Future<RecruiterProfile> updateRecruiterProfile(RecruiterProfile profile) async {
+    return _guard(() async {
+      final body = profile.toJson();
+      final res = await _dio.put<Map<String, dynamic>>('/onboarding/recruiter/me', data: body);
+      return RecruiterProfile.fromJson(res.data!);
     });
   }
 

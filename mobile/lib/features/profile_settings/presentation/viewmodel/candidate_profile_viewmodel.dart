@@ -54,11 +54,7 @@ class Certification {
     required this.year,
   });
 
-  Certification copyWith({
-    String? title,
-    String? organization,
-    String? year,
-  }) {
+  Certification copyWith({String? title, String? organization, String? year}) {
     return Certification(
       id: id,
       title: title ?? this.title,
@@ -138,11 +134,7 @@ class PortfolioItem {
     required this.imagePath,
   });
 
-  PortfolioItem copyWith({
-    String? id,
-    String? title,
-    String? imagePath,
-  }) {
+  PortfolioItem copyWith({String? id, String? title, String? imagePath}) {
     return PortfolioItem(
       id: id ?? this.id,
       title: title ?? this.title,
@@ -352,7 +344,9 @@ class CandidateProfileViewModel extends Notifier<CandidateProfileState> {
         title: position.position,
         companyName: position.company,
         startDate: _toStartOfYear(position.startYear),
-        endDate: position.endYear.isEmpty ? null : _toStartOfYear(position.endYear),
+        endDate: position.endYear.isEmpty
+            ? null
+            : _toStartOfYear(position.endYear),
         current: position.endYear.isEmpty,
       );
       await ref.read(profileRepositoryProvider).addPosition(input);
@@ -361,7 +355,9 @@ class CandidateProfileViewModel extends Notifier<CandidateProfileState> {
       state = state.copyWith(errorMessage: e.message);
       // Rollback
       state = state.copyWith(
-        jobPositions: state.jobPositions.where((p) => p.id != position.id).toList(),
+        jobPositions: state.jobPositions
+            .where((p) => p.id != position.id)
+            .toList(),
       );
     }
   }
@@ -378,10 +374,14 @@ class CandidateProfileViewModel extends Notifier<CandidateProfileState> {
         title: updatedPosition.position,
         companyName: updatedPosition.company,
         startDate: _toStartOfYear(updatedPosition.startYear),
-        endDate: updatedPosition.endYear.isEmpty ? null : _toStartOfYear(updatedPosition.endYear),
+        endDate: updatedPosition.endYear.isEmpty
+            ? null
+            : _toStartOfYear(updatedPosition.endYear),
         current: updatedPosition.endYear.isEmpty,
       );
-      await ref.read(profileRepositoryProvider).updatePosition(updatedPosition.id, input);
+      await ref
+          .read(profileRepositoryProvider)
+          .updatePosition(updatedPosition.id, input);
       await refresh();
     } on ApiException catch (e) {
       state = state.copyWith(errorMessage: e.message, jobPositions: oldList);
@@ -403,7 +403,9 @@ class CandidateProfileViewModel extends Notifier<CandidateProfileState> {
   // ── Certifications ─────────────────────────────────────────────────────
 
   Future<void> addCertification(Certification certification) async {
-    state = state.copyWith(certifications: [...state.certifications, certification]);
+    state = state.copyWith(
+      certifications: [...state.certifications, certification],
+    );
     try {
       final input = CertificationInput(
         title: certification.title,
@@ -415,7 +417,9 @@ class CandidateProfileViewModel extends Notifier<CandidateProfileState> {
     } on ApiException catch (e) {
       state = state.copyWith(errorMessage: e.message);
       state = state.copyWith(
-        certifications: state.certifications.where((c) => c.id != certification.id).toList(),
+        certifications: state.certifications
+            .where((c) => c.id != certification.id)
+            .toList(),
       );
     }
   }
@@ -424,7 +428,9 @@ class CandidateProfileViewModel extends Notifier<CandidateProfileState> {
     final oldList = state.certifications;
     state = state.copyWith(
       certifications: oldList
-          .map((c) => c.id == updatedCertification.id ? updatedCertification : c)
+          .map(
+            (c) => c.id == updatedCertification.id ? updatedCertification : c,
+          )
           .toList(),
     );
     try {
@@ -433,7 +439,9 @@ class CandidateProfileViewModel extends Notifier<CandidateProfileState> {
         issuer: updatedCertification.organization,
         completionDate: _toStartOfYear(updatedCertification.year),
       );
-      await ref.read(profileRepositoryProvider).updateCertification(updatedCertification.id, input);
+      await ref
+          .read(profileRepositoryProvider)
+          .updateCertification(updatedCertification.id, input);
       await refresh();
     } on ApiException catch (e) {
       state = state.copyWith(errorMessage: e.message, certifications: oldList);
@@ -485,9 +493,13 @@ class CandidateProfileViewModel extends Notifier<CandidateProfileState> {
         degree: updatedEdu.degree,
         school: updatedEdu.university,
         startDate: _toStartOfYear(updatedEdu.startYear),
-        endDate: updatedEdu.endYear.isEmpty ? null : _toStartOfYear(updatedEdu.endYear),
+        endDate: updatedEdu.endYear.isEmpty
+            ? null
+            : _toStartOfYear(updatedEdu.endYear),
       );
-      await ref.read(profileRepositoryProvider).updateEducation(updatedEdu.id, input);
+      await ref
+          .read(profileRepositoryProvider)
+          .updateEducation(updatedEdu.id, input);
       await refresh();
     } on ApiException catch (e) {
       state = state.copyWith(errorMessage: e.message, education: oldList);
@@ -528,7 +540,9 @@ class CandidateProfileViewModel extends Notifier<CandidateProfileState> {
 
       // Skills to delete (in existing but not in new list)
       final newSet = newSkills.toSet();
-      final toDelete = existingSkills.where((s) => !newSet.contains(s.name)).toList();
+      final toDelete = existingSkills
+          .where((s) => !newSet.contains(s.name))
+          .toList();
 
       for (final name in toAdd) {
         await repo.addSkill(SkillInput(name: name, type: 'TECHNICAL'));
@@ -609,33 +623,40 @@ class CandidateProfileViewModel extends Notifier<CandidateProfileState> {
           .map((s) => s.name)
           .where((n) => n.isNotEmpty)
           .toList(),
-      yearsOfExperience:
-          p?.yearsOfExperience != null ? '${p!.yearsOfExperience} years' : '',
+      yearsOfExperience: p?.yearsOfExperience != null
+          ? '${p!.yearsOfExperience} years'
+          : '',
       jobPositions: (p?.positions ?? const [])
-          .map((pos) => JobPosition(
-                id: pos.id,
-                position: pos.title,
-                company: pos.companyName ?? '',
-                startYear: _yearOf(pos.startDate),
-                endYear: pos.current ? '' : _yearOf(pos.endDate),
-              ))
+          .map(
+            (pos) => JobPosition(
+              id: pos.id,
+              position: pos.title,
+              company: pos.companyName ?? '',
+              startYear: _yearOf(pos.startDate),
+              endYear: pos.current ? '' : _yearOf(pos.endDate),
+            ),
+          )
           .toList(),
       certifications: (p?.certifications ?? const [])
-          .map((c) => Certification(
-                id: c.id,
-                title: c.title,
-                organization: c.issuer ?? '',
-                year: _yearOf(c.completionDate),
-              ))
+          .map(
+            (c) => Certification(
+              id: c.id,
+              title: c.title,
+              organization: c.issuer ?? '',
+              year: _yearOf(c.completionDate),
+            ),
+          )
           .toList(),
       education: (p?.education ?? const [])
-          .map((e) => Education(
-                id: e.id,
-                degree: e.degree,
-                university: e.school ?? '',
-                startYear: _yearOf(e.startDate),
-                endYear: _yearOf(e.endDate),
-              ))
+          .map(
+            (e) => Education(
+              id: e.id,
+              degree: e.degree,
+              university: e.school ?? '',
+              startYear: _yearOf(e.startDate),
+              endYear: _yearOf(e.endDate),
+            ),
+          )
           .toList(),
       aboutMe: p?.aboutMe ?? '',
       openToWorkInternationally: p?.openInternationally ?? false,
@@ -666,9 +687,10 @@ class CandidateProfileViewModel extends Notifier<CandidateProfileState> {
 
   static String _locationOf(AppUser? user) {
     if (user == null) return '';
-    return [user.city, user.country]
-        .where((e) => e != null && e.isNotEmpty)
-        .join(', ');
+    return [
+      user.city,
+      user.country,
+    ].where((e) => e != null && e.isNotEmpty).join(', ');
   }
 
   static String _yearOf(String? date) {
@@ -713,5 +735,5 @@ class CandidateProfileViewModel extends Notifier<CandidateProfileState> {
 
 final candidateProfileProvider =
     NotifierProvider<CandidateProfileViewModel, CandidateProfileState>(
-  CandidateProfileViewModel.new,
-);
+      CandidateProfileViewModel.new,
+    );

@@ -64,7 +64,7 @@ public class OnboardingController {
             RecruiterOnboardingResponse.from(identity.saveRecruiter(userId,
                 request.jobTitle(), request.companyName(), request.companySize(),
                 request.fieldOfWork(), request.companyLocation(),
-                request.companyRegistrationNumber(), true)));
+                request.companyRegistrationNumber(), request.aboutMe(), true)));
     }
 
     @GetMapping("/recruiter/me")
@@ -80,7 +80,7 @@ public class OnboardingController {
         return RecruiterOnboardingResponse.from(identity.saveRecruiter(userId,
             request.jobTitle(), request.companyName(), request.companySize(),
             request.fieldOfWork(), request.companyLocation(),
-            request.companyRegistrationNumber(), false));
+            request.companyRegistrationNumber(), request.aboutMe(), false));
     }
 
     @PostMapping(value = "/recruiter/me/logo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

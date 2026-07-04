@@ -1,4 +1,7 @@
+import 'dart:typed_data';
+
 import '../../../../core/enums/user_role.dart';
+import '../../../profile_settings/domain/entities/recruiter_profile.dart';
 import '../entities/app_user.dart';
 
 /// Abstraction over authentication + identity onboarding. The presentation layer
@@ -38,6 +41,31 @@ abstract class AuthRepository {
     String? profileImageUrl,
   });
 
+  /// `POST /auth/change-password` (authenticated).
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  });
+
+  /// `POST /auth/forgot-password`. Sends OTP code to email.
+  Future<void> forgotPassword({required String email});
+
+  /// `POST /auth/reset-password`. Validates OTP and sets new password.
+  Future<void> resetPassword({
+    required String email,
+    required String code,
+    required String newPassword,
+  });
+
+  /// `DELETE /users/me`. Permanently deletes the account.
+  Future<void> deleteAccount();
+
+  /// `POST /users/me/avatar` with multipart/form-data.
+  Future<AppUser> uploadAvatar(Uint8List bytes, String filename);
+
+  /// `DELETE /users/me/avatar`.
+  Future<AppUser> deleteAvatar();
+
   /// `POST /onboarding/candidate-student` (CANDIDATE/STUDENT only).
   Future<void> submitCandidateStudentOnboarding({
     String? school,
@@ -57,5 +85,12 @@ abstract class AuthRepository {
     required String companyLocation,
     required String companyRegistrationNumber,
     String? companyLogoUrl,
+    String? aboutMe,
   });
+
+  /// `GET /onboarding/recruiter/me`
+  Future<RecruiterProfile?> getRecruiterProfile();
+
+  /// `PUT /onboarding/recruiter/me`
+  Future<RecruiterProfile> updateRecruiterProfile(RecruiterProfile profile);
 }

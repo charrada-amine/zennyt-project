@@ -35,6 +35,8 @@ public class RecruiterOnboardingEntity {
     private String companyLocation;
     @Column(name = "company_registration_number", nullable = false, length = 100)
     private String companyRegistrationNumber;
+    @Column(name = "about_me")
+    private String aboutMe;
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
     @Column(name = "updated_at", nullable = false)

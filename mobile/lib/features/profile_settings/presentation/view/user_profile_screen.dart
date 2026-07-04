@@ -9,6 +9,9 @@ import '../viewmodel/candidate_profile_viewmodel.dart';
 import '../widgets/candidate_overview_tab.dart';
 import '../widgets/candidate_portfolio_tab.dart';
 import '../widgets/profile_avatar.dart';
+import 'recruiter_profile_view.dart';
+import '../../../auth/presentation/auth_controller.dart';
+import '../../../../core/enums/user_role.dart';
 
 class UserProfileScreen extends ConsumerStatefulWidget {
   const UserProfileScreen({super.key});
@@ -35,6 +38,11 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
 
   @override
   Widget build(BuildContext context) {
+    final userState = ref.watch(authControllerProvider);
+    if (userState.value?.role == UserRole.recruiter) {
+      return const RecruiterProfileView();
+    }
+
     final colors = context.colors;
     final hPadding = Responsive.horizontalPadding(context);
     final profileState = ref.watch(candidateProfileProvider);
@@ -48,13 +56,21 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
             return [
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: hPadding, vertical: AppSpacing.lg),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: hPadding,
+                    vertical: AppSpacing.lg,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       _buildTopBar(context, colors),
                       const SizedBox(height: AppSpacing.xl),
-                      _buildProfileHeader(context, colors, profileState, viewModel),
+                      _buildProfileHeader(
+                        context,
+                        colors,
+                        profileState,
+                        viewModel,
+                      ),
                       const SizedBox(height: AppSpacing.xl),
                       _buildSoftSkillsScore(colors, profileState, viewModel),
                       const SizedBox(height: AppSpacing.lg),
@@ -71,7 +87,9 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
                     unselectedLabelColor: colors.textSecondary,
                     indicatorColor: colors.primary,
                     indicatorWeight: 3,
-                    labelStyle: AppTypography.titleSmall.copyWith(fontWeight: FontWeight.w600),
+                    labelStyle: AppTypography.titleSmall.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                     unselectedLabelStyle: AppTypography.titleSmall,
                     tabs: const [
                       Tab(text: 'Overview'),
@@ -131,13 +149,17 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
     );
   }
 
-  Widget _buildProfileHeader(BuildContext context, AppColorScheme colors,
-      CandidateProfileState state, CandidateProfileViewModel viewModel) {
+  Widget _buildProfileHeader(
+    BuildContext context,
+    AppColorScheme colors,
+    CandidateProfileState state,
+    CandidateProfileViewModel viewModel,
+  ) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Avatar
-        ProfileAvatar(imageUrl: state.avatarUrl, size: 70),
+        ProfileAvatar(imageUrl: state.avatarUrl, size: 70, fallbackSeed: state.name),
         const SizedBox(width: AppSpacing.md),
         // Info
         Expanded(
@@ -162,7 +184,11 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
               const SizedBox(height: 4),
               Row(
                 children: [
-                  Icon(Icons.location_on_outlined, size: 16, color: colors.textSecondary),
+                  Icon(
+                    Icons.location_on_outlined,
+                    size: 16,
+                    color: colors.textSecondary,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     state.location,
@@ -179,11 +205,15 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
                   minimumSize: const Size(0, 32),
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   side: BorderSide(color: colors.border),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
                 child: Text(
                   'Edit Profile',
-                  style: AppTypography.bodySmall.copyWith(color: colors.textPrimary),
+                  style: AppTypography.bodySmall.copyWith(
+                    color: colors.textPrimary,
+                  ),
                 ),
               ),
             ],
@@ -214,8 +244,12 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
                   child: Row(
                     children: [
                       Icon(
-                        state.isResumeAiVisible ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-                        color: state.isResumeAiVisible ? colors.primary : colors.textSecondary,
+                        state.isResumeAiVisible
+                            ? Icons.radio_button_checked
+                            : Icons.radio_button_unchecked,
+                        color: state.isResumeAiVisible
+                            ? colors.primary
+                            : colors.textSecondary,
                         size: 20,
                       ),
                       const SizedBox(width: 8),
@@ -230,8 +264,12 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
                   child: Row(
                     children: [
                       Icon(
-                        !state.isResumeAiVisible ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-                        color: !state.isResumeAiVisible ? colors.primary : colors.textSecondary,
+                        !state.isResumeAiVisible
+                            ? Icons.radio_button_checked
+                            : Icons.radio_button_unchecked,
+                        color: !state.isResumeAiVisible
+                            ? colors.primary
+                            : colors.textSecondary,
                         size: 20,
                       ),
                       const SizedBox(width: 8),
@@ -250,14 +288,20 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
     );
   }
 
-  Widget _buildSoftSkillsScore(AppColorScheme colors, CandidateProfileState profileState, CandidateProfileViewModel viewModel) {
+  Widget _buildSoftSkillsScore(
+    AppColorScheme colors,
+    CandidateProfileState profileState,
+    CandidateProfileViewModel viewModel,
+  ) {
     return Column(
       children: [
         Row(
           children: [
             PopupMenuButton<bool>(
               offset: const Offset(0, 36),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               color: colors.scaffoldBg,
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -270,7 +314,11 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
                     ),
                   ),
                   const SizedBox(width: 4),
-                  Icon(Icons.keyboard_arrow_down, size: 16, color: colors.textSecondary),
+                  Icon(
+                    Icons.keyboard_arrow_down,
+                    size: 16,
+                    color: colors.textSecondary,
+                  ),
                 ],
               ),
               itemBuilder: (context) => [
@@ -279,14 +327,27 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
                   child: Row(
                     children: [
                       Icon(
-                        profileState.isSoftSkillsVisible ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-                        color: profileState.isSoftSkillsVisible ? colors.primary : colors.textSecondary,
+                        profileState.isSoftSkillsVisible
+                            ? Icons.radio_button_checked
+                            : Icons.radio_button_unchecked,
+                        color: profileState.isSoftSkillsVisible
+                            ? colors.primary
+                            : colors.textSecondary,
                         size: 20,
                       ),
                       const SizedBox(width: 8),
-                      Text('Show', style: AppTypography.bodyMedium.copyWith(color: colors.textPrimary)),
+                      Text(
+                        'Show',
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: colors.textPrimary,
+                        ),
+                      ),
                       const Spacer(),
-                      Icon(Icons.visibility_outlined, size: 18, color: colors.textSecondary),
+                      Icon(
+                        Icons.visibility_outlined,
+                        size: 18,
+                        color: colors.textSecondary,
+                      ),
                     ],
                   ),
                 ),
@@ -295,19 +356,33 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
                   child: Row(
                     children: [
                       Icon(
-                        !profileState.isSoftSkillsVisible ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-                        color: !profileState.isSoftSkillsVisible ? colors.primary : colors.textSecondary,
+                        !profileState.isSoftSkillsVisible
+                            ? Icons.radio_button_checked
+                            : Icons.radio_button_unchecked,
+                        color: !profileState.isSoftSkillsVisible
+                            ? colors.primary
+                            : colors.textSecondary,
                         size: 20,
                       ),
                       const SizedBox(width: 8),
-                      Text('Hide', style: AppTypography.bodyMedium.copyWith(color: colors.textPrimary)),
+                      Text(
+                        'Hide',
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: colors.textPrimary,
+                        ),
+                      ),
                       const Spacer(),
-                      Icon(Icons.visibility_off_outlined, size: 18, color: colors.textSecondary),
+                      Icon(
+                        Icons.visibility_off_outlined,
+                        size: 18,
+                        color: colors.textSecondary,
+                      ),
                     ],
                   ),
                 ),
               ],
-              onSelected: (value) => viewModel.toggleSoftSkillsVisibility(value),
+              onSelected: (value) =>
+                  viewModel.toggleSoftSkillsVisibility(value),
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
@@ -356,11 +431,12 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   double get maxExtent => _tabBar.preferredSize.height;
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return Container(
-      color: backgroundColor,
-      child: _tabBar,
-    );
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return Container(color: backgroundColor, child: _tabBar);
   }
 
   @override

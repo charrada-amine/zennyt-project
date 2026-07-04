@@ -111,16 +111,26 @@ class _LanguageTopBar extends StatelessWidget {
           width: 44,
           height: 44,
           decoration: BoxDecoration(
-            color: colors.backButtonBg,
-            borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-            border: Border.all(color: colors.backButtonBorder),
+            color: colors.scaffoldBg,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: colors.shadowColor.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+            border: Border.all(
+              color: colors.divider,
+              width: 1,
+            ),
           ),
           child: IconButton(
             onPressed: () => context.pop(),
             icon: Icon(
-              Icons.arrow_back_rounded,
-              color: colors.backButtonIcon,
-              size: 20,
+              Icons.arrow_back_ios_new_rounded,
+              color: colors.textPrimary,
+              size: 18,
             ),
           ),
         ),
@@ -128,8 +138,8 @@ class _LanguageTopBar extends StatelessWidget {
         Text(
           title,
           style: AppTypography.titleLarge.copyWith(
-            color: colors.textPrimary,
-            fontWeight: FontWeight.w600,
+            color: colors.textDarkBlue,
+            fontWeight: FontWeight.bold,
           ),
         ),
         const Spacer(),

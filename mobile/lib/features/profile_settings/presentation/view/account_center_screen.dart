@@ -6,12 +6,15 @@ import '../../../../core/localization/l10n_extension.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/theme.dart';
 import '../../../../core/widgets/zennyt_switch.dart';
+import '../../../auth/presentation/auth_providers.dart';
+import '../../../auth/presentation/auth_controller.dart';
 
 class AccountCenterScreen extends ConsumerStatefulWidget {
   const AccountCenterScreen({super.key});
 
   @override
-  ConsumerState<AccountCenterScreen> createState() => _AccountCenterScreenState();
+  ConsumerState<AccountCenterScreen> createState() =>
+      _AccountCenterScreenState();
 }
 
 class _AccountCenterScreenState extends ConsumerState<AccountCenterScreen> {
@@ -28,13 +31,16 @@ class _AccountCenterScreenState extends ConsumerState<AccountCenterScreen> {
       backgroundColor: colors.scaffoldBg,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: AppSpacing.lg),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: AppSpacing.lg,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _TopBar(title: l10n.accountCenter),
               const SizedBox(height: AppSpacing.xl),
-              
+
               _AccountCard(
                 title: l10n.personalInformations,
                 hideHeaderTitle: true,
@@ -42,7 +48,7 @@ class _AccountCenterScreenState extends ConsumerState<AccountCenterScreen> {
                 trailing: _buildChevron(colors),
               ),
               const SizedBox(height: AppSpacing.lg),
-              
+
               _AccountCard(
                 title: l10n.changePassword,
                 content: Column(
@@ -74,7 +80,7 @@ class _AccountCenterScreenState extends ConsumerState<AccountCenterScreen> {
                 onTap: () => _showChangePasswordModal(context, colors, l10n),
               ),
               const SizedBox(height: AppSpacing.lg),
-              
+
               _AccountCard(
                 title: l10n.privacyPolicy,
                 content: Column(
@@ -132,7 +138,7 @@ class _AccountCenterScreenState extends ConsumerState<AccountCenterScreen> {
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
-              
+
               _AccountCard(
                 title: l10n.cookiesPreferences,
                 content: Column(
@@ -174,14 +180,17 @@ class _AccountCenterScreenState extends ConsumerState<AccountCenterScreen> {
                   ],
                 ),
               ),
-              
+
               const SizedBox(height: AppSpacing.xl),
               SizedBox(
                 height: 54,
                 child: FilledButton(
-                  onPressed: () => _showDeleteAccountModal(context, colors, l10n),
+                  onPressed: () =>
+                      _showDeleteAccountModal(context, colors, l10n),
                   style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF9E9E9E), // Grey from mockup
+                    backgroundColor: const Color(
+                      0xFF9E9E9E,
+                    ), // Grey from mockup
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -212,161 +221,232 @@ class _AccountCenterScreenState extends ConsumerState<AccountCenterScreen> {
     );
   }
 
-  void _showChangePasswordModal(BuildContext context, AppColorScheme colors, dynamic l10n) {
+  void _showChangePasswordModal(
+    BuildContext context,
+    AppColorScheme colors,
+    dynamic l10n,
+  ) {
+    final currentPwCtrl = TextEditingController();
+    final newPwCtrl = TextEditingController();
+    final confirmPwCtrl = TextEditingController();
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) {
-        return Container(
-          decoration: BoxDecoration(
-            color: colors.scaffoldBg,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + AppSpacing.xl,
-            top: AppSpacing.lg,
-            left: 24,
-            right: 24,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+
+            return Container(
+              decoration: BoxDecoration(
+                color: colors.scaffoldBg,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(24),
+                ),
+              ),
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + AppSpacing.xl,
+                top: AppSpacing.lg,
+                left: 24,
+                right: 24,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: colors.backButtonBg,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: colors.backButtonBorder,
+                            width: 1,
+                          ),
+                        ),
+                        child: IconButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          icon: Icon(
+                            Icons.arrow_back_ios_new_rounded,
+                            color: colors.primary,
+                            size: 20,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Text(
+                          l10n.changePassword,
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.titleLarge.copyWith(
+                            color: colors.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 60),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
                   Container(
-                    width: 44,
-                    height: 44,
                     decoration: BoxDecoration(
-                      color: colors.backButtonBg,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: colors.backButtonBorder, width: 1),
+                      color: colors.cardSurface,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: colors.divider),
                     ),
-                    child: IconButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      icon: Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        color: colors.primary,
-                        size: 20,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
+                    child: TextField(
+                      controller: currentPwCtrl,
+                      obscureText: true,
+                      decoration: InputDecoration(
+                        border: InputBorder.none,
+                        hintText: l10n.currentPasswordHint,
+                        hintStyle: AppTypography.bodyMedium.copyWith(
+                          color: colors.textMuted,
+                        ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
+                  const SizedBox(height: AppSpacing.sm),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: colors.cardSurface,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: colors.divider),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
+                    child: TextField(
+                      controller: newPwCtrl,
+                      obscureText: true,
+                      decoration: InputDecoration(
+                        border: InputBorder.none,
+                        hintText: l10n.newPasswordHint,
+                        hintStyle: AppTypography.bodyMedium.copyWith(
+                          color: colors.textMuted,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: colors.cardSurface,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: colors.divider),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
+                    child: TextField(
+                      controller: confirmPwCtrl,
+                      obscureText: true,
+                      decoration: InputDecoration(
+                        border: InputBorder.none,
+                        hintText: l10n.confirmNewPasswordHint,
+                        hintStyle: AppTypography.bodyMedium.copyWith(
+                          color: colors.textMuted,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  SizedBox(
+                    height: 54,
+                    child: FilledButton(
+                      onPressed: () async {
+                        final currentPw = currentPwCtrl.text;
+                        final newPw = newPwCtrl.text;
+                        final confirmPw = confirmPwCtrl.text;
+
+                        if (currentPw.isEmpty ||
+                            newPw.isEmpty ||
+                            confirmPw.isEmpty) {
+                          return;
+                        }
+                        if (newPw.length < 8) return;
+                        if (newPw != confirmPw) return;
+
+                        try {
+                          final repo = ref.read(authRepositoryProvider);
+                          await repo.changePassword(
+                            currentPassword: currentPw,
+                            newPassword: newPw,
+                          );
+                          if (ctx.mounted) {
+                            Navigator.pop(ctx);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(l10n.passwordChangedSuccess),
+                                backgroundColor: context.colors.primary,
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (ctx.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(l10n.errorGeneric),
+                                backgroundColor: context.colors.error,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      style: FilledButton.styleFrom(
+                        backgroundColor: colors.primary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        l10n.updatePassword,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
                     child: Text(
-                      l10n.changePassword,
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.titleLarge.copyWith(
-                        color: colors.primary,
+                      l10n.cancel,
+                      style: TextStyle(
+                        fontSize: 16,
                         fontWeight: FontWeight.w600,
+                        color: colors.primary,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 60),
                 ],
               ),
-              const SizedBox(height: AppSpacing.lg),
-              Text(
-                'Password Last updated: Jun 9, 2024',
-                style: AppTypography.bodySmall.copyWith(
-                  color: colors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              Container(
-                decoration: BoxDecoration(
-                  color: colors.cardSurface,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: colors.divider),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                child: TextField(
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    border: InputBorder.none,
-                    hintText: 'Current password',
-                    hintStyle: AppTypography.bodyMedium.copyWith(color: colors.textMuted),
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              Container(
-                decoration: BoxDecoration(
-                  color: colors.cardSurface,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: colors.divider),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                child: TextField(
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    border: InputBorder.none,
-                    hintText: 'New password',
-                    hintStyle: AppTypography.bodyMedium.copyWith(color: colors.textMuted),
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              Container(
-                decoration: BoxDecoration(
-                  color: colors.cardSurface,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: colors.divider),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                child: TextField(
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    border: InputBorder.none,
-                    hintText: 'Confirm new password',
-                    hintStyle: AppTypography.bodyMedium.copyWith(color: colors.textMuted),
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.xl),
-              SizedBox(
-                height: 54,
-                child: FilledButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: colors.primary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    'Update Password',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text(
-                  'Cancel',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: colors.primary,
-                  ),
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
   }
 
-  void _showDeleteAccountModal(BuildContext context, AppColorScheme colors, dynamic l10n) {
+  void _showDeleteAccountModal(
+    BuildContext context,
+    AppColorScheme colors,
+    dynamic l10n,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -387,24 +467,26 @@ class _AccountCenterScreenState extends ConsumerState<AccountCenterScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFCE4EC), // Light pink/red background
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: Icon(
-                    Icons.delete_outline_rounded,
-                    color: const Color(0xFFE91E63), // Pink/red icon
-                    size: 32,
+              Center(
+                child: Container(
+                  width: 64,
+                  height: 64,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFCE4EC),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      Icons.delete_outline_rounded,
+                      color: Color(0xFFE91E63),
+                      size: 32,
+                    ),
                   ),
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
               Text(
-                'Delete Account',
+                l10n.deleteAccountTitle,
                 textAlign: TextAlign.center,
                 style: AppTypography.titleLarge.copyWith(
                   color: colors.primary,
@@ -413,7 +495,7 @@ class _AccountCenterScreenState extends ConsumerState<AccountCenterScreen> {
               ),
               const SizedBox(height: AppSpacing.sm),
               Text(
-                'Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently removed.',
+                l10n.deleteAccountMessage,
                 textAlign: TextAlign.center,
                 style: AppTypography.bodyMedium.copyWith(
                   color: colors.textSecondary,
@@ -424,16 +506,36 @@ class _AccountCenterScreenState extends ConsumerState<AccountCenterScreen> {
               SizedBox(
                 height: 54,
                 child: FilledButton(
-                  onPressed: () => Navigator.pop(ctx),
+                  onPressed: () async {
+                    try {
+                      final repo = ref.read(authRepositoryProvider);
+                      await repo.deleteAccount();
+                      if (ctx.mounted) Navigator.pop(ctx);
+                      if (context.mounted) {
+                        ref.invalidate(authControllerProvider);
+                        context.go(AppRoutes.login);
+                      }
+                    } catch (e) {
+                      if (ctx.mounted) {
+                        Navigator.pop(ctx);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(l10n.errorGeneric),
+                            backgroundColor: context.colors.error,
+                          ),
+                        );
+                      }
+                    }
+                  },
                   style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFFEEEEEE), // Light grey background
+                    backgroundColor: const Color(0xFFEEEEEE),
                     foregroundColor: colors.textPrimary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   child: Text(
-                    'Yes, Delete Account',
+                    l10n.yesDeleteAccount,
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -448,14 +550,14 @@ class _AccountCenterScreenState extends ConsumerState<AccountCenterScreen> {
                 child: FilledButton(
                   onPressed: () => Navigator.pop(ctx),
                   style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFFD81B60), // Pink/red background
+                    backgroundColor: const Color(0xFFD81B60),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
-                    'Cancel',
-                    style: TextStyle(
+                  child: Text(
+                    l10n.cancel,
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: Colors.white,
@@ -505,10 +607,7 @@ class _CookiePreferenceRow extends StatelessWidget {
             ),
             SizedBox(
               height: 28,
-              child: ZennytSwitch(
-                value: value,
-                onChanged: onChanged,
-              ),
+              child: ZennytSwitch(value: value, onChanged: onChanged),
             ),
           ],
         ),
@@ -543,7 +642,7 @@ class _AccountCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    
+
     Widget body = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -571,7 +670,8 @@ class _AccountCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: content ??
+                child:
+                    content ??
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -582,7 +682,7 @@ class _AccountCard extends StatelessWidget {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        if (trailing != null) trailing!,
+                        ?trailing,
                       ],
                     ),
               ),
@@ -591,7 +691,7 @@ class _AccountCard extends StatelessWidget {
         ),
       ],
     );
-    
+
     return body;
   }
 }

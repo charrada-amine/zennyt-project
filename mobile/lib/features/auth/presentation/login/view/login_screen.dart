@@ -173,7 +173,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 const SizedBox(height: AppSpacing.md),
                 Center(
                   child: TextButton(
-                    onPressed: () {},
+                    onPressed: () =>
+                        context.push(AppRoutes.forgotPasswordMethod),
                     child: Text(
                       context.l10n.forgotPassword,
                       style: AppTypography.titleSmall.copyWith(

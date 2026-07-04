@@ -10,7 +10,10 @@ abstract class ProfileRepository {
 
   /// Creates (`POST /profiles`) or updates (`PUT /profiles/me`) the profile and
   /// returns the persisted result. Pass [exists] = true to update.
-  Future<CandidateProfile> saveProfile(ProfileInput input, {required bool exists});
+  Future<CandidateProfile> saveProfile(
+    ProfileInput input, {
+    required bool exists,
+  });
 
   // ── Skills ──────────────────────────────────────────────────────────────
 
@@ -27,7 +30,10 @@ abstract class ProfileRepository {
   // ── Certifications ──────────────────────────────────────────────────────
 
   Future<ProfileCertification> addCertification(CertificationInput input);
-  Future<ProfileCertification> updateCertification(String id, CertificationInput input);
+  Future<ProfileCertification> updateCertification(
+    String id,
+    CertificationInput input,
+  );
   Future<void> deleteCertification(String id);
 
   // ── Education ───────────────────────────────────────────────────────────
@@ -36,4 +42,3 @@ abstract class ProfileRepository {
   Future<ProfileEducation> updateEducation(String id, EducationInput input);
   Future<void> deleteEducation(String id);
 }
-

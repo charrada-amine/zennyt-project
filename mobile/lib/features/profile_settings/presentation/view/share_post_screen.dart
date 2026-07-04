@@ -30,11 +30,15 @@ class _SharePostScreenState extends ConsumerState<SharePostScreen>
       duration: const Duration(milliseconds: 250),
     );
 
-    _rotationAnim = Tween<double>(begin: 0, end: 0.125).animate(
-      CurvedAnimation(parent: _menuController, curve: Curves.easeOut),
-    );
+    _rotationAnim = Tween<double>(
+      begin: 0,
+      end: 0.125,
+    ).animate(CurvedAnimation(parent: _menuController, curve: Curves.easeOut));
 
-    _scaleAnim = CurvedAnimation(parent: _menuController, curve: Curves.easeOutBack);
+    _scaleAnim = CurvedAnimation(
+      parent: _menuController,
+      curve: Curves.easeOutBack,
+    );
 
     _textController.addListener(() {
       setState(() {});
@@ -89,12 +93,19 @@ class _SharePostScreenState extends ConsumerState<SharePostScreen>
               children: [
                 // Top Bar
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: hPadding, vertical: AppSpacing.lg),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: hPadding,
+                    vertical: AppSpacing.lg,
+                  ),
                   child: Row(
                     children: [
                       IconButton(
                         onPressed: () => context.pop(),
-                        icon: Icon(Icons.close, size: 28, color: colors.textPrimary),
+                        icon: Icon(
+                          Icons.close,
+                          size: 28,
+                          color: colors.textPrimary,
+                        ),
                       ),
                       const SizedBox(width: AppSpacing.sm),
                       // Avatar
@@ -113,7 +124,10 @@ class _SharePostScreenState extends ConsumerState<SharePostScreen>
                       const SizedBox(width: AppSpacing.sm),
                       // Privacy Dropdown
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: colors.scaffoldBg,
                           borderRadius: BorderRadius.circular(20),
@@ -122,7 +136,11 @@ class _SharePostScreenState extends ConsumerState<SharePostScreen>
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.public, size: 14, color: colors.textSecondary),
+                            Icon(
+                              Icons.public,
+                              size: 14,
+                              color: colors.textSecondary,
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               'Public',
@@ -132,7 +150,11 @@ class _SharePostScreenState extends ConsumerState<SharePostScreen>
                               ),
                             ),
                             const SizedBox(width: 4),
-                            Icon(Icons.keyboard_arrow_down, size: 16, color: colors.textSecondary),
+                            Icon(
+                              Icons.keyboard_arrow_down,
+                              size: 16,
+                              color: colors.textSecondary,
+                            ),
                           ],
                         ),
                       ),
@@ -141,17 +163,28 @@ class _SharePostScreenState extends ConsumerState<SharePostScreen>
                       ElevatedButton(
                         onPressed: canPost ? _submitPost : null,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: canPost ? colors.primary : colors.dividerThick,
-                          foregroundColor: canPost ? Colors.white : colors.textSecondary,
+                          backgroundColor: canPost
+                              ? colors.primary
+                              : colors.dividerThick,
+                          foregroundColor: canPost
+                              ? Colors.white
+                              : colors.textSecondary,
                           elevation: 0,
-                          minimumSize: const Size(80, 40), // Override infinite width from theme
+                          minimumSize: const Size(
+                            80,
+                            40,
+                          ), // Override infinite width from theme
                           padding: const EdgeInsets.symmetric(horizontal: 20),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                         ),
                         child: Text(
                           'Post',
                           style: AppTypography.labelLarge.copyWith(
-                            color: canPost ? Colors.white : colors.textSecondary,
+                            color: canPost
+                                ? Colors.white
+                                : colors.textSecondary,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -159,13 +192,16 @@ class _SharePostScreenState extends ConsumerState<SharePostScreen>
                     ],
                   ),
                 ),
-                
+
                 Divider(height: 1, color: colors.border),
 
                 // Text Area
                 Expanded(
                   child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: hPadding, vertical: AppSpacing.lg),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: hPadding,
+                      vertical: AppSpacing.lg,
+                    ),
                     child: TextField(
                       controller: _textController,
                       maxLines: null,

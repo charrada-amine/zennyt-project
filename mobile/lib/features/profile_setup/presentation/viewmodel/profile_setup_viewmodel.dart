@@ -96,7 +96,10 @@ class ProfileSetupState {
             UploadItemKind.companyLogo,
           ),
           FieldOfWorkFormItem(),
-          TextFormItem(AppStrings.companyLocation, ProfileField.companyLocation),
+          TextFormItem(
+            AppStrings.companyLocation,
+            ProfileField.companyLocation,
+          ),
           TextFormItem(
             AppStrings.companyRegistrationNumber,
             ProfileField.companyRegistrationNumber,

@@ -1,29 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/enums/user_role.dart';
 import '../../../../core/localization/l10n_extension.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../../core/theme/theme.dart';
+import '../../../auth/presentation/auth_controller.dart';
 import '../widgets/profile_action_cards.dart';
 import '../widgets/profile_header_section.dart';
 import '../widgets/settings_menu_list.dart';
+import '../widgets/recruiter_settings_menu_list.dart';
 
 /// The main Profile & Settings screen. Shows the user header, action cards, and
 /// the settings menu.
-class ProfileSettingsScreen extends StatelessWidget {
+class ProfileSettingsScreen extends ConsumerWidget {
   const ProfileSettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final hPadding = Responsive.horizontalPadding(context);
     final colors = context.colors;
+
+    final isRecruiter = ref.watch(authControllerProvider).value?.role == UserRole.recruiter;
 
     return Scaffold(
       backgroundColor: colors.scaffoldBg,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -36,13 +42,18 @@ class ProfileSettingsScreen extends StatelessWidget {
                 padding: EdgeInsets.symmetric(horizontal: hPadding),
                 child: const ProfileHeaderSection(),
               ),
+              if (!isRecruiter) ...[
+                const SizedBox(height: AppSpacing.lg),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: hPadding),
+                  child: const ProfileActionCards(),
+                ),
+              ],
               const SizedBox(height: AppSpacing.lg),
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: hPadding),
-                child: const ProfileActionCards(),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              const SettingsMenuList(),
+              if (isRecruiter)
+                const RecruiterSettingsMenuList()
+              else
+                const SettingsMenuList(),
             ],
           ),
         ),
@@ -65,16 +76,26 @@ class _TopBar extends StatelessWidget {
           width: 44,
           height: 44,
           decoration: BoxDecoration(
-            color: colors.backButtonBg,
-            shape: BoxShape.circle,
-            border: Border.all(color: colors.backButtonBorder, width: 1),
+            color: colors.scaffoldBg,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: colors.shadowColor.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+            border: Border.all(
+              color: colors.divider,
+              width: 1,
+            ),
           ),
           child: IconButton(
             onPressed: () => context.pop(),
             icon: Icon(
-              Icons.arrow_back_rounded,
-              color: colors.backButtonIcon,
-              size: 20,
+              Icons.arrow_back_ios_new_rounded,
+              color: colors.textPrimary,
+              size: 18,
             ),
           ),
         ),
@@ -82,12 +103,12 @@ class _TopBar extends StatelessWidget {
         Text(
           title,
           style: AppTypography.titleLarge.copyWith(
-            color: colors.textPrimary,
-            fontWeight: FontWeight.w600,
+            color: colors.textDarkBlue,
+            fontWeight: FontWeight.bold,
           ),
         ),
         const Spacer(),
-        const SizedBox(width: 44), // Balance the back button
+        const SizedBox(width: 44),
       ],
     );
   }
