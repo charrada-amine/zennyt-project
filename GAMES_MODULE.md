@@ -151,12 +151,12 @@ Routage : `mobile/lib/core/router/app_router.dart` (`/games`, `/games/planifik`,
 | **presentation** | `presentation/games_providers.dart` | Bascule mock/backend via `--dart-define=GAMES_MOCK` (défaut `true`). |
 | | `presentation/games_controller.dart` | `AsyncNotifier<GameSession?>` : `start()` / `submit()`. |
 | | `presentation/view/games_hub_screen.dart` | Hub listant les jeux (aussi onglet « Progrès »). |
-| | `presentation/view/planifik_screen.dart` | Flow complet **Optimal Path** (intro, briefing, gameplay, score, comparaison) + `MapLegend` / `GameWarningBanner`. Voir [Flow Optimal Path](#-flow-optimal-path-mobile). |
+| | `presentation/view/planifik_screen.dart` | Flow complet **Optimal Path** (intro Path Mind, How To Play, gameplay **multi-niveaux**, score, comparaison) + HUD stations, **menu pause** (`_PauseDialog`), légende, contrôles. Voir [Flow Optimal Path](#-flow-optimal-path-mobile). |
 | | `presentation/view/move_fast_screen.dart` | Écran complet « Je bouge » (intro, tutoriels, gameplay **à 3 niveaux**, transitions de règle, résultats). Voir [Niveaux Move Fast](#-niveaux-move-fast-mobile). |
 | | `presentation/widgets/game_system_components.dart` | Design system jeux : palette, boutons, HUD, ruban de séries, contrôles directionnels, avion, tuiles de résultat. |
-| **presentation / flame** | `presentation/flame/planifik_game.dart` | **`FlameGame`** « Chemin Optimal » : tracé, `undo`/`clear`, `revision` (HUD live), ligne de route magenta, `buildMetrics()`. Ne calcule **pas** de score. |
-| | `presentation/flame/cell_component.dart` | Cellule tactile + `BoardPalette` (charte Figma) + glyphes start/finish/obstacle/cost/bonus. |
-| | `presentation/flame/grid_config.dart` | `CellKind` + `GridConfig` (niveau 6×6 `demo`, `optimalLength`, `isWalkable`). |
+| **presentation / flame** | `presentation/flame/planifik_game.dart` | **`FlameGame`** stations : tracé, `undo`/`clear`, `revision` (HUD live), ligne de route magenta, `buildMetrics()`, layout col×row remplissant. Ne calcule **pas** de score. |
+| | `presentation/flame/cell_component.dart` | Station **circulaire** tactile + `BoardPalette` : LAB, MTG, bloc (éclair), étoile, chemin. |
+| | `presentation/flame/grid_config.dart` | `CellKind` + `GridConfig` + **4 niveaux progressifs** (`level1`…`level4`, `levels`), `isWalkable`. |
 
 ### Le jeu Flame « Chemin Optimal » (`planifik_game.dart`)
 
@@ -169,23 +169,36 @@ Routage : `mobile/lib/core/router/app_router.dart` (`/games`, `/games/planifik`,
 
 ### 🗺️ Flow Optimal Path (mobile)
 
-`planifik_screen.dart` est un flow multi-étapes (comme Move Fast), aligné sur la maquette
-Figma **« Zennyt Game 03 - Optimal Path / Spatial Route Planning »**.
-
-**Étapes** : `Start → Briefing → Map scan / Plan route → Validate → Score → Replay`
-(`enum _PlanifikStage { intro, briefing, gameplay, score, comparison }`).
+`planifik_screen.dart` est un flow multi-étapes (comme Move Fast), aligné sur les maquettes
+Figma **« Optimal Path »**. `enum _PlanifikStage { intro, howToPlay, gameplay, score, comparison }`.
 
 | Étape | Contenu |
 |-------|---------|
-| **Intro (01 Briefing)** | Carte hero **« Path Mind »** (gradient violet + illustration grille `_PathMindArt`), chip « Spatial Planning », ligne meta (Goal/Duration/Format), carte « Simple rule », bouton Start magenta. |
-| **How To Play (02/03)** | Carousel 2 pages (PageView + dots) : « Connect the Stations » (illustration `_StationsArt`) et « Scoring Breakdown » (barème tutoriel). |
-| **Gameplay** | Bandeau live (Steps / Optimal / Bonus), plateau Flame, `MapLegend` compacte, **warning banner** si le tracé traverse une zone coûteuse, contrôles **Undo / Clear / Validate**. |
+| **Intro (Path Mind)** | Écran **pixel-perfect** : carte hero violet plein `#4F46E5` (illustration grille `_PathMindArt` + glows roses/cyan), chip « Cognitive Flexibility », 3 mini-cartes meta (Goal/Duration/Format), carte « Simple rule » (bordure périwinkle), **bouton capsule Start**. Marges 24, gaps 20/18/16/22, ombres douces, top-aligné. |
+| **How To Play** | Carousel 2 pages (PageView) : « Connect the Stations » (illustration `_StationsArt`) et « Scoring Breakdown » (barème tutoriel). |
+| **Gameplay (multi-niveaux)** | Fond violet, **HUD** (Score/Timer/Tries + Pause) + barre de progression, **plateau de stations circulaires** (`GameWidget`), bannière **Correct!/Wrong route!**, légende Start/Goal/Block/★/Path, boutons **Clear / Validate route**. |
 | **Score** | Result card (points + niveau) + **Score breakdown panel** (barème reconstruit : chemin optimal 4pts, essais 3pts, zones coûteuses 2pts, bonus 1pt). |
 | **Comparison** | Tuiles comparatives : votre route vs optimal, delta, zones coûteuses, bonus, niveau. |
 
-**Charte couleurs du plateau** (`BoardPalette`, alignée sur « Shared components ») :
-start = magenta `#D12E7D`, finish = vert `#22C55E`, obstacle = orange `#FF9F43`,
-cost-zone = cyan `#00A9D6`, bonus = violet `#4F46E5`, planned route line = magenta.
+**🎚️ Niveaux progressifs** (`GridConfig.levels`, difficulté croissante) : le joueur enchaîne
+level1 → level4 ; une route correcte (**+250**) fait passer au niveau suivant (plus grand,
+plus de blocs), une route incomplète donne **−2** et « Wrong route! ». Au dernier niveau →
+soumission backend + écran Score. Chaque niveau recrée un plateau frais (`key: ValueKey(_level)`).
+
+| Niveau | Grille | Blocs | Optimal |
+|--------|--------|-------|---------|
+| level1 | 5×6 | 6 | 9 |
+| level2 | 5×7 | 13 | 10 |
+| level3 | 5×8 | 12 | 9 |
+| level4 | 6×8 | 18 | 12 |
+
+**⏸️ Menu pause** (`_PauseDialog`, calqué sur Move Fast) : stats **Time / Attempts**, options
+audio (Sound effects / Music), **Resume** (magenta) / **View rules** (`_OptimalRulesDialog`) /
+**Exit mission** (rouge). Le timer se met en pause pendant le dialogue.
+
+**Charte couleurs du plateau** (`BoardPalette`) : LAB (départ) = cercle blanc + anneau bleu,
+MTG (arrivée) = vert `#22C55E`, bloc (éclair) = rouge `#E8574C`, étoile = doré `#F5B800`,
+station = cyan clair `#CDEBF5`, ligne de route = magenta `#D12E7D`.
 
 > Le **backend est inchangé** : `OPTIMAL_PATH` + `scoreOptimalPath` existent déjà. Le score breakdown
 > mobile **reconstruit** le barème à partir des `PlanifikMetrics` pour l'afficher (le serveur ne
@@ -264,7 +277,8 @@ Schémas : `GameType`, `MiniGame`, `SessionStatus`, `StartSessionRequest`, `Opti
 | Élément | Statut |
 |---------|--------|
 | Planifik #1 « Chemin Optimal » (Flame + barème + persistance) | 🟢 Fait |
-| Optimal Path — flow complet mobile (intro/briefing/gameplay/score/comparaison, charte Figma) | 🟢 Fait |
+| Optimal Path — flow complet mobile (intro Path Mind, How To Play, gameplay, score, comparaison) | 🟢 Fait |
+| Optimal Path — **4 niveaux progressifs** + plateau de stations + **menu pause** | 🟢 Fait |
 | Move Fast « Je bouge » (écran + barème escalade) | 🟢 Fait |
 | Move Fast — 3 niveaux (Orientation → Mouvement → **règle aléatoire**) | 🟢 Fait |
 | Planifik #2 `TASK_SCHEDULING`, #3 `PREVISION_PUZZLE` | 🔴 Barème `throw` — non implémenté |
@@ -293,7 +307,9 @@ vous touchez à l'un de ces chemins :
 - [ ] Un nouveau jeu/mini-jeu devient jouable → mettre à jour le **tableau de statut** et la **roadmap**.
 - [ ] Mettre à jour la ligne ci-dessous.
 
-**Dernière mise à jour** : 2026-07-04 — **flow complet Optimal Path mobile** (intro/briefing/
+**Dernière mise à jour** : 2026-07-04 — Optimal Path : **plateau de stations circulaires**,
+**4 niveaux progressifs**, **menu pause** (Time/Attempts + audio), écran **Path Mind pixel-perfect**
+(hero violet plein, mini-cartes meta, bouton capsule, ombres douces). Antérieur : flow Optimal Path (intro/briefing/
 gameplay/score/comparaison, charte couleurs Figma, undo/clear/validate, warning banner, score
 breakdown). Antérieur : niveau 3 Move Fast (règle aléatoire) + améliorations UI ;
 génération initiale Planifik « Chemin Optimal » + Move Fast.
