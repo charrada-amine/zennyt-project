@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 /// Centralised runtime configuration.
 ///
@@ -15,7 +16,13 @@ import 'package:flutter/foundation.dart';
 class AppConfig {
   const AppConfig._();
 
-  static const String _envBaseUrl = String.fromEnvironment('API_BASE_URL');
+  static String get _envBaseUrl {
+    final dotEnvVal = dotenv.env['API_BASE_URL'];
+    if (dotEnvVal != null && dotEnvVal.isNotEmpty) {
+      return dotEnvVal;
+    }
+    return const String.fromEnvironment('API_BASE_URL');
+  }
 
   /// Fully-qualified API base URL including the `/api/v1` prefix.
   static String get baseUrl {

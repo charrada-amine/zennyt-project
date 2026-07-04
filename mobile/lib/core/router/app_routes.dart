@@ -10,6 +10,9 @@ class AppRoutes {
   static const String onboarding = '/onboarding';
 
   static const String login = '/login';
+  static const String forgotPasswordMethod = '/login/forgot-password';
+  static const String forgotPasswordEmail = '/login/forgot-password/email';
+  static const String forgotPasswordOtp = '/login/forgot-password/otp';
 
   static const String signup = '/signup';
   static const String otp = '/signup/otp';
@@ -33,13 +36,18 @@ class AppRoutes {
       '/profile-settings/account-center/privacy-policy';
   static const String userProfile = '/user-profile';
   static const String editProfile = '/edit-profile';
+  static const String recruiterEditProfile = '/recruiter-edit-profile';
   static const String sharePost = '/share-post';
   static const String languageSettings = '/language-settings';
+  static const String accessibility = '/accessibility';
 
   // Route names (used with context.goNamed / pushNamed).
   static const String nSplash = 'splash';
   static const String nOnboarding = 'onboarding';
   static const String nLogin = 'login';
+  static const String nForgotPasswordMethod = 'forgotPasswordMethod';
+  static const String nForgotPasswordEmail = 'forgotPasswordEmail';
+  static const String nForgotPasswordOtp = 'forgotPasswordOtp';
   static const String nSignup = 'signup';
   static const String nOtp = 'otp';
   static const String nChangePhone = 'changePhone';
@@ -55,6 +63,8 @@ class AppRoutes {
   static const String nPrivacyPolicy = 'privacyPolicy';
   static const String nUserProfile = 'userProfile';
   static const String nEditProfile = 'editProfile';
+  static const String nRecruiterEditProfile = 'recruiterEditProfile';
   static const String nSharePost = 'sharePost';
   static const String nLanguageSettings = 'languageSettings';
+  static const String nAccessibility = 'accessibility';
 }

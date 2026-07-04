@@ -476,6 +476,42 @@ abstract class AppLocalizations {
   /// **'Terms of Service & Conditions'**
   String get termsOfServiceAndConditions;
 
+  /// No description provided for @hiredCandidates.
+  ///
+  /// In en, this message translates to:
+  /// **'Hired candidates'**
+  String get hiredCandidates;
+
+  /// No description provided for @plansAndPricing.
+  ///
+  /// In en, this message translates to:
+  /// **'Plans & Pricing'**
+  String get plansAndPricing;
+
+  /// No description provided for @contrast.
+  ///
+  /// In en, this message translates to:
+  /// **'Contrast'**
+  String get contrast;
+
+  /// No description provided for @textSize.
+  ///
+  /// In en, this message translates to:
+  /// **'Text Size'**
+  String get textSize;
+
+  /// No description provided for @preview.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview'**
+  String get preview;
+
+  /// No description provided for @accessibilityPreviewText.
+  ///
+  /// In en, this message translates to:
+  /// **'The application text adjusts based on your selected font size.'**
+  String get accessibilityPreviewText;
+
   /// No description provided for @logOut.
   ///
   /// In en, this message translates to:
@@ -601,6 +637,240 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Save changes'**
   String get saveChanges;
+
+  /// No description provided for @forgotPasswordTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot Password'**
+  String get forgotPasswordTitle;
+
+  /// No description provided for @chooseResetMethod.
+  ///
+  /// In en, this message translates to:
+  /// **'How would you like to reset your password?'**
+  String get chooseResetMethod;
+
+  /// No description provided for @resetViaEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset via Email'**
+  String get resetViaEmail;
+
+  /// No description provided for @resetViaEmailDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'We\'ll send a verification code to your email address'**
+  String get resetViaEmailDesc;
+
+  /// No description provided for @resetViaSms.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset via SMS'**
+  String get resetViaSms;
+
+  /// No description provided for @resetViaSmsDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'We\'ll send a verification code to your phone number'**
+  String get resetViaSmsDesc;
+
+  /// No description provided for @comingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Coming soon'**
+  String get comingSoon;
+
+  /// No description provided for @enterYourEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your email address'**
+  String get enterYourEmail;
+
+  /// No description provided for @enterEmailDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'We\'ll send a 6-digit verification code to your email address to reset your password.'**
+  String get enterEmailDesc;
+
+  /// No description provided for @sendCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Send Code'**
+  String get sendCode;
+
+  /// No description provided for @otpVerificationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify Code'**
+  String get otpVerificationTitle;
+
+  /// No description provided for @otpVerificationSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the 6-digit code sent to {email}'**
+  String otpVerificationSubtitle(String email);
+
+  /// No description provided for @resendCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Resend Code'**
+  String get resendCode;
+
+  /// No description provided for @newPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'New password'**
+  String get newPassword;
+
+  /// No description provided for @confirmNewPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm new password'**
+  String get confirmNewPassword;
+
+  /// No description provided for @resetPasswordBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset Password'**
+  String get resetPasswordBtn;
+
+  /// No description provided for @passwordResetSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Your password has been reset successfully!'**
+  String get passwordResetSuccess;
+
+  /// No description provided for @backToLogin.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to Login'**
+  String get backToLogin;
+
+  /// No description provided for @updatePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Update Password'**
+  String get updatePassword;
+
+  /// No description provided for @cancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancel;
+
+  /// No description provided for @passwordChangedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Password updated successfully!'**
+  String get passwordChangedSuccess;
+
+  /// No description provided for @currentPasswordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Current password'**
+  String get currentPasswordHint;
+
+  /// No description provided for @newPasswordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'New password'**
+  String get newPasswordHint;
+
+  /// No description provided for @confirmNewPasswordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm new password'**
+  String get confirmNewPasswordHint;
+
+  /// No description provided for @deleteAccountTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Account'**
+  String get deleteAccountTitle;
+
+  /// No description provided for @deleteAccountMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently removed.'**
+  String get deleteAccountMessage;
+
+  /// No description provided for @yesDeleteAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes, Delete Account'**
+  String get yesDeleteAccount;
+
+  /// No description provided for @accountDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account has been deleted.'**
+  String get accountDeleted;
+
+  /// No description provided for @choosePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose from Gallery'**
+  String get choosePhoto;
+
+  /// No description provided for @takePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Take a Photo'**
+  String get takePhoto;
+
+  /// No description provided for @removePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove Photo'**
+  String get removePhoto;
+
+  /// No description provided for @avatarUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile photo updated!'**
+  String get avatarUpdated;
+
+  /// No description provided for @avatarRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile photo removed.'**
+  String get avatarRemoved;
+
+  /// No description provided for @uploadCv.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload CV'**
+  String get uploadCv;
+
+  /// No description provided for @replaceCv.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace CV'**
+  String get replaceCv;
+
+  /// No description provided for @deleteCv.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete CV'**
+  String get deleteCv;
+
+  /// No description provided for @cvUploaded.
+  ///
+  /// In en, this message translates to:
+  /// **'CV uploaded successfully!'**
+  String get cvUploaded;
+
+  /// No description provided for @cvDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'CV deleted.'**
+  String get cvDeleted;
+
+  /// No description provided for @noCvUploaded.
+  ///
+  /// In en, this message translates to:
+  /// **'No CV uploaded yet'**
+  String get noCvUploaded;
 }
 
 class _AppLocalizationsDelegate

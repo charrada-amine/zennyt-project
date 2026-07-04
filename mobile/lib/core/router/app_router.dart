@@ -4,16 +4,21 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/auth/presentation/auth_controller.dart';
 import '../../features/auth/presentation/login/view/login_screen.dart';
+import '../../features/auth/presentation/forgot_password/view/forgot_password_method_screen.dart';
+import '../../features/auth/presentation/forgot_password/view/forgot_password_email_screen.dart';
+import '../../features/auth/presentation/forgot_password/view/forgot_password_otp_screen.dart';
 import '../../features/auth/presentation/signup/view/change_phone_screen.dart';
 import '../../features/auth/presentation/signup/view/create_account_screen.dart';
 import '../../features/auth/presentation/signup/view/otp_screen.dart';
 import '../../features/onboarding/presentation/view/onboarding_screen.dart';
 import '../../features/profile_setup/presentation/view/field_of_work_screen.dart';
 import '../../features/profile_setup/presentation/view/profile_setup_screen.dart';
+import '../../features/profile_settings/presentation/view/accessibility_screen.dart';
 import '../../features/profile_settings/presentation/view/language_settings_screen.dart';
 import '../../features/profile_settings/presentation/view/profile_settings_screen.dart';
 import '../../features/profile_settings/presentation/view/user_profile_screen.dart';
 import '../../features/profile_settings/presentation/view/edit_profile_screen.dart';
+import '../../features/profile_settings/presentation/view/recruiter_edit_profile_screen.dart';
 import '../../features/profile_settings/presentation/view/share_post_screen.dart';
 import '../../features/profile_settings/presentation/view/account_center_screen.dart';
 import '../../features/profile_settings/presentation/view/personal_informations_screen.dart';
@@ -31,6 +36,9 @@ const _publicRoutes = <String>{
   AppRoutes.splash,
   AppRoutes.onboarding,
   AppRoutes.login,
+  AppRoutes.forgotPasswordMethod,
+  AppRoutes.forgotPasswordEmail,
+  AppRoutes.forgotPasswordOtp,
   AppRoutes.signup,
   AppRoutes.otp,
   AppRoutes.changePhone,
@@ -41,6 +49,9 @@ const _publicRoutes = <String>{
 /// Routes a signed-in user should be bounced away from (back to home).
 const _authOnlyEntryRoutes = <String>{
   AppRoutes.login,
+  AppRoutes.forgotPasswordMethod,
+  AppRoutes.forgotPasswordEmail,
+  AppRoutes.forgotPasswordOtp,
   AppRoutes.signup,
   AppRoutes.otp,
   AppRoutes.changePhone,
@@ -99,6 +110,24 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const LoginScreen(),
       ),
       GoRoute(
+        path: AppRoutes.forgotPasswordMethod,
+        name: AppRoutes.nForgotPasswordMethod,
+        builder: (context, state) => const ForgotPasswordMethodScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.forgotPasswordEmail,
+        name: AppRoutes.nForgotPasswordEmail,
+        builder: (context, state) => const ForgotPasswordEmailScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.forgotPasswordOtp,
+        name: AppRoutes.nForgotPasswordOtp,
+        builder: (context, state) {
+          final email = state.extra as String? ?? '';
+          return ForgotPasswordOtpScreen(email: email);
+        },
+      ),
+      GoRoute(
         path: AppRoutes.signup,
         name: AppRoutes.nSignup,
         builder: (context, state) => const CreateAccountScreen(),
@@ -128,7 +157,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         name: AppRoutes.nHome,
         builder: (context, state) => const MainNavigationScreen(),
       ),
-      // Games (jeux sérieux cognitifs) — feature indépendante
+      // Games (jeux sérieux cognitifs)
       GoRoute(
         path: AppRoutes.games,
         name: AppRoutes.nGames,
@@ -200,6 +229,33 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
+        path: AppRoutes.accessibility,
+        name: AppRoutes.nAccessibility,
+        pageBuilder: (context, state) {
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: const AccessibilityScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  const begin = Offset(1.0, 0.0);
+                  const end = Offset.zero;
+                  const curve = Curves.easeOutCubic;
+
+                  final tween = Tween(
+                    begin: begin,
+                    end: end,
+                  ).chain(CurveTween(curve: curve));
+                  final offsetAnimation = animation.drive(tween);
+
+                  return SlideTransition(
+                    position: offsetAnimation,
+                    child: FadeTransition(opacity: animation, child: child),
+                  );
+                },
+          );
+        },
+      ),
+      GoRoute(
         path: AppRoutes.userProfile,
         name: AppRoutes.nUserProfile,
         builder: (context, state) => const UserProfileScreen(),
@@ -211,6 +267,33 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           return CustomTransitionPage(
             key: state.pageKey,
             child: const EditProfileScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  const begin = Offset(1.0, 0.0);
+                  const end = Offset.zero;
+                  const curve = Curves.easeOutCubic;
+
+                  final tween = Tween(
+                    begin: begin,
+                    end: end,
+                  ).chain(CurveTween(curve: curve));
+                  final offsetAnimation = animation.drive(tween);
+
+                  return SlideTransition(
+                    position: offsetAnimation,
+                    child: FadeTransition(opacity: animation, child: child),
+                  );
+                },
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.recruiterEditProfile,
+        name: AppRoutes.nRecruiterEditProfile,
+        pageBuilder: (context, state) {
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: const RecruiterEditProfileScreen(),
             transitionsBuilder:
                 (context, animation, secondaryAnimation, child) {
                   const begin = Offset(1.0, 0.0);

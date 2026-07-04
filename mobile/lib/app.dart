@@ -17,7 +17,7 @@ class ZennytApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // If you need custom locale switching later, you can still observe it, 
+    // If you need custom locale switching later, you can still observe it,
     // but DevicePreview overrides it in debug.
     final locale = ref.watch(localeProvider);
     final themeMode = ref.watch(themeProvider);

@@ -39,9 +39,7 @@ sealed class ApiException implements Exception {
       case DioExceptionType.badCertificate:
         return const ConnectionException(message: 'Bad server certificate');
       case DioExceptionType.unknown:
-        return ConnectionException(
-          message: error.message ?? 'Network error',
-        );
+        return ConnectionException(message: error.message ?? 'Network error');
       case DioExceptionType.badResponse:
         return _fromResponse(error.response);
     }

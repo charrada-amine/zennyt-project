@@ -8,24 +8,11 @@ import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/theme.dart';
 import '../../../../core/theme/theme_provider.dart';
 import '../../../auth/presentation/auth_controller.dart';
+import 'settings_menu_list.dart'; // To reuse notificationsEnabledProvider and _SettingsMenuItem if possible. Wait, _SettingsMenuItem is private in settings_menu_list.dart. Let me just copy it here or make it public.
 
-/// Provider for notifications toggle state.
-class NotificationsEnabledNotifier extends Notifier<bool> {
-  @override
-  bool build() => true;
-
-  void toggle() => state = !state;
-  void set(bool value) => state = value;
-}
-
-final notificationsEnabledProvider =
-    NotifierProvider<NotificationsEnabledNotifier, bool>(
-      NotificationsEnabledNotifier.new,
-    );
-
-/// The settings menu list matching the design screenshot.
-class SettingsMenuList extends ConsumerWidget {
-  const SettingsMenuList({super.key});
+/// The settings menu list matching the Recruiter design screenshot.
+class RecruiterSettingsMenuList extends ConsumerWidget {
+  const RecruiterSettingsMenuList({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -39,11 +26,11 @@ class SettingsMenuList extends ConsumerWidget {
       children: [
         const SizedBox(height: AppSpacing.md),
 
-        // ── Referral ──
+        // ── Hired candidates ──
         _SettingsMenuItem(
-          iconAsset: 'assets/images/referral.png',
+          icon: Icons.people_outline_rounded, // or use iconAsset if there's a specific image
           boxColor: AppColors.iconPurple,
-          label: l10n.referral,
+          label: l10n.hiredCandidates,
           trailing: _buildChevron(colors),
           onTap: () {},
         ),
@@ -108,16 +95,6 @@ class SettingsMenuList extends ConsumerWidget {
         ),
         _buildDivider(colors),
 
-        // ── Language ──
-        _SettingsMenuItem(
-          icon: Icons.language_rounded,
-          boxColor: AppColors.iconDeepPurple,
-          label: l10n.language,
-          trailing: _buildChevron(colors),
-          onTap: () => context.push(AppRoutes.languageSettings),
-        ),
-        _buildDivider(colors),
-
         // ── Accessibility ──
         _SettingsMenuItem(
           iconAsset: 'assets/images/accessibility.png',
@@ -128,7 +105,17 @@ class SettingsMenuList extends ConsumerWidget {
         ),
         _buildDivider(colors),
 
-        // ── Help Center ──
+        // ── Plans & Pricing ──
+        _SettingsMenuItem(
+          icon: Icons.monetization_on_outlined,
+          boxColor: AppColors.iconPink, // assuming this color exists or use Colors.pink
+          label: l10n.plansAndPricing,
+          trailing: _buildChevron(colors),
+          onTap: () {},
+        ),
+        _buildDivider(colors),
+
+        // ── Help ──
         _SettingsMenuItem(
           iconAsset: 'assets/images/help_center.png',
           boxColor: AppColors.iconMediumBlue,
@@ -138,7 +125,7 @@ class SettingsMenuList extends ConsumerWidget {
         ),
         _buildDivider(colors),
 
-        // ── Terms of Service & Conditions ──
+        // ── Terms of Use & Conditions ──
         _SettingsMenuItem(
           iconAsset: 'assets/images/block.png',
           boxColor: AppColors.iconGrey,
@@ -197,8 +184,6 @@ class SettingsMenuList extends ConsumerWidget {
           TextButton(
             onPressed: () {
               Navigator.of(ctx).pop();
-              // Clears tokens + revokes the refresh token; the router redirect
-              // then sends the user back to login on the session change.
               ref.read(authControllerProvider.notifier).logout();
             },
             child: Text(
@@ -212,7 +197,6 @@ class SettingsMenuList extends ConsumerWidget {
   }
 }
 
-/// A single settings menu row with icon, label, and trailing widget.
 class _SettingsMenuItem extends StatelessWidget {
   const _SettingsMenuItem({
     this.iconAsset,

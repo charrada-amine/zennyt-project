@@ -39,7 +39,9 @@ class AuthController extends AsyncNotifier<AppUser?> {
       }
       return await ref.read(authRepositoryProvider).getMe();
     } on TimeoutException {
-      debugPrint('Auth bootstrap: secure storage timed out; starting signed out.');
+      debugPrint(
+        'Auth bootstrap: secure storage timed out; starting signed out.',
+      );
       return null;
     } on ApiException {
       return null;
@@ -181,5 +183,6 @@ class AuthController extends AsyncNotifier<AppUser?> {
   }
 }
 
-final authControllerProvider =
-    AsyncNotifierProvider<AuthController, AppUser?>(AuthController.new);
+final authControllerProvider = AsyncNotifierProvider<AuthController, AppUser?>(
+  AuthController.new,
+);

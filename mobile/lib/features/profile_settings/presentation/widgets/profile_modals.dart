@@ -26,8 +26,13 @@ class ProfileModalBase extends StatelessWidget {
 
     return Dialog(
       backgroundColor: colors.scaffoldBg,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusLg)),
-      insetPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.xl),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+      ),
+      insetPadding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.xl,
+      ),
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
@@ -53,7 +58,11 @@ class ProfileModalBase extends StatelessWidget {
                       color: colors.border.withValues(alpha: 0.3),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(Icons.close, size: 16, color: colors.textSecondary),
+                    child: Icon(
+                      Icons.close,
+                      size: 16,
+                      color: colors.textSecondary,
+                    ),
                   ),
                 ),
               ],
@@ -119,10 +128,18 @@ class _ExperienceModalState extends ConsumerState<ExperienceModal> {
   @override
   void initState() {
     super.initState();
-    _positionController = TextEditingController(text: widget.jobPosition?.position ?? '');
-    _companyController = TextEditingController(text: widget.jobPosition?.company ?? '');
-    _startYearController = TextEditingController(text: widget.jobPosition?.startYear ?? '');
-    _endYearController = TextEditingController(text: widget.jobPosition?.endYear ?? '');
+    _positionController = TextEditingController(
+      text: widget.jobPosition?.position ?? '',
+    );
+    _companyController = TextEditingController(
+      text: widget.jobPosition?.company ?? '',
+    );
+    _startYearController = TextEditingController(
+      text: widget.jobPosition?.startYear ?? '',
+    );
+    _endYearController = TextEditingController(
+      text: widget.jobPosition?.endYear ?? '',
+    );
   }
 
   @override
@@ -137,10 +154,14 @@ class _ExperienceModalState extends ConsumerState<ExperienceModal> {
   @override
   Widget build(BuildContext context) {
     return ProfileModalBase(
-      title: widget.jobPosition == null ? 'Add experience' : 'Edit the job position',
+      title: widget.jobPosition == null
+          ? 'Add experience'
+          : 'Edit the job position',
       onSave: () {
         final newJob = JobPosition(
-          id: widget.jobPosition?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
+          id:
+              widget.jobPosition?.id ??
+              DateTime.now().millisecondsSinceEpoch.toString(),
           position: _positionController.text,
           company: _companyController.text,
           startYear: _startYearController.text,
@@ -199,9 +220,15 @@ class _CertificationModalState extends ConsumerState<CertificationModal> {
   @override
   void initState() {
     super.initState();
-    _typeController = TextEditingController(text: widget.certification?.title ?? '');
-    _orgController = TextEditingController(text: widget.certification?.organization ?? '');
-    _yearController = TextEditingController(text: widget.certification?.year ?? '');
+    _typeController = TextEditingController(
+      text: widget.certification?.title ?? '',
+    );
+    _orgController = TextEditingController(
+      text: widget.certification?.organization ?? '',
+    );
+    _yearController = TextEditingController(
+      text: widget.certification?.year ?? '',
+    );
   }
 
   @override
@@ -215,10 +242,14 @@ class _CertificationModalState extends ConsumerState<CertificationModal> {
   @override
   Widget build(BuildContext context) {
     return ProfileModalBase(
-      title: widget.certification == null ? 'Add certification' : 'Edit certification',
+      title: widget.certification == null
+          ? 'Add certification'
+          : 'Edit certification',
       onSave: () {
         final newCert = Certification(
-          id: widget.certification?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
+          id:
+              widget.certification?.id ??
+              DateTime.now().millisecondsSinceEpoch.toString(),
           title: _typeController.text,
           organization: _orgController.text,
           year: _yearController.text,
@@ -271,10 +302,18 @@ class _EducationModalState extends ConsumerState<EducationModal> {
   @override
   void initState() {
     super.initState();
-    _degreeController = TextEditingController(text: widget.education?.degree ?? '');
-    _schoolController = TextEditingController(text: widget.education?.university ?? '');
-    _startYearController = TextEditingController(text: widget.education?.startYear ?? '');
-    _endYearController = TextEditingController(text: widget.education?.endYear ?? '');
+    _degreeController = TextEditingController(
+      text: widget.education?.degree ?? '',
+    );
+    _schoolController = TextEditingController(
+      text: widget.education?.university ?? '',
+    );
+    _startYearController = TextEditingController(
+      text: widget.education?.startYear ?? '',
+    );
+    _endYearController = TextEditingController(
+      text: widget.education?.endYear ?? '',
+    );
   }
 
   @override
@@ -292,7 +331,9 @@ class _EducationModalState extends ConsumerState<EducationModal> {
       title: widget.education == null ? 'Add education' : 'Edit education',
       onSave: () {
         final newEdu = Education(
-          id: widget.education?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
+          id:
+              widget.education?.id ??
+              DateTime.now().millisecondsSinceEpoch.toString(),
           degree: _degreeController.text,
           university: _schoolController.text,
           startYear: _startYearController.text,
@@ -338,7 +379,8 @@ class TechnicalSkillsModal extends ConsumerStatefulWidget {
   const TechnicalSkillsModal({super.key});
 
   @override
-  ConsumerState<TechnicalSkillsModal> createState() => _TechnicalSkillsModalState();
+  ConsumerState<TechnicalSkillsModal> createState() =>
+      _TechnicalSkillsModalState();
 }
 
 class _TechnicalSkillsModalState extends ConsumerState<TechnicalSkillsModal> {
@@ -409,11 +451,22 @@ class _TechnicalSkillsModalState extends ConsumerState<TechnicalSkillsModal> {
           runSpacing: 8.0,
           children: _skills.map((skill) {
             return Chip(
-              label: Text(skill, style: AppTypography.bodySmall.copyWith(color: colors.textPrimary)),
+              label: Text(
+                skill,
+                style: AppTypography.bodySmall.copyWith(
+                  color: colors.textPrimary,
+                ),
+              ),
               backgroundColor: colors.border.withValues(alpha: 0.3),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
               side: BorderSide.none,
-              deleteIcon: Icon(Icons.close, size: 14, color: colors.textSecondary),
+              deleteIcon: Icon(
+                Icons.close,
+                size: 14,
+                color: colors.textSecondary,
+              ),
               onDeleted: () => _removeSkill(skill),
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
             );
@@ -428,16 +481,20 @@ class YearsOfExperienceModal extends ConsumerStatefulWidget {
   const YearsOfExperienceModal({super.key});
 
   @override
-  ConsumerState<YearsOfExperienceModal> createState() => _YearsOfExperienceModalState();
+  ConsumerState<YearsOfExperienceModal> createState() =>
+      _YearsOfExperienceModalState();
 }
 
-class _YearsOfExperienceModalState extends ConsumerState<YearsOfExperienceModal> {
+class _YearsOfExperienceModalState
+    extends ConsumerState<YearsOfExperienceModal> {
   late TextEditingController _yearsController;
 
   @override
   void initState() {
     super.initState();
-    _yearsController = TextEditingController(text: ref.read(candidateProfileProvider).yearsOfExperience);
+    _yearsController = TextEditingController(
+      text: ref.read(candidateProfileProvider).yearsOfExperience,
+    );
   }
 
   @override
@@ -451,7 +508,9 @@ class _YearsOfExperienceModalState extends ConsumerState<YearsOfExperienceModal>
     return ProfileModalBase(
       title: 'Professional background',
       onSave: () {
-        ref.read(candidateProfileProvider.notifier).updateYearsOfExperience(_yearsController.text);
+        ref
+            .read(candidateProfileProvider.notifier)
+            .updateYearsOfExperience(_yearsController.text);
       },
       children: [
         AppTextField(

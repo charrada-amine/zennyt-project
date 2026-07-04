@@ -85,7 +85,8 @@ class AppStrings {
   static const String companyRegistrationNumber =
       'Company Registration Number (EIN)';
   static const String uploadCompanyLogo = 'Upload your company logo';
-  static const String fillRequiredFields = 'Please fill in all required fields.';
+  static const String fillRequiredFields =
+      'Please fill in all required fields.';
   static const String takePhoto = 'Take a photo';
   static const String chooseFromGallery = 'Choose from gallery';
   static const String shuffleAvatar = 'Shuffle avatar';

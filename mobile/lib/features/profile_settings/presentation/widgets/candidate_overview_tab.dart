@@ -24,7 +24,11 @@ class CandidateOverviewTab extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.cloud_off_rounded, color: colors.textSecondary, size: 40),
+              Icon(
+                Icons.cloud_off_rounded,
+                color: colors.textSecondary,
+                size: 40,
+              ),
               const SizedBox(height: AppSpacing.md),
               Text(
                 state.errorMessage!,
@@ -46,7 +50,10 @@ class CandidateOverviewTab extends ConsumerWidget {
     }
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.lg),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.lg,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -54,62 +61,92 @@ class CandidateOverviewTab extends ConsumerWidget {
           const SizedBox(height: AppSpacing.sm),
           _buildLookingForContent(colors, state.lookingFor),
           const SizedBox(height: AppSpacing.xl),
-          
-          _buildSectionHeader(context, colors, 'Skills', onAdd: () {
-            showDialog(
-              context: context,
-              builder: (context) => const TechnicalSkillsModal(),
-            );
-          }),
+
+          _buildSectionHeader(
+            context,
+            colors,
+            'Skills',
+            onAdd: () {
+              showDialog(
+                context: context,
+                builder: (context) => const TechnicalSkillsModal(),
+              );
+            },
+          ),
           const SizedBox(height: AppSpacing.sm),
           _buildSkillsContent(context, colors, state.skills),
           const SizedBox(height: AppSpacing.xl),
 
-          _buildSectionHeader(context, colors, 'Professional background', onEdit: () {
-            showDialog(
-              context: context,
-              builder: (context) => const YearsOfExperienceModal(),
-            );
-          }),
+          _buildSectionHeader(
+            context,
+            colors,
+            'Professional background',
+            onEdit: () {
+              showDialog(
+                context: context,
+                builder: (context) => const YearsOfExperienceModal(),
+              );
+            },
+          ),
           _buildYearsOfExperience(colors, state.yearsOfExperience),
           const SizedBox(height: AppSpacing.lg),
-          
-          _buildSectionHeader(context, colors, 'Job Positions', onAdd: () {
-            showDialog(
-              context: context,
-              builder: (context) => const ExperienceModal(),
-            );
-          }),
+
+          _buildSectionHeader(
+            context,
+            colors,
+            'Job Positions',
+            onAdd: () {
+              showDialog(
+                context: context,
+                builder: (context) => const ExperienceModal(),
+              );
+            },
+          ),
           const SizedBox(height: AppSpacing.sm),
           _buildJobPositions(context, ref, colors, state.jobPositions),
           const SizedBox(height: AppSpacing.lg),
 
-          _buildSectionHeader(context, colors, 'Certifications', onAdd: () {
-            showDialog(
-              context: context,
-              builder: (context) => const CertificationModal(),
-            );
-          }),
+          _buildSectionHeader(
+            context,
+            colors,
+            'Certifications',
+            onAdd: () {
+              showDialog(
+                context: context,
+                builder: (context) => const CertificationModal(),
+              );
+            },
+          ),
           const SizedBox(height: AppSpacing.sm),
           _buildCertifications(context, ref, colors, state.certifications),
           const SizedBox(height: AppSpacing.lg),
 
-          _buildSectionHeader(context, colors, 'Education', onAdd: () {
-            showDialog(
-              context: context,
-              builder: (context) => const EducationModal(),
-            );
-          }),
+          _buildSectionHeader(
+            context,
+            colors,
+            'Education',
+            onAdd: () {
+              showDialog(
+                context: context,
+                builder: (context) => const EducationModal(),
+              );
+            },
+          ),
           const SizedBox(height: AppSpacing.sm),
           _buildEducation(context, ref, colors, state.education),
           const SizedBox(height: AppSpacing.xl),
 
-          _buildSectionHeader(context, colors, 'About me', onEdit: () {
-            showDialog(
-              context: context,
-              builder: (context) => const AboutMeModal(),
-            );
-          }),
+          _buildSectionHeader(
+            context,
+            colors,
+            'About me',
+            onEdit: () {
+              showDialog(
+                context: context,
+                builder: (context) => const AboutMeModal(),
+              );
+            },
+          ),
           const SizedBox(height: AppSpacing.sm),
           _buildAboutMeContent(context, colors, state.aboutMe),
           const SizedBox(height: AppSpacing.xxl),
@@ -118,8 +155,13 @@ class CandidateOverviewTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildSectionHeader(BuildContext context, AppColorScheme colors, String title,
-      {VoidCallback? onEdit, VoidCallback? onAdd}) {
+  Widget _buildSectionHeader(
+    BuildContext context,
+    AppColorScheme colors,
+    String title, {
+    VoidCallback? onEdit,
+    VoidCallback? onAdd,
+  }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -133,7 +175,11 @@ class CandidateOverviewTab extends ConsumerWidget {
         if (onEdit != null)
           IconButton(
             onPressed: onEdit,
-            icon: Icon(Icons.edit_outlined, color: colors.textSecondary, size: 20),
+            icon: Icon(
+              Icons.edit_outlined,
+              color: colors.textSecondary,
+              size: 20,
+            ),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
           ),
@@ -153,15 +199,35 @@ class CandidateOverviewTab extends ConsumerWidget {
       children: [
         Row(
           children: [
-            Expanded(child: _buildInfoPair(colors, lookingFor.jobPosition, 'Job position')),
-            Expanded(child: _buildInfoPair(colors, lookingFor.workplaceType, 'Type of workplace')),
+            Expanded(
+              child: _buildInfoPair(
+                colors,
+                lookingFor.jobPosition,
+                'Job position',
+              ),
+            ),
+            Expanded(
+              child: _buildInfoPair(
+                colors,
+                lookingFor.workplaceType,
+                'Type of workplace',
+              ),
+            ),
           ],
         ),
         const SizedBox(height: AppSpacing.md),
         Row(
           children: [
-            Expanded(child: _buildInfoPair(colors, lookingFor.jobType, 'Type of job')),
-            Expanded(child: _buildInfoPair(colors, lookingFor.targetLocation, 'Target job location')),
+            Expanded(
+              child: _buildInfoPair(colors, lookingFor.jobType, 'Type of job'),
+            ),
+            Expanded(
+              child: _buildInfoPair(
+                colors,
+                lookingFor.targetLocation,
+                'Target job location',
+              ),
+            ),
           ],
         ),
       ],
@@ -192,7 +258,11 @@ class CandidateOverviewTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildSkillsContent(BuildContext context, AppColorScheme colors, List<String> skills) {
+  Widget _buildSkillsContent(
+    BuildContext context,
+    AppColorScheme colors,
+    List<String> skills,
+  ) {
     if (skills.isEmpty) {
       return _buildEmptyState(
         colors,
@@ -250,7 +320,12 @@ class CandidateOverviewTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildJobPositions(BuildContext context, WidgetRef ref, AppColorScheme colors, List<JobPosition> jobs) {
+  Widget _buildJobPositions(
+    BuildContext context,
+    WidgetRef ref,
+    AppColorScheme colors,
+    List<JobPosition> jobs,
+  ) {
     if (jobs.isEmpty) {
       return _buildEmptyState(
         colors,
@@ -264,59 +339,76 @@ class CandidateOverviewTab extends ConsumerWidget {
       curve: Curves.easeInOut,
       child: Column(
         children: jobs.map((job) {
-        return Padding(
-          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-          child: Container(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            decoration: BoxDecoration(
-              color: colors.inputFill, // Using inputFill for a subtle pro look without borders
-              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        job.position,
-                        style: AppTypography.bodyMedium.copyWith(
-                          color: colors.textPrimary,
-                          fontWeight: FontWeight.w500,
+          return Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+            child: Container(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              decoration: BoxDecoration(
+                color: colors
+                    .inputFill, // Using inputFill for a subtle pro look without borders
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          job.position,
+                          style: AppTypography.bodyMedium.copyWith(
+                            color: colors.textPrimary,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        job.company,
-                        style: AppTypography.bodySmall.copyWith(color: colors.textSecondary),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${job.startYear} - ${job.endYear.isEmpty ? "Présent" : job.endYear}',
-                        style: AppTypography.bodySmall.copyWith(color: colors.textSecondary),
-                      ),
-                    ],
+                        const SizedBox(height: 2),
+                        Text(
+                          job.company,
+                          style: AppTypography.bodySmall.copyWith(
+                            color: colors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${job.startYear} - ${job.endYear.isEmpty ? "Présent" : job.endYear}',
+                          style: AppTypography.bodySmall.copyWith(
+                            color: colors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                _buildCardActions(context, colors, onEdit: () {
-                  showDialog(
-                    context: context,
-                    builder: (context) => ExperienceModal(jobPosition: job),
-                  );
-                }, onDelete: () {
-                  ref.read(candidateProfileProvider.notifier).removeJobPosition(job.id);
-                }),
-              ],
+                  _buildCardActions(
+                    context,
+                    colors,
+                    onEdit: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => ExperienceModal(jobPosition: job),
+                      );
+                    },
+                    onDelete: () {
+                      ref
+                          .read(candidateProfileProvider.notifier)
+                          .removeJobPosition(job.id);
+                    },
+                  ),
+                ],
+              ),
             ),
-          ),
-        );
-      }).toList(),
+          );
+        }).toList(),
       ),
     );
   }
 
-  Widget _buildCertifications(BuildContext context, WidgetRef ref, AppColorScheme colors, List<Certification> certs) {
+  Widget _buildCertifications(
+    BuildContext context,
+    WidgetRef ref,
+    AppColorScheme colors,
+    List<Certification> certs,
+  ) {
     if (certs.isEmpty) {
       return _buildEmptyState(
         colors,
@@ -330,59 +422,76 @@ class CandidateOverviewTab extends ConsumerWidget {
       curve: Curves.easeInOut,
       child: Column(
         children: certs.map((cert) {
-        return Padding(
-          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-          child: Container(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            decoration: BoxDecoration(
-              color: colors.inputFill,
-              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        cert.title,
-                        style: AppTypography.bodyMedium.copyWith(
-                          color: colors.textPrimary,
-                          fontWeight: FontWeight.w500,
+          return Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+            child: Container(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              decoration: BoxDecoration(
+                color: colors.inputFill,
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          cert.title,
+                          style: AppTypography.bodyMedium.copyWith(
+                            color: colors.textPrimary,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        cert.organization,
-                        style: AppTypography.bodySmall.copyWith(color: colors.textSecondary),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        cert.year,
-                        style: AppTypography.bodySmall.copyWith(color: colors.textSecondary),
-                      ),
-                    ],
+                        const SizedBox(height: 2),
+                        Text(
+                          cert.organization,
+                          style: AppTypography.bodySmall.copyWith(
+                            color: colors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          cert.year,
+                          style: AppTypography.bodySmall.copyWith(
+                            color: colors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                _buildCardActions(context, colors, onEdit: () {
-                  showDialog(
-                    context: context,
-                    builder: (context) => CertificationModal(certification: cert),
-                  );
-                }, onDelete: () {
-                  ref.read(candidateProfileProvider.notifier).removeCertification(cert.id);
-                }),
-              ],
+                  _buildCardActions(
+                    context,
+                    colors,
+                    onEdit: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) =>
+                            CertificationModal(certification: cert),
+                      );
+                    },
+                    onDelete: () {
+                      ref
+                          .read(candidateProfileProvider.notifier)
+                          .removeCertification(cert.id);
+                    },
+                  ),
+                ],
+              ),
             ),
-          ),
-        );
-      }).toList(),
+          );
+        }).toList(),
       ),
     );
   }
 
-  Widget _buildEducation(BuildContext context, WidgetRef ref, AppColorScheme colors, List<Education> edus) {
+  Widget _buildEducation(
+    BuildContext context,
+    WidgetRef ref,
+    AppColorScheme colors,
+    List<Education> edus,
+  ) {
     if (edus.isEmpty) {
       return _buildEmptyState(
         colors,
@@ -396,72 +505,96 @@ class CandidateOverviewTab extends ConsumerWidget {
       curve: Curves.easeInOut,
       child: Column(
         children: edus.map((edu) {
-        return Padding(
-          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-          child: Container(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            decoration: BoxDecoration(
-              color: colors.inputFill,
-              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        edu.degree,
-                        style: AppTypography.bodyMedium.copyWith(
-                          color: colors.textPrimary,
-                          fontWeight: FontWeight.w500,
+          return Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+            child: Container(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              decoration: BoxDecoration(
+                color: colors.inputFill,
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          edu.degree,
+                          style: AppTypography.bodyMedium.copyWith(
+                            color: colors.textPrimary,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        edu.university,
-                        style: AppTypography.bodySmall.copyWith(color: colors.textSecondary),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${edu.startYear} - ${edu.endYear.isEmpty ? "Présent" : edu.endYear}',
-                        style: AppTypography.bodySmall.copyWith(color: colors.textSecondary),
-                      ),
-                    ],
+                        const SizedBox(height: 2),
+                        Text(
+                          edu.university,
+                          style: AppTypography.bodySmall.copyWith(
+                            color: colors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${edu.startYear} - ${edu.endYear.isEmpty ? "Présent" : edu.endYear}',
+                          style: AppTypography.bodySmall.copyWith(
+                            color: colors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                _buildCardActions(context, colors, onEdit: () {
-                  showDialog(
-                    context: context,
-                    builder: (context) => EducationModal(education: edu),
-                  );
-                }, onDelete: () {
-                  ref.read(candidateProfileProvider.notifier).removeEducation(edu.id);
-                }),
-              ],
+                  _buildCardActions(
+                    context,
+                    colors,
+                    onEdit: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => EducationModal(education: edu),
+                      );
+                    },
+                    onDelete: () {
+                      ref
+                          .read(candidateProfileProvider.notifier)
+                          .removeEducation(edu.id);
+                    },
+                  ),
+                ],
+              ),
             ),
-          ),
-        );
-      }).toList(),
+          );
+        }).toList(),
       ),
     );
   }
 
-  Widget _buildCardActions(BuildContext context, AppColorScheme colors, {required VoidCallback onEdit, required VoidCallback onDelete}) {
+  Widget _buildCardActions(
+    BuildContext context,
+    AppColorScheme colors, {
+    required VoidCallback onEdit,
+    required VoidCallback onDelete,
+  }) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         IconButton(
           onPressed: onEdit,
-          icon: Icon(Icons.edit_outlined, color: colors.textSecondary, size: 18),
+          icon: Icon(
+            Icons.edit_outlined,
+            color: colors.textSecondary,
+            size: 18,
+          ),
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(),
         ),
         const SizedBox(width: 8),
         IconButton(
           onPressed: onDelete,
-          icon: Icon(Icons.delete_outline, color: colors.textSecondary, size: 18),
+          icon: Icon(
+            Icons.delete_outline,
+            color: colors.textSecondary,
+            size: 18,
+          ),
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(),
         ),
@@ -469,7 +602,11 @@ class CandidateOverviewTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildAboutMeContent(BuildContext context, AppColorScheme colors, String aboutMe) {
+  Widget _buildAboutMeContent(
+    BuildContext context,
+    AppColorScheme colors,
+    String aboutMe,
+  ) {
     if (aboutMe.isEmpty) {
       return _buildEmptyState(
         colors,
@@ -503,7 +640,10 @@ class CandidateOverviewTab extends ConsumerWidget {
   }) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl, horizontal: AppSpacing.lg),
+      padding: const EdgeInsets.symmetric(
+        vertical: AppSpacing.xl,
+        horizontal: AppSpacing.lg,
+      ),
       decoration: BoxDecoration(
         color: colors.primary.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(AppSpacing.radiusMd),

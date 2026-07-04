@@ -119,7 +119,9 @@ class ProfileRepositoryImpl implements ProfileRepository {
   // ── Certifications ──────────────────────────────────────────────────────
 
   @override
-  Future<ProfileCertification> addCertification(CertificationInput input) async {
+  Future<ProfileCertification> addCertification(
+    CertificationInput input,
+  ) async {
     try {
       final res = await _dio.post<Map<String, dynamic>>(
         '/profiles/me/certifications',
@@ -133,7 +135,9 @@ class ProfileRepositoryImpl implements ProfileRepository {
 
   @override
   Future<ProfileCertification> updateCertification(
-      String id, CertificationInput input) async {
+    String id,
+    CertificationInput input,
+  ) async {
     try {
       final res = await _dio.put<Map<String, dynamic>>(
         '/profiles/me/certifications/$id',
@@ -170,7 +174,10 @@ class ProfileRepositoryImpl implements ProfileRepository {
   }
 
   @override
-  Future<ProfileEducation> updateEducation(String id, EducationInput input) async {
+  Future<ProfileEducation> updateEducation(
+    String id,
+    EducationInput input,
+  ) async {
     try {
       final res = await _dio.put<Map<String, dynamic>>(
         '/profiles/me/education/$id',

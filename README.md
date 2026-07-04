@@ -52,3 +52,6 @@ règles anti-conflits et processus de déploiement de fin de sprint.
 | DEV | push `develop` | `zennyt-dev` (auto) |
 | STAGING | `release/*` | `zennyt-staging` + tests E2E |
 | PROD | `main` (tag) | `zennyt-prod` via slot swap + approbation |
+
+
+$ flutter run --dart-define=API_BASE_URL=http://192.168.100.22:8080/api/v1

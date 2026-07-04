@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/theme.dart';
+import 'zennyt_loader.dart';
 
 /// Primary call-to-action button matching the design's buttons.
 ///
@@ -33,18 +34,11 @@ class PrimaryButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
 
-    final spinnerColor = outlined
-        ? (foregroundColor ?? colors.primary)
-        : Colors.white;
-
     final child = loading
-        ? SizedBox(
+        ? const SizedBox(
             height: 22,
             width: 22,
-            child: CircularProgressIndicator(
-              strokeWidth: 2.4,
-              valueColor: AlwaysStoppedAnimation(spinnerColor),
-            ),
+            child: ZennytLoader(size: 22),
           )
         : Row(
             mainAxisSize: MainAxisSize.min,

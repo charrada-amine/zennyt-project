@@ -21,7 +21,12 @@ class CandidatePortfolioTab extends ConsumerWidget {
           padding: EdgeInsets.all(Responsive.horizontalPadding(context)),
           sliver: state.portfolioItems.isEmpty
               ? _buildEmptyState(context, colors)
-              : _buildPopulatedState(context, colors, state.portfolioItems, ref),
+              : _buildPopulatedState(
+                  context,
+                  colors,
+                  state.portfolioItems,
+                  ref,
+                ),
         ),
       ],
     );
@@ -73,42 +78,46 @@ class CandidatePortfolioTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildPopulatedState(BuildContext context, AppColorScheme colors, List<PortfolioItem> items, WidgetRef ref) {
+  Widget _buildPopulatedState(
+    BuildContext context,
+    AppColorScheme colors,
+    List<PortfolioItem> items,
+    WidgetRef ref,
+  ) {
     return SliverList(
-      delegate: SliverChildBuilderDelegate(
-        (context, index) {
-          if (index == 0) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-              child: Row(
-                children: [
-                  Text(
-                    'Portfolio',
-                    style: AppTypography.titleMedium.copyWith(
-                      color: colors.textPrimary,
-                      fontWeight: FontWeight.w700,
-                    ),
+      delegate: SliverChildBuilderDelegate((context, index) {
+        if (index == 0) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+            child: Row(
+              children: [
+                Text(
+                  'Portfolio',
+                  style: AppTypography.titleMedium.copyWith(
+                    color: colors.textPrimary,
+                    fontWeight: FontWeight.w700,
                   ),
-                  const Spacer(),
-                  IconButton(
-                    onPressed: () => context.push(AppRoutes.sharePost),
-                    icon: Icon(Icons.add, color: colors.textSecondary),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-                ],
-              ),
-            );
-          }
-          final itemIndex = index - 1;
-          return _PortfolioCard(
-            item: items[itemIndex],
-            colors: colors,
-            onDelete: () => ref.read(candidateProfileProvider.notifier).removePortfolioItem(items[itemIndex].id),
+                ),
+                const Spacer(),
+                IconButton(
+                  onPressed: () => context.push(AppRoutes.sharePost),
+                  icon: Icon(Icons.add, color: colors.textSecondary),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              ],
+            ),
           );
-        },
-        childCount: items.length + 1,
-      ),
+        }
+        final itemIndex = index - 1;
+        return _PortfolioCard(
+          item: items[itemIndex],
+          colors: colors,
+          onDelete: () => ref
+              .read(candidateProfileProvider.notifier)
+              .removePortfolioItem(items[itemIndex].id),
+        );
+      }, childCount: items.length + 1),
     );
   }
 }
@@ -135,10 +144,7 @@ class _PortfolioCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
             child: AspectRatio(
               aspectRatio: 16 / 9,
-              child: Image.asset(
-                item.imagePath,
-                fit: BoxFit.cover,
-              ),
+              child: Image.asset(item.imagePath, fit: BoxFit.cover),
             ),
           ),
           const SizedBox(height: AppSpacing.md),
@@ -155,7 +161,9 @@ class _PortfolioCard extends StatelessWidget {
               ),
               PopupMenuButton<String>(
                 icon: Icon(Icons.more_vert, color: colors.textSecondary),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 color: colors.scaffoldBg,
                 onSelected: (val) {
                   if (val == 'delete') {
@@ -167,9 +175,18 @@ class _PortfolioCard extends StatelessWidget {
                     value: 'delete',
                     child: Row(
                       children: [
-                        Icon(Icons.delete_outline, color: colors.error, size: 20),
+                        Icon(
+                          Icons.delete_outline,
+                          color: colors.error,
+                          size: 20,
+                        ),
                         const SizedBox(width: AppSpacing.sm),
-                        Text('Delete', style: AppTypography.bodyMedium.copyWith(color: colors.error)),
+                        Text(
+                          'Delete',
+                          style: AppTypography.bodyMedium.copyWith(
+                            color: colors.error,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -177,9 +194,18 @@ class _PortfolioCard extends StatelessWidget {
                     value: 'share',
                     child: Row(
                       children: [
-                        Icon(Icons.share_outlined, color: colors.primary, size: 20),
+                        Icon(
+                          Icons.share_outlined,
+                          color: colors.primary,
+                          size: 20,
+                        ),
                         const SizedBox(width: AppSpacing.sm),
-                        Text('Share', style: AppTypography.bodyMedium.copyWith(color: colors.primary)),
+                        Text(
+                          'Share',
+                          style: AppTypography.bodyMedium.copyWith(
+                            color: colors.primary,
+                          ),
+                        ),
                       ],
                     ),
                   ),

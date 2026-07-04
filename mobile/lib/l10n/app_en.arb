@@ -77,6 +77,12 @@
   "accessibility": "Accessibility",
   "helpCenter": "Help Center",
   "termsOfServiceAndConditions": "Terms of Service & Conditions",
+  "hiredCandidates": "Hired candidates",
+  "plansAndPricing": "Plans & Pricing",
+  "contrast": "Contrast",
+  "textSize": "Text Size",
+  "preview": "Preview",
+  "accessibilityPreviewText": "The application text adjusts based on your selected font size.",
   "logOut": "Log out",
   "profileUserName": "Millie Brown",
 
@@ -103,5 +109,54 @@
   "deleteAccount": "Delete Account",
   "currentLocation": "Current location",
   "displayCurrentCity": "Display your current city on your profile",
-  "saveChanges": "Save changes"
+  "saveChanges": "Save changes",
+
+  "forgotPasswordTitle": "Forgot Password",
+  "chooseResetMethod": "How would you like to reset your password?",
+  "resetViaEmail": "Reset via Email",
+  "resetViaEmailDesc": "We'll send a verification code to your email address",
+  "resetViaSms": "Reset via SMS",
+  "resetViaSmsDesc": "We'll send a verification code to your phone number",
+  "comingSoon": "Coming soon",
+  "enterYourEmail": "Enter your email address",
+  "enterEmailDesc": "We'll send a 6-digit verification code to your email address to reset your password.",
+  "sendCode": "Send Code",
+  "otpVerificationTitle": "Verify Code",
+  "otpVerificationSubtitle": "Enter the 6-digit code sent to {email}",
+  "@otpVerificationSubtitle": {
+    "placeholders": {
+      "email": { "type": "String", "example": "user@email.com" }
+    }
+  },
+  "resendCode": "Resend Code",
+  "newPassword": "New password",
+  "confirmNewPassword": "Confirm new password",
+  "resetPasswordBtn": "Reset Password",
+  "passwordResetSuccess": "Your password has been reset successfully!",
+  "backToLogin": "Back to Login",
+
+  "updatePassword": "Update Password",
+  "cancel": "Cancel",
+  "passwordChangedSuccess": "Password updated successfully!",
+  "currentPasswordHint": "Current password",
+  "newPasswordHint": "New password",
+  "confirmNewPasswordHint": "Confirm new password",
+
+  "deleteAccountTitle": "Delete Account",
+  "deleteAccountMessage": "Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently removed.",
+  "yesDeleteAccount": "Yes, Delete Account",
+  "accountDeleted": "Your account has been deleted.",
+
+  "choosePhoto": "Choose from Gallery",
+  "takePhoto": "Take a Photo",
+  "removePhoto": "Remove Photo",
+  "avatarUpdated": "Profile photo updated!",
+  "avatarRemoved": "Profile photo removed.",
+
+  "uploadCv": "Upload CV",
+  "replaceCv": "Replace CV",
+  "deleteCv": "Delete CV",
+  "cvUploaded": "CV uploaded successfully!",
+  "cvDeleted": "CV deleted.",
+  "noCvUploaded": "No CV uploaded yet"
 }
