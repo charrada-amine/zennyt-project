@@ -4,6 +4,7 @@ import com.zennyt.games.domain.model.MiniGame;
 import com.zennyt.games.domain.vo.GameMetrics;
 import com.zennyt.games.domain.vo.MoveFastMetrics;
 import com.zennyt.games.domain.vo.PlanifikMetrics;
+import com.zennyt.games.domain.vo.PrevisionPuzzleMetrics;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -29,7 +30,13 @@ public record SubmitResultRequest(
         Boolean costlyZonesAvoided,
         @Min(0) Integer secondaryObjectives,
         @Size(min = 1) List<Boolean> correctResponses,
-        List<@Min(0) Integer> reactionTimesMs
+        List<@Min(0) Integer> reactionTimesMs,
+        Boolean targetCompleted,
+        @Min(0) Integer sequenceErrors,
+        @Min(0) Integer unnecessaryMoves,
+        @Min(0) Integer retries,
+        @Min(0) Integer plannedMoves,
+        @Min(1) Integer optimalMoves
     ) {}
 
     public GameMetrics toMetrics() {
@@ -42,7 +49,14 @@ public record SubmitResultRequest(
                 required(metrics.secondaryObjectives(), "secondaryObjectives"));
             case MOVE_FAST_CORE -> new MoveFastMetrics(
                 metrics.correctResponses(), metrics.reactionTimesMs());
-            case TASK_SCHEDULING, PREVISION_PUZZLE -> throw new IllegalArgumentException(
+            case PREVISION_PUZZLE -> new PrevisionPuzzleMetrics(
+                required(metrics.targetCompleted(), "targetCompleted"),
+                required(metrics.sequenceErrors(), "sequenceErrors"),
+                required(metrics.unnecessaryMoves(), "unnecessaryMoves"),
+                required(metrics.retries(), "retries"),
+                required(metrics.plannedMoves(), "plannedMoves"),
+                required(metrics.optimalMoves(), "optimalMoves"));
+            case TASK_SCHEDULING -> throw new IllegalArgumentException(
                 "Métriques non encore implémentées pour " + miniGame);
         };
     }

@@ -119,10 +119,42 @@ components:
           items: { type: integer, minimum: 0 }
           description: "Temps de réaction par réponse, alignés avec correctResponses."
 
+    PrevisionPuzzleMetrics:
+      type: object
+      description: >
+        Métriques objectives de « Predictive Puzzle ». Le joueur planifie toute
+        la séquence avant exécution ; le serveur applique les pénalités.
+      required: [targetCompleted, sequenceErrors, unnecessaryMoves, retries, plannedMoves, optimalMoves]
+      properties:
+        targetCompleted:
+          type: boolean
+          description: "true si la pile finale correspond à la cible."
+        sequenceErrors:
+          type: integer
+          minimum: 0
+          description: "Nombre d'erreurs de séquence / coups illégaux."
+        unnecessaryMoves:
+          type: integer
+          minimum: 0
+          description: "Surplus de coups par rapport à l'optimal."
+        retries:
+          type: integer
+          minimum: 0
+          description: "Nombre de réinitialisations de plan."
+        plannedMoves:
+          type: integer
+          minimum: 0
+          description: "Nombre total de coups planifiés."
+        optimalMoves:
+          type: integer
+          minimum: 1
+          description: "Nombre optimal de coups pour la configuration."
+
     GameMetrics:
       oneOf:
         - $ref: '#/components/schemas/OptimalPathMetrics'
         - $ref: '#/components/schemas/MoveFastMetrics'
+        - $ref: '#/components/schemas/PrevisionPuzzleMetrics'
 
     SubmitResultRequest:
       type: object

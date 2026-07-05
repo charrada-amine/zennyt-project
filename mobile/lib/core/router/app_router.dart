@@ -26,6 +26,7 @@ import '../../features/profile_settings/presentation/view/privacy_policy_screen.
 import '../../features/navigation/presentation/view/main_navigation_screen.dart';
 import '../../features/games/presentation/view/move_fast_screen.dart';
 import '../../features/games/presentation/view/planifik_screen.dart';
+import '../../features/games/presentation/view/predictive_puzzle_screen.dart';
 import '../../features/splash/presentation/view/splash_screen.dart';
 import 'app_routes.dart';
 
@@ -171,6 +172,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.gamesMoveFast,
         name: AppRoutes.nGamesMoveFast,
         builder: (context, state) => const MoveFastScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.gamesPredictivePuzzle,
+        name: AppRoutes.nGamesPredictivePuzzle,
+        builder: (context, state) => const PredictivePuzzleScreen(),
       ),
       GoRoute(
         path: AppRoutes.profileSettings,

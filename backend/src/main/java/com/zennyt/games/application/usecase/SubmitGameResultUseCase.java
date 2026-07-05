@@ -7,6 +7,7 @@ import com.zennyt.games.domain.repository.GameSessionRepository;
 import com.zennyt.games.domain.service.PlanifikScoringService;
 import com.zennyt.games.domain.vo.MoveFastMetrics;
 import com.zennyt.games.domain.vo.PlanifikMetrics;
+import com.zennyt.games.domain.vo.PrevisionPuzzleMetrics;
 import com.zennyt.games.domain.vo.Score;
 import com.zennyt.shared.application.exception.NotFoundException;
 import org.springframework.context.ApplicationEventPublisher;
@@ -61,7 +62,8 @@ public class SubmitGameResultUseCase {
         return switch (miniGame) {
             case OPTIMAL_PATH -> scoring.scoreOptimalPath(expectMetrics(command, PlanifikMetrics.class));
             case MOVE_FAST_CORE -> scoring.scoreMoveFast(expectMetrics(command, MoveFastMetrics.class));
-            case TASK_SCHEDULING, PREVISION_PUZZLE -> throw new IllegalArgumentException(
+            case PREVISION_PUZZLE -> scoring.scorePrevisionPuzzle(expectMetrics(command, PrevisionPuzzleMetrics.class));
+            case TASK_SCHEDULING -> throw new IllegalArgumentException(
                 "Barème non encore implémenté pour " + miniGame);
         };
     }

@@ -3,6 +3,7 @@ package com.zennyt.games.domain.service;
 import com.zennyt.games.domain.vo.PlanifikMetrics;
 import com.zennyt.games.domain.vo.GameType;
 import com.zennyt.games.domain.vo.MoveFastMetrics;
+import com.zennyt.games.domain.vo.PrevisionPuzzleMetrics;
 import com.zennyt.games.domain.vo.Score;
 
 /**
@@ -68,6 +69,24 @@ public class PlanifikScoringService {
         int maxPoints = replayMoveFastScore(allCorrect(m.responseCount()));
 
         return new Score(points, maxPoints, interpretMoveFast(points * 100.0 / maxPoints));
+    }
+
+    /**
+     * Barème « Predictive Puzzle » (sur 10) :
+     * <ul>
+     *   <li>Plan complété : base 10 ; plan non complété : base 4</li>
+     *   <li>Erreur de séquence : -2 points</li>
+     *   <li>Mouvement inutile : -1 point</li>
+     *   <li>Retry : -1 point</li>
+     * </ul>
+     */
+    public Score scorePrevisionPuzzle(PrevisionPuzzleMetrics m) {
+        int points = m.targetCompleted() ? 10 : 4;
+        points -= m.sequenceErrors() * 2;
+        points -= m.unnecessaryMoves();
+        points -= m.retries();
+        points = Math.max(0, Math.min(10, points));
+        return new Score(points, 10, interpretMiniGame(points));
     }
 
     private int replayMoveFastScore(Iterable<Boolean> responses) {

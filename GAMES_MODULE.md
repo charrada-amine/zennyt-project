@@ -10,7 +10,7 @@ déterministe est calculé côté serveur** et publié via un Domain Event.
 
 | Jeu | Type (`GameType`) | Fiche | Statut | Rendu |
 |-----|-------------------|-------|--------|-------|
-| **Planifik — « Je planifie »** | `PLANIFIK` | Planification | 🟢 mini-jeu #1 jouable | Grille tactile **Flame** |
+| **Planifik — « Je planifie »** | `PLANIFIK` | Planification | 🟢 mini-jeux #1 et #3 jouables | Flame + écrans Flutter custom |
 | **Move Fast — « Je bouge »** | `MOVE_FAST` | Flexibilité cognitive | 🟢 jouable | Écran Flutter custom |
 | Memory Quest — « J'investigue » | `MEMORY_QUEST` | Mémoire de travail | 🔴 déclaré, non implémenté | — |
 | Choix&Cap — « Je décide » | `DECISION` | Prise de décision | 🔴 déclaré, non implémenté | — |
@@ -68,9 +68,10 @@ Contexte **indépendant** : ne dépend que de `shared`, s'intègre au reste **un
 | **domain / vo** | `domain/vo/GameType.java` | `PLANIFIK`, `MOVE_FAST`, `MEMORY_QUEST`, `DECISION`. |
 | | `domain/vo/SessionStatus.java` | `IN_PROGRESS`, `COMPLETED`, `ABANDONED`. |
 | | `domain/vo/Score.java` | VO auto-validant (`rawPoints`, `maxPoints`, `level`) + `normalized()`. |
-| | `domain/vo/GameMetrics.java` | `sealed interface` → `PlanifikMetrics` \| `MoveFastMetrics`. |
+| | `domain/vo/GameMetrics.java` | `sealed interface` → `PlanifikMetrics` \| `MoveFastMetrics` \| `PrevisionPuzzleMetrics`. |
 | | `domain/vo/PlanifikMetrics.java` | Métriques « Chemin Optimal » + `deviationFromOptimal()`. |
 | | `domain/vo/MoveFastMetrics.java` | Métriques « Je bouge » (`correctResponses`, `reactionTimesMs`) + accuracy. |
+| | `domain/vo/PrevisionPuzzleMetrics.java` | Métriques « Predictive Puzzle » : cible complétée, erreurs, retries, mouvements planifiés/optimaux. |
 | **domain / service** | `domain/service/PlanifikScoringService.java` | **Barème déterministe** Planifik + Move Fast + interprétations. Java pur, rejouable. |
 | **domain / event** | `domain/event/GameResultRecordedEvent.java` | `games.result.recorded` — **seul** point d'intégration inter-contextes. |
 | **domain / repo** | `domain/repository/GameSessionRepository.java` | Port (interface) — le domaine ne connaît jamais JPA. |
@@ -121,6 +122,13 @@ attempts.size == expectedMiniGames.size ?
 - Bonus final : `+250 × multiplicateur de fin`
 - Interprétation (sur 100) : <40 *Très faible* · <60 *Moyen faible* · <75 *Moyen* · <90 *Bon* · sinon *Excellent*
 
+**Planifik #3 « Predictive Puzzle » — /10**
+- Cible finale complétée → base **10 pts** ; plan non complété → base **4 pts**
+- Erreur de séquence / mouvement illégal → **−2 pts**
+- Mouvement inutile au-delà de l'optimal → **−1 pt**
+- Retry / réinitialisation du plan → **−1 pt**
+- Score clampé entre 0 et 10, interprétation Planifik mini-jeu : 0–3 *Très faible* · 4–6 *Moyen* · 7–10 *Bon à excellent*
+
 ### Schéma DB (`V9__games_schema.sql`)
 
 - `games.game_sessions` : `id`, `player_id`, `game_type`, `status`, `started_at`, `completed_at` + `CHECK` sur type/status, index `(player_id)` et `(game_type, status)`.
@@ -131,7 +139,8 @@ attempts.size == expectedMiniGames.size ?
 ## 📱 MOBILE — Feature `games` (Flutter + Flame)
 
 Racine : `mobile/lib/features/games/` — **Clean Architecture** (domain / data / presentation).
-Routage : `mobile/lib/core/router/app_router.dart` (`/games`, `/games/planifik`, `/games/move-fast`).
+Routage : `mobile/lib/core/router/app_router.dart` (`/games`, `/games/planifik`, `/games/move-fast`,
+`/games/predictive-puzzle`).
 `/games` ouvre le shell `MainNavigationScreen(initialTab: 2)` afin de conserver la bottom nav
 sur l'onglet Careers/Progress ; les routes de jeu restent plein écran.
 
@@ -144,6 +153,7 @@ sur l'onglet Careers/Progress ; les routes de jeu restent plein écran.
 | | `domain/entities/game_metrics.dart` | Interface `GameMetrics` (`toJson`). |
 | | `domain/entities/planifik_metrics.dart` | Métriques « Chemin Optimal ». |
 | | `domain/entities/move_fast_metrics.dart` | Métriques « Je bouge ». |
+| | `domain/entities/prevision_puzzle_metrics.dart` | Métriques « Predictive Puzzle » envoyées au backend/mock. |
 | | `domain/entities/game_score.dart` | Score noté (immuable). |
 | | `domain/entities/game_session.dart` | `GameSession` + `GameAttempt` (miroir de l'agrégat backend). |
 | **domain / repo** | `domain/repositories/games_repository.dart` | Port : `startSession`, `submitResult`. |
@@ -155,6 +165,7 @@ sur l'onglet Careers/Progress ; les routes de jeu restent plein écran.
 | | `presentation/view/games_hub_screen.dart` | Hub jeux style maquette Progress : header « Play & discover your talent », couverture, 5 cartes de domaines cognitifs, assets `assets/04 Optimal Path/`, bottom nav via `ProgressScreen`. |
 | | `presentation/view/planifik_screen.dart` | Flow complet **Optimal Path** (intro Path Mind, How To Play, gameplay **multi-niveaux**, score, comparaison) + HUD stations, **menu pause** (`_PauseDialog`), légende, contrôles. Voir [Flow Optimal Path](#-flow-optimal-path-mobile). |
 | | `presentation/view/move_fast_screen.dart` | Écran complet « Je bouge » (intro, tutoriels, gameplay **à 3 niveaux**, transitions de règle, résultats). Voir [Niveaux Move Fast](#-niveaux-move-fast-mobile). |
+| | `presentation/view/predictive_puzzle_screen.dart` | Écran complet **Predictive Puzzle** : intro, règles, planification Tower of Hanoi, exécution auto, résultats, comparaison. Voir [Flow Predictive Puzzle](#-flow-predictive-puzzle-mobile). |
 | | `presentation/widgets/game_system_components.dart` | Design system jeux : palette, boutons, HUD, ruban de séries, contrôles directionnels, avion, tuiles de résultat. |
 | **presentation / flame** | `presentation/flame/planifik_game.dart` | **`FlameGame`** stations : tracé, `undo`/`clear`, `revision` (HUD live), ligne de route magenta, `buildMetrics()`, layout col×row remplissant. Ne calcule **pas** de score. |
 | | `presentation/flame/cell_component.dart` | Station **circulaire** tactile + `BoardPalette` : LAB, MTG, bloc (éclair), étoile, chemin. |
@@ -183,7 +194,8 @@ Le hub n'est plus une liste `ListTile` générique. Il suit la maquette fournie 
   `assets/04 Optimal Path/` (`image 120.png`, `image 120-1.png`, `image 121.png`,
   `image 121-1.png`, `image 121-2.png`).
 - Routes actives : Cognitive Flexibility → `/games/move-fast`, Executive Planning →
-  `/games/planifik`. Les autres domaines sont visuels pour l'instant.
+  `/games/planifik`, Decision-Making → `/games/predictive-puzzle`. Les autres domaines sont
+  visuels pour l'instant.
 
 Navigation : `ProgressScreen` héberge `GamesHubScreen`. La route `/games` rend
 `MainNavigationScreen(initialTab: 2)`, et `AppBottomNav` accepte un `selectedTab` local afin
@@ -231,6 +243,34 @@ station = cyan clair `#CDEBF5`, ligne de route = magenta `#D12E7D`.
 > Le **backend est inchangé** : `OPTIMAL_PATH` + `scoreOptimalPath` existent déjà. Le score breakdown
 > mobile **reconstruit** le barème à partir des `PlanifikMetrics` pour l'afficher (le serveur ne
 > renvoie que `rawPoints/maxPoints/level`).
+
+### 🧩 Flow Predictive Puzzle (mobile)
+
+`predictive_puzzle_screen.dart` implémente le mini-jeu Planifik #3, d'après les maquettes
+`04 Predictive Puzzle`. Le joueur doit planifier la séquence complète avant de lancer l'exécution :
+la phase de planning et la phase machine sont strictement séparées.
+
+| Étape | Contenu |
+|-------|---------|
+| **Intro** | Carte hero violette, chip « Predictive Reasoning », titre « Predictive Puzzle », metas Goal/Duration/Format, règle simple et CTA Start. |
+| **How To Play** | Deux pages : règle d'or Tower of Hanoi (jamais un grand disque sur un petit), puis planification complète avant action. |
+| **Planning** | Fond violet, HUD Timer/Moves/Errors, trois tours A/B/C, feedback source → destination, queue horizontale de mouvements, Undo/Clear/Add Move. |
+| **Auto Run** | Les contrôles sont désactivés ; la machine rejoue la queue avec un tick régulier et marque le premier `failed_step_index` visuel. |
+| **Results / Comparison** | Même structure que les jeux précédents : score cognitif, tuiles stats, résumé, benchmark optimal 15 mouvements, CTA Replay. |
+
+Logique runtime :
+
+- `selected_source != null` active la sélection de destination.
+- `is_legal_move(source, destination)` queue un mouvement valide et met à jour l'état de planning.
+- Un mouvement illégal reste visible dans la queue, incrémente `sequenceErrors`, puis fait échouer
+  l'exécution au moment du Run.
+- `queued_moves.length > 0` et pile cible complète (`C = [4, 3, 2, 1]`) activent **Run Plan**.
+- `execution_state == running` désactive les tours et les boutons de planification.
+- `final_stacks == target_stacks` soumet `targetCompleted=true`, sinon le plan échoue.
+
+Le mobile soumet `PrevisionPuzzleMetrics` :
+`targetCompleted`, `sequenceErrors`, `unnecessaryMoves`, `retries`, `plannedMoves`, `optimalMoves`.
+Le backend/mock appliquent le même barème via `scorePrevisionPuzzle`.
 
 ### Gestion d'état & bascule mock/backend
 
@@ -283,7 +323,8 @@ cohérent.
 
 `contracts/games.openapi.yaml` — **source de vérité** de l'API entre backend et mobile.
 Schémas : `GameType`, `MiniGame`, `SessionStatus`, `StartSessionRequest`, `OptimalPathMetrics`,
-`MoveFastMetrics`, `GameMetrics` (oneOf), `SubmitResultRequest`, `Score`, `Attempt`, `GameSession`.
+`MoveFastMetrics`, `PrevisionPuzzleMetrics`, `GameMetrics` (oneOf), `SubmitResultRequest`, `Score`,
+`Attempt`, `GameSession`.
 
 > ⚠️ Toute évolution de l'API doit modifier **ce contrat en premier**, puis backend et mobile.
 
@@ -310,7 +351,8 @@ Schémas : `GameType`, `MiniGame`, `SessionStatus`, `StartSessionRequest`, `Opti
 | Move Fast « Je bouge » (écran + barème escalade) | 🟢 Fait |
 | Move Fast — 3 niveaux (Orientation → Mouvement → **règle aléatoire**) | 🟢 Fait |
 | Hub Games / Progress — maquette 5 domaines cognitifs + assets `04 Optimal Path` + bottom nav conservée | 🟢 Fait |
-| Planifik #2 `TASK_SCHEDULING`, #3 `PREVISION_PUZZLE` | 🔴 Barème `throw` — non implémenté |
+| Planifik #3 `PREVISION_PUZZLE` — Predictive Puzzle | 🟢 Fait |
+| Planifik #2 `TASK_SCHEDULING` | 🔴 Barème `throw` — non implémenté |
 | `MEMORY_QUEST`, `DECISION` | 🔴 Déclarés au contrat, non implémentés |
 | Bascule mock ⇄ backend | 🟢 `--dart-define=GAMES_MOCK` |
 | Intégration Analytics (event) | 🟢 Listener en place (log ; à brancher au vrai dashboard) |
@@ -336,7 +378,9 @@ vous touchez à l'un de ces chemins :
 - [ ] Un nouveau jeu/mini-jeu devient jouable → mettre à jour le **tableau de statut** et la **roadmap**.
 - [ ] Mettre à jour la ligne ci-dessous.
 
-**Dernière mise à jour** : 2026-07-05 — Hub Games / Progress refait selon la maquette
+**Dernière mise à jour** : 2026-07-05 — Predictive Puzzle implémenté
+(`PREVISION_PUZZLE`, route `/games/predictive-puzzle`, métriques/backend/mock, results/compare).
+Hub Games / Progress refait selon la maquette
 (5 domaines cognitifs, assets `assets/04 Optimal Path/`, bottom nav conservée via `/games` →
 `MainNavigationScreen(initialTab: 2)`) ; Planifik utilise maintenant `GridConfig.randomLevels()`
 avec génération de graphes solvables par BFS et difficulté croissante ; écrans Score/Comparison

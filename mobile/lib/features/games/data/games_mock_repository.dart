@@ -5,6 +5,7 @@ import '../domain/entities/game_metrics.dart';
 import '../domain/entities/mini_game.dart';
 import '../domain/entities/move_fast_metrics.dart';
 import '../domain/entities/planifik_metrics.dart';
+import '../domain/entities/prevision_puzzle_metrics.dart';
 import '../domain/repositories/games_repository.dart';
 
 /// [GamesRepository] MOCK — permet de jouer en totale autonomie, sans backend.
@@ -51,8 +52,11 @@ class GamesMockRepository implements GamesRepository {
 
     final score = switch (miniGame) {
       MiniGame.optimalPath => _scoreOptimalPath(metrics as PlanifikMetrics),
+      MiniGame.previsionPuzzle => _scorePrevisionPuzzle(
+        metrics as PrevisionPuzzleMetrics,
+      ),
       MiniGame.moveFastCore => _scoreMoveFast(metrics as MoveFastMetrics),
-      MiniGame.taskScheduling || MiniGame.previsionPuzzle => throw StateError(
+      MiniGame.taskScheduling => throw StateError(
         'Barème mock non implémenté pour ${miniGame.wire}',
       ),
     };
@@ -129,6 +133,27 @@ class GamesMockRepository implements GamesRepository {
       rawPoints: points,
       maxPoints: maxPoints,
       normalized: normalized,
+      level: level,
+    );
+  }
+
+  GameScore _scorePrevisionPuzzle(PrevisionPuzzleMetrics m) {
+    var points = m.targetCompleted ? 10 : 4;
+    points -= m.sequenceErrors * 2;
+    points -= m.unnecessaryMoves;
+    points -= m.retries;
+    points = points.clamp(0, 10).toInt();
+
+    final level = points <= 3
+        ? 'Très faible'
+        : points <= 6
+        ? 'Moyen'
+        : 'Bon à excellent';
+
+    return GameScore(
+      rawPoints: points,
+      maxPoints: 10,
+      normalized: points * 10.0,
       level: level,
     );
   }

@@ -27,6 +27,7 @@ class AppRoutes {
   static const String games = '/games';
   static const String gamesPlanifik = '/games/planifik';
   static const String gamesMoveFast = '/games/move-fast';
+  static const String gamesPredictivePuzzle = '/games/predictive-puzzle';
 
   static const String profileSettings = '/profile-settings';
   static const String accountCenter = '/profile-settings/account-center';
@@ -57,6 +58,7 @@ class AppRoutes {
   static const String nGames = 'games';
   static const String nGamesPlanifik = 'gamesPlanifik';
   static const String nGamesMoveFast = 'gamesMoveFast';
+  static const String nGamesPredictivePuzzle = 'gamesPredictivePuzzle';
   static const String nProfileSettings = 'profileSettings';
   static const String nAccountCenter = 'accountCenter';
   static const String nPersonalInformations = 'personalInformations';
