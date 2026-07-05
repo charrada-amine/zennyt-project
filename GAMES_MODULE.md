@@ -192,7 +192,8 @@ Le hub n'est plus une liste `ListTile` générique. Il suit la maquette fournie 
   `N° aptitudes`, illustration PNG.
 - Assets déclarés dans `mobile/pubspec.yaml` :
   `assets/04 Optimal Path/` (`image 120.png`, `image 120-1.png`, `image 121.png`,
-  `image 121-1.png`, `image 121-2.png`).
+  `image 121-1.png`, `image 121-2.png`) **et** `assets/04 Predictive Puzzle/`
+  (`discs.png` = disques de la carte intro, `golden_rule.png` = illustration règle d'or How-To-Play).
 - Routes actives : Cognitive Flexibility → `/games/move-fast`, Executive Planning →
   `/games/planifik`, Decision-Making → `/games/predictive-puzzle`. Les autres domaines sont
   visuels pour l'instant.
@@ -252,11 +253,18 @@ la phase de planning et la phase machine sont strictement séparées.
 
 | Étape | Contenu |
 |-------|---------|
-| **Intro** | Carte hero violette, chip « Predictive Reasoning », titre « Predictive Puzzle », metas Goal/Duration/Format, règle simple et CTA Start. |
-| **How To Play** | Deux pages : règle d'or Tower of Hanoi (jamais un grand disque sur un petit), puis planification complète avant action. |
+| **Intro** | Carte hero violette, chip « Predictive Reasoning », titre « Predictive Puzzle », metas Goal/Duration/Format, règle simple et CTA Start. Illustration de la carte = PNG Figma `assets/04 Predictive Puzzle/discs.png` (positionnée dans le `Stack`, sans peinture custom). |
+| **How To Play** | Deux pages : règle d'or Tower of Hanoi (jamais un grand disque sur un petit) illustrée par le PNG Figma `assets/04 Predictive Puzzle/golden_rule.png` ; puis « Plan before you act » (séquence de mouvements planifiés, hauteur adaptée au contenu). |
 | **Planning** | Fond violet, HUD Timer/Moves/Errors, trois tours A/B/C, feedback source → destination, queue horizontale de mouvements, Undo/Clear/Add Move. |
 | **Auto Run** | Les contrôles sont désactivés ; la machine rejoue la queue avec un tick régulier et marque le premier `failed_step_index` visuel. |
-| **Results / Comparison** | Même structure que les jeux précédents : score cognitif, tuiles stats, résumé, benchmark optimal 15 mouvements, CTA Replay. |
+| **Results / Comparison** | Même structure que les jeux précédents : score cognitif, tuile **Levels** (niveaux réussis), tuiles stats, résumé, benchmark optimal cumulé (`Σ 2^n − 1`), CTA Replay. |
+
+**🎚️ Niveaux progressifs** (`_puzzleLevels`) : une session enchaîne **3 niveaux de difficulté
+croissante par nombre de disques** — L1 = 3 disques, L2 = 4, L3 = 5. La Tour de Hanoï standard
+étant toujours résoluble, l'optimal est **déterministe et fermé** : `2^n − 1` (soit 7 → 15 → 31),
+aucun BFS nécessaire (contrairement à Optimal Path). La tolérance d'erreurs se resserre par palier
+(3 → 2 → 1). Le plateau (`_TowerView`) dimensionne les disques de façon responsive (`LayoutBuilder`)
+pour que 5 disques tiennent proprement, et `_Disc._colors` couvre les disques 1–5.
 
 Logique runtime :
 
@@ -264,13 +272,16 @@ Logique runtime :
 - `is_legal_move(source, destination)` queue un mouvement valide et met à jour l'état de planning.
 - Un mouvement illégal reste visible dans la queue, incrémente `sequenceErrors`, puis fait échouer
   l'exécution au moment du Run.
-- `queued_moves.length > 0` et pile cible complète (`C = [4, 3, 2, 1]`) activent **Run Plan**.
+- `queued_moves.length > 0` et pile cible complète (`C = [n, …, 2, 1]` pour le niveau courant)
+  activent **Run Plan**.
 - `execution_state == running` désactive les tours et les boutons de planification.
-- `final_stacks == target_stacks` soumet `targetCompleted=true`, sinon le plan échoue.
+- Un **Run réussi** sur un niveau non final → passage au niveau suivant (`_advanceLevel`, board
+  régénéré, stats cumulées) ; un **échec** ou le **dernier niveau** → écran Results + soumission.
 
-Le mobile soumet `PrevisionPuzzleMetrics` :
-`targetCompleted`, `sequenceErrors`, `unnecessaryMoves`, `retries`, `plannedMoves`, `optimalMoves`.
-Le backend/mock appliquent le même barème via `scorePrevisionPuzzle`.
+Le mobile cumule les métriques de tous les niveaux et soumet **une seule** `PrevisionPuzzleMetrics`
+à la fin (`targetCompleted` = tous niveaux réussis ; `sequenceErrors`, `unnecessaryMoves`, `retries`,
+`plannedMoves`, `optimalMoves` = sommes). Le backend/mock appliquent le même barème via
+`scorePrevisionPuzzle` — l'agrégat par session préserve la sémantique (un seul `Attempt` enregistré).
 
 ### Gestion d'état & bascule mock/backend
 
@@ -352,6 +363,7 @@ Schémas : `GameType`, `MiniGame`, `SessionStatus`, `StartSessionRequest`, `Opti
 | Move Fast — 3 niveaux (Orientation → Mouvement → **règle aléatoire**) | 🟢 Fait |
 | Hub Games / Progress — maquette 5 domaines cognitifs + assets `04 Optimal Path` + bottom nav conservée | 🟢 Fait |
 | Planifik #3 `PREVISION_PUZZLE` — Predictive Puzzle | 🟢 Fait |
+| Predictive Puzzle — **3 niveaux (3 → 4 → 5 disques, optimal `2^n − 1`)** + disques responsive | 🟢 Fait |
 | Planifik #2 `TASK_SCHEDULING` | 🔴 Barème `throw` — non implémenté |
 | `MEMORY_QUEST`, `DECISION` | 🔴 Déclarés au contrat, non implémentés |
 | Bascule mock ⇄ backend | 🟢 `--dart-define=GAMES_MOCK` |
@@ -378,7 +390,12 @@ vous touchez à l'un de ces chemins :
 - [ ] Un nouveau jeu/mini-jeu devient jouable → mettre à jour le **tableau de statut** et la **roadmap**.
 - [ ] Mettre à jour la ligne ci-dessous.
 
-**Dernière mise à jour** : 2026-07-05 — Predictive Puzzle implémenté
+**Dernière mise à jour** : 2026-07-05 — Predictive Puzzle : **3 niveaux progressifs**
+(3 → 4 → 5 disques, optimal déterministe `2^n − 1`, tolérance d'erreurs 3 → 2 → 1), disques
+dimensionnés responsive (`_TowerView` + `LayoutBuilder`, `_Disc._colors` 1–5), métriques
+**cumulées** sur toute la session et soumises en une seule `PrevisionPuzzleMetrics` ; HUD chip
+« LVL x/3 », écran Results avec tuile Levels ; illustrations intro/how-to-play remplacées par les
+PNG Figma (`assets/04 Predictive Puzzle/`). Antérieur : Predictive Puzzle implémenté
 (`PREVISION_PUZZLE`, route `/games/predictive-puzzle`, métriques/backend/mock, results/compare).
 Hub Games / Progress refait selon la maquette
 (5 domaines cognitifs, assets `assets/04 Optimal Path/`, bottom nav conservée via `/games` →

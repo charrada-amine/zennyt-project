@@ -15,7 +15,25 @@ import '../../domain/entities/prevision_puzzle_metrics.dart';
 import '../games_controller.dart';
 import '../widgets/game_system_components.dart';
 
-const _predictiveOptimalMoves = 15;
+/// A difficulty level of the Predictive Puzzle. Difficulty scales purely by the
+/// number of discs: a standard Tower of Hanoi with `discCount` discs has a
+/// deterministic optimal of `2^discCount - 1` moves (7 → 15 → 31), so each extra
+/// disc roughly doubles the planning load. Error tolerance tightens in step.
+class _PuzzleLevel {
+  const _PuzzleLevel({required this.discCount, required this.maxErrors});
+
+  final int discCount;
+  final int maxErrors;
+
+  /// Minimum moves to solve a standard `discCount`-disc tower: `2^n - 1`.
+  int get optimalMoves => (1 << discCount) - 1;
+}
+
+const _puzzleLevels = <_PuzzleLevel>[
+  _PuzzleLevel(discCount: 3, maxErrors: 3),
+  _PuzzleLevel(discCount: 4, maxErrors: 2),
+  _PuzzleLevel(discCount: 5, maxErrors: 1),
+];
 
 enum _PuzzleStage { intro, rule, planning, running, results, comparison }
 
@@ -29,8 +47,6 @@ class PredictivePuzzleScreen extends ConsumerStatefulWidget {
 
 class _PredictivePuzzleScreenState
     extends ConsumerState<PredictivePuzzleScreen> {
-  static const _maxErrors = 3;
-
   _PuzzleStage _stage = _PuzzleStage.intro;
   Timer? _timer;
   Timer? _runTimer;
@@ -44,12 +60,33 @@ class _PredictivePuzzleScreenState
   String? _selectedDestination;
   String _feedback = 'Tap a tower source, then a destination.';
 
-  Map<String, List<int>> _planningTowers = _initialTowers();
-  Map<String, List<int>> _executionTowers = _initialTowers();
+  // Current difficulty level (index into [_puzzleLevels]).
+  int _level = 0;
+
+  // Aggregated metrics across every level of the session, submitted once at
+  // the end so the backend still records a single Predictive Puzzle attempt.
+  int _accPlanned = 0;
+  int _accErrors = 0;
+  int _accOptimal = 0;
+  int _accSurplus = 0;
+  int _accRetries = 0;
+
+  _PuzzleLevel get _config => _puzzleLevels[_level];
+  int get _discCount => _config.discCount;
+  int get _optimalMoves => _config.optimalMoves;
+  int get _maxErrors => _config.maxErrors;
+  bool get _isLastLevel => _level == _puzzleLevels.length - 1;
+
+  Map<String, List<int>> _planningTowers = _initialTowers(
+    _puzzleLevels.first.discCount,
+  );
+  Map<String, List<int>> _executionTowers = _initialTowers(
+    _puzzleLevels.first.discCount,
+  );
   final List<_QueuedMove> _queue = [];
 
-  static Map<String, List<int>> _initialTowers() => {
-    'A': [4, 3, 2, 1],
+  static Map<String, List<int>> _initialTowers(int discCount) => {
+    'A': [for (var d = discCount; d >= 1; d--) d],
     'B': <int>[],
     'C': <int>[],
   };
@@ -66,6 +103,7 @@ class _PredictivePuzzleScreenState
     _runTimer?.cancel();
     setState(() {
       _stage = _PuzzleStage.planning;
+      _level = 0;
       _elapsed = 0;
       _errors = 0;
       _retries = 0;
@@ -74,9 +112,14 @@ class _PredictivePuzzleScreenState
       _targetCompleted = false;
       _selectedSource = null;
       _selectedDestination = null;
-      _feedback = 'Tap a tower source, then a destination.';
-      _planningTowers = _initialTowers();
-      _executionTowers = _initialTowers();
+      _accPlanned = 0;
+      _accErrors = 0;
+      _accOptimal = 0;
+      _accSurplus = 0;
+      _accRetries = 0;
+      _feedback = 'Level 1: plan the $_discCount-disc sequence.';
+      _planningTowers = _initialTowers(_discCount);
+      _executionTowers = _initialTowers(_discCount);
       _queue.clear();
     });
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -203,8 +246,8 @@ class _PredictivePuzzleScreenState
       _targetCompleted = false;
       _selectedSource = null;
       _selectedDestination = null;
-      _planningTowers = _initialTowers();
-      _executionTowers = _initialTowers();
+      _planningTowers = _initialTowers(_discCount);
+      _executionTowers = _initialTowers(_discCount);
       _queue.clear();
       _feedback = 'Sequence cleared. Plan the full move list again.';
     });
@@ -219,7 +262,7 @@ class _PredictivePuzzleScreenState
     setState(() {
       _stage = _PuzzleStage.running;
       _runIndex = 0;
-      _executionTowers = _initialTowers();
+      _executionTowers = _initialTowers(_discCount);
       for (var i = 0; i < _queue.length; i++) {
         _queue[i] = _queue[i].copyWith(executed: false, failed: false);
       }
@@ -267,8 +310,23 @@ class _PredictivePuzzleScreenState
   }
 
   void _finishRun(bool completed) {
-    _timer?.cancel();
     _runTimer?.cancel();
+
+    // Fold this level's stats into the session totals.
+    _accPlanned += _queue.length;
+    _accErrors += _errors;
+    _accOptimal += _optimalMoves;
+    _accSurplus += math.max(0, _queue.length - _optimalMoves);
+    _accRetries += _retries;
+
+    // A clean run on a non-final level advances difficulty; a failure (or the
+    // final level) ends the session and submits the aggregated metrics.
+    if (completed && !_isLastLevel) {
+      _advanceLevel();
+      return;
+    }
+
+    _timer?.cancel();
     setState(() {
       _targetCompleted = completed;
       _stage = _PuzzleStage.results;
@@ -276,20 +334,39 @@ class _PredictivePuzzleScreenState
     _submitFinal(completed: completed);
   }
 
+  void _advanceLevel() {
+    setState(() {
+      _level++;
+      _errors = 0;
+      _retries = 0;
+      _runIndex = 0;
+      _busy = false;
+      _targetCompleted = false;
+      _selectedSource = null;
+      _selectedDestination = null;
+      _planningTowers = _initialTowers(_discCount);
+      _executionTowers = _initialTowers(_discCount);
+      _queue.clear();
+      _stage = _PuzzleStage.planning;
+      _feedback =
+          'Level ${_level + 1}: plan the $_discCount-disc sequence '
+          '($_optimalMoves optimal moves).';
+    });
+  }
+
   Future<void> _submitFinal({required bool completed}) async {
     setState(() => _busy = true);
-    final surplus = math.max(0, _queue.length - _predictiveOptimalMoves);
     await ref
         .read(gamesControllerProvider.notifier)
         .submit(
           miniGame: MiniGame.previsionPuzzle,
           metrics: PrevisionPuzzleMetrics(
             targetCompleted: completed,
-            sequenceErrors: _errors,
-            unnecessaryMoves: surplus,
-            retries: _retries,
-            plannedMoves: _queue.length,
-            optimalMoves: _predictiveOptimalMoves,
+            sequenceErrors: _accErrors,
+            unnecessaryMoves: _accSurplus,
+            retries: _accRetries,
+            plannedMoves: _accPlanned,
+            optimalMoves: _accOptimal,
           ),
         );
     if (!mounted) return;
@@ -298,11 +375,11 @@ class _PredictivePuzzleScreenState
 
   bool _isTarget(Map<String, List<int>> towers) {
     final target = towers['C']!;
-    return target.length == 4 &&
-        target[0] == 4 &&
-        target[1] == 3 &&
-        target[2] == 2 &&
-        target[3] == 1;
+    if (target.length != _discCount) return false;
+    for (var i = 0; i < _discCount; i++) {
+      if (target[i] != _discCount - i) return false;
+    }
+    return true;
   }
 
   Future<void> _pause() async {
@@ -378,6 +455,10 @@ class _PredictivePuzzleScreenState
       _PuzzleStage.planning || _PuzzleStage.running => _PuzzleGameplayView(
         elapsed: _timeLabel,
         movesPlanned: _queue.length,
+        optimalMoves: _optimalMoves,
+        discCount: _discCount,
+        level: _level + 1,
+        totalLevels: _puzzleLevels.length,
         errors: _errors,
         maxErrors: _maxErrors,
         towers: _stage == _PuzzleStage.running
@@ -401,17 +482,20 @@ class _PredictivePuzzleScreenState
         busy: _busy,
         targetCompleted: _targetCompleted,
         elapsed: _timeLabel,
-        moves: _queue.length,
-        errors: _errors,
+        moves: _accPlanned,
+        errors: _accErrors,
+        levelsCleared: _targetCompleted ? _puzzleLevels.length : _level,
+        totalLevels: _puzzleLevels.length,
         onReplay: _beginGame,
         onCompare: () => setState(() => _stage = _PuzzleStage.comparison),
         onBack: () => context.go(AppRoutes.games),
       ),
       _PuzzleStage.comparison => _PredictiveComparisonView(
         session: session,
-        moves: _queue.length,
-        errors: _errors,
-        retries: _retries,
+        moves: _accPlanned,
+        optimalMoves: _accOptimal,
+        errors: _accErrors,
+        retries: _accRetries,
         targetCompleted: _targetCompleted,
         onReplay: _beginGame,
         onBack: () => setState(() => _stage = _PuzzleStage.results),
@@ -467,10 +551,10 @@ class _PredictiveIntroView extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: _SquareIconButton(icon: Icons.chevron_left, onTap: onBack),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: AppSpacing.lg),
           Container(
-            height: 278,
-            padding: const EdgeInsets.all(AppSpacing.lg),
+            height: 300,
+            padding: const EdgeInsets.fromLTRB(22, 22, 18, 20),
             decoration: BoxDecoration(
               color: ZennytGamePalette.gameBlue,
               borderRadius: BorderRadius.circular(28),
@@ -486,19 +570,23 @@ class _PredictiveIntroView extends StatelessWidget {
               clipBehavior: Clip.none,
               children: [
                 Positioned(
-                  right: -24,
-                  top: 18,
-                  bottom: 6,
-                  width: 170,
-                  child: CustomPaint(painter: _PredictiveHeroPainter()),
+                  right: -6,
+                  top: 22,
+                  bottom: 62,
+                  width: 190,
+                  child: Image.asset(
+                    'assets/04 Predictive Puzzle/discs.png',
+                    fit: BoxFit.contain,
+                    alignment: Alignment.bottomCenter,
+                  ),
                 ),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.lg,
-                        vertical: 8,
+                        horizontal: 18,
+                        vertical: 9,
                       ),
                       decoration: BoxDecoration(
                         color: Colors.white,
@@ -515,13 +603,13 @@ class _PredictiveIntroView extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.lg),
+                    const SizedBox(height: AppSpacing.base),
                     const Text(
                       'Predict\nive\nPuzzle',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 43,
-                        height: 1.03,
+                        fontSize: 40,
+                        height: 1.08,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 0,
                       ),
@@ -531,8 +619,8 @@ class _PredictiveIntroView extends StatelessWidget {
                       'Plan every move, then\nexecute.',
                       style: AppTypography.headlineSmall.copyWith(
                         color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                        height: 1.15,
+                        fontWeight: FontWeight.w700,
+                        height: 1.18,
                         letterSpacing: 0,
                       ),
                     ),
@@ -585,7 +673,7 @@ class _PredictiveIntroView extends StatelessWidget {
                   ),
                   TextSpan(
                     text:
-                        'Sophie must move 4 discs from Tower A to Tower C. Plan the entire sequence upfront - the machine executes exactly what she planned, no corrections allowed.',
+                        'Sophie moves a growing stack of discs from Tower A to Tower C across 3 levels (3, then 4, then 5 discs). Plan the entire sequence upfront - the machine executes exactly what she planned, no corrections allowed.',
                     style: AppTypography.bodyLarge.copyWith(
                       color: ZennytGamePalette.muted,
                       height: 1.25,
@@ -655,12 +743,21 @@ class _HowToRuleViewState extends State<_HowToRuleView> {
                   ),
                 ),
                 const SizedBox(height: AppSpacing.xl),
-                SizedBox(
-                  height: 190,
-                  child: _page == 0
-                      ? const _GoldenRuleArt()
-                      : const _SequencePreviewArt(),
-                ),
+                if (_page == 0)
+                  SizedBox(
+                    height: 190,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                      ),
+                      child: Image.asset(
+                        'assets/04 Predictive Puzzle/golden_rule.png',
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  )
+                else
+                  const _SequencePreviewArt(),
               ],
             ),
           ),
@@ -670,7 +767,7 @@ class _HowToRuleViewState extends State<_HowToRuleView> {
             child: Text(
               _page == 0
                   ? 'Sophie can never place a larger disc on top of a smaller one. She uses Tower B as a relay. Each move takes the top disc from one tower and places it on another valid tower.'
-                  : 'Sophie fills in the entire sequence before execution. Once launched, no corrections are possible. Only 3 order mistakes tolerated. Minimum 15 moves for 4 discs.',
+                  : 'Sophie fills in the entire sequence before execution. Once launched, no corrections are possible. Difficulty scales each level (3 → 4 → 5 discs), needing 7, then 15, then 31 optimal moves.',
               style: AppTypography.bodyLarge.copyWith(
                 color: ZennytGamePalette.muted,
                 height: 1.28,
@@ -700,6 +797,10 @@ class _PuzzleGameplayView extends StatelessWidget {
   const _PuzzleGameplayView({
     required this.elapsed,
     required this.movesPlanned,
+    required this.optimalMoves,
+    required this.discCount,
+    required this.level,
+    required this.totalLevels,
     required this.errors,
     required this.maxErrors,
     required this.towers,
@@ -719,6 +820,10 @@ class _PuzzleGameplayView extends StatelessWidget {
 
   final String elapsed;
   final int movesPlanned;
+  final int optimalMoves;
+  final int discCount;
+  final int level;
+  final int totalLevels;
   final int errors;
   final int maxErrors;
   final Map<String, List<int>> towers;
@@ -739,7 +844,7 @@ class _PuzzleGameplayView extends StatelessWidget {
   Widget build(BuildContext context) {
     final progress = targetReady
         ? 1.0
-        : (movesPlanned / _predictiveOptimalMoves).clamp(0, 1);
+        : (movesPlanned / optimalMoves).clamp(0, 1);
     return Column(
       children: [
         Padding(
@@ -753,7 +858,7 @@ class _PuzzleGameplayView extends StatelessWidget {
               Expanded(
                 child: _HudTile(
                   label: 'Moves\nPlanned',
-                  value: '$movesPlanned/$_predictiveOptimalMoves',
+                  value: '$movesPlanned/$optimalMoves',
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
@@ -796,23 +901,47 @@ class _PuzzleGameplayView extends StatelessWidget {
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 30),
-          child: Container(
-            height: 28,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: ZennytGamePalette.cyan.withValues(alpha: 0.35),
-              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-            ),
-            child: Text(
-              'Goal: Tower C - disc 1 on top, disc 4 at bottom',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppTypography.labelMedium.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0,
+          child: Row(
+            children: [
+              Container(
+                height: 28,
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.22),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                ),
+                child: Text(
+                  'LVL $level/$totalLevels',
+                  style: AppTypography.labelSmall.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.5,
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Container(
+                  height: 28,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: ZennytGamePalette.cyan.withValues(alpha: 0.35),
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                  ),
+                  child: Text(
+                    'Goal: move $discCount discs to Tower C',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.labelMedium.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: AppSpacing.sm),
@@ -821,6 +950,7 @@ class _PuzzleGameplayView extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.base),
             child: _TowerBoard(
               towers: towers,
+              maxDiscs: discCount,
               selectedSource: selectedSource,
               selectedDestination: selectedDestination,
               disabled: running,
@@ -859,7 +989,7 @@ class _PuzzleGameplayView extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "SOPHIE'S SEQUENCE ($movesPlanned/$_predictiveOptimalMoves MOVES PLANNED)",
+                "SOPHIE'S SEQUENCE ($movesPlanned/$optimalMoves MOVES PLANNED)",
                 style: AppTypography.labelSmall.copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.w800,
@@ -929,6 +1059,7 @@ class _PuzzleGameplayView extends StatelessWidget {
 class _TowerBoard extends StatelessWidget {
   const _TowerBoard({
     required this.towers,
+    required this.maxDiscs,
     required this.selectedSource,
     required this.selectedDestination,
     required this.disabled,
@@ -936,6 +1067,7 @@ class _TowerBoard extends StatelessWidget {
   });
 
   final Map<String, List<int>> towers;
+  final int maxDiscs;
   final String? selectedSource;
   final String? selectedDestination;
   final bool disabled;
@@ -957,6 +1089,7 @@ class _TowerBoard extends StatelessWidget {
               child: _TowerView(
                 name: tower,
                 discs: towers[tower]!,
+                maxDiscs: maxDiscs,
                 selected: selectedSource == tower,
                 destination: selectedDestination == tower,
                 disabled: disabled,
@@ -975,6 +1108,7 @@ class _TowerView extends StatelessWidget {
   const _TowerView({
     required this.name,
     required this.discs,
+    required this.maxDiscs,
     required this.selected,
     required this.destination,
     required this.disabled,
@@ -983,6 +1117,7 @@ class _TowerView extends StatelessWidget {
 
   final String name;
   final List<int> discs;
+  final int maxDiscs;
   final bool selected;
   final bool destination;
   final bool disabled;
@@ -1007,37 +1142,58 @@ class _TowerView extends StatelessWidget {
         child: Column(
           children: [
             Expanded(
-              child: Stack(
-                alignment: Alignment.bottomCenter,
-                children: [
-                  Positioned(
-                    bottom: 20,
-                    child: Container(
-                      width: 4,
-                      height: 170,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.6),
-                        borderRadius: BorderRadius.circular(2),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final columnWidth = constraints.maxWidth;
+                  // Keep the whole stack inside the rod height; discs shrink as
+                  // the level adds more of them so 5 discs still fit cleanly.
+                  const rodHeight = 170.0;
+                  final discHeight =
+                      (rodHeight / maxDiscs).clamp(20.0, 32.0).toDouble();
+                  final gap = discHeight;
+
+                  double discWidth(int disc) {
+                    final t = maxDiscs <= 1 ? 1.0 : (disc - 1) / (maxDiscs - 1);
+                    return columnWidth * (0.40 + 0.56 * t);
+                  }
+
+                  return Stack(
+                    alignment: Alignment.bottomCenter,
+                    children: [
+                      Positioned(
+                        bottom: 20,
+                        child: Container(
+                          width: 4,
+                          height: rodHeight,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.6),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 12,
-                    child: Container(
-                      width: 110,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.75),
-                        borderRadius: BorderRadius.circular(999),
+                      Positioned(
+                        bottom: 12,
+                        child: Container(
+                          width: columnWidth * 0.94,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.75),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                  for (var i = 0; i < discs.length; i++)
-                    Positioned(
-                      bottom: 18 + i * 34,
-                      child: _Disc(disc: discs[i]),
-                    ),
-                ],
+                      for (var i = 0; i < discs.length; i++)
+                        Positioned(
+                          bottom: 18 + i * gap,
+                          child: _Disc(
+                            disc: discs[i],
+                            width: discWidth(discs[i]),
+                            height: discHeight - 2,
+                          ),
+                        ),
+                    ],
+                  );
+                },
               ),
             ),
             Text(
@@ -1056,23 +1212,25 @@ class _TowerView extends StatelessWidget {
 }
 
 class _Disc extends StatelessWidget {
-  const _Disc({required this.disc});
+  const _Disc({required this.disc, this.width = 68, this.height = 32});
 
   final int disc;
+  final double width;
+  final double height;
 
   static const _colors = {
     1: ZennytGamePalette.success,
     2: ZennytGamePalette.magenta,
     3: ZennytGamePalette.error,
     4: ZennytGamePalette.cyan,
+    5: ZennytGamePalette.ruleOrange,
   };
 
   @override
   Widget build(BuildContext context) {
-    final width = 40.0 + disc * 28;
     return Container(
       width: width,
-      height: 34,
+      height: height,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: _colors[disc],
@@ -1246,6 +1404,8 @@ class _PredictiveResultsView extends StatelessWidget {
     required this.elapsed,
     required this.moves,
     required this.errors,
+    required this.levelsCleared,
+    required this.totalLevels,
     required this.onReplay,
     required this.onCompare,
     required this.onBack,
@@ -1257,6 +1417,8 @@ class _PredictiveResultsView extends StatelessWidget {
   final String elapsed;
   final int moves;
   final int errors;
+  final int levelsCleared;
+  final int totalLevels;
   final VoidCallback onReplay;
   final VoidCallback onCompare;
   final VoidCallback onBack;
@@ -1314,8 +1476,9 @@ class _PredictiveResultsView extends StatelessWidget {
                 ),
                 Text(
                   targetCompleted
-                      ? 'Full plan executed successfully.'
-                      : 'Plan execution failed before target completion.',
+                      ? 'All $totalLevels levels cleared successfully.'
+                      : 'Cleared $levelsCleared/$totalLevels levels before a '
+                            'plan broke on execution.',
                   textAlign: TextAlign.center,
                   style: AppTypography.bodyLarge.copyWith(
                     color: Colors.white,
@@ -1330,8 +1493,8 @@ class _PredictiveResultsView extends StatelessWidget {
             children: [
               Expanded(
                 child: ResultStatTile(
-                  label: 'Target',
-                  value: targetCompleted ? 'Done' : 'Failed',
+                  label: 'Levels',
+                  value: '$levelsCleared/$totalLevels',
                   valueColor: targetCompleted
                       ? ZennytGamePalette.success
                       : ZennytGamePalette.error,
@@ -1389,6 +1552,7 @@ class _PredictiveComparisonView extends StatelessWidget {
   const _PredictiveComparisonView({
     required this.session,
     required this.moves,
+    required this.optimalMoves,
     required this.errors,
     required this.retries,
     required this.targetCompleted,
@@ -1398,6 +1562,7 @@ class _PredictiveComparisonView extends StatelessWidget {
 
   final GameSession? session;
   final int moves;
+  final int optimalMoves;
   final int errors;
   final int retries;
   final bool targetCompleted;
@@ -1406,7 +1571,7 @@ class _PredictiveComparisonView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final surplus = math.max(0, moves - _predictiveOptimalMoves);
+    final surplus = math.max(0, moves - optimalMoves);
     final rank = targetCompleted && errors == 0
         ? '#1'
         : '#${14 + errors + surplus}';
@@ -1457,7 +1622,7 @@ class _PredictiveComparisonView extends StatelessWidget {
                 const SizedBox(width: AppSpacing.lg),
                 Expanded(
                   child: Text(
-                    'against the optimal 15-step plan',
+                    'against the optimal $optimalMoves-step plan',
                     style: AppTypography.titleLarge.copyWith(
                       color: Colors.white,
                       letterSpacing: 0,
@@ -1744,7 +1909,7 @@ class _IntroMeta extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 56,
+      height: 62,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: Colors.white,
@@ -1753,11 +1918,14 @@ class _IntroMeta extends StatelessWidget {
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             label,
             style: AppTypography.labelSmall.copyWith(
               color: ZennytGamePalette.muted,
+              fontSize: 10,
+              height: 1,
               letterSpacing: 0,
             ),
           ),
@@ -1765,161 +1933,13 @@ class _IntroMeta extends StatelessWidget {
             value,
             style: AppTypography.titleMedium.copyWith(
               color: valueColor,
+              fontSize: 16,
+              height: 1.1,
               fontWeight: FontWeight.w800,
               letterSpacing: 0,
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _PredictiveHeroPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final pink = Paint()
-      ..color = ZennytGamePalette.magenta.withValues(alpha: 0.13);
-    final cyan = Paint()..color = ZennytGamePalette.cyan.withValues(alpha: 0.1);
-    canvas.drawCircle(Offset(size.width * 0.88, size.height * 0.48), 84, pink);
-    canvas.drawCircle(Offset(size.width * 0.62, size.height * 0.68), 72, cyan);
-
-    final pole = Paint()
-      ..color = Colors.white.withValues(alpha: 0.82)
-      ..strokeWidth = 9
-      ..strokeCap = StrokeCap.round;
-    canvas.drawLine(
-      Offset(size.width * 0.20, size.height * 0.76),
-      Offset(size.width * 0.92, size.height * 0.76),
-      pole,
-    );
-    for (final x in [0.26, 0.62, 0.90]) {
-      canvas.drawLine(
-        Offset(size.width * x, size.height * 0.76),
-        Offset(size.width * x, size.height * 0.36),
-        pole,
-      );
-    }
-
-    void disc(double y, double w, Color color) {
-      final rect = Rect.fromCenter(
-        center: Offset(size.width * 0.62, size.height * y),
-        width: size.width * w,
-        height: 24,
-      );
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(rect, const Radius.circular(10)),
-        Paint()..color = color,
-      );
-    }
-
-    disc(0.68, 0.44, ZennytGamePalette.error);
-    disc(0.60, 0.36, ZennytGamePalette.ruleOrange);
-    disc(0.52, 0.28, ZennytGamePalette.success);
-    disc(0.44, 0.22, const Color(0xFF79F470));
-
-    final arrow = Paint()
-      ..color = Colors.white.withValues(alpha: 0.72)
-      ..strokeWidth = 6
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-    final path = Path()
-      ..moveTo(size.width * 0.18, size.height * 0.24)
-      ..quadraticBezierTo(
-        size.width * 0.52,
-        size.height * 0.00,
-        size.width * 0.92,
-        size.height * 0.30,
-      )
-      ..lineTo(size.width * 0.92, size.height * 0.16);
-    canvas.drawPath(path, arrow);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _GoldenRuleArt extends StatelessWidget {
-  const _GoldenRuleArt();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: _MiniTower(label: 'Tower A', discs: const [4, 3]),
-        ),
-        const Icon(Icons.arrow_forward_rounded, color: Colors.black, size: 28),
-        Expanded(
-          child: _MiniTower(label: 'Tower B', discs: const [1]),
-        ),
-        const Icon(Icons.arrow_forward_rounded, color: Colors.black, size: 28),
-        Expanded(
-          child: _MiniTower(label: 'Tower C', discs: const [2]),
-        ),
-      ],
-    );
-  }
-}
-
-class _MiniTower extends StatelessWidget {
-  const _MiniTower({required this.label, required this.discs});
-
-  final String label;
-  final List<int> discs;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Expanded(
-          child: Stack(
-            alignment: Alignment.bottomCenter,
-            children: [
-              Container(width: 4, height: 84, color: Colors.black54),
-              for (var i = 0; i < discs.length; i++)
-                Positioned(
-                  bottom: i * 22,
-                  child: _SmallDisc(disc: discs[i]),
-                ),
-            ],
-          ),
-        ),
-        Text(
-          label,
-          style: AppTypography.labelMedium.copyWith(
-            color: ZennytGamePalette.muted,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _SmallDisc extends StatelessWidget {
-  const _SmallDisc({required this.disc});
-
-  final int disc;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 22.0 + disc * 18,
-      height: 22,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: _Disc._colors[disc],
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Text(
-        '$disc',
-        style: AppTypography.labelSmall.copyWith(
-          color: Colors.white,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 0,
-        ),
       ),
     );
   }
@@ -1931,16 +1951,22 @@ class _SequencePreviewArt extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const moves = ['A->C', 'A->B', 'C->B', 'A->C'];
+    const dotColors = [
+      Color(0xFF22C55E),
+      Color(0xFFF5C518),
+      Color(0xFF22C55E),
+      Color(0xFF2F6BFF),
+    ];
     return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
       children: [
         for (var i = 0; i < moves.length; i++) ...[
-          _PreviewMove(index: i + 1, label: moves[i]),
-          const SizedBox(height: 6),
+          _PreviewMove(index: i + 1, label: moves[i], dotColor: dotColors[i]),
+          const SizedBox(height: 8),
         ],
         Container(
-          height: 28,
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+          height: 34,
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
           decoration: BoxDecoration(
             color: Colors.black26,
             borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
@@ -1991,16 +2017,21 @@ class _SequencePreviewArt extends StatelessWidget {
 }
 
 class _PreviewMove extends StatelessWidget {
-  const _PreviewMove({required this.index, required this.label});
+  const _PreviewMove({
+    required this.index,
+    required this.label,
+    required this.dotColor,
+  });
 
   final int index;
   final String label;
+  final Color dotColor;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 28,
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+      height: 34,
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
       decoration: BoxDecoration(
         color: ZennytGamePalette.cyan.withValues(alpha: 0.35),
         borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
@@ -2014,11 +2045,15 @@ class _PreviewMove extends StatelessWidget {
               letterSpacing: 0,
             ),
           ),
-          const SizedBox(width: AppSpacing.sm),
-          _MiniDisc(disc: index == 2 ? 2 : 1),
-          const SizedBox(width: AppSpacing.sm),
+          const SizedBox(width: AppSpacing.md),
+          Container(
+            width: 14,
+            height: 14,
+            decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: AppSpacing.md),
           Text(
-            label,
+            label.replaceAll('->', '→'),
             style: AppTypography.labelMedium.copyWith(
               color: ZennytGamePalette.blue,
               fontWeight: FontWeight.w800,
