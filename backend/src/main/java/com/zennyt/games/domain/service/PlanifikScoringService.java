@@ -1,8 +1,13 @@
 package com.zennyt.games.domain.service;
 
+import com.zennyt.games.domain.config.MoveFastConfig;
+import com.zennyt.games.domain.config.OptimalPathConfig;
+import com.zennyt.games.domain.config.PrevisionPuzzleConfig;
+import com.zennyt.games.domain.vo.OptimalPathLevel;
 import com.zennyt.games.domain.vo.PlanifikMetrics;
 import com.zennyt.games.domain.vo.GameType;
 import com.zennyt.games.domain.vo.MoveFastMetrics;
+import com.zennyt.games.domain.vo.PrevisionPuzzleLevel;
 import com.zennyt.games.domain.vo.PrevisionPuzzleMetrics;
 import com.zennyt.games.domain.vo.Score;
 
@@ -13,6 +18,13 @@ import com.zennyt.games.domain.vo.Score;
  * « Je planifie », donc testable unitairement et rejouable à l'identique.
  * Le score est <b>calculé serveur</b> à partir des métriques — le client ne
  * transmet jamais de points.
+ *
+ * <p><b>⚠️ PARITÉ MOCK ⇄ BACKEND.</b> Ce barème (Planifik « Chemin Optimal »,
+ * Move Fast, « Predictive Puzzle ») a un <b>miroir mobile exact</b> dans
+ * {@code mobile/lib/features/games/data/games_mock_repository.dart}
+ * (méthodes {@code _scoreOptimalPath} / {@code _scoreMoveFast} /
+ * {@code _scorePrevisionPuzzle}). Toute modification de barème DOIT être
+ * répercutée dans les deux fichiers <b>dans la même PR</b>.
  */
 public class PlanifikScoringService {
 
@@ -26,31 +38,45 @@ public class PlanifikScoringService {
      * </ul>
      */
     public Score scoreOptimalPath(PlanifikMetrics m) {
+        // Chaque niveau est noté /10 ; le score du mini-jeu est la MOYENNE
+        // arrondie des niveaux (toujours /10 → un seul Attempt par mini-jeu).
+        // ⚠️ Agrégation par moyenne à valider avec le psychologue (voir GAMES_MODULE.md).
+        double average = m.levels().stream()
+            .mapToInt(this::scoreOptimalPathLevel)
+            .average()
+            .orElse(0.0);
+        int points = (int) Math.round(average);
+        points = Math.max(0, Math.min(OptimalPathConfig.MAX_POINTS, points));
+        return new Score(points, OptimalPathConfig.MAX_POINTS, interpretMiniGame(points));
+    }
+
+    /** Note un niveau de « Chemin Optimal » sur 10 selon le barème de la fiche. */
+    private int scoreOptimalPathLevel(OptimalPathLevel level) {
         int points = 0;
 
-        // Respect du chemin optimal (±10%)
-        if (m.deviationFromOptimal() <= 0.10) {
-            points += 4;
+        // Respect du chemin optimal (tolérance ±optimal_path_tolerance) → 4 pts sinon 0
+        if (level.deviationFromOptimal() <= OptimalPathConfig.OPTIMAL_PATH_TOLERANCE) {
+            points += OptimalPathConfig.OPTIMAL_PATH_POINTS;
         }
 
-        // Nombre d'essais
-        points += switch (m.attempts()) {
-            case 1 -> 3;
-            case 2 -> 2;
-            default -> 1;
+        // Nombre d'essais (1→3 pts, 2→2 pts, ≥max_attempts→1 pt)
+        points += OptimalPathConfig.attemptScore(level.attempts());
+
+        // Évitement des zones coûteuses (TOTAL=2 / PARTIAL=1 / NONE=0)
+        points += switch (level.costlyZonesAvoided()) {
+            case TOTAL -> OptimalPathConfig.COSTLY_ZONES_POINTS;
+            case PARTIAL -> OptimalPathConfig.COSTLY_ZONES_PARTIAL_POINTS;
+            case NONE -> 0;
         };
 
-        // Évitement des zones coûteuses
-        if (m.costlyZonesAvoided()) {
-            points += 2;
-        }
+        // Objectifs secondaires (YES=1 / PARTIAL=règle à valider / NO=0)
+        points += switch (level.secondaryObjectivesReached()) {
+            case YES -> OptimalPathConfig.SECONDARY_OBJECTIVE_POINTS;
+            case PARTIAL -> OptimalPathConfig.SECONDARY_OBJECTIVE_PARTIAL_POINTS;
+            case NO -> 0;
+        };
 
-        // Objectifs secondaires
-        if (m.secondaryObjectives() > 0) {
-            points += 1;
-        }
-
-        return new Score(points, 10, interpretMiniGame(points));
+        return points;
     }
 
     /**
@@ -72,58 +98,72 @@ public class PlanifikScoringService {
     }
 
     /**
-     * Barème « Predictive Puzzle » (sur 10) :
+     * Barème CATÉGORIEL « Predictive Puzzle » de la fiche (Planifik #3, seule
+     * fiche validée « conforme au script »). Noté PAR NIVEAU sur 10 :
      * <ul>
-     *   <li>Plan complété : base 10 ; plan non complété : base 4</li>
-     *   <li>Erreur de séquence : -2 points</li>
-     *   <li>Mouvement inutile : -1 point</li>
-     *   <li>Retry : -1 point</li>
+     *   <li>Séquence correcte au 1er essai → 4 pts sinon 0</li>
+     *   <li>Erreurs de séquence : 0 → 3 · 1-2 → 2 · ≥3 → 1</li>
+     *   <li>Mouvements superflus (ratio) : &lt;10 % → 3 · &lt;25 % → 2 · ≥25 % → 1</li>
      * </ul>
+     * Score du mini-jeu = <b>moyenne arrondie</b> des niveaux joués. Un niveau
+     * échoué est noté sur ses compteurs réels (pas de « base 4 » forfaitaire).
+     * {@code global_plan_success} reste un indicateur qualitatif HORS du /10
+     * (exposé via {@code PrevisionPuzzleReport}).
      */
     public Score scorePrevisionPuzzle(PrevisionPuzzleMetrics m) {
-        int points = m.targetCompleted() ? 10 : 4;
-        points -= m.sequenceErrors() * 2;
-        points -= m.unnecessaryMoves();
-        points -= m.retries();
-        points = Math.max(0, Math.min(10, points));
-        return new Score(points, 10, interpretMiniGame(points));
+        double average = m.levels().stream()
+            .mapToInt(this::scorePrevisionPuzzleLevel)
+            .average()
+            .orElse(0.0);
+        int points = (int) Math.round(average);
+        points = Math.max(0, Math.min(PrevisionPuzzleConfig.MAX_POINTS, points));
+        return new Score(points, PrevisionPuzzleConfig.MAX_POINTS, interpretMiniGame(points));
+    }
+
+    /** Note un niveau de « Predictive Puzzle » sur 10 (barème catégoriel de la fiche). */
+    private int scorePrevisionPuzzleLevel(PrevisionPuzzleLevel level) {
+        return PrevisionPuzzleConfig.levelScore(
+            level.firstTrySuccess(), level.sequenceErrors(),
+            level.plannedMoves(), level.optimalMoves());
     }
 
     private int replayMoveFastScore(Iterable<Boolean> responses) {
         int points = 0;
-        int multiplier = 1;
+        int multiplier = MoveFastConfig.MIN_MULTIPLIER;
         int streakCounter = 0;
 
         for (boolean correct : responses) {
             if (correct) {
-                points += 50 * multiplier;
+                points += MoveFastConfig.BASE_POINTS_PER_CORRECT * multiplier;
                 streakCounter++;
-                if (streakCounter == 4) {
+                if (streakCounter == MoveFastConfig.CORRECT_STREAK_FOR_UPGRADE) {
                     streakCounter = 0;
-                    multiplier = Math.min(10, multiplier + 1);
+                    multiplier = Math.min(MoveFastConfig.MAX_MULTIPLIER, multiplier + 1);
                 }
                 continue;
             }
 
-            if (streakCounter > 0) {
+            if (MoveFastConfig.RESET_STREAK_ON_ERROR && streakCounter > 0) {
                 streakCounter = 0;
-            } else {
-                multiplier = Math.max(1, multiplier - 1);
+            } else if (MoveFastConfig.DECREASE_MULTIPLIER_ON_ERROR) {
+                multiplier = Math.max(MoveFastConfig.MIN_MULTIPLIER, multiplier - 1);
             }
         }
 
-        return points + (250 * multiplier);
+        return points + (MoveFastConfig.FINAL_BONUS_MULTIPLIER * multiplier);
     }
 
     private Iterable<Boolean> allCorrect(int count) {
         return java.util.Collections.nCopies(count, true);
     }
 
-    /** Interprétation « Chemin Optimal » : 0–3 Très faible, 4–6 Moyen, 7–10 Bon à excellent. */
+    /**
+     * Interprétation /10 d'un mini-jeu Planifik (0–3 / 4–6 / 7–10).
+     * Bandes provisoires isolées dans {@code OptimalPathConfig}
+     * (// AJOUT NON VALIDÉ PAR LE PSYCHOLOGUE). Partagé avec Predictive Puzzle.
+     */
     private String interpretMiniGame(int points) {
-        if (points <= 3) return "Très faible";
-        if (points <= 6) return "Moyen";
-        return "Bon à excellent";
+        return OptimalPathConfig.interpretMiniGame(points);
     }
 
     /**
@@ -147,10 +187,8 @@ public class PlanifikScoringService {
     }
 
     private String interpretMoveFast(double normalized) {
-        if (normalized < 40) return "Très faible";
-        if (normalized < 60) return "Moyen faible";
-        if (normalized < 75) return "Moyen";
-        if (normalized < 90) return "Bon";
-        return "Excellent";
+        // Bandes provisoires — voir MoveFastConfig.INTERPRETATION_BANDS
+        // (// AJOUT NON VALIDÉ PAR LE PSYCHOLOGUE).
+        return MoveFastConfig.interpret(normalized);
     }
 }

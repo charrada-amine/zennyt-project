@@ -1,40 +1,45 @@
 package com.zennyt.games.domain.vo;
 
+import java.util.List;
+
 /**
  * Métriques brutes remontées par le mini-jeu « Chemin Optimal » (Planifik #1).
  *
  * <p>Ce sont des mesures objectives collectées côté client (voir fiche
- * « Je planifie ») — jamais un score. Le calcul du score déterministe est du
- * ressort du domaine ({@code PlanifikScoringService}), garantissant que le
- * client ne peut pas s'auto-attribuer de points.
+ * « Je planifie ») — jamais un score. Le mini-jeu enchaîne plusieurs niveaux :
+ * les métriques portent la liste {@link #levels()} (une entrée par niveau). Le
+ * domaine ({@code PlanifikScoringService}) note chaque niveau /10 puis agrège
+ * (moyenne arrondie) en un score unique de mini-jeu — ce qui préserve la
+ * sémantique de l'agrégat (un seul {@code Attempt} par mini-jeu).
  *
- * @param attempts             nombre d'essais avant validation (≥ 1)
- * @param pathLength           longueur du chemin tracé par le joueur
- * @param optimalLength        longueur du chemin optimal théorique
- * @param costlyZonesAvoided   le joueur a-t-il évité les zones coûteuses
- * @param secondaryObjectives  nombre d'objectifs secondaires atteints
+ * @param levels métriques par niveau (au moins un niveau)
  */
-public record PlanifikMetrics(
-    int attempts,
-    int pathLength,
-    int optimalLength,
-    boolean costlyZonesAvoided,
-    int secondaryObjectives
-) implements GameMetrics {
+public record PlanifikMetrics(List<OptimalPathLevel> levels) implements GameMetrics {
+
     public PlanifikMetrics {
-        if (attempts < 1) {
-            throw new IllegalArgumentException("attempts doit être ≥ 1");
+        if (levels == null || levels.isEmpty()) {
+            throw new IllegalArgumentException("levels ne doit pas être vide");
         }
-        if (pathLength < 0 || optimalLength <= 0) {
-            throw new IllegalArgumentException("longueurs de chemin invalides");
+        if (levels.stream().anyMatch(l -> l == null)) {
+            throw new IllegalArgumentException("levels contient une valeur invalide");
         }
-        if (secondaryObjectives < 0) {
-            throw new IllegalArgumentException("secondaryObjectives doit être ≥ 0");
-        }
+        levels = List.copyOf(levels);
     }
 
-    /** Écart relatif au chemin optimal (0.0 = parfait). */
-    public double deviationFromOptimal() {
-        return Math.abs(pathLength - optimalLength) / (double) optimalLength;
+    /**
+     * Fabrique de compatibilité mono-niveau : construit une métrique à un seul
+     * niveau depuis les champs plats historiques. Le booléen d'évitement mappe
+     * {@code TOTAL}/{@code NONE} et le compteur d'objectifs {@code YES}/{@code NO}.
+     */
+    public PlanifikMetrics(int attempts, int pathLength, int optimalLength,
+                           boolean costlyZonesAvoided, int secondaryObjectives) {
+        this(List.of(new OptimalPathLevel(
+            0, attempts, pathLength, optimalLength,
+            costlyZonesAvoided ? CostlyZonesAvoided.TOTAL : CostlyZonesAvoided.NONE,
+            secondaryObjectives > 0 ? SecondaryObjectivesReached.YES : SecondaryObjectivesReached.NO)));
+    }
+
+    public int levelCount() {
+        return levels.size();
     }
 }

@@ -1,24 +1,31 @@
 package com.zennyt.games.domain.vo;
 
+import java.util.List;
+
 /**
- * Metrics for Planifik mini-game #3: Predictive Puzzle.
+ * Métriques de « Predictive Puzzle » (Planifik #3 — Tour de Hanoï).
  *
- * <p>The client submits measured planning/execution outcomes only; the score is
- * calculated by the domain service.
+ * <p>Le client soumet des mesures de planification/exécution par niveau — jamais
+ * un score. Le mini-jeu enchaîne plusieurs niveaux : les métriques portent la
+ * liste {@link #levels()}. Le domaine ({@code PlanifikScoringService}) note
+ * chaque niveau /10 (barème catégoriel de la fiche) puis agrège par moyenne
+ * arrondie en un score unique de mini-jeu (un seul {@code Attempt}).
+ *
+ * @param levels métriques par niveau joué (au moins un niveau)
  */
-public record PrevisionPuzzleMetrics(
-    boolean targetCompleted,
-    int sequenceErrors,
-    int unnecessaryMoves,
-    int retries,
-    int plannedMoves,
-    int optimalMoves
-) implements GameMetrics {
+public record PrevisionPuzzleMetrics(List<PrevisionPuzzleLevel> levels) implements GameMetrics {
+
     public PrevisionPuzzleMetrics {
-        if (sequenceErrors < 0) throw new IllegalArgumentException("sequenceErrors >= 0 requis");
-        if (unnecessaryMoves < 0) throw new IllegalArgumentException("unnecessaryMoves >= 0 requis");
-        if (retries < 0) throw new IllegalArgumentException("retries >= 0 requis");
-        if (plannedMoves < 0) throw new IllegalArgumentException("plannedMoves >= 0 requis");
-        if (optimalMoves < 1) throw new IllegalArgumentException("optimalMoves >= 1 requis");
+        if (levels == null || levels.isEmpty()) {
+            throw new IllegalArgumentException("levels ne doit pas être vide");
+        }
+        if (levels.stream().anyMatch(l -> l == null)) {
+            throw new IllegalArgumentException("levels contient une valeur invalide");
+        }
+        levels = List.copyOf(levels);
+    }
+
+    public int levelCount() {
+        return levels.size();
     }
 }

@@ -71,6 +71,10 @@ public class GameSession extends AggregateRoot {
             throw new IllegalArgumentException(
                 miniGame + " n'appartient pas au type " + gameType);
         }
+        if (!miniGame.isPlayable()) {
+            throw new IllegalArgumentException(
+                "Mini-jeu non jouable (barème non implémenté) : " + miniGame);
+        }
         if (isRecorded(miniGame)) {
             throw new IllegalStateException("Mini-jeu déjà joué : " + miniGame);
         }
@@ -95,9 +99,18 @@ public class GameSession extends AggregateRoot {
         return attempts.stream().anyMatch(a -> a.miniGame() == miniGame);
     }
 
-    /** Mini-jeux attendus pour le type de cette session. */
+    /**
+     * Mini-jeux attendus pour compléter une session de ce type.
+     *
+     * <p>Seuls les mini-jeux <b>jouables</b> ({@link MiniGame#isPlayable()}) sont
+     * pris en compte : un mini-jeu dont le barème n'est pas encore implémenté
+     * (ex. {@code TASK_SCHEDULING}) est temporairement exclu, sinon la session
+     * ne pourrait jamais passer en {@code COMPLETED} ni émettre son événement.
+     */
     public List<MiniGame> expectedMiniGames() {
-        return Arrays.stream(MiniGame.values()).filter(m -> m.belongsTo(gameType)).toList();
+        return Arrays.stream(MiniGame.values())
+            .filter(m -> m.belongsTo(gameType) && m.isPlayable())
+            .toList();
     }
 
     public int compositeRaw() {

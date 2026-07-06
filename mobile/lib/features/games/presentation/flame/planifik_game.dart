@@ -171,18 +171,32 @@ class PlanifikGame extends FlameGame {
 
   int get totalObjectives => config.objectives.length;
 
-  /// Construit les métriques objectives à partir du tracé courant.
+  /// Construit les métriques objectives du NIVEAU courant à partir du tracé.
   ///
-  /// [attempts] est le nombre d'essais de validation (géré par l'écran).
-  /// Retourne `null` si le chemin n'atteint pas encore l'arrivée.
-  PlanifikMetrics? buildMetrics({required int attempts}) {
+  /// [levelIndex] index 0-based du niveau ; [attempts] nombre d'essais de
+  /// validation (géré par l'écran). Retourne `null` si le chemin n'atteint pas
+  /// encore l'arrivée. Les enums suivent la fiche : le Flame ne connaît que
+  /// l'évitement binaire (→ TOTAL/NONE) mais distingue l'atteinte partielle des
+  /// objectifs secondaires (YES/PARTIAL/NO).
+  PlanifikLevelMetrics? buildLevelMetrics({
+    required int levelIndex,
+    required int attempts,
+  }) {
     if (!isComplete) return null;
-    return PlanifikMetrics(
+    final secondary = totalObjectives == 0 || bonusCount == 0
+        ? SecondaryObjectivesReached.no
+        : bonusCount >= totalObjectives
+        ? SecondaryObjectivesReached.yes
+        : SecondaryObjectivesReached.partial;
+    return PlanifikLevelMetrics(
+      levelIndex: levelIndex,
       attempts: attempts,
       pathLength: stepCount,
       optimalLength: config.optimalLength,
-      costlyZonesAvoided: !crossesCostly,
-      secondaryObjectives: bonusCount,
+      costlyZonesAvoided: crossesCostly
+          ? CostlyZonesAvoided.none
+          : CostlyZonesAvoided.total,
+      secondaryObjectivesReached: secondary,
     );
   }
 

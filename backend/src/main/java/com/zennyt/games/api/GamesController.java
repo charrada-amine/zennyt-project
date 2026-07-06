@@ -55,9 +55,11 @@ public class GamesController {
             @PathVariable UUID sessionId,
             @Valid @RequestBody SubmitResultRequest request) {
 
-        GameSession session = submitResult.execute(
-            new SubmitGameResultCommand(sessionId, request.miniGame(), request.toMetrics()));
+        SubmitGameResultUseCase.Outcome outcome = submitResult.execute(
+            new SubmitGameResultCommand(sessionId, request.miniGame(),
+                request.toMetrics(), request.toCalibration(sessionId)));
 
-        return ResponseEntity.ok(GameSessionResponse.from(session));
+        return ResponseEntity.ok(GameSessionResponse.from(
+            outcome.session(), outcome.moveFastReport(), outcome.previsionPuzzleReport()));
     }
 }

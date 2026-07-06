@@ -8,10 +8,12 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../domain/entities/device_calibration.dart';
 import '../../domain/entities/game_session.dart';
 import '../../domain/entities/game_type.dart';
 import '../../domain/entities/mini_game.dart';
 import '../../domain/entities/move_fast_metrics.dart';
+import '../device_calibration_probe.dart';
 import '../games_providers.dart';
 import '../widgets/game_system_components.dart';
 
@@ -40,9 +42,15 @@ class MoveFastScreen extends ConsumerStatefulWidget {
 }
 
 class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
+  // Condition de fin EFFECTIVE — miroir de MoveFastConfig.SESSION_END_CONDITION
+  // (backend). ⚠️ DIVERGE de la fiche (reach_max_multiplier) — voir GAMES_MODULE.md.
   static const int _sessionSeconds = 84;
   static const int _targetCorrectAnswers = 12;
   static const int _maxResponses = 18;
+  // Essais d'échauffement (warm-up) — miroir de MoveFastConfig.PRACTICE_TRIAL_COUNT.
+  // Les premiers essais sont marqués practiceTrial=true et exclus par le backend
+  // du scoring et des statistiques (fiche révisée, Tableau 2).
+  static const int _practiceTrialCount = 3;
   // Seuils de progression : niv 1 Orientation (0–4), niv 2 Mouvement (4–8),
   // niv 3 règle aléatoire (8+).
   static const int _movementLevelThreshold = 4;
@@ -80,8 +88,15 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
   GameSession? _serverSession;
   GameDirection? _chosenDirection;
   GameDirection? _correctDirection;
-  final List<bool> _responseOutcomes = [];
-  final List<int> _reactionTimesMs = [];
+  // Essais mesurés dans l'ordre de jeu (échauffement inclus, marqué practiceTrial).
+  // Le score et les indicateurs de flexibilité sont calculés côté serveur.
+  final List<MoveFastResponse> _responses = [];
+  // Règle de l'essai précédent, pour détecter les bascules (isSwitchTrial) et
+  // les erreurs persévératives (appliedOldRule).
+  _MoveFastRule? _previousTrialRule;
+  // Socle de calibrage appareil (Tâche 4) : mesure la latence machine hors
+  // échauffement ; le calibrage n'affecte QUE les indicateurs corrigés serveur.
+  final DeviceCalibrationProbe _calibrationProbe = DeviceCalibrationProbe();
 
   @override
   void initState() {
@@ -129,8 +144,9 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
       _resultSubmitted = false;
       _submittingResult = false;
       _serverSession = null;
-      _responseOutcomes.clear();
-      _reactionTimesMs.clear();
+      _responses.clear();
+      _previousTrialRule = null;
+      _calibrationProbe.reset();
       _chosenDirection = null;
       _correctDirection = null;
       _stimulus = _buildStimulus();
@@ -178,23 +194,33 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
   }
 
   Future<void> _submitMoveFastResult() async {
-    if (_resultSubmitted || _responseOutcomes.isEmpty) return;
+    // On n'envoie que s'il existe au moins un essai NOTÉ (hors échauffement).
+    final scoredCount = _responses.where((r) => !r.practiceTrial).length;
+    if (_resultSubmitted || scoredCount == 0) return;
     _resultSubmitted = true;
     setState(() => _submittingResult = true);
+
+    final practiceExcluded = _responses.where((r) => r.practiceTrial).length;
 
     try {
       final session = await (_sessionStart ??= ref
           .read(gamesRepositoryProvider)
           .startSession(GameType.moveFast));
+      final calibration = _calibrationProbe.build(
+        inputMode: _inputMode == _MoveFastInputMode.tactile
+            ? InputMode.swipe
+            : InputMode.touch,
+      );
       final updated = await ref
           .read(gamesRepositoryProvider)
           .submitResult(
             sessionId: session.id,
             miniGame: MiniGame.moveFastCore,
             metrics: MoveFastMetrics(
-              correctResponses: List<bool>.unmodifiable(_responseOutcomes),
-              reactionTimesMs: List<int>.unmodifiable(_reactionTimesMs),
+              practiceTrialExcludedCount: practiceExcluded,
+              responses: List<MoveFastResponse>.unmodifiable(_responses),
             ),
+            deviceCalibration: calibration,
           );
       if (!mounted) return;
       setState(() => _serverSession = updated);
@@ -256,6 +282,21 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
     final isCorrect = direction == correct;
     final reactionMs = _reactionWatch.elapsedMilliseconds;
 
+    // Métriques de flexibilité cognitive (calcul serveur — on ne fait que mesurer).
+    final currentRule = _rule;
+    final isPractice = _responses.length < _practiceTrialCount;
+    final isSwitchTrial =
+        _previousTrialRule != null && _previousTrialRule != currentRule;
+    // Erreur persévérative : sur une erreur, la direction choisie correspond à
+    // celle qu'imposait l'ancienne règle (application de la règle précédente).
+    final oldRuleDirection = _previousTrialRule == null
+        ? null
+        : (_previousTrialRule == _MoveFastRule.orientation
+              ? _stimulus.noseDirection
+              : _stimulus.movementDirection);
+    final appliedOldRule =
+        !isCorrect && oldRuleDirection != null && direction == oldRuleDirection;
+
     setState(() {
       _chosenDirection = direction;
       _correctDirection = correct;
@@ -264,8 +305,19 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
           : _MoveFastFeedback.error;
       _totalResponses++;
       _reactionTotalMs += reactionMs;
-      _responseOutcomes.add(isCorrect);
-      _reactionTimesMs.add(reactionMs);
+      _responses.add(
+        MoveFastResponse(
+          practiceTrial: isPractice,
+          correct: isCorrect,
+          reactionTimeMs: reactionMs,
+          ruleActive: currentRule == _MoveFastRule.orientation
+              ? MoveFastRule.orientation
+              : MoveFastRule.movement,
+          isSwitchTrial: isSwitchTrial,
+          appliedOldRule: appliedOldRule,
+        ),
+      );
+      _previousTrialRule = currentRule;
 
       if (isCorrect) {
         _correctResponses++;
@@ -290,6 +342,11 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
         _completedSeriesStreak = 0;
       }
     });
+
+    // Latence machine mesurée UNIQUEMENT hors échauffement (calibrage technique).
+    if (!isPractice) {
+      _calibrationProbe.sampleInputLatency();
+    }
 
     Future<void>.delayed(const Duration(milliseconds: 650), () {
       if (!mounted || _stage != _MoveFastStage.gameplay) return;

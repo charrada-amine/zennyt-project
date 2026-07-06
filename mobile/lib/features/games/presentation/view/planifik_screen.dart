@@ -43,11 +43,15 @@ class _PlanifikScreenState extends ConsumerState<PlanifikScreen> {
   List<GridConfig> _levelConfigs = GridConfig.randomLevels();
 
   _PlanifikStage _stage = _PlanifikStage.intro;
-  int _attempts = 0;
+  // Essais de validation sur le NIVEAU courant (incrémenté à chaque mauvaise route).
+  int _levelAttempts = 0;
   bool _busy = false;
   int _level = 0;
   int _score = 0;
   PlanifikMetrics? _lastMetrics;
+  // Cumul explicite des métriques PAR NIVEAU — soumis en un seul PlanifikMetrics
+  // au dernier niveau (le backend note chaque niveau /10 puis fait la moyenne).
+  final List<PlanifikLevelMetrics> _levelMetrics = [];
 
   Future<void> _beginGame() async {
     setState(() {
@@ -56,19 +60,22 @@ class _PlanifikScreenState extends ConsumerState<PlanifikScreen> {
       _score = 0;
       _game = PlanifikGame(config: _levelConfigs[_level]);
       _stage = _PlanifikStage.gameplay;
-      _attempts = 0;
+      _levelAttempts = 0;
+      _levelMetrics.clear();
       _lastMetrics = null;
     });
     await ref.read(gamesControllerProvider.notifier).start(GameType.planifik);
   }
 
-  /// Route correcte validée : +250, puis niveau suivant (plus dur) ou, au
-  /// dernier niveau, soumission au backend et écran de score.
+  /// Route correcte validée : +250, on fige les métriques du niveau, puis niveau
+  /// suivant (plus dur) ou, au dernier niveau, soumission au backend.
   void _onCorrectRoute() {
     _score += 250;
+    _captureLevelMetrics();
     if (_level < _levelConfigs.length - 1) {
       setState(() {
         _level++;
+        _levelAttempts = 0;
         _game = PlanifikGame(config: _levelConfigs[_level]);
       });
     } else {
@@ -77,14 +84,24 @@ class _PlanifikScreenState extends ConsumerState<PlanifikScreen> {
   }
 
   void _onWrongRoute() {
+    _levelAttempts++;
     setState(() => _score = math.max(0, _score - 2));
   }
 
+  /// Fige les métriques du niveau courant (essais = mauvaises routes + 1).
+  void _captureLevelMetrics() {
+    final metrics = _game.buildLevelMetrics(
+      levelIndex: _level,
+      attempts: _levelAttempts + 1,
+    );
+    if (metrics != null) _levelMetrics.add(metrics);
+  }
+
   Future<void> _submitFinal() async {
-    final next = _attempts + 1;
-    final metrics = _game.buildMetrics(attempts: next);
-    if (metrics == null) return;
-    _attempts = next;
+    if (_levelMetrics.isEmpty) return;
+    final metrics = PlanifikMetrics(
+      levels: List<PlanifikLevelMetrics>.unmodifiable(_levelMetrics),
+    );
     _lastMetrics = metrics;
     setState(() => _busy = true);
     await ref

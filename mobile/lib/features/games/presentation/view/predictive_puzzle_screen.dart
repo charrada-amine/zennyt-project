@@ -63,13 +63,15 @@ class _PredictivePuzzleScreenState
   // Current difficulty level (index into [_puzzleLevels]).
   int _level = 0;
 
-  // Aggregated metrics across every level of the session, submitted once at
-  // the end so the backend still records a single Predictive Puzzle attempt.
-  int _accPlanned = 0;
-  int _accErrors = 0;
-  int _accOptimal = 0;
-  int _accSurplus = 0;
-  int _accRetries = 0;
+  // Métriques PAR NIVEAU, cumulées puis soumises une seule fois (le backend
+  // note chaque niveau /10 puis fait la moyenne → un seul Attempt).
+  final List<PrevisionPuzzleLevelMetrics> _levelMetrics = [];
+
+  // Agrégats dérivés pour l'affichage des résultats (le score fait autorité serveur).
+  int get _accPlanned => _levelMetrics.fold(0, (s, l) => s + l.plannedMoves);
+  int get _accErrors => _levelMetrics.fold(0, (s, l) => s + l.sequenceErrors);
+  int get _accOptimal => _levelMetrics.fold(0, (s, l) => s + l.optimalMoves);
+  int get _accRetries => _levelMetrics.fold(0, (s, l) => s + l.retries);
 
   _PuzzleLevel get _config => _puzzleLevels[_level];
   int get _discCount => _config.discCount;
@@ -112,11 +114,7 @@ class _PredictivePuzzleScreenState
       _targetCompleted = false;
       _selectedSource = null;
       _selectedDestination = null;
-      _accPlanned = 0;
-      _accErrors = 0;
-      _accOptimal = 0;
-      _accSurplus = 0;
-      _accRetries = 0;
+      _levelMetrics.clear();
       _feedback = 'Level 1: plan the $_discCount-disc sequence.';
       _planningTowers = _initialTowers(_discCount);
       _executionTowers = _initialTowers(_discCount);
@@ -312,15 +310,23 @@ class _PredictivePuzzleScreenState
   void _finishRun(bool completed) {
     _runTimer?.cancel();
 
-    // Fold this level's stats into the session totals.
-    _accPlanned += _queue.length;
-    _accErrors += _errors;
-    _accOptimal += _optimalMoves;
-    _accSurplus += math.max(0, _queue.length - _optimalMoves);
-    _accRetries += _retries;
+    // Fige les métriques du niveau courant (barème catégoriel côté serveur).
+    // firstTrySuccess : réussi au 1er run, sans retry ni erreur.
+    _levelMetrics.add(
+      PrevisionPuzzleLevelMetrics(
+        levelIndex: _level,
+        discCount: _discCount,
+        firstTrySuccess: completed && _retries == 0 && _errors == 0,
+        sequenceErrors: _errors,
+        plannedMoves: _queue.length,
+        optimalMoves: _optimalMoves,
+        retries: _retries,
+        completed: completed,
+      ),
+    );
 
     // A clean run on a non-final level advances difficulty; a failure (or the
-    // final level) ends the session and submits the aggregated metrics.
+    // final level) ends the session and submits the per-level metrics.
     if (completed && !_isLastLevel) {
       _advanceLevel();
       return;
@@ -331,7 +337,7 @@ class _PredictivePuzzleScreenState
       _targetCompleted = completed;
       _stage = _PuzzleStage.results;
     });
-    _submitFinal(completed: completed);
+    _submitFinal();
   }
 
   void _advanceLevel() {
@@ -354,19 +360,15 @@ class _PredictivePuzzleScreenState
     });
   }
 
-  Future<void> _submitFinal({required bool completed}) async {
+  Future<void> _submitFinal() async {
+    if (_levelMetrics.isEmpty) return;
     setState(() => _busy = true);
     await ref
         .read(gamesControllerProvider.notifier)
         .submit(
           miniGame: MiniGame.previsionPuzzle,
           metrics: PrevisionPuzzleMetrics(
-            targetCompleted: completed,
-            sequenceErrors: _accErrors,
-            unnecessaryMoves: _accSurplus,
-            retries: _accRetries,
-            plannedMoves: _accPlanned,
-            optimalMoves: _accOptimal,
+            levels: List<PrevisionPuzzleLevelMetrics>.unmodifiable(_levelMetrics),
           ),
         );
     if (!mounted) return;

@@ -3,16 +3,24 @@ package com.zennyt.games.application.usecase;
 import com.zennyt.games.application.command.SubmitGameResultCommand;
 import com.zennyt.games.domain.model.GameSession;
 import com.zennyt.games.domain.model.MiniGame;
+import com.zennyt.games.domain.repository.DeviceCalibrationRepository;
 import com.zennyt.games.domain.repository.GameSessionRepository;
+import com.zennyt.games.domain.service.CalibrationService;
 import com.zennyt.games.domain.service.PlanifikScoringService;
+import com.zennyt.games.domain.vo.DeviceCalibration;
+import com.zennyt.games.domain.vo.MoveFastFlexibilityReport;
 import com.zennyt.games.domain.vo.MoveFastMetrics;
 import com.zennyt.games.domain.vo.PlanifikMetrics;
 import com.zennyt.games.domain.vo.PrevisionPuzzleMetrics;
+import com.zennyt.games.domain.vo.PrevisionPuzzleReport;
 import com.zennyt.games.domain.vo.Score;
 import com.zennyt.shared.application.exception.NotFoundException;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Duration;
+import java.time.Instant;
 
 /**
  * Use case : soumettre le résultat d'un mini-jeu.
@@ -30,17 +38,34 @@ import org.springframework.transaction.annotation.Transactional;
 public class SubmitGameResultUseCase {
 
     private final GameSessionRepository repository;
+    private final DeviceCalibrationRepository calibrationRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final PlanifikScoringService scoring = new PlanifikScoringService();
+    private final CalibrationService calibration = new CalibrationService();
 
     public SubmitGameResultUseCase(GameSessionRepository repository,
+                                   DeviceCalibrationRepository calibrationRepository,
                                    ApplicationEventPublisher eventPublisher) {
         this.repository = repository;
+        this.calibrationRepository = calibrationRepository;
         this.eventPublisher = eventPublisher;
     }
 
+    /**
+     * Résultat d'une soumission : la session mise à jour et, selon le jeu, les
+     * indicateurs dérivés côté serveur (flexibilité Move Fast, plan Predictive Puzzle).
+     *
+     * @param session               session après enregistrement du résultat
+     * @param moveFastReport         indicateurs Move Fast (null pour les autres jeux)
+     * @param previsionPuzzleReport  indicateurs Predictive Puzzle (null sinon)
+     */
+    public record Outcome(GameSession session,
+                          MoveFastFlexibilityReport moveFastReport,
+                          PrevisionPuzzleReport previsionPuzzleReport) {
+    }
+
     @Transactional
-    public GameSession execute(SubmitGameResultCommand command) {
+    public Outcome execute(SubmitGameResultCommand command) {
         GameSession session = repository.findById(command.sessionId())
             .orElseThrow(() -> new NotFoundException(
                 "Session introuvable : " + command.sessionId()));
@@ -50,11 +75,47 @@ public class SubmitGameResultUseCase {
 
         GameSession saved = repository.save(session);
 
+        // Calibrage appareil (optionnel) : persisté tel quel pour audit ; la
+        // correction s'applique au calcul des indicateurs, jamais aux temps bruts.
+        if (command.deviceCalibration() != null) {
+            calibrationRepository.save(command.deviceCalibration());
+        }
+
         // Publication des Domain Events après persistance réussie
         saved.domainEvents().forEach(eventPublisher::publishEvent);
         saved.clearEvents();
 
-        return saved;
+        return new Outcome(saved, moveFastReport(command, saved), previsionPuzzleReport(command));
+    }
+
+    /** Dérive les indicateurs qualitatifs pour « Predictive Puzzle » ; null sinon. */
+    private PrevisionPuzzleReport previsionPuzzleReport(SubmitGameResultCommand command) {
+        if (command.miniGame() != MiniGame.PREVISION_PUZZLE
+            || !(command.metrics() instanceof PrevisionPuzzleMetrics metrics)) {
+            return null;
+        }
+        return PrevisionPuzzleReport.from(metrics);
+    }
+
+    /** Dérive les indicateurs de flexibilité pour « Je bouge » ; null sinon. */
+    private MoveFastFlexibilityReport moveFastReport(SubmitGameResultCommand command, GameSession saved) {
+        if (command.miniGame() != MiniGame.MOVE_FAST_CORE
+            || !(command.metrics() instanceof MoveFastMetrics metrics)) {
+            return null;
+        }
+        Instant end = saved.completedAt() != null ? saved.completedAt() : Instant.now();
+        int durationSec = (int) Math.max(0, Duration.between(saved.startedAt(), end).toSeconds());
+
+        // Le score Move Fast ne dépend pas du temps ; le calibrage n'affecte QUE
+        // les indicateurs comportementaux (versions *_adjusted).
+        DeviceCalibration cal = command.deviceCalibration();
+        double offset = calibration.offsetMs(cal);
+        boolean applied = cal != null;
+        boolean reliable = cal == null || !cal.reducedReliability();
+
+        return MoveFastFlexibilityReport.from(
+            metrics, durationSec, saved.status().name().toLowerCase(),
+            offset, applied, reliable);
     }
 
     /** Sélectionne le barème selon le mini-jeu. Seul OPTIMAL_PATH est implémenté. */

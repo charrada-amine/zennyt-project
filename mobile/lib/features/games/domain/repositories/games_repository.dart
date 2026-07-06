@@ -1,3 +1,4 @@
+import '../entities/device_calibration.dart';
 import '../entities/game_session.dart';
 import '../entities/game_type.dart';
 import '../entities/game_metrics.dart';
@@ -14,9 +15,11 @@ abstract class GamesRepository {
   Future<GameSession> startSession(GameType gameType);
 
   /// `POST /games/sessions/{id}/results` — soumet les métriques d'un mini-jeu.
+  /// [deviceCalibration] est optionnel (socle de calibrage appareil, Tâche 4).
   Future<GameSession> submitResult({
     required String sessionId,
     required MiniGame miniGame,
     required GameMetrics metrics,
+    DeviceCalibration? deviceCalibration,
   });
 }

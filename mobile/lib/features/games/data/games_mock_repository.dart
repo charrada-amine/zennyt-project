@@ -1,3 +1,4 @@
+import '../domain/entities/device_calibration.dart';
 import '../domain/entities/game_score.dart';
 import '../domain/entities/game_session.dart';
 import '../domain/entities/game_type.dart';
@@ -14,9 +15,20 @@ import '../domain/repositories/games_repository.dart';
 /// (fiche « Je planifie ») pour renvoyer un score cohérent. Le jour de
 /// l'intégration, on remplace cette source par [GamesRepositoryImpl] dans
 /// `games_providers.dart` — rien d'autre ne change (ni contrôleur, ni Flame).
+///
+/// ⚠️ PARITÉ MOCK ⇄ BACKEND. Les méthodes `_scoreOptimalPath` / `_scoreMoveFast`
+/// / `_scorePrevisionPuzzle` sont le MIROIR EXACT du barème serveur
+/// `backend/.../games/domain/service/PlanifikScoringService.java`
+/// (+ constantes `MoveFastConfig` / `OptimalPathConfig` / `PrevisionPuzzleConfig`).
+/// Toute modification de barème DOIT être répercutée dans les deux fichiers
+/// DANS LA MÊME PR.
 class GamesMockRepository implements GamesRepository {
   final Map<String, GameSession> _sessions = {};
   int _counter = 0;
+
+  // Config « Chemin Optimal » — miroir de OptimalPathConfig (backend).
+  static const double _optimalPathTolerance = 0.10; // optimal_path_tolerance
+  static const int _maxAttempts = 3; // max_attempts
 
   @override
   Future<GameSession> startSession(GameType gameType) async {
@@ -43,6 +55,9 @@ class GamesMockRepository implements GamesRepository {
     required String sessionId,
     required MiniGame miniGame,
     required GameMetrics metrics,
+    // Accepté pour parité d'interface ; le mock ne calcule pas d'indicateurs
+    // corrigés (le calibrage n'affecte pas le score).
+    DeviceCalibration? deviceCalibration,
   }) async {
     await Future<void>.delayed(const Duration(milliseconds: 150));
     final current = _sessions[sessionId];
@@ -88,29 +103,46 @@ class GamesMockRepository implements GamesRepository {
   }
 
   /// Barème « Chemin Optimal » (sur 10) — identique au PlanifikScoringService backend.
+  ///
+  /// Chaque niveau est noté /10 puis agrégé par MOYENNE ARRONDIE (un seul Attempt
+  /// par mini-jeu). ⚠️ Agrégation par moyenne à valider avec le psychologue.
   GameScore _scoreOptimalPath(PlanifikMetrics m) {
-    var points = 0;
-    final deviation = (m.pathLength - m.optimalLength).abs() / m.optimalLength;
-    if (deviation <= 0.10) points += 4;
-    points += switch (m.attempts) {
-      1 => 3,
-      2 => 2,
-      _ => 1,
-    };
-    if (m.costlyZonesAvoided) points += 2;
-    if (m.secondaryObjectives > 0) points += 1;
+    final total = m.levels.fold<int>(0, (sum, l) => sum + _scoreOptimalPathLevel(l));
+    final average = m.levels.isEmpty ? 0.0 : total / m.levels.length;
+    final points = average.round().clamp(0, 10).toInt();
 
-    final level = points <= 3
-        ? 'Très faible'
-        : points <= 6
-        ? 'Moyen'
-        : 'Bon à excellent';
     return GameScore(
       rawPoints: points,
       maxPoints: 10,
       normalized: points * 10.0,
-      level: level,
+      level: _interpretMiniGame(points),
     );
+  }
+
+  /// Note un niveau /10 selon le barème de la fiche (miroir du backend).
+  int _scoreOptimalPathLevel(PlanifikLevelMetrics l) {
+    var points = 0;
+    final deviation = (l.pathLength - l.optimalLength).abs() / l.optimalLength;
+    if (deviation <= _optimalPathTolerance) points += 4;
+    points += _attemptScore(l.attempts);
+    points += switch (l.costlyZonesAvoided) {
+      CostlyZonesAvoided.total => 2,
+      CostlyZonesAvoided.partial => 1, // raffinement à valider
+      CostlyZonesAvoided.none => 0,
+    };
+    points += switch (l.secondaryObjectivesReached) {
+      SecondaryObjectivesReached.yes => 1,
+      SecondaryObjectivesReached.partial => 0, // règle à valider
+      SecondaryObjectivesReached.no => 0,
+    };
+    return points;
+  }
+
+  /// Bandes /10 par mini-jeu (0–3 / 4–6 / 7–10) — provisoires, non validées.
+  String _interpretMiniGame(int points) {
+    if (points <= 3) return 'Très faible';
+    if (points <= 6) return 'Moyen';
+    return 'Bon à excellent';
   }
 
   GameScore _scoreMoveFast(MoveFastMetrics m) {
@@ -137,25 +169,46 @@ class GamesMockRepository implements GamesRepository {
     );
   }
 
+  /// Barème CATÉGORIEL « Predictive Puzzle » — miroir EXACT du backend
+  /// (PrevisionPuzzleConfig). Chaque niveau /10, puis moyenne arrondie.
   GameScore _scorePrevisionPuzzle(PrevisionPuzzleMetrics m) {
-    var points = m.targetCompleted ? 10 : 4;
-    points -= m.sequenceErrors * 2;
-    points -= m.unnecessaryMoves;
-    points -= m.retries;
-    points = points.clamp(0, 10).toInt();
-
-    final level = points <= 3
-        ? 'Très faible'
-        : points <= 6
-        ? 'Moyen'
-        : 'Bon à excellent';
+    final total = m.levels.fold<int>(0, (sum, l) => sum + _scorePuzzleLevel(l));
+    final average = m.levels.isEmpty ? 0.0 : total / m.levels.length;
+    final points = average.round().clamp(0, 10).toInt();
 
     return GameScore(
       rawPoints: points,
       maxPoints: 10,
       normalized: points * 10.0,
-      level: level,
+      level: _interpretMiniGame(points),
     );
+  }
+
+  /// Score /10 d'un niveau : 1er essai + erreurs de séquence + coups superflus.
+  int _scorePuzzleLevel(PrevisionPuzzleLevelMetrics l) {
+    final firstTry = l.firstTrySuccess ? 4 : 0;
+    final seqErrors = l.sequenceErrors == 0
+        ? 3
+        : l.sequenceErrors <= 2
+        ? 2
+        : 1;
+    final ratio = l.optimalMoves <= 0
+        ? 0.0
+        : (l.plannedMoves - l.optimalMoves) / l.optimalMoves;
+    final extra = ratio < 0.10
+        ? 3
+        : ratio < 0.25
+        ? 2
+        : 1;
+    return firstTry + seqErrors + extra;
+  }
+
+  /// Points « nombre d'essais » — miroir de OptimalPathConfig.attemptScore :
+  /// 1 essai = _maxAttempts pts, −1 par essai supplémentaire, plancher 1.
+  int _attemptScore(int attempts) {
+    final capped = attempts < _maxAttempts ? attempts : _maxAttempts;
+    final points = _maxAttempts + 1 - capped;
+    return points < 1 ? 1 : points;
   }
 
   int _replayMoveFastScore(Iterable<bool> responses) {
@@ -183,7 +236,10 @@ class GamesMockRepository implements GamesRepository {
 
   int _expectedMiniGames(GameType gameType) {
     return switch (gameType) {
-      GameType.planifik => 3,
+      // Transitoire : TASK_SCHEDULING n'est pas jouable (barème non implémenté),
+      // il est exclu de la complétion — miroir du backend (MiniGame.isPlayable()).
+      // Planifik se complète donc sur OPTIMAL_PATH + PREVISION_PUZZLE.
+      GameType.planifik => 2,
       GameType.moveFast => 1,
       GameType.memoryQuest || GameType.decision => 0,
     };

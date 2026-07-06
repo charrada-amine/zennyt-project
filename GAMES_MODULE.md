@@ -56,39 +56,59 @@ Contexte **indépendant** : ne dépend que de `shared`, s'intègre au reste **un
 | **api** | `api/GamesController.java` | Contrôleur REST `/api/v1/games`. Traduit HTTP → commande, délègue au use case. Aucune logique métier. |
 | | `api/dto/StartSessionRequest.java` | Body `POST /sessions` — `gameType` (le joueur vient du JWT). |
 | | `api/dto/SubmitResultRequest.java` | Body `POST /sessions/{id}/results` — `miniGame` + payload union `Metrics` → `toMetrics()`. |
-| | `api/dto/GameSessionResponse.java` | Réponse : état complet de la session + score composite + attempts. |
+| | `api/dto/GameSessionResponse.java` | Réponse : état complet de la session + score composite + attempts + **`moveFastIndicators`** / **`previsionPuzzleIndicators`** (présents selon le mini-jeu soumis). |
 | | `api/dto/ScoreResponse.java` | Sérialisation d'un `Score`. |
 | **application** | `application/usecase/StartGameSessionUseCase.java` | Crée l'agrégat `GameSession.start(...)` et le persiste. |
-| | `application/usecase/SubmitGameResultUseCase.java` | Charge la session, calcule le `Score` (domaine), enregistre, persiste, **publie les Domain Events après commit**. |
+| | `application/usecase/SubmitGameResultUseCase.java` | Charge la session, calcule le `Score` (domaine), enregistre, persiste, **publie les Domain Events après commit**. Renvoie un `Outcome(session, moveFastReport, previsionPuzzleReport)` — indicateurs dérivés serveur selon le mini-jeu. |
 | | `application/command/StartGameSessionCommand.java` | `(playerId, gameType)`. |
 | | `application/command/SubmitGameResultCommand.java` | `(sessionId, miniGame, GameMetrics)`. |
 | **domain / model** | `domain/model/GameSession.java` | **Racine d'agrégat**. Invariants : 1 résultat/mini-jeu, refus d'un mini-jeu étranger au type, complétion auto + émission d'event au dernier mini-jeu. Java pur. |
-| | `domain/model/MiniGame.java` | Enum des mini-jeux + `maxPoints` du barème + `belongsTo(gameType)`. |
+| | `domain/model/MiniGame.java` | Enum des mini-jeux + `maxPoints` du barème + `belongsTo(gameType)` + `isPlayable()` (exclut les mini-jeux sans barème de la complétion). |
 | | `domain/model/Attempt.java` | Résultat immuable d'un mini-jeu (`miniGame`, `score`, `recordedAt`). |
 | **domain / vo** | `domain/vo/GameType.java` | `PLANIFIK`, `MOVE_FAST`, `MEMORY_QUEST`, `DECISION`. |
 | | `domain/vo/SessionStatus.java` | `IN_PROGRESS`, `COMPLETED`, `ABANDONED`. |
 | | `domain/vo/Score.java` | VO auto-validant (`rawPoints`, `maxPoints`, `level`) + `normalized()`. |
 | | `domain/vo/GameMetrics.java` | `sealed interface` → `PlanifikMetrics` \| `MoveFastMetrics` \| `PrevisionPuzzleMetrics`. |
-| | `domain/vo/PlanifikMetrics.java` | Métriques « Chemin Optimal » + `deviationFromOptimal()`. |
-| | `domain/vo/MoveFastMetrics.java` | Métriques « Je bouge » (`correctResponses`, `reactionTimesMs`) + accuracy. |
-| | `domain/vo/PrevisionPuzzleMetrics.java` | Métriques « Predictive Puzzle » : cible complétée, erreurs, retries, mouvements planifiés/optimaux. |
-| **domain / service** | `domain/service/PlanifikScoringService.java` | **Barème déterministe** Planifik + Move Fast + interprétations. Java pur, rejouable. |
+| | `domain/vo/PlanifikMetrics.java` | Métriques « Chemin Optimal » : liste `levels` (multi-niveaux) + fabrique mono-niveau de compat. |
+| | `domain/vo/OptimalPathLevel.java` | Métriques d'UN niveau (`levelIndex`, `attempts`, longueurs, enums) + `deviationFromOptimal()`. |
+| | `domain/vo/CostlyZonesAvoided.java` | `TOTAL` \| `PARTIAL` \| `NONE` (évitement des zones coûteuses). |
+| | `domain/vo/SecondaryObjectivesReached.java` | `YES` \| `PARTIAL` \| `NO` (objectifs secondaires). |
+| | `domain/vo/MoveFastMetrics.java` | Métriques « Je bouge » : `practiceTrialExcludedCount` + `responses` (liste `MoveFastResponse`). Exclut l'échauffement, dérive `correctResponses`, **valide la plausibilité** (anti-triche). |
+| | `domain/vo/MoveFastResponse.java` | Un essai mesuré : `practiceTrial`, `correct`, `reactionTimeMs`, `ruleActive`, `isSwitchTrial`, `appliedOldRule`. |
+| | `domain/vo/MoveFastRule.java` | Règle active d'un essai : `ORIENTATION` \| `MOVEMENT`. |
+| | `domain/vo/MoveFastFlexibilityReport.java` | **Indicateurs de flexibilité cognitive dérivés serveur** (switch cost, erreurs persévératives, précision par règle, RT stats…) + versions **`*Adjusted`** (temps corrigés du calibrage). |
+| | `domain/vo/DeviceCalibration.java` | **Socle calibrage appareil** (transversal) : `displayLatencyMs`, `calibrationOffsetMs`, fallback + `reducedReliability()`. |
+| | `domain/vo/CalibrationMethod.java` / `InputMode.java` / `DeviceCategory.java` | Enums du calibrage (`technique`/`hardware_profile_fallback`, mode d'entrée, catégorie). |
+| | `domain/vo/PrevisionPuzzleMetrics.java` | Métriques « Predictive Puzzle » : liste `levels` (multi-niveaux Tour de Hanoï). |
+| | `domain/vo/PrevisionPuzzleLevel.java` | Métriques d'UN niveau (disques, 1er essai, erreurs, coups planifiés/optimaux, retries, complété) + validation `2^n−1`. |
+| | `domain/vo/PrevisionPuzzleReport.java` | Indicateurs qualitatifs : `globalPlanSuccess` (HORS /10), détail par niveau. |
+| **domain / config** | `domain/config/PrevisionPuzzleConfig.java` | **Constantes + barème catégoriel** Predictive Puzzle (fiche validée) : `optimal_moves(n)`, poids par critère, `puzzle_levels`/`max_sequence_errors` (décisions produit). Java pur. |
+| | `domain/config/OptimalPathConfig.java` | **Constantes « Chemin Optimal »** (clés de la fiche) : tolérance ±10 %, `max_attempts`, `total_levels` (décision produit), `preplanning_required`, `global_plan_validation`, poids du barème (dont PARTIAL) + **bandes d'interprétation /10 par mini-jeu** (provisoires). Java pur. |
+| | `domain/config/MoveFastConfig.java` | **Constantes du barème** Move Fast (clés de la fiche), condition de fin effective, bandes d'interprétation. Java pur. |
+| **domain / service** | `domain/service/PlanifikScoringService.java` | **Barème déterministe** Planifik + Move Fast (via `MoveFastConfig`) + interprétations. Java pur, rejouable. |
+| | `domain/service/CalibrationService.java` | **Service transversal** : `offsetMs` + `adjust` (temps brut − offset). Réutilisable dès qu'un score dépendra du temps (Decision, Memory Quest). |
 | **domain / event** | `domain/event/GameResultRecordedEvent.java` | `games.result.recorded` — **seul** point d'intégration inter-contextes. |
 | **domain / repo** | `domain/repository/GameSessionRepository.java` | Port (interface) — le domaine ne connaît jamais JPA. |
+| | `domain/repository/DeviceCalibrationRepository.java` | Port du calibrage (upsert par `sessionId`). |
 | **infrastructure** | `infrastructure/persistence/GameSessionEntity.java` | Entité JPA (table `games.game_sessions`). |
 | | `infrastructure/persistence/AttemptEmbeddable.java` | `@Embeddable` (table fille `games.game_attempts`). |
 | | `infrastructure/persistence/GameSessionRepositoryAdapter.java` | Implémente le port. **Mappe** agrégat ⇄ entité. |
 | | `infrastructure/persistence/JpaGameSessionRepository.java` | Spring Data JPA technique. |
+| | `infrastructure/persistence/DeviceCalibrationEntity.java` + `JpaDeviceCalibrationRepository` + `DeviceCalibrationRepositoryAdapter` | Persistance du calibrage (table `games.device_calibrations`). |
 | **intégration** | `../analytics/application/listener/GameResultRecordedListener.java` | Consomme l'event via `@TransactionalEventListener` (Analytics). |
 | **DB** | `resources/db/migration/V9__games_schema.sql` | Schéma `games` : tables `game_sessions`, `game_attempts`, index, contraintes `CHECK`. |
-| **test** | `test/java/com/zennyt/games/domain/GameSessionTest.java` | 7 tests unitaires de l'agrégat (Java pur, sans Spring). |
+| **test** | `test/java/com/zennyt/games/domain/GameSessionTest.java` | Tests unitaires de l'agrégat + scoring (Java pur, sans Spring). |
+| | `test/java/com/zennyt/games/domain/MoveFastMetricsTest.java` | Tests validation métriques + indicateurs de flexibilité + bandes d'interprétation. |
+| | `test/java/com/zennyt/games/domain/OptimalPathConfigTest.java` | Verrouille les constantes « Chemin Optimal » (tolérance, `max_attempts`, barème essais). |
+| | `test/java/com/zennyt/games/domain/PrevisionPuzzleScoringTest.java` | Barème catégoriel « Predictive Puzzle » : parfait 10/10, 0+2+2=4, niveau échoué, moyenne 3 niveaux, `globalPlanSuccess`. |
+| | `test/java/com/zennyt/games/domain/CalibrationTest.java` | Socle calibrage : offset/display latency, fallback, `adjust`, indicateurs Move Fast `*Adjusted`. |
 
 ### API REST (`/api/v1/games`)
 
 | Méthode | Route | Body | Réponse | Erreurs |
 |---------|-------|------|---------|---------|
 | `POST` | `/sessions` | `StartSessionRequest { gameType }` | `201` `GameSession` (IN_PROGRESS) | 400, 401 |
-| `POST` | `/sessions/{sessionId}/results` | `SubmitResultRequest { miniGame, metrics }` | `200` `GameSession` (mise à jour) | 400, 404 |
+| `POST` | `/sessions/{sessionId}/results` | `SubmitResultRequest { miniGame, metrics, deviceCalibration? }` | `200` `GameSession` (+ indicateurs selon le jeu) | 400, 404 |
 
 Authentification : `bearerAuth` (JWT) — `playerId = jwt.getSubject()`.
 
@@ -96,42 +116,99 @@ Authentification : `bearerAuth` (JWT) — `playerId = jwt.getSubject()`.
 
 ```
 start(playerId, gameType) ──► IN_PROGRESS
-    │  recordResult(miniGame, score)   (1 par mini-jeu, cohérent avec le type)
+    │  recordResult(miniGame, score)   (1 par mini-jeu, cohérent avec le type, mini-jeu jouable)
     ▼
-attempts.size == expectedMiniGames.size ?
+attempts.size == expectedMiniGames.size ?          (expectedMiniGames = mini-jeux JOUABLES du type)
     │ oui ──► complete() ──► COMPLETED + registerEvent(GameResultRecordedEvent)
     └ non ──► reste IN_PROGRESS
 ```
 
+> **⚠️ Comportement transitoire — mini-jeux actifs/inactifs.**
+> `MiniGame.isPlayable()` distingue les mini-jeux réellement jouables de ceux dont le barème
+> n'est pas encore implémenté. `expectedMiniGames()` **ne compte que les mini-jeux jouables** :
+> un mini-jeu sans barème (aujourd'hui `TASK_SCHEDULING`) est exclu de la complétion, et
+> `recordResult` le refuse. Sans ce filtre, une session Planifik n'atteindrait jamais
+> `attempts.size == 3` (car `TASK_SCHEDULING` lève une exception au scoring) → jamais
+> `COMPLETED` → aucun `GameResultRecordedEvent` → Analytics ne reçoit rien.
+> **Aujourd'hui une session Planifik se complète sur `OPTIMAL_PATH` + `PREVISION_PUZZLE` (/20).**
+> Quand `TASK_SCHEDULING` aura son barème, il suffira de repasser son drapeau `playable` à `true`
+> dans `MiniGame` pour le réintégrer (profil global de nouveau /30).
+
 ### Barème (`PlanifikScoringService`)
 
-**Planifik #1 « Chemin Optimal » — /10**
-- Respect du chemin optimal (±10 %) → **4 pts**
-- Nombre d'essais : 1 → 3 pts · 2 → 2 pts · 3+ → 1 pt
-- Évitement des zones coûteuses → **2 pts**
-- Objectif secondaire atteint → **1 pt**
-- Interprétation : 0–3 *Très faible* · 4–6 *Moyen* · 7–10 *Bon à excellent*
+**Planifik #1 « Chemin Optimal » — /10 par niveau** (constantes figées dans `OptimalPathConfig`, clés de la fiche « JE PLANIFIE — Mini-jeu 1 »)
+
+Le mini-jeu enchaîne plusieurs niveaux. Le client envoie `levels[]` (une entrée par niveau) ; **le serveur note chaque niveau /10** puis **agrège par moyenne arrondie** en un score unique de mini-jeu (préserve un seul `Attempt` par mini-jeu). *Barème par niveau :*
+- `optimal_path_tolerance` = **0.10** → `path_deviation ≤ 10 %` → **4 pts**, sinon **0**
+- `max_attempts` = **3** → essais : 1 → 3 pts · 2 → 2 pts · ≥3 → 1 pt (`OptimalPathConfig.attemptScore`)
+- `costlyZonesAvoided` : **TOTAL → 2** · **PARTIAL → 1** · **NONE → 0** (⚠️ raffinement à valider — la fiche dit « total ou partiel » pour 2 pts max)
+- `secondaryObjectivesReached` : **YES → 1** · **PARTIAL → 0** (⚠️ règle à valider, cf. `SECONDARY_OBJECTIVE_PARTIAL_POINTS`) · **NO → 0**
+- `preplanning_required` = true · `global_plan_validation` = true · `total_levels` = **4** (⚠️ décision produit — fiche : « à définir »)
+
+> **⚠️ Agrégation par moyenne à valider avec le psychologue.** Le score du mini-jeu = moyenne arrondie des scores /10 des niveaux (`PlanifikScoringService.scoreOptimalPath`). Le mock mobile réplique exactement cette agrégation. **Persistance** : on ne stocke que le score agrégé (un `Attempt`) — **pas de migration Flyway** ; le détail par niveau ne vit que dans la requête API (option préférée pour ne pas alourdir le schéma).
+
+> **⚠️ NON VALIDÉ PAR LE PSYCHOLOGUE — bandes /10 par mini-jeu.** Les bandes 0–3 / 4–6 / 7–10 sont un ajout développeur, isolées dans `OptimalPathConfig.MINI_GAME_INTERPRETATION_BANDS` (partagées avec Predictive Puzzle). Les bandes du **profil global /30** (≤10/≤17/≤23/≤27/sinon) restent **conformes à la fiche et inchangées**.
+- Interprétation mini-jeu (provisoire) : 0–3 *Très faible* · 4–6 *Moyen* · 7–10 *Bon à excellent*
 
 **Profil Planifik global — /30** : ≤10 *Très faible* · ≤17 *Moyen faible* · ≤23 *Moyen* · ≤27 *Bon* · sinon *Excellent*
+> ⚠️ Transitoire : `TASK_SCHEDULING` étant inactif, le composite réel plafonne à **/20** (`OPTIMAL_PATH` + `PREVISION_PUZZLE`). Les seuils ci-dessus restent calibrés /30 jusqu'à l'implémentation du 3ᵉ barème.
 
-**Move Fast « Je bouge » — barème en escalade**
-- Multiplicateur x1 (min) → x10 (max)
-- Réponse correcte : `+50 × multiplicateur`
-- 4 bonnes réponses consécutives : multiplicateur `+1`, compteur remis à 0
-- Erreur avec streak partiel : compteur remis à 0 ; streak vide : multiplicateur `-1` (min x1)
-- Bonus final : `+250 × multiplicateur de fin`
-- Interprétation (sur 100) : <40 *Très faible* · <60 *Moyen faible* · <75 *Moyen* · <90 *Bon* · sinon *Excellent*
+**Move Fast « Je bouge » — barème en escalade** (constantes figées dans `MoveFastConfig`, clés de la fiche « JE BOUGE »)
+- `base_points_per_correct` = **50**, `final_bonus_multiplier` = **250**
+- `correct_streak_for_upgrade` = **4**, `max_multiplier` = **10** (min ×1)
+- `reset_streak_on_error` = true, `decrease_multiplier_on_error` = true (min ×1)
+- `max_response_time_ms` = **2000**, `min_response_time_ms` = **250**
+- Réponse correcte : `+50 × multiplicateur` ; 4 bonnes consécutives : multiplicateur `+1`, compteur remis à 0
+- Erreur avec streak partiel : compteur remis à 0 ; streak vide : multiplicateur `-1` (min ×1) ; bonus final : `+250 × multiplicateur`
 
-**Planifik #3 « Predictive Puzzle » — /10**
-- Cible finale complétée → base **10 pts** ; plan non complété → base **4 pts**
-- Erreur de séquence / mouvement illégal → **−2 pts**
-- Mouvement inutile au-delà de l'optimal → **−1 pt**
-- Retry / réinitialisation du plan → **−1 pt**
-- Score clampé entre 0 et 10, interprétation Planifik mini-jeu : 0–3 *Très faible* · 4–6 *Moyen* · 7–10 *Bon à excellent*
+**Move Fast — métriques mesurées (contract-first)**
+Le client envoie `practiceTrialExcludedCount` + `responses[]`, un objet par essai : `correct`, `reactionTimeMs`, `ruleActive` (`ORIENTATION`/`MOVEMENT`), `isSwitchTrial`, `appliedOldRule` (erreur persévérative), `practiceTrial`. **Le score et les indicateurs sont calculés serveur — le client n'envoie jamais de points.**
 
-### Schéma DB (`V9__games_schema.sql`)
+**Move Fast — indicateurs de flexibilité cognitive dérivés serveur** (`MoveFastFlexibilityReport`, exposés dans `GameSessionResponse.moveFastIndicators`) : `precisionRatio`, `average/median/stdDev reactionTimeMs`, `fast/slowResponsesPercent` (<250 ms / >2000 ms), `switch`/`nonSwitchResponseTimeAvgMs`, **`switchCostMs`** (métrique centrale = switch − nonSwitch), `perseverativeErrorsCount`, `correctResponsesRule{Orientation,Movement}`, `sessionDurationSec`, `sessionCompletionStatus`.
+
+> **🟠 Essais d'échauffement (warm-up).** Les `PRACTICE_TRIAL_COUNT` (=3) premiers essais sont marqués `practiceTrial=true` et **exclus par le backend** du scoring ET de toutes les statistiques (correction méthodologique de la fiche révisée, Tableau 2 — ils ne servent pas non plus au calibrage, cf. Tâche 4). Le compteur `practiceTrialExcludedCount` documente l'exclusion et est validé pour cohérence.
+
+> **⚠️ DIVERGENCE À VALIDER PAR LE PSYCHOLOGUE — condition de fin de session.** La fiche d'origine définit `session_end_condition = reach_max_multiplier` (aucune limite). Le produit termine en réalité sur **12 bonnes réponses / 18 essais / 84 s** (`MoveFastConfig.SESSION_END_CONDITION`, exposé au contrat via `MoveFastSessionEndCondition`). Le backend rejette (400) une soumission dont le nb d'essais notés dépasse `maxResponses` ou dont la somme des temps dépasse la durée de session (anti-triche léger). **Cette divergence est tracée volontairement — ne pas la supprimer sans arbitrage du psychologue référent.**
+
+> **⚠️ NON VALIDÉ PAR LE PSYCHOLOGUE — bandes d'interprétation.** Les bandes ci-dessous (<40 / <60 / <75 / <90 / sinon, sur 100) n'existent dans aucune fiche. Conservées à titre provisoire dans `MoveFastConfig.INTERPRETATION_BANDS` (commentaire `// AJOUT NON VALIDÉ PAR LE PSYCHOLOGUE`), à valider ou remplacer.
+
+- Interprétation (sur 100, provisoire) : <40 *Très faible* · <60 *Moyen faible* · <75 *Moyen* · <90 *Bon* · sinon *Excellent*
+
+**Planifik #3 « Predictive Puzzle » — /10 par niveau** (barème CATÉGORIEL de la fiche — **seule fiche validée « conforme au script »** ; constantes dans `PrevisionPuzzleConfig`)
+
+> 🔴 **Correction majeure** : l'ancienne formule (base 10/4 − pénalités −2/−1/−1 clampée) était **inventée** et non conforme. Elle est **remplacée** par le barème catégoriel du script, calculé **par niveau** puis **agrégé par moyenne arrondie**. Plus de « base 4 » forfaitaire pour un niveau échoué.
+
+*Barème par niveau (Tour de Hanoï) :*
+- **Séquence correcte au 1er essai** (`first_try_sequence`, sans retry ni erreur) → **4 pts** sinon **0**
+- **Erreurs de séquence** (`sequence_errors`) : 0 → 3 · 1-2 → 2 · ≥3 → 1
+- **Mouvements superflus** (`extra_moves`, ratio `(plannedMoves − optimalMoves)/optimalMoves`) : <10 % → 3 · <25 % → 2 · ≥25 % → 1
+- **Total niveau** = somme /10 · **Score mini-jeu** = moyenne arrondie des niveaux joués (1 seul `Attempt`)
+- Un **niveau échoué** (tolérance dépassée ou plan non complété) est noté sur ses **compteurs réels** — pas de forfait.
+
+*Constantes (`PrevisionPuzzleConfig`) :* `total_pegs`=3 · `optimal_moves(n)=2^n−1` (7/15/31, déterministe, recalculé serveur) · `preview_mode`=true · `post_validation_edit`=false · `extra_moves_detection`=true.
+- `puzzle_levels`=**[3,4,5]** disques → ⚠️ **décision produit à valider** (la fiche ne fige pas le nombre de niveaux)
+- `max_sequence_errors`=**[3,2,1]** → ⚠️ la fiche dit **3 (constant)** ; le resserrement 3→2→1 est une **décision produit à valider**
+
+> **`global_plan_success`** (succès/échec du plan) reste un **indicateur qualitatif HORS du /10** : exposé dans la réponse (`GameSessionResponse.previsionPuzzleIndicators` → `PrevisionPuzzleReport`), il n'entre pas dans le score. Le mock mobile réplique le barème à l'identique. **Persistance** : score agrégé seul, **pas de migration Flyway**.
+
+- Interprétation mini-jeu (provisoire, partagée, `OptimalPathConfig.MINI_GAME_INTERPRETATION_BANDS`) : 0–3 *Très faible* · 4–6 *Moyen* · 7–10 *Bon à excellent*
+
+### 🎯 Socle de calibrage appareil (transversal — Tâche 4)
+
+Méthode **« technique » pure** (fiche « JE BOUGE » Tableau 2 révisé + guide Calibrage_Appareil) : sépare la **latence machine** du **temps de réaction cognitif**. La méthode « hybrid » des autres fiches est **écartée** (mélange latence matérielle et cognition → invalidée).
+
+- **VO `DeviceCalibration`** (optionnel dans `SubmitResultRequest`, ne casse pas les anciens clients) : `inputMode`, `deviceCategory`, `refreshRateHz`, `hardwareConcurrency?`, `deviceMemoryGb?` (absent iOS), `inputProcessingLatencyMs?`.
+- `displayLatencyMs = (1000 / refreshRateHz) / 2` · `calibrationOffsetMs = displayLatencyMs + inputProcessingLatencyMs` (calculés serveur).
+- **Fallback** (guide §5) : si la mesure directe est indisponible → `calibrationMethod = "hardware_profile_fallback"` (profil matériel seul, `inputProcessingLatencyMs` absent) → session marquée **fiabilité réduite** (`reducedReliability`, `calibrationReliable=false`).
+- **Application** : les **temps bruts restent stockés tels quels** ; la correction s'applique **au calcul** — `reactionTimeAdjustedMs = reactionTimeMs − calibrationOffsetMs`. Pour Move Fast, `MoveFastFlexibilityReport` expose les indicateurs bruts **et** `*Adjusted` (moyenne, médiane, fast/slow %, switch cost — l'offset s'annule dans une différence, donc `switchCostAdjusted == switchCost`).
+- **Le score Move Fast ne dépend PAS du temps** (justesse × multiplicateur) → le calibrage n'affecte QUE les indicateurs comportementaux. `CalibrationService` (`offsetMs`/`adjust`) est conçu pour être **réutilisé quand un score dépendra du temps** (Decision/DT, Memory Quest/timeout).
+- **Les essais d'échauffement (Tâche 1.D) ne servent JAMAIS au calibrage** — l'offset est purement technique (niveau appareil).
+- **Mobile** : `DeviceCalibrationProbe` détecte `refreshRate`/cœurs/catégorie et mesure la latence machine « entrée → frame » hors échauffement ; fallback si aucune mesure.
+
+### Schéma DB (`V9__games_schema.sql`, `V11__games_device_calibrations.sql`)
 
 - `games.game_sessions` : `id`, `player_id`, `game_type`, `status`, `started_at`, `completed_at` + `CHECK` sur type/status, index `(player_id)` et `(game_type, status)`.
+- `games.device_calibrations` (**V11**, Tâche 4) : PK/FK `session_id` (au plus un calibrage/session), `calibration_method`, `input_mode`, `device_category`, `refresh_rate_hz`, `hardware_concurrency?`, `device_memory_gb?`, `input_processing_latency_ms?`, `display_latency_ms`, `calibration_offset_ms`, `reduced_reliability` + `CHECK` sur méthode/mode/catégorie. **Les temps bruts ne sont pas modifiés** : la table conserve le profil + l'offset pour audit.
 - `games.game_attempts` : `session_id` (FK CASCADE), `mini_game`, `raw_points`, `max_points`, `level`, `recorded_at` + `CHECK` mini_game/points, index `(session_id)`.
 
 ---
@@ -167,7 +244,7 @@ sur l'onglet Careers/Progress ; les routes de jeu restent plein écran.
 | | `presentation/view/move_fast_screen.dart` | Écran complet « Je bouge » (intro, tutoriels, gameplay **à 3 niveaux**, transitions de règle, résultats). Voir [Niveaux Move Fast](#-niveaux-move-fast-mobile). |
 | | `presentation/view/predictive_puzzle_screen.dart` | Écran complet **Predictive Puzzle** : intro, règles, planification Tower of Hanoi, exécution auto, résultats, comparaison. Voir [Flow Predictive Puzzle](#-flow-predictive-puzzle-mobile). |
 | | `presentation/widgets/game_system_components.dart` | Design system jeux : palette, boutons, HUD, ruban de séries, contrôles directionnels, avion, tuiles de résultat. |
-| **presentation / flame** | `presentation/flame/planifik_game.dart` | **`FlameGame`** stations : tracé, `undo`/`clear`, `revision` (HUD live), ligne de route magenta, `buildMetrics()`, layout col×row remplissant. Ne calcule **pas** de score. |
+| **presentation / flame** | `presentation/flame/planifik_game.dart` | **`FlameGame`** stations : tracé, `undo`/`clear`, `revision` (HUD live), ligne de route magenta, `buildLevelMetrics()` (métriques par niveau), layout col×row remplissant. Ne calcule **pas** de score. |
 | | `presentation/flame/cell_component.dart` | Station **circulaire** tactile + `BoardPalette` : LAB, MTG, bloc (éclair), étoile, chemin. |
 | | `presentation/flame/grid_config.dart` | `CellKind` + `GridConfig` + générateur `GridConfig.randomLevels()` : graphes de grille solvables par BFS, difficulté croissante, fallback déterministe `levels`. |
 
@@ -176,9 +253,12 @@ sur l'onglet Careers/Progress ; les routes de jeu restent plein écran.
 - Grille indexée `row * cols + col`, cellules `start / end / obstacle / costly / objective / normal`.
 - Le joueur touche des cases **adjacentes** depuis le départ ; retoucher la dernière case = annuler.
 - `canValidate` (`ValueNotifier<bool>`) passe `true` quand le chemin atteint l'arrivée.
-- `buildMetrics({attempts})` produit des `PlanifikMetrics` : `pathLength`, `costlyZonesAvoided`,
-  `secondaryObjectives`, `optimalLength` — **jamais de score** (calculé côté serveur/mock).
-- Découplé de Riverpod : le jeu n'appelle aucun provider ; l'écran lit `canValidate` / `buildMetrics`.
+- `buildLevelMetrics({levelIndex, attempts})` produit un `PlanifikLevelMetrics` du niveau courant :
+  `pathLength`, `optimalLength`, `costlyZonesAvoided` (TOTAL/NONE — le Flame ne connaît que le binaire),
+  `secondaryObjectivesReached` (YES/PARTIAL/NO) — **jamais de score** (calculé serveur/mock).
+- **Cumul multi-niveaux** : l'écran accumule un `PlanifikLevelMetrics` par niveau (`_levelMetrics`,
+  essais = mauvaises routes + 1) et soumet **un seul** `PlanifikMetrics { levels }` au dernier niveau.
+- Découplé de Riverpod : le jeu n'appelle aucun provider ; l'écran lit `canValidate` / `buildLevelMetrics`.
 
 ### Hub Games / Progress (`games_hub_screen.dart`)
 
@@ -278,10 +358,11 @@ Logique runtime :
 - Un **Run réussi** sur un niveau non final → passage au niveau suivant (`_advanceLevel`, board
   régénéré, stats cumulées) ; un **échec** ou le **dernier niveau** → écran Results + soumission.
 
-Le mobile cumule les métriques de tous les niveaux et soumet **une seule** `PrevisionPuzzleMetrics`
-à la fin (`targetCompleted` = tous niveaux réussis ; `sequenceErrors`, `unnecessaryMoves`, `retries`,
-`plannedMoves`, `optimalMoves` = sommes). Le backend/mock appliquent le même barème via
-`scorePrevisionPuzzle` — l'agrégat par session préserve la sémantique (un seul `Attempt` enregistré).
+Le mobile accumule un `PrevisionPuzzleLevelMetrics` **par niveau** (`_levelMetrics` : `discCount`,
+`firstTrySuccess`, `sequenceErrors`, `plannedMoves`, `optimalMoves`, `retries`, `completed`) et soumet
+**une seule** `PrevisionPuzzleMetrics { levels }` à la fin. Le backend/mock notent **chaque niveau /10**
+(barème catégoriel de la fiche) puis font la **moyenne arrondie** via `scorePrevisionPuzzle` — un seul
+`Attempt` enregistré. `globalPlanSuccess` est exposé dans la réponse mais reste **hors du score**.
 
 ### Gestion d'état & bascule mock/backend
 
@@ -316,8 +397,14 @@ cohérent.
 - Le stage `_MoveFastStage.randomRule` complète la machine à états
   (`intro → tutorials → gameplay ⇄ ruleSwitch/randomRule → results → comparison`).
 
-> Le barème backend/mock (`scoreMoveFast`) est **inchangé** : il rejoue la séquence
-> `correctResponses` sans connaître les niveaux — la difficulté est purement côté présentation.
+> Le barème backend/mock (`scoreMoveFast`) rejoue la séquence `correctResponses` (dérivée des
+> essais notés) sans connaître les niveaux — la difficulté est purement côté présentation.
+>
+> **Métriques envoyées** : l'écran construit désormais une liste `responses` (une entrée par essai,
+> avec `ruleActive` / `isSwitchTrial` / `appliedOldRule` déduits du changement de règle et de la
+> direction choisie), marque les **3 premiers essais** `practiceTrial=true` (échauffement) et renseigne
+> `practiceTrialExcludedCount`. Le backend calcule le score **et** les indicateurs de flexibilité ;
+> le score affiché fait autorité côté serveur (`_serverSession`).
 
 ### 🎨 Composants UI jeux (`game_system_components.dart`)
 
@@ -344,10 +431,10 @@ Schémas : `GameType`, `MiniGame`, `SessionStatus`, `StartSessionRequest`, `Opti
 ## 🔄 Flux complet (exemple Planifik)
 
 1. **Mobile** — `GamesController.start(GameType.planifik)` → `POST /games/sessions` → `GameSession` IN_PROGRESS.
-2. Le joueur trace le chemin dans `PlanifikGame` ; au clic « Valider » : `buildMetrics(attempts)`.
+2. Le joueur trace le chemin dans `PlanifikGame` ; à chaque niveau validé : `buildLevelMetrics(levelIndex, attempts)` accumulé (soumission multi-niveaux au dernier niveau).
 3. `GamesController.submit(miniGame: optimalPath, metrics)` → `POST /sessions/{id}/results`.
 4. **Backend** — `SubmitGameResultUseCase` calcule le `Score` via `PlanifikScoringService`, `recordResult` sur l'agrégat.
-5. Au **dernier** mini-jeu du type → session `COMPLETED` + `GameResultRecordedEvent` publié.
+5. Au **dernier mini-jeu jouable** du type (Planifik : `OPTIMAL_PATH` puis `PREVISION_PUZZLE`) → session `COMPLETED` + `GameResultRecordedEvent` publié.
 6. `GameResultRecordedListener` (Analytics) consomme l'event pour le tableau de bord cognitif.
 
 ---
@@ -359,17 +446,50 @@ Schémas : `GameType`, `MiniGame`, `SessionStatus`, `StartSessionRequest`, `Opti
 | Planifik #1 « Chemin Optimal » (Flame + barème + persistance) | 🟢 Fait |
 | Optimal Path — flow complet mobile (intro Path Mind, How To Play, gameplay, score, comparaison) | 🟢 Fait |
 | Optimal Path — **4 niveaux randomisés par graphe BFS** + plateau de stations + **menu pause** | 🟢 Fait |
+| Optimal Path — barème figé en constantes `OptimalPathConfig` (clés de la fiche) | 🟢 Fait |
+| Optimal Path — **cumul multi-niveaux explicite** (score = moyenne /10 des niveaux, 1 seul `Attempt`) | 🟢 Fait |
+| Optimal Path — enums `costlyZonesAvoided` (TOTAL/PARTIAL/NONE) & `secondaryObjectivesReached` (YES/PARTIAL/NO) | 🟠 Raffinements PARTIAL **à valider** par le psychologue |
+| Optimal Path — agrégation par moyenne + bandes /10 par mini-jeu | 🟠 **À valider** par le psychologue (bandes /30 globales conformes, inchangées) |
+| Optimal Path — `total_levels` = 4 | 🟠 Décision produit (fiche : « à définir ») |
 | Move Fast « Je bouge » (écran + barème escalade) | 🟢 Fait |
 | Move Fast — 3 niveaux (Orientation → Mouvement → **règle aléatoire**) | 🟢 Fait |
+| Move Fast — barème figé en constantes `MoveFastConfig` (clés de la fiche) | 🟢 Fait |
+| Move Fast — métriques de flexibilité (`responses` enrichies) + indicateurs dérivés serveur (switch cost, erreurs persévératives…) | 🟢 Fait |
+| Move Fast — essais d'échauffement (warm-up) exclus du scoring/stats | 🟢 Fait |
+| Move Fast — condition de fin (12/18/84 s) | 🟠 Implémentée mais **DIVERGE de la fiche** (`reach_max_multiplier`) — à valider par le psychologue |
+| Move Fast — bandes d'interprétation (/100) | 🟠 Provisoires, **non validées** par le psychologue |
 | Hub Games / Progress — maquette 5 domaines cognitifs + assets `04 Optimal Path` + bottom nav conservée | 🟢 Fait |
 | Planifik #3 `PREVISION_PUZZLE` — Predictive Puzzle | 🟢 Fait |
 | Predictive Puzzle — **3 niveaux (3 → 4 → 5 disques, optimal `2^n − 1`)** + disques responsive | 🟢 Fait |
-| Planifik #2 `TASK_SCHEDULING` | 🔴 Barème `throw` — non implémenté |
+| Predictive Puzzle — **barème catégoriel de la fiche** (1er essai/erreurs/coups superflus), remplace l'ancienne formule inventée | 🟢 Fait |
+| Predictive Puzzle — cumul multi-niveaux (moyenne /10, 1 `Attempt`) + `globalPlanSuccess` hors score | 🟢 Fait |
+| Predictive Puzzle — `puzzle_levels` [3,4,5] & `max_sequence_errors` [3,2,1] | 🟠 Décisions produit **à valider** (fiche : 3 constant) |
+| Planifik #2 `TASK_SCHEDULING` | 🔴 Barème `throw` — non implémenté ; marqué `isPlayable()=false`, exclu de la complétion (session Planifik = `OPTIMAL_PATH` + `PREVISION_PUZZLE`) |
 | `MEMORY_QUEST`, `DECISION` | 🔴 Déclarés au contrat, non implémentés |
 | Bascule mock ⇄ backend | 🟢 `--dart-define=GAMES_MOCK` |
+| Socle de calibrage appareil (méthode « technique », transversal) | 🟢 Fait — appliqué à Move Fast (indicateurs `*Adjusted`), réutilisable Decision/Memory Quest |
+| Calibrage — table `games.device_calibrations` (V11) + fallback fiabilité réduite | 🟢 Fait |
 | Intégration Analytics (event) | 🟢 Listener en place (log ; à brancher au vrai dashboard) |
 
 ---
+
+## 🧠 Décisions à valider avec le psychologue référent
+
+Écarts **assumés et tracés** entre l'implémentation et les fiches — **ne pas les supprimer sans arbitrage**. Chacun est isolé en config/commenté dans le code.
+
+| # | Point | Choix implémenté | Fiche / référence | Localisation |
+|---|-------|------------------|-------------------|--------------|
+| 1 | **Bandes d'interprétation Move Fast** (/100) | <40/<60/<75/<90/sinon | Aucune fiche | `MoveFastConfig.INTERPRETATION_BANDS` |
+| 2 | **Condition de fin Move Fast** | 12 bonnes / 18 essais / 84 s | Fiche : `reach_max_multiplier` (aucune limite) | `MoveFastConfig.SESSION_END_CONDITION` |
+| 3 | **Bandes d'interprétation mini-jeu /10** (Optimal Path & Predictive Puzzle) | 0–3/4–6/7–10 | Ajout développeur (fiche = seulement /30 global) | `OptimalPathConfig.MINI_GAME_INTERPRETATION_BANDS` |
+| 4 | **Agrégation multi-niveaux par moyenne** (Optimal Path & Predictive Puzzle) | moyenne arrondie /10, 1 `Attempt` | Non spécifié | `PlanifikScoringService.scoreOptimalPath` / `scorePrevisionPuzzle` |
+| 5 | **Zones coûteuses TOTAL/PARTIAL/NONE** (Optimal Path) | 2 / 1 / 0 | Fiche : « total ou partiel » pour 2 pts max | `OptimalPathConfig.COSTLY_ZONES_PARTIAL_POINTS` |
+| 6 | **Objectifs secondaires PARTIAL** (Optimal Path) | PARTIAL = 0 | Fiche ne tranche pas | `OptimalPathConfig.SECONDARY_OBJECTIVE_PARTIAL_POINTS` |
+| 7 | **Resserrement tolérance Hanoï** | `max_sequence_errors` 3 → 2 → 1 par niveau | Fiche : **3 constant** | `PrevisionPuzzleConfig.MAX_SEQUENCE_ERRORS` |
+| 8 | **Niveaux** (`total_levels`=4 ; `puzzle_levels`=[3,4,5]) | décisions produit | Fiche : « à définir » | `OptimalPathConfig.TOTAL_LEVELS` / `PrevisionPuzzleConfig.PUZZLE_LEVELS` |
+| 9 | **Calibrage fallback** | `hardware_profile_fallback` → fiabilité réduite | Guide §5 | `DeviceCalibration.reducedReliability()` |
+
+**Conforme à la fiche, NE PAS toucher** : profil global Planifik /30 (`interpretGlobal`), cœur du barème Move Fast (50 × multiplicateur, streak 4, bonus 250), barème catégoriel « Predictive Puzzle » (seule fiche validée), architecture par Domain Events.
 
 ## 🔧 Comment maintenir ce document
 
@@ -390,7 +510,7 @@ vous touchez à l'un de ces chemins :
 - [ ] Un nouveau jeu/mini-jeu devient jouable → mettre à jour le **tableau de statut** et la **roadmap**.
 - [ ] Mettre à jour la ligne ci-dessous.
 
-**Dernière mise à jour** : 2026-07-05 — Predictive Puzzle : **3 niveaux progressifs**
+**Dernière mise à jour** : 2026-07-06 — **(1)** Fix complétion Planifik : `MiniGame.isPlayable()` introduit ; `TASK_SCHEDULING` exclu de la complétion (session Planifik = `OPTIMAL_PATH` + `PREVISION_PUZZLE`), émet bien `GameResultRecordedEvent`. **(2)** Move Fast : barème figé dans `MoveFastConfig`, métriques de flexibilité enrichies (`responses` + `ruleActive`/`isSwitchTrial`/`appliedOldRule`), indicateurs dérivés serveur (`switchCostMs`, erreurs persévératives…) exposés dans la réponse, essais d'échauffement exclus, anti-triche léger (400). ⚠️ Divergences tracées à valider par le psychologue : condition de fin (12/18/84 s vs `reach_max_multiplier`) et bandes d'interprétation. **(3)** Optimal Path : barème figé dans `OptimalPathConfig` (tolérance ±10 %, `max_attempts`, poids), `total_levels`=4 tracé comme décision produit ; mock mobile aligné. **(4)** Optimal Path multi-niveaux : `PlanifikMetrics.levels[]` (+ enums `costlyZonesAvoided`/`secondaryObjectivesReached`), score = **moyenne arrondie /10** des niveaux (1 seul `Attempt`, pas de migration Flyway), bandes /10 par mini-jeu isolées en config ; mobile cumule les niveaux et soumet une seule fois ; mock répliqué. ⚠️ À valider par le psychologue : agrégation par moyenne, raffinements PARTIAL, bandes /10. **(5)** Predictive Puzzle : **barème catégoriel de la fiche** (1er essai 4/0 · erreurs 3/2/1 · coups superflus 3/2/1) remplaçant l'ancienne formule inventée (base 10/4 − pénalités) ; métriques `levels[]` (Tour de Hanoï 3/4/5), score = **moyenne arrondie /10** (1 `Attempt`, pas de Flyway), `globalPlanSuccess` exposé **hors score** ; mobile cumule par niveau, mock répliqué. ⚠️ Décisions produit à valider : `puzzle_levels` [3,4,5] et `max_sequence_errors` [3,2,1] (fiche : 3 constant). **(6)** Socle de **calibrage appareil** (méthode « technique » pure) : VO `DeviceCalibration` + `CalibrationService` réutilisable, `deviceCalibration` optionnel au contrat, table `games.device_calibrations` (V11), fallback `hardware_profile_fallback` (fiabilité réduite). Move Fast expose des indicateurs `*Adjusted` (temps corrigés) — le **score** reste inchangé (indépendant du temps). Essais d'échauffement exclus du calibrage. Mobile : `DeviceCalibrationProbe`. **(7)** Hygiène finale : schémas OpenAPI renommés (`MoveFastResponseItem`, `OptimalPathLevelMetrics`, `PrevisionPuzzleLevelMetrics`, `DeviceCalibration`), **commentaires croisés de parité mock ⇄ backend** dans les deux fichiers de barème, section consolidée **« Décisions à valider avec le psychologue »**. Zones protégées inchangées (Planifik /30, cœur Move Fast, events). ArchUnit vert (domaine pur).
 (3 → 4 → 5 disques, optimal déterministe `2^n − 1`, tolérance d'erreurs 3 → 2 → 1), disques
 dimensionnés responsive (`_TowerView` + `LayoutBuilder`, `_Disc._colors` 1–5), métriques
 **cumulées** sur toute la session et soumises en une seule `PrevisionPuzzleMetrics` ; HUD chip

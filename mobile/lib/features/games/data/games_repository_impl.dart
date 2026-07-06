@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../../../core/error/api_exception.dart';
+import '../domain/entities/device_calibration.dart';
 import '../domain/entities/game_session.dart';
 import '../domain/entities/game_type.dart';
 import '../domain/entities/game_metrics.dart';
@@ -33,11 +34,17 @@ class GamesRepositoryImpl implements GamesRepository {
     required String sessionId,
     required MiniGame miniGame,
     required GameMetrics metrics,
+    DeviceCalibration? deviceCalibration,
   }) {
     return _guard(() async {
       final res = await _dio.post<Map<String, dynamic>>(
         '/games/sessions/$sessionId/results',
-        data: {'miniGame': miniGame.wire, 'metrics': metrics.toJson()},
+        data: {
+          'miniGame': miniGame.wire,
+          'metrics': metrics.toJson(),
+          if (deviceCalibration != null)
+            'deviceCalibration': deviceCalibration.toJson(),
+        },
       );
       return GameSessionDto.fromJson(res.data!).toEntity();
     });

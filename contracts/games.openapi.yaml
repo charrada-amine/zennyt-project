@@ -91,64 +91,274 @@ components:
       properties:
         gameType: { $ref: '#/components/schemas/GameType' }
 
-    OptimalPathMetrics:
+    CostlyZonesAvoided:
+      type: string
+      description: >
+        Degré d'évitement des zones coûteuses sur un niveau. Barème serveur :
+        TOTAL=2, PARTIAL=1, NONE=0 (raffinement à valider par le psychologue).
+      enum: [TOTAL, PARTIAL, NONE]
+
+    SecondaryObjectivesReached:
+      type: string
+      description: >
+        Atteinte des objectifs secondaires d'un niveau. Barème serveur : YES=1,
+        NO=0, PARTIAL=règle à valider (0 par défaut).
+      enum: [YES, PARTIAL, NO]
+
+    OptimalPathLevelMetrics:
       type: object
-      description: Métriques objectives du mini-jeu « Chemin Optimal ».
-      required: [attempts, pathLength, optimalLength, costlyZonesAvoided, secondaryObjectives]
+      description: Métriques objectives d'UN niveau de « Chemin Optimal ».
+      required: [attempts, pathLength, optimalLength, costlyZonesAvoided, secondaryObjectivesReached]
       properties:
-        attempts: { type: integer, minimum: 1, description: "Essais avant validation" }
+        levelIndex: { type: integer, minimum: 0, description: "Index du niveau (0-based)" }
+        attempts: { type: integer, minimum: 1, description: "Essais avant validation du niveau" }
         pathLength: { type: integer, minimum: 0, description: "Longueur du chemin tracé" }
         optimalLength: { type: integer, minimum: 1, description: "Longueur du chemin optimal" }
-        costlyZonesAvoided: { type: boolean }
-        secondaryObjectives: { type: integer, minimum: 0 }
+        costlyZonesAvoided: { $ref: '#/components/schemas/CostlyZonesAvoided' }
+        secondaryObjectivesReached: { $ref: '#/components/schemas/SecondaryObjectivesReached' }
+
+    OptimalPathMetrics:
+      type: object
+      description: >
+        Métriques objectives du mini-jeu « Chemin Optimal ». Le mini-jeu enchaîne
+        plusieurs niveaux : envoyer `levels` (une entrée par niveau) — le serveur
+        note chaque niveau /10 puis agrège par moyenne arrondie (un seul Attempt).
+        Les champs plats restent acceptés en mode mono-niveau (compatibilité).
+      properties:
+        levels:
+          type: array
+          minItems: 1
+          items: { $ref: '#/components/schemas/OptimalPathLevelMetrics' }
+          description: "Métriques par niveau (mode multi-niveaux, recommandé)."
+        attempts: { type: integer, minimum: 1, description: "Mono-niveau : essais avant validation" }
+        pathLength: { type: integer, minimum: 0, description: "Mono-niveau : longueur du chemin tracé" }
+        optimalLength: { type: integer, minimum: 1, description: "Mono-niveau : longueur du chemin optimal" }
+        costlyZonesAvoided: { type: boolean, description: "Mono-niveau : évitement total (true) / aucun (false)" }
+        secondaryObjectives: { type: integer, minimum: 0, description: "Mono-niveau : nb d'objectifs secondaires atteints" }
+
+    CalibrationMethod:
+      type: string
+      description: >
+        Méthode de calibrage appareil. « technique » = mesure machine pure
+        (latence affichage + traitement d'entrée). « hardware_profile_fallback »
+        = profil matériel seul quand la mesure directe est indisponible (fiabilité réduite).
+      enum: [technique, hardware_profile_fallback]
+
+    InputMode:
+      type: string
+      enum: [keyboard, touch, mouse, swipe]
+
+    DeviceCategory:
+      type: string
+      enum: [mobile, tablet, desktop]
+
+    DeviceCalibration:
+      type: object
+      description: >
+        Socle de calibrage APPAREIL (méthode « technique » pure — sépare la latence
+        matérielle du temps de réaction cognitif). Optionnel. Les temps bruts restent
+        stockés tels quels ; la correction (calibrationOffsetMs) s'applique au calcul
+        des indicateurs temporels. Les essais d'échauffement ne servent JAMAIS au calibrage.
+      required: [calibrationMethod, inputMode, deviceCategory, refreshRateHz]
+      properties:
+        calibrationMethod: { $ref: '#/components/schemas/CalibrationMethod' }
+        inputMode: { $ref: '#/components/schemas/InputMode' }
+        deviceCategory: { $ref: '#/components/schemas/DeviceCategory' }
+        refreshRateHz:
+          type: number
+          format: double
+          description: "Détecté via requestAnimationFrame / équivalent Flutter."
+        hardwareConcurrency:
+          type: integer
+          nullable: true
+          description: "Détection passive (nullable)."
+        deviceMemoryGb:
+          type: number
+          format: double
+          nullable: true
+          description: "Détection passive (nullable — absent iOS)."
+        inputProcessingLatencyMs:
+          type: number
+          format: double
+          nullable: true
+          description: >
+            Médiane du traitement d'entrée (Event-Timing-équivalent) sur TOUTE la
+            session — mesure machine pure. Absent en fallback.
+        displayLatencyMs:
+          type: number
+          format: double
+          readOnly: true
+          description: "Calculé serveur = (1000 / refreshRateHz) / 2 (théorique)."
+        calibrationOffsetMs:
+          type: number
+          format: double
+          readOnly: true
+          description: "Calculé serveur = displayLatencyMs + inputProcessingLatencyMs."
+
+    MoveFastRule:
+      type: string
+      description: Règle active sur un essai (flexibilité cognitive).
+      enum: [ORIENTATION, MOVEMENT]
+
+    MoveFastResponseItem:
+      type: object
+      description: >
+        Un essai « Je bouge » mesuré (essais d'échauffement compris, marqués
+        practiceTrial). Le client n'envoie que des mesures — jamais de points ni
+        d'indicateurs dérivés.
+      required: [correct, reactionTimeMs, ruleActive]
+      properties:
+        practiceTrial:
+          type: boolean
+          default: false
+          description: "true si essai d'échauffement (exclu du scoring et des stats par le serveur)."
+        correct:
+          type: boolean
+          description: "true si la réponse était correcte."
+        reactionTimeMs:
+          type: integer
+          minimum: 0
+          description: "Temps de réaction mesuré, en millisecondes."
+        ruleActive: { $ref: '#/components/schemas/MoveFastRule' }
+        isSwitchTrial:
+          type: boolean
+          default: false
+          description: "true si la règle a changé par rapport à l'essai précédent."
+        appliedOldRule:
+          type: boolean
+          default: false
+          description: "true si l'erreur correspond à l'application de l'ancienne règle (erreur persévérative)."
 
     MoveFastMetrics:
       type: object
       description: >
-        Métriques objectives du jeu « Je bouge / Move Fast ». Le serveur rejoue
-        la séquence correct/incorrect pour appliquer le barème en escalade.
-      required: [correctResponses]
+        Métriques objectives du jeu « Je bouge / Move Fast ». Le serveur exclut
+        les essais d'échauffement, rejoue la séquence correct/incorrect pour
+        appliquer le barème en escalade, puis dérive les indicateurs de
+        flexibilité cognitive (MoveFastIndicators, dans la réponse).
+      required: [practiceTrialExcludedCount, responses]
       properties:
-        correctResponses:
+        practiceTrialExcludedCount:
+          type: integer
+          minimum: 0
+          description: >
+            Nombre d'essais d'échauffement exclus. Doit être cohérent avec le
+            nombre d'entrées responses ayant practiceTrial=true.
+        responses:
           type: array
           minItems: 1
-          items: { type: boolean }
-          description: "Résultats dans l'ordre de jeu ; true = réponse correcte."
-        reactionTimesMs:
-          type: array
-          items: { type: integer, minimum: 0 }
-          description: "Temps de réaction par réponse, alignés avec correctResponses."
+          items: { $ref: '#/components/schemas/MoveFastResponseItem' }
+          description: "Essais mesurés dans l'ordre de jeu (échauffement inclus)."
+
+    PrevisionPuzzleLevelMetrics:
+      type: object
+      description: >
+        Métriques objectives d'UN niveau de « Predictive Puzzle » (Tour de Hanoï).
+        Le serveur applique le barème catégoriel de la fiche puis agrège.
+      required: [discCount, firstTrySuccess, sequenceErrors, plannedMoves, retries, completed]
+      properties:
+        levelIndex: { type: integer, minimum: 0, description: "Index du niveau (0-based)" }
+        discCount: { type: integer, minimum: 1, description: "Nombre de disques (optimal = 2^n − 1)" }
+        firstTrySuccess:
+          type: boolean
+          description: "true si le niveau est réussi au 1er run sans retry ni erreur."
+        sequenceErrors:
+          type: integer
+          minimum: 0
+          description: "Nombre d'erreurs de séquence sur le niveau."
+        plannedMoves:
+          type: integer
+          minimum: 0
+          description: "Nombre de coups planifiés (run final du niveau)."
+        optimalMoves:
+          type: integer
+          minimum: 1
+          description: "Optionnel : optimal déterministe 2^discCount − 1 (recalculé serveur si absent)."
+        retries:
+          type: integer
+          minimum: 0
+          description: "Nombre de réinitialisations de plan sur le niveau."
+        completed:
+          type: boolean
+          description: "true si la cible du niveau a été atteinte."
 
     PrevisionPuzzleMetrics:
       type: object
       description: >
-        Métriques objectives de « Predictive Puzzle ». Le joueur planifie toute
-        la séquence avant exécution ; le serveur applique les pénalités.
-      required: [targetCompleted, sequenceErrors, unnecessaryMoves, retries, plannedMoves, optimalMoves]
+        Métriques objectives de « Predictive Puzzle ». Le mini-jeu enchaîne
+        plusieurs niveaux (Tour de Hanoï 3/4/5 disques) : envoyer `levels` (une
+        entrée par niveau joué). Le serveur note chaque niveau /10 (barème
+        catégoriel de la fiche) puis agrège par moyenne arrondie (un seul Attempt).
+      required: [levels]
       properties:
-        targetCompleted:
-          type: boolean
-          description: "true si la pile finale correspond à la cible."
-        sequenceErrors:
-          type: integer
-          minimum: 0
-          description: "Nombre d'erreurs de séquence / coups illégaux."
-        unnecessaryMoves:
-          type: integer
-          minimum: 0
-          description: "Surplus de coups par rapport à l'optimal."
-        retries:
-          type: integer
-          minimum: 0
-          description: "Nombre de réinitialisations de plan."
-        plannedMoves:
-          type: integer
-          minimum: 0
-          description: "Nombre total de coups planifiés."
-        optimalMoves:
-          type: integer
-          minimum: 1
-          description: "Nombre optimal de coups pour la configuration."
+        levels:
+          type: array
+          minItems: 1
+          items: { $ref: '#/components/schemas/PrevisionPuzzleLevelMetrics' }
+          description: "Métriques par niveau joué."
+
+    MoveFastSessionEndCondition:
+      type: object
+      description: >
+        Paramètres EFFECTIFS de fin de session Move Fast tels qu'implémentés par
+        le produit. ⚠️ DIVERGENCE ASSUMÉE : la fiche d'origine spécifie
+        session_end_condition = reach_max_multiplier (aucune limite). Cette
+        divergence est tracée volontairement et doit être validée par le
+        psychologue référent.
+      properties:
+        targetCorrectAnswers: { type: integer, example: 12 }
+        maxResponses: { type: integer, example: 18 }
+        sessionSeconds: { type: integer, example: 84 }
+
+    MoveFastIndicators:
+      type: object
+      description: >
+        Indicateurs de flexibilité cognitive « Je bouge », CALCULÉS PAR LE SERVEUR
+        à partir des essais notés (échauffement exclu). Le client ne les calcule
+        jamais. Métrique centrale : switchCostMs (coût de bascule).
+      properties:
+        precisionRatio: { type: number, format: double, description: "correct / total × 100 (hors pratique)" }
+        averageReactionTimeMs: { type: number, format: double }
+        medianReactionTimeMs: { type: number, format: double }
+        stdDevReactionTimeMs: { type: number, format: double }
+        fastResponsesPercent: { type: number, format: double, description: "% réponses < 250 ms" }
+        slowResponsesPercent: { type: number, format: double, description: "% réponses > 2000 ms" }
+        switchResponseTimeAvgMs: { type: number, format: double, description: "moyenne des essais isSwitchTrial=true" }
+        nonSwitchResponseTimeAvgMs: { type: number, format: double, description: "moyenne des essais isSwitchTrial=false" }
+        switchCostMs: { type: number, format: double, description: "switch − nonSwitch" }
+        perseverativeErrorsCount: { type: integer, description: "erreurs avec appliedOldRule=true" }
+        correctResponsesRuleOrientation: { type: integer }
+        correctResponsesRuleMovement: { type: integer }
+        sessionDurationSec: { type: integer }
+        sessionCompletionStatus: { type: string, enum: [completed, abandoned] }
+        calibrationApplied: { type: boolean, description: "true si un DeviceCalibration a été fourni." }
+        calibrationReliable: { type: boolean, description: "false si fallback profil matériel (fiabilité réduite)." }
+        calibrationOffsetMs: { type: number, format: double, description: "Offset appliqué aux temps bruts." }
+        averageReactionTimeAdjustedMs: { type: number, format: double, description: "Moyenne RT corrigée (brut − offset)." }
+        medianReactionTimeAdjustedMs: { type: number, format: double }
+        fastResponsesPercentAdjusted: { type: number, format: double }
+        slowResponsesPercentAdjusted: { type: number, format: double }
+        switchCostAdjustedMs: { type: number, format: double, description: "Coût de bascule corrigé (l'offset s'annule dans la différence)." }
+
+    PrevisionPuzzleIndicators:
+      type: object
+      description: >
+        Indicateurs qualitatifs « Predictive Puzzle », CALCULÉS PAR LE SERVEUR.
+        `globalPlanSuccess` (succès/échec du plan) reste HORS du score /10.
+      properties:
+        globalPlanSuccess: { type: boolean, description: "true si tous les niveaux joués sont complétés." }
+        levelsPlayed: { type: integer }
+        levelsCompleted: { type: integer }
+        levels:
+          type: array
+          items:
+            type: object
+            properties:
+              levelIndex: { type: integer }
+              discCount: { type: integer }
+              score: { type: integer, description: "Score /10 du niveau" }
+              completed: { type: boolean }
+              firstTrySuccess: { type: boolean }
 
     GameMetrics:
       oneOf:
@@ -162,6 +372,10 @@ components:
       properties:
         miniGame: { $ref: '#/components/schemas/MiniGame' }
         metrics: { $ref: '#/components/schemas/GameMetrics' }
+        deviceCalibration:
+          allOf: [ { $ref: '#/components/schemas/DeviceCalibration' } ]
+          nullable: true
+          description: "Optionnel (n'existe pas chez les anciens clients). Socle de calibrage appareil."
 
     Score:
       type: object
@@ -193,3 +407,11 @@ components:
           items: { $ref: '#/components/schemas/Attempt' }
         startedAt: { type: string, format: date-time }
         completedAt: { type: string, format: date-time, nullable: true }
+        moveFastIndicators:
+          allOf: [ { $ref: '#/components/schemas/MoveFastIndicators' } ]
+          nullable: true
+          description: "Présent uniquement quand le résultat soumis concerne Move Fast."
+        previsionPuzzleIndicators:
+          allOf: [ { $ref: '#/components/schemas/PrevisionPuzzleIndicators' } ]
+          nullable: true
+          description: "Présent uniquement quand le résultat soumis concerne Predictive Puzzle."
