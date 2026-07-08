@@ -4,6 +4,7 @@ import com.zennyt.games.domain.model.Attempt;
 import com.zennyt.games.domain.model.GameSession;
 import com.zennyt.games.domain.vo.MoveFastFlexibilityReport;
 import com.zennyt.games.domain.vo.PrevisionPuzzleReport;
+import com.zennyt.games.domain.vo.ScoreBreakdown;
 
 import java.time.Instant;
 import java.util.List;
@@ -22,7 +23,8 @@ public record GameSessionResponse(
     Instant startedAt,
     Instant completedAt,
     MoveFastIndicatorsResponse moveFastIndicators,
-    PrevisionPuzzleIndicatorsResponse previsionPuzzleIndicators
+    PrevisionPuzzleIndicatorsResponse previsionPuzzleIndicators,
+    List<ScoreBreakdownLineResponse> scoreBreakdown
 ) {
     /** Résultat d'un mini-jeu au sein de la session. */
     public record AttemptResponse(String miniGame, ScoreResponse score, Instant recordedAt) {
@@ -95,13 +97,23 @@ public record GameSessionResponse(
         }
     }
 
+    /** Une ligne du détail du score (panneau « d'où viennent mes points »). */
+    public record ScoreBreakdownLineResponse(
+        String kind, String label, String detail, Integer points, Integer maxPoints) {
+        static ScoreBreakdownLineResponse from(ScoreBreakdown.Line l) {
+            return new ScoreBreakdownLineResponse(
+                l.kind().name(), l.label(), l.detail(), l.points(), l.maxPoints());
+        }
+    }
+
     public static GameSessionResponse from(GameSession s) {
-        return from(s, null, null);
+        return from(s, null, null, null);
     }
 
     public static GameSessionResponse from(GameSession s,
                                            MoveFastFlexibilityReport moveFastReport,
-                                           PrevisionPuzzleReport previsionPuzzleReport) {
+                                           PrevisionPuzzleReport previsionPuzzleReport,
+                                           ScoreBreakdown scoreBreakdown) {
         return new GameSessionResponse(
             s.id(), s.playerId(), s.gameType().name(), s.status().name(),
             s.compositeRaw(), s.compositeMax(), s.normalizedScore(),
@@ -109,6 +121,8 @@ public record GameSessionResponse(
             s.startedAt(), s.completedAt(),
             moveFastReport == null ? null : MoveFastIndicatorsResponse.from(moveFastReport),
             previsionPuzzleReport == null ? null
-                : PrevisionPuzzleIndicatorsResponse.from(previsionPuzzleReport));
+                : PrevisionPuzzleIndicatorsResponse.from(previsionPuzzleReport),
+            scoreBreakdown == null ? null
+                : scoreBreakdown.lines().stream().map(ScoreBreakdownLineResponse::from).toList());
     }
 }

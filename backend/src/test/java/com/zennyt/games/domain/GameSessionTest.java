@@ -66,6 +66,21 @@ class GameSessionTest {
     }
 
     @Test
+    void optimalPath_failed_level_scores_one_over_ten() {
+        // Niveau échoué (3 chemins ratés) : chemin jamais atteint (pathLength 0 →
+        // écart 100 % → 0/4), 3 essais → 1/3, zones NONE → 0/2, objectif NO → 0/1
+        // ⇒ 1/10. Parité avec le mock mobile (games_mock_repository.dart).
+        PlanifikMetrics m = new PlanifikMetrics(List.of(
+            new OptimalPathLevel(0, 3, 0, 9,
+                CostlyZonesAvoided.NONE, SecondaryObjectivesReached.NO)));
+
+        Score score = scoring.scoreOptimalPath(m);
+
+        assertEquals(1, score.rawPoints());
+        assertEquals(10, score.maxPoints());
+    }
+
+    @Test
     void optimalPath_level_partial_enums_score_between_none_and_full() {
         // chemin optimal(4) + 2 essais(2) + PARTIAL zones(1) + PARTIAL objectifs(0) = 7.
         PlanifikMetrics m = new PlanifikMetrics(List.of(

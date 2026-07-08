@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
 import '../../domain/entities/planifik_metrics.dart';
 import 'cell_component.dart';
@@ -16,15 +17,17 @@ import 'grid_config.dart';
 /// couche présentation envoie au serveur (ou au mock) pour la notation.
 ///
 /// Découplage avec Flutter/Riverpod : le jeu n'appelle aucun provider. Il
-/// expose [canValidate] et [revision] (pour rafraîchir l'UI) plus des getters
-/// live lus par l'écran (compteur de pas, bonus, undo…).
+/// expose [revision] (pour rafraîchir l'UI) plus des getters live lus par
+/// l'écran (compteur de pas, bonus, undo…).
+///
+/// Note : on n'expose PAS de drapeau « le chemin atteint l'arrivée ». Le bouton
+/// Valider s'active sur [stepCount] (>= 1), volontairement, pour que valider un
+/// chemin INCOMPLET compte comme un essai raté (barème « essais ». Voir
+/// GAMES_MODULE.md § Décisions à valider).
 class PlanifikGame extends FlameGame {
   PlanifikGame({this.config = GridConfig.level1});
 
   final GridConfig config;
-
-  /// Passe à `true` dès que le chemin tracé atteint l'arrivée.
-  final ValueNotifier<bool> canValidate = ValueNotifier<bool>(false);
 
   /// Incrémenté à chaque modification du tracé — l'écran l'écoute pour
   /// rafraîchir le HUD (pas, bonus) et l'état des boutons undo/clear.
@@ -88,6 +91,11 @@ class PlanifikGame extends FlameGame {
         (ca == cb && (ra - rb).abs() == 1);
   }
 
+  /// Simule un appui sur la case (row, col) — seam de test (comportement
+  /// identique à un appui réel via [CellComponent.onCellTap]).
+  @visibleForTesting
+  void tapCell(int row, int col) => _handleTap(row, col);
+
   void _handleTap(int row, int col) {
     final index = config.index(row, col);
     if (!config.isWalkable(index)) return; // obstacle infranchissable
@@ -119,8 +127,14 @@ class PlanifikGame extends FlameGame {
   }
 
   void _refresh() {
-    canValidate.value = _path.isNotEmpty && _path.last == config.end;
-    revision.value++;
+    // `onLoad`/`_resetPath` peuvent modifier le tracé PENDANT une frame de layout
+    // du GameWidget ; notifier `revision` à ce moment déclencherait un
+    // markNeedsBuild pendant le build. On diffère alors à la frame suivante.
+    if (SchedulerBinding.instance.schedulerPhase == SchedulerPhase.persistentCallbacks) {
+      SchedulerBinding.instance.addPostFrameCallback((_) => revision.value++);
+    } else {
+      revision.value++;
+    }
   }
 
   /// Annule le dernier pas (garde toujours la case départ).
@@ -200,9 +214,28 @@ class PlanifikGame extends FlameGame {
     );
   }
 
+  /// Métriques d'un niveau ÉCHOUÉ (3 validations ratées, sortie jamais atteinte).
+  ///
+  /// Reste fidèle au barème sans mettre 0 brutalement :
+  /// chemin optimal 0/4 (jamais atteint → `pathLength = 0`, écart 100 %),
+  /// essais 1/3 (`attempts` ≥ 3 → `attemptScore = 1`), zones 0/2 (`NONE`),
+  /// objectif 0/1 (`NO`) → **1/10**. Scoré à l'identique par le mock et le backend.
+  PlanifikLevelMetrics buildFailedLevelMetrics({
+    required int levelIndex,
+    required int attempts,
+  }) {
+    return PlanifikLevelMetrics(
+      levelIndex: levelIndex,
+      attempts: attempts, // >= 3 → 1 pt sur « essais »
+      pathLength: 0, // chemin jamais atteint → écart 100 % → 0 pt sur « chemin optimal »
+      optimalLength: config.optimalLength,
+      costlyZonesAvoided: CostlyZonesAvoided.none,
+      secondaryObjectivesReached: SecondaryObjectivesReached.no,
+    );
+  }
+
   @override
   void onRemove() {
-    canValidate.dispose();
     revision.dispose();
     super.onRemove();
   }

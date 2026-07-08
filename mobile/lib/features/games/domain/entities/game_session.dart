@@ -1,6 +1,7 @@
 import 'game_score.dart';
 import 'game_type.dart';
 import 'mini_game.dart';
+import 'score_breakdown.dart';
 
 /// Résultat enregistré d'un mini-jeu au sein d'une session.
 class GameAttempt {
@@ -27,6 +28,7 @@ class GameSession {
     required this.attempts,
     required this.startedAt,
     this.completedAt,
+    this.scoreBreakdown = const [],
   });
 
   final String id;
@@ -38,6 +40,9 @@ class GameSession {
   final List<GameAttempt> attempts;
   final DateTime startedAt;
   final DateTime? completedAt;
+
+  /// Détail ligne par ligne du calcul du score (panneau de résultats).
+  final List<ScoreBreakdownLine> scoreBreakdown;
 
   bool get isCompleted => status == 'COMPLETED';
 

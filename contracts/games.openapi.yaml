@@ -360,6 +360,22 @@ components:
               completed: { type: boolean }
               firstTrySuccess: { type: boolean }
 
+    ScoreBreakdownLine:
+      type: object
+      description: >
+        Une ligne du DÉTAIL du score (panneau « d'où viennent mes points »),
+        calculée serveur à partir des mêmes métriques et du même barème. `kind`
+        pilote l'affichage : NOTE (explication), INFO (mesure sans points),
+        CRITERION (« label (detail) : points/max »), SUBTOTAL (niveau),
+        TOTAL (total/moyenne).
+      required: [kind, label]
+      properties:
+        kind: { type: string, enum: [NOTE, INFO, CRITERION, SUBTOTAL, TOTAL] }
+        label: { type: string }
+        detail: { type: string, nullable: true, description: "Valeur mesurée / formule (entre parenthèses à l'affichage)." }
+        points: { type: integer, nullable: true }
+        maxPoints: { type: integer, nullable: true }
+
     GameMetrics:
       oneOf:
         - $ref: '#/components/schemas/OptimalPathMetrics'
@@ -415,3 +431,8 @@ components:
           allOf: [ { $ref: '#/components/schemas/PrevisionPuzzleIndicators' } ]
           nullable: true
           description: "Présent uniquement quand le résultat soumis concerne Predictive Puzzle."
+        scoreBreakdown:
+          type: array
+          nullable: true
+          items: { $ref: '#/components/schemas/ScoreBreakdownLine' }
+          description: "Détail ligne par ligne du calcul du score (panneau de résultats)."

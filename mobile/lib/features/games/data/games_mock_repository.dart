@@ -7,6 +7,7 @@ import '../domain/entities/mini_game.dart';
 import '../domain/entities/move_fast_metrics.dart';
 import '../domain/entities/planifik_metrics.dart';
 import '../domain/entities/prevision_puzzle_metrics.dart';
+import '../domain/entities/score_breakdown.dart';
 import '../domain/repositories/games_repository.dart';
 
 /// [GamesRepository] MOCK — permet de jouer en totale autonomie, sans backend.
@@ -97,6 +98,7 @@ class GamesMockRepository implements GamesRepository {
       attempts: attempts,
       startedAt: current.startedAt,
       completedAt: complete ? DateTime.now() : current.completedAt,
+      scoreBreakdown: _buildBreakdown(miniGame, metrics, score),
     );
     _sessions[sessionId] = updated;
     return updated;
@@ -211,7 +213,13 @@ class GamesMockRepository implements GamesRepository {
     return points < 1 ? 1 : points;
   }
 
-  int _replayMoveFastScore(Iterable<bool> responses) {
+  int _replayMoveFastScore(Iterable<bool> responses) =>
+      _replayMoveFast(responses).total;
+
+  /// Rejeu de l'escalade + décomposition — miroir de MoveFastConfig.replay.
+  ({int gamePoints, int finalMultiplier, int finalBonus, int total}) _replayMoveFast(
+    Iterable<bool> responses,
+  ) {
     var points = 0;
     var multiplier = 1;
     var streakCounter = 0;
@@ -231,8 +239,189 @@ class GamesMockRepository implements GamesRepository {
       }
     }
 
-    return points + (250 * multiplier);
+    final bonus = 250 * multiplier;
+    return (
+      gamePoints: points,
+      finalMultiplier: multiplier,
+      finalBonus: bonus,
+      total: points + bonus,
+    );
   }
+
+  // ── Détail du score (panneau) — miroir EXACT de ScoreBreakdownService ──────
+
+  List<ScoreBreakdownLine> _buildBreakdown(
+    MiniGame miniGame,
+    GameMetrics metrics,
+    GameScore score,
+  ) {
+    return switch (miniGame) {
+      MiniGame.moveFastCore => _breakdownMoveFast(metrics as MoveFastMetrics, score),
+      MiniGame.optimalPath => _breakdownOptimalPath(metrics as PlanifikMetrics, score),
+      MiniGame.previsionPuzzle =>
+        _breakdownPrevision(metrics as PrevisionPuzzleMetrics, score),
+      MiniGame.taskScheduling => const [],
+    };
+  }
+
+  List<ScoreBreakdownLine> _breakdownMoveFast(MoveFastMetrics m, GameScore score) {
+    final replay = _replayMoveFast(m.correctResponses);
+    final correct = m.correctResponses.where((c) => c).length;
+    return [
+      const ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.note,
+        label:
+            'Chaque bonne réponse = 50 × multiplicateur ; +1 au multiplicateur '
+            'toutes les 4 bonnes réponses d\'affilée.',
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.info,
+        label: 'Bonnes réponses',
+        detail: '$correct',
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.info,
+        label: 'Multiplicateur atteint',
+        detail: '×${replay.finalMultiplier}',
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.info,
+        label: 'Points de jeu',
+        detail: '${replay.gamePoints}',
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.info,
+        label: 'Bonus de fin',
+        detail: '×${replay.finalMultiplier} × 250 = ${replay.finalBonus}',
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.total,
+        label: 'Total',
+        points: score.rawPoints,
+        maxPoints: score.maxPoints,
+      ),
+    ];
+  }
+
+  List<ScoreBreakdownLine> _breakdownOptimalPath(PlanifikMetrics m, GameScore score) {
+    final lines = <ScoreBreakdownLine>[];
+    final n = m.levels.length;
+    for (var i = 0; i < n; i++) {
+      final l = m.levels[i];
+      final deviation = (l.pathLength - l.optimalLength).abs() / l.optimalLength;
+      final optimalPts = deviation <= _optimalPathTolerance ? 4 : 0;
+      final attemptsPts = _attemptScore(l.attempts);
+      final zonesPts = switch (l.costlyZonesAvoided) {
+        CostlyZonesAvoided.total => 2,
+        CostlyZonesAvoided.partial => 1,
+        CostlyZonesAvoided.none => 0,
+      };
+      final secondaryPts = switch (l.secondaryObjectivesReached) {
+        SecondaryObjectivesReached.yes => 1,
+        SecondaryObjectivesReached.partial => 0,
+        SecondaryObjectivesReached.no => 0,
+      };
+      final levelScore = optimalPts + attemptsPts + zonesPts + secondaryPts;
+      if (n > 1) {
+        lines.add(ScoreBreakdownLine(
+          kind: ScoreBreakdownKind.info,
+          label: 'Niveau ${i + 1}',
+        ));
+      }
+      lines
+        ..add(_crit('Chemin optimal (±10 %)', _pct(deviation), optimalPts, 4))
+        ..add(_crit('Essais', '${l.attempts}', attemptsPts, 3))
+        ..add(_crit('Zones coûteuses évitées', _zonesLabel(l.costlyZonesAvoided), zonesPts, 2))
+        ..add(_crit('Objectif secondaire', _secondaryLabel(l.secondaryObjectivesReached), secondaryPts, 1))
+        ..add(ScoreBreakdownLine(
+          kind: ScoreBreakdownKind.subtotal,
+          label: 'Niveau ${i + 1}',
+          points: levelScore,
+          maxPoints: 10,
+        ));
+    }
+    lines.add(ScoreBreakdownLine(
+      kind: ScoreBreakdownKind.total,
+      label: 'Moyenne des $n niveaux',
+      points: score.rawPoints,
+      maxPoints: 10,
+    ));
+    return lines;
+  }
+
+  List<ScoreBreakdownLine> _breakdownPrevision(
+    PrevisionPuzzleMetrics m,
+    GameScore score,
+  ) {
+    final lines = <ScoreBreakdownLine>[];
+    final n = m.levels.length;
+    for (var i = 0; i < n; i++) {
+      final l = m.levels[i];
+      final firstTryPts = l.firstTrySuccess ? 4 : 0;
+      final seqPts = l.sequenceErrors == 0
+          ? 3
+          : l.sequenceErrors <= 2
+          ? 2
+          : 1;
+      final ratio = l.optimalMoves <= 0
+          ? 0.0
+          : (l.plannedMoves - l.optimalMoves) / l.optimalMoves;
+      final safeRatio = ratio < 0 ? 0.0 : ratio;
+      final extraPts = safeRatio < 0.10
+          ? 3
+          : safeRatio < 0.25
+          ? 2
+          : 1;
+      final levelScore = firstTryPts + seqPts + extraPts;
+      if (n > 1) {
+        lines.add(ScoreBreakdownLine(
+          kind: ScoreBreakdownKind.info,
+          label: 'Niveau ${i + 1}',
+          detail: '${l.discCount} disques',
+        ));
+      }
+      lines
+        ..add(_crit('Réussi du 1er coup', l.firstTrySuccess ? 'oui' : 'non', firstTryPts, 4))
+        ..add(_crit('Erreurs de séquence', '${l.sequenceErrors}', seqPts, 3))
+        ..add(_crit('Coups superflus', _pct(safeRatio), extraPts, 3))
+        ..add(ScoreBreakdownLine(
+          kind: ScoreBreakdownKind.subtotal,
+          label: 'Niveau ${i + 1}',
+          points: levelScore,
+          maxPoints: 10,
+        ));
+    }
+    lines.add(ScoreBreakdownLine(
+      kind: ScoreBreakdownKind.total,
+      label: 'Moyenne des $n niveaux',
+      points: score.rawPoints,
+      maxPoints: 10,
+    ));
+    return lines;
+  }
+
+  ScoreBreakdownLine _crit(String label, String detail, int points, int max) =>
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.criterion,
+        label: label,
+        detail: detail,
+        points: points,
+        maxPoints: max,
+      );
+
+  String _pct(double ratio) => '${(ratio * 100).round()} %';
+
+  String _zonesLabel(CostlyZonesAvoided v) => switch (v) {
+    CostlyZonesAvoided.total => 'évitement total',
+    CostlyZonesAvoided.partial => 'évitement partiel',
+    CostlyZonesAvoided.none => 'non évitées',
+  };
+
+  String _secondaryLabel(SecondaryObjectivesReached v) => switch (v) {
+    SecondaryObjectivesReached.yes => 'atteint',
+    SecondaryObjectivesReached.partial => 'partiel',
+    SecondaryObjectivesReached.no => 'manqué',
+  };
 
   int _expectedMiniGames(GameType gameType) {
     return switch (gameType) {

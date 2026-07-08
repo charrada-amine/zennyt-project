@@ -128,29 +128,8 @@ public class PlanifikScoringService {
     }
 
     private int replayMoveFastScore(Iterable<Boolean> responses) {
-        int points = 0;
-        int multiplier = MoveFastConfig.MIN_MULTIPLIER;
-        int streakCounter = 0;
-
-        for (boolean correct : responses) {
-            if (correct) {
-                points += MoveFastConfig.BASE_POINTS_PER_CORRECT * multiplier;
-                streakCounter++;
-                if (streakCounter == MoveFastConfig.CORRECT_STREAK_FOR_UPGRADE) {
-                    streakCounter = 0;
-                    multiplier = Math.min(MoveFastConfig.MAX_MULTIPLIER, multiplier + 1);
-                }
-                continue;
-            }
-
-            if (MoveFastConfig.RESET_STREAK_ON_ERROR && streakCounter > 0) {
-                streakCounter = 0;
-            } else if (MoveFastConfig.DECREASE_MULTIPLIER_ON_ERROR) {
-                multiplier = Math.max(MoveFastConfig.MIN_MULTIPLIER, multiplier - 1);
-            }
-        }
-
-        return points + (MoveFastConfig.FINAL_BONUS_MULTIPLIER * multiplier);
+        // Rejeu délégué à MoveFastConfig (source unique du barème d'escalade).
+        return MoveFastConfig.replay(responses).total();
     }
 
     private Iterable<Boolean> allCorrect(int count) {

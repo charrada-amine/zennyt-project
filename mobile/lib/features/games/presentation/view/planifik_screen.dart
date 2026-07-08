@@ -17,6 +17,7 @@ import '../flame/grid_config.dart';
 import '../flame/planifik_game.dart';
 import '../games_controller.dart';
 import '../widgets/game_system_components.dart';
+import '../widgets/score_detail_panel.dart';
 
 /// Jeu « Optimal Path » (Planifik — « Je planifie »).
 ///
@@ -42,9 +43,15 @@ class _PlanifikScreenState extends ConsumerState<PlanifikScreen> {
   PlanifikGame _game = PlanifikGame();
   List<GridConfig> _levelConfigs = GridConfig.randomLevels();
 
+  // Limite dure d'essais — miroir de OptimalPathConfig.MAX_ATTEMPTS (backend).
+  static const int _maxAttempts = 3;
+
   _PlanifikStage _stage = _PlanifikStage.intro;
   // Essais de validation sur le NIVEAU courant (incrémenté à chaque mauvaise route).
   int _levelAttempts = 0;
+  // true dès que le niveau est scellé en échec (3 validations ratées) : plus
+  // aucune validation acceptée, passage auto au niveau suivant.
+  bool _levelFailed = false;
   bool _busy = false;
   int _level = 0;
   int _score = 0;
@@ -61,6 +68,7 @@ class _PlanifikScreenState extends ConsumerState<PlanifikScreen> {
       _game = PlanifikGame(config: _levelConfigs[_level]);
       _stage = _PlanifikStage.gameplay;
       _levelAttempts = 0;
+      _levelFailed = false;
       _levelMetrics.clear();
       _lastMetrics = null;
     });
@@ -72,20 +80,47 @@ class _PlanifikScreenState extends ConsumerState<PlanifikScreen> {
   void _onCorrectRoute() {
     _score += 250;
     _captureLevelMetrics();
+    _goToNextLevelOrSubmit();
+  }
+
+  void _onWrongRoute() {
+    if (_levelFailed) return; // niveau déjà scellé
+    _levelAttempts++;
+    setState(() => _score = math.max(0, _score - 2));
+    // Limite dure : 3 validations ratées → niveau échoué (cas « réussi au 3ᵉ
+    // essai » exclu : la réussite passe par _onCorrectRoute, jamais ici).
+    if (_levelAttempts >= _maxAttempts) {
+      _failLevel();
+    }
+  }
+
+  /// Scelle le niveau en échec : capture des métriques d'échec (1/10) puis
+  /// passage automatique au niveau suivant après un court délai.
+  void _failLevel() {
+    _levelMetrics.add(
+      _game.buildFailedLevelMetrics(
+        levelIndex: _level,
+        attempts: _levelAttempts, // >= 3 → 1 pt sur « essais »
+      ),
+    );
+    setState(() => _levelFailed = true);
+    Future<void>.delayed(const Duration(milliseconds: 1500), () {
+      if (mounted) _goToNextLevelOrSubmit();
+    });
+  }
+
+  /// Passe au niveau suivant (nouveau plateau) ou soumet au dernier niveau.
+  void _goToNextLevelOrSubmit() {
     if (_level < _levelConfigs.length - 1) {
       setState(() {
         _level++;
         _levelAttempts = 0;
+        _levelFailed = false;
         _game = PlanifikGame(config: _levelConfigs[_level]);
       });
     } else {
       _submitFinal();
     }
-  }
-
-  void _onWrongRoute() {
-    _levelAttempts++;
-    setState(() => _score = math.max(0, _score - 2));
   }
 
   /// Fige les métriques du niveau courant (essais = mauvaises routes + 1).
@@ -162,6 +197,7 @@ class _PlanifikScreenState extends ConsumerState<PlanifikScreen> {
         score: _score,
         level: _level + 1,
         totalLevels: _levelConfigs.length,
+        levelFailed: _levelFailed,
         onCorrect: _onCorrectRoute,
         onWrong: _onWrongRoute,
         onExit: () => context.go(AppRoutes.games),
@@ -1102,6 +1138,7 @@ class _GameplayView extends StatefulWidget {
     required this.score,
     required this.level,
     required this.totalLevels,
+    required this.levelFailed,
     required this.onCorrect,
     required this.onWrong,
     required this.onExit,
@@ -1112,6 +1149,7 @@ class _GameplayView extends StatefulWidget {
   final int score;
   final int level; // 1-based
   final int totalLevels;
+  final bool levelFailed; // niveau scellé en échec (3 essais ratés)
   final VoidCallback onCorrect; // route complète : +250, niveau suivant / fin
   final VoidCallback onWrong; // route incomplète : -2
   final VoidCallback onExit; // quitter la partie (menu pause → Exit)
@@ -1183,7 +1221,8 @@ class _GameplayViewState extends State<_GameplayView> {
   }
 
   void _validate() {
-    if (widget.busy || _feedback != _Feedback.none) return;
+    // Niveau scellé (échec 3 essais) : plus aucune validation acceptée.
+    if (widget.busy || widget.levelFailed || _feedback != _Feedback.none) return;
     final game = widget.game;
     if (game.stepCount < 1) return;
 
@@ -1203,9 +1242,16 @@ class _GameplayViewState extends State<_GameplayView> {
         _feedbackText = '-2pts';
         _tries++;
       });
-      widget.onWrong();
+      widget.onWrong(); // peut sceller le niveau (3ᵉ échec) → widget.levelFailed
+      _timer?.cancel();
       Future<void>.delayed(const Duration(milliseconds: 1300), () {
-        if (mounted) setState(() => _feedback = _Feedback.none);
+        // Chemin raté : on efface le feedback ET on réinitialise le trait de
+        // trajet au départ pour que le joueur retrace. (Sauf si le niveau vient
+        // d'être scellé en échec : il passe alors au niveau suivant.)
+        if (mounted && !widget.levelFailed) {
+          setState(() => _feedback = _Feedback.none);
+          widget.game.clear();
+        }
       });
     }
   }
@@ -1243,7 +1289,12 @@ class _GameplayViewState extends State<_GameplayView> {
                 children: [
                   SizedBox(
                     height: 24,
-                    child: _feedback == _Feedback.none
+                    child: widget.levelFailed
+                        ? const _FeedbackBanner(
+                            correct: false,
+                            text: 'Niveau échoué — 3 essais',
+                          )
+                        : _feedback == _Feedback.none
                         ? null
                         : _FeedbackBanner(
                             correct: _feedback == _Feedback.correct,
@@ -1277,7 +1328,7 @@ class _GameplayViewState extends State<_GameplayView> {
                 Expanded(
                   flex: 2,
                   child: _ClearButton(
-                    enabled: game.canUndo && !widget.busy,
+                    enabled: game.canUndo && !widget.busy && !widget.levelFailed,
                     onTap: game.clear,
                   ),
                 ),
@@ -1285,9 +1336,14 @@ class _GameplayViewState extends State<_GameplayView> {
                 Expanded(
                   flex: 3,
                   child: _ValidateButton(
+                    // NE PAS gater sur canValidate/l'arrivée : cela rendrait le
+                    // critère "essais" toujours = 1 et casserait le barème.
+                    // Valider un chemin incomplet DOIT rester possible (→ essai raté).
+                    // (Gate sur levelFailed = niveau scellé après 3 échecs.)
                     enabled:
                         game.stepCount >= 1 &&
                         !widget.busy &&
+                        !widget.levelFailed &&
                         _feedback == _Feedback.none,
                     busy: widget.busy,
                     onTap: _validate,
@@ -1335,7 +1391,8 @@ class _OptimalHud extends StatelessWidget {
             ),
             const SizedBox(width: AppSpacing.sm),
             Expanded(
-              child: _HudStatPill(label: 'Tries', value: '$tries/3'),
+              // Plafonné : n'affiche jamais X/3 avec X > 3 (limite dure = 3).
+              child: _HudStatPill(label: 'Tries', value: '${tries > 3 ? 3 : tries}/3'),
             ),
             const SizedBox(width: AppSpacing.sm),
             _HudIconButton(icon: Icons.pause_rounded, onTap: onPause),
@@ -2060,6 +2117,10 @@ class _ScoreView extends StatelessWidget {
               ),
             ],
           ),
+          if ((session?.scoreBreakdown ?? const []).isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.xl),
+            ScoreDetailPanel(lines: session!.scoreBreakdown),
+          ],
           const SizedBox(height: AppSpacing.xxl),
           GamePanel(
             backgroundColor: ZennytGamePalette.mist,

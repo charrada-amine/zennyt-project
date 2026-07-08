@@ -2,6 +2,7 @@ import '../../domain/entities/game_score.dart';
 import '../../domain/entities/game_session.dart';
 import '../../domain/entities/game_type.dart';
 import '../../domain/entities/mini_game.dart';
+import '../../domain/entities/score_breakdown.dart';
 
 /// DTO de la couche data : parse la réponse GameSession du contrat
 /// games.openapi.yaml et la mappe vers l'entité domaine. Séparé de l'entité
@@ -17,6 +18,7 @@ class GameSessionDto {
     required this.attempts,
     required this.startedAt,
     this.completedAt,
+    this.scoreBreakdown = const [],
   });
 
   final String id;
@@ -28,6 +30,7 @@ class GameSessionDto {
   final List<GameAttempt> attempts;
   final DateTime startedAt;
   final DateTime? completedAt;
+  final List<ScoreBreakdownLine> scoreBreakdown;
 
   factory GameSessionDto.fromJson(Map<String, dynamic> json) {
     return GameSessionDto(
@@ -45,6 +48,10 @@ class GameSessionDto {
       completedAt: json['completedAt'] == null
           ? null
           : DateTime.parse(json['completedAt'] as String),
+      scoreBreakdown: (json['scoreBreakdown'] as List<dynamic>?)
+              ?.map((e) => ScoreBreakdownLine.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
     );
   }
 
@@ -58,6 +65,7 @@ class GameSessionDto {
     attempts: attempts,
     startedAt: startedAt,
     completedAt: completedAt,
+    scoreBreakdown: scoreBreakdown,
   );
 
   static GameAttempt _attemptFromJson(Map<String, dynamic> json) {

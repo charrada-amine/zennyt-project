@@ -14,6 +14,7 @@ import '../../domain/entities/mini_game.dart';
 import '../../domain/entities/prevision_puzzle_metrics.dart';
 import '../games_controller.dart';
 import '../widgets/game_system_components.dart';
+import '../widgets/score_detail_panel.dart';
 
 /// A difficulty level of the Predictive Puzzle. Difficulty scales purely by the
 /// number of discs: a standard Tower of Hanoi with `discCount` discs has a
@@ -1518,6 +1519,10 @@ class _PredictiveResultsView extends StatelessWidget {
               ),
             ],
           ),
+          if ((session?.scoreBreakdown ?? const []).isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.xl),
+            ScoreDetailPanel(lines: session!.scoreBreakdown),
+          ],
           const SizedBox(height: AppSpacing.xxl),
           GamePanel(
             backgroundColor: ZennytGamePalette.mist,

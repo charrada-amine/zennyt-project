@@ -60,6 +60,7 @@ public class GamesController {
                 request.toMetrics(), request.toCalibration(sessionId)));
 
         return ResponseEntity.ok(GameSessionResponse.from(
-            outcome.session(), outcome.moveFastReport(), outcome.previsionPuzzleReport()));
+            outcome.session(), outcome.moveFastReport(),
+            outcome.previsionPuzzleReport(), outcome.scoreBreakdown()));
     }
 }

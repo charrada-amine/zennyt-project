@@ -13,9 +13,11 @@ import '../../domain/entities/game_session.dart';
 import '../../domain/entities/game_type.dart';
 import '../../domain/entities/mini_game.dart';
 import '../../domain/entities/move_fast_metrics.dart';
+import '../../domain/entities/score_breakdown.dart';
 import '../device_calibration_probe.dart';
 import '../games_providers.dart';
 import '../widgets/game_system_components.dart';
+import '../widgets/score_detail_panel.dart';
 
 enum _MoveFastStage {
   intro,
@@ -613,6 +615,7 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
       _MoveFastStage.results => _ResultsView(
         cognitiveScore: _cognitiveScore,
         rawScore: _serverSession?.lastAttempt?.score.rawPoints,
+        breakdown: _serverSession?.scoreBreakdown ?? const [],
         resultPending: _submittingResult,
         accuracy: _accuracy,
         averageReactionMs: _averageReactionMs,
@@ -1910,6 +1913,7 @@ class _ResultsView extends StatelessWidget {
   const _ResultsView({
     required this.cognitiveScore,
     required this.rawScore,
+    required this.breakdown,
     required this.resultPending,
     required this.accuracy,
     required this.averageReactionMs,
@@ -1921,6 +1925,7 @@ class _ResultsView extends StatelessWidget {
 
   final int cognitiveScore;
   final int? rawScore;
+  final List<ScoreBreakdownLine> breakdown;
   final bool resultPending;
   final double accuracy;
   final int averageReactionMs;
@@ -2018,6 +2023,10 @@ class _ResultsView extends StatelessWidget {
               ),
             ],
           ),
+          if (breakdown.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.xl),
+            ScoreDetailPanel(lines: breakdown),
+          ],
           const SizedBox(height: AppSpacing.xxl),
           GamePanel(
             backgroundColor: ZennytGamePalette.mist,

@@ -104,4 +104,37 @@ public final class MoveFastConfig {
             .findFirst()
             .orElse("Très faible");
     }
+
+    /**
+     * Décomposition du rejeu de l'escalade : points de jeu, multiplicateur final
+     * et bonus de fin. Sert au calcul du score ET au détail affiché (panneau de
+     * score). Barème inchangé (50 × multiplicateur, streak 4, bonus 250).
+     */
+    public record Replay(int gamePoints, int finalMultiplier, int finalBonus, int total) {
+    }
+
+    /** Rejoue la séquence correct/incorrect et expose la décomposition du score. */
+    public static Replay replay(Iterable<Boolean> responses) {
+        int points = 0;
+        int multiplier = MIN_MULTIPLIER;
+        int streakCounter = 0;
+
+        for (boolean correct : responses) {
+            if (correct) {
+                points += BASE_POINTS_PER_CORRECT * multiplier;
+                streakCounter++;
+                if (streakCounter == CORRECT_STREAK_FOR_UPGRADE) {
+                    streakCounter = 0;
+                    multiplier = Math.min(MAX_MULTIPLIER, multiplier + 1);
+                }
+            } else if (RESET_STREAK_ON_ERROR && streakCounter > 0) {
+                streakCounter = 0;
+            } else if (DECREASE_MULTIPLIER_ON_ERROR) {
+                multiplier = Math.max(MIN_MULTIPLIER, multiplier - 1);
+            }
+        }
+
+        int finalBonus = FINAL_BONUS_MULTIPLIER * multiplier;
+        return new Replay(points, multiplier, finalBonus, points + finalBonus);
+    }
 }

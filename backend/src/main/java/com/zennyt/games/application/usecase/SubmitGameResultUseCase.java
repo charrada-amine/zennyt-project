@@ -7,8 +7,10 @@ import com.zennyt.games.domain.repository.DeviceCalibrationRepository;
 import com.zennyt.games.domain.repository.GameSessionRepository;
 import com.zennyt.games.domain.service.CalibrationService;
 import com.zennyt.games.domain.service.PlanifikScoringService;
+import com.zennyt.games.domain.service.ScoreBreakdownService;
 import com.zennyt.games.domain.vo.DeviceCalibration;
 import com.zennyt.games.domain.vo.MoveFastFlexibilityReport;
+import com.zennyt.games.domain.vo.ScoreBreakdown;
 import com.zennyt.games.domain.vo.MoveFastMetrics;
 import com.zennyt.games.domain.vo.PlanifikMetrics;
 import com.zennyt.games.domain.vo.PrevisionPuzzleMetrics;
@@ -42,6 +44,7 @@ public class SubmitGameResultUseCase {
     private final ApplicationEventPublisher eventPublisher;
     private final PlanifikScoringService scoring = new PlanifikScoringService();
     private final CalibrationService calibration = new CalibrationService();
+    private final ScoreBreakdownService breakdown = new ScoreBreakdownService();
 
     public SubmitGameResultUseCase(GameSessionRepository repository,
                                    DeviceCalibrationRepository calibrationRepository,
@@ -58,10 +61,12 @@ public class SubmitGameResultUseCase {
      * @param session               session après enregistrement du résultat
      * @param moveFastReport         indicateurs Move Fast (null pour les autres jeux)
      * @param previsionPuzzleReport  indicateurs Predictive Puzzle (null sinon)
+     * @param scoreBreakdown         détail du calcul du score (panneau), null si non supporté
      */
     public record Outcome(GameSession session,
                           MoveFastFlexibilityReport moveFastReport,
-                          PrevisionPuzzleReport previsionPuzzleReport) {
+                          PrevisionPuzzleReport previsionPuzzleReport,
+                          ScoreBreakdown scoreBreakdown) {
     }
 
     @Transactional
@@ -85,7 +90,11 @@ public class SubmitGameResultUseCase {
         saved.domainEvents().forEach(eventPublisher::publishEvent);
         saved.clearEvents();
 
-        return new Outcome(saved, moveFastReport(command, saved), previsionPuzzleReport(command));
+        // Détail du score (panneau) : mêmes métriques + même barème que le score.
+        ScoreBreakdown scoreBreakdown = breakdown.build(command.metrics(), score);
+
+        return new Outcome(saved, moveFastReport(command, saved),
+            previsionPuzzleReport(command), scoreBreakdown);
     }
 
     /** Dérive les indicateurs qualitatifs pour « Predictive Puzzle » ; null sinon. */
