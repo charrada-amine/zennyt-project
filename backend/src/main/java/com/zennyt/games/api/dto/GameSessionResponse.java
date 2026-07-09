@@ -2,6 +2,7 @@ package com.zennyt.games.api.dto;
 
 import com.zennyt.games.domain.model.Attempt;
 import com.zennyt.games.domain.model.GameSession;
+import com.zennyt.games.domain.vo.MemoryQuestReport;
 import com.zennyt.games.domain.vo.MoveFastFlexibilityReport;
 import com.zennyt.games.domain.vo.PrevisionPuzzleReport;
 import com.zennyt.games.domain.vo.ScoreBreakdown;
@@ -24,6 +25,7 @@ public record GameSessionResponse(
     Instant completedAt,
     MoveFastIndicatorsResponse moveFastIndicators,
     PrevisionPuzzleIndicatorsResponse previsionPuzzleIndicators,
+    MemoryQuestIndicatorsResponse memoryQuestIndicators,
     List<ScoreBreakdownLineResponse> scoreBreakdown
 ) {
     /** Résultat d'un mini-jeu au sein de la session. */
@@ -97,6 +99,26 @@ public record GameSessionResponse(
         }
     }
 
+    /** Indicateurs « J'investigue » (calculés serveur ; notes par tâche + composite). */
+    public record MemoryQuestIndicatorsResponse(
+        int compositeScore,
+        int sameOrderScore,
+        int reverseOrderScore,
+        Integer restoreScore,
+        Integer afterDistractionScore,
+        int highestSequenceLength,
+        boolean distractionQuestionCorrect,
+        boolean missionBPlayed,
+        boolean distractionPlayed
+    ) {
+        static MemoryQuestIndicatorsResponse from(MemoryQuestReport r) {
+            return new MemoryQuestIndicatorsResponse(
+                r.compositeScore(), r.sameOrderScore(), r.reverseOrderScore(),
+                r.restoreScore(), r.afterDistractionScore(), r.highestSequenceLength(),
+                r.distractionQuestionCorrect(), r.missionBPlayed(), r.distractionPlayed());
+        }
+    }
+
     /** Une ligne du détail du score (panneau « d'où viennent mes points »). */
     public record ScoreBreakdownLineResponse(
         String kind, String label, String detail, Integer points, Integer maxPoints) {
@@ -107,12 +129,13 @@ public record GameSessionResponse(
     }
 
     public static GameSessionResponse from(GameSession s) {
-        return from(s, null, null, null);
+        return from(s, null, null, null, null);
     }
 
     public static GameSessionResponse from(GameSession s,
                                            MoveFastFlexibilityReport moveFastReport,
                                            PrevisionPuzzleReport previsionPuzzleReport,
+                                           MemoryQuestReport memoryQuestReport,
                                            ScoreBreakdown scoreBreakdown) {
         return new GameSessionResponse(
             s.id(), s.playerId(), s.gameType().name(), s.status().name(),
@@ -122,6 +145,8 @@ public record GameSessionResponse(
             moveFastReport == null ? null : MoveFastIndicatorsResponse.from(moveFastReport),
             previsionPuzzleReport == null ? null
                 : PrevisionPuzzleIndicatorsResponse.from(previsionPuzzleReport),
+            memoryQuestReport == null ? null
+                : MemoryQuestIndicatorsResponse.from(memoryQuestReport),
             scoreBreakdown == null ? null
                 : scoreBreakdown.lines().stream().map(ScoreBreakdownLineResponse::from).toList());
     }

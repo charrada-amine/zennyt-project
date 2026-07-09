@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zennyt/features/games/domain/entities/memory_object.dart';
 import 'package:zennyt/features/games/presentation/view/investigate_screen.dart';
@@ -22,7 +23,7 @@ void main() {
   }
 
   testWidgets(
-      'Missions A+B : digits (même/inverse) → objets (observe/manipule/restaure) → résultats',
+      'Flux complet A+B+distraction : digits → objets → distraction → résultats',
       (tester) async {
     tester.view.physicalSize = const Size(1200, 2400);
     tester.view.devicePixelRatio = 1.0;
@@ -30,11 +31,19 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     List<MemoryObject> initialObjects = const [];
+    List<int> distractSeq = const [];
+    int distractAnswer = 0;
     await tester.pumpWidget(
-      MaterialApp(
-        home: InvestigateScreen(
-          seed: seed,
-          onMissionBReady: (order) => initialObjects = order,
+      ProviderScope(
+        child: MaterialApp(
+          home: InvestigateScreen(
+            seed: seed,
+            onMissionBReady: (order) => initialObjects = order,
+            onDistractionReady: (seq, answer) {
+              distractSeq = seq;
+              distractAnswer = answer;
+            },
+          ),
         ),
       ),
     );
@@ -82,13 +91,34 @@ void main() {
       await tester.pump();
     }
     await tester.tap(find.text('Validate'));
-    await tester.pump(const Duration(milliseconds: 300));
 
-    // Résultats + composite (mock) : same 5/5, reverse 4/5, restore 5/5
-    // → moyenne (5+4+5)/3 = 4.67 /5 → 93 %.
+    // Fin Mission B → phase de DISTRACTION : encodage d'une séquence à protéger.
+    await tester.pump(const Duration(milliseconds: 1000));
+    expect(distractSeq, hasLength(4));
+    await tester.pump(const Duration(milliseconds: 5200)); // encode → question
+
+    // Question rapide dimmée + rappel mémoire visible.
+    expect(find.textContaining('Quick check'), findsOneWidget);
+    await tester.tap(find.byKey(ValueKey('choice-$distractAnswer'))); // bonne réponse
+    await tester.pump();
+
+    // Rappel APRÈS distraction : on retape la séquence protégée (→ 5/5).
+    expect(find.textContaining('Now recall'), findsOneWidget);
+    await typeDigits(tester, distractSeq);
+    await tester.tap(find.text('Validate'));
+    // Soumission au repo (mock : 2 × 150 ms) → score serveur + panneau de détail.
+    await tester.pump(const Duration(milliseconds: 500));
+
+    // Résultats + composite calculé PAR LE REPO (mock, parité backend) :
+    // same 5/5, reverse 4/5, restore 5/5, after-distraction 5/5
+    // → moyenne (5+4+5+5)/4 = 4.75 /5 → 95 %.
     expect(find.text('Results'), findsOneWidget);
-    expect(find.text('5/5'), findsWidgets); // same order + restore
-    expect(find.text('4/5'), findsOneWidget); // reverse
-    expect(find.text('93%'), findsOneWidget);
+    expect(find.text('95%'), findsOneWidget); // composite (carte principale)
+    expect(find.text('Correct'), findsOneWidget); // quick check (tuile)
+    // Tuiles + lignes du panneau : les scores apparaissent (au moins une fois).
+    expect(find.text('4/5'), findsWidgets); // reverse
+    expect(find.text('5/5'), findsWidgets); // same / restore / after-distraction
+    // Panneau « détail du score » alimenté par le repo (offline via le mock).
+    expect(find.text('Détail du score'), findsOneWidget);
   });
 }

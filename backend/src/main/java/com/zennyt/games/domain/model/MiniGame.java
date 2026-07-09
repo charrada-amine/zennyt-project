@@ -24,7 +24,9 @@ public enum MiniGame {
     /** Planifik #3 — « Le Puzzle Prévisionnel ». */
     PREVISION_PUZZLE(GameType.PLANIFIK, 10, true),
     /** Move Fast #1 — « Je bouge ». Barème dynamique selon le nombre de réponses. */
-    MOVE_FAST_CORE(GameType.MOVE_FAST, 0, true);
+    MOVE_FAST_CORE(GameType.MOVE_FAST, 0, true),
+    /** Memory Quest — « J'investigue ». Composite /100 (A + B + distraction). */
+    MEMORY_QUEST_CORE(GameType.MEMORY_QUEST, 100, true);
 
     private final GameType gameType;
     private final int maxPoints;

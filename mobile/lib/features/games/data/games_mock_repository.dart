@@ -3,6 +3,7 @@ import '../domain/entities/game_score.dart';
 import '../domain/entities/game_session.dart';
 import '../domain/entities/game_type.dart';
 import '../domain/entities/game_metrics.dart';
+import '../domain/entities/memory_quest_metrics.dart';
 import '../domain/entities/mini_game.dart';
 import '../domain/entities/move_fast_metrics.dart';
 import '../domain/entities/planifik_metrics.dart';
@@ -72,6 +73,9 @@ class GamesMockRepository implements GamesRepository {
         metrics as PrevisionPuzzleMetrics,
       ),
       MiniGame.moveFastCore => _scoreMoveFast(metrics as MoveFastMetrics),
+      MiniGame.memoryQuestCore => _scoreMemoryQuest(
+        metrics as MemoryQuestMetrics,
+      ),
       MiniGame.taskScheduling => throw StateError(
         'Barème mock non implémenté pour ${miniGame.wire}',
       ),
@@ -83,6 +87,7 @@ class GamesMockRepository implements GamesRepository {
     final raw = attempts.fold<int>(0, (sum, a) => sum + a.score.rawPoints);
     final complete =
         miniGame == MiniGame.moveFastCore ||
+        miniGame == MiniGame.memoryQuestCore ||
         attempts.length >= _expectedMiniGames(current.gameType);
     final max = complete
         ? attempts.fold<int>(0, (sum, a) => sum + a.score.maxPoints)
@@ -145,6 +150,36 @@ class GamesMockRepository implements GamesRepository {
     if (points <= 3) return 'Très faible';
     if (points <= 6) return 'Moyen';
     return 'Bon à excellent';
+  }
+
+  // ── « J'investigue » (MEMORY_QUEST) — miroir de MemoryQuestScoringService ──
+
+  GameScore _scoreMemoryQuest(MemoryQuestMetrics m) {
+    final tasks = <int>[
+      _taskScore(m.sameAccuracy),
+      _taskScore(m.reverseAccuracy),
+    ];
+    if (m.missionBPlayed) tasks.add(_taskScore(m.restoreAccuracy));
+    if (m.distractionPlayed) tasks.add(_taskScore(m.afterDistractionAccuracy));
+    final avg = tasks.reduce((a, b) => a + b) / tasks.length;
+    final composite = (avg / 5 * 100).round();
+    return GameScore(
+      rawPoints: composite,
+      maxPoints: 100,
+      normalized: composite.toDouble(),
+      level: _interpretMemoryQuest(composite),
+    );
+  }
+
+  int _taskScore(double accuracy) =>
+      (accuracy.clamp(0.0, 1.0) * 5).round();
+
+  String _interpretMemoryQuest(int composite) {
+    if (composite < 40) return 'Très faible';
+    if (composite < 60) return 'Moyen faible';
+    if (composite < 75) return 'Moyen';
+    if (composite < 90) return 'Bon';
+    return 'Excellent';
   }
 
   GameScore _scoreMoveFast(MoveFastMetrics m) {
@@ -260,8 +295,47 @@ class GamesMockRepository implements GamesRepository {
       MiniGame.optimalPath => _breakdownOptimalPath(metrics as PlanifikMetrics, score),
       MiniGame.previsionPuzzle =>
         _breakdownPrevision(metrics as PrevisionPuzzleMetrics, score),
+      MiniGame.memoryQuestCore =>
+        _breakdownMemoryQuest(metrics as MemoryQuestMetrics, score),
       MiniGame.taskScheduling => const [],
     };
+  }
+
+  List<ScoreBreakdownLine> _breakdownMemoryQuest(
+    MemoryQuestMetrics m,
+    GameScore score,
+  ) {
+    final lines = <ScoreBreakdownLine>[
+      const ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.note,
+        label:
+            'Chaque tâche est notée sur 5 ; le score = moyenne des tâches '
+            'jouées, ramenée sur 100.',
+      ),
+      _crit('Rappel même ordre', _pct(m.sameAccuracy), _taskScore(m.sameAccuracy), 5),
+      _crit('Rappel inverse', _pct(m.reverseAccuracy), _taskScore(m.reverseAccuracy), 5),
+    ];
+    if (m.missionBPlayed) {
+      lines.add(_crit("Restauration d'objets", _pct(m.restoreAccuracy),
+          _taskScore(m.restoreAccuracy), 5));
+    }
+    if (m.distractionPlayed) {
+      lines
+        ..add(_crit('Rappel après distraction', _pct(m.afterDistractionAccuracy),
+            _taskScore(m.afterDistractionAccuracy), 5))
+        ..add(ScoreBreakdownLine(
+          kind: ScoreBreakdownKind.info,
+          label: 'Question rapide',
+          detail: m.distractionQuestionCorrect ? 'correcte' : 'manquée',
+        ));
+    }
+    lines.add(ScoreBreakdownLine(
+      kind: ScoreBreakdownKind.total,
+      label: 'Composite',
+      points: score.rawPoints,
+      maxPoints: score.maxPoints,
+    ));
+    return lines;
   }
 
   List<ScoreBreakdownLine> _breakdownMoveFast(MoveFastMetrics m, GameScore score) {
@@ -430,7 +504,8 @@ class GamesMockRepository implements GamesRepository {
       // Planifik se complète donc sur OPTIMAL_PATH + PREVISION_PUZZLE.
       GameType.planifik => 2,
       GameType.moveFast => 1,
-      GameType.memoryQuest || GameType.decision => 0,
+      GameType.memoryQuest => 1, // « J'investigue » = un composite (A+B+distraction)
+      GameType.decision => 0,
     };
   }
 }

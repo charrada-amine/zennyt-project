@@ -79,7 +79,7 @@ components:
     MiniGame:
       type: string
       description: Mini-jeu évalué dans une session.
-      enum: [OPTIMAL_PATH, TASK_SCHEDULING, PREVISION_PUZZLE, MOVE_FAST_CORE]
+      enum: [OPTIMAL_PATH, TASK_SCHEDULING, PREVISION_PUZZLE, MOVE_FAST_CORE, MEMORY_QUEST_CORE]
 
     SessionStatus:
       type: string
@@ -376,11 +376,50 @@ components:
         points: { type: integer, nullable: true }
         maxPoints: { type: integer, nullable: true }
 
+    MemoryQuestMetrics:
+      type: object
+      description: >
+        Mesures brutes de « J'investigue » (mémoire de travail). Le serveur note
+        chaque tâche 0–5 (rappel même ordre/inverse, restauration d'objets, rappel
+        après distraction) puis calcule le composite /100 (indicatif). La Mission B
+        est jouée si objectCount > 0 ; la distraction si distractionPlayed.
+      required: [observedDigits, correctSameDigits, correctReverseDigits, highestSequenceLength]
+      properties:
+        observedDigits: { type: integer, minimum: 1, description: "Chiffres observés (Mission A)" }
+        correctSameDigits: { type: integer, minimum: 0, description: "Chiffres corrects, rappel même ordre" }
+        correctReverseDigits: { type: integer, minimum: 0, description: "Chiffres corrects, rappel inverse" }
+        highestSequenceLength: { type: integer, minimum: 0, description: "Empan maximal atteint" }
+        objectCount: { type: integer, minimum: 0, description: "Nb d'objets (Mission B ; 0 si non jouée)" }
+        restoreCorrect: { type: integer, minimum: 0, description: "Positions correctes à la restauration" }
+        manipulationCount: { type: integer, minimum: 0, description: "Manipulations automatiques observées" }
+        distractionPlayed: { type: boolean, description: "true si la phase de distraction a été jouée" }
+        afterDistractionObserved: { type: integer, minimum: 0, description: "Chiffres à protéger (distraction)" }
+        afterDistractionCorrect: { type: integer, minimum: 0, description: "Chiffres corrects après distraction" }
+        distractionQuestionCorrect: { type: boolean, description: "Réponse à la question rapide correcte (indicateur)" }
+
+    MemoryQuestIndicators:
+      type: object
+      description: >
+        Indicateurs « J'investigue » CALCULÉS PAR LE SERVEUR : notes par tâche
+        (0–5) + composite /100 (indicatif, non diagnostique). Tâches optionnelles
+        nulles si non jouées.
+      properties:
+        compositeScore: { type: integer, description: "Composite /100" }
+        sameOrderScore: { type: integer }
+        reverseOrderScore: { type: integer }
+        restoreScore: { type: integer, nullable: true }
+        afterDistractionScore: { type: integer, nullable: true }
+        highestSequenceLength: { type: integer }
+        distractionQuestionCorrect: { type: boolean }
+        missionBPlayed: { type: boolean }
+        distractionPlayed: { type: boolean }
+
     GameMetrics:
       oneOf:
         - $ref: '#/components/schemas/OptimalPathMetrics'
         - $ref: '#/components/schemas/MoveFastMetrics'
         - $ref: '#/components/schemas/PrevisionPuzzleMetrics'
+        - $ref: '#/components/schemas/MemoryQuestMetrics'
 
     SubmitResultRequest:
       type: object
@@ -431,6 +470,10 @@ components:
           allOf: [ { $ref: '#/components/schemas/PrevisionPuzzleIndicators' } ]
           nullable: true
           description: "Présent uniquement quand le résultat soumis concerne Predictive Puzzle."
+        memoryQuestIndicators:
+          allOf: [ { $ref: '#/components/schemas/MemoryQuestIndicators' } ]
+          nullable: true
+          description: "Présent uniquement quand le résultat soumis concerne « J'investigue »."
         scoreBreakdown:
           type: array
           nullable: true

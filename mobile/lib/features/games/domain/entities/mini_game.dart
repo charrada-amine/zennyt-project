@@ -4,7 +4,8 @@ enum MiniGame {
   optimalPath('OPTIMAL_PATH'),
   taskScheduling('TASK_SCHEDULING'),
   previsionPuzzle('PREVISION_PUZZLE'),
-  moveFastCore('MOVE_FAST_CORE');
+  moveFastCore('MOVE_FAST_CORE'),
+  memoryQuestCore('MEMORY_QUEST_CORE');
 
   final String wire;
   const MiniGame(this.wire);

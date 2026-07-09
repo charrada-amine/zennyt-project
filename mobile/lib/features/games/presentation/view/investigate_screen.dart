@@ -2,13 +2,21 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../domain/entities/game_session.dart';
+import '../../domain/entities/game_type.dart';
 import '../../domain/entities/memory_object.dart';
+import '../../domain/entities/memory_quest_metrics.dart';
+import '../../domain/entities/mini_game.dart';
+import '../../domain/entities/score_breakdown.dart';
+import '../games_providers.dart';
 import '../widgets/game_system_components.dart';
+import '../widgets/score_detail_panel.dart';
 
 /// « J'investigue » — jeu de MÉMOIRE DE TRAVAIL (GameType MEMORY_QUEST).
 ///
@@ -21,11 +29,12 @@ import '../widgets/game_system_components.dart';
 /// le composite = moyenne des tâches, normalisé /100 (indicatif, non diagnostique).
 ///
 /// Missions B (manipulation d'objets) et Distraction : phases suivantes.
-class InvestigateScreen extends StatefulWidget {
+class InvestigateScreen extends ConsumerStatefulWidget {
   const InvestigateScreen({
     super.key,
     @visibleForTesting this.seed,
     @visibleForTesting this.onMissionBReady,
+    @visibleForTesting this.onDistractionReady,
   });
 
   /// Graine RNG déterministe pour les tests (séquences reproductibles).
@@ -34,8 +43,12 @@ class InvestigateScreen extends StatefulWidget {
   /// Notifie l'ordre INITIAL des objets (Mission B) — hook de test uniquement.
   final void Function(List<MemoryObject> initialOrder)? onMissionBReady;
 
+  /// Notifie la séquence à protéger + la bonne réponse de la question de
+  /// distraction — hook de test uniquement.
+  final void Function(List<int> sequence, int answer)? onDistractionReady;
+
   @override
-  State<InvestigateScreen> createState() => _InvestigateScreenState();
+  ConsumerState<InvestigateScreen> createState() => _InvestigateScreenState();
 }
 
 enum _Stage {
@@ -47,11 +60,19 @@ enum _Stage {
   observeObjects,
   manipulateObjects,
   restoreOrder,
+  distractionEncode,
+  distraction,
+  recallAfterDistraction,
   feedback,
   results,
 }
 
-class _InvestigateScreenState extends State<InvestigateScreen> {
+class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
+  // Session serveur (mock hors-ligne / backend) : le score fait autorité côté repo.
+  Future<GameSession>? _sessionStart;
+  GameSession? _serverSession;
+  bool _submitting = false;
+
   // ── Timers (data-driven, cf. handoff §6/§8) ──────────────────────────────
   static const int _digitVisibleMs = 900; // affichage d'un chiffre
   static const int _isiMs = 250; // blanc inter-stimulus (input verrouillé)
@@ -100,6 +121,21 @@ class _InvestigateScreenState extends State<InvestigateScreen> {
   bool _missionBDone = false;
   int _objToken = 0; // annule une phase objet en cours (pause/dispose)
 
+  // ── Phase de distraction (résistance à l'interférence) ────────────────────
+  static const int _distractLength = 4; // séquence à protéger
+  static const int _distractSeconds = 8; // 5–10 s (question rapide)
+
+  List<int> _distractSeq = const []; // séquence encodée avant la distraction
+  String _distractQuestionText = '';
+  int _distractQuestionAnswer = 0; // réponse correcte de la question
+  List<int> _distractChoices = const [];
+  bool _distractQuestionCorrect = false;
+  int _distractSecondsLeft = 0;
+  Timer? _distractTimer;
+  int _afterDistractObserved = 0;
+  int _afterDistractCorrect = 0;
+  bool _distractionDone = false;
+
   bool get _reduceMotion =>
       MediaQuery.maybeOf(context)?.disableAnimations ?? false;
 
@@ -108,12 +144,18 @@ class _InvestigateScreenState extends State<InvestigateScreen> {
       _stage == _Stage.observeSequence ||
       _stage == _Stage.observeObjects ||
       _stage == _Stage.manipulateObjects ||
+      _stage == _Stage.distractionEncode ||
       _stage == _Stage.feedback;
+
+  /// Longueur du rappel courant (Mission A vs rappel après distraction).
+  int get _recallLength =>
+      _stage == _Stage.recallAfterDistraction ? _distractSeq.length : _length;
 
   @override
   void dispose() {
     _seqToken++; // stoppe toute observation planifiée
     _objToken++;
+    _distractTimer?.cancel();
     super.dispose();
   }
 
@@ -129,7 +171,16 @@ class _InvestigateScreenState extends State<InvestigateScreen> {
       _missionBDone = false;
       _restoreCorrect = 0;
       _objects = const [];
+      _distractionDone = false;
+      _afterDistractObserved = 0;
+      _afterDistractCorrect = 0;
+      _distractQuestionCorrect = false;
+      _serverSession = null;
+      _submitting = false;
     });
+    _distractTimer?.cancel();
+    // Démarre la session côté repo (mock hors-ligne / backend online).
+    _sessionStart = ref.read(gamesRepositoryProvider).startSession(GameType.memoryQuest);
     _beginRound();
   }
 
@@ -168,7 +219,7 @@ class _InvestigateScreenState extends State<InvestigateScreen> {
   }
 
   void _onKey(int digit) {
-    if (_inputLocked || _entry.length >= _length) return;
+    if (_inputLocked || _entry.length >= _recallLength) return;
     setState(() => _entry.add(digit));
   }
 
@@ -178,7 +229,15 @@ class _InvestigateScreenState extends State<InvestigateScreen> {
   }
 
   void _onValidate() {
-    if (_inputLocked || _entry.length != _length) return;
+    if (_inputLocked || _entry.length != _recallLength) return;
+
+    if (_stage == _Stage.recallAfterDistraction) {
+      _afterDistractObserved += _distractSeq.length;
+      _afterDistractCorrect += _matchingDigits(_entry, _distractSeq);
+      _distractionDone = true;
+      _finishAndSubmit(); // fin de mission → soumission au repo
+      return;
+    }
 
     if (_stage == _Stage.recallSameOrder) {
       _correctSameDigits += _matchingDigits(_entry, _sequence);
@@ -288,7 +347,129 @@ class _InvestigateScreenState extends State<InvestigateScreen> {
       if (_slots[i]?.id == _objects[i].id) _restoreCorrect++;
     }
     _missionBDone = true;
-    setState(() => _stage = _Stage.results);
+    _beginDistraction(); // Mission B terminée → phase de distraction
+  }
+
+  // ── Phase de distraction ─────────────────────────────────────────────────
+
+  void _beginDistraction() {
+    _distractSeq = List<int>.generate(_distractLength, (_) => _random.nextInt(10));
+    _entry.clear();
+    // Question rapide : addition simple a + b.
+    final a = 1 + _random.nextInt(9);
+    final b = 1 + _random.nextInt(9);
+    _distractQuestionAnswer = a + b;
+    _distractQuestionText = '$a + $b = ?';
+    _distractChoices = _buildChoices(_distractQuestionAnswer);
+    _distractQuestionCorrect = false;
+    widget.onDistractionReady?.call(_distractSeq, _distractQuestionAnswer);
+    setState(() {
+      _stage = _Stage.distractionEncode;
+      _revealIndex = 0;
+      _showingDigit = false;
+    });
+    _runDistractionEncode();
+  }
+
+  List<int> _buildChoices(int answer) {
+    final set = <int>{answer};
+    while (set.length < 3) {
+      final delta = 1 + _random.nextInt(3);
+      set.add(_random.nextBool() ? answer + delta : answer - delta);
+    }
+    final list = set.toList()..shuffle(_random);
+    return list;
+  }
+
+  Future<void> _runDistractionEncode() async {
+    final token = ++_seqToken;
+    await Future<void>.delayed(const Duration(milliseconds: 350));
+    for (var i = 0; i < _distractSeq.length; i++) {
+      if (!mounted || token != _seqToken) return;
+      setState(() {
+        _revealIndex = i;
+        _showingDigit = true;
+      });
+      await Future<void>.delayed(const Duration(milliseconds: _digitVisibleMs));
+      if (!mounted || token != _seqToken) return;
+      setState(() => _showingDigit = false);
+      await Future<void>.delayed(const Duration(milliseconds: _isiMs));
+    }
+    if (!mounted || token != _seqToken) return;
+    _startDistractionCountdown();
+  }
+
+  void _startDistractionCountdown() {
+    _distractTimer?.cancel();
+    setState(() {
+      _stage = _Stage.distraction;
+      _distractSecondsLeft = _distractSeconds;
+    });
+    _distractTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      if (_distractSecondsLeft <= 1) {
+        _endDistraction(); // temps écoulé → question comptée non répondue
+        return;
+      }
+      setState(() => _distractSecondsLeft--);
+    });
+  }
+
+  void _pickDistraction(int choice) {
+    if (_stage != _Stage.distraction) return;
+    _distractQuestionCorrect = choice == _distractQuestionAnswer;
+    _endDistraction();
+  }
+
+  void _endDistraction() {
+    _distractTimer?.cancel();
+    _entry.clear();
+    setState(() => _stage = _Stage.recallAfterDistraction);
+  }
+
+  // ── Fin de mission : soumission au repository (score serveur/mock) ────────
+
+  MemoryQuestMetrics _buildMetrics() {
+    return MemoryQuestMetrics(
+      observedDigits: _observedDigits,
+      correctSameDigits: _correctSameDigits,
+      correctReverseDigits: _correctReverseDigits,
+      highestSequenceLength: _highestLength,
+      objectCount: _missionBDone ? _objects.length : 0,
+      restoreCorrect: _restoreCorrect,
+      manipulationCount: _missionBDone ? _bManipulations : 0,
+      distractionPlayed: _distractionDone,
+      afterDistractionObserved: _afterDistractObserved,
+      afterDistractionCorrect: _afterDistractCorrect,
+      distractionQuestionCorrect: _distractQuestionCorrect,
+    );
+  }
+
+  Future<void> _finishAndSubmit() async {
+    setState(() {
+      _stage = _Stage.results;
+      _submitting = true;
+    });
+    try {
+      final session = await (_sessionStart ??=
+          ref.read(gamesRepositoryProvider).startSession(GameType.memoryQuest));
+      final updated = await ref.read(gamesRepositoryProvider).submitResult(
+            sessionId: session.id,
+            miniGame: MiniGame.memoryQuestCore,
+            metrics: _buildMetrics(),
+          );
+      if (!mounted) return;
+      setState(() => _serverSession = updated);
+    } catch (error) {
+      // Hors-ligne / erreur : on garde le composite calculé localement (fallback).
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Score non synchronisé : $error')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 
   int _matchingDigits(List<int> a, List<int> b) {
@@ -322,10 +503,18 @@ class _InvestigateScreenState extends State<InvestigateScreen> {
       _objects.isEmpty ? 0 : _restoreCorrect / _objects.length;
   int get _restoreTaskScore => (_restoreAccuracy * 5).round(); // 0–5
 
+  // Distraction : ce qui est noté = la SURVIE de la mémoire (rappel après
+  // interférence). La justesse de la question est un indicateur affiché à part.
+  double get _afterDistractAccuracy => _afterDistractObserved == 0
+      ? 0
+      : _afterDistractCorrect / _afterDistractObserved;
+  int get _distractionTaskScore => (_afterDistractAccuracy * 5).round(); // 0–5
+
   int get _compositeScore {
     // Composite = moyenne des tâches jouées, normalisé /100 (indicatif).
     final tasks = <int>[_sameTaskScore, _reverseTaskScore];
     if (_missionBDone) tasks.add(_restoreTaskScore);
+    if (_distractionDone) tasks.add(_distractionTaskScore);
     final avg = tasks.reduce((a, b) => a + b) / tasks.length; // /5
     return (avg / 5 * 100).round(); // /100
   }
@@ -340,6 +529,7 @@ class _InvestigateScreenState extends State<InvestigateScreen> {
     }
     _seqToken++; // gèle les phases verrouillées en cours
     _objToken++;
+    _distractTimer?.cancel();
     setState(() => _paused = true);
     final action = await showDialog<_PauseAction>(
       context: context,
@@ -352,12 +542,15 @@ class _InvestigateScreenState extends State<InvestigateScreen> {
       return;
     }
     setState(() => _paused = false);
-    // Reprise : on rejoue la phase verrouillée courante depuis son début.
+    // Reprise : on rejoue la phase (verrouillée) courante depuis son début.
     if (_stage == _Stage.observeSequence) {
       _beginRound();
     } else if (_stage == _Stage.observeObjects ||
         _stage == _Stage.manipulateObjects) {
       _beginMissionB();
+    } else if (_stage == _Stage.distractionEncode ||
+        _stage == _Stage.distraction) {
+      _beginDistraction();
     }
   }
 
@@ -402,13 +595,22 @@ class _InvestigateScreenState extends State<InvestigateScreen> {
       _Stage.observeObjects ||
       _Stage.manipulateObjects ||
       _Stage.restoreOrder ||
+      _Stage.distractionEncode ||
+      _Stage.distraction ||
+      _Stage.recallAfterDistraction ||
       _Stage.feedback =>
         _buildGameplay(),
       _Stage.results => _ResultsView(
-          composite: _compositeScore,
+          // Le composite fait autorité côté repo (mock/backend) ; repli local.
+          composite:
+              _serverSession?.lastAttempt?.score.normalized.round() ?? _compositeScore,
+          submitting: _submitting,
+          breakdown: _serverSession?.scoreBreakdown ?? const [],
           sameScore: _sameTaskScore,
           reverseScore: _reverseTaskScore,
           restoreScore: _missionBDone ? _restoreTaskScore : null,
+          distractionScore: _distractionDone ? _distractionTaskScore : null,
+          distractionQuestionCorrect: _distractQuestionCorrect,
           highestLength: _highestLength,
           onReplay: _startMission,
           onBack: () => context.go(AppRoutes.games),
@@ -424,6 +626,11 @@ class _InvestigateScreenState extends State<InvestigateScreen> {
       _stage == _Stage.manipulateObjects ||
       _stage == _Stage.restoreOrder;
 
+  bool get _isDistraction =>
+      _stage == _Stage.distractionEncode ||
+      _stage == _Stage.distraction ||
+      _stage == _Stage.recallAfterDistraction;
+
   Widget _buildGameplay() {
     final phaseLabel = switch (_stage) {
       _Stage.observeSequence => 'Memorize',
@@ -432,8 +639,21 @@ class _InvestigateScreenState extends State<InvestigateScreen> {
       _Stage.observeObjects => 'Observation',
       _Stage.manipulateObjects => 'Manipulation',
       _Stage.restoreOrder => 'Restore',
+      _Stage.distractionEncode => 'Memorize',
+      _Stage.distraction => 'Distraction',
+      _Stage.recallAfterDistraction => 'Recall',
       _ => 'Check',
     };
+    final loadChip = _isMissionB
+        ? '${_objects.length} objects'
+        : _isDistraction
+            ? '${_distractSeq.length} digits'
+            : '$_length digits';
+    final rightChip = _isMissionB
+        ? 'Mission B'
+        : _isDistraction
+            ? 'Focus'
+            : 'Span $_highestLength';
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 20),
       child: Column(
@@ -449,11 +669,9 @@ class _InvestigateScreenState extends State<InvestigateScreen> {
                 filled: true,
               ),
               const SizedBox(width: AppSpacing.sm),
-              _DarkChip(
-                label: _isMissionB ? '${_objects.length} objects' : '$_length digits',
-              ),
+              _DarkChip(label: loadChip),
               const Spacer(),
-              _DarkChip(label: _isMissionB ? 'Mission B' : 'Span $_highestLength'),
+              _DarkChip(label: rightChip),
             ],
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -465,10 +683,27 @@ class _InvestigateScreenState extends State<InvestigateScreen> {
                   total: _sequence.length,
                   reduceMotion: _reduceMotion,
                 ),
-              _Stage.recallSameOrder || _Stage.recallReverseOrder => _RecallView(
+              _Stage.distractionEncode => _ObserveView(
+                  digit: _showingDigit ? _distractSeq[_revealIndex] : null,
+                  index: _revealIndex,
+                  total: _distractSeq.length,
+                  reduceMotion: _reduceMotion,
+                ),
+              _Stage.distraction => _DistractionView(
+                  question: _distractQuestionText,
+                  choices: _distractChoices,
+                  secondsLeft: _distractSecondsLeft,
+                  reminder: 'Hold the ${_distractSeq.length} digits in mind',
+                  onPick: _pickDistraction,
+                ),
+              _Stage.recallSameOrder ||
+              _Stage.recallReverseOrder ||
+              _Stage.recallAfterDistraction =>
+                _RecallView(
                   entry: _entry,
-                  length: _length,
+                  length: _recallLength,
                   reverse: _stage == _Stage.recallReverseOrder,
+                  afterDistraction: _stage == _Stage.recallAfterDistraction,
                   onKey: _onKey,
                   onBackspace: _onBackspace,
                   onValidate: _onValidate,
@@ -675,11 +910,13 @@ class _RecallView extends StatelessWidget {
     required this.onKey,
     required this.onBackspace,
     required this.onValidate,
+    this.afterDistraction = false,
   });
 
   final List<int> entry;
   final int length;
   final bool reverse;
+  final bool afterDistraction;
   final ValueChanged<int> onKey;
   final VoidCallback onBackspace;
   final VoidCallback onValidate;
@@ -690,9 +927,11 @@ class _RecallView extends StatelessWidget {
     return Column(
       children: [
         Text(
-          reverse
-              ? 'Type the sequence in REVERSE order'
-              : 'Type the sequence in the SAME order',
+          afterDistraction
+              ? 'Now recall the digits you memorized'
+              : reverse
+                  ? 'Type the sequence in REVERSE order'
+                  : 'Type the sequence in the SAME order',
           textAlign: TextAlign.center,
           style: AppTypography.titleMedium.copyWith(
             color: Colors.white,
@@ -1099,6 +1338,120 @@ class _LockedBar extends StatelessWidget {
   }
 }
 
+// ── Phase de distraction (calme, fond assombri, rappel mémoire visible) ─────
+
+class _DistractionView extends StatelessWidget {
+  const _DistractionView({
+    required this.question,
+    required this.choices,
+    required this.secondsLeft,
+    required this.reminder,
+    required this.onPick,
+  });
+
+  final String question;
+  final List<int> choices;
+  final int secondsLeft;
+  final String reminder;
+  final ValueChanged<int> onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        // Rappel mémoire — reste visible pendant la distraction.
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.psychology_outlined, color: Colors.white, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  reminder,
+                  style: AppTypography.titleSmall.copyWith(
+                    color: Colors.white,
+                    letterSpacing: 0,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const Spacer(),
+        Text(
+          'Quick check · ${secondsLeft}s',
+          style: AppTypography.bodyMedium.copyWith(
+            color: Colors.white.withValues(alpha: 0.85),
+            letterSpacing: 0,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 28),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(AppSpacing.radiusXxl),
+          ),
+          child: Text(
+            question,
+            style: const TextStyle(
+              color: ZennytGamePalette.ink,
+              fontSize: 44,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        Row(
+          children: [
+            for (final c in choices) ...[
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Semantics(
+                    button: true,
+                    label: 'Answer $c',
+                    child: InkWell(
+                      key: ValueKey('choice-$c'),
+                      onTap: () => onPick(c),
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                      child: Container(
+                        height: 56, // ≥ 48 px
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.16),
+                          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                        ),
+                        child: Text(
+                          '$c',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+        const Spacer(),
+      ],
+    );
+  }
+}
+
 // ── Intro (reprend la structure Move Fast) ──────────────────────────────────
 
 class _IntroView extends StatelessWidget {
@@ -1295,6 +1648,8 @@ class _TutorialView extends StatelessWidget {
               'Type the digits back in the same order, then in reverse order.'),
           step(Icons.swap_horiz_rounded, 'Objects',
               'Then memorize objects, watch them get moved, and restore the STARTING order.'),
+          step(Icons.psychology_outlined, 'Distraction',
+              'Sometimes a quick question interrupts you — keep the answer in mind and recall after.'),
           step(Icons.lock_outline_rounded, 'Input lock',
               'You cannot answer while stimuli are shown — it keeps the test fair.'),
           const SizedBox(height: AppSpacing.lg),
@@ -1310,18 +1665,26 @@ class _TutorialView extends StatelessWidget {
 class _ResultsView extends StatelessWidget {
   const _ResultsView({
     required this.composite,
+    required this.submitting,
+    required this.breakdown,
     required this.sameScore,
     required this.reverseScore,
     required this.restoreScore,
+    required this.distractionScore,
+    required this.distractionQuestionCorrect,
     required this.highestLength,
     required this.onReplay,
     required this.onBack,
   });
 
   final int composite;
+  final bool submitting;
+  final List<ScoreBreakdownLine> breakdown;
   final int sameScore;
   final int reverseScore;
   final int? restoreScore; // null si la Mission B n'a pas été jouée
+  final int? distractionScore; // null si la distraction n'a pas été jouée
+  final bool distractionQuestionCorrect;
   final int highestLength;
   final VoidCallback onReplay;
   final VoidCallback onBack;
@@ -1344,7 +1707,7 @@ class _ResultsView extends StatelessWidget {
             ),
           ),
           Text(
-            'Indicative score — not a diagnosis',
+            submitting ? 'Scoring…' : 'Indicative score — not a diagnosis',
             style: AppTypography.bodyMedium.copyWith(
               color: ZennytGamePalette.muted,
               letterSpacing: 0,
@@ -1408,6 +1771,35 @@ class _ResultsView extends StatelessWidget {
               ),
             ],
           ),
+          if (distractionScore != null) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Row(
+              children: [
+                Expanded(
+                  child: ResultStatTile(
+                    label: 'After distraction',
+                    value: '$distractionScore/5',
+                    valueColor: ZennytGamePalette.success,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: ResultStatTile(
+                    label: 'Quick check',
+                    value: distractionQuestionCorrect ? 'Correct' : 'Missed',
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: ResultStatTile(
+                    label: 'Best span',
+                    value: '$highestLength',
+                    valueColor: ZennytGamePalette.magenta,
+                  ),
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: AppSpacing.xl),
           GamePanel(
             backgroundColor: ZennytGamePalette.mist,
@@ -1427,7 +1819,9 @@ class _ResultsView extends StatelessWidget {
                   'Same-order recall is usually easier than reverse recall, '
                   'which loads working memory more.'
                   '${restoreScore == null ? '' : ' In the object task you restored '
-                      'the starting order despite the manipulations you watched.'}',
+                      'the starting order despite the manipulations you watched.'}'
+                  '${distractionScore == null ? '' : ' You then held digits in mind '
+                      'while answering a quick question — a measure of distraction resistance.'}',
                   style: AppTypography.bodyLarge.copyWith(
                     color: ZennytGamePalette.muted,
                     letterSpacing: 0,
@@ -1436,6 +1830,10 @@ class _ResultsView extends StatelessWidget {
               ],
             ),
           ),
+          if (breakdown.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.xl),
+            ScoreDetailPanel(lines: breakdown),
+          ],
           const SizedBox(height: AppSpacing.xxl),
           GamePrimaryButton(label: 'Replay', onPressed: onReplay),
           const SizedBox(height: AppSpacing.md),

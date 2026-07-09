@@ -1,9 +1,11 @@
 package com.zennyt.games.domain.service;
 
+import com.zennyt.games.domain.config.MemoryQuestConfig;
 import com.zennyt.games.domain.config.MoveFastConfig;
 import com.zennyt.games.domain.config.OptimalPathConfig;
 import com.zennyt.games.domain.config.PrevisionPuzzleConfig;
 import com.zennyt.games.domain.vo.GameMetrics;
+import com.zennyt.games.domain.vo.MemoryQuestMetrics;
 import com.zennyt.games.domain.vo.MoveFastMetrics;
 import com.zennyt.games.domain.vo.OptimalPathLevel;
 import com.zennyt.games.domain.vo.PlanifikMetrics;
@@ -38,7 +40,33 @@ public class ScoreBreakdownService {
         if (metrics instanceof PrevisionPuzzleMetrics m) {
             return previsionPuzzle(m, score);
         }
+        if (metrics instanceof MemoryQuestMetrics m) {
+            return memoryQuest(m, score);
+        }
         return null;
+    }
+
+    /** « J'investigue » — notes par tâche (0–5) puis composite /100. */
+    public ScoreBreakdown memoryQuest(MemoryQuestMetrics m, Score score) {
+        List<Line> lines = new ArrayList<>();
+        lines.add(Line.note("Chaque tâche est notée sur 5 ; le score = moyenne des "
+            + "tâches jouées, ramenée sur 100."));
+        lines.add(Line.criterion("Rappel même ordre", percent(m.sameAccuracy()),
+            MemoryQuestConfig.taskScore(m.sameAccuracy()), MemoryQuestConfig.TASK_MAX_SCORE));
+        lines.add(Line.criterion("Rappel inverse", percent(m.reverseAccuracy()),
+            MemoryQuestConfig.taskScore(m.reverseAccuracy()), MemoryQuestConfig.TASK_MAX_SCORE));
+        if (m.missionBPlayed()) {
+            lines.add(Line.criterion("Restauration d'objets", percent(m.restoreAccuracy()),
+                MemoryQuestConfig.taskScore(m.restoreAccuracy()), MemoryQuestConfig.TASK_MAX_SCORE));
+        }
+        if (m.distractionPlayed()) {
+            lines.add(Line.criterion("Rappel après distraction", percent(m.afterDistractionAccuracy()),
+                MemoryQuestConfig.taskScore(m.afterDistractionAccuracy()), MemoryQuestConfig.TASK_MAX_SCORE));
+            lines.add(Line.info("Question rapide",
+                m.distractionQuestionCorrect() ? "correcte" : "manquée"));
+        }
+        lines.add(Line.total("Composite", score.rawPoints(), score.maxPoints()));
+        return new ScoreBreakdown(lines);
     }
 
     /** Move Fast — escalade (points de jeu + bonus de fin). */

@@ -3,6 +3,7 @@ package com.zennyt.games.api.dto;
 import com.zennyt.games.domain.model.MiniGame;
 import com.zennyt.games.domain.vo.CostlyZonesAvoided;
 import com.zennyt.games.domain.vo.GameMetrics;
+import com.zennyt.games.domain.vo.MemoryQuestMetrics;
 import com.zennyt.games.domain.vo.MoveFastMetrics;
 import com.zennyt.games.domain.vo.MoveFastResponse;
 import com.zennyt.games.domain.vo.MoveFastRule;
@@ -46,7 +47,19 @@ public record SubmitResultRequest(
         @Valid List<OptimalPathLevelPayload> levels,
         @Min(0) Integer practiceTrialExcludedCount,
         @Size(min = 1) @Valid List<MoveFastResponsePayload> responses,
-        @Size(min = 1) @Valid List<PrevisionPuzzleLevelPayload> previsionPuzzleLevels
+        @Size(min = 1) @Valid List<PrevisionPuzzleLevelPayload> previsionPuzzleLevels,
+        // « J'investigue » (MEMORY_QUEST) — mesures par tâche.
+        @Min(0) Integer observedDigits,
+        @Min(0) Integer correctSameDigits,
+        @Min(0) Integer correctReverseDigits,
+        @Min(0) Integer highestSequenceLength,
+        @Min(0) Integer objectCount,
+        @Min(0) Integer restoreCorrect,
+        @Min(0) Integer manipulationCount,
+        Boolean distractionPlayed,
+        @Min(0) Integer afterDistractionObserved,
+        @Min(0) Integer afterDistractionCorrect,
+        Boolean distractionQuestionCorrect
     ) {}
 
     /** Socle de calibrage appareil (optionnel). Le score n'en dépend pas pour Move Fast. */
@@ -142,9 +155,25 @@ public record SubmitResultRequest(
             case PREVISION_PUZZLE -> new PrevisionPuzzleMetrics(
                 required(metrics.previsionPuzzleLevels(), "previsionPuzzleLevels").stream()
                     .map(SubmitResultRequest::toPuzzleLevel).toList());
+            case MEMORY_QUEST_CORE -> new MemoryQuestMetrics(
+                required(metrics.observedDigits(), "observedDigits"),
+                required(metrics.correctSameDigits(), "correctSameDigits"),
+                required(metrics.correctReverseDigits(), "correctReverseDigits"),
+                required(metrics.highestSequenceLength(), "highestSequenceLength"),
+                orZero(metrics.objectCount()),
+                orZero(metrics.restoreCorrect()),
+                orZero(metrics.manipulationCount()),
+                Boolean.TRUE.equals(metrics.distractionPlayed()),
+                orZero(metrics.afterDistractionObserved()),
+                orZero(metrics.afterDistractionCorrect()),
+                Boolean.TRUE.equals(metrics.distractionQuestionCorrect()));
             case TASK_SCHEDULING -> throw new IllegalArgumentException(
                 "Métriques non encore implémentées pour " + miniGame);
         };
+    }
+
+    private static int orZero(Integer value) {
+        return value == null ? 0 : value;
     }
 
     private static OptimalPathLevel toLevel(OptimalPathLevelPayload p) {

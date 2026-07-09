@@ -6,9 +6,12 @@ import com.zennyt.games.domain.model.MiniGame;
 import com.zennyt.games.domain.repository.DeviceCalibrationRepository;
 import com.zennyt.games.domain.repository.GameSessionRepository;
 import com.zennyt.games.domain.service.CalibrationService;
+import com.zennyt.games.domain.service.MemoryQuestScoringService;
 import com.zennyt.games.domain.service.PlanifikScoringService;
 import com.zennyt.games.domain.service.ScoreBreakdownService;
 import com.zennyt.games.domain.vo.DeviceCalibration;
+import com.zennyt.games.domain.vo.MemoryQuestMetrics;
+import com.zennyt.games.domain.vo.MemoryQuestReport;
 import com.zennyt.games.domain.vo.MoveFastFlexibilityReport;
 import com.zennyt.games.domain.vo.ScoreBreakdown;
 import com.zennyt.games.domain.vo.MoveFastMetrics;
@@ -45,6 +48,7 @@ public class SubmitGameResultUseCase {
     private final PlanifikScoringService scoring = new PlanifikScoringService();
     private final CalibrationService calibration = new CalibrationService();
     private final ScoreBreakdownService breakdown = new ScoreBreakdownService();
+    private final MemoryQuestScoringService memoryQuest = new MemoryQuestScoringService();
 
     public SubmitGameResultUseCase(GameSessionRepository repository,
                                    DeviceCalibrationRepository calibrationRepository,
@@ -61,11 +65,13 @@ public class SubmitGameResultUseCase {
      * @param session               session après enregistrement du résultat
      * @param moveFastReport         indicateurs Move Fast (null pour les autres jeux)
      * @param previsionPuzzleReport  indicateurs Predictive Puzzle (null sinon)
+     * @param memoryQuestReport      indicateurs « J'investigue » (null sinon)
      * @param scoreBreakdown         détail du calcul du score (panneau), null si non supporté
      */
     public record Outcome(GameSession session,
                           MoveFastFlexibilityReport moveFastReport,
                           PrevisionPuzzleReport previsionPuzzleReport,
+                          MemoryQuestReport memoryQuestReport,
                           ScoreBreakdown scoreBreakdown) {
     }
 
@@ -94,7 +100,7 @@ public class SubmitGameResultUseCase {
         ScoreBreakdown scoreBreakdown = breakdown.build(command.metrics(), score);
 
         return new Outcome(saved, moveFastReport(command, saved),
-            previsionPuzzleReport(command), scoreBreakdown);
+            previsionPuzzleReport(command), memoryQuestReport(command), scoreBreakdown);
     }
 
     /** Dérive les indicateurs qualitatifs pour « Predictive Puzzle » ; null sinon. */
@@ -127,15 +133,25 @@ public class SubmitGameResultUseCase {
             offset, applied, reliable);
     }
 
-    /** Sélectionne le barème selon le mini-jeu. Seul OPTIMAL_PATH est implémenté. */
+    /** Sélectionne le barème selon le mini-jeu. */
     private Score computeScore(MiniGame miniGame, SubmitGameResultCommand command) {
         return switch (miniGame) {
             case OPTIMAL_PATH -> scoring.scoreOptimalPath(expectMetrics(command, PlanifikMetrics.class));
             case MOVE_FAST_CORE -> scoring.scoreMoveFast(expectMetrics(command, MoveFastMetrics.class));
             case PREVISION_PUZZLE -> scoring.scorePrevisionPuzzle(expectMetrics(command, PrevisionPuzzleMetrics.class));
+            case MEMORY_QUEST_CORE -> memoryQuest.score(expectMetrics(command, MemoryQuestMetrics.class));
             case TASK_SCHEDULING -> throw new IllegalArgumentException(
                 "Barème non encore implémenté pour " + miniGame);
         };
+    }
+
+    /** Dérive les indicateurs pour « J'investigue » ; null sinon. */
+    private MemoryQuestReport memoryQuestReport(SubmitGameResultCommand command) {
+        if (command.miniGame() != MiniGame.MEMORY_QUEST_CORE
+            || !(command.metrics() instanceof MemoryQuestMetrics metrics)) {
+            return null;
+        }
+        return memoryQuest.report(metrics);
     }
 
     private <T> T expectMetrics(SubmitGameResultCommand command, Class<T> type) {
