@@ -89,6 +89,7 @@ flutter:
     - assets/images/
     - assets/04 Optimal Path/
     - assets/04 Predictive Puzzle/
+    - assets/J’investigue/memoryobject/
     - .env
 
   # Inter is bundled as a variable font (single TTF covers w100..w900).

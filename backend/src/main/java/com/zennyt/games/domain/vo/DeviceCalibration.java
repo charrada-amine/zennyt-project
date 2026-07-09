@@ -59,16 +59,11 @@ public record DeviceCalibration(
         }
     }
 
-    /** Latence d'affichage théorique : {@code (1000 / refreshRateHz) / 2}. */
     public double displayLatencyMs() {
         return (1000.0 / refreshRateHz) / 2.0;
     }
 
-    /**
-     * Offset de calibrage à retrancher des temps bruts :
-     * {@code displayLatencyMs + inputProcessingLatencyMs}. En fallback (latence
-     * d'entrée absente), seul le composant d'affichage est appliqué.
-     */
+
     public double calibrationOffsetMs() {
         return displayLatencyMs() + (inputProcessingLatencyMs != null ? inputProcessingLatencyMs : 0.0);
     }

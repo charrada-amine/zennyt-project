@@ -71,6 +71,7 @@ class GamesHubScreen extends ConsumerWidget {
                       _SwatchSpec(_magenta),
                       _SwatchSpec(_softPink),
                     ],
+                    onTap: () => context.push(AppRoutes.gamesInvestigate),
                   ),
                   const SizedBox(height: 12),
                   _GameCategoryCard(
