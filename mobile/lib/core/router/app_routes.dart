@@ -42,6 +42,9 @@ class AppRoutes {
   static const String sharePost = '/share-post';
   static const String languageSettings = '/language-settings';
   static const String accessibility = '/accessibility';
+  static const String cvCameraCapture = '/cv-camera-capture';
+  static const String cvProcessing = '/cv-processing';
+  static const String cvReview = '/cv-review';
 
   // Route names (used with context.goNamed / pushNamed).
   static const String nSplash = 'splash';
@@ -71,4 +74,7 @@ class AppRoutes {
   static const String nSharePost = 'sharePost';
   static const String nLanguageSettings = 'languageSettings';
   static const String nAccessibility = 'accessibility';
+  static const String nCvCameraCapture = 'cvCameraCapture';
+  static const String nCvProcessing = 'cvProcessing';
+  static const String nCvReview = 'cvReview';
 }

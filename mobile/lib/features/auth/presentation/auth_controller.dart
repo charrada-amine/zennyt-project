@@ -7,6 +7,8 @@ import '../../../core/enums/user_role.dart';
 import '../../../core/error/api_exception.dart';
 import '../../../core/network/auth_events.dart';
 import '../../../core/storage/token_storage.dart';
+import '../../../core/upload/upload_service.dart';
+import '../../../core/upload/picked_file.dart';
 import '../domain/entities/app_user.dart';
 import 'auth_providers.dart';
 
@@ -79,21 +81,22 @@ class AuthController extends AsyncNotifier<AppUser?> {
     String? phoneNumber,
     String? city,
     String? country,
-    String? profileImageUrl,
+    String? defaultAvatarUrl,
+    PickedFile? avatarFile,
     // Candidate / student onboarding
     String? school,
     String? educationLevel,
     String? fieldOfWork,
     String? lastPositionHeld,
     int? yearsOfExperience,
-    String? cvFileUrl,
+    PickedFile? cvFile,
     // Recruiter onboarding
     String? jobTitle,
     String? companyName,
     String? companySize,
     String? companyLocation,
     String? companyRegistrationNumber,
-    String? companyLogoUrl,
+    PickedFile? companyLogoFile,
   }) async {
     final repo = ref.read(authRepositoryProvider);
 
@@ -110,7 +113,16 @@ class AuthController extends AsyncNotifier<AppUser?> {
     );
     state = AsyncData(user);
 
-    if (profileImageUrl != null && profileImageUrl.isNotEmpty) {
+    // Now authenticated, upload files
+    final upload = ref.read(uploadServiceProvider);
+    
+    String? finalAvatarUrl = defaultAvatarUrl;
+    if (avatarFile != null) {
+      final uploaded = await upload.upload(avatarFile, kind: UploadKind.avatar);
+      if (uploaded != null) finalAvatarUrl = uploaded;
+    }
+
+    if (finalAvatarUrl != null && finalAvatarUrl.isNotEmpty) {
       try {
         user = await repo.updateMe(
           firstName: firstName,
@@ -118,7 +130,7 @@ class AuthController extends AsyncNotifier<AppUser?> {
           phoneNumber: phoneNumber,
           city: city,
           country: country,
-          profileImageUrl: profileImageUrl,
+          profileImageUrl: finalAvatarUrl,
         );
         state = AsyncData(user);
       } on ApiException {
@@ -135,8 +147,11 @@ class AuthController extends AsyncNotifier<AppUser?> {
           fieldOfWork: fieldOfWork ?? '',
           companyLocation: companyLocation ?? '',
           companyRegistrationNumber: companyRegistrationNumber ?? '',
-          companyLogoUrl: companyLogoUrl,
+          companyLogoUrl: null, // uploaded below
         );
+        if (companyLogoFile != null) {
+          await upload.upload(companyLogoFile, kind: UploadKind.companyLogo);
+        }
       } else {
         await repo.submitCandidateStudentOnboarding(
           school: school,
@@ -144,14 +159,19 @@ class AuthController extends AsyncNotifier<AppUser?> {
           fieldOfWork: fieldOfWork,
           lastPositionHeld: lastPositionHeld,
           yearsOfExperience: yearsOfExperience,
-          cvFileUrl: cvFileUrl,
+          cvFileUrl: null, // uploaded below
         );
+        if (cvFile != null) {
+          await upload.upload(cvFile, kind: UploadKind.cv);
+        }
       }
     } on ApiException {
       // Onboarding can be completed later from the profile screens.
     }
 
-    return user;
+    // Refresh the user to fetch updated cvFileUrl and companyLogoUrl from the backend
+    await refreshUser();
+    return state.value ?? user;
   }
 
   Future<void> refreshUser() async {

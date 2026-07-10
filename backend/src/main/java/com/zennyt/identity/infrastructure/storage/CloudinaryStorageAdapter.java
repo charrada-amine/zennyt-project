@@ -29,12 +29,13 @@ public class CloudinaryStorageAdapter implements FileStoragePort {
     public StoredFile upload(byte[] content, String filename, String contentType,
                              String folder, ResourceType resourceType) {
         try {
+            String uniqueName = java.util.UUID.randomUUID().toString() + "_" + filename;
             Map<?, ?> result = cloudinary.uploader().upload(content, ObjectUtils.asMap(
                 "folder", folder,
                 "resource_type", resourceTypeValue(resourceType),
-                "use_filename", true,
-                "unique_filename", true,
-                "overwrite", false
+                "public_id", uniqueName,
+                "overwrite", false,
+                "access_mode", "public"
             ));
             return new StoredFile(
                 String.valueOf(result.get("secure_url")),

@@ -9,6 +9,7 @@ import '../../data/dtos/sub_resource_inputs.dart';
 import '../../domain/entities/candidate_profile.dart';
 import '../../domain/profile_enums.dart';
 import '../profile_providers.dart';
+import '../../cv_autofill/domain/cv_parsed_data.dart';
 
 class JobPosition {
   final String id;
@@ -148,6 +149,7 @@ class CandidateProfileState {
   final String role;
   final String location;
   final String? avatarUrl;
+  final String? cvUrl;
   final bool isResumeAiVisible;
   final bool isSoftSkillsVisible;
   final int softSkillsScore;
@@ -175,6 +177,7 @@ class CandidateProfileState {
     required this.role,
     required this.location,
     this.avatarUrl,
+    this.cvUrl,
     required this.isResumeAiVisible,
     this.isSoftSkillsVisible = true,
     required this.softSkillsScore,
@@ -198,6 +201,7 @@ class CandidateProfileState {
     String? role,
     String? location,
     String? avatarUrl,
+    String? cvUrl,
     bool? isResumeAiVisible,
     bool? isSoftSkillsVisible,
     int? softSkillsScore,
@@ -221,6 +225,7 @@ class CandidateProfileState {
       role: role ?? this.role,
       location: location ?? this.location,
       avatarUrl: avatarUrl ?? this.avatarUrl,
+      cvUrl: cvUrl ?? this.cvUrl,
       isResumeAiVisible: isResumeAiVisible ?? this.isResumeAiVisible,
       isSoftSkillsVisible: isSoftSkillsVisible ?? this.isSoftSkillsVisible,
       softSkillsScore: softSkillsScore ?? this.softSkillsScore,
@@ -330,8 +335,121 @@ class CandidateProfileViewModel extends Notifier<CandidateProfileState> {
 
   // ── Sub-resource persistence (Skills, Positions, Certifications, Education) ──
 
+  Future<void> saveParsedCvData(CvParsedData data) async {
+    state = state.copyWith(isLoading: true, errorMessage: null, clearError: true);
+    
+    try {
+      final repo = ref.read(profileRepositoryProvider);
+      
+      // 1. Save Basic Info
+      final profileInput = ProfileInput(
+        currentPosition: data.currentPosition,
+        aboutMe: data.aboutMe,
+        yearsOfExperience: data.yearsOfExperience,
+      );
+      await repo.saveProfile(profileInput, exists: state.profileExists);
+
+      // 2. Save Skills
+      for (final skill in data.skills) {
+        if (skill.name.isNotEmpty) {
+          int? safeLevel = skill.level;
+          if (safeLevel != null) {
+            if (safeLevel > 5) safeLevel = 5;
+            if (safeLevel < 1) safeLevel = 1;
+          }
+
+          await repo.addSkill(SkillInput(
+            name: skill.name,
+            type: skill.type.toUpperCase() == 'SOFT' ? 'SOFT' : 'TECHNICAL',
+            level: safeLevel,
+          ));
+        }
+      }
+
+      // 3. Save Positions
+      for (final pos in data.positions) {
+        if (pos.title.isNotEmpty) {
+          await repo.addPosition(PositionInput(
+            title: pos.title,
+            companyName: pos.companyName,
+            location: pos.location,
+            description: pos.description,
+            startDate: _toIsoDate(pos.startDate ?? ''),
+            endDate: _toIsoDate(pos.endDate ?? ''),
+            current: pos.current,
+          ));
+        }
+      }
+
+      // 4. Save Education
+      for (final edu in data.education) {
+        if (edu.degree.isNotEmpty) {
+          await repo.addEducation(EducationInput(
+            degree: edu.degree,
+            school: edu.school,
+            fieldOfStudy: edu.fieldOfStudy,
+            description: edu.description,
+            startDate: _toIsoDate(edu.startDate ?? ''),
+            endDate: _toIsoDate(edu.endDate ?? ''),
+          ));
+        }
+      }
+
+      // 5. Save Certifications
+      for (final cert in data.certifications) {
+        if (cert.title.isNotEmpty) {
+          await repo.addCertification(CertificationInput(
+            title: cert.title,
+            issuer: cert.issuer,
+            completionDate: _toIsoDate(cert.completionDate ?? ''),
+            credentialId: cert.credentialId,
+            credentialUrl: cert.credentialUrl,
+          ));
+        }
+      }
+
+      // 6. Reload profile to fetch the new merged data from backend
+      await refresh();
+    } on ApiException catch (e) {
+      state = state.copyWith(isLoading: false, errorMessage: e.message);
+      rethrow;
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'An unexpected error occurred while saving CV data.',
+      );
+      rethrow;
+    }
+  }
+
   void toggleResumeAiVisibility(bool isVisible) {
     state = state.copyWith(isResumeAiVisible: isVisible);
+  }
+
+  Future<void> uploadCv(String filePath) async {
+    state = state.copyWith(isLoading: true, errorMessage: null, clearError: true);
+    try {
+      final repo = ref.read(profileRepositoryProvider);
+      if (!state.profileExists) {
+        await repo.saveProfile(_buildInput(state), exists: false);
+        state = state.copyWith(profileExists: true);
+      }
+      await repo.uploadCv(filePath);
+      // Refresh profile to get the new cvUrl
+      await refresh();
+    } on ApiException catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: e.message,
+      );
+      rethrow;
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'An unexpected error occurred while uploading CV.',
+      );
+      rethrow;
+    }
   }
 
   // ── Job Positions ──────────────────────────────────────────────────────
@@ -340,6 +458,11 @@ class CandidateProfileViewModel extends Notifier<CandidateProfileState> {
     // Optimistic update
     state = state.copyWith(jobPositions: [...state.jobPositions, position]);
     try {
+      final repo = ref.read(profileRepositoryProvider);
+      if (!state.profileExists) {
+        await repo.saveProfile(_buildInput(state), exists: false);
+        state = state.copyWith(profileExists: true);
+      }
       final input = PositionInput(
         title: position.position,
         companyName: position.company,
@@ -349,7 +472,7 @@ class CandidateProfileViewModel extends Notifier<CandidateProfileState> {
             : _toStartOfYear(position.endYear),
         current: position.endYear.isEmpty,
       );
-      await ref.read(profileRepositoryProvider).addPosition(input);
+      await repo.addPosition(input);
       await refresh();
     } on ApiException catch (e) {
       state = state.copyWith(errorMessage: e.message);
@@ -407,12 +530,17 @@ class CandidateProfileViewModel extends Notifier<CandidateProfileState> {
       certifications: [...state.certifications, certification],
     );
     try {
+      final repo = ref.read(profileRepositoryProvider);
+      if (!state.profileExists) {
+        await repo.saveProfile(_buildInput(state), exists: false);
+        state = state.copyWith(profileExists: true);
+      }
       final input = CertificationInput(
         title: certification.title,
         issuer: certification.organization,
         completionDate: _toStartOfYear(certification.year),
       );
-      await ref.read(profileRepositoryProvider).addCertification(input);
+      await repo.addCertification(input);
       await refresh();
     } on ApiException catch (e) {
       state = state.copyWith(errorMessage: e.message);
@@ -465,13 +593,18 @@ class CandidateProfileViewModel extends Notifier<CandidateProfileState> {
   Future<void> addEducation(Education edu) async {
     state = state.copyWith(education: [...state.education, edu]);
     try {
+      final repo = ref.read(profileRepositoryProvider);
+      if (!state.profileExists) {
+        await repo.saveProfile(_buildInput(state), exists: false);
+        state = state.copyWith(profileExists: true);
+      }
       final input = EducationInput(
         degree: edu.degree,
         school: edu.university,
         startDate: _toStartOfYear(edu.startYear),
         endDate: edu.endYear.isEmpty ? null : _toStartOfYear(edu.endYear),
       );
-      await ref.read(profileRepositoryProvider).addEducation(input);
+      await repo.addEducation(input);
       await refresh();
     } on ApiException catch (e) {
       state = state.copyWith(errorMessage: e.message);
@@ -529,6 +662,10 @@ class CandidateProfileViewModel extends Notifier<CandidateProfileState> {
 
     try {
       final repo = ref.read(profileRepositoryProvider);
+      if (!state.profileExists) {
+        await repo.saveProfile(_buildInput(state), exists: false);
+        state = state.copyWith(profileExists: true);
+      }
       final profile = await repo.getMyProfile();
       final existingSkills = (profile?.skills ?? [])
           .where((s) => s.type == null || s.type == 'TECHNICAL')
@@ -610,6 +747,7 @@ class CandidateProfileViewModel extends Notifier<CandidateProfileState> {
           : (user?.role.label ?? ''),
       location: _locationOf(user),
       avatarUrl: user?.profileImageUrl,
+      cvUrl: p?.cvUrl,
       isResumeAiVisible: true,
       softSkillsScore: p?.softSkillsScore ?? 0,
       lookingFor: LookingFor(

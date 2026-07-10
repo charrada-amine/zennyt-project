@@ -58,6 +58,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     required this.error,
     required this.success,
     required this.info,
+    required this.onPrimary,
   });
 
   // ── Backgrounds ──
@@ -108,6 +109,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
   final Color error;
   final Color success;
   final Color info;
+  final Color onPrimary;
 
   // ═══════════════════════════════════════════════════════════════════════════
   // LIGHT SCHEME
@@ -153,6 +155,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     error: Color(0xFFED3241),
     success: Color(0xFF35A936),
     info: Color(0xFF1877F2),
+    onPrimary: Color(0xFFFFFFFF),
   );
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -199,6 +202,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     error: Color(0xFFFF5252),
     success: Color(0xFF4CAF50),
     info: Color(0xFF448AFF),
+    onPrimary: Color(0xFFFFFFFF),
   );
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -238,6 +242,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     Color? error,
     Color? success,
     Color? info,
+    Color? onPrimary,
   }) {
     return AppColorScheme(
       scaffoldBg: scaffoldBg ?? this.scaffoldBg,
@@ -273,6 +278,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
       error: error ?? this.error,
       success: success ?? this.success,
       info: info ?? this.info,
+      onPrimary: onPrimary ?? this.onPrimary,
     );
   }
 
@@ -339,6 +345,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
       error: Color.lerp(error, other.error, t)!,
       success: Color.lerp(success, other.success, t)!,
       info: Color.lerp(info, other.info, t)!,
+      onPrimary: Color.lerp(onPrimary, other.onPrimary, t)!,
     );
   }
 }

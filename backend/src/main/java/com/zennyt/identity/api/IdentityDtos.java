@@ -261,4 +261,20 @@ public final class IdentityDtos {
                 value.createdAt(), value.updatedAt());
         }
     }
+
+    public record CvParseRequest(
+        @NotBlank String text,
+        @NotBlank @Size(max = 2) String language
+    ) {}
+
+    public record CvParseResult(
+        Boolean isValidCv,
+        String currentPosition,
+        String aboutMe,
+        Integer yearsOfExperience,
+        List<SkillRequest> skills,
+        List<PositionRequest> positions,
+        List<EducationRequest> education,
+        List<CertificationRequest> certifications
+    ) {}
 }

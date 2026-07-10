@@ -23,7 +23,11 @@ class ProfileHeaderSection extends ConsumerWidget {
 
     return Row(
       children: [
-        ProfileAvatar(imageUrl: user?.profileImageUrl, size: 60),
+        ProfileAvatar(
+          imageUrl: user?.profileImageUrl,
+          size: 60,
+          fallbackSeed: user?.email,
+        ),
         const SizedBox(width: AppSpacing.md),
         Expanded(
           child: InkWell(

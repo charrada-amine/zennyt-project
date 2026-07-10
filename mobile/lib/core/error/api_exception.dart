@@ -82,7 +82,6 @@ sealed class ApiException implements Exception {
   }
 }
 
-/// 400 — validation or malformed request. Carries per-field details.
 class BadRequestException extends ApiException {
   const BadRequestException({
     String message = 'Invalid request',
@@ -90,6 +89,13 @@ class BadRequestException extends ApiException {
   }) : super(message, statusCode: 400);
 
   final List<FieldError> fieldErrors;
+
+  @override
+  String toString() {
+    if (fieldErrors.isEmpty) return super.toString();
+    final errors = fieldErrors.map((e) => '${e.field}: ${e.message}').join(', ');
+    return '${super.toString()} [$errors]';
+  }
 }
 
 /// 401 — missing/invalid credentials or token.

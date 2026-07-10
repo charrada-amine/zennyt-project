@@ -41,4 +41,7 @@ abstract class ProfileRepository {
   Future<ProfileEducation> addEducation(EducationInput input);
   Future<ProfileEducation> updateEducation(String id, EducationInput input);
   Future<void> deleteEducation(String id);
+  
+  /// Uploads a CV file
+  Future<void> uploadCv(String filePath);
 }

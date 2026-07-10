@@ -122,30 +122,8 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     }
 
     setState(() => _submitting = true);
-    final upload = ref.read(uploadServiceProvider);
-
-    // Resolve avatar: a personal photo (uploaded once a backend exists) falls
-    // back to the generated avatar URL, which persists today.
-    String? avatarUrl = _avatarUrl;
-    if (_avatarImage != null) {
-      final uploaded = await upload.upload(
-        _avatarImage!,
-        kind: UploadKind.avatar,
-      );
-      avatarUrl = uploaded ?? _avatarUrl;
-    }
-
-    String? cvUrl;
-    if (setup.cvFile != null) {
-      cvUrl = await upload.upload(setup.cvFile!, kind: UploadKind.cv);
-    }
-    String? logoUrl;
-    if (setup.companyLogoFile != null) {
-      logoUrl = await upload.upload(
-        setup.companyLogoFile!,
-        kind: UploadKind.companyLogo,
-      );
-    }
+    // We pass the picked files down to AuthController, which handles uploading
+    // them once the user is successfully registered and authenticated.
 
     try {
       await ref
@@ -160,12 +138,13 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
             phoneNumber: signup.phone,
             city: signup.city,
             country: signup.country,
-            profileImageUrl: avatarUrl,
+            defaultAvatarUrl: _avatarUrl,
+            avatarFile: _avatarImage,
             school: _value(ProfileField.school),
             educationLevel: _value(ProfileField.educationLevel),
             fieldOfWork: setup.fieldOfWork,
             lastPositionHeld: _value(ProfileField.lastPositionHeld),
-            cvFileUrl: cvUrl,
+            cvFile: setup.cvFile,
             jobTitle: _value(ProfileField.jobTitle),
             companyName: _value(ProfileField.companyName),
             companySize: _value(ProfileField.companySize),
@@ -173,7 +152,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
             companyRegistrationNumber: _value(
               ProfileField.companyRegistrationNumber,
             ),
-            companyLogoUrl: logoUrl,
+            companyLogoFile: setup.companyLogoFile,
           );
       if (mounted) context.go(AppRoutes.home);
     } on ApiException catch (e) {

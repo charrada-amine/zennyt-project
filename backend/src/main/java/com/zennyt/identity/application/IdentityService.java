@@ -85,7 +85,7 @@ public class IdentityService {
         // Nettoyage best-effort des fichiers Cloudinary avant l'anonymisation.
         safeDelete(user.profileImagePublicId(), ResourceType.IMAGE);
         profiles.findByUserId(user.id())
-            .ifPresent(profile -> safeDelete(profile.cvPublicId(), ResourceType.RAW));
+            .ifPresent(profile -> safeDelete(profile.cvPublicId(), ResourceType.IMAGE));
         onboarding.findRecruiterByUserId(user.id())
             .ifPresent(recruiter -> safeDelete(recruiter.companyLogoPublicId(), ResourceType.IMAGE));
         user.softDelete();
@@ -234,14 +234,17 @@ public class IdentityService {
 
     @Transactional
     public Profile uploadCv(UUID publicId, byte[] content, String filename, String contentType) {
-        Profile profile = currentProfile(publicId);
+        User user = requireProfileRole(publicId);
+        Profile profile = profiles.findByUserId(user.id())
+            .orElseGet(() -> profiles.save(Profile.create(user.id(),
+                null, null, null, null, null, null, null, null, false, null, null, null, null)));
         String previousPublicId = profile.cvPublicId();
         FileStoragePort.StoredFile stored = fileStorage.upload(content, filename, contentType,
-            CV_FOLDER, ResourceType.RAW);
+            CV_FOLDER, ResourceType.IMAGE);
         profile.updateCv(stored.url(), stored.publicId());
         Profile saved = profiles.save(profile);
         if (previousPublicId != null) {
-            fileStorage.delete(previousPublicId, ResourceType.RAW);
+            fileStorage.delete(previousPublicId, ResourceType.IMAGE);
         }
         return saved;
     }
@@ -253,7 +256,7 @@ public class IdentityService {
         profile.clearCv();
         Profile saved = profiles.save(profile);
         if (previousPublicId != null) {
-            fileStorage.delete(previousPublicId, ResourceType.RAW);
+            fileStorage.delete(previousPublicId, ResourceType.IMAGE);
         }
         return saved;
     }

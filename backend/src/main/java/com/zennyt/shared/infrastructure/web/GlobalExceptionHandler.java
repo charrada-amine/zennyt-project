@@ -3,7 +3,9 @@ package com.zennyt.shared.infrastructure.web;
 import com.zennyt.shared.application.exception.ConflictException;
 import com.zennyt.shared.application.exception.ForbiddenException;
 import com.zennyt.shared.application.exception.NotFoundException;
+import com.zennyt.shared.application.exception.ServerException;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -22,6 +24,7 @@ import java.util.List;
  * que le front reçoit toujours la même structure quelle que soit l'erreur.
  */
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
 
     public record FieldError(String field, String message) {}
@@ -64,6 +67,23 @@ public class GlobalExceptionHandler {
     }
 
     // Ajouter ici les exceptions métier : NotFoundException -> 404, ForbiddenException -> 403, etc.
+
+    @ExceptionHandler(com.zennyt.shared.application.exception.RateLimitException.class)
+    public ResponseEntity<ApiError> handleRateLimit(com.zennyt.shared.application.exception.RateLimitException ex, HttpServletRequest req) {
+        return build(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage(), req, List.of());
+    }
+
+    @ExceptionHandler(ServerException.class)
+    public ResponseEntity<ApiError> handleServerException(ServerException ex, HttpServletRequest req) {
+        log.error("Server exception: ", ex);
+        return build(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage(), req, List.of());
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiError> handleAllExceptions(Exception ex, HttpServletRequest req) {
+        log.error("Unhandled exception: ", ex);
+        return build(HttpStatus.INTERNAL_SERVER_ERROR, "Une erreur interne est survenue.", req, List.of());
+    }
 
     private ResponseEntity<ApiError> build(HttpStatus status, String msg,
                                            HttpServletRequest req, List<FieldError> fields) {

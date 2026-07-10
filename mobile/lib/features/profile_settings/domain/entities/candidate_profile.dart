@@ -18,6 +18,7 @@ class CandidateProfile {
     this.availabilityType,
     this.availabilityDate,
     this.resumeAiUrl,
+    this.cvUrl,
     this.portfolioUrl,
     this.skills = const [],
     this.positions = const [],
@@ -37,6 +38,7 @@ class CandidateProfile {
   final String? availabilityType; // wire enum
   final String? availabilityDate; // yyyy-MM-dd
   final String? resumeAiUrl;
+  final String? cvUrl;
   final String? portfolioUrl;
   final List<ProfileSkill> skills;
   final List<ProfilePosition> positions;
@@ -66,6 +68,7 @@ class CandidateProfile {
       availabilityType: json['availabilityType'] as String?,
       availabilityDate: json['availabilityDate'] as String?,
       resumeAiUrl: json['resumeAiUrl'] as String?,
+      cvUrl: json['cvUrl'] as String?,
       portfolioUrl: json['portfolioUrl'] as String?,
       skills: list('skills', ProfileSkill.fromJson),
       positions: list('positions', ProfilePosition.fromJson),

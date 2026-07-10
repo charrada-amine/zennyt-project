@@ -462,6 +462,23 @@ paths:
               schema: { $ref: '#/components/schemas/Profile' }
         '404': { $ref: './common.openapi.yaml#/components/responses/NotFound' }
 
+  /profiles/me/cv/parse:
+    post:
+      tags: [Profiles]
+      summary: Extract structured profile data from CV text using AI
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CvParseRequest' }
+      responses:
+        '200':
+          description: Parsed profile data
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CvParseResult' }
+        '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
+
   /profiles/{profileId}:
     get:
       tags: [Profiles]
@@ -991,3 +1008,29 @@ components:
         id: { type: integer, format: int64 }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
+
+    CvParseRequest:
+      type: object
+      required: [text, language]
+      properties:
+        text: { type: string }
+        language: { type: string, maxLength: 2 }
+
+    CvParseResult:
+      type: object
+      properties:
+        currentPosition: { type: string }
+        aboutMe: { type: string }
+        yearsOfExperience: { type: integer }
+        skills:
+          type: array
+          items: { $ref: '#/components/schemas/SkillInput' }
+        positions:
+          type: array
+          items: { $ref: '#/components/schemas/PositionInput' }
+        education:
+          type: array
+          items: { $ref: '#/components/schemas/EducationInput' }
+        certifications:
+          type: array
+          items: { $ref: '#/components/schemas/CertificationInput' }

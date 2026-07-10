@@ -17,6 +17,7 @@ class ProfileInput {
     this.availabilityType,
     this.availabilityDate,
     this.resumeAiUrl,
+    this.cvUrl,
     this.portfolioUrl,
   });
 
@@ -32,6 +33,7 @@ class ProfileInput {
   final String? availabilityType;
   final String? availabilityDate; // yyyy-MM-dd
   final String? resumeAiUrl;
+  final String? cvUrl;
   final String? portfolioUrl;
 
   Map<String, dynamic> toJson() {
@@ -55,6 +57,7 @@ class ProfileInput {
     putString('availabilityType', availabilityType);
     putString('availabilityDate', availabilityDate);
     putString('resumeAiUrl', resumeAiUrl);
+    putString('cvUrl', cvUrl);
     putString('portfolioUrl', portfolioUrl);
 
     return map;

@@ -421,4 +421,94 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get noCvUploaded => 'Aucun CV téléversé';
+
+  @override
+  String get cvReviewTitle => 'Vérifier les données extraites';
+
+  @override
+  String get cvReviewNoData => 'Aucune donnée disponible.';
+
+  @override
+  String get cvReviewBannerText =>
+      'Nous avons trouvé les informations suivantes dans votre CV. Veuillez vérifier et modifier si nécessaire avant de les enregistrer dans votre profil.';
+
+  @override
+  String get cvReviewBasicInfo => 'Informations générales';
+
+  @override
+  String get cvReviewCurrentPosition => 'POSTE ACTUEL';
+
+  @override
+  String get cvReviewCurrentPositionHint => 'Ex. Ingénieur logiciel senior';
+
+  @override
+  String get cvReviewExperienceYears => 'EXPÉRIENCE (ANNÉES)';
+
+  @override
+  String get cvReviewExperienceYearsHint => 'Ex. 5';
+
+  @override
+  String get cvReviewAboutMe => 'À PROPOS DE MOI';
+
+  @override
+  String get cvReviewAboutMeHint => 'Un bref résumé de vous-même...';
+
+  @override
+  String get cvReviewSkills => 'Compétences';
+
+  @override
+  String get cvReviewExperience => 'Expérience';
+
+  @override
+  String get cvReviewJobTitle => 'Titre du poste';
+
+  @override
+  String get cvReviewCompanyName => 'Nom de l\'entreprise';
+
+  @override
+  String get cvReviewStartDate => 'Date de début';
+
+  @override
+  String get cvReviewEndDate => 'Date de fin';
+
+  @override
+  String get cvReviewPresent => 'Présent';
+
+  @override
+  String get cvReviewEducation => 'Éducation';
+
+  @override
+  String get cvReviewDegree => 'Diplôme';
+
+  @override
+  String get cvReviewSchool => 'École / Université';
+
+  @override
+  String get cvReviewStartYear => 'Année de début';
+
+  @override
+  String get cvReviewEndYear => 'Année de fin';
+
+  @override
+  String get cvReviewCertifications => 'Certifications';
+
+  @override
+  String get cvReviewCertificationTitle => 'Titre de la certification';
+
+  @override
+  String get cvReviewIssuer => 'Délivré par';
+
+  @override
+  String get cvReviewSaveBtn => 'Enregistrer dans le profil';
+
+  @override
+  String get cvReviewSaving => 'Enregistrement en cours...';
+
+  @override
+  String get cvReviewSaveSuccess => 'Profil mis à jour avec succès !';
+
+  @override
+  String cvReviewSaveFailed(String error) {
+    return 'Échec de l\'enregistrement du profil : $error';
+  }
 }

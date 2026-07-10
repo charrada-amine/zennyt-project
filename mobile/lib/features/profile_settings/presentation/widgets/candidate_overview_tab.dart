@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:file_selector/file_selector.dart';
+
+import '../../../../core/error/api_exception.dart';
 import '../../../../core/theme/theme.dart';
+import '../view/cv_viewer_screen.dart';
 import '../viewmodel/candidate_profile_viewmodel.dart';
 import 'profile_modals.dart';
 
@@ -147,8 +151,16 @@ class CandidateOverviewTab extends ConsumerWidget {
               );
             },
           ),
-          const SizedBox(height: AppSpacing.sm),
           _buildAboutMeContent(context, colors, state.aboutMe),
+          const SizedBox(height: AppSpacing.xl),
+
+          _buildSectionHeader(
+            context,
+            colors,
+            'My CV',
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          _buildMyCvSection(context, ref, colors, state.cvUrl),
           const SizedBox(height: AppSpacing.xxl),
         ],
       ),
@@ -683,6 +695,430 @@ class CandidateOverviewTab extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+  Widget _buildMyCvSection(
+    BuildContext context,
+    WidgetRef ref,
+    AppColorScheme colors,
+    String? cvUrl,
+  ) {
+    final hasCv = cvUrl != null && cvUrl.isNotEmpty;
+
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: hasCv
+              ? colors.primary.withValues(alpha: 0.2)
+              : colors.border,
+        ),
+        color: colors.cardSurface,
+        boxShadow: [
+          BoxShadow(
+            color: colors.shadowColor,
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // ── Header with gradient ──
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.sm + 4,
+            ),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: hasCv
+                    ? [
+                        colors.primary.withValues(alpha: 0.08),
+                        colors.primary.withValues(alpha: 0.03),
+                      ]
+                    : [
+                        colors.inputFill,
+                        colors.cardSurface,
+                      ],
+              ),
+            ),
+            child: Row(
+              children: [
+                // Icon container
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: hasCv
+                        ? colors.success.withValues(alpha: 0.12)
+                        : colors.textSecondary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    hasCv
+                        ? Icons.description_rounded
+                        : Icons.note_add_rounded,
+                    color: hasCv ? colors.success : colors.textSecondary,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                // Title & subtitle
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        hasCv ? 'CV Ready' : 'Upload Your CV',
+                        style: AppTypography.bodyLarge.copyWith(
+                          color: colors.textPrimary,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        hasCv
+                            ? 'Visible to recruiters on your profile'
+                            : 'PDF format only • Max 10 MB',
+                        style: AppTypography.bodySmall.copyWith(
+                          color: colors.textSecondary,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Status badge
+                if (hasCv)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: colors.success.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.check_circle_rounded,
+                          size: 14,
+                          color: colors.success,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Active',
+                          style: AppTypography.bodySmall.copyWith(
+                            color: colors.success,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+
+          // ── Action buttons ──
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              AppSpacing.sm,
+              AppSpacing.md,
+              AppSpacing.md,
+            ),
+            child: Row(
+              children: [
+                if (hasCv) ...[
+                  // View CV button
+                  Expanded(
+                    child: _CvActionButton(
+                      icon: Icons.open_in_new_rounded,
+                      label: 'View CV',
+                      colors: colors,
+                      isPrimary: false,
+                      onTap: () => _onViewCv(context, colors, cvUrl),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                ],
+                // Upload / Replace CV button
+                Expanded(
+                  child: _CvActionButton(
+                    icon: hasCv
+                        ? Icons.swap_horiz_rounded
+                        : Icons.cloud_upload_rounded,
+                    label: hasCv ? 'Replace' : 'Upload CV',
+                    colors: colors,
+                    isPrimary: true,
+                    onTap: () => _onUploadCv(context, ref, colors),
+                  ),
+                ),
+                if (hasCv) ...[
+                  const SizedBox(width: AppSpacing.sm),
+                  // Delete CV button
+                  _CvActionButton(
+                    icon: Icons.delete_outline_rounded,
+                    label: '',
+                    colors: colors,
+                    isPrimary: false,
+                    isDestructive: true,
+                    isIconOnly: true,
+                    onTap: () => _onDeleteCv(context, ref, colors),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _onViewCv(BuildContext context, AppColorScheme colors, String cvUrl) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CvViewerScreen(cvUrl: cvUrl),
+      ),
+    );
+  }
+
+  void _onUploadCv(BuildContext context, WidgetRef ref, AppColorScheme colors) async {
+    try {
+      const XTypeGroup cvGroup = XTypeGroup(
+        label: 'CV Documents',
+        extensions: <String>['pdf'],
+        mimeTypes: <String>[
+          'application/pdf',
+        ],
+      );
+      final XFile? file = await openFile(acceptedTypeGroups: <XTypeGroup>[cvGroup]);
+
+      if (file != null && context.mounted) {
+        // Show loading indicator
+        _showSnackBar(
+          context,
+          colors,
+          icon: Icons.cloud_upload_rounded,
+          message: 'Uploading your CV...',
+          isError: false,
+          duration: const Duration(seconds: 10),
+        );
+
+        await ref.read(candidateProfileProvider.notifier).uploadCv(file.path);
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          _showSnackBar(
+            context,
+            colors,
+            icon: Icons.check_circle_rounded,
+            message: 'CV uploaded successfully!',
+            isError: false,
+          );
+        }
+      }
+    } on ApiException catch (apiErr) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        _showSnackBar(
+          context,
+          colors,
+          icon: Icons.error_outline_rounded,
+          message: apiErr.message,
+          isError: true,
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        _showSnackBar(
+          context,
+          colors,
+          icon: Icons.warning_amber_rounded,
+          message: 'Upload failed. Please check your connection and try again.',
+          isError: true,
+        );
+      }
+    }
+  }
+
+  void _onDeleteCv(BuildContext context, WidgetRef ref, AppColorScheme colors) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete CV?'),
+        content: const Text(
+          'Your CV will be removed from your profile. Recruiters will no longer be able to view it.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              // TODO: call deleteCv when backend endpoint is wired
+              _showSnackBar(
+                context,
+                colors,
+                icon: Icons.info_outline_rounded,
+                message: 'CV deletion is coming soon.',
+                isError: false,
+              );
+            },
+            child: Text(
+              'Delete',
+              style: TextStyle(color: colors.error),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSnackBar(
+    BuildContext context,
+    AppColorScheme colors, {
+    required IconData icon,
+    required String message,
+    required bool isError,
+    Duration duration = const Duration(seconds: 3),
+  }) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(icon, color: Colors.white, size: 20),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: isError ? colors.error : colors.primary,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        margin: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.sm,
+        ),
+        duration: duration,
+      ),
+    );
+  }
+}
+
+/// Premium action button used within the CV section.
+class _CvActionButton extends StatelessWidget {
+  const _CvActionButton({
+    required this.icon,
+    required this.label,
+    required this.colors,
+    required this.isPrimary,
+    required this.onTap,
+    this.isDestructive = false,
+    this.isIconOnly = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final AppColorScheme colors;
+  final bool isPrimary;
+  final bool isDestructive;
+  final bool isIconOnly;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color bgColor;
+    final Color fgColor;
+    final Color borderColor;
+
+    if (isDestructive) {
+      bgColor = colors.error.withValues(alpha: 0.08);
+      fgColor = colors.error;
+      borderColor = colors.error.withValues(alpha: 0.25);
+    } else if (isPrimary) {
+      bgColor = colors.primary;
+      fgColor = colors.onPrimary;
+      borderColor = colors.primary;
+    } else {
+      bgColor = Colors.transparent;
+      fgColor = colors.primary;
+      borderColor = colors.primary.withValues(alpha: 0.3);
+    }
+
+    if (isIconOnly) {
+      return SizedBox(
+        width: 44,
+        height: 44,
+        child: Material(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(12),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: onTap,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: borderColor),
+              ),
+              child: Icon(icon, color: fgColor, size: 20),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return SizedBox(
+      height: 44,
+      child: Material(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: borderColor),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, color: fgColor, size: 18),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: AppTypography.bodySmall.copyWith(
+                    color: fgColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

@@ -1,4 +1,6 @@
 import 'package:dio/dio.dart';
+import 'package:http_parser/http_parser.dart';
+import 'package:path/path.dart' as p;
 
 import '../../../core/error/api_exception.dart';
 import '../domain/entities/candidate_profile.dart';
@@ -193,6 +195,47 @@ class ProfileRepositoryImpl implements ProfileRepository {
   Future<void> deleteEducation(String id) async {
     try {
       await _dio.delete('/profiles/me/education/$id');
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+  
+  @override
+  Future<void> uploadCv(String filePath) async {
+    try {
+      final ext = p.extension(filePath).toLowerCase();
+      final fileName = p.basename(filePath);
+      
+      // Map extension to MIME type — must match backend ALLOWED_CV_TYPES
+      String contentType;
+      switch (ext) {
+        case '.pdf':
+          contentType = 'application/pdf';
+          break;
+        case '.doc':
+          contentType = 'application/msword';
+          break;
+        case '.docx':
+          contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+          break;
+        default:
+          throw Exception('Unsupported file format. Please upload a PDF or Word document.');
+      }
+
+      final formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(
+          filePath,
+          filename: fileName,
+          contentType: MediaType.parse(contentType),
+        ),
+      });
+      await _dio.post(
+        '/profiles/me/cv',
+        data: formData,
+        options: Options(
+          contentType: 'multipart/form-data',
+        ),
+      );
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }

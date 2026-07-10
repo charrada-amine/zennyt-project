@@ -29,6 +29,9 @@ import '../../features/games/presentation/view/move_fast_screen.dart';
 import '../../features/games/presentation/view/planifik_screen.dart';
 import '../../features/games/presentation/view/predictive_puzzle_screen.dart';
 import '../../features/splash/presentation/view/splash_screen.dart';
+import '../../features/profile_settings/cv_autofill/presentation/view/cv_camera_capture_screen.dart';
+import '../../features/profile_settings/cv_autofill/presentation/view/cv_processing_screen.dart';
+import '../../features/profile_settings/cv_autofill/presentation/view/cv_review_screen.dart';
 import 'app_routes.dart';
 
 /// Routes the user can reach while signed out (onboarding + the whole sign-up
@@ -270,6 +273,30 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.userProfile,
         name: AppRoutes.nUserProfile,
         builder: (context, state) => const UserProfileScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.cvCameraCapture,
+        name: AppRoutes.nCvCameraCapture,
+        builder: (context, state) => const CvCameraCaptureScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.cvProcessing,
+        name: AppRoutes.nCvProcessing,
+        builder: (context, state) {
+          final filePath = state.uri.queryParameters['filePath'];
+          final imagePaths = state.uri.queryParameters['imagePaths'];
+          final url = state.uri.queryParameters['url'];
+          return CvProcessingScreen(
+            filePath: filePath, 
+            imagePaths: imagePaths,
+            url: url,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.cvReview,
+        name: AppRoutes.nCvReview,
+        builder: (context, state) => const CvReviewScreen(),
       ),
       GoRoute(
         path: AppRoutes.editProfile,

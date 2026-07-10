@@ -12,6 +12,7 @@ import '../widgets/profile_avatar.dart';
 import 'recruiter_profile_view.dart';
 import '../../../auth/presentation/auth_controller.dart';
 import '../../../../core/enums/user_role.dart';
+import '../../cv_autofill/presentation/widgets/cv_source_bottom_sheet.dart';
 
 class UserProfileScreen extends ConsumerStatefulWidget {
   const UserProfileScreen({super.key});
@@ -144,7 +145,21 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
           ),
         ),
         const Spacer(),
-        const SizedBox(width: 44), // Balance the back button
+        IconButton(
+          onPressed: () {
+            // Get the current profile state
+            final state = ref.read(candidateProfileProvider);
+            showModalBottomSheet(
+              context: context,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+              ),
+              builder: (context) => CvSourceBottomSheet(cvUrl: state.cvUrl),
+            );
+          },
+          icon: Icon(Icons.document_scanner_outlined, color: colors.primary),
+          tooltip: 'Auto Fill Profile',
+        ),
       ],
     );
   }
@@ -155,11 +170,12 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
     CandidateProfileState state,
     CandidateProfileViewModel viewModel,
   ) {
+    final user = ref.watch(authControllerProvider).value;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Avatar
-        ProfileAvatar(imageUrl: state.avatarUrl, size: 70, fallbackSeed: state.name),
+        ProfileAvatar(imageUrl: state.avatarUrl, size: 70, fallbackSeed: user?.email),
         const SizedBox(width: AppSpacing.md),
         // Info
         Expanded(

@@ -2,12 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/error/api_exception.dart';
 import '../../../../core/theme/theme.dart';
 import '../../../../core/utils/responsive.dart';
+import '../../../../core/upload/file_picking.dart';
+import '../../../../core/localization/l10n_extension.dart';
 import '../../../../shared/widgets/primary_button.dart';
+import '../../../../shared/widgets/full_screen_loader.dart';
+import '../../../auth/presentation/auth_controller.dart';
+import '../../../auth/presentation/auth_providers.dart';
 import '../viewmodel/candidate_profile_viewmodel.dart';
+import '../widgets/profile_avatar.dart';
 
 class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
@@ -31,6 +38,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
   bool _openToWorkInternationally = true;
   String _availableDate = 'Immediately';
   bool _saving = false;
+  bool _isUploadingAvatar = false;
 
   final List<String> _workplaceOptions = [
     'On-site',
@@ -116,6 +124,102 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
     super.dispose();
   }
 
+  Future<void> _pickAndUploadAvatar(ImageSource source) async {
+    try {
+      final filePicker = ref.read(filePickingProvider);
+      final pickedFile = await filePicker.pickImage(
+        fromCamera: source == ImageSource.camera,
+      );
+
+      if (pickedFile == null || pickedFile.bytes == null) return;
+
+      setState(() => _isUploadingAvatar = true);
+      final repo = ref.read(authRepositoryProvider);
+      await repo.uploadAvatar(pickedFile.bytes!, pickedFile.name);
+
+      await ref.read(authControllerProvider.notifier).refreshUser();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.avatarUpdated)),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(context.l10n.errorGeneric),
+            backgroundColor: context.colors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isUploadingAvatar = false);
+    }
+  }
+
+  void _showImagePickerSheet() {
+    final l10n = context.l10n;
+    final colors = context.colors;
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library_rounded),
+              title: Text(l10n.choosePhoto),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                _pickAndUploadAvatar(ImageSource.gallery);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt_rounded),
+              title: Text(l10n.takePhoto),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                _pickAndUploadAvatar(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.delete_rounded, color: colors.error),
+              title: Text(l10n.removePhoto, style: TextStyle(color: colors.error)),
+              onTap: () async {
+                Navigator.of(ctx).pop();
+                setState(() => _isUploadingAvatar = true);
+                try {
+                  final repo = ref.read(authRepositoryProvider);
+                  await repo.deleteAvatar();
+                  await ref.read(authControllerProvider.notifier).refreshUser();
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(l10n.avatarRemoved)),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(l10n.errorGeneric),
+                        backgroundColor: colors.error,
+                      ),
+                    );
+                  }
+                } finally {
+                  if (mounted) setState(() => _isUploadingAvatar = false);
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _submit() async {
     if (_saving) return;
     FocusScope.of(context).unfocus();
@@ -185,16 +289,19 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
   Widget build(BuildContext context) {
     final colors = context.colors;
     final hPadding = Responsive.horizontalPadding(context);
+    final user = ref.watch(authControllerProvider).value;
 
     return Scaffold(
       backgroundColor: colors.scaffoldBg,
-      body: SafeArea(
-        child: FadeTransition(
-          opacity: _fadeAnim,
-          child: SlideTransition(
-            position: _slideAnim,
-            child: Column(
-              children: [
+      body: Stack(
+        children: [
+          SafeArea(
+            child: FadeTransition(
+              opacity: _fadeAnim,
+              child: SlideTransition(
+                position: _slideAnim,
+                child: Column(
+                  children: [
                 // ── Top Bar ──
                 Padding(
                   padding: EdgeInsets.symmetric(
@@ -244,10 +351,62 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
                     child: Column(
                       children: [
                         const SizedBox(height: AppSpacing.md),
+                        
+                        // Avatar Edit
+                        _AnimatedField(
+                          delay: 0,
+                          child: Center(
+                            child: Column(
+                              children: [
+                                GestureDetector(
+                                  onTap: _showImagePickerSheet,
+                                  child: Stack(
+                                    children: [
+                                      ProfileAvatar(
+                                        imageUrl: user?.profileImageUrl,
+                                        size: 88,
+                                        fallbackSeed: user?.email,
+                                      ),
+                                      Positioned(
+                                        bottom: 0,
+                                        right: 0,
+                                        child: Container(
+                                          width: 32,
+                                          height: 32,
+                                          decoration: BoxDecoration(
+                                            color: colors.accent,
+                                            shape: BoxShape.circle,
+                                            border: Border.all(
+                                              color: colors.scaffoldBg,
+                                              width: 3,
+                                            ),
+                                          ),
+                                          child: const Icon(
+                                            Icons.camera_alt_rounded,
+                                            size: 16,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  context.l10n.choosePhoto,
+                                  style: AppTypography.bodySmall.copyWith(
+                                    color: colors.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.xl),
 
                         // Position
                         _AnimatedField(
-                          delay: 0,
+                          delay: 1,
                           child: _buildTextInput(
                             colors: colors,
                             label: 'Position',
@@ -258,7 +417,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
 
                         // Looking for
                         _AnimatedField(
-                          delay: 1,
+                          delay: 2,
                           child: _buildTextInput(
                             colors: colors,
                             label: 'Looking for',
@@ -269,7 +428,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
 
                         // Type of workplace
                         _AnimatedField(
-                          delay: 2,
+                          delay: 3,
                           child: _buildDropdownField(
                             colors: colors,
                             label: 'Type of workplace',
@@ -283,7 +442,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
 
                         // Type of job
                         _AnimatedField(
-                          delay: 3,
+                          delay: 4,
                           child: _buildDropdownField(
                             colors: colors,
                             label: 'Type of job',
@@ -296,7 +455,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
 
                         // Target job location
                         _AnimatedField(
-                          delay: 4,
+                          delay: 5,
                           child: _buildDropdownField(
                             colors: colors,
                             label: 'Target job location',
@@ -310,14 +469,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
 
                         // Open to work internationally
                         _AnimatedField(
-                          delay: 5,
+                          delay: 6,
                           child: _buildToggleField(colors),
                         ),
                         const SizedBox(height: AppSpacing.lg),
 
                         // Available
                         _AnimatedField(
-                          delay: 6,
+                          delay: 7,
                           child: _buildAvailableField(colors),
                         ),
 
@@ -325,7 +484,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
 
                         // Submit button
                         _AnimatedField(
-                          delay: 7,
+                          delay: 8,
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
                               horizontal: AppSpacing.xxl,
@@ -346,6 +505,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
             ),
           ),
         ),
+      ),
+          if (_saving || _isUploadingAvatar) const FullScreenLoader(),
+        ],
       ),
     );
   }

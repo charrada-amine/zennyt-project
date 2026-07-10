@@ -34,6 +34,10 @@ identity:
       jwk-set-uri: https://appleid.apple.com/auth/keys
       client-ids: ${APPLE_CLIENT_IDS:}
 
+groq:
+  api-key: ${GROQ_API_KEY:}
+  model: llama-3.3-70b-versatile
+
 server:
   port: 8080
 

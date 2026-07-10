@@ -414,4 +414,94 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noCvUploaded => 'No CV uploaded yet';
+
+  @override
+  String get cvReviewTitle => 'Review Extracted Data';
+
+  @override
+  String get cvReviewNoData => 'No data available.';
+
+  @override
+  String get cvReviewBannerText =>
+      'We found the following information in your CV. Please review and edit if necessary before saving to your profile.';
+
+  @override
+  String get cvReviewBasicInfo => 'Basic Info';
+
+  @override
+  String get cvReviewCurrentPosition => 'CURRENT POSITION';
+
+  @override
+  String get cvReviewCurrentPositionHint => 'E.g. Senior Software Engineer';
+
+  @override
+  String get cvReviewExperienceYears => 'EXPERIENCE (YEARS)';
+
+  @override
+  String get cvReviewExperienceYearsHint => 'E.g. 5';
+
+  @override
+  String get cvReviewAboutMe => 'ABOUT ME SUMMARY';
+
+  @override
+  String get cvReviewAboutMeHint => 'A brief summary about yourself...';
+
+  @override
+  String get cvReviewSkills => 'Skills';
+
+  @override
+  String get cvReviewExperience => 'Experience';
+
+  @override
+  String get cvReviewJobTitle => 'Job Title';
+
+  @override
+  String get cvReviewCompanyName => 'Company Name';
+
+  @override
+  String get cvReviewStartDate => 'Start Date';
+
+  @override
+  String get cvReviewEndDate => 'End Date';
+
+  @override
+  String get cvReviewPresent => 'Present';
+
+  @override
+  String get cvReviewEducation => 'Education';
+
+  @override
+  String get cvReviewDegree => 'Degree';
+
+  @override
+  String get cvReviewSchool => 'School / University';
+
+  @override
+  String get cvReviewStartYear => 'Start Year';
+
+  @override
+  String get cvReviewEndYear => 'End Year';
+
+  @override
+  String get cvReviewCertifications => 'Certifications';
+
+  @override
+  String get cvReviewCertificationTitle => 'Certification Title';
+
+  @override
+  String get cvReviewIssuer => 'Issuer';
+
+  @override
+  String get cvReviewSaveBtn => 'Save to Profile';
+
+  @override
+  String get cvReviewSaving => 'Saving to profile...';
+
+  @override
+  String get cvReviewSaveSuccess => 'Profile updated successfully!';
+
+  @override
+  String cvReviewSaveFailed(String error) {
+    return 'Failed to save profile: $error';
+  }
 }

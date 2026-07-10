@@ -158,5 +158,40 @@
   "deleteCv": "Delete CV",
   "cvUploaded": "CV uploaded successfully!",
   "cvDeleted": "CV deleted.",
-  "noCvUploaded": "No CV uploaded yet"
+  "noCvUploaded": "No CV uploaded yet",
+
+  "cvReviewTitle": "Review Extracted Data",
+  "cvReviewNoData": "No data available.",
+  "cvReviewBannerText": "We found the following information in your CV. Please review and edit if necessary before saving to your profile.",
+  "cvReviewBasicInfo": "Basic Info",
+  "cvReviewCurrentPosition": "CURRENT POSITION",
+  "cvReviewCurrentPositionHint": "E.g. Senior Software Engineer",
+  "cvReviewExperienceYears": "EXPERIENCE (YEARS)",
+  "cvReviewExperienceYearsHint": "E.g. 5",
+  "cvReviewAboutMe": "ABOUT ME SUMMARY",
+  "cvReviewAboutMeHint": "A brief summary about yourself...",
+  "cvReviewSkills": "Skills",
+  "cvReviewExperience": "Experience",
+  "cvReviewJobTitle": "Job Title",
+  "cvReviewCompanyName": "Company Name",
+  "cvReviewStartDate": "Start Date",
+  "cvReviewEndDate": "End Date",
+  "cvReviewPresent": "Present",
+  "cvReviewEducation": "Education",
+  "cvReviewDegree": "Degree",
+  "cvReviewSchool": "School / University",
+  "cvReviewStartYear": "Start Year",
+  "cvReviewEndYear": "End Year",
+  "cvReviewCertifications": "Certifications",
+  "cvReviewCertificationTitle": "Certification Title",
+  "cvReviewIssuer": "Issuer",
+  "cvReviewSaveBtn": "Save to Profile",
+  "cvReviewSaving": "Saving to profile...",
+  "cvReviewSaveSuccess": "Profile updated successfully!",
+  "cvReviewSaveFailed": "Failed to save profile: {error}",
+  "@cvReviewSaveFailed": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  }
 }

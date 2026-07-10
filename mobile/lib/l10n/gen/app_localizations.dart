@@ -871,6 +871,180 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No CV uploaded yet'**
   String get noCvUploaded;
+
+  /// No description provided for @cvReviewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Review Extracted Data'**
+  String get cvReviewTitle;
+
+  /// No description provided for @cvReviewNoData.
+  ///
+  /// In en, this message translates to:
+  /// **'No data available.'**
+  String get cvReviewNoData;
+
+  /// No description provided for @cvReviewBannerText.
+  ///
+  /// In en, this message translates to:
+  /// **'We found the following information in your CV. Please review and edit if necessary before saving to your profile.'**
+  String get cvReviewBannerText;
+
+  /// No description provided for @cvReviewBasicInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Basic Info'**
+  String get cvReviewBasicInfo;
+
+  /// No description provided for @cvReviewCurrentPosition.
+  ///
+  /// In en, this message translates to:
+  /// **'CURRENT POSITION'**
+  String get cvReviewCurrentPosition;
+
+  /// No description provided for @cvReviewCurrentPositionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'E.g. Senior Software Engineer'**
+  String get cvReviewCurrentPositionHint;
+
+  /// No description provided for @cvReviewExperienceYears.
+  ///
+  /// In en, this message translates to:
+  /// **'EXPERIENCE (YEARS)'**
+  String get cvReviewExperienceYears;
+
+  /// No description provided for @cvReviewExperienceYearsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'E.g. 5'**
+  String get cvReviewExperienceYearsHint;
+
+  /// No description provided for @cvReviewAboutMe.
+  ///
+  /// In en, this message translates to:
+  /// **'ABOUT ME SUMMARY'**
+  String get cvReviewAboutMe;
+
+  /// No description provided for @cvReviewAboutMeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'A brief summary about yourself...'**
+  String get cvReviewAboutMeHint;
+
+  /// No description provided for @cvReviewSkills.
+  ///
+  /// In en, this message translates to:
+  /// **'Skills'**
+  String get cvReviewSkills;
+
+  /// No description provided for @cvReviewExperience.
+  ///
+  /// In en, this message translates to:
+  /// **'Experience'**
+  String get cvReviewExperience;
+
+  /// No description provided for @cvReviewJobTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Job Title'**
+  String get cvReviewJobTitle;
+
+  /// No description provided for @cvReviewCompanyName.
+  ///
+  /// In en, this message translates to:
+  /// **'Company Name'**
+  String get cvReviewCompanyName;
+
+  /// No description provided for @cvReviewStartDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Start Date'**
+  String get cvReviewStartDate;
+
+  /// No description provided for @cvReviewEndDate.
+  ///
+  /// In en, this message translates to:
+  /// **'End Date'**
+  String get cvReviewEndDate;
+
+  /// No description provided for @cvReviewPresent.
+  ///
+  /// In en, this message translates to:
+  /// **'Present'**
+  String get cvReviewPresent;
+
+  /// No description provided for @cvReviewEducation.
+  ///
+  /// In en, this message translates to:
+  /// **'Education'**
+  String get cvReviewEducation;
+
+  /// No description provided for @cvReviewDegree.
+  ///
+  /// In en, this message translates to:
+  /// **'Degree'**
+  String get cvReviewDegree;
+
+  /// No description provided for @cvReviewSchool.
+  ///
+  /// In en, this message translates to:
+  /// **'School / University'**
+  String get cvReviewSchool;
+
+  /// No description provided for @cvReviewStartYear.
+  ///
+  /// In en, this message translates to:
+  /// **'Start Year'**
+  String get cvReviewStartYear;
+
+  /// No description provided for @cvReviewEndYear.
+  ///
+  /// In en, this message translates to:
+  /// **'End Year'**
+  String get cvReviewEndYear;
+
+  /// No description provided for @cvReviewCertifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Certifications'**
+  String get cvReviewCertifications;
+
+  /// No description provided for @cvReviewCertificationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Certification Title'**
+  String get cvReviewCertificationTitle;
+
+  /// No description provided for @cvReviewIssuer.
+  ///
+  /// In en, this message translates to:
+  /// **'Issuer'**
+  String get cvReviewIssuer;
+
+  /// No description provided for @cvReviewSaveBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Save to Profile'**
+  String get cvReviewSaveBtn;
+
+  /// No description provided for @cvReviewSaving.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving to profile...'**
+  String get cvReviewSaving;
+
+  /// No description provided for @cvReviewSaveSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile updated successfully!'**
+  String get cvReviewSaveSuccess;
+
+  /// No description provided for @cvReviewSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to save profile: {error}'**
+  String cvReviewSaveFailed(String error);
 }
 
 class _AppLocalizationsDelegate
