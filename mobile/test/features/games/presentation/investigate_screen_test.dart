@@ -3,17 +3,20 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:zennyt/features/games/domain/config/memory_quest_config.dart';
 import 'package:zennyt/features/games/domain/entities/memory_object.dart';
 import 'package:zennyt/features/games/presentation/view/investigate_screen.dart';
 
-/// « J'investigue » — Mission A (Digit Span). Vérifie la machine à états
-/// intro → tutorial → observe → recall (même ordre) → recall (inverse) →
-/// résultats, et le score mock (0–5 par tâche → composite /100).
+/// « J'investigue » — système de niveaux : 3 tâches réussies au niveau 1 →
+/// niveau 2 (longueur 4) ; distraction ABSENTE aux niveaux 1-2.
 void main() {
   const seed = 12345;
-  // Séquence du 1er round (longueur de départ = 4), reproductible via la graine.
+  // Séquence du niveau 1 : longueur = 3 (initial_sequence_length), graine fixe.
   final r = math.Random(seed);
-  final sequence = List<int>.generate(4, (_) => r.nextInt(10));
+  final level1Seq = List<int>.generate(
+    MemoryQuestConfig.sequenceLengthForLevel(1),
+    (_) => r.nextInt(10),
+  );
 
   Future<void> typeDigits(WidgetTester tester, List<int> digits) async {
     for (final d in digits) {
@@ -23,7 +26,7 @@ void main() {
   }
 
   testWidgets(
-      'Flux complet A+B+distraction : digits → objets → distraction → résultats',
+      '3 réussites au niveau 1 → niveau 2 (longueur 4) ; distraction absente au niveau 1',
       (tester) async {
     tester.view.physicalSize = const Size(1200, 2400);
     tester.view.devicePixelRatio = 1.0;
@@ -31,94 +34,66 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     List<MemoryObject> initialObjects = const [];
-    List<int> distractSeq = const [];
-    int distractAnswer = 0;
     await tester.pumpWidget(
       ProviderScope(
         child: MaterialApp(
           home: InvestigateScreen(
             seed: seed,
             onMissionBReady: (order) => initialObjects = order,
-            onDistractionReady: (seq, answer) {
-              distractSeq = seq;
-              distractAnswer = answer;
-            },
           ),
         ),
       ),
     );
 
-    // Intro → Tutorial → observation.
+    // Intro → Tutorial → observation (niveau 1).
     await tester.tap(find.text('Start mission'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('I am ready'));
-    await tester.pump(); // démarre l'observation
+    await tester.pump();
 
-    // Observation verrouillée : le clavier n'est pas encore là.
-    expect(find.byKey(const ValueKey('kp-1')), findsNothing);
+    // On est au niveau 1.
+    expect(find.text('Level 1'), findsOneWidget);
 
-    // Déroule les 4 chiffres (900 ms) + ISI (250 ms) + amorce (350 ms).
-    await tester.pump(const Duration(milliseconds: 5200));
+    // Observation des 3 chiffres (900 ms + ISI 250 + amorce 350).
+    await tester.pump(const Duration(milliseconds: 4200));
 
-    // Rappel MÊME ordre.
+    // Rappel MÊME ordre (parfait → tâche réussie #1).
     expect(find.textContaining('SAME order'), findsOneWidget);
-    await typeDigits(tester, sequence);
+    await typeDigits(tester, level1Seq);
     await tester.tap(find.text('Validate'));
     await tester.pump();
 
-    // Rappel INVERSE — l'original reste caché.
+    // Rappel INVERSE (parfait → tâche réussie #2).
     expect(find.textContaining('REVERSE order'), findsOneWidget);
-    // On saisit un inverse VOLONTAIREMENT faux (1 chiffre changé) → pas parfait
-    // → fin de mission (résultats) plutôt que round suivant.
-    final wrongReverse = sequence.reversed.toList();
-    wrongReverse[0] = (wrongReverse[0] + 1) % 10;
-    await typeDigits(tester, wrongReverse);
+    await typeDigits(tester, level1Seq.reversed.toList());
     await tester.tap(find.text('Validate'));
 
-    // Fin Mission A → feedback (250 ms) → Mission B (observation d'objets).
+    // Feedback → Mission B (observation d'objets), 4 objets au niveau 1.
     await tester.pump(const Duration(milliseconds: 1000));
     expect(find.text('Memorize the starting order'), findsOneWidget);
     expect(initialObjects, hasLength(4));
 
-    // Observation (5 s) → manipulations auto (2 × 1500 ms) → restauration.
+    // Observation (5 s) + manipulations auto (2 × 1500 ms) → restauration.
     await tester.pump(const Duration(milliseconds: 5200));
     await tester.pump(const Duration(milliseconds: 3200));
     expect(find.text('Restore the STARTING order'), findsOneWidget);
 
-    // Tap-to-place : on replace les objets dans l'ORDRE INITIAL (→ restore 5/5).
+    // Restauration parfaite (tâche réussie #3) → 3 réussites → montée de niveau.
     for (final obj in initialObjects) {
       await tester.tap(find.text(obj.labelEn).first);
       await tester.pump();
     }
     await tester.tap(find.text('Validate'));
-
-    // Fin Mission B → phase de DISTRACTION : encodage d'une séquence à protéger.
-    await tester.pump(const Duration(milliseconds: 1000));
-    expect(distractSeq, hasLength(4));
-    await tester.pump(const Duration(milliseconds: 5200)); // encode → question
-
-    // Question rapide dimmée + rappel mémoire visible.
-    expect(find.textContaining('Quick check'), findsOneWidget);
-    await tester.tap(find.byKey(ValueKey('choice-$distractAnswer'))); // bonne réponse
     await tester.pump();
 
-    // Rappel APRÈS distraction : on retape la séquence protégée (→ 5/5).
-    expect(find.textContaining('Now recall'), findsOneWidget);
-    await typeDigits(tester, distractSeq);
-    await tester.tap(find.text('Validate'));
-    // Soumission au repo (mock : 2 × 150 ms) → score serveur + panneau de détail.
-    await tester.pump(const Duration(milliseconds: 500));
+    // Niveau 1 : PAS de distraction (gatée au niveau ≥ 3) — on enchaîne le niveau 2.
+    expect(find.textContaining('Quick check'), findsNothing);
+    // Montée de niveau : niveau 2, longueur de séquence = 4.
+    expect(find.text('Level 2'), findsOneWidget);
+    expect(MemoryQuestConfig.sequenceLengthForLevel(2), 4);
 
-    // Résultats + composite calculé PAR LE REPO (mock, parité backend) :
-    // same 5/5, reverse 4/5, restore 5/5, after-distraction 5/5
-    // → moyenne (5+4+5+5)/4 = 4.75 /5 → 95 %.
-    expect(find.text('Results'), findsOneWidget);
-    expect(find.text('95%'), findsOneWidget); // composite (carte principale)
-    expect(find.text('Correct'), findsOneWidget); // quick check (tuile)
-    // Tuiles + lignes du panneau : les scores apparaissent (au moins une fois).
-    expect(find.text('4/5'), findsWidgets); // reverse
-    expect(find.text('5/5'), findsWidgets); // same / restore / after-distraction
-    // Panneau « détail du score » alimenté par le repo (offline via le mock).
-    expect(find.text('Détail du score'), findsOneWidget);
+    // Laisse l'observation du niveau 2 se dérouler (évite les timers en attente).
+    await tester.pump(const Duration(milliseconds: 5200));
+    expect(find.textContaining('SAME order'), findsOneWidget);
   });
 }

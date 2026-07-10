@@ -3,8 +3,10 @@ package com.zennyt.games.domain.service;
 import com.zennyt.games.domain.config.MoveFastConfig;
 import com.zennyt.games.domain.config.OptimalPathConfig;
 import com.zennyt.games.domain.config.PrevisionPuzzleConfig;
+import com.zennyt.games.domain.config.TaskSchedulingConfig;
 import com.zennyt.games.domain.vo.OptimalPathLevel;
 import com.zennyt.games.domain.vo.PlanifikMetrics;
+import com.zennyt.games.domain.vo.TaskSchedulingMetrics;
 import com.zennyt.games.domain.vo.GameType;
 import com.zennyt.games.domain.vo.MoveFastMetrics;
 import com.zennyt.games.domain.vo.PrevisionPuzzleLevel;
@@ -77,6 +79,38 @@ public class PlanifikScoringService {
         };
 
         return points;
+    }
+
+    /**
+     * Barème « Ordonnancement de tâches » (Planifik #2, fiche « JE PLANIFIE ») — /10 :
+     * <ul>
+     *   <li>Dépendances respectées (tout-ou-rien) → 3 pts sinon 0</li>
+     *   <li>Contraintes horaires respectées (tout-ou-rien) → 3 pts sinon 0</li>
+     *   <li>Cohérence du planning (0–2) → 0 à 2 pts</li>
+     *   <li>Réajustements (nombre brut) : &lt;2 → 2 pts · 2-4 → 1 pt · &gt;4 → 0 pt</li>
+     * </ul>
+     */
+    public Score scoreTaskScheduling(TaskSchedulingMetrics m) {
+        int points = 0;
+
+        // Dépendances respectées (tout-ou-rien, critère le plus lourd)
+        if (m.dependenciesRespected()) {
+            points += TaskSchedulingConfig.DEPENDENCIES_POINTS;
+        }
+
+        // Contraintes horaires respectées (tout-ou-rien)
+        if (m.timeConstraintsRespected()) {
+            points += TaskSchedulingConfig.TIME_CONSTRAINTS_POINTS;
+        }
+
+        // Cohérence du planning (0–2)
+        points += Math.max(0, Math.min(
+            TaskSchedulingConfig.PLANNING_COHERENCE_MAX_POINTS, m.planningCoherence()));
+
+        // Réajustements (score dérivé du nombre brut)
+        points += TaskSchedulingConfig.adjustmentScore(m.adjustmentCount());
+
+        return new Score(points, TaskSchedulingConfig.MAX_POINTS, interpretMiniGame(points));
     }
 
     /**

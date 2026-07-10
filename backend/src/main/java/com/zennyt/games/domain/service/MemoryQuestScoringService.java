@@ -3,6 +3,7 @@ package com.zennyt.games.domain.service;
 import com.zennyt.games.domain.config.MemoryQuestConfig;
 import com.zennyt.games.domain.vo.MemoryQuestMetrics;
 import com.zennyt.games.domain.vo.MemoryQuestReport;
+import com.zennyt.games.domain.vo.MemoryTaskResult;
 import com.zennyt.games.domain.vo.Score;
 
 import java.util.ArrayList;
@@ -13,40 +14,77 @@ import java.util.List;
  *
  * <p>Java pur, sans Spring. Chaque tâche est notée <b>0–5</b> (via
  * {@link MemoryQuestConfig#taskScore(double)}), le composite est la <b>moyenne
- * des tâches jouées, normalisée /100</b>. Le score est <b>calculé serveur</b> —
- * le client n'envoie que des mesures.
+ * des tâches jouées, normalisée /100</b> (invariant conservé). Le score est
+ * <b>calculé serveur</b> — le client n'envoie que des mesures.
+ *
+ * <p><b>Le calibrage appareil affecte le score via le TIMEOUT</b> (Memory Quest
+ * est le premier module dont le score dépend du temps) : une tâche dont le temps
+ * dépasse {@code max_task_time_ms + offset} est un échec par dépassement (note
+ * voidée) ; l'offset remonte le seuil pour ne pas pénaliser un appareil lent. La
+ * justesse du rappel elle-même reste inchangée.
  *
  * <p>⚠️ PARITÉ MOCK ⇄ BACKEND : {@code games_mock_repository.dart}
  * ({@code _scoreMemoryQuest}) reproduit ce barème à l'identique.
  */
 public class MemoryQuestScoringService {
 
-    /** Score du mini-jeu : composite /100 + interprétation (indicative). */
+    /** Score du mini-jeu, sans calibrage (offset 0). Compatibilité. */
     public Score score(MemoryQuestMetrics m) {
-        int composite = compositeScore(m);
+        return score(m, 0.0);
+    }
+
+    /** Score du mini-jeu : composite /100 + interprétation, timeout ajusté du calibrage. */
+    public Score score(MemoryQuestMetrics m, double calibrationOffsetMs) {
+        int composite = compositeScore(m, calibrationOffsetMs);
         return new Score(composite, MemoryQuestConfig.COMPOSITE_MAX,
             MemoryQuestConfig.interpret(composite));
     }
 
-    /** Composite = moyenne des notes de tâches jouées, normalisée /100. */
+    /** Composite sans calibrage (offset 0). Compatibilité. */
     public int compositeScore(MemoryQuestMetrics m) {
+        return compositeScore(m, 0.0);
+    }
+
+    /**
+     * Composite = moyenne des notes de tâches jouées, normalisée /100.
+     *
+     * <p>Avec timings par tâche : chaque tâche dépassant le timeout ajusté est
+     * <b>voidée</b> (note 0) ; sinon note de rappel. Sans timings : agrégats plats
+     * (comportement historique inchangé — composite identique à l'ancien).
+     */
+    public int compositeScore(MemoryQuestMetrics m, double calibrationOffsetMs) {
         List<Integer> tasks = new ArrayList<>();
-        tasks.add(MemoryQuestConfig.taskScore(m.sameAccuracy()));
-        tasks.add(MemoryQuestConfig.taskScore(m.reverseAccuracy()));
-        if (m.missionBPlayed()) {
-            tasks.add(MemoryQuestConfig.taskScore(m.restoreAccuracy()));
-        }
-        if (m.distractionPlayed()) {
-            tasks.add(MemoryQuestConfig.taskScore(m.afterDistractionAccuracy()));
+        if (m.hasTaskTimings()) {
+            for (MemoryTaskResult t : m.tasks()) {
+                boolean timedOut = MemoryQuestConfig.isTaskTimedOut(t.responseTimeMs(), calibrationOffsetMs);
+                tasks.add(timedOut ? 0 : MemoryQuestConfig.taskScore(t.accuracy()));
+            }
+        } else {
+            tasks.add(MemoryQuestConfig.taskScore(m.sameAccuracy()));
+            tasks.add(MemoryQuestConfig.taskScore(m.reverseAccuracy()));
+            if (m.missionBPlayed()) {
+                tasks.add(MemoryQuestConfig.taskScore(m.restoreAccuracy()));
+            }
+            if (m.distractionPlayed()) {
+                tasks.add(MemoryQuestConfig.taskScore(m.afterDistractionAccuracy()));
+            }
         }
         double avg = tasks.stream().mapToInt(Integer::intValue).average().orElse(0.0);
         return (int) Math.round(avg / MemoryQuestConfig.TASK_MAX_SCORE * MemoryQuestConfig.COMPOSITE_MAX);
     }
 
-    /** Indicateurs détaillés (notes par tâche + composite) pour la réponse. */
+    /** Indicateurs (notes par tâche + composite + niveau + validité) — sans calibrage. */
     public MemoryQuestReport report(MemoryQuestMetrics m) {
+        return report(m, 0.0);
+    }
+
+    /** Indicateurs détaillés, timeout/validité ajustés du calibrage. */
+    public MemoryQuestReport report(MemoryQuestMetrics m, double calibrationOffsetMs) {
+        int timeouts = m.timeoutTaskCount(calibrationOffsetMs);
+        boolean valid = MemoryQuestConfig.isSessionValid(
+            calibrationOffsetMs, m.sessionCompleted(), timeouts);
         return new MemoryQuestReport(
-            compositeScore(m),
+            compositeScore(m, calibrationOffsetMs),
             MemoryQuestConfig.taskScore(m.sameAccuracy()),
             MemoryQuestConfig.taskScore(m.reverseAccuracy()),
             m.missionBPlayed() ? MemoryQuestConfig.taskScore(m.restoreAccuracy()) : null,
@@ -54,6 +92,9 @@ public class MemoryQuestScoringService {
             m.highestSequenceLength(),
             m.distractionQuestionCorrect(),
             m.missionBPlayed(),
-            m.distractionPlayed());
+            m.distractionPlayed(),
+            m.finalLevel(),
+            valid,
+            timeouts);
     }
 }

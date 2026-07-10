@@ -207,6 +207,7 @@ class _PlanifikScreenState extends ConsumerState<PlanifikScreen> {
         metrics: _lastMetrics,
         onReplay: _replay,
         onCompare: () => setState(() => _stage = _PlanifikStage.comparison),
+        onNext: () => context.go(AppRoutes.gamesTaskScheduling),
         onBack: () => context.go(AppRoutes.games),
       ),
       _PlanifikStage.comparison => _ComparisonView(
@@ -2000,6 +2001,7 @@ class _ScoreView extends StatelessWidget {
     required this.metrics,
     required this.onReplay,
     required this.onCompare,
+    required this.onNext,
     required this.onBack,
   });
 
@@ -2007,6 +2009,7 @@ class _ScoreView extends StatelessWidget {
   final PlanifikMetrics? metrics;
   final VoidCallback onReplay;
   final VoidCallback onCompare;
+  final VoidCallback onNext; // enchaîne vers Planifik #2 (Ordonnancement)
   final VoidCallback onBack;
 
   @override
@@ -2150,10 +2153,13 @@ class _ScoreView extends StatelessWidget {
             _ScoreBreakdownPanel(metrics: metrics!),
           ],
           const SizedBox(height: AppSpacing.xxl),
+          // Enchaîne le flow Planifik : #1 Chemin Optimal → #2 Ordonnancement.
+          GamePrimaryButton(label: 'Continue to scheduling', onPressed: onNext),
+          const SizedBox(height: AppSpacing.md),
           Row(
             children: [
               Expanded(
-                child: GamePrimaryButton(label: 'Replay', onPressed: onReplay),
+                child: GameOutlineButton(label: 'Replay', onPressed: onReplay),
               ),
               const SizedBox(width: AppSpacing.lg),
               Expanded(

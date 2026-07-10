@@ -53,17 +53,13 @@ public record MoveFastMetrics(
             throw new IllegalArgumentException("aucune réponse notée (hors échauffement)");
         }
 
-        // Anti-triche léger — condition de fin de session effective.
-        MoveFastConfig.SessionEndCondition end = MoveFastConfig.SESSION_END_CONDITION;
-        if (scored > end.maxResponses()) {
-            throw new IllegalArgumentException(
-                "Trop de réponses notées : " + scored + " > maxResponses=" + end.maxResponses());
-        }
+        // Anti-triche léger — plafonds appliqués selon le mode de fin configuré.
+        // En mode REACH_MAX_MULTIPLIER (fiche), aucun plafond d'essais ni de durée.
         long totalReactionMs = responses.stream().mapToLong(MoveFastResponse::reactionTimeMs).sum();
-        if (totalReactionMs > (long) end.sessionSeconds() * 1000L) {
-            throw new IllegalArgumentException(
-                "Somme des temps de réaction implausible : " + totalReactionMs
-                    + " ms > durée de session " + end.sessionSeconds() + " s");
+        String violation = MoveFastConfig.plausibilityViolation(
+            MoveFastConfig.SESSION_END_MODE, scored, totalReactionMs);
+        if (violation != null) {
+            throw new IllegalArgumentException(violation);
         }
     }
 

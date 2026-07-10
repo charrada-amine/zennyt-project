@@ -52,6 +52,14 @@ class DeviceCalibration {
   final double? deviceMemoryGb;
   final double? inputProcessingLatencyMs;
 
+  /// Latence d'affichage théorique — miroir de DeviceCalibration.displayLatencyMs.
+  double get displayLatencyMs => (1000.0 / refreshRateHz) / 2.0;
+
+  /// Offset technique = latence affichage + traitement d'entrée — miroir backend.
+  /// (Le serveur reste la source autoritaire ; ce getter sert au mock hors-ligne.)
+  double get calibrationOffsetMs =>
+      displayLatencyMs + (inputProcessingLatencyMs ?? 0.0);
+
   Map<String, dynamic> toJson() => {
     'calibrationMethod': calibrationMethod.wire,
     'inputMode': inputMode.wire,

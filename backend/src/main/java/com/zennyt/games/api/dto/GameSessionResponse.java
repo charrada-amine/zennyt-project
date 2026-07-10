@@ -109,13 +109,17 @@ public record GameSessionResponse(
         int highestSequenceLength,
         boolean distractionQuestionCorrect,
         boolean missionBPlayed,
-        boolean distractionPlayed
+        boolean distractionPlayed,
+        int finalLevel,
+        boolean sessionValid,
+        int timeoutTaskCount
     ) {
         static MemoryQuestIndicatorsResponse from(MemoryQuestReport r) {
             return new MemoryQuestIndicatorsResponse(
                 r.compositeScore(), r.sameOrderScore(), r.reverseOrderScore(),
                 r.restoreScore(), r.afterDistractionScore(), r.highestSequenceLength(),
-                r.distractionQuestionCorrect(), r.missionBPlayed(), r.distractionPlayed());
+                r.distractionQuestionCorrect(), r.missionBPlayed(), r.distractionPlayed(),
+                r.finalLevel(), r.sessionValid(), r.timeoutTaskCount());
         }
     }
 

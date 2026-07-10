@@ -28,6 +28,7 @@ import '../../features/games/presentation/view/investigate_screen.dart';
 import '../../features/games/presentation/view/move_fast_screen.dart';
 import '../../features/games/presentation/view/planifik_screen.dart';
 import '../../features/games/presentation/view/predictive_puzzle_screen.dart';
+import '../../features/games/presentation/view/task_scheduling_screen.dart';
 import '../../features/splash/presentation/view/splash_screen.dart';
 import '../../features/profile_settings/cv_autofill/presentation/view/cv_camera_capture_screen.dart';
 import '../../features/profile_settings/cv_autofill/presentation/view/cv_processing_screen.dart';
@@ -181,6 +182,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.gamesPredictivePuzzle,
         name: AppRoutes.nGamesPredictivePuzzle,
         builder: (context, state) => const PredictivePuzzleScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.gamesTaskScheduling,
+        name: AppRoutes.nGamesTaskScheduling,
+        builder: (context, state) => const TaskSchedulingScreen(),
       ),
       GoRoute(
         path: AppRoutes.gamesInvestigate,

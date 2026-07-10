@@ -19,6 +19,7 @@ import com.zennyt.games.domain.vo.PlanifikMetrics;
 import com.zennyt.games.domain.vo.PrevisionPuzzleMetrics;
 import com.zennyt.games.domain.vo.PrevisionPuzzleReport;
 import com.zennyt.games.domain.vo.Score;
+import com.zennyt.games.domain.vo.TaskSchedulingMetrics;
 import com.zennyt.shared.application.exception.NotFoundException;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -137,11 +138,12 @@ public class SubmitGameResultUseCase {
     private Score computeScore(MiniGame miniGame, SubmitGameResultCommand command) {
         return switch (miniGame) {
             case OPTIMAL_PATH -> scoring.scoreOptimalPath(expectMetrics(command, PlanifikMetrics.class));
+            case TASK_SCHEDULING -> scoring.scoreTaskScheduling(expectMetrics(command, TaskSchedulingMetrics.class));
             case MOVE_FAST_CORE -> scoring.scoreMoveFast(expectMetrics(command, MoveFastMetrics.class));
             case PREVISION_PUZZLE -> scoring.scorePrevisionPuzzle(expectMetrics(command, PrevisionPuzzleMetrics.class));
-            case MEMORY_QUEST_CORE -> memoryQuest.score(expectMetrics(command, MemoryQuestMetrics.class));
-            case TASK_SCHEDULING -> throw new IllegalArgumentException(
-                "Barème non encore implémenté pour " + miniGame);
+            case MEMORY_QUEST_CORE -> memoryQuest.score(
+                expectMetrics(command, MemoryQuestMetrics.class),
+                calibration.offsetMs(command.deviceCalibration()));
         };
     }
 
@@ -151,7 +153,9 @@ public class SubmitGameResultUseCase {
             || !(command.metrics() instanceof MemoryQuestMetrics metrics)) {
             return null;
         }
-        return memoryQuest.report(metrics);
+        // Le calibrage appareil est enfin exploité pour un SCORE (via le timeout),
+        // pas seulement des indicateurs (socle DeviceCalibration/CalibrationService réutilisé).
+        return memoryQuest.report(metrics, calibration.offsetMs(command.deviceCalibration()));
     }
 
     private <T> T expectMetrics(SubmitGameResultCommand command, Class<T> type) {

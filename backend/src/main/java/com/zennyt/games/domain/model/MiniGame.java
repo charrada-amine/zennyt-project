@@ -19,8 +19,8 @@ import com.zennyt.games.domain.vo.GameType;
 public enum MiniGame {
     /** Planifik #1 — « Le Chemin Optimal ». */
     OPTIMAL_PATH(GameType.PLANIFIK, 10, true),
-    /** Planifik #2 — « Ordonnancement de tâches » (à venir, barème non implémenté). */
-    TASK_SCHEDULING(GameType.PLANIFIK, 10, false),
+    /** Planifik #2 — « Ordonnancement de tâches ». Barème dans PlanifikScoringService. */
+    TASK_SCHEDULING(GameType.PLANIFIK, 10, true),
     /** Planifik #3 — « Le Puzzle Prévisionnel ». */
     PREVISION_PUZZLE(GameType.PLANIFIK, 10, true),
     /** Move Fast #1 — « Je bouge ». Barème dynamique selon le nombre de réponses. */

@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../domain/config/move_fast_config.dart';
 import '../../domain/entities/device_calibration.dart';
 import '../../domain/entities/game_session.dart';
 import '../../domain/entities/game_type.dart';
@@ -44,15 +45,17 @@ class MoveFastScreen extends ConsumerStatefulWidget {
 }
 
 class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
-  // Condition de fin EFFECTIVE — miroir de MoveFastConfig.SESSION_END_CONDITION
-  // (backend). ⚠️ DIVERGE de la fiche (reach_max_multiplier) — voir GAMES_MODULE.md.
-  static const int _sessionSeconds = 84;
-  static const int _targetCorrectAnswers = 12;
-  static const int _maxResponses = 18;
-  // Essais d'échauffement (warm-up) — miroir de MoveFastConfig.PRACTICE_TRIAL_COUNT.
+  // Condition de fin de session — LUE depuis MoveFastConfig (miroir backend),
+  // jamais codée en dur ici. Le mode par défaut (FIXED_BUDGET) diverge de la
+  // fiche (reach_max_multiplier) ; basculer = changer MoveFastConfig.sessionEndMode
+  // (+ backend). Voir GAMES_MODULE.md.
+  static const int _sessionSeconds = MoveFastConfig.sessionSeconds;
+  // Les seuils de fin (target / maxResponses / multiplicateur) sont lus dans
+  // MoveFastConfig via _reachedEndCondition — pas d'alias en dur ici.
+  // Essais d'échauffement (warm-up) — miroir de MoveFastConfig.practiceTrialCount.
   // Les premiers essais sont marqués practiceTrial=true et exclus par le backend
   // du scoring et des statistiques (fiche révisée, Tableau 2).
-  static const int _practiceTrialCount = 3;
+  static const int _practiceTrialCount = MoveFastConfig.practiceTrialCount;
   // Seuils de progression : niv 1 Orientation (0–4), niv 2 Mouvement (4–8),
   // niv 3 règle aléatoire (8+).
   static const int _movementLevelThreshold = 4;
@@ -164,12 +167,36 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted || _paused || _stage != _MoveFastStage.gameplay) return;
-      if (_secondsLeft <= 1) {
+      // La limite de temps ne termine la session qu'en mode budget fixe.
+      // En mode REACH_MAX_MULTIPLIER (fiche), aucune limite de durée.
+      if (MoveFastConfig.sessionEndMode == MoveFastSessionEndMode.fixedBudget &&
+          _secondsLeft <= 1) {
         _finishSession();
         return;
       }
-      setState(() => _secondsLeft--);
+      if (_secondsLeft > 0) setState(() => _secondsLeft--);
     });
+  }
+
+  /// Condition de fin atteinte selon le mode configuré (aucune valeur en dur).
+  bool get _reachedEndCondition {
+    switch (MoveFastConfig.sessionEndMode) {
+      case MoveFastSessionEndMode.fixedBudget:
+        return _correctResponses >= MoveFastConfig.targetCorrectAnswers ||
+            _totalResponses >= MoveFastConfig.maxResponses;
+      case MoveFastSessionEndMode.reachMaxMultiplier:
+        return _multiplier >= MoveFastConfig.maxMultiplier;
+    }
+  }
+
+  /// Progression de la barre HUD selon le mode (temps restant / montée du multiplicateur).
+  double get _sessionProgress {
+    switch (MoveFastConfig.sessionEndMode) {
+      case MoveFastSessionEndMode.fixedBudget:
+        return _secondsLeft / MoveFastConfig.sessionSeconds;
+      case MoveFastSessionEndMode.reachMaxMultiplier:
+        return (_multiplier / MoveFastConfig.maxMultiplier).clamp(0.0, 1.0);
+    }
   }
 
   void _startReactionTimer() {
@@ -360,8 +387,7 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
         _showRandomLevel();
         return;
       }
-      if (_correctResponses >= _targetCorrectAnswers ||
-          _totalResponses >= _maxResponses) {
+      if (_reachedEndCondition) {
         _finishSession();
         return;
       }
@@ -586,7 +612,7 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
       _MoveFastStage.gameplay => _GameplayView(
         score: _score,
         timeLabel: _timeLabel,
-        progress: _secondsLeft / _sessionSeconds,
+        progress: _sessionProgress,
         ruleLabel: _ruleLabel,
         ruleColor: _ruleColor,
         stimulus: _stimulus,
@@ -603,13 +629,13 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
       _MoveFastStage.ruleSwitch => _RuleSwitchView(
         score: _score,
         timeLabel: _timeLabel,
-        progress: _secondsLeft / _sessionSeconds,
+        progress: _sessionProgress,
         onContinue: _continueAfterRuleSwitch,
       ),
       _MoveFastStage.randomRule => _RandomLevelView(
         score: _score,
         timeLabel: _timeLabel,
-        progress: _secondsLeft / _sessionSeconds,
+        progress: _sessionProgress,
         onContinue: _continueAfterRandomLevel,
       ),
       _MoveFastStage.results => _ResultsView(

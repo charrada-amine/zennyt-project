@@ -4,6 +4,8 @@ import com.zennyt.games.domain.model.MiniGame;
 import com.zennyt.games.domain.vo.CostlyZonesAvoided;
 import com.zennyt.games.domain.vo.GameMetrics;
 import com.zennyt.games.domain.vo.MemoryQuestMetrics;
+import com.zennyt.games.domain.vo.MemoryTaskKind;
+import com.zennyt.games.domain.vo.MemoryTaskResult;
 import com.zennyt.games.domain.vo.MoveFastMetrics;
 import com.zennyt.games.domain.vo.MoveFastResponse;
 import com.zennyt.games.domain.vo.MoveFastRule;
@@ -17,6 +19,7 @@ import com.zennyt.games.domain.vo.PlanifikMetrics;
 import com.zennyt.games.domain.vo.PrevisionPuzzleLevel;
 import com.zennyt.games.domain.vo.PrevisionPuzzleMetrics;
 import com.zennyt.games.domain.vo.SecondaryObjectivesReached;
+import com.zennyt.games.domain.vo.TaskSchedulingMetrics;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -59,7 +62,15 @@ public record SubmitResultRequest(
         Boolean distractionPlayed,
         @Min(0) Integer afterDistractionObserved,
         @Min(0) Integer afterDistractionCorrect,
-        Boolean distractionQuestionCorrect
+        Boolean distractionQuestionCorrect,
+        @Min(1) Integer finalLevel,
+        Boolean sessionCompleted,
+        @Valid List<MemoryTaskPayload> tasks,
+        // « Ordonnancement de tâches » (TASK_SCHEDULING) — mesures brutes.
+        Boolean dependenciesRespected,
+        Boolean timeConstraintsRespected,
+        @Min(0) Integer planningCoherence,
+        @Min(0) Integer adjustmentCount
     ) {}
 
     /** Socle de calibrage appareil (optionnel). Le score n'en dépend pas pour Move Fast. */
@@ -114,6 +125,14 @@ public record SubmitResultRequest(
         @NotNull Boolean completed
     ) {}
 
+    /** Une tâche « J'investigue » mesurée (le timeout est décidé serveur). */
+    public record MemoryTaskPayload(
+        @NotNull MemoryTaskKind kind,
+        @NotNull @Min(0) Integer correct,
+        @NotNull @Min(0) Integer total,
+        @NotNull @Min(0) Integer responseTimeMs
+    ) {}
+
     /** Métriques d'un niveau « Chemin Optimal » (score calculé serveur). */
     public record OptimalPathLevelPayload(
         @Min(0) Integer levelIndex,
@@ -166,9 +185,16 @@ public record SubmitResultRequest(
                 Boolean.TRUE.equals(metrics.distractionPlayed()),
                 orZero(metrics.afterDistractionObserved()),
                 orZero(metrics.afterDistractionCorrect()),
-                Boolean.TRUE.equals(metrics.distractionQuestionCorrect()));
-            case TASK_SCHEDULING -> throw new IllegalArgumentException(
-                "Métriques non encore implémentées pour " + miniGame);
+                Boolean.TRUE.equals(metrics.distractionQuestionCorrect()),
+                metrics.finalLevel() == null ? 1 : metrics.finalLevel(),
+                metrics.sessionCompleted() == null || metrics.sessionCompleted(),
+                metrics.tasks() == null ? List.of()
+                    : metrics.tasks().stream().map(SubmitResultRequest::toMemoryTask).toList());
+            case TASK_SCHEDULING -> new TaskSchedulingMetrics(
+                required(metrics.dependenciesRespected(), "dependenciesRespected"),
+                required(metrics.timeConstraintsRespected(), "timeConstraintsRespected"),
+                required(metrics.planningCoherence(), "planningCoherence"),
+                required(metrics.adjustmentCount(), "adjustmentCount"));
         };
     }
 
@@ -184,6 +210,14 @@ public record SubmitResultRequest(
             required(p.optimalLength(), "optimalLength"),
             required(p.costlyZonesAvoided(), "costlyZonesAvoided"),
             required(p.secondaryObjectivesReached(), "secondaryObjectivesReached"));
+    }
+
+    private static MemoryTaskResult toMemoryTask(MemoryTaskPayload p) {
+        return new MemoryTaskResult(
+            required(p.kind(), "kind"),
+            required(p.correct(), "correct"),
+            required(p.total(), "total"),
+            required(p.responseTimeMs(), "responseTimeMs"));
     }
 
     private static PrevisionPuzzleLevel toPuzzleLevel(PrevisionPuzzleLevelPayload p) {

@@ -300,15 +300,20 @@ components:
     MoveFastSessionEndCondition:
       type: object
       description: >
-        Paramètres EFFECTIFS de fin de session Move Fast tels qu'implémentés par
-        le produit. ⚠️ DIVERGENCE ASSUMÉE : la fiche d'origine spécifie
-        session_end_condition = reach_max_multiplier (aucune limite). Cette
-        divergence est tracée volontairement et doit être validée par le
-        psychologue référent.
+        Condition de fin de session Move Fast (documentation ; pilotée côté serveur
+        par MoveFastConfig.SESSION_END_MODE, non transmise par le client).
+        ⚠️ DIVERGENCE ASSUMÉE : le mode par défaut FIXED_BUDGET (12/18/84 s) diverge
+        de la fiche, qui prescrit REACH_MAX_MULTIPLIER (aucune limite). Basculer =
+        changer une constante (backend + miroir mobile), en attente du psychologue.
       properties:
-        targetCorrectAnswers: { type: integer, example: 12 }
-        maxResponses: { type: integer, example: 18 }
-        sessionSeconds: { type: integer, example: 84 }
+        mode:
+          type: string
+          enum: [FIXED_BUDGET, REACH_MAX_MULTIPLIER]
+          default: FIXED_BUDGET
+          description: "Mode de fin de session. FIXED_BUDGET = comportement produit ; REACH_MAX_MULTIPLIER = fiche."
+        targetCorrectAnswers: { type: integer, example: 12, description: "Mode FIXED_BUDGET uniquement." }
+        maxResponses: { type: integer, example: 18, description: "Mode FIXED_BUDGET uniquement (pas de plafond en REACH_MAX_MULTIPLIER)." }
+        sessionSeconds: { type: integer, example: 84, description: "Mode FIXED_BUDGET uniquement." }
 
     MoveFastIndicators:
       type: object
@@ -376,6 +381,26 @@ components:
         points: { type: integer, nullable: true }
         maxPoints: { type: integer, nullable: true }
 
+    MemoryTaskKind:
+      type: string
+      description: Type de tâche notée « J'investigue ».
+      enum: [SAME_ORDER, REVERSE_ORDER, RESTORE, AFTER_DISTRACTION]
+
+    MemoryTaskResult:
+      type: object
+      description: >
+        Résultat mesuré d'UNE tâche (une instance de niveau). Le serveur note la
+        justesse du rappel (correct/total) et applique le timeout ajusté du
+        calibrage : une tâche dont responseTimeMs dépasse (max_task_time_ms +
+        offset) est un échec par dépassement (note voidée). Le client n'envoie
+        jamais de points.
+      required: [kind, correct, total, responseTimeMs]
+      properties:
+        kind: { $ref: '#/components/schemas/MemoryTaskKind' }
+        correct: { type: integer, minimum: 0, description: "Éléments rappelés correctement" }
+        total: { type: integer, minimum: 0, description: "Éléments à rappeler" }
+        responseTimeMs: { type: integer, minimum: 0, description: "Temps brut de la tâche (timeout appliqué serveur)" }
+
     MemoryQuestMetrics:
       type: object
       description: >
@@ -383,6 +408,9 @@ components:
         chaque tâche 0–5 (rappel même ordre/inverse, restauration d'objets, rappel
         après distraction) puis calcule le composite /100 (indicatif). La Mission B
         est jouée si objectCount > 0 ; la distraction si distractionPlayed.
+        Le score dépend du TEMPS via le timeout par tâche (calibrage appareil) :
+        envoyer `tasks` (par instance) permet l'ajustement. Sans `tasks`, le
+        composite est calculé sur les agrégats plats (compatibilité, sans timeout).
       required: [observedDigits, correctSameDigits, correctReverseDigits, highestSequenceLength]
       properties:
         observedDigits: { type: integer, minimum: 1, description: "Chiffres observés (Mission A)" }
@@ -396,13 +424,19 @@ components:
         afterDistractionObserved: { type: integer, minimum: 0, description: "Chiffres à protéger (distraction)" }
         afterDistractionCorrect: { type: integer, minimum: 0, description: "Chiffres corrects après distraction" }
         distractionQuestionCorrect: { type: boolean, description: "Réponse à la question rapide correcte (indicateur)" }
+        finalLevel: { type: integer, minimum: 1, default: 1, description: "Niveau atteint (1–7)" }
+        sessionCompleted: { type: boolean, default: true, description: "false = abandon avant la condition de fin" }
+        tasks:
+          type: array
+          items: { $ref: '#/components/schemas/MemoryTaskResult' }
+          description: "Tâches par instance (avec timing) — active l'ajustement timeout du calibrage."
 
     MemoryQuestIndicators:
       type: object
       description: >
         Indicateurs « J'investigue » CALCULÉS PAR LE SERVEUR : notes par tâche
-        (0–5) + composite /100 (indicatif, non diagnostique). Tâches optionnelles
-        nulles si non jouées.
+        (0–5) + composite /100 (indicatif, non diagnostique) + niveau atteint et
+        validité de session. Tâches optionnelles nulles si non jouées.
       properties:
         compositeScore: { type: integer, description: "Composite /100" }
         sameOrderScore: { type: integer }
@@ -413,10 +447,39 @@ components:
         distractionQuestionCorrect: { type: boolean }
         missionBPlayed: { type: boolean }
         distractionPlayed: { type: boolean }
+        finalLevel: { type: integer, description: "Niveau atteint (1–7)" }
+        sessionValid: { type: boolean, description: "false si appareil peu fiable / abandon / trop de timeouts" }
+        timeoutTaskCount: { type: integer, description: "Tâches en échec par dépassement de temps (timeout ajusté)" }
+
+    TaskSchedulingMetrics:
+      type: object
+      description: >
+        Métriques objectives du mini-jeu « Ordonnancement de tâches » (Planifik #2).
+        Le serveur applique le barème /10 : dépendances (tout-ou-rien) + contraintes
+        horaires (tout-ou-rien) + cohérence (0–2) + réajustements (score dérivé du
+        nombre brut). Le client n'envoie jamais de points.
+      required: [dependenciesRespected, timeConstraintsRespected, planningCoherence, adjustmentCount]
+      properties:
+        dependenciesRespected:
+          type: boolean
+          description: "Toutes les dépendances entre tâches respectées (tout-ou-rien → 3 pts / 0)."
+        timeConstraintsRespected:
+          type: boolean
+          description: "Toutes les contraintes horaires respectées (tout-ou-rien → 3 pts / 0)."
+        planningCoherence:
+          type: integer
+          minimum: 0
+          maximum: 2
+          description: "0 désordonné · 1 partiellement logique · 2 clair et structuré (0–2 pts)."
+        adjustmentCount:
+          type: integer
+          minimum: 0
+          description: "Nombre BRUT de réajustements ; score dérivé serveur (<2→2 · 2-4→1 · >4→0)."
 
     GameMetrics:
       oneOf:
         - $ref: '#/components/schemas/OptimalPathMetrics'
+        - $ref: '#/components/schemas/TaskSchedulingMetrics'
         - $ref: '#/components/schemas/MoveFastMetrics'
         - $ref: '#/components/schemas/PrevisionPuzzleMetrics'
         - $ref: '#/components/schemas/MemoryQuestMetrics'

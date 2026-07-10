@@ -60,19 +60,84 @@ public final class MoveFastConfig {
     // ── Condition de fin de session (fiche « Configuration ») ────────────────
 
     /**
-     * Paramètres effectifs de fin de session tels qu'implémentés par le produit.
+     * Mode de fin de session Move Fast.
      *
-     * <p>⚠️ <b>DIVERGENCE ASSUMÉE</b> : la fiche d'origine définit
-     * {@code session_end_condition = reach_max_multiplier} (aucune limite de temps
-     * ni d'essais). Le produit termine en réalité sur 12 bonnes réponses / 18 essais
-     * / 84 s. Cette divergence est <b>tracée volontairement</b> et doit être validée
-     * par le psychologue référent — ne pas la supprimer sans arbitrage.
+     * <p>Le basculement d'un mode à l'autre est un <b>simple changement de la
+     * constante {@link #SESSION_END_MODE}</b> — aucun refactor requis. En attente
+     * d'arbitrage du psychologue référent.
+     */
+    public enum SessionEndMode {
+        /**
+         * Comportement ACTUEL du produit : budget fixe (12 bonnes réponses / 18 essais
+         * / 84 s). ⚠️ <b>DIVERGE de la fiche</b> mais reste le mode par défaut.
+         */
+        FIXED_BUDGET,
+        /**
+         * Règle de la FICHE « JE BOUGE » : {@code session_end_condition =
+         * reach_max_multiplier} — jouer jusqu'au multiplicateur max (×10), sans
+         * limite de temps ni d'essais.
+         */
+        REACH_MAX_MULTIPLIER
+    }
+
+    /**
+     * Mode de fin de session par défaut.
+     *
+     * <p>⚠️ <b>DIVERGENCE ASSUMÉE</b> : {@link SessionEndMode#FIXED_BUDGET} est le
+     * comportement du produit et <b>diverge de la fiche</b> (qui prescrit
+     * {@code reach_max_multiplier}). Le passage à {@link SessionEndMode#REACH_MAX_MULTIPLIER}
+     * se fait en changeant <b>uniquement cette constante</b> (+ son miroir mobile
+     * {@code MoveFastConfig.sessionEndMode} pour l'alignement backend ⇄ mock).
+     * Divergence tracée volontairement — ne pas la trancher sans le psychologue référent.
+     */
+    public static final SessionEndMode SESSION_END_MODE = SessionEndMode.FIXED_BUDGET;
+
+    /**
+     * Paramètres effectifs de fin de session en mode {@link SessionEndMode#FIXED_BUDGET}.
+     * Sans objet en mode {@code REACH_MAX_MULTIPLIER} (aucune limite).
      */
     public record SessionEndCondition(int targetCorrectAnswers, int maxResponses, int sessionSeconds) {
     }
 
     public static final SessionEndCondition SESSION_END_CONDITION =
         new SessionEndCondition(12, 18, 84);
+
+    /**
+     * true si le mode courant borne le nombre d'essais et la durée (budget fixe).
+     * L'anti-triche léger ({@code MoveFastMetrics}) n'applique ses plafonds
+     * {@code maxResponses}/{@code sessionSeconds} que dans ce cas — en mode
+     * {@code REACH_MAX_MULTIPLIER}, il n'y a pas de plafond d'essais.
+     */
+    public static boolean enforcesFixedBudget() {
+        return SESSION_END_MODE == SessionEndMode.FIXED_BUDGET;
+    }
+
+    /**
+     * Contrôle de plausibilité anti-triche pour un {@code mode} donné.
+     *
+     * <p>En {@link SessionEndMode#FIXED_BUDGET}, rejette un nombre d'essais notés
+     * &gt; {@code maxResponses} ou une somme de temps &gt; {@code sessionSeconds}.
+     * En {@link SessionEndMode#REACH_MAX_MULTIPLIER}, <b>aucun plafond</b> (la
+     * fiche ne borne ni le temps ni les essais). Paramétré par le mode pour être
+     * testable dans les deux configurations.
+     *
+     * @return message d'erreur si le lot est implausible, sinon {@code null}.
+     */
+    public static String plausibilityViolation(SessionEndMode mode,
+                                               long scoredCount, long totalReactionMs) {
+        if (mode != SessionEndMode.FIXED_BUDGET) {
+            return null; // pas de plafond en mode REACH_MAX_MULTIPLIER
+        }
+        if (scoredCount > SESSION_END_CONDITION.maxResponses()) {
+            return "Trop de réponses notées : " + scoredCount
+                + " > maxResponses=" + SESSION_END_CONDITION.maxResponses();
+        }
+        if (totalReactionMs > (long) SESSION_END_CONDITION.sessionSeconds() * 1000L) {
+            return "Somme des temps de réaction implausible : " + totalReactionMs
+                + " ms > durée de session " + SESSION_END_CONDITION.sessionSeconds() + " s";
+        }
+        return null;
+    }
 
     // ── Interprétation du score (bandes provisoires) ─────────────────────────
 

@@ -8,12 +8,15 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../domain/config/memory_quest_config.dart';
+import '../../domain/entities/device_calibration.dart';
 import '../../domain/entities/game_session.dart';
 import '../../domain/entities/game_type.dart';
 import '../../domain/entities/memory_object.dart';
 import '../../domain/entities/memory_quest_metrics.dart';
 import '../../domain/entities/mini_game.dart';
 import '../../domain/entities/score_breakdown.dart';
+import '../device_calibration_probe.dart';
 import '../games_providers.dart';
 import '../widgets/game_system_components.dart';
 import '../widgets/score_detail_panel.dart';
@@ -78,18 +81,24 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
   static const int _isiMs = 250; // blanc inter-stimulus (input verrouillé)
   static const int _feedbackMs = 250;
 
-  // ── Progression Digit Span ───────────────────────────────────────────────
-  static const int _startLength = 4;
-  static const int _maxLength = 9;
-
+  // ── Système de niveaux (fiche Tableau 1, via MemoryQuestConfig) ───────────
   late final math.Random _random =
       widget.seed == null ? math.Random() : math.Random(widget.seed!);
 
   _Stage _stage = _Stage.intro;
   bool _paused = false;
 
+  // Niveau courant (1-based) + compteur de tâches réussies au niveau.
+  int _level = 1;
+  int _correctTasksAtLevel = 0;
+  // Tâches par instance (avec timing) — active l'ajustement timeout du calibrage.
+  final List<MemoryTaskResult> _tasks = [];
+  final Stopwatch _taskWatch = Stopwatch(); // temps de la tâche de rappel courante
+  final Stopwatch _sessionWatch = Stopwatch(); // durée de session (max_session_duration_min)
+  final DeviceCalibrationProbe _calibrationProbe = DeviceCalibrationProbe();
+
   // Round courant.
-  int _length = _startLength;
+  int _length = MemoryQuestConfig.initialSequenceLength;
   List<int> _sequence = const [];
   int _revealIndex = 0;
   bool _showingDigit = false;
@@ -105,8 +114,7 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
   int _correctReverseDigits = 0;
   int _highestLength = 0;
 
-  // ── Mission B — manipulation d'objets (niveau 1) ─────────────────────────
-  static const int _bObjectCount = 4; // 4 objets au niveau 1
+  // ── Mission B — manipulation d'objets (nb d'objets selon le niveau) ──────
   static const int _bManipulations = 2; // 2 manipulations automatiques
   static const int _observeObjectsMs = 5000; // « 5 sec »
   static const int _manipStepMs = 750;
@@ -163,7 +171,9 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
 
   void _startMission() {
     setState(() {
-      _length = _startLength;
+      _level = 1;
+      _correctTasksAtLevel = 0;
+      _length = MemoryQuestConfig.sequenceLengthForLevel(_level);
       _observedDigits = 0;
       _correctSameDigits = 0;
       _correctReverseDigits = 0;
@@ -177,14 +187,20 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
       _distractQuestionCorrect = false;
       _serverSession = null;
       _submitting = false;
+      _tasks.clear();
     });
     _distractTimer?.cancel();
+    _calibrationProbe.reset();
+    _sessionWatch
+      ..reset()
+      ..start();
     // Démarre la session côté repo (mock hors-ligne / backend online).
     _sessionStart = ref.read(gamesRepositoryProvider).startSession(GameType.memoryQuest);
     _beginRound();
   }
 
   void _beginRound() {
+    _length = MemoryQuestConfig.sequenceLengthForLevel(_level);
     _sequence = List<int>.generate(_length, (_) => _random.nextInt(10));
     _entry.clear();
     setState(() {
@@ -194,6 +210,29 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
     });
     _runObservation();
   }
+
+  /// Enregistre une tâche de rappel notée (avec son timing) et compte les
+  /// réussites au niveau ; monte d'un niveau après [correctTasksForLevelUp].
+  void _recordTask(MemoryTaskKind kind, int correct, int total) {
+    final ms = _taskWatch.isRunning ? _taskWatch.elapsedMilliseconds : 0;
+    _taskWatch.stop();
+    _calibrationProbe.sampleInputLatency();
+    _tasks.add(MemoryTaskResult(
+      kind: kind,
+      correct: correct,
+      total: total,
+      responseTimeMs: ms,
+    ));
+    if (total > 0 && correct == total) {
+      _correctTasksAtLevel++;
+    }
+  }
+
+  bool get _shouldLevelUp =>
+      _correctTasksAtLevel >= MemoryQuestConfig.correctTasksForLevelUp;
+
+  bool get _sessionTimeExhausted =>
+      _sessionWatch.elapsed.inMinutes >= MemoryQuestConfig.maxSessionDurationMin;
 
   Future<void> _runObservation() async {
     final token = ++_seqToken;
@@ -216,6 +255,9 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
       _entry.clear();
       _stage = _Stage.recallSameOrder;
     });
+    _taskWatch
+      ..reset()
+      ..start(); // chronomètre la tâche de rappel (timeout appliqué serveur)
   }
 
   void _onKey(int digit) {
@@ -232,48 +274,67 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
     if (_inputLocked || _entry.length != _recallLength) return;
 
     if (_stage == _Stage.recallAfterDistraction) {
+      final correct = _matchingDigits(_entry, _distractSeq);
       _afterDistractObserved += _distractSeq.length;
-      _afterDistractCorrect += _matchingDigits(_entry, _distractSeq);
+      _afterDistractCorrect += correct;
       _distractionDone = true;
-      _finishAndSubmit(); // fin de mission → soumission au repo
+      _recordTask(MemoryTaskKind.afterDistraction, correct, _distractSeq.length);
+      _endLevel(); // fin des phases du niveau
       return;
     }
 
     if (_stage == _Stage.recallSameOrder) {
-      _correctSameDigits += _matchingDigits(_entry, _sequence);
+      final correct = _matchingDigits(_entry, _sequence);
+      _correctSameDigits += correct;
+      _recordTask(MemoryTaskKind.sameOrder, correct, _sequence.length);
       setState(() {
         _stage = _Stage.recallReverseOrder;
         _entry.clear();
       });
+      _taskWatch
+        ..reset()
+        ..start();
       return;
     }
 
-    // recallReverseOrder → fin du round.
+    // recallReverseOrder → fin de la Mission A du niveau.
     final reversed = _sequence.reversed.toList();
-    _correctReverseDigits += _matchingDigits(_entry, reversed);
-    final roundPerfect =
-        _entry.length == reversed.length && _listEquals(_entry, reversed);
-    // Un round « réussi » = rappel inverse parfait (la charge la plus élevée).
+    final correctRev = _matchingDigits(_entry, reversed);
+    _correctReverseDigits += correctRev;
+    final roundPerfect = correctRev == reversed.length;
     if (roundPerfect) _highestLength = math.max(_highestLength, _length);
     _lastCorrect = roundPerfect;
+    _recordTask(MemoryTaskKind.reverseOrder, correctRev, reversed.length);
 
     setState(() => _stage = _Stage.feedback);
     Future<void>.delayed(const Duration(milliseconds: _feedbackMs + 550), () {
       if (!mounted) return;
-      if (roundPerfect && _length < _maxLength) {
-        _length++;
-        _beginRound();
-      } else {
-        _beginMissionB(); // Mission A terminée → manipulation d'objets
-      }
+      _beginMissionB(); // Mission A terminée → manipulation d'objets
     });
+  }
+
+  /// Décide, en fin de phases d'un niveau, de monter d'un niveau ou de terminer.
+  void _endLevel() {
+    final canContinue = _shouldLevelUp &&
+        _level < MemoryQuestConfig.totalLevels &&
+        !_sessionTimeExhausted;
+    if (canContinue) {
+      setState(() {
+        _level++;
+        _correctTasksAtLevel = 0;
+      });
+      _beginRound(); // nouveau niveau : Mission A à la longueur suivante
+    } else {
+      _finishAndSubmit();
+    }
   }
 
   // ── Mission B — manipulation d'objets ────────────────────────────────────
 
   void _beginMissionB() {
+    final count = MemoryQuestConfig.objectCountForLevel(_level);
     final pool = List<MemoryObject>.of(kMemoryObjectLibrary)..shuffle(_random);
-    _objects = pool.take(_bObjectCount).toList(); // ordre INITIAL à mémoriser
+    _objects = pool.take(count).toList(); // ordre INITIAL à mémoriser (nb selon niveau)
     _shownOrder = List<MemoryObject>.of(_objects);
     _highlightA = -1;
     _highlightB = -1;
@@ -320,6 +381,9 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
       _pool = List<MemoryObject>.of(_objects)..shuffle(_random);
       _stage = _Stage.restoreOrder;
     });
+    _taskWatch
+      ..reset()
+      ..start(); // chronomètre la tâche de restauration
   }
 
   void _placeFromPool(MemoryObject obj) {
@@ -342,12 +406,19 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
 
   void _validateRestore() {
     if (_inputLocked || _slots.contains(null)) return;
-    _restoreCorrect = 0;
+    var correct = 0;
     for (var i = 0; i < _objects.length; i++) {
-      if (_slots[i]?.id == _objects[i].id) _restoreCorrect++;
+      if (_slots[i]?.id == _objects[i].id) correct++;
     }
+    _restoreCorrect += correct;
     _missionBDone = true;
-    _beginDistraction(); // Mission B terminée → phase de distraction
+    _recordTask(MemoryTaskKind.restore, correct, _objects.length);
+    // Distraction GATÉE : jouée seulement à partir du niveau 3.
+    if (MemoryQuestConfig.distractionActiveAtLevel(_level)) {
+      _beginDistraction();
+    } else {
+      _endLevel();
+    }
   }
 
   // ── Phase de distraction ─────────────────────────────────────────────────
@@ -425,6 +496,9 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
     _distractTimer?.cancel();
     _entry.clear();
     setState(() => _stage = _Stage.recallAfterDistraction);
+    _taskWatch
+      ..reset()
+      ..start();
   }
 
   // ── Fin de mission : soumission au repository (score serveur/mock) ────────
@@ -442,10 +516,14 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
       afterDistractionObserved: _afterDistractObserved,
       afterDistractionCorrect: _afterDistractCorrect,
       distractionQuestionCorrect: _distractQuestionCorrect,
+      finalLevel: _level,
+      sessionCompleted: true, // soumission = fin naturelle (abandon = pas de soumission)
+      tasks: List<MemoryTaskResult>.unmodifiable(_tasks),
     );
   }
 
   Future<void> _finishAndSubmit() async {
+    _sessionWatch.stop();
     setState(() {
       _stage = _Stage.results;
       _submitting = true;
@@ -453,10 +531,13 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
     try {
       final session = await (_sessionStart ??=
           ref.read(gamesRepositoryProvider).startSession(GameType.memoryQuest));
+      // Calibrage appareil : le SCORE dépend enfin du temps (timeout par tâche).
+      final calibration = _calibrationProbe.build(inputMode: InputMode.touch);
       final updated = await ref.read(gamesRepositoryProvider).submitResult(
             sessionId: session.id,
             miniGame: MiniGame.memoryQuestCore,
             metrics: _buildMetrics(),
+            deviceCalibration: calibration,
           );
       if (!mounted) return;
       setState(() => _serverSession = updated);
@@ -479,14 +560,6 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
       if (a[i] == b[i]) n++;
     }
     return n;
-  }
-
-  bool _listEquals(List<int> a, List<int> b) {
-    if (a.length != b.length) return false;
-    for (var i = 0; i < a.length; i++) {
-      if (a[i] != b[i]) return false;
-    }
-    return true;
   }
 
   // ── Scoring mock (0–5 par tâche → composite /100) ────────────────────────
@@ -649,11 +722,7 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
         : _isDistraction
             ? '${_distractSeq.length} digits'
             : '$_length digits';
-    final rightChip = _isMissionB
-        ? 'Mission B'
-        : _isDistraction
-            ? 'Focus'
-            : 'Span $_highestLength';
+    final rightChip = 'Level $_level';
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 20),
       child: Column(

@@ -4,6 +4,7 @@ import com.zennyt.games.domain.config.MemoryQuestConfig;
 import com.zennyt.games.domain.config.MoveFastConfig;
 import com.zennyt.games.domain.config.OptimalPathConfig;
 import com.zennyt.games.domain.config.PrevisionPuzzleConfig;
+import com.zennyt.games.domain.config.TaskSchedulingConfig;
 import com.zennyt.games.domain.vo.GameMetrics;
 import com.zennyt.games.domain.vo.MemoryQuestMetrics;
 import com.zennyt.games.domain.vo.MoveFastMetrics;
@@ -12,6 +13,7 @@ import com.zennyt.games.domain.vo.PlanifikMetrics;
 import com.zennyt.games.domain.vo.PrevisionPuzzleLevel;
 import com.zennyt.games.domain.vo.PrevisionPuzzleMetrics;
 import com.zennyt.games.domain.vo.Score;
+import com.zennyt.games.domain.vo.TaskSchedulingMetrics;
 import com.zennyt.games.domain.vo.ScoreBreakdown;
 import com.zennyt.games.domain.vo.ScoreBreakdown.Line;
 
@@ -36,6 +38,9 @@ public class ScoreBreakdownService {
         }
         if (metrics instanceof PlanifikMetrics m) {
             return optimalPath(m, score);
+        }
+        if (metrics instanceof TaskSchedulingMetrics m) {
+            return taskScheduling(m, score);
         }
         if (metrics instanceof PrevisionPuzzleMetrics m) {
             return previsionPuzzle(m, score);
@@ -83,6 +88,37 @@ public class ScoreBreakdownService {
             + MoveFastConfig.FINAL_BONUS_MULTIPLIER + " = " + replay.finalBonus()));
         lines.add(Line.total("Total", score.rawPoints(), score.maxPoints()));
         return new ScoreBreakdown(lines);
+    }
+
+    /** Ordonnancement de tâches — 4 critères (3 + 3 + 2 + 2) → /10. */
+    public ScoreBreakdown taskScheduling(TaskSchedulingMetrics m, Score score) {
+        int coherencePts = Math.max(0, Math.min(
+            TaskSchedulingConfig.PLANNING_COHERENCE_MAX_POINTS, m.planningCoherence()));
+        int adjustmentPts = TaskSchedulingConfig.adjustmentScore(m.adjustmentCount());
+        List<Line> lines = new ArrayList<>();
+        lines.add(Line.criterion("Dépendances respectées",
+            m.dependenciesRespected() ? "oui" : "non",
+            m.dependenciesRespected() ? TaskSchedulingConfig.DEPENDENCIES_POINTS : 0,
+            TaskSchedulingConfig.DEPENDENCIES_POINTS));
+        lines.add(Line.criterion("Contraintes horaires",
+            m.timeConstraintsRespected() ? "oui" : "non",
+            m.timeConstraintsRespected() ? TaskSchedulingConfig.TIME_CONSTRAINTS_POINTS : 0,
+            TaskSchedulingConfig.TIME_CONSTRAINTS_POINTS));
+        lines.add(Line.criterion("Cohérence du planning",
+            coherenceLabel(m.planningCoherence()), coherencePts,
+            TaskSchedulingConfig.PLANNING_COHERENCE_MAX_POINTS));
+        lines.add(Line.criterion("Réajustements", String.valueOf(m.adjustmentCount()),
+            adjustmentPts, TaskSchedulingConfig.ADJUSTMENT_MAX_POINTS));
+        lines.add(Line.total("Total", score.rawPoints(), score.maxPoints()));
+        return new ScoreBreakdown(lines);
+    }
+
+    private static String coherenceLabel(int coherence) {
+        return switch (coherence) {
+            case 2 -> "clair";
+            case 1 -> "partiel";
+            default -> "désordonné";
+        };
     }
 
     /** Optimal Path — barème par niveau puis moyenne. */

@@ -1,5 +1,6 @@
 package com.zennyt.games.domain;
 
+import com.zennyt.games.domain.config.MoveFastConfig;
 import com.zennyt.games.domain.event.GameResultRecordedEvent;
 import com.zennyt.games.domain.model.GameSession;
 import com.zennyt.games.domain.model.MiniGame;
@@ -13,6 +14,7 @@ import com.zennyt.games.domain.vo.OptimalPathLevel;
 import com.zennyt.games.domain.vo.PlanifikMetrics;
 import com.zennyt.games.domain.vo.Score;
 import com.zennyt.games.domain.vo.SecondaryObjectivesReached;
+import com.zennyt.games.domain.vo.SessionStatus;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -113,6 +115,27 @@ class GameSessionTest {
     }
 
     @Test
+    void moveFast_score_is_independent_of_session_end_mode() {
+        // Le barème (rejeu) ne consulte JAMAIS SessionEndMode : pour une même
+        // séquence de réponses, le score est identique quel que soit le mode de
+        // fin. Le mode ne change que la DURÉE de jeu / l'anti-triche, pas le score.
+        List<Boolean> outcomes = List.of(true, true, true, true, false, true);
+
+        Score score = scoring.scoreMoveFast(moveFast(outcomes));
+
+        // Référence = rejeu pur du barème (aucune notion de mode).
+        assertEquals(MoveFastConfig.replay(outcomes).total(), score.rawPoints());
+        assertEquals(
+            MoveFastConfig.replay(List.of(true, true, true, true, true, true)).total(),
+            score.maxPoints());
+        // Le mode n'intervient QUE dans la plausibilité (anti-triche), pas le score.
+        assertNull(MoveFastConfig.plausibilityViolation(
+            MoveFastConfig.SessionEndMode.FIXED_BUDGET, outcomes.size(), 3000));
+        assertNull(MoveFastConfig.plausibilityViolation(
+            MoveFastConfig.SessionEndMode.REACH_MAX_MULTIPLIER, 10_000, 10_000_000L));
+    }
+
+    @Test
     void moveFast_excludes_practice_trials_from_scoring() {
         // 3 essais d'échauffement corrects + 4 essais notés corrects.
         // Le score ne doit compter QUE les 4 essais notés (= 700), pas les 7.
@@ -155,31 +178,27 @@ class GameSessionTest {
     }
 
     @Test
-    void planifik_session_completes_and_emits_event_after_the_playable_minigames() {
-        // Transitoire : TASK_SCHEDULING n'a pas de barème, la complétion se calcule
-        // donc sur OPTIMAL_PATH + PREVISION_PUZZLE uniquement (voir MiniGame.isPlayable()).
+    void planifik_session_completes_on_three_minigames_with_composite_over_30() {
+        // Les 3 mini-jeux Planifik sont jouables → la session se complète sur
+        // OPTIMAL_PATH + TASK_SCHEDULING + PREVISION_PUZZLE et le profil est /30.
         GameSession session = GameSession.start(UUID.randomUUID(), GameType.PLANIFIK);
         Score full = new Score(10, 10, "Bon à excellent");
 
         session.recordResult(MiniGame.OPTIMAL_PATH, full, scoring);
-        assertTrue(session.domainEvents().isEmpty(), "pas encore terminée");
+        assertTrue(session.domainEvents().isEmpty(), "pas encore terminée (1/3)");
+        session.recordResult(MiniGame.TASK_SCHEDULING, full, scoring);
+        assertTrue(session.domainEvents().isEmpty(), "pas encore terminée (2/3)");
 
         session.recordResult(MiniGame.PREVISION_PUZZLE, full, scoring);
 
-        assertEquals(20, session.compositeRaw());
-        assertEquals(20, session.compositeMax());
+        assertEquals(SessionStatus.COMPLETED, session.status());
+        assertEquals(30, session.compositeRaw());
+        assertEquals(30, session.compositeMax());
         assertEquals(1, session.domainEvents().size());
-        assertInstanceOf(GameResultRecordedEvent.class, session.domainEvents().get(0));
-    }
-
-    @Test
-    void recording_a_non_playable_minigame_is_rejected() {
-        // TASK_SCHEDULING appartient à PLANIFIK mais n'est pas encore jouable.
-        GameSession session = GameSession.start(UUID.randomUUID(), GameType.PLANIFIK);
-        Score full = new Score(10, 10, "Bon à excellent");
-
-        assertThrows(IllegalArgumentException.class,
-            () -> session.recordResult(MiniGame.TASK_SCHEDULING, full, scoring));
+        GameResultRecordedEvent event =
+            assertInstanceOf(GameResultRecordedEvent.class, session.domainEvents().get(0));
+        assertEquals(30, event.compositeRaw());
+        assertEquals(30, event.compositeMax());
     }
 
     /** Métriques Move Fast sans échauffement, règle Orientation, temps neutres. */

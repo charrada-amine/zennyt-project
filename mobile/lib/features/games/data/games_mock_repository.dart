@@ -1,3 +1,5 @@
+import '../domain/config/memory_quest_config.dart';
+import '../domain/config/move_fast_config.dart';
 import '../domain/entities/device_calibration.dart';
 import '../domain/entities/game_score.dart';
 import '../domain/entities/game_session.dart';
@@ -9,6 +11,7 @@ import '../domain/entities/move_fast_metrics.dart';
 import '../domain/entities/planifik_metrics.dart';
 import '../domain/entities/prevision_puzzle_metrics.dart';
 import '../domain/entities/score_breakdown.dart';
+import '../domain/entities/task_scheduling_metrics.dart';
 import '../domain/repositories/games_repository.dart';
 
 /// [GamesRepository] MOCK — permet de jouer en totale autonomie, sans backend.
@@ -75,9 +78,10 @@ class GamesMockRepository implements GamesRepository {
       MiniGame.moveFastCore => _scoreMoveFast(metrics as MoveFastMetrics),
       MiniGame.memoryQuestCore => _scoreMemoryQuest(
         metrics as MemoryQuestMetrics,
+        deviceCalibration?.calibrationOffsetMs ?? 0.0,
       ),
-      MiniGame.taskScheduling => throw StateError(
-        'Barème mock non implémenté pour ${miniGame.wire}',
+      MiniGame.taskScheduling => _scoreTaskScheduling(
+        metrics as TaskSchedulingMetrics,
       ),
     };
     final attempts = [
@@ -154,14 +158,24 @@ class GamesMockRepository implements GamesRepository {
 
   // ── « J'investigue » (MEMORY_QUEST) — miroir de MemoryQuestScoringService ──
 
-  GameScore _scoreMemoryQuest(MemoryQuestMetrics m) {
-    final tasks = <int>[
-      _taskScore(m.sameAccuracy),
-      _taskScore(m.reverseAccuracy),
-    ];
-    if (m.missionBPlayed) tasks.add(_taskScore(m.restoreAccuracy));
-    if (m.distractionPlayed) tasks.add(_taskScore(m.afterDistractionAccuracy));
-    final avg = tasks.reduce((a, b) => a + b) / tasks.length;
+  GameScore _scoreMemoryQuest(MemoryQuestMetrics m, double calibrationOffsetMs) {
+    final tasks = <int>[];
+    if (m.tasks.isNotEmpty) {
+      // Avec timings : une tâche dépassant le timeout ajusté du calibrage est
+      // voidée (note 0) ; le calibrage remonte le seuil (miroir backend).
+      for (final t in m.tasks) {
+        final timedOut =
+            MemoryQuestConfig.isTaskTimedOut(t.responseTimeMs, calibrationOffsetMs);
+        tasks.add(timedOut ? 0 : _taskScore(t.accuracy));
+      }
+    } else {
+      tasks
+        ..add(_taskScore(m.sameAccuracy))
+        ..add(_taskScore(m.reverseAccuracy));
+      if (m.missionBPlayed) tasks.add(_taskScore(m.restoreAccuracy));
+      if (m.distractionPlayed) tasks.add(_taskScore(m.afterDistractionAccuracy));
+    }
+    final avg = tasks.isEmpty ? 0.0 : tasks.reduce((a, b) => a + b) / tasks.length;
     final composite = (avg / 5 * 100).round();
     return GameScore(
       rawPoints: composite,
@@ -182,27 +196,42 @@ class GamesMockRepository implements GamesRepository {
     return 'Excellent';
   }
 
+  /// Barème « Ordonnancement de tâches » — miroir EXACT du backend
+  /// (PlanifikScoringService.scoreTaskScheduling / TaskSchedulingConfig).
+  /// Dépendances 3/0 + contraintes 3/0 + cohérence 0–2 + réajustements (dérivé).
+  GameScore _scoreTaskScheduling(TaskSchedulingMetrics m) {
+    var points = 0;
+    if (m.dependenciesRespected) points += 3;
+    if (m.timeConstraintsRespected) points += 3;
+    points += m.planningCoherence.clamp(0, 2);
+    points += _adjustmentScore(m.adjustmentCount);
+    return GameScore(
+      rawPoints: points,
+      maxPoints: 10,
+      normalized: points * 10.0,
+      level: _interpretMiniGame(points),
+    );
+  }
+
+  /// <2 réajustements → 2 pts · 2 à 4 → 1 pt · >4 → 0 pt (⚠️ 2 est inclus dans 2-4).
+  int _adjustmentScore(int count) {
+    if (count < 2) return 2;
+    if (count <= 4) return 1;
+    return 0;
+  }
+
   GameScore _scoreMoveFast(MoveFastMetrics m) {
     final points = _replayMoveFastScore(m.correctResponses);
     final maxPoints = _replayMoveFastScore(
       List<bool>.filled(m.correctResponses.length, true),
     );
     final normalized = points * 100.0 / maxPoints;
-    final level = normalized < 40
-        ? 'Très faible'
-        : normalized < 60
-        ? 'Moyen faible'
-        : normalized < 75
-        ? 'Moyen'
-        : normalized < 90
-        ? 'Bon'
-        : 'Excellent';
-
+    // Bandes centralisées dans MoveFastConfig (source unique côté mobile).
     return GameScore(
       rawPoints: points,
       maxPoints: maxPoints,
       normalized: normalized,
-      level: level,
+      level: MoveFastConfig.interpretMoveFast(normalized),
     );
   }
 
@@ -293,11 +322,12 @@ class GamesMockRepository implements GamesRepository {
     return switch (miniGame) {
       MiniGame.moveFastCore => _breakdownMoveFast(metrics as MoveFastMetrics, score),
       MiniGame.optimalPath => _breakdownOptimalPath(metrics as PlanifikMetrics, score),
+      MiniGame.taskScheduling =>
+        _breakdownTaskScheduling(metrics as TaskSchedulingMetrics, score),
       MiniGame.previsionPuzzle =>
         _breakdownPrevision(metrics as PrevisionPuzzleMetrics, score),
       MiniGame.memoryQuestCore =>
         _breakdownMemoryQuest(metrics as MemoryQuestMetrics, score),
-      MiniGame.taskScheduling => const [],
     };
   }
 
@@ -474,6 +504,33 @@ class GamesMockRepository implements GamesRepository {
     return lines;
   }
 
+  List<ScoreBreakdownLine> _breakdownTaskScheduling(
+    TaskSchedulingMetrics m,
+    GameScore score,
+  ) {
+    final coherenceLabel = switch (m.planningCoherence) {
+      2 => 'clair',
+      1 => 'partiel',
+      _ => 'désordonné',
+    };
+    return [
+      _crit('Dépendances respectées', m.dependenciesRespected ? 'oui' : 'non',
+          m.dependenciesRespected ? 3 : 0, 3),
+      _crit('Contraintes horaires', m.timeConstraintsRespected ? 'oui' : 'non',
+          m.timeConstraintsRespected ? 3 : 0, 3),
+      _crit('Cohérence du planning', coherenceLabel,
+          m.planningCoherence.clamp(0, 2), 2),
+      _crit('Réajustements', '${m.adjustmentCount}',
+          _adjustmentScore(m.adjustmentCount), 2),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.total,
+        label: 'Total',
+        points: score.rawPoints,
+        maxPoints: score.maxPoints,
+      ),
+    ];
+  }
+
   ScoreBreakdownLine _crit(String label, String detail, int points, int max) =>
       ScoreBreakdownLine(
         kind: ScoreBreakdownKind.criterion,
@@ -499,10 +556,9 @@ class GamesMockRepository implements GamesRepository {
 
   int _expectedMiniGames(GameType gameType) {
     return switch (gameType) {
-      // Transitoire : TASK_SCHEDULING n'est pas jouable (barème non implémenté),
-      // il est exclu de la complétion — miroir du backend (MiniGame.isPlayable()).
-      // Planifik se complète donc sur OPTIMAL_PATH + PREVISION_PUZZLE.
-      GameType.planifik => 2,
+      // Planifik = 3 mini-jeux jouables (OPTIMAL_PATH + TASK_SCHEDULING +
+      // PREVISION_PUZZLE) — miroir du backend (MiniGame.isPlayable()). Profil /30.
+      GameType.planifik => 3,
       GameType.moveFast => 1,
       GameType.memoryQuest => 1, // « J'investigue » = un composite (A+B+distraction)
       GameType.decision => 0,

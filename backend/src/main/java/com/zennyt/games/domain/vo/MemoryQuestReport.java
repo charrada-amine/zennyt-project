@@ -16,6 +16,9 @@ public record MemoryQuestReport(
     int highestSequenceLength,
     boolean distractionQuestionCorrect,
     boolean missionBPlayed,
-    boolean distractionPlayed
+    boolean distractionPlayed,
+    int finalLevel,
+    boolean sessionValid,
+    int timeoutTaskCount
 ) {
 }

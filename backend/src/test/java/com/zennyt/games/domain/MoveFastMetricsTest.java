@@ -11,7 +11,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests du domaine « Je bouge / Move Fast » : validation des métriques,
@@ -108,15 +111,50 @@ class MoveFastMetricsTest {
         assertEquals(50.0, report.slowResponsesPercent(), 0.001);
     }
 
+    // ── Mode de fin de session (configurable, défaut FIXED_BUDGET) ───────────
+
+    @Test
+    void default_session_end_mode_is_fixed_budget() {
+        // ⚠️ Défaut = FIXED_BUDGET (diverge de la fiche) — comportement inchangé.
+        assertEquals(MoveFastConfig.SessionEndMode.FIXED_BUDGET,
+            MoveFastConfig.SESSION_END_MODE);
+        assertTrue(MoveFastConfig.enforcesFixedBudget());
+    }
+
+    @Test
+    void plausibility_fixed_budget_caps_responses_and_duration() {
+        int max = MoveFastConfig.SESSION_END_CONDITION.maxResponses();
+        long sessionMs = MoveFastConfig.SESSION_END_CONDITION.sessionSeconds() * 1000L;
+
+        // Dans le budget → aucune violation.
+        assertNull(MoveFastConfig.plausibilityViolation(
+            MoveFastConfig.SessionEndMode.FIXED_BUDGET, max, sessionMs));
+        // Trop d'essais → violation.
+        assertNotNull(MoveFastConfig.plausibilityViolation(
+            MoveFastConfig.SessionEndMode.FIXED_BUDGET, max + 1, 0));
+        // Durée dépassée → violation.
+        assertNotNull(MoveFastConfig.plausibilityViolation(
+            MoveFastConfig.SessionEndMode.FIXED_BUDGET, 1, sessionMs + 1));
+    }
+
+    @Test
+    void plausibility_reach_max_multiplier_has_no_caps() {
+        // Mode fiche : ni plafond d'essais ni de durée, même valeurs extrêmes.
+        assertNull(MoveFastConfig.plausibilityViolation(
+            MoveFastConfig.SessionEndMode.REACH_MAX_MULTIPLIER, 10_000, 10_000_000L));
+    }
+
     // ── Bandes d'interprétation provisoires ──────────────────────────────────
 
     @Test
     void interpretation_bands_match_provisional_thresholds() {
         assertEquals("Très faible", MoveFastConfig.interpret(0));
+        assertEquals("Très faible", MoveFastConfig.interpret(39)); // 39 → Très faible
         assertEquals("Moyen faible", MoveFastConfig.interpret(40));
         assertEquals("Moyen", MoveFastConfig.interpret(60));
         assertEquals("Bon", MoveFastConfig.interpret(75));
-        assertEquals("Excellent", MoveFastConfig.interpret(90));
+        assertEquals("Bon", MoveFastConfig.interpret(89.9)); // borne haute de « Bon »
+        assertEquals("Excellent", MoveFastConfig.interpret(90)); // 90 → Excellent
         assertEquals("Excellent", MoveFastConfig.interpret(100));
     }
 }
