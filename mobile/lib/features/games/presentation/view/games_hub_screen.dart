@@ -74,6 +74,8 @@ class GamesHubScreen extends ConsumerWidget {
                     onTap: () => context.push(AppRoutes.gamesInvestigate),
                   ),
                   const SizedBox(height: 12),
+                  // Decision-Making : module non implémenté → carte inactive.
+                  // (Ne PAS câbler vers Predictive Puzzle, qui est un jeu Planifik.)
                   _GameCategoryCard(
                     title: 'Decision-Making',
                     illustration: _GameIllustration.decision,
@@ -81,7 +83,6 @@ class GamesHubScreen extends ConsumerWidget {
                       _SwatchSpec(_softSlate),
                       _SwatchSpec(_softPink),
                     ],
-                    onTap: () => context.push(AppRoutes.gamesPredictivePuzzle),
                   ),
                   const SizedBox(height: 12),
                   _GameCategoryCard(
@@ -252,6 +253,8 @@ class _GameCategoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Une carte sans onTap = module non implémenté → visuellement inactive.
+    final enabled = onTap != null;
     final content = Container(
       height: 116,
       padding: const EdgeInsets.fromLTRB(24, 12, 10, 10),
@@ -283,11 +286,14 @@ class _GameCategoryCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 6),
-                    const Icon(
-                      Icons.keyboard_arrow_down_rounded,
-                      color: _blue,
-                      size: 24,
-                    ),
+                    if (enabled)
+                      const Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        color: _blue,
+                        size: 24,
+                      )
+                    else
+                      const _ComingSoonBadge(),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -347,10 +353,42 @@ class _GameCategoryCard extends StatelessWidget {
 
     return Material(
       color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: content,
+      child: Semantics(
+        button: enabled,
+        enabled: enabled,
+        label: enabled ? title : '$title — bientôt disponible',
+        child: InkWell(
+          // onTap == null (module non implémenté) → carte non cliquable.
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: enabled ? content : Opacity(opacity: 0.55, child: content),
+        ),
+      ),
+    );
+  }
+}
+
+/// Badge « Bientôt disponible » pour les cartes de domaines non implémentés.
+class _ComingSoonBadge extends StatelessWidget {
+  const _ComingSoonBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: _muted.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: const Text(
+        'Bientôt',
+        style: TextStyle(
+          color: _muted,
+          fontFamily: AppTypography.fontFamily,
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0,
+        ),
       ),
     );
   }

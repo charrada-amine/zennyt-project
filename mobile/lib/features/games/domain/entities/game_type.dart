@@ -1,5 +1,8 @@
 /// Type de jeu sérieux. Aligné sur l'enum GameType de
-/// contracts/games.openapi.yaml. Seul [GameType.planifik] est implémenté.
+/// contracts/games.openapi.yaml. État actuel : [GameType.moveFast],
+/// [GameType.planifik] (3 mini-jeux jouables, /30) et [GameType.memoryQuest]
+/// sont implémentés ; [GameType.decision] est déclaré mais sans logique ; la
+/// régulation émotionnelle (« Je gère ») n'a pas encore de GameType.
 enum GameType {
   planifik('PLANIFIK'),
   moveFast('MOVE_FAST'),
