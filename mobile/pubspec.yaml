@@ -52,6 +52,7 @@ dependencies:
   file_selector: ^1.1.0
   flutter_dotenv: ^6.0.1
   flutter_native_ocr: ^0.1.0
+  flutter_svg: ^2.0.10
   path: ^1.9.1
   path_provider: ^2.1.5
   url_launcher: ^6.3.2
@@ -95,9 +96,9 @@ flutter:
 
   assets:
     - assets/images/
-    - assets/04 Optimal Path/
     - assets/04 Predictive Puzzle/
     - assets/J’investigue/memoryobject/
+    - assets/J’investigue/MemoryObject/svg/
     - assets/games icons/
     - .env
 

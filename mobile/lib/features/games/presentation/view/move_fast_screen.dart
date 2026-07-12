@@ -25,8 +25,6 @@ enum _MoveFastStage {
   tutorialOrientation,
   tutorialMovement,
   gameplay,
-  ruleSwitch,
-  randomRule,
   results,
   comparison,
 }
@@ -56,10 +54,6 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
   // Les premiers essais sont marqués practiceTrial=true et exclus par le backend
   // du scoring et des statistiques (fiche révisée, Tableau 2).
   static const int _practiceTrialCount = MoveFastConfig.practiceTrialCount;
-  // Seuils de progression : niv 1 Orientation (0–4), niv 2 Mouvement (4–8),
-  // niv 3 règle aléatoire (8+).
-  static const int _movementLevelThreshold = 4;
-  static const int _randomLevelThreshold = 8;
 
   final math.Random _random = math.Random();
   final Stopwatch _reactionWatch = Stopwatch();
@@ -72,8 +66,7 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
   _MoveFastStimulus _stimulus = _MoveFastStimulus.demoOrientation;
 
   bool _paused = false;
-  bool _ruleSwitchSeen = false;
-  bool _randomLevelSeen = false;
+  // Niveau unique à règle aléatoire : la règle est imprévisible dès le départ.
   bool _randomRule = false;
   bool _soundEffects = true;
   bool _music = false;
@@ -131,11 +124,11 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
     _timer?.cancel();
     setState(() {
       _stage = _MoveFastStage.gameplay;
-      _rule = _MoveFastRule.orientation;
+      // Niveau unique : la règle (et sa couleur vert/jaune) change de façon
+      // imprévisible dès le premier avion — plus de progression par paliers.
+      _randomRule = true;
+      _rule = _nextRandomRule();
       _feedback = _MoveFastFeedback.none;
-      _ruleSwitchSeen = false;
-      _randomLevelSeen = false;
-      _randomRule = false;
       _secondsLeft = _sessionSeconds;
       _score = 0;
       _multiplier = 1;
@@ -379,14 +372,6 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
 
     Future<void>.delayed(const Duration(milliseconds: 650), () {
       if (!mounted || _stage != _MoveFastStage.gameplay) return;
-      if (_correctResponses >= _movementLevelThreshold && !_ruleSwitchSeen) {
-        _showRuleSwitch();
-        return;
-      }
-      if (_correctResponses >= _randomLevelThreshold && !_randomLevelSeen) {
-        _showRandomLevel();
-        return;
-      }
       if (_reachedEndCondition) {
         _finishSession();
         return;
@@ -395,55 +380,12 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
         _feedback = _MoveFastFeedback.none;
         _chosenDirection = null;
         _correctDirection = null;
-        // Niveau 3 : la règle change de façon imprévisible à chaque avion.
+        // Niveau unique : la règle change de façon imprévisible à chaque avion.
         if (_randomRule) _rule = _nextRandomRule();
         _stimulus = _buildStimulus();
       });
       _startReactionTimer();
     });
-  }
-
-  void _showRuleSwitch() {
-    _timer?.cancel();
-    _reactionWatch.stop();
-    setState(() {
-      _stage = _MoveFastStage.ruleSwitch;
-      _ruleSwitchSeen = true;
-      _rule = _MoveFastRule.movement;
-      _feedback = _MoveFastFeedback.none;
-      _chosenDirection = null;
-      _correctDirection = null;
-      _stimulus = _buildStimulus();
-    });
-  }
-
-  void _continueAfterRuleSwitch() {
-    setState(() => _stage = _MoveFastStage.gameplay);
-    _startTimer();
-    _startReactionTimer();
-  }
-
-  /// Niveau 3 : passe en mode « règle aléatoire ». Écran de transition affiché
-  /// une seule fois, puis la règle bascule imprévisiblement à chaque stimulus.
-  void _showRandomLevel() {
-    _timer?.cancel();
-    _reactionWatch.stop();
-    setState(() {
-      _stage = _MoveFastStage.randomRule;
-      _randomLevelSeen = true;
-      _randomRule = true;
-      _feedback = _MoveFastFeedback.none;
-      _chosenDirection = null;
-      _correctDirection = null;
-      _rule = _nextRandomRule();
-      _stimulus = _buildStimulus();
-    });
-  }
-
-  void _continueAfterRandomLevel() {
-    setState(() => _stage = _MoveFastStage.gameplay);
-    _startTimer();
-    _startReactionTimer();
   }
 
   /// Choisit la prochaine règle en mode aléatoire : bascule le plus souvent
@@ -561,10 +503,7 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
         }
       },
       child: Scaffold(
-        backgroundColor:
-            _stage == _MoveFastStage.gameplay ||
-                _stage == _MoveFastStage.ruleSwitch ||
-                _stage == _MoveFastStage.randomRule
+        backgroundColor: _stage == _MoveFastStage.gameplay
             ? ZennytGamePalette.gameBlue
             : Colors.white,
         body: SafeArea(child: _buildStage()),
@@ -625,18 +564,6 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
         inputMode: _inputMode,
         onPause: _openPause,
         onDirection: _handleDirection,
-      ),
-      _MoveFastStage.ruleSwitch => _RuleSwitchView(
-        score: _score,
-        timeLabel: _timeLabel,
-        progress: _sessionProgress,
-        onContinue: _continueAfterRuleSwitch,
-      ),
-      _MoveFastStage.randomRule => _RandomLevelView(
-        score: _score,
-        timeLabel: _timeLabel,
-        progress: _sessionProgress,
-        onContinue: _continueAfterRandomLevel,
       ),
       _MoveFastStage.results => _ResultsView(
         cognitiveScore: _cognitiveScore,
@@ -1471,284 +1398,6 @@ class _FeedbackBurst extends StatelessWidget {
                   ? ZennytGamePalette.success
                   : ZennytGamePalette.error,
               letterSpacing: 0,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RuleSwitchView extends StatelessWidget {
-  const _RuleSwitchView({
-    required this.score,
-    required this.timeLabel,
-    required this.progress,
-    required this.onContinue,
-  });
-
-  final int score;
-  final String timeLabel;
-  final double progress;
-  final VoidCallback onContinue;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 18, 24, 28),
-      child: Column(
-        children: [
-          GameHud(
-            score: score,
-            timeLabel: timeLabel,
-            progress: progress,
-            progressColor: ZennytGamePalette.error,
-            onPause: () {},
-          ),
-          const Spacer(),
-          GamePanel(
-            padding: const EdgeInsets.all(AppSpacing.xl),
-            child: Column(
-              children: [
-                Row(
-                  children: const [
-                    Expanded(
-                      child: GameRuleChip(
-                        label: 'Orientation',
-                        color: ZennytGamePalette.success,
-                      ),
-                    ),
-                    SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: GameRuleChip(
-                        label: 'Movement',
-                        color: ZennytGamePalette.ruleOrange,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.xl),
-                Text(
-                  'The rule label and plane color change together.',
-                  textAlign: TextAlign.center,
-                  style: AppTypography.bodyMedium.copyWith(
-                    color: ZennytGamePalette.muted,
-                    letterSpacing: 0,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xl),
-                GamePrimaryButton(label: 'Continue', onPressed: onContinue),
-              ],
-            ),
-          ),
-          const Spacer(),
-          Text(
-            'This screen only shows up one time.',
-            style: AppTypography.titleMedium.copyWith(
-              color: Colors.white,
-              letterSpacing: 0,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xl),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(AppSpacing.base),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 5,
-                  height: 68,
-                  decoration: BoxDecoration(
-                    color: ZennytGamePalette.ruleOrange,
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Plane color changed',
-                        style: AppTypography.titleMedium.copyWith(
-                          color: ZennytGamePalette.blue,
-                          letterSpacing: 0,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.xs),
-                      Text(
-                        'Orange plane means Movement rule. The color and chip update together.',
-                        style: AppTypography.bodySmall.copyWith(
-                          color: ZennytGamePalette.muted,
-                          letterSpacing: 0,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Écran de transition du niveau 3 : annonce que la règle change désormais de
-/// façon aléatoire à chaque avion (mode le plus difficile).
-class _RandomLevelView extends StatelessWidget {
-  const _RandomLevelView({
-    required this.score,
-    required this.timeLabel,
-    required this.progress,
-    required this.onContinue,
-  });
-
-  final int score;
-  final String timeLabel;
-  final double progress;
-  final VoidCallback onContinue;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 18, 24, 28),
-      child: Column(
-        children: [
-          GameHud(
-            score: score,
-            timeLabel: timeLabel,
-            progress: progress,
-            progressColor: ZennytGamePalette.magenta,
-            onPause: () {},
-          ),
-          const Spacer(),
-          GamePanel(
-            padding: const EdgeInsets.all(AppSpacing.xl),
-            child: Column(
-              children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: ZennytGamePalette.magenta.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-                  ),
-                  child: const Icon(
-                    Icons.shuffle_rounded,
-                    color: ZennytGamePalette.magenta,
-                    size: 30,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                Text(
-                  'Niveau 3 — Règle aléatoire',
-                  textAlign: TextAlign.center,
-                  style: AppTypography.titleLarge.copyWith(
-                    color: ZennytGamePalette.ink,
-                    letterSpacing: 0,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                Row(
-                  children: const [
-                    Expanded(
-                      child: GameRuleChip(
-                        label: 'Orientation',
-                        color: ZennytGamePalette.success,
-                      ),
-                    ),
-                    SizedBox(width: AppSpacing.sm),
-                    Icon(
-                      Icons.swap_horiz_rounded,
-                      color: ZennytGamePalette.muted,
-                    ),
-                    SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: GameRuleChip(
-                        label: 'Movement',
-                        color: ZennytGamePalette.ruleOrange,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                Text(
-                  'La règle change maintenant à chaque avion, sans prévenir. '
-                  'Vérifie la couleur et le libellé avant de répondre.',
-                  textAlign: TextAlign.center,
-                  style: AppTypography.bodyMedium.copyWith(
-                    color: ZennytGamePalette.muted,
-                    letterSpacing: 0,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xl),
-                GamePrimaryButton(
-                  label: 'Je suis prêt',
-                  icon: Icons.bolt_rounded,
-                  onPressed: onContinue,
-                ),
-              ],
-            ),
-          ),
-          const Spacer(),
-          Text(
-            'This screen only shows up one time.',
-            style: AppTypography.titleMedium.copyWith(
-              color: Colors.white,
-              letterSpacing: 0,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xl),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(AppSpacing.base),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 5,
-                  height: 68,
-                  decoration: BoxDecoration(
-                    color: ZennytGamePalette.magenta,
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Reste concentré',
-                        style: AppTypography.titleMedium.copyWith(
-                          color: ZennytGamePalette.blue,
-                          letterSpacing: 0,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.xs),
-                      Text(
-                        'Le vert veut dire Orientation, l\'orange Mouvement. '
-                        'Ne réponds jamais sans regarder la couleur.',
-                        style: AppTypography.bodySmall.copyWith(
-                          color: ZennytGamePalette.muted,
-                          letterSpacing: 0,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
             ),
           ),
         ],

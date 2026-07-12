@@ -3,6 +3,7 @@ import 'package:http_parser/http_parser.dart';
 import 'package:path/path.dart' as p;
 
 import '../../../core/error/api_exception.dart';
+import '../../../core/upload/cv_file_validation.dart';
 import '../domain/entities/candidate_profile.dart';
 import '../domain/repositories/profile_repository.dart';
 import 'dtos/profile_input.dart';
@@ -199,43 +200,36 @@ class ProfileRepositoryImpl implements ProfileRepository {
       throw ApiException.fromDio(e);
     }
   }
-  
+
   @override
   Future<void> uploadCv(String filePath) async {
     try {
-      final ext = p.extension(filePath).toLowerCase();
+      await CvFileValidation.validateUploadPath(filePath);
       final fileName = p.basename(filePath);
-      
-      // Map extension to MIME type — must match backend ALLOWED_CV_TYPES
-      String contentType;
-      switch (ext) {
-        case '.pdf':
-          contentType = 'application/pdf';
-          break;
-        case '.doc':
-          contentType = 'application/msword';
-          break;
-        case '.docx':
-          contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-          break;
-        default:
-          throw Exception('Unsupported file format. Please upload a PDF or Word document.');
-      }
 
       final formData = FormData.fromMap({
         'file': await MultipartFile.fromFile(
           filePath,
           filename: fileName,
-          contentType: MediaType.parse(contentType),
+          contentType: MediaType.parse(
+            CvFileValidation.uploadContentType(fileName),
+          ),
         ),
       });
       await _dio.post(
         '/profiles/me/cv',
         data: formData,
-        options: Options(
-          contentType: 'multipart/form-data',
-        ),
+        options: Options(contentType: 'multipart/form-data'),
       );
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  @override
+  Future<void> deleteCv() async {
+    try {
+      await _dio.delete('/profiles/me/cv');
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }

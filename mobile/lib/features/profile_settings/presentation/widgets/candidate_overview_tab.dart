@@ -5,6 +5,7 @@ import 'package:file_selector/file_selector.dart';
 
 import '../../../../core/error/api_exception.dart';
 import '../../../../core/theme/theme.dart';
+import '../../../../core/upload/cv_file_validation.dart';
 import '../view/cv_viewer_screen.dart';
 import '../viewmodel/candidate_profile_viewmodel.dart';
 import 'profile_modals.dart';
@@ -154,11 +155,7 @@ class CandidateOverviewTab extends ConsumerWidget {
           _buildAboutMeContent(context, colors, state.aboutMe),
           const SizedBox(height: AppSpacing.xl),
 
-          _buildSectionHeader(
-            context,
-            colors,
-            'My CV',
-          ),
+          _buildSectionHeader(context, colors, 'My CV'),
           const SizedBox(height: AppSpacing.sm),
           _buildMyCvSection(context, ref, colors, state.cvUrl),
           const SizedBox(height: AppSpacing.xxl),
@@ -698,6 +695,7 @@ class CandidateOverviewTab extends ConsumerWidget {
       ),
     );
   }
+
   Widget _buildMyCvSection(
     BuildContext context,
     WidgetRef ref,
@@ -711,9 +709,7 @@ class CandidateOverviewTab extends ConsumerWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: hasCv
-              ? colors.primary.withValues(alpha: 0.2)
-              : colors.border,
+          color: hasCv ? colors.primary.withValues(alpha: 0.2) : colors.border,
         ),
         color: colors.cardSurface,
         boxShadow: [
@@ -739,10 +735,7 @@ class CandidateOverviewTab extends ConsumerWidget {
                         colors.primary.withValues(alpha: 0.08),
                         colors.primary.withValues(alpha: 0.03),
                       ]
-                    : [
-                        colors.inputFill,
-                        colors.cardSurface,
-                      ],
+                    : [colors.inputFill, colors.cardSurface],
               ),
             ),
             child: Row(
@@ -758,9 +751,7 @@ class CandidateOverviewTab extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
-                    hasCv
-                        ? Icons.description_rounded
-                        : Icons.note_add_rounded,
+                    hasCv ? Icons.description_rounded : Icons.note_add_rounded,
                     color: hasCv ? colors.success : colors.textSecondary,
                     size: 22,
                   ),
@@ -783,7 +774,7 @@ class CandidateOverviewTab extends ConsumerWidget {
                       Text(
                         hasCv
                             ? 'Visible to recruiters on your profile'
-                            : 'PDF format only • Max 10 MB',
+                            : 'PDF, DOC or DOCX • Max 5 MB',
                         style: AppTypography.bodySmall.copyWith(
                           color: colors.textSecondary,
                           fontSize: 12,
@@ -886,24 +877,32 @@ class CandidateOverviewTab extends ConsumerWidget {
   void _onViewCv(BuildContext context, AppColorScheme colors, String cvUrl) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => CvViewerScreen(cvUrl: cvUrl),
-      ),
+      MaterialPageRoute(builder: (_) => CvViewerScreen(cvUrl: cvUrl)),
     );
   }
 
-  void _onUploadCv(BuildContext context, WidgetRef ref, AppColorScheme colors) async {
+  void _onUploadCv(
+    BuildContext context,
+    WidgetRef ref,
+    AppColorScheme colors,
+  ) async {
     try {
       const XTypeGroup cvGroup = XTypeGroup(
         label: 'CV Documents',
-        extensions: <String>['pdf'],
+        extensions: <String>['pdf', 'doc', 'docx'],
         mimeTypes: <String>[
           'application/pdf',
+          'application/msword',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         ],
       );
-      final XFile? file = await openFile(acceptedTypeGroups: <XTypeGroup>[cvGroup]);
+      final XFile? file = await openFile(
+        acceptedTypeGroups: <XTypeGroup>[cvGroup],
+      );
 
       if (file != null && context.mounted) {
+        await CvFileValidation.validateUploadPath(file.path);
+        if (!context.mounted) return;
         // Show loading indicator
         _showSnackBar(
           context,
@@ -926,6 +925,16 @@ class CandidateOverviewTab extends ConsumerWidget {
             isError: false,
           );
         }
+      }
+    } on CvFileValidationException catch (validationError) {
+      if (context.mounted) {
+        _showSnackBar(
+          context,
+          colors,
+          icon: Icons.warning_amber_rounded,
+          message: validationError.message,
+          isError: true,
+        );
       }
     } on ApiException catch (apiErr) {
       if (context.mounted) {
@@ -966,21 +975,32 @@ class CandidateOverviewTab extends ConsumerWidget {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(ctx);
-              // TODO: call deleteCv when backend endpoint is wired
-              _showSnackBar(
-                context,
-                colors,
-                icon: Icons.info_outline_rounded,
-                message: 'CV deletion is coming soon.',
-                isError: false,
-              );
+              try {
+                await ref.read(candidateProfileProvider.notifier).deleteCv();
+                if (context.mounted) {
+                  _showSnackBar(
+                    context,
+                    colors,
+                    icon: Icons.check_circle_rounded,
+                    message: 'CV deleted.',
+                    isError: false,
+                  );
+                }
+              } on ApiException catch (apiErr) {
+                if (context.mounted) {
+                  _showSnackBar(
+                    context,
+                    colors,
+                    icon: Icons.error_outline_rounded,
+                    message: apiErr.message,
+                    isError: true,
+                  );
+                }
+              }
             },
-            child: Text(
-              'Delete',
-              style: TextStyle(color: colors.error),
-            ),
+            child: Text('Delete', style: TextStyle(color: colors.error)),
           ),
         ],
       ),
@@ -1014,9 +1034,7 @@ class CandidateOverviewTab extends ConsumerWidget {
         ),
         backgroundColor: isError ? colors.error : colors.primary,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         margin: const EdgeInsets.symmetric(
           horizontal: AppSpacing.md,
           vertical: AppSpacing.sm,

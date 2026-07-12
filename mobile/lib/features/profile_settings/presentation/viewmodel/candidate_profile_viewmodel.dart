@@ -336,11 +336,15 @@ class CandidateProfileViewModel extends Notifier<CandidateProfileState> {
   // ── Sub-resource persistence (Skills, Positions, Certifications, Education) ──
 
   Future<void> saveParsedCvData(CvParsedData data) async {
-    state = state.copyWith(isLoading: true, errorMessage: null, clearError: true);
-    
+    state = state.copyWith(
+      isLoading: true,
+      errorMessage: null,
+      clearError: true,
+    );
+
     try {
       final repo = ref.read(profileRepositoryProvider);
-      
+
       // 1. Save Basic Info
       final profileInput = ProfileInput(
         currentPosition: data.currentPosition,
@@ -358,53 +362,61 @@ class CandidateProfileViewModel extends Notifier<CandidateProfileState> {
             if (safeLevel < 1) safeLevel = 1;
           }
 
-          await repo.addSkill(SkillInput(
-            name: skill.name,
-            type: skill.type.toUpperCase() == 'SOFT' ? 'SOFT' : 'TECHNICAL',
-            level: safeLevel,
-          ));
+          await repo.addSkill(
+            SkillInput(
+              name: skill.name,
+              type: skill.type.toUpperCase() == 'SOFT' ? 'SOFT' : 'TECHNICAL',
+              level: safeLevel,
+            ),
+          );
         }
       }
 
       // 3. Save Positions
       for (final pos in data.positions) {
         if (pos.title.isNotEmpty) {
-          await repo.addPosition(PositionInput(
-            title: pos.title,
-            companyName: pos.companyName,
-            location: pos.location,
-            description: pos.description,
-            startDate: _toIsoDate(pos.startDate ?? ''),
-            endDate: _toIsoDate(pos.endDate ?? ''),
-            current: pos.current,
-          ));
+          await repo.addPosition(
+            PositionInput(
+              title: pos.title,
+              companyName: pos.companyName,
+              location: pos.location,
+              description: pos.description,
+              startDate: _toIsoDate(pos.startDate ?? ''),
+              endDate: _toIsoDate(pos.endDate ?? ''),
+              current: pos.current,
+            ),
+          );
         }
       }
 
       // 4. Save Education
       for (final edu in data.education) {
         if (edu.degree.isNotEmpty) {
-          await repo.addEducation(EducationInput(
-            degree: edu.degree,
-            school: edu.school,
-            fieldOfStudy: edu.fieldOfStudy,
-            description: edu.description,
-            startDate: _toIsoDate(edu.startDate ?? ''),
-            endDate: _toIsoDate(edu.endDate ?? ''),
-          ));
+          await repo.addEducation(
+            EducationInput(
+              degree: edu.degree,
+              school: edu.school,
+              fieldOfStudy: edu.fieldOfStudy,
+              description: edu.description,
+              startDate: _toIsoDate(edu.startDate ?? ''),
+              endDate: _toIsoDate(edu.endDate ?? ''),
+            ),
+          );
         }
       }
 
       // 5. Save Certifications
       for (final cert in data.certifications) {
         if (cert.title.isNotEmpty) {
-          await repo.addCertification(CertificationInput(
-            title: cert.title,
-            issuer: cert.issuer,
-            completionDate: _toIsoDate(cert.completionDate ?? ''),
-            credentialId: cert.credentialId,
-            credentialUrl: cert.credentialUrl,
-          ));
+          await repo.addCertification(
+            CertificationInput(
+              title: cert.title,
+              issuer: cert.issuer,
+              completionDate: _toIsoDate(cert.completionDate ?? ''),
+              credentialId: cert.credentialId,
+              credentialUrl: cert.credentialUrl,
+            ),
+          );
         }
       }
 
@@ -427,7 +439,11 @@ class CandidateProfileViewModel extends Notifier<CandidateProfileState> {
   }
 
   Future<void> uploadCv(String filePath) async {
-    state = state.copyWith(isLoading: true, errorMessage: null, clearError: true);
+    state = state.copyWith(
+      isLoading: true,
+      errorMessage: null,
+      clearError: true,
+    );
     try {
       final repo = ref.read(profileRepositoryProvider);
       if (!state.profileExists) {
@@ -438,15 +454,33 @@ class CandidateProfileViewModel extends Notifier<CandidateProfileState> {
       // Refresh profile to get the new cvUrl
       await refresh();
     } on ApiException catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: e.message,
-      );
+      state = state.copyWith(isLoading: false, errorMessage: e.message);
       rethrow;
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
         errorMessage: 'An unexpected error occurred while uploading CV.',
+      );
+      rethrow;
+    }
+  }
+
+  Future<void> deleteCv() async {
+    state = state.copyWith(
+      isLoading: true,
+      errorMessage: null,
+      clearError: true,
+    );
+    try {
+      await ref.read(profileRepositoryProvider).deleteCv();
+      await refresh();
+    } on ApiException catch (e) {
+      state = state.copyWith(isLoading: false, errorMessage: e.message);
+      rethrow;
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'An unexpected error occurred while deleting CV.',
       );
       rethrow;
     }

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -11,7 +12,12 @@ class CvProcessingScreen extends ConsumerStatefulWidget {
   final String? imagePaths; // Comma-separated if multiple
   final String? url;
 
-  const CvProcessingScreen({super.key, this.filePath, this.imagePaths, this.url});
+  const CvProcessingScreen({
+    super.key,
+    this.filePath,
+    this.imagePaths,
+    this.url,
+  });
 
   @override
   ConsumerState<CvProcessingScreen> createState() => _CvProcessingScreenState();
@@ -49,17 +55,16 @@ class _CvProcessingScreenState extends ConsumerState<CvProcessingScreen> {
   }
 
   Future<void> _startProcessing() async {
-    // Assuming English for now, ideally would get from current locale
-    const languageCode = 'en'; 
+    final languageCode = Localizations.localeOf(context).languageCode;
 
     final viewModel = ref.read(cvAutofillViewModelProvider.notifier);
-    
+
     if (widget.url != null) {
       await viewModel.processRemoteFile(widget.url!, languageCode);
     } else if (widget.filePath != null) {
       await viewModel.processLocalFile(widget.filePath!, languageCode);
     } else if (widget.imagePaths != null) {
-      final paths = widget.imagePaths!.split(',').where((p) => p.isNotEmpty).toList();
+      final paths = _decodeImagePaths(widget.imagePaths!);
       await viewModel.processCameraImages(paths, languageCode);
     }
 
@@ -69,21 +74,25 @@ class _CvProcessingScreenState extends ConsumerState<CvProcessingScreen> {
         _progress = 1.0;
       });
     }
-    
+
     await Future.delayed(const Duration(milliseconds: 400));
 
     if (mounted) {
       final state = ref.read(cvAutofillViewModelProvider);
       if (state.error != null) {
         // Show error and pop
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${state.error}')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: ${state.error}')));
         context.pop();
       } else if (state.data != null) {
         if (state.data!.isValidCv == false) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('The provided document does not appear to be a valid CV.')),
+            const SnackBar(
+              content: Text(
+                'The provided document does not appear to be a valid CV.',
+              ),
+            ),
           );
           context.pop();
         } else {
@@ -92,6 +101,24 @@ class _CvProcessingScreenState extends ConsumerState<CvProcessingScreen> {
         }
       }
     }
+  }
+
+  List<String> _decodeImagePaths(String value) {
+    try {
+      final decoded = jsonDecode(value);
+      if (decoded is List<dynamic>) {
+        return decoded
+            .whereType<String>()
+            .where((path) => path.isNotEmpty)
+            .toList(growable: false);
+      }
+    } on FormatException {
+      // Compatibility with already-issued comma-separated processing routes.
+    }
+    return value
+        .split(',')
+        .where((path) => path.isNotEmpty)
+        .toList(growable: false);
   }
 
   @override

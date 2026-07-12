@@ -3,10 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:file_selector/file_selector.dart';
 import '../../../../../core/router/app_routes.dart';
+import '../../../../../core/upload/cv_file_validation.dart';
 
 class CvSourceBottomSheet extends ConsumerWidget {
   final String? cvUrl;
-  
+
   const CvSourceBottomSheet({super.key, this.cvUrl});
 
   @override
@@ -29,7 +30,9 @@ class CvSourceBottomSheet extends ConsumerWidget {
           const SizedBox(height: 16),
           Text(
             'Auto Fill Profile',
-            style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 8),
           Padding(
@@ -37,7 +40,9 @@ class CvSourceBottomSheet extends ConsumerWidget {
             child: Text(
               'Select how you want to provide your CV to automatically extract and fill your profile.',
               textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(color: theme.textTheme.bodySmall?.color),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.textTheme.bodySmall?.color,
+              ),
             ),
           ),
           const SizedBox(height: 24),
@@ -59,12 +64,17 @@ class CvSourceBottomSheet extends ConsumerWidget {
           ),
           if (cvUrl != null && cvUrl!.isNotEmpty) ...[
             ListTile(
-              leading: const Icon(Icons.cloud_done_outlined, color: Colors.blue),
+              leading: const Icon(
+                Icons.cloud_done_outlined,
+                color: Colors.blue,
+              ),
               title: const Text('Use Saved CV'),
               subtitle: const Text('Process the CV currently on your profile'),
               onTap: () {
                 Navigator.of(context).pop();
-                context.push('${AppRoutes.cvProcessing}?url=${Uri.encodeComponent(cvUrl!)}');
+                context.push(
+                  '${AppRoutes.cvProcessing}?url=${Uri.encodeComponent(cvUrl!)}',
+                );
               },
             ),
           ],
@@ -80,17 +90,32 @@ class CvSourceBottomSheet extends ConsumerWidget {
         label: 'Documents',
         extensions: <String>['pdf', 'png', 'jpg', 'jpeg', 'webp'],
       );
-      final XFile? file = await openFile(acceptedTypeGroups: <XTypeGroup>[pdfGroup]);
+      final XFile? file = await openFile(
+        acceptedTypeGroups: <XTypeGroup>[pdfGroup],
+      );
 
       if (file != null && context.mounted) {
+        await CvFileValidation.validateOcrPath(file.path);
+        if (!context.mounted) return;
         Navigator.of(context).pop();
-        context.push('${AppRoutes.cvProcessing}?filePath=${file.path}');
+        context.push(
+          Uri(
+            path: AppRoutes.cvProcessing,
+            queryParameters: {'filePath': file.path},
+          ).toString(),
+        );
+      }
+    } on CvFileValidationException catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.message)));
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: ${e.toString()}')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erreur: ${e.toString()}')));
       }
     }
   }

@@ -5,7 +5,7 @@
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Zennyt needs camera access so you can take a profile photo.</string>
+	<string>Zennyt needs camera access so you can take a profile photo or scan your CV.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Zennyt needs photo library access so you can choose a profile photo or upload your CV.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>

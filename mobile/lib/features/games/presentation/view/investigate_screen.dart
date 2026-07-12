@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/app_routes.dart';
@@ -1292,6 +1293,12 @@ class _RestoreView extends StatelessWidget {
   }
 }
 
+/// Chemin du SVG (vectoriel **multicolore**, fond transparent) de chaque objet,
+/// mappé par [MemoryObject.id]. Réplique les visuels d'origine sans le fond
+/// blanc ni le libellé gravé des anciens PNG.
+String memoryObjectSvg(String id) =>
+    'assets/J’investigue/MemoryObject/svg/$id.svg';
+
 class _ObjectTile extends StatelessWidget {
   const _ObjectTile({
     required this.object,
@@ -1311,9 +1318,9 @@ class _ObjectTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final obj = object;
     final tile = Container(
-      width: 78,
-      height: 96,
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+      width: 92,
+      height: 112,
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
       decoration: BoxDecoration(
         color: obj == null ? Colors.white.withValues(alpha: 0.14) : Colors.white,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
@@ -1333,29 +1340,24 @@ class _ObjectTile extends StatelessWidget {
                 fontWeight: FontWeight.w700,
               ),
             ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 4),
           if (obj != null)
-            Image.asset(
-              obj.asset,
-              width: 34,
-              height: 34,
+            SvgPicture.asset(
+              memoryObjectSvg(obj.id),
+              width: 44,
+              height: 44,
               fit: BoxFit.contain,
-              errorBuilder: (_, _, _) => const Icon(
-                Icons.category_outlined,
-                size: 34,
-                color: ZennytGamePalette.muted,
-              ),
             )
           else
-            const SizedBox(height: 34),
-          const SizedBox(height: 4),
+            const SizedBox(height: 44),
+          const SizedBox(height: 6),
           Text(
             obj?.label(languageCode) ?? '—',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: obj == null ? Colors.white : ZennytGamePalette.ink,
-              fontSize: 12,
+              fontSize: 13,
               fontWeight: FontWeight.w700,
             ),
           ),

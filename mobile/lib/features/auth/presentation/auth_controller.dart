@@ -115,7 +115,7 @@ class AuthController extends AsyncNotifier<AppUser?> {
 
     // Now authenticated, upload files
     final upload = ref.read(uploadServiceProvider);
-    
+
     String? finalAvatarUrl = defaultAvatarUrl;
     if (avatarFile != null) {
       final uploaded = await upload.upload(avatarFile, kind: UploadKind.avatar);
@@ -161,12 +161,15 @@ class AuthController extends AsyncNotifier<AppUser?> {
           yearsOfExperience: yearsOfExperience,
           cvFileUrl: null, // uploaded below
         );
-        if (cvFile != null) {
-          await upload.upload(cvFile, kind: UploadKind.cv);
-        }
       }
     } on ApiException {
       // Onboarding can be completed later from the profile screens.
+    }
+
+    // A selected CV is an explicit user action. Its failure must be surfaced
+    // rather than silently completing registration without the document.
+    if (role != UserRole.recruiter && cvFile != null) {
+      await upload.upload(cvFile, kind: UploadKind.cv);
     }
 
     // Refresh the user to fetch updated cvFileUrl and companyLogoUrl from the backend

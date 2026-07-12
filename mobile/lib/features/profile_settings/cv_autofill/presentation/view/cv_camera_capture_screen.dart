@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:ui';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -12,7 +13,8 @@ class CvCameraCaptureScreen extends StatefulWidget {
   State<CvCameraCaptureScreen> createState() => _CvCameraCaptureScreenState();
 }
 
-class _CvCameraCaptureScreenState extends State<CvCameraCaptureScreen> with SingleTickerProviderStateMixin {
+class _CvCameraCaptureScreenState extends State<CvCameraCaptureScreen>
+    with SingleTickerProviderStateMixin {
   final List<String> _capturedImages = [];
   final ImagePicker _picker = ImagePicker();
   bool _isCapturing = false;
@@ -27,7 +29,7 @@ class _CvCameraCaptureScreenState extends State<CvCameraCaptureScreen> with Sing
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     )..repeat(reverse: true);
-    
+
     _pulseAnimation = Tween<double>(begin: 0.95, end: 1.05).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
@@ -75,10 +77,13 @@ class _CvCameraCaptureScreenState extends State<CvCameraCaptureScreen> with Sing
 
   void _proceedToProcessing() {
     if (_capturedImages.isEmpty) return;
-    
-    // Pass comma-separated paths
-    final paths = _capturedImages.join(',');
-    context.push('${AppRoutes.cvProcessing}?imagePaths=$paths');
+
+    context.push(
+      Uri(
+        path: AppRoutes.cvProcessing,
+        queryParameters: {'imagePaths': jsonEncode(_capturedImages)},
+      ).toString(),
+    );
   }
 
   @override
@@ -87,9 +92,14 @@ class _CvCameraCaptureScreenState extends State<CvCameraCaptureScreen> with Sing
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF121212) : const Color(0xFFF8F9FA),
+      backgroundColor: isDark
+          ? const Color(0xFF121212)
+          : const Color(0xFFF8F9FA),
       appBar: AppBar(
-        title: const Text('Scan CV', style: TextStyle(fontWeight: FontWeight.w600)),
+        title: const Text(
+          'Scan CV',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -104,7 +114,7 @@ class _CvCameraCaptureScreenState extends State<CvCameraCaptureScreen> with Sing
                 ? _buildEmptyState(colors)
                 : _buildGrid(colors),
           ),
-          
+
           // Floating Action Bar (Bottom)
           if (_capturedImages.isNotEmpty)
             Positioned(
@@ -167,14 +177,19 @@ class _CvCameraCaptureScreenState extends State<CvCameraCaptureScreen> with Sing
               foregroundColor: colors.onPrimary,
               elevation: 8,
               shadowColor: colors.primary.withValues(alpha: 0.4),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
+              ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Icon(Icons.camera_alt_rounded),
                 const SizedBox(width: 12),
-                const Text('Start Scanning', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const Text(
+                  'Start Scanning',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
               ],
             ),
           ),
@@ -186,7 +201,12 @@ class _CvCameraCaptureScreenState extends State<CvCameraCaptureScreen> with Sing
   Widget _buildGrid(ColorScheme colors) {
     return GridView.builder(
       key: const ValueKey('grid_view'),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 120), // padding for bottom bar
+      padding: const EdgeInsets.fromLTRB(
+        16,
+        16,
+        16,
+        120,
+      ), // padding for bottom bar
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         crossAxisSpacing: 16,
@@ -202,10 +222,7 @@ class _CvCameraCaptureScreenState extends State<CvCameraCaptureScreen> with Sing
           builder: (context, value, child) {
             return Transform.scale(
               scale: value,
-              child: Opacity(
-                opacity: value.clamp(0.0, 1.0),
-                child: child,
-              ),
+              child: Opacity(opacity: value.clamp(0.0, 1.0), child: child),
             );
           },
           child: _buildImageCard(index, colors),
@@ -231,10 +248,7 @@ class _CvCameraCaptureScreenState extends State<CvCameraCaptureScreen> with Sing
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Image.file(
-              File(_capturedImages[index]),
-              fit: BoxFit.cover,
-            ),
+            Image.file(File(_capturedImages[index]), fit: BoxFit.cover),
             // Gradient overlay at bottom for text visibility
             Positioned(
               bottom: 0,
@@ -265,7 +279,10 @@ class _CvCameraCaptureScreenState extends State<CvCameraCaptureScreen> with Sing
                   child: BackdropFilter(
                     filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       color: Colors.white.withValues(alpha: 0.2),
                       child: Text(
                         'Page ${index + 1}',
@@ -295,7 +312,11 @@ class _CvCameraCaptureScreenState extends State<CvCameraCaptureScreen> with Sing
                       onTap: () => _removeImage(index),
                       child: const Padding(
                         padding: EdgeInsets.all(8.0),
-                        child: Icon(Icons.delete_outline_rounded, color: Colors.white, size: 20),
+                        child: Icon(
+                          Icons.delete_outline_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                       ),
                     ),
                   ),
@@ -343,11 +364,16 @@ class _CvCameraCaptureScreenState extends State<CvCameraCaptureScreen> with Sing
                 onPressed: _isCapturing ? null : _captureImage,
                 style: TextButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(22),
+                  ),
                   foregroundColor: colors.primary,
                 ),
                 icon: const Icon(Icons.add_a_photo_rounded),
-                label: const Text('Add Page', style: TextStyle(fontWeight: FontWeight.w600)),
+                label: const Text(
+                  'Add Page',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
               ),
             ),
             const SizedBox(width: 8),
@@ -359,10 +385,15 @@ class _CvCameraCaptureScreenState extends State<CvCameraCaptureScreen> with Sing
                   backgroundColor: colors.primary,
                   foregroundColor: colors.onPrimary,
                   elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(22),
+                  ),
                 ),
                 icon: const Icon(Icons.auto_awesome_rounded),
-                label: const Text('Process CV', style: TextStyle(fontWeight: FontWeight.bold)),
+                label: const Text(
+                  'Process CV',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
             ),
           ],

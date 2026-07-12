@@ -759,3 +759,21 @@ Entity Table Name<br>User users<br>CandidateStudentOnboardingInfo candidate_stud
 
 This structure is clean, scalable, and matches the current UI screens. 
 
+## 19. Mobile CV handling
+
+The mobile candidate profile supports CV upload, replacement, deletion, and profile autofill.
+
+- Upload endpoint: `POST /api/v1/profiles/me/cv` with `file` as multipart data.
+- Supported upload formats: PDF, DOC and DOCX, maximum 5 MB.
+- Deletion endpoint: `DELETE /api/v1/profiles/me/cv`.
+- Autofill accepts PDF and image documents. Text-based PDFs are read locally; scanned PDFs are rendered page by page and processed with Apple Vision (iOS) or ML Kit (Android), then the extracted text is sent to `POST /api/v1/profiles/me/cv/parse`.
+
+### Décisions à valider
+
+- The mobile scanned-PDF OCR guardrail is currently 10 pages at 150 DPI, capped to 2048 pixels on the longest side. This is provisional and protects device memory and processing time.
+
+### Changelog
+
+- 1. 2026-07-12 — Mobile CV upload now validates the 5 MB API limit, reports upload failures, reads `cvUrl`, supports CV deletion, and adds scanned-PDF OCR fallback.
+
+**Dernière mise à jour :** 2026-07-12
