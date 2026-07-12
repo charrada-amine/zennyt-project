@@ -1,16 +1,19 @@
 import 'dart:io';
-import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:flutter_native_ocr/flutter_native_ocr.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 
 class CvOcrService {
-  final TextRecognizer _textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
+  // OCR natif : Apple Vision sur iOS/macOS, Google ML Kit sur Android.
+  // Contrairement à google_mlkit_text_recognition, cette approche n'embarque
+  // aucun pod ML Kit côté iOS (Vision est un framework système), ce qui permet
+  // de compiler sur le simulateur arm64 (iOS 26+ / Apple Silicon).
+  final FlutterNativeOcr _ocr = FlutterNativeOcr();
 
   Future<String> extractTextFromImages(List<String> imagePaths) async {
     final buffer = StringBuffer();
     for (final path in imagePaths) {
-      final inputImage = InputImage.fromFilePath(path);
-      final recognizedText = await _textRecognizer.processImage(inputImage);
-      buffer.writeln(recognizedText.text);
+      final recognizedText = await _ocr.recognizeText(path);
+      buffer.writeln(recognizedText);
       buffer.writeln('\n--- PAGE BREAK ---\n');
     }
     return buffer.toString();
@@ -42,6 +45,6 @@ class CvOcrService {
   }
 
   Future<void> dispose() async {
-    await _textRecognizer.close();
+    // Apple Vision / ML Kit natif ne nécessite pas de libération explicite.
   }
 }
