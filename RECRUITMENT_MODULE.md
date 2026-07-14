@@ -2,105 +2,361 @@
 
 **Dernière mise à jour :** 2026-07-14
 
-## Périmètre
+## 1. Rôle du module
 
-Le bounded context `recruitment` gère les offres, swipes, matchs, évaluations,
-tentatives, candidatures, scores de compatibilité, offres d'opportunité,
-vérifications d'identité et paiements de visioconférence. Son contrat public est
-`contracts/recruitment.openapi.yaml` et expose 40 opérations sous `/api/v1`.
+Le bounded context `recruitment` couvre le parcours de recrutement après la création
+du compte dans Identity : publication d'offres, découverte par swipe, création des
+matchs, évaluations techniques, candidatures, offres d'opportunité, vérifications
+d'identité et paiement d'une visioconférence.
 
-## Architecture
+Le contrat public de référence est `contracts/recruitment.openapi.yaml`. Il décrit
+exactement les 40 opérations réellement exposées sous `/api/v1`.
 
-- `api/` : contrôleurs REST, DTO et annotations locales de sécurité.
-- `application/` : cas d'usage, projection des états d'accès Identity et OTP.
-- `domain/` : modèles, événements, value objects et ports de persistance Java purs.
-- `infrastructure/` : adaptateurs JPA, vérification du secret callback et données de développement.
-- `V13__recruitment_full_schema.sql` : schéma fonctionnel initial, immuable.
-- `V14__recruitment_actor_projection.sql` : projection locale des rôles et états Identity.
-- `V15__recruitment_otp_challenges.sql` : challenges OTP hashés et expirants.
+Le module ne gère pas :
 
-## Sécurité et propriété
+- les comptes, mots de passe, JWT ou profils personnels, qui appartiennent à Identity ;
+- la livraison SMS/e-mail des OTP, qui reste à brancher ;
+- les conversations et appels vidéo, qui relèvent d'Engagement ;
+- les écrans mobiles Recruitment, qui ne sont pas encore connectés ;
+- le paiement bancaire réel, car le PSP reste à intégrer.
 
-- Les acteurs sont toujours dérivés du JWT ; les requêtes ne choisissent jamais le
-  recruteur, candidat ou swiper agissant.
-- Les annotations `RecruiterOnly`, `CandidateOrStudentOnly` et `Authenticated`
-  vérifient le rôle JWT ainsi que la projection locale active issue d'Identity.
-- Chaque lecture ou mutation privée vérifie la propriété de l'offre, candidature,
-  tentative, swipe, match, paiement, vérification ou offre d'opportunité.
-- Seuls la recherche et le détail des offres sont publics. Les trois callbacks sont
-  `permitAll` au niveau HTTP mais exigent `X-Callback-Secret`, comparé en temps constant.
-- Le détail public d'une offre retourne uniquement une offre `ACTIVE`; les brouillons,
-  offres masquées et clôturées répondent `404`.
-- Un callback répété avec le même résultat est idempotent ; un résultat contradictoire
-  retourne `409 Conflict`.
+## 2. Architecture technique
 
-## Intégration Identity
+| Couche | Emplacement | Responsabilité |
+|---|---|---|
+| API | `recruitment/api/` | Contrôleurs REST, DTO et annotations de sécurité locales |
+| Application | `recruitment/application/` | Cas d'usage, contrôles de propriété, OTP et listeners d'événements |
+| Domaine | `recruitment/domain/` | Agrégats, règles métier, événements, value objects et ports |
+| Infrastructure | `recruitment/infrastructure/` | JPA, PostgreSQL, callbacks et données de développement |
+| Contrat | `contracts/recruitment.openapi.yaml` | Source de vérité de l'API publique |
+
+Le domaine reste en Java pur. Les dépendances vont de l'extérieur vers le domaine.
+Recruitment ne doit jamais appeler directement les services ou repositories internes
+d'un autre bounded context.
+
+## 3. Relations avec les autres modules
+
+```mermaid
+flowchart LR
+    I["Identity"] -->|"UserAccessStateChangedEvent"| R["Recruitment"]
+    R -->|"Domain Events métier"| E["Engagement / futurs consommateurs"]
+    R -->|"OtpRequestedEvent"| D["Service SMS ou e-mail à intégrer"]
+    X["IA / anti-fraude externes"] -->|"Callbacks + X-Callback-Secret"| R
+    S["Shared"] -->|"JWT, erreurs HTTP, DomainEvent"| R
+    M["Mobile"] -.->|"Intégration Recruitment non réalisée"| R
+```
+
+### 3.1 Identity → Recruitment
 
 Identity publie `identity.user.access-state-changed.v1` après inscription,
-authentification, changement de rôle, désactivation et suppression. Recruitment
-maintient une projection minimale (`publicUserId`, rôle, actif), sans PII et sans
-appel direct à un autre module. Un snapshot au démarrage initialise les comptes
-préexistants. Les événements anciens ou rejoués sont ignorés.
+authentification, changement de rôle, désactivation et suppression. L'événement ne
+contient que l'UUID public, le rôle et l'état actif ; aucune PII n'est copiée.
 
-## OTP
+Recruitment maintient la projection locale `recruitment.actors`. Elle permet de
+vérifier qu'un JWT encore valide appartient toujours à un utilisateur actif et possède
+toujours le rôle attendu. Un snapshot Identity au démarrage initialise les comptes
+existants. Les événements rejoués ou plus anciens sont ignorés.
 
-Les OTP ont six chiffres, sont stockés sous forme de hash SHA-256 salé, expirent après
-la durée configurée et ont un nombre d'essais limité. Ils sont à usage unique.
-`recruitment.otp.requested.v1` transporte le code uniquement de façon éphémère vers
-un futur consommateur de livraison ; aucun code clair n'est persisté.
+### 3.2 Shared → Recruitment
 
-## Contrat et routes canoniques
+Shared fournit le filtre JWT, la conversion des rôles, les erreurs HTTP communes et
+l'interface `DomainEvent`. Il ne contient aucune règle métier Recruitment.
 
-- Offres : `/job-offers`, `/recruiters/me/job-offers`.
-- Candidatures et matchs : `/candidates/me/applications`,
-  `/candidates/me/matches`, `/recruiters/me/matches`.
-- Évaluations : `/assessments`, `/assessment-attempts`.
-- Intégrations : `/callbacks/integrity`, `/callbacks/identity-verification`,
-  `/callbacks/fit-score`.
-- Paiements et opportunités : `/payments`, `/job-opportunity-offers`.
+### 3.3 Recruitment → Engagement et livraison OTP
 
-Les anciennes promesses sans runtime (génération IA d'évaluations, dashboard,
-recherche de candidats, liens partageables et résultats agrégés) ne figurent plus
-dans le contrat v1.
+Recruitment publie ses événements métier sans appeler directement Engagement. Les
+événements d'opportunité et de paiement pourront débloquer une carte de conversation
+ou un appel vidéo chez un consommateur externe.
 
-## Zones protégées
+`recruitment.otp.requested.v1` contient temporairement le code et le `recipientUserId`.
+Le code est destiné à un futur listener SMS/e-mail. Aucun consommateur de livraison
+n'est actuellement présent : la génération et la vérification fonctionnent côté
+backend, mais l'utilisateur ne reçoit pas encore automatiquement le code.
 
-- Calcul du score d'évaluation côté serveur uniquement.
-- Création d'un match uniquement après deux `LIKE` opposés sur la même paire
-  candidat/offre.
-- Transitions de statuts des offres, candidatures, opportunités et paiements.
-- Migrations Flyway existantes, en particulier `V13`.
-- Absence de dépendance directe vers les couches internes d'Identity.
+### 3.4 Fournisseurs externes → Recruitment
 
-## Décisions à valider
+Les services IA et anti-fraude publient leurs résultats sur les trois callbacks. Ils
+n'utilisent pas de JWT utilisateur mais doivent fournir `X-Callback-Secret`.
 
-- Le canal de livraison effectif de `OtpRequestedEvent` (SMS, e-mail ou fournisseur
-  externe) reste à brancher dans le module responsable de la communication.
-- Le paiement actuel enregistre uniquement le résumé de carte (`last4`, type) et ne
-  contacte pas encore un PSP ; le choix du fournisseur reste une décision produit.
-- Le mobile n'appelle actuellement aucun endpoint Recruitment. Son intégration doit
-  être planifiée avant de considérer les parcours Recruitment disponibles aux clients.
-- Une vue candidat expurgée des réponses correctes est nécessaire avant d'exposer les
-  questions d'une évaluation dans le mobile.
+## 4. Authentification et autorisation
 
-## Tests et garde-fous
+La surface de 40 opérations se répartit ainsi :
 
-- Parité automatique entre les routes runtime et les deux contrats OpenAPI.
-- Vérification que les 40 opérations Recruitment sont protégées ou explicitement publiques.
-- Tests de propriété des swipes, états métier, OTP, callbacks et projection Identity.
-- ArchUnit interdit les dépendances de couches et de modules non autorisées.
+- 35 opérations privées avec JWT ;
+- 2 opérations publiques de consultation des offres actives ;
+- 3 callbacks protégés par secret partagé.
 
-## Roadmap
+Les annotations locales sont :
 
-1. Brancher un consommateur sécurisé de `OtpRequestedEvent` avec rate limiting.
-2. Ajouter les écrans et repositories mobile Recruitment à partir du contrat généré.
-3. Exposer une projection d'évaluation candidat sans `correctOptionIndex`.
+- `RecruiterOnly` : JWT recruteur et acteur toujours actif ;
+- `CandidateOrStudentOnly` : JWT candidat ou étudiant et acteur actif ;
+- `Authenticated` : JWT valide, acteur actif, puis contrôle de propriété dans le cas d'usage ;
+- `PreAuthorize` conditionnel pour le swipe candidat ou recruteur.
+
+L'identité agissante vient toujours du `sub` du JWT. Les requêtes ne peuvent pas
+choisir leur `recruiterId`, `candidateId` ou `swiperId`. Les identifiants de cible
+restent autorisés lorsqu'ils représentent réellement l'objet métier visé.
+
+## 5. Inventaire complet des endpoints
+
+Légende : `JWT R` = recruteur, `JWT C/S` = candidat ou étudiant, `JWT Auth` = tout
+acteur authentifié avec contrôle de propriété, `Secret` = `X-Callback-Secret`.
+
+### 5.1 Offres d'emploi — 7 opérations
+
+| Méthode | Route | Accès | Comportement et propriété |
+|---|---|---|---|
+| GET | `/job-offers` | Public | Recherche paginée des offres `ACTIVE` uniquement |
+| POST | `/job-offers` | JWT R | Crée une offre pour le recruteur du JWT |
+| GET | `/recruiters/me/job-offers` | JWT R | Liste uniquement les offres du recruteur connecté |
+| GET | `/job-offers/{jobOfferId}` | Public | Retourne le détail uniquement si l'offre est `ACTIVE` |
+| PATCH | `/job-offers/{jobOfferId}` | JWT R | Modifie uniquement une offre appartenant au recruteur |
+| DELETE | `/job-offers/{jobOfferId}` | JWT R | Supprime une offre autorisée du recruteur propriétaire |
+| PATCH | `/job-offers/{jobOfferId}/status` | JWT R | Applique une transition de statut valide sur une offre possédée |
+
+### 5.2 Swipes et matchs — 5 opérations
+
+| Méthode | Route | Accès | Comportement et propriété |
+|---|---|---|---|
+| POST | `/swipes` | JWT C/S ou R | Le candidat swipe une offre ; le recruteur swipe un candidat pour sa propre offre |
+| DELETE | `/swipes/{swipeId}` | JWT Auth | Annule uniquement le swipe de l'acteur connecté et nettoie le match associé |
+| GET | `/swipes/targets` | JWT Auth | Retourne les cibles déjà swipées par l'acteur du JWT |
+| GET | `/candidates/me/matches` | JWT C/S | Liste les matchs du candidat connecté |
+| GET | `/recruiters/me/matches` | JWT R | Liste les matchs du recruteur, avec filtre optionnel par offre |
+
+Un match est créé uniquement après deux `LIKE` opposés portant sur la même paire
+`candidateId + jobOfferId`.
+
+### 5.3 Scores de compatibilité — 1 opération
+
+| Méthode | Route | Accès | Comportement et propriété |
+|---|---|---|---|
+| GET | `/fit-scores` | JWT Auth | Le candidat lit son score ; le recruteur doit posséder l'offre concernée |
+
+### 5.4 Évaluations — 6 opérations
+
+| Méthode | Route | Accès | Comportement et propriété |
+|---|---|---|---|
+| GET | `/assessments` | JWT R | Liste les évaluations du recruteur connecté |
+| POST | `/assessments` | JWT R | Crée une évaluation et ses questions pour le recruteur |
+| GET | `/assessments/mine` | JWT R | Alias historique de la liste des évaluations personnelles |
+| GET | `/assessments/{assessmentId}` | JWT R | Retourne une évaluation appartenant au recruteur |
+| PUT | `/assessments/{assessmentId}` | JWT R | Modifie une évaluation possédée |
+| DELETE | `/assessments/{assessmentId}` | JWT R | Supprime une évaluation non référencée par une offre |
+
+Les réponses correctes restent réservées au recruteur. Une projection candidat sans
+`correctOptionIndex` doit être créée avant d'exposer les questions au mobile.
+
+### 5.5 Tentatives d'évaluation — 3 opérations
+
+| Méthode | Route | Accès | Comportement et propriété |
+|---|---|---|---|
+| POST | `/assessment-attempts` | JWT C/S | Soumet une tentative pour le candidat du JWT et calcule le score côté serveur |
+| GET | `/assessment-attempts` | JWT R | Liste les résultats d'une offre appartenant au recruteur |
+| GET | `/assessment-attempts/{attemptId}` | JWT Auth | Lecture par le candidat concerné ou le recruteur propriétaire de l'offre |
+
+Une seule tentative est autorisée par candidat, évaluation et offre. L'évaluation doit
+être assignée à l'offre avant la soumission.
+
+### 5.6 Candidatures — 5 opérations
+
+| Méthode | Route | Accès | Comportement et propriété |
+|---|---|---|---|
+| GET | `/candidates/me/applications` | JWT C/S | Liste uniquement les candidatures du candidat connecté |
+| POST | `/applications` | JWT C/S | Postule à une offre active ; les doublons retournent `409` |
+| GET | `/applications/{applicationId}` | JWT Auth | Lecture par le candidat ou le recruteur propriétaire de l'offre |
+| PATCH | `/applications/{applicationId}/status` | JWT R | Change le statut si le recruteur possède l'offre |
+| GET | `/job-offers/{jobOfferId}/applications` | JWT R | Liste les candidatures d'une offre possédée |
+
+### 5.7 Offres d'opportunité — 5 opérations
+
+| Méthode | Route | Accès | Comportement et propriété |
+|---|---|---|---|
+| POST | `/job-opportunity-offers` | JWT R | Envoie une opportunité depuis une offre possédée |
+| GET | `/job-opportunity-offers/{offerId}` | JWT Auth | Lecture réservée au recruteur émetteur ou au candidat destinataire |
+| POST | `/job-opportunity-offers/{offerId}/confirm` | JWT C/S | Le candidat destinataire demande la confirmation et l'OTP |
+| POST | `/job-opportunity-offers/{offerId}/verify-otp` | JWT C/S | Vérifie l'OTP à usage unique et confirme l'opportunité |
+| POST | `/job-opportunity-offers/{offerId}/reject` | JWT C/S | Rejette l'opportunité pour le candidat destinataire |
+
+### 5.8 Vérification d'identité — 2 opérations
+
+| Méthode | Route | Accès | Comportement et propriété |
+|---|---|---|---|
+| POST | `/identity-verifications` | JWT R | Demande une vérification pour une offre appartenant au recruteur |
+| GET | `/identity-verifications/{verificationId}` | JWT Auth | Lecture par le recruteur demandeur ou le candidat concerné |
+
+### 5.9 Paiement de visioconférence — 3 opérations
+
+| Méthode | Route | Accès | Comportement et propriété |
+|---|---|---|---|
+| POST | `/payments` | JWT R | Initie un paiement pour un match appartenant au recruteur et génère un OTP |
+| GET | `/payments/{paymentId}` | JWT R | Retourne uniquement un paiement du recruteur connecté |
+| POST | `/payments/{paymentId}/verify-otp` | JWT R | Vérifie l'OTP et confirme le paiement possédé |
+
+Le paiement actuel conserve seulement `last4` et le type de carte. Aucun numéro complet
+n'est persisté et aucun PSP réel n'est encore appelé.
+
+### 5.10 Callbacks externes — 3 opérations
+
+| Méthode | Route | Accès | Comportement |
+|---|---|---|---|
+| POST | `/callbacks/integrity` | Secret | Résultat anti-fraude d'une tentative d'évaluation |
+| POST | `/callbacks/identity-verification` | Secret | Résultat d'une vérification d'identité |
+| POST | `/callbacks/fit-score` | Secret | Score de compatibilité calculé par le fournisseur externe |
+
+Un callback répété avec le même résultat est idempotent et retourne `200`. Un résultat
+contradictoire retourne `409`. Un secret absent, incorrect ou non configuré retourne `401`.
+
+## 6. Parcours métier principaux
+
+### 6.1 Parcours offre et candidature
+
+1. Le recruteur crée une offre ; son identité vient du JWT.
+2. Le candidat consulte les offres actives.
+3. Il peut swiper l'offre ou déposer directement une candidature.
+4. Le recruteur propriétaire consulte les candidatures.
+5. La candidature suit la machine à états autorisée.
+
+### 6.2 Parcours de match
+
+1. Le candidat envoie `LIKE` sur une offre active.
+2. Le recruteur envoie `LIKE` sur le candidat pour cette même offre.
+3. Recruitment crée un match unique et publie `recruitment.match.created`.
+
+### 6.3 Parcours d'évaluation
+
+1. Le recruteur crée une évaluation puis l'assigne à son offre.
+2. Le candidat soumet les indices de réponses, jamais un score calculé.
+3. Recruitment calcule et persiste le score.
+4. Le fournisseur anti-fraude complète ensuite `integrityStatus` par callback.
+
+### 6.4 Parcours OTP
+
+1. Une confirmation d'opportunité ou un paiement déclenche la génération d'un code.
+2. Seul le hash SHA-256 salé est persisté dans `recruitment.otp_challenges`.
+3. `OtpRequestedEvent` est publié pour la livraison future.
+4. L'utilisateur renvoie le code sur l'endpoint `/verify-otp` correspondant.
+5. Le backend vérifie destinataire, hash, expiration, essais restants et usage unique.
+
+## 7. Machines à états protégées
+
+### Offre
+
+```text
+DRAFT → ACTIVE → HIDDEN → ACTIVE
+           └────→ CLOSED
+HIDDEN ─────────→ CLOSED
+```
+
+### Candidature
+
+```text
+PENDING → SHORTLISTED → APPROVED
+   └────────┴────────→ REJECTED
+```
+
+Les opportunités utilisent `PENDING`, `CONFIRMED`, `REJECTED`. Les paiements utilisent
+`PENDING`, `OTP_SENT`, `CONFIRMED`, `FAILED`.
+
+## 8. Événements de domaine
+
+| Événement | Rôle |
+|---|---|
+| `recruitment.joboffer.created` | Signale la création d'une offre |
+| `recruitment.joboffer.status_changed` | Signale une transition de statut |
+| `recruitment.swipe.recorded` | Signale un swipe enregistré |
+| `recruitment.match.created` | Signale un match mutuel |
+| `recruitment.application.submitted` | Signale une nouvelle candidature |
+| `recruitment.assessment_attempt.submitted` | Signale une tentative calculée |
+| `recruitment.opportunity_offer.sent` | Signale une opportunité envoyée |
+| `recruitment.opportunity_offer.confirmed` | Signale sa confirmation |
+| `recruitment.identity_verification.requested` | Demande un traitement anti-fraude |
+| `recruitment.payment.confirmed` | Autorise le futur déblocage de la visioconférence |
+| `recruitment.otp.requested.v1` | Demande la livraison éphémère d'un OTP |
+
+La présence d'un événement ne signifie pas qu'un consommateur Engagement, SMS ou
+Analytics est déjà branché. Les consommateurs existants doivent être vérifiés séparément.
+
+## 9. Base de données et migrations
+
+Le module utilise le schéma PostgreSQL `recruitment`.
+
+| Migration | Contenu | Règle |
+|---|---|---|
+| `V2__recruitment_applications.sql` | Première table de candidatures | Migration historique immuable |
+| `V13__recruitment_full_schema.sql` | Offres, swipes, matchs, scores, évaluations, opportunités et paiements | Zone protégée, ne jamais modifier |
+| `V14__recruitment_actor_projection.sql` | Projection des rôles et états Identity | Nouvelle migration appliquée |
+| `V15__recruitment_otp_challenges.sql` | OTP hashés, expiration et essais | Nouvelle migration appliquée |
+
+Hibernate fonctionne avec `ddl-auto: validate`. Toute évolution utilise une nouvelle
+migration Flyway ; aucune migration déjà appliquée ne doit être réécrite.
+
+## 10. Configuration
+
+```env
+RECRUITMENT_CALLBACK_SECRET=<secret-aléatoire-partagé>
+RECRUITMENT_OTP_TTL=PT10M
+RECRUITMENT_OTP_MAX_ATTEMPTS=5
+```
+
+| Variable | Fonction |
+|---|---|
+| `RECRUITMENT_CALLBACK_SECRET` | Secret partagé avec les fournisseurs de callback ; vide = callbacks refusés |
+| `RECRUITMENT_OTP_TTL` | Durée ISO-8601 de validité du code, dix minutes par défaut |
+| `RECRUITMENT_OTP_MAX_ATTEMPTS` | Nombre maximal de codes incorrects, cinq par défaut |
+
+Ces variables configurent la sécurité et la vérification ; elles ne connectent pas à
+elles seules un fournisseur SMS ou e-mail.
+
+## 11. Erreurs HTTP principales
+
+| Code | Signification |
+|---|---|
+| `400` | Corps, paramètre, transition ou fichier invalide |
+| `401` | JWT absent/invalide ou secret callback incorrect |
+| `403` | Mauvais rôle, compte inactif ou ressource appartenant à un autre acteur |
+| `404` | Ressource absente ou volontairement masquée |
+| `409` | Doublon ou résultat callback contradictoire |
+| `429` | Limite externe atteinte lorsqu'elle s'applique |
+| `503` | Fournisseur externe indispensable indisponible |
+
+## 12. Tests et garde-fous
+
+- Parité automatique entre les 40 routes runtime et le contrat OpenAPI.
+- Vérification que chaque endpoint est protégé ou explicitement public.
+- Tests des rôles, propriétés, swipes, états métier, OTP, callbacks et projection Identity.
+- Tests live avec JWT pour les principaux parcours et tentatives d'IDOR.
+- ArchUnit vérifie les frontières de couches et de modules.
+- Flyway valide les migrations jusqu'à V15.
+
+## 13. Zones protégées
+
+- Calcul des scores côté serveur uniquement.
+- Match créé uniquement après deux `LIKE` opposés sur la même paire.
+- Transitions des offres, candidatures, opportunités et paiements.
+- Propriété des ressources déduite du JWT.
+- Secret des callbacks et stockage hashé des OTP.
+- Migrations Flyway existantes, en particulier V13.
+- Absence d'appel direct vers les couches internes d'Identity ou Engagement.
+
+## 14. Décisions à valider et roadmap
+
+1. Choisir le canal et le fournisseur de livraison de `OtpRequestedEvent`.
+2. Définir le module qui résout `recipientUserId` vers un téléphone ou un e-mail sans
+   introduire d'appel direct entre bounded contexts.
+3. Ajouter une vue candidat des évaluations sans réponses correctes.
 4. Intégrer le PSP et remplacer le paiement simulé.
-5. Réintroduire les fonctions différées uniquement en contract-first.
+5. Connecter le mobile aux endpoints Recruitment.
+6. Ajouter les consommateurs Engagement des événements d'opportunité et de paiement.
+7. Réintroduire génération IA, dashboard ou recherche de candidats uniquement en
+   contract-first lorsqu'ils auront un runtime réel.
 
-## Changelog
+## 15. Changelog
 
 1. 2026-07-14 — Création de la documentation du module ; contrat aligné sur les 40
    routes runtime ; sécurité par rôle/propriété, projection Identity, callbacks signés
    et OTP persistants ajoutés ; couverture de contrat et de sécurité installée. La revue
    `claude -p` a ensuite verrouillé le détail public aux seules offres actives.
+2. 2026-07-14 — Documentation étendue avec l'inventaire complet des 40 endpoints,
+   les règles d'accès, les parcours métier, les machines à états, les événements, les
+   migrations, la configuration et les relations intermodules actuelles ou planifiées.
