@@ -2,8 +2,8 @@ package com.zennyt.identity.api;
 
 
 import com.zennyt.identity.api.security.CandidateOrStudentOnly;
-import com.zennyt.identity.infrastructure.ai.GroqCvParser;
-import com.zennyt.shared.application.exception.BadRequestException;
+import com.zennyt.identity.application.ParseCvUseCase;
+import com.zennyt.identity.application.model.CvParseData;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,24 +19,31 @@ import static com.zennyt.identity.api.IdentityDtos.CvParseResult;
 @RequiredArgsConstructor
 public class CvParseController {
 
-    private final GroqCvParser cvParser;
+    private final ParseCvUseCase parseCv;
 
     @PostMapping
     @CandidateOrStudentOnly
     public CvParseResult parseCv(@Valid @RequestBody CvParseRequest request) {
-        if (request.text() == null || request.text().trim().isEmpty()) {
-            throw new BadRequestException("Le texte du CV ne peut pas être vide.");
-        }
-        
-        String cleanText = request.text().replaceAll("[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]", "");
-        
-        if (cleanText.length() > 50000) {
-            throw new BadRequestException("Le texte du CV est trop long (limite de 50 000 caractères).");
-        }
-        
-        // Note: For rate limiting, a simple DB or Redis counter should be implemented here in a production environment.
-        // For MVP, we assume it's enforced externally (e.g. API Gateway) or can be added later.
-        
-        return cvParser.parseCv(cleanText, request.language());
+        return toResponse(parseCv.execute(request.text(), request.language()));
+    }
+
+    private static CvParseResult toResponse(CvParseData data) {
+        return new CvParseResult(
+            data.isValidCv(), data.currentPosition(), data.aboutMe(), data.yearsOfExperience(),
+            data.skills() == null ? null : data.skills().stream()
+                .map(v -> new com.zennyt.identity.api.IdentityDtos.SkillRequest(
+                    v.name(), v.type(), v.level())).toList(),
+            data.positions() == null ? null : data.positions().stream()
+                .map(v -> new com.zennyt.identity.api.IdentityDtos.PositionRequest(
+                    v.title(), v.companyName(), v.location(), v.description(),
+                    v.startDate(), v.endDate(), v.current())).toList(),
+            data.education() == null ? null : data.education().stream()
+                .map(v -> new com.zennyt.identity.api.IdentityDtos.EducationRequest(
+                    v.degree(), v.school(), v.fieldOfStudy(), v.description(),
+                    v.startDate(), v.endDate())).toList(),
+            data.certifications() == null ? null : data.certifications().stream()
+                .map(v -> new com.zennyt.identity.api.IdentityDtos.CertificationRequest(
+                    v.title(), v.issuer(), v.completionDate(),
+                    v.credentialId(), v.credentialUrl())).toList());
     }
 }

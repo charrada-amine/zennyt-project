@@ -10,7 +10,6 @@ import '../../../../core/error/api_exception.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/upload/file_picking.dart';
 import '../../../../core/upload/picked_file.dart';
-import '../../../../core/upload/upload_service.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../auth/presentation/auth_controller.dart';
 import '../../../auth/presentation/signup/viewmodel/signup_viewmodel.dart';

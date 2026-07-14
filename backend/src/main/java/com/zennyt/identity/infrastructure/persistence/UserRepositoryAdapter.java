@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
+import java.util.List;
 import java.util.UUID;
 
 @Component
@@ -37,6 +38,11 @@ public class UserRepositoryAdapter implements UserRepository {
     @Override
     public boolean existsByEmail(String email) {
         return jpa.existsByEmailIgnoreCaseAndDeletedAtIsNull(email);
+    }
+
+    @Override
+    public List<User> findAll() {
+        return jpa.findAll().stream().map(this::toDomain).toList();
     }
 
     private UserEntity toEntity(User user) {

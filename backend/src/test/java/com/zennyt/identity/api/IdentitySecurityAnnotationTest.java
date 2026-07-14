@@ -15,9 +15,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class IdentitySecurityAnnotationTest {
     @Test
-    void authControllerMarksOnlyCurrentUserAsAuthenticated() {
+    void authControllerProtectsCurrentUserAndPasswordChange() {
         assertThat(annotatedMethods(AuthController.class, Authenticated.class))
-            .containsExactly("me");
+            .containsExactlyInAnyOrder("me", "changePassword");
         assertThat(annotatedMethods(AuthController.class, CandidateOrStudentOnly.class)).isEmpty();
         assertThat(annotatedMethods(AuthController.class, RecruiterOnly.class)).isEmpty();
     }
@@ -28,13 +28,17 @@ class IdentitySecurityAnnotationTest {
             .containsExactlyInAnyOrder(
                 "createCandidateStudent", "getCandidateStudent", "updateCandidateStudent");
         assertThat(annotatedMethods(OnboardingController.class, RecruiterOnly.class))
-            .containsExactlyInAnyOrder("createRecruiter", "getRecruiter", "updateRecruiter");
+            .containsExactlyInAnyOrder(
+                "createRecruiter", "getRecruiter", "updateRecruiter",
+                "uploadCompanyLogo", "deleteCompanyLogo");
     }
 
     @Test
     void profileControllerSeparatesAccountAndProfessionalProfileAccess() {
         assertThat(annotatedMethods(ProfileController.class, Authenticated.class))
-            .containsExactlyInAnyOrder("updateUser", "changeRole");
+            .containsExactlyInAnyOrder(
+                "updateUser", "uploadAvatar", "deleteAvatar",
+                "deactivateAccount", "deleteAccount", "changeRole");
         assertThat(annotatedMethods(ProfileController.class, CandidateOrStudentOnly.class))
             .containsExactlyInAnyOrder(
                 "createProfile", "getProfile", "updateProfile",
@@ -42,7 +46,8 @@ class IdentitySecurityAnnotationTest {
                 "positions", "addPosition", "updatePosition", "deletePosition",
                 "certifications", "addCertification", "updateCertification",
                 "deleteCertification",
-                "education", "addEducation", "updateEducation", "deleteEducation");
+                "education", "addEducation", "updateEducation", "deleteEducation",
+                "uploadCv", "deleteCv");
     }
 
     @Test

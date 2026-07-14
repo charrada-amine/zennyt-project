@@ -49,18 +49,9 @@ public class ProfileController {
     @Authenticated
     public UserResponse uploadAvatar(@CurrentUserId UUID userId,
                                      @RequestParam("file") MultipartFile file) {
-        if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("Le fichier image est obligatoire");
-        }
-        if (!ALLOWED_IMAGE_TYPES.contains(file.getContentType())) {
-            throw new IllegalArgumentException("Format d'image non supporté (PNG, JPEG ou WEBP attendu)");
-        }
-        try {
-            return UserResponse.from(identity.uploadAvatar(userId, file.getBytes(),
-                file.getOriginalFilename(), file.getContentType()));
-        } catch (IOException e) {
-            throw new UncheckedIOException("Échec de la lecture du fichier image", e);
-        }
+        byte[] content = UploadValidation.image(file, "image");
+        return UserResponse.from(identity.uploadAvatar(userId, content,
+            file.getOriginalFilename(), file.getContentType()));
     }
 
     @DeleteMapping("/users/me/avatar")
@@ -120,18 +111,9 @@ public class ProfileController {
     @CandidateOrStudentOnly
     public ProfileResponse uploadCv(@CurrentUserId UUID userId,
                                     @RequestParam("file") MultipartFile file) {
-        if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("Le fichier CV est obligatoire");
-        }
-        if (!ALLOWED_CV_TYPES.contains(file.getContentType())) {
-            throw new IllegalArgumentException("Format de CV non supporté (PDF, DOC ou DOCX attendu)");
-        }
-        try {
-            return ProfileResponse.from(identity.uploadCv(userId, file.getBytes(),
-                file.getOriginalFilename(), file.getContentType()));
-        } catch (IOException e) {
-            throw new UncheckedIOException("Échec de la lecture du fichier CV", e);
-        }
+        byte[] content = UploadValidation.cv(file);
+        return ProfileResponse.from(identity.uploadCv(userId, content,
+            file.getOriginalFilename(), file.getContentType()));
     }
 
     @DeleteMapping("/profiles/me/cv")

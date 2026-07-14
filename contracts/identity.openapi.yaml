@@ -24,6 +24,7 @@ security:
 paths:
   /auth/register:
     post:
+      operationId: postAuthRegister
       tags: [Auth]
       summary: Create a local account
       security: []
@@ -43,6 +44,7 @@ paths:
 
   /auth/login:
     post:
+      operationId: postAuthLogin
       tags: [Auth]
       summary: Authenticate with email and password
       security: []
@@ -62,6 +64,7 @@ paths:
 
   /auth/social:
     post:
+      operationId: postAuthSocial
       tags: [Auth]
       summary: Authenticate with a Google or Apple ID token
       description: >
@@ -85,6 +88,7 @@ paths:
 
   /auth/refresh:
     post:
+      operationId: postAuthRefresh
       tags: [Auth]
       summary: Rotate a refresh token and issue a new token pair
       security: []
@@ -103,6 +107,7 @@ paths:
 
   /auth/logout:
     post:
+      operationId: postAuthLogout
       tags: [Auth]
       summary: Revoke a refresh token
       security: []
@@ -117,6 +122,7 @@ paths:
 
   /auth/change-password:
     post:
+      operationId: postAuthChangePassword
       tags: [Auth]
       summary: Change the password of the authenticated account
       requestBody:
@@ -131,6 +137,7 @@ paths:
 
   /auth/forgot-password:
     post:
+      operationId: postAuthForgotPassword
       tags: [Auth]
       summary: Request a password reset code by email
       description: >-
@@ -149,6 +156,7 @@ paths:
 
   /auth/reset-password:
     post:
+      operationId: postAuthResetPassword
       tags: [Auth]
       summary: Reset the password using the emailed OTP code
       security: []
@@ -163,6 +171,7 @@ paths:
 
   /auth/me:
     get:
+      operationId: getAuthMe
       tags: [Auth]
       summary: Get the authenticated account
       responses:
@@ -175,6 +184,7 @@ paths:
 
   /users/me:
     put:
+      operationId: putUsersMe
       tags: [Users]
       summary: Update common account fields
       requestBody:
@@ -190,6 +200,7 @@ paths:
               schema: { $ref: '#/components/schemas/User' }
         '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
     delete:
+      operationId: deleteUsersMe
       tags: [Users]
       summary: Delete the current account (soft delete and anonymization)
       responses:
@@ -198,6 +209,7 @@ paths:
 
   /users/me/avatar:
     post:
+      operationId: postUsersMeAvatar
       tags: [Users]
       summary: Upload (or replace) the current account avatar
       requestBody:
@@ -221,6 +233,7 @@ paths:
         '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
         '404': { $ref: './common.openapi.yaml#/components/responses/NotFound' }
     delete:
+      operationId: deleteUsersMeAvatar
       tags: [Users]
       summary: Remove the current account avatar
       responses:
@@ -233,6 +246,7 @@ paths:
 
   /users/me/deactivate:
     post:
+      operationId: postUsersMeDeactivate
       tags: [Users]
       summary: Deactivate the current account (reversible at next login)
       responses:
@@ -241,6 +255,7 @@ paths:
 
   /users/me/role:
     patch:
+      operationId: patchUsersMeRole
       tags: [Users]
       summary: Change the account role
       requestBody:
@@ -262,6 +277,7 @@ paths:
 
   /onboarding/candidate-student:
     post:
+      operationId: postOnboardingCandidateStudent
       tags: [Onboarding]
       summary: Create candidate or student onboarding information
       requestBody:
@@ -280,6 +296,7 @@ paths:
 
   /onboarding/candidate-student/me:
     get:
+      operationId: getOnboardingCandidateStudentMe
       tags: [Onboarding]
       summary: Get current candidate or student onboarding information
       responses:
@@ -290,6 +307,7 @@ paths:
               schema: { $ref: '#/components/schemas/CandidateStudentOnboarding' }
         '404': { $ref: './common.openapi.yaml#/components/responses/NotFound' }
     put:
+      operationId: putOnboardingCandidateStudentMe
       tags: [Onboarding]
       summary: Update current candidate or student onboarding information
       requestBody:
@@ -306,6 +324,7 @@ paths:
 
   /onboarding/recruiter:
     post:
+      operationId: postOnboardingRecruiter
       tags: [Onboarding]
       summary: Create recruiter onboarding information
       requestBody:
@@ -324,6 +343,7 @@ paths:
 
   /onboarding/recruiter/me:
     get:
+      operationId: getOnboardingRecruiterMe
       tags: [Onboarding]
       summary: Get current recruiter onboarding information
       responses:
@@ -334,6 +354,7 @@ paths:
               schema: { $ref: '#/components/schemas/RecruiterOnboarding' }
         '404': { $ref: './common.openapi.yaml#/components/responses/NotFound' }
     put:
+      operationId: putOnboardingRecruiterMe
       tags: [Onboarding]
       summary: Update current recruiter onboarding information
       requestBody:
@@ -350,6 +371,7 @@ paths:
 
   /onboarding/recruiter/me/logo:
     post:
+      operationId: postOnboardingRecruiterMeLogo
       tags: [Onboarding]
       summary: Upload (or replace) the company logo
       requestBody:
@@ -373,6 +395,7 @@ paths:
         '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
         '404': { $ref: './common.openapi.yaml#/components/responses/NotFound' }
     delete:
+      operationId: deleteOnboardingRecruiterMeLogo
       tags: [Onboarding]
       summary: Remove the company logo
       responses:
@@ -385,6 +408,7 @@ paths:
 
   /profiles:
     post:
+      operationId: postProfiles
       tags: [Profiles]
       summary: Create the current candidate or student profile
       requestBody:
@@ -403,6 +427,7 @@ paths:
 
   /profiles/me:
     get:
+      operationId: getProfilesMe
       tags: [Profiles]
       summary: Get the current professional profile
       responses:
@@ -413,6 +438,7 @@ paths:
               schema: { $ref: '#/components/schemas/Profile' }
         '404': { $ref: './common.openapi.yaml#/components/responses/NotFound' }
     put:
+      operationId: putProfilesMe
       tags: [Profiles]
       summary: Update the current professional profile
       requestBody:
@@ -429,6 +455,7 @@ paths:
 
   /profiles/me/cv:
     post:
+      operationId: postProfilesMeCv
       tags: [Profiles]
       summary: Upload (or replace) the current profile's CV
       requestBody:
@@ -452,6 +479,7 @@ paths:
         '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
         '404': { $ref: './common.openapi.yaml#/components/responses/NotFound' }
     delete:
+      operationId: deleteProfilesMeCv
       tags: [Profiles]
       summary: Remove the current profile's CV
       responses:
@@ -464,6 +492,7 @@ paths:
 
   /profiles/me/cv/parse:
     post:
+      operationId: postProfilesMeCvParse
       tags: [Profiles]
       summary: Extract structured profile data from CV text using AI
       requestBody:
@@ -478,9 +507,14 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/CvParseResult' }
         '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
+        '429':
+          description: AI provider quota or rate limit reached
+        '503':
+          description: CV parsing provider is not configured or temporarily unavailable
 
   /profiles/{profileId}:
     get:
+      operationId: getProfilesByProfileid
       tags: [Profiles]
       summary: Get a professional profile by ID
       parameters:
@@ -495,6 +529,7 @@ paths:
 
   /profiles/me/skills:
     get:
+      operationId: getProfilesMeSkills
       tags: [Profiles]
       summary: List skills, optionally filtered by type
       parameters:
@@ -510,6 +545,7 @@ paths:
                 type: array
                 items: { $ref: '#/components/schemas/Skill' }
     post:
+      operationId: postProfilesMeSkills
       tags: [Profiles]
       summary: Add a skill
       requestBody:
@@ -526,6 +562,7 @@ paths:
 
   /profiles/me/skills/{id}:
     put:
+      operationId: putProfilesMeSkillsById
       tags: [Profiles]
       summary: Update a skill
       parameters:
@@ -542,6 +579,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Skill' }
     delete:
+      operationId: deleteProfilesMeSkillsById
       tags: [Profiles]
       summary: Delete a skill
       parameters:
@@ -551,6 +589,7 @@ paths:
 
   /profiles/me/positions:
     get:
+      operationId: getProfilesMePositions
       tags: [Profiles]
       summary: List positions
       responses:
@@ -562,6 +601,7 @@ paths:
                 type: array
                 items: { $ref: '#/components/schemas/Position' }
     post:
+      operationId: postProfilesMePositions
       tags: [Profiles]
       summary: Add a position
       requestBody:
@@ -578,6 +618,7 @@ paths:
 
   /profiles/me/positions/{id}:
     put:
+      operationId: putProfilesMePositionsById
       tags: [Profiles]
       summary: Update a position
       parameters:
@@ -594,6 +635,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Position' }
     delete:
+      operationId: deleteProfilesMePositionsById
       tags: [Profiles]
       summary: Delete a position
       parameters:
@@ -603,6 +645,7 @@ paths:
 
   /profiles/me/certifications:
     get:
+      operationId: getProfilesMeCertifications
       tags: [Profiles]
       summary: List certifications
       responses:
@@ -614,6 +657,7 @@ paths:
                 type: array
                 items: { $ref: '#/components/schemas/Certification' }
     post:
+      operationId: postProfilesMeCertifications
       tags: [Profiles]
       summary: Add a certification
       requestBody:
@@ -630,6 +674,7 @@ paths:
 
   /profiles/me/certifications/{id}:
     put:
+      operationId: putProfilesMeCertificationsById
       tags: [Profiles]
       summary: Update a certification
       parameters:
@@ -646,6 +691,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Certification' }
     delete:
+      operationId: deleteProfilesMeCertificationsById
       tags: [Profiles]
       summary: Delete a certification
       parameters:
@@ -655,6 +701,7 @@ paths:
 
   /profiles/me/education:
     get:
+      operationId: getProfilesMeEducation
       tags: [Profiles]
       summary: List education records
       responses:
@@ -666,6 +713,7 @@ paths:
                 type: array
                 items: { $ref: '#/components/schemas/Education' }
     post:
+      operationId: postProfilesMeEducation
       tags: [Profiles]
       summary: Add an education record
       requestBody:
@@ -682,6 +730,7 @@ paths:
 
   /profiles/me/education/{id}:
     put:
+      operationId: putProfilesMeEducationById
       tags: [Profiles]
       summary: Update an education record
       parameters:
@@ -698,6 +747,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Education' }
     delete:
+      operationId: deleteProfilesMeEducationById
       tags: [Profiles]
       summary: Delete an education record
       parameters:

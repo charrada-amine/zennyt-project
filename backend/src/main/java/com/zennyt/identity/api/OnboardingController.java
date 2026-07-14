@@ -87,18 +87,9 @@ public class OnboardingController {
     @RecruiterOnly
     public RecruiterOnboardingResponse uploadCompanyLogo(@CurrentUserId UUID userId,
                                                          @RequestParam("file") MultipartFile file) {
-        if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("Le fichier logo est obligatoire");
-        }
-        if (!ALLOWED_IMAGE_TYPES.contains(file.getContentType())) {
-            throw new IllegalArgumentException("Format d'image non supporté (PNG, JPEG ou WEBP attendu)");
-        }
-        try {
-            return RecruiterOnboardingResponse.from(identity.uploadCompanyLogo(userId,
-                file.getBytes(), file.getOriginalFilename(), file.getContentType()));
-        } catch (IOException e) {
-            throw new UncheckedIOException("Échec de la lecture du fichier logo", e);
-        }
+        byte[] content = UploadValidation.image(file, "logo");
+        return RecruiterOnboardingResponse.from(identity.uploadCompanyLogo(userId,
+            content, file.getOriginalFilename(), file.getContentType()));
     }
 
     @DeleteMapping("/recruiter/me/logo")

@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -43,7 +44,8 @@ class AuthServiceTest {
         passwordResetCodes = mock(PasswordResetCodeRepository.class);
         email = mock(EmailPort.class);
         service = new AuthService(users, passwordEncoder, mock(AuthenticationManager.class),
-            tokens, socialIdentities, verifier, passwordResetCodes, email, Duration.ofMinutes(10));
+            tokens, socialIdentities, verifier, passwordResetCodes, email, Duration.ofMinutes(10),
+            mock(ApplicationEventPublisher.class));
     }
 
     @Test

@@ -1,49 +1,98 @@
 package com.zennyt.recruitment.api;
 
-import com.zennyt.recruitment.api.dto.ApplicationResponse;
-import com.zennyt.recruitment.api.dto.SubmitApplicationRequest;
+import com.zennyt.recruitment.api.dto.*;
+import com.zennyt.recruitment.api.security.Authenticated;
+import com.zennyt.recruitment.api.security.CandidateOrStudentOnly;
+import com.zennyt.recruitment.api.security.RecruiterOnly;
 import com.zennyt.recruitment.application.command.SubmitApplicationCommand;
+import com.zennyt.recruitment.application.usecase.ApplicationAccessUseCase;
+import com.zennyt.recruitment.application.usecase.ChangeApplicationStatusUseCase;
 import com.zennyt.recruitment.application.usecase.SubmitApplicationUseCase;
 import com.zennyt.recruitment.domain.model.Application;
-import jakarta.validation.Valid;
+import com.zennyt.recruitment.domain.repository.ApplicationRepository;
+import com.zennyt.recruitment.domain.vo.ApplicationStatus;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
+import java.util.List;
 import java.util.UUID;
 
-/**
- * Contrôleur REST des candidatures.
- *
- * <p>Couche fine : il traduit la requête HTTP en commande applicative, délègue
- * au use case, et mappe le résultat en DTO de réponse. Aucune logique métier ici.
- *
- * <p>En contract-first, ce contrôleur peut implémenter l'interface générée par
- * openapi-generator depuis {@code recruitment.openapi.yaml} pour garantir la
- * conformité au contrat.
- */
+/** Contrôleur REST pour les candidatures. */
 @RestController
-@RequestMapping("/api/v1/applications")
+@RequestMapping("/api/v1")
 public class ApplicationController {
 
-    private final SubmitApplicationUseCase submitApplication;
+    private final SubmitApplicationUseCase submitUseCase;
+    private final ChangeApplicationStatusUseCase changeStatusUseCase;
+    private final ApplicationAccessUseCase accessUseCase;
+    private final ApplicationRepository applicationRepository;
 
-    public ApplicationController(SubmitApplicationUseCase submitApplication) {
-        this.submitApplication = submitApplication;
+    public ApplicationController(SubmitApplicationUseCase submitUseCase,
+                                  ChangeApplicationStatusUseCase changeStatusUseCase,
+                                  ApplicationAccessUseCase accessUseCase,
+                                  ApplicationRepository applicationRepository) {
+        this.submitUseCase = submitUseCase;
+        this.changeStatusUseCase = changeStatusUseCase;
+        this.accessUseCase = accessUseCase;
+        this.applicationRepository = applicationRepository;
     }
 
-    @PostMapping
-    public ResponseEntity<ApplicationResponse> submit(
-            @AuthenticationPrincipal Jwt jwt,
-            @Valid @RequestBody SubmitApplicationRequest request) {
-
-        UUID candidateId = UUID.fromString(jwt.getSubject());
-
-        Application app = submitApplication.execute(
-            new SubmitApplicationCommand(candidateId, request.jobId(), request.coverLetter()));
-
+    /** POST /api/v1/applications — Soumettre une candidature */
+    @PostMapping("/applications")
+    @CandidateOrStudentOnly
+    public ResponseEntity<ApplicationResponse> submit(@RequestBody SubmitApplicationRequest req, Principal principal) {
+        UUID candidateId = UUID.fromString(principal.getName());
+        Application app = submitUseCase.execute(new SubmitApplicationCommand(candidateId, req.jobOfferId()));
         return ResponseEntity.status(HttpStatus.CREATED).body(ApplicationResponse.from(app));
+    }
+
+    /** GET /api/v1/candidates/me/applications — Mes candidatures (candidat) */
+    @GetMapping("/candidates/me/applications")
+    @CandidateOrStudentOnly
+    public ResponseEntity<List<ApplicationResponse>> myApplications(
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            Principal principal) {
+        UUID candidateId = UUID.fromString(principal.getName());
+        ApplicationStatus statusEnum = status != null ? ApplicationStatus.valueOf(status) : null;
+        List<Application> apps = applicationRepository.findByCandidateId(candidateId, statusEnum, page, size);
+        return ResponseEntity.ok(apps.stream().map(ApplicationResponse::from).toList());
+    }
+
+    /** GET /api/v1/job-offers/{jobOfferId}/applications — Candidatures pour une offre (recruteur) */
+    @GetMapping("/job-offers/{jobOfferId}/applications")
+    @RecruiterOnly
+    public ResponseEntity<List<ApplicationResponse>> applicationsForJob(
+            @PathVariable UUID jobOfferId,
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            Principal principal) {
+        ApplicationStatus statusEnum = status != null ? ApplicationStatus.valueOf(status) : null;
+        UUID recruiterId = UUID.fromString(principal.getName());
+        List<Application> apps = accessUseCase.listForRecruiter(
+            jobOfferId, recruiterId, statusEnum, page, size);
+        return ResponseEntity.ok(apps.stream().map(ApplicationResponse::from).toList());
+    }
+
+    /** GET /api/v1/applications/{id} — Détail d'une candidature */
+    @GetMapping("/applications/{id}")
+    @Authenticated
+    public ResponseEntity<ApplicationResponse> getById(@PathVariable UUID id, Principal principal) {
+        UUID actorId = UUID.fromString(principal.getName());
+        return ResponseEntity.ok(ApplicationResponse.from(accessUseCase.getForActor(id, actorId)));
+    }
+
+    /** PATCH /api/v1/applications/{id}/status — Changer le statut (recruteur) */
+    @PatchMapping("/applications/{id}/status")
+    @RecruiterOnly
+    public ResponseEntity<ApplicationResponse> changeStatus(@PathVariable UUID id,
+            @RequestBody ChangeApplicationStatusRequest req, Principal principal) {
+        Application app = changeStatusUseCase.execute(
+            id, UUID.fromString(principal.getName()), req.status());
+        return ResponseEntity.ok(ApplicationResponse.from(app));
     }
 }

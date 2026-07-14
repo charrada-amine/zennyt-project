@@ -1,9 +1,10 @@
 package com.zennyt.identity.infrastructure.ai;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.zennyt.identity.api.IdentityDtos.CvParseResult;
-import com.zennyt.shared.application.exception.ServerException;
-import lombok.RequiredArgsConstructor;
+import com.zennyt.identity.application.model.CvParseData;
+import com.zennyt.identity.application.port.CvParserPort;
+import com.zennyt.shared.application.exception.RateLimitException;
+import com.zennyt.shared.application.exception.ServiceUnavailableException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -11,24 +12,35 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.HttpStatusCodeException;
 
 import java.util.List;
 import java.util.Map;
 
 @Service
 @Slf4j
-@RequiredArgsConstructor
-public class GroqCvParser {
+public class GroqCvParser implements CvParserPort {
 
-    @Value("${groq.api-key}")
-    private String apiKey;
-
-    @Value("${groq.model}")
-    private String modelName;
-
+    private final String apiKey;
+    private final String modelName;
     private final ObjectMapper objectMapper;
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
+
+    public GroqCvParser(ObjectMapper objectMapper,
+                        @Value("${groq.api-key:}") String apiKey,
+                        @Value("${groq.model:llama-3.3-70b-versatile}") String modelName,
+                        @Value("${groq.connect-timeout-ms:5000}") int connectTimeoutMs,
+                        @Value("${groq.read-timeout-ms:20000}") int readTimeoutMs) {
+        this.objectMapper = objectMapper;
+        this.apiKey = apiKey;
+        this.modelName = modelName;
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(connectTimeoutMs);
+        requestFactory.setReadTimeout(readTimeoutMs);
+        this.restTemplate = new RestTemplate(requestFactory);
+    }
 
     private static final String SYSTEM_PROMPT = """
         You are an expert CV parser and career assistant.
@@ -79,10 +91,11 @@ public class GroqCvParser {
         }
         """;
 
-    public CvParseResult parseCv(String text, String language) {
+    @Override
+    public CvParseData parse(String text, String language) {
         if (apiKey == null || apiKey.isBlank()) {
-            log.error("Groq API key is not configured.");
-            throw new ServerException("Le service d'analyse de CV n'est pas configuré.");
+            throw new ServiceUnavailableException(
+                "Le service d'analyse de CV n'est pas configuré.");
         }
 
         String url = "https://api.groq.com/openai/v1/chat/completions";
@@ -107,13 +120,14 @@ public class GroqCvParser {
 
             if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
                 log.error("Groq API returned error status: {}", response.getStatusCode());
-                throw new ServerException("Échec de l'analyse du CV.");
+                throw new ServiceUnavailableException("Échec de l'analyse du CV.");
             }
 
             var rootNode = objectMapper.readTree(response.getBody());
             var choices = rootNode.path("choices");
             if (choices.isMissingNode() || !choices.isArray() || choices.isEmpty()) {
-                throw new ServerException("Réponse inattendue de Groq (aucun candidat).");
+                throw new ServiceUnavailableException(
+                    "Réponse inattendue de Groq (aucun candidat).");
             }
             
             String jsonOutput = choices.get(0)
@@ -135,14 +149,21 @@ public class GroqCvParser {
                 jsonOutput = jsonOutput.trim();
             }
                 
-            return objectMapper.readValue(jsonOutput, CvParseResult.class);
+            return objectMapper.readValue(jsonOutput, CvParseData.class);
 
         } catch (org.springframework.web.client.HttpClientErrorException.TooManyRequests e) {
-            log.error("Groq API rate limit exceeded: {}", e.getMessage());
-            throw new com.zennyt.shared.application.exception.RateLimitException("Quota dépassé pour l'IA Groq. Veuillez patienter une minute avant de réessayer.");
+            log.warn("Groq API rate limit exceeded");
+            throw new RateLimitException(
+                "Quota dépassé pour l'IA Groq. Veuillez patienter une minute avant de réessayer.");
+        } catch (RateLimitException | ServiceUnavailableException e) {
+            throw e;
+        } catch (HttpStatusCodeException e) {
+            log.warn("Groq API returned status {}", e.getStatusCode());
+            throw new ServiceUnavailableException("Échec de l'analyse du CV.", e);
         } catch (Exception e) {
-            log.error("Error during CV parsing: ", e);
-            throw new ServerException("Une erreur est survenue lors de l'analyse du CV.");
+            log.error("Error during CV parsing", e);
+            throw new ServiceUnavailableException(
+                "Une erreur est survenue lors de l'analyse du CV.", e);
         }
     }
 }

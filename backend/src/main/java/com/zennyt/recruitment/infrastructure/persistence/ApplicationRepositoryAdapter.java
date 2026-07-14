@@ -2,18 +2,14 @@ package com.zennyt.recruitment.infrastructure.persistence;
 
 import com.zennyt.recruitment.domain.model.Application;
 import com.zennyt.recruitment.domain.repository.ApplicationRepository;
+import com.zennyt.recruitment.domain.vo.ApplicationStatus;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Adaptateur de persistance : implémente le port {@link ApplicationRepository}
- * du domaine en s'appuyant sur Spring Data JPA.
- *
- * <p>Rôle clé : convertir (mapper) entre l'agrégat {@code Application} (domaine
- * pur) et {@code ApplicationEntity} (JPA). Le domaine ne connaît jamais JPA.
- */
 @Component
 public class ApplicationRepositoryAdapter implements ApplicationRepository {
 
@@ -24,8 +20,8 @@ public class ApplicationRepositoryAdapter implements ApplicationRepository {
     }
 
     @Override
-    public Application save(Application application) {
-        ApplicationEntity entity = toEntity(application);
+    public Application save(Application a) {
+        ApplicationEntity entity = toEntity(a);
         return toDomain(jpa.save(entity));
     }
 
@@ -35,20 +31,49 @@ public class ApplicationRepositoryAdapter implements ApplicationRepository {
     }
 
     @Override
-    public boolean existsByCandidateIdAndJobId(UUID candidateId, UUID jobId) {
-        return jpa.existsByCandidateIdAndJobId(candidateId, jobId);
+    public boolean existsByCandidateIdAndJobOfferId(UUID candidateId, UUID jobOfferId) {
+        return jpa.existsByCandidateIdAndJobOfferId(candidateId, jobOfferId);
     }
 
-    // ───────────── Mappers ─────────────
+    @Override
+    public List<Application> findByCandidateId(UUID candidateId, ApplicationStatus status, int page, int size) {
+        var pageable = PageRequest.of(page, size);
+        var result = status != null
+            ? jpa.findByCandidateIdAndStatus(candidateId, status, pageable)
+            : jpa.findByCandidateId(candidateId, pageable);
+        return result.map(this::toDomain).getContent();
+    }
+
+    @Override
+    public List<Application> findByJobOfferId(UUID jobOfferId, ApplicationStatus status, int page, int size) {
+        var pageable = PageRequest.of(page, size);
+        var result = status != null
+            ? jpa.findByJobOfferIdAndStatus(jobOfferId, status, pageable)
+            : jpa.findByJobOfferId(jobOfferId, pageable);
+        return result.map(this::toDomain).getContent();
+    }
+
+    @Override
+    public long countByCandidateId(UUID candidateId, ApplicationStatus status) {
+        return status != null
+            ? jpa.countByCandidateIdAndStatus(candidateId, status)
+            : jpa.countByCandidateId(candidateId);
+    }
+
+    @Override
+    public long countByJobOfferId(UUID jobOfferId, ApplicationStatus status) {
+        return status != null
+            ? jpa.countByJobOfferIdAndStatus(jobOfferId, status)
+            : jpa.countByJobOfferId(jobOfferId);
+    }
+
     private ApplicationEntity toEntity(Application a) {
-        return new ApplicationEntity(
-            a.id(), a.candidateId(), a.jobId(), a.coverLetter(),
+        return new ApplicationEntity(a.id(), a.candidateId(), a.jobOfferId(),
             a.status(), a.appliedAt(), a.updatedAt());
     }
 
     private Application toDomain(ApplicationEntity e) {
-        return Application.rehydrate(
-            e.getId(), e.getCandidateId(), e.getJobId(), e.getCoverLetter(),
+        return Application.rehydrate(e.getId(), e.getCandidateId(), e.getJobOfferId(),
             e.getStatus(), e.getAppliedAt(), e.getUpdatedAt());
     }
 }
