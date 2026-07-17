@@ -3,6 +3,7 @@ package com.zennyt.recruitment.domain.repository;
 import com.zennyt.recruitment.domain.model.FitScore;
 
 import java.util.Optional;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -14,4 +15,8 @@ public interface FitScoreRepository {
 
     /** Score entre un candidat et une offre (calculé par l'IA). */
     Optional<FitScore> findByCandidateIdAndJobOfferId(UUID candidateId, UUID jobOfferId);
+
+    List<FitScore> findByJobOfferIdOrderByScoreDesc(UUID jobOfferId);
+
+    List<FitScore> findByCandidateIdAndJobOfferIds(UUID candidateId, List<UUID> jobOfferIds);
 }

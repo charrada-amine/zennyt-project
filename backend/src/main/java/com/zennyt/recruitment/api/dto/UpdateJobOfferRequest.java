@@ -21,7 +21,7 @@ public record UpdateJobOfferRequest(
     String fieldOfWork, String description, String responsibilities,
     String minimumQualifications, String preferredQualifications,
     String whatWeOffer, String howToApply, String companyInfo,
-    JsonNullable<UUID> assessmentId, Boolean openToInternational,
+    JsonNullable<UUID> assessmentId, Integer passingScore, Boolean openToInternational,
     JobOfferStatus status
 ) {
     public UpdateJobOfferRequest {

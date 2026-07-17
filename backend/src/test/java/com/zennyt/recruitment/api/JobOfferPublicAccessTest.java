@@ -18,7 +18,11 @@ class JobOfferPublicAccessTest {
     private final JobOfferRepository repository = mock(JobOfferRepository.class);
     private final JobOfferController controller = new JobOfferController(
         mock(CreateJobOfferUseCase.class), mock(UpdateJobOfferUseCase.class),
-        mock(ChangeJobOfferStatusUseCase.class), repository);
+        mock(ChangeJobOfferStatusUseCase.class), repository,
+        mock(com.zennyt.recruitment.domain.repository.ApplicationRepository.class),
+        mock(com.zennyt.recruitment.domain.repository.AssessmentRepository.class),
+        mock(com.zennyt.recruitment.domain.repository.FitScoreRepository.class),
+        mock(com.zennyt.recruitment.application.usecase.GetSwipeDeckUseCase.class));
 
     @Test
     void publicDetailHidesEveryNonActiveOffer() {
@@ -28,7 +32,7 @@ class JobOfferPublicAccessTest {
             JobOffer offer = mock(JobOffer.class);
             when(offer.status()).thenReturn(status);
             when(repository.findById(id)).thenReturn(Optional.of(offer));
-            assertThat(controller.getById(id).getStatusCode().value()).isEqualTo(404);
+            assertThat(controller.getById(id, null).getStatusCode().value()).isEqualTo(404);
         }
     }
 }

@@ -35,7 +35,7 @@ public class UpdateJobOfferUseCase {
         String fieldOfWork, String description, String responsibilities,
         String minimumQualifications, String preferredQualifications,
         String whatWeOffer, String howToApply, String companyInfo,
-        Optional<UUID> assessmentId, Boolean openToInternational,
+        Optional<UUID> assessmentId, Integer passingScore, Boolean openToInternational,
         JobOfferStatus status
     ) {}
 
@@ -103,6 +103,9 @@ public class UpdateJobOfferUseCase {
             cmd.companyInfo() != null ? cmd.companyInfo() : offer.companyInfo(),
             assessmentId,
             cmd.openToInternational() != null ? cmd.openToInternational() : offer.openToInternational());
+        if (cmd.passingScore() != null) {
+            offer.setPassingScore(cmd.passingScore());
+        }
 
         if (cmd.status() != null && cmd.status() != offer.status()) {
             offer.changeStatus(cmd.status());

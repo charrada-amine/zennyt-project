@@ -6,6 +6,7 @@ import com.zennyt.recruitment.domain.vo.ApplicationStatus;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.Map;
 
 /**
  * Port du repository de candidatures.
@@ -18,6 +19,8 @@ public interface ApplicationRepository {
 
     Optional<Application> findById(UUID id);
 
+    Optional<Application> findByCandidateIdAndJobOfferId(UUID candidateId, UUID jobOfferId);
+
     boolean existsByCandidateIdAndJobOfferId(UUID candidateId, UUID jobOfferId);
 
     List<Application> findByCandidateId(UUID candidateId, ApplicationStatus status, int page, int size);
@@ -27,4 +30,6 @@ public interface ApplicationRepository {
     long countByCandidateId(UUID candidateId, ApplicationStatus status);
 
     long countByJobOfferId(UUID jobOfferId, ApplicationStatus status);
+
+    Map<UUID, Long> countByJobOfferIds(List<UUID> jobOfferIds);
 }

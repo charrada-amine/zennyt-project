@@ -9,6 +9,8 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.Map;
+import java.util.HashMap;
 
 @Component
 public class ApplicationRepositoryAdapter implements ApplicationRepository {
@@ -28,6 +30,11 @@ public class ApplicationRepositoryAdapter implements ApplicationRepository {
     @Override
     public Optional<Application> findById(UUID id) {
         return jpa.findById(id).map(this::toDomain);
+    }
+
+    @Override
+    public Optional<Application> findByCandidateIdAndJobOfferId(UUID candidateId, UUID jobOfferId) {
+        return jpa.findByCandidateIdAndJobOfferId(candidateId, jobOfferId).map(this::toDomain);
     }
 
     @Override
@@ -65,6 +72,16 @@ public class ApplicationRepositoryAdapter implements ApplicationRepository {
         return status != null
             ? jpa.countByJobOfferIdAndStatus(jobOfferId, status)
             : jpa.countByJobOfferId(jobOfferId);
+    }
+
+    @Override
+    public Map<UUID, Long> countByJobOfferIds(List<UUID> jobOfferIds) {
+        if (jobOfferIds.isEmpty()) return Map.of();
+        Map<UUID, Long> counts = new HashMap<>();
+        for (Object[] row : jpa.countGroupedByJobOfferId(jobOfferIds)) {
+            counts.put((UUID) row[0], (Long) row[1]);
+        }
+        return counts;
     }
 
     private ApplicationEntity toEntity(Application a) {

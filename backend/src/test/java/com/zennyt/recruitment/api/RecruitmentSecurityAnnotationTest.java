@@ -22,10 +22,10 @@ class RecruitmentSecurityAnnotationTest {
         AssessmentController.class, CallbackController.class, FitScoreController.class,
         IdentityVerificationController.class, JobOfferController.class,
         JobOpportunityOfferController.class, MatchController.class,
-        PaymentController.class, SwipeController.class);
+        PaymentController.class, PublicTestController.class, SwipeController.class);
 
     private static final Set<String> INTENTIONALLY_PUBLIC = Set.of(
-        "JobOfferController#getById", "JobOfferController#search",
+        "JobOfferController#getById", "JobOfferController#search", "PublicTestController#getByToken",
         "CallbackController#fitScore", "CallbackController#integrity",
         "CallbackController#identity");
 
@@ -37,7 +37,7 @@ class RecruitmentSecurityAnnotationTest {
                 .map(method -> new Endpoint(type, method)))
             .toList();
 
-        assertThat(endpoints).hasSize(40);
+        assertThat(endpoints).hasSize(43);
         assertThat(endpoints)
             .allSatisfy(endpoint -> assertThat(isProtected(endpoint.method())
                 || INTENTIONALLY_PUBLIC.contains(endpoint.key()))

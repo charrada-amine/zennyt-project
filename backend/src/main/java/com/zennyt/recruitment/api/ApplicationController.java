@@ -8,6 +8,7 @@ import com.zennyt.recruitment.application.command.SubmitApplicationCommand;
 import com.zennyt.recruitment.application.usecase.ApplicationAccessUseCase;
 import com.zennyt.recruitment.application.usecase.ChangeApplicationStatusUseCase;
 import com.zennyt.recruitment.application.usecase.SubmitApplicationUseCase;
+import com.zennyt.recruitment.application.usecase.GetOfferApplicationsUseCase;
 import com.zennyt.recruitment.domain.model.Application;
 import com.zennyt.recruitment.domain.repository.ApplicationRepository;
 import com.zennyt.recruitment.domain.vo.ApplicationStatus;
@@ -28,20 +29,24 @@ public class ApplicationController {
     private final ChangeApplicationStatusUseCase changeStatusUseCase;
     private final ApplicationAccessUseCase accessUseCase;
     private final ApplicationRepository applicationRepository;
+    private final GetOfferApplicationsUseCase getOfferApplicationsUseCase;
 
     public ApplicationController(SubmitApplicationUseCase submitUseCase,
                                   ChangeApplicationStatusUseCase changeStatusUseCase,
                                   ApplicationAccessUseCase accessUseCase,
-                                  ApplicationRepository applicationRepository) {
+                                  ApplicationRepository applicationRepository,
+                                  GetOfferApplicationsUseCase getOfferApplicationsUseCase) {
         this.submitUseCase = submitUseCase;
         this.changeStatusUseCase = changeStatusUseCase;
         this.accessUseCase = accessUseCase;
         this.applicationRepository = applicationRepository;
+        this.getOfferApplicationsUseCase = getOfferApplicationsUseCase;
     }
 
     /** POST /api/v1/applications — Soumettre une candidature */
     @PostMapping("/applications")
     @CandidateOrStudentOnly
+    @Deprecated(forRemoval = true)
     public ResponseEntity<ApplicationResponse> submit(@RequestBody SubmitApplicationRequest req, Principal principal) {
         UUID candidateId = UUID.fromString(principal.getName());
         Application app = submitUseCase.execute(new SubmitApplicationCommand(candidateId, req.jobOfferId()));
@@ -65,7 +70,7 @@ public class ApplicationController {
     /** GET /api/v1/job-offers/{jobOfferId}/applications — Candidatures pour une offre (recruteur) */
     @GetMapping("/job-offers/{jobOfferId}/applications")
     @RecruiterOnly
-    public ResponseEntity<List<ApplicationResponse>> applicationsForJob(
+    public ResponseEntity<OfferApplicationsResponse> applicationsForJob(
             @PathVariable UUID jobOfferId,
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "0") int page,
@@ -73,9 +78,26 @@ public class ApplicationController {
             Principal principal) {
         ApplicationStatus statusEnum = status != null ? ApplicationStatus.valueOf(status) : null;
         UUID recruiterId = UUID.fromString(principal.getName());
-        List<Application> apps = accessUseCase.listForRecruiter(
-            jobOfferId, recruiterId, statusEnum, page, size);
-        return ResponseEntity.ok(apps.stream().map(ApplicationResponse::from).toList());
+        return ResponseEntity.ok(OfferApplicationsResponse.from(
+            getOfferApplicationsUseCase.execute(jobOfferId, recruiterId, statusEnum, page, size)));
+    }
+
+    record BestAttemptResponse(int scorePercent, boolean passed,
+                               com.zennyt.recruitment.domain.vo.IntegrityStatus integrityStatus,
+                               java.time.Instant submittedAt) {}
+    record OfferApplicationResponse(UUID applicationId, UUID candidateId,
+                                    ApplicationStatus applicationStatus,
+                                    BestAttemptResponse bestAttempt) {}
+    record OfferApplicationsResponse(long applicantCount, double successRate,
+                                     List<OfferApplicationResponse> applications) {
+        static OfferApplicationsResponse from(GetOfferApplicationsUseCase.Result result) {
+            return new OfferApplicationsResponse(result.applicantCount(), result.successRate(),
+                result.applications().stream().map(row -> new OfferApplicationResponse(
+                    row.applicationId(), row.candidateId(), row.applicationStatus(),
+                    row.bestAttempt() == null ? null : new BestAttemptResponse(
+                        row.bestAttempt().scorePercent(), row.bestAttempt().passed(),
+                        row.bestAttempt().integrityStatus(), row.bestAttempt().submittedAt()))).toList());
+        }
     }
 
     /** GET /api/v1/applications/{id} — Détail d'une candidature */

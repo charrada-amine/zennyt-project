@@ -21,5 +21,7 @@ public interface AssessmentAttemptRepository {
     /** Résultats de tous les candidats pour une offre (vue recruteur). */
     List<AssessmentAttempt> findByJobOfferId(UUID jobOfferId, int page, int size);
 
+    List<AssessmentAttempt> findAllByJobOfferId(UUID jobOfferId);
+
     long countByJobOfferId(UUID jobOfferId);
 }

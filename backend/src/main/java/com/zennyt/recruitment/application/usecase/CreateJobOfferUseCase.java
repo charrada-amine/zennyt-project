@@ -24,7 +24,7 @@ public class CreateJobOfferUseCase {
         String fieldOfWork, String description, String responsibilities,
         String minimumQualifications, String preferredQualifications,
         String whatWeOffer, String howToApply, String companyInfo,
-        UUID assessmentId, boolean openToInternational
+        UUID assessmentId, int passingScore, boolean openToInternational
     ) {}
 
     private final JobOfferRepository repository;
@@ -49,7 +49,8 @@ public class CreateJobOfferUseCase {
             }
         }
         JobOffer offer = JobOffer.create(recruiterId, cmd.title(), cmd.description(),
-            cmd.contractType(), cmd.workplaceType(), cmd.experienceLevel(), cmd.location());
+            cmd.contractType(), cmd.workplaceType(), cmd.experienceLevel(), cmd.location(),
+            cmd.passingScore());
         offer.update(cmd.title(), cmd.companyName(), cmd.location(), cmd.salary(),
             cmd.contractType(), cmd.workplaceType(), cmd.experienceLevel(), cmd.fieldOfWork(),
             cmd.description(), cmd.responsibilities(), cmd.minimumQualifications(),

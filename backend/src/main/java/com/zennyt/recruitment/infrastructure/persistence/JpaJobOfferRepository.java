@@ -13,6 +13,7 @@ public interface JpaJobOfferRepository extends JpaRepository<JobOfferEntity, UUI
     long countByRecruiterIdAndStatus(UUID recruiterId, JobOfferStatus status);
     long countByRecruiterId(UUID recruiterId);
     Page<JobOfferEntity> findByStatus(JobOfferStatus status, Pageable pageable);
+    long countByStatus(JobOfferStatus status);
     boolean existsByAssessmentId(UUID assessmentId);
 
     // CAST(:p AS string) sur chaque référence dans LOWER : sans cela PostgreSQL
@@ -24,4 +25,10 @@ public interface JpaJobOfferRepository extends JpaRepository<JobOfferEntity, UUI
            "AND (CAST(:experienceLevel AS string) IS NULL OR j.experienceLevel = :experienceLevel)")
     Page<JobOfferEntity> search(String query, String location, String contractType,
                                 String experienceLevel, Pageable pageable);
+
+    @Query("SELECT j FROM JobOfferEntity j LEFT JOIN FitScoreEntity f " +
+           "ON f.jobOfferId = j.id AND f.candidateId = :candidateId " +
+           "WHERE j.status = 'ACTIVE' " +
+           "ORDER BY CASE WHEN f.score IS NULL THEN 1 ELSE 0 END, f.score DESC, j.postedAt DESC")
+    Page<JobOfferEntity> findFeedForCandidate(UUID candidateId, Pageable pageable);
 }

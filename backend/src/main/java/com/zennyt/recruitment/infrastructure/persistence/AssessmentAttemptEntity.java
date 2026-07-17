@@ -12,16 +12,17 @@ public class AssessmentAttemptEntity {
     @Column(nullable = false) private UUID assessmentId;
     @Column(nullable = false) private UUID candidateId;
     @Column(nullable = false) private UUID jobOfferId;
+    private UUID applicationId;
     private int score;
     private boolean passed;
     @Enumerated(EnumType.STRING) @Column(nullable = false) private IntegrityStatus integrityStatus;
     @Column(nullable = false) private Instant submittedAt;
 
     protected AssessmentAttemptEntity() {}
-    public AssessmentAttemptEntity(UUID id, UUID assessmentId, UUID candidateId, UUID jobOfferId,
+    public AssessmentAttemptEntity(UUID id, UUID assessmentId, UUID candidateId, UUID jobOfferId, UUID applicationId,
                                    int score, boolean passed, IntegrityStatus integrityStatus, Instant submittedAt) {
         this.id = id; this.assessmentId = assessmentId; this.candidateId = candidateId;
-        this.jobOfferId = jobOfferId; this.score = score; this.passed = passed;
+        this.jobOfferId = jobOfferId; this.applicationId = applicationId; this.score = score; this.passed = passed;
         this.integrityStatus = integrityStatus; this.submittedAt = submittedAt;
     }
 
@@ -29,6 +30,7 @@ public class AssessmentAttemptEntity {
     public UUID getAssessmentId() { return assessmentId; }
     public UUID getCandidateId() { return candidateId; }
     public UUID getJobOfferId() { return jobOfferId; }
+    public UUID getApplicationId() { return applicationId; }
     public int getScore() { return score; }
     public boolean isPassed() { return passed; }
     public IntegrityStatus getIntegrityStatus() { return integrityStatus; }

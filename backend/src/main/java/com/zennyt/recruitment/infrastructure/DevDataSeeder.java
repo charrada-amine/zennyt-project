@@ -90,7 +90,7 @@ public class DevDataSeeder implements CommandLineRunner {
 
         fitScoreRepository.save(FitScore.rehydrate(
             UUID.fromString("c0000000-0000-0000-0000-000000000001"),
-            CANDIDATE, OFFER_1, 87, Instant.now()));
+            CANDIDATE, OFFER_1, 87, 82, 91, Instant.now()));
 
         log.info("""
             [DevDataSeeder] Données de démo insérées :
@@ -113,6 +113,6 @@ public class DevDataSeeder implements CommandLineRunner {
             "Software", description,
             "Responsabilités à définir.", "Bac+5 ou équivalent.", "Expérience en équipe agile.",
             "Package compétitif, télétravail, formation.", "Postulez via l'application.", "Zennyt Inc.",
-            null, false, JobOfferStatus.ACTIVE, Instant.now());
+            null, JobOffer.DEFAULT_PASSING_SCORE, false, JobOfferStatus.ACTIVE, Instant.now());
     }
 }

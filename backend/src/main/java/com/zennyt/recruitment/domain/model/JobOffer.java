@@ -16,6 +16,8 @@ import java.util.UUID;
  */
 public class JobOffer extends AggregateRoot {
 
+    public static final int DEFAULT_PASSING_SCORE = 60;
+
     private final UUID id;
     private final UUID recruiterId;
     private UUID hiringContactId;
@@ -35,13 +37,15 @@ public class JobOffer extends AggregateRoot {
     private String howToApply;
     private String companyInfo;
     private UUID assessmentId;
+    private int passingScore;
     private boolean openToInternational;
     private JobOfferStatus status;
-    private final Instant postedAt;
+    private Instant postedAt;
 
     private JobOffer(UUID id, UUID recruiterId, String title, String description,
                      ContractType contractType, WorkplaceType workplaceType,
-                     ExperienceLevel experienceLevel, Location location) {
+                     ExperienceLevel experienceLevel, Location location,
+                     int passingScore) {
         this.id = id;
         this.recruiterId = recruiterId;
         this.title = title;
@@ -50,6 +54,7 @@ public class JobOffer extends AggregateRoot {
         this.workplaceType = workplaceType;
         this.experienceLevel = experienceLevel;
         this.location = location;
+        setPassingScore(passingScore);
         this.status = JobOfferStatus.DRAFT;
         this.openToInternational = false;
         this.postedAt = Instant.now();
@@ -58,9 +63,10 @@ public class JobOffer extends AggregateRoot {
     /** Fabrique : crée une offre en brouillon et enregistre l'événement de création. */
     public static JobOffer create(UUID recruiterId, String title, String description,
                                   ContractType contractType, WorkplaceType workplaceType,
-                                  ExperienceLevel experienceLevel, Location location) {
+                                  ExperienceLevel experienceLevel, Location location,
+                                  int passingScore) {
         JobOffer offer = new JobOffer(UUID.randomUUID(), recruiterId, title, description,
-            contractType, workplaceType, experienceLevel, location);
+            contractType, workplaceType, experienceLevel, location, passingScore);
         offer.registerEvent(JobOfferCreatedEvent.of(offer.id, recruiterId));
         return offer;
     }
@@ -73,10 +79,10 @@ public class JobOffer extends AggregateRoot {
                                      String fieldOfWork, String description, String responsibilities,
                                      String minimumQualifications, String preferredQualifications,
                                      String whatWeOffer, String howToApply, String companyInfo,
-                                     UUID assessmentId, boolean openToInternational,
+                                     UUID assessmentId, int passingScore, boolean openToInternational,
                                      JobOfferStatus status, Instant postedAt) {
         JobOffer offer = new JobOffer(id, recruiterId, title, description,
-            contractType, workplaceType, experienceLevel, location);
+            contractType, workplaceType, experienceLevel, location, passingScore);
         offer.hiringContactId = hiringContactId;
         offer.companyName = companyName;
         offer.salary = salary;
@@ -90,6 +96,7 @@ public class JobOffer extends AggregateRoot {
         offer.assessmentId = assessmentId;
         offer.openToInternational = openToInternational;
         offer.status = status;
+        offer.postedAt = postedAt;
         return offer;
     }
 
@@ -130,6 +137,14 @@ public class JobOffer extends AggregateRoot {
         this.openToInternational = openToInternational;
     }
 
+    /** Configure le seuil QCM de l'offre. */
+    public void setPassingScore(int passingScore) {
+        if (passingScore < 0 || passingScore > 100) {
+            throw new IllegalArgumentException("Le seuil de réussite doit être entre 0 et 100");
+        }
+        this.passingScore = passingScore;
+    }
+
     /** Assigne (ou désassigne avec null) l'évaluation technique liée à l'offre. */
     public void assignAssessment(UUID assessmentId) {
         this.assessmentId = assessmentId;
@@ -161,6 +176,7 @@ public class JobOffer extends AggregateRoot {
     public String howToApply() { return howToApply; }
     public String companyInfo() { return companyInfo; }
     public UUID assessmentId() { return assessmentId; }
+    public int passingScore() { return passingScore; }
     public boolean openToInternational() { return openToInternational; }
     public JobOfferStatus status() { return status; }
     public Instant postedAt() { return postedAt; }

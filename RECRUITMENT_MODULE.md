@@ -1,6 +1,6 @@
 # Module Recruitment
 
-**Dernière mise à jour :** 2026-07-14
+**Dernière mise à jour :** 2026-07-16
 
 ## 1. Rôle du module
 
@@ -10,14 +10,15 @@ matchs, évaluations techniques, candidatures, offres d'opportunité, vérificat
 d'identité et paiement d'une visioconférence.
 
 Le contrat public de référence est `contracts/recruitment.openapi.yaml`. Il décrit
-exactement les 40 opérations réellement exposées sous `/api/v1`.
+exactement les 43 opérations réellement exposées sous `/api/v1`.
 
 Le module ne gère pas :
 
 - les comptes, mots de passe, JWT ou profils personnels, qui appartiennent à Identity ;
 - la livraison SMS/e-mail des OTP, qui reste à brancher ;
 - les conversations et appels vidéo, qui relèvent d'Engagement ;
-- les écrans mobiles Recruitment, qui ne sont pas encore connectés ;
+- les écrans mobiles Recruitment, bloqués tant que les 13 maquettes citées par le
+  plan ne sont pas présentes dans le dépôt ;
 - le paiement bancaire réel, car le PSP reste à intégrer.
 
 ## 2. Architecture technique
@@ -39,6 +40,8 @@ d'un autre bounded context.
 ```mermaid
 flowchart LR
     I["Identity"] -->|"UserAccessStateChangedEvent"| R["Recruitment"]
+    G["Games"] -->|"GameResultRecordedEvent"| R
+    R -->|"FitScoreCalculatorPort"| A["Groq ou stub déterministe"]
     R -->|"Domain Events métier"| E["Engagement / futurs consommateurs"]
     R -->|"OtpRequestedEvent"| D["Service SMS ou e-mail à intégrer"]
     X["IA / anti-fraude externes"] -->|"Callbacks + X-Callback-Secret"| R
@@ -73,18 +76,32 @@ Le code est destiné à un futur listener SMS/e-mail. Aucun consommateur de livr
 n'est actuellement présent : la génération et la vérification fonctionnent côté
 backend, mais l'utilisateur ne reçoit pas encore automatiquement le code.
 
-### 3.4 Fournisseurs externes → Recruitment
+### 3.4 Games → Recruitment et moteur de fit score
+
+`GameResultRecordedEvent` alimente la projection locale `soft_skills_projection`.
+Recruitment recalcule ensuite, par lots bornés, les couples candidat/offre active.
+Le calcul passe par `FitScoreCalculatorPort` : Groq est utilisé si `GROQ_API_KEY`
+est configurée, sinon un calculateur déterministe permet le fonctionnement offline.
+
+L'entrée CV reste explicitement `PROVISOIRE` et vide tant qu'Identity ne publie pas
+un événement de profil. Aucun appel direct vers Identity n'a été ajouté.
+
+### 3.5 Fournisseurs externes → Recruitment
 
 Les services IA et anti-fraude publient leurs résultats sur les trois callbacks. Ils
 n'utilisent pas de JWT utilisateur mais doivent fournir `X-Callback-Secret`.
 
 ## 4. Authentification et autorisation
 
-La surface de 40 opérations se répartit ainsi :
+La surface contractuelle de 43 opérations se répartit ainsi :
 
-- 35 opérations privées avec JWT ;
-- 2 opérations publiques de consultation des offres actives ;
+- 37 opérations privées avec JWT ;
+- 3 opérations déclarées publiques ;
 - 3 callbacks protégés par secret partagé.
+
+La résolution publique `GET /tests/{token}` reste bloquée par le filtre global et
+retourne `401` tant que l'ajout ciblé dans `shared/SecurityConfig` n'est pas autorisé.
+Le contrôleur, le contrat et la projection sans réponses correctes sont prêts.
 
 Les annotations locales sont :
 
@@ -127,13 +144,21 @@ acteur authentifié avec contrôle de propriété, `Secret` = `X-Callback-Secret
 Un match est créé uniquement après deux `LIKE` opposés portant sur la même paire
 `candidateId + jobOfferId`.
 
-### 5.3 Scores de compatibilité — 1 opération
+### 5.3 Scores de compatibilité et decks — 3 opérations
 
 | Méthode | Route | Accès | Comportement et propriété |
 |---|---|---|---|
 | GET | `/fit-scores` | JWT Auth | Le candidat lit son score ; le recruteur doit posséder l'offre concernée |
+| DELETE | `/fit-scores?candidateId=&jobOfferId=` | JWT R | Masque idempotemment la paire pour le recruteur propriétaire |
+| GET | `/recruiters/me/candidate-feed?jobOfferId=` | JWT R | Candidats projetés triés par score décroissant, hors paires masquées |
 
-### 5.4 Évaluations — 6 opérations
+Le feed candidat est `GET /job-offers` : avec un JWT candidat et sans filtre de
+recherche, les offres actives sont triées par fit score décroissant. Sans JWT, le
+tri public reste chronologique. Le feed recruteur contient actuellement
+`candidateId`, `fitScore` et `softSkillsScore`; les données personnelles attendent
+la projection profil Identity.
+
+### 5.4 Évaluations — 7 opérations
 
 | Méthode | Route | Accès | Comportement et propriété |
 |---|---|---|---|
@@ -143,9 +168,10 @@ Un match est créé uniquement après deux `LIKE` opposés portant sur la même 
 | GET | `/assessments/{assessmentId}` | JWT R | Retourne une évaluation appartenant au recruteur |
 | PUT | `/assessments/{assessmentId}` | JWT R | Modifie une évaluation possédée |
 | DELETE | `/assessments/{assessmentId}` | JWT R | Supprime une évaluation non référencée par une offre |
+| GET | `/tests/{token}` | Public prévu | Projection candidat sans réponse correcte ; permit-list Shared encore requise |
 
-Les réponses correctes restent réservées au recruteur. Une projection candidat sans
-`correctOptionIndex` doit être créée avant d'exposer les questions au mobile.
+Les réponses correctes restent réservées au recruteur. La projection publique
+candidat ne contient jamais `correctOptionIndex`.
 
 ### 5.5 Tentatives d'évaluation — 3 opérations
 
@@ -156,17 +182,18 @@ Les réponses correctes restent réservées au recruteur. Une projection candida
 | GET | `/assessment-attempts/{attemptId}` | JWT Auth | Lecture par le candidat concerné ou le recruteur propriétaire de l'offre |
 
 Une seule tentative est autorisée par candidat, évaluation et offre. L'évaluation doit
-être assignée à l'offre avant la soumission.
+être assignée à l'offre, `consent=true` est obligatoire et la réponse contient
+`applicationId`. Le seuil vient de l'offre (60 par défaut, valeur autorisée 0–100).
 
 ### 5.6 Candidatures — 5 opérations
 
 | Méthode | Route | Accès | Comportement et propriété |
 |---|---|---|---|
 | GET | `/candidates/me/applications` | JWT C/S | Liste uniquement les candidatures du candidat connecté |
-| POST | `/applications` | JWT C/S | Postule à une offre active ; les doublons retournent `409` |
+| POST | `/applications` | JWT C/S | Compatibilité historique dépréciée ; le nouveau tunnel passe par l'assessment |
 | GET | `/applications/{applicationId}` | JWT Auth | Lecture par le candidat ou le recruteur propriétaire de l'offre |
 | PATCH | `/applications/{applicationId}/status` | JWT R | Change le statut si le recruteur possède l'offre |
-| GET | `/job-offers/{jobOfferId}/applications` | JWT R | Liste les candidatures d'une offre possédée |
+| GET | `/job-offers/{jobOfferId}/applications` | JWT R | Liste enrichie du meilleur attempt, applicantCount et successRate |
 
 ### 5.7 Offres d'opportunité — 5 opérations
 
@@ -212,10 +239,14 @@ contradictoire retourne `409`. Un secret absent, incorrect ou non configuré ret
 ### 6.1 Parcours offre et candidature
 
 1. Le recruteur crée une offre ; son identité vient du JWT.
-2. Le candidat consulte les offres actives.
-3. Il peut swiper l'offre ou déposer directement une candidature.
-4. Le recruteur propriétaire consulte les candidatures.
-5. La candidature suit la machine à états autorisée.
+2. Il lui assigne une évaluation et choisit un `passingScore` (60 par défaut).
+3. Le candidat consulte les offres actives puis soumet le test avec `consent=true`.
+4. Recruitment crée idempotemment l'`Application`, la lie à l'attempt et calcule le score.
+5. Le recruteur consulte les candidatures enrichies ; les attempts `NOT_VALIDATED`
+   restent visibles mais sont exclus du taux de réussite.
+
+`POST /applications` reste temporairement exposé et déprécié pour compatibilité. Le
+tunnel produit de référence ouvre la candidature via l'assessment.
 
 ### 6.2 Parcours de match
 
@@ -227,7 +258,8 @@ contradictoire retourne `409`. Un secret absent, incorrect ou non configuré ret
 
 1. Le recruteur crée une évaluation puis l'assigne à son offre.
 2. Le candidat soumet les indices de réponses, jamais un score calculé.
-3. Recruitment calcule et persiste le score.
+3. Recruitment calcule et persiste le score avec le seuil propre à l'offre, puis lie
+   l'attempt à une candidature unique par couple candidat/offre.
 4. Le fournisseur anti-fraude complète ensuite `integrityStatus` par callback.
 
 ### 6.4 Parcours OTP
@@ -237,6 +269,24 @@ contradictoire retourne `409`. Un secret absent, incorrect ou non configuré ret
 3. `OtpRequestedEvent` est publié pour la livraison future.
 4. L'utilisateur renvoie le code sur l'endpoint `/verify-otp` correspondant.
 5. Le backend vérifie destinataire, hash, expiration, essais restants et usage unique.
+
+### 6.5 Fit score et tunnels séparés
+
+1. Un résultat Games met à jour la projection soft-skills du candidat.
+2. Une publication d'offre ou cette mise à jour déclenche un recalcul borné.
+3. Le calculateur produit `score`, `softSkillScore` et `cvMatchScore` ; le dernier
+   résultat est upserté par paire.
+4. Les decks candidat/recruteur trient par score décroissant. Un recruteur peut
+   masquer une paire sans supprimer le score global.
+
+Décision produit D5 : les deux tunnels restent volontairement séparés.
+
+- Tunnel A : sourcing/fit score → `JobOpportunityOffer.send()` (proposition de poste
+  et salaire), **sans précondition métier** de match ou de candidature approuvée.
+- Tunnel B : offre avec assessment → tentative consentie → candidature.
+
+Cette absence de précondition dans `JobOpportunityOffer.send()` est intentionnelle
+et ne doit pas être « corrigée » en faisant converger les deux tunnels.
 
 ## 7. Machines à états protégées
 
@@ -287,6 +337,9 @@ Le module utilise le schéma PostgreSQL `recruitment`.
 | `V13__recruitment_full_schema.sql` | Offres, swipes, matchs, scores, évaluations, opportunités et paiements | Zone protégée, ne jamais modifier |
 | `V14__recruitment_actor_projection.sql` | Projection des rôles et états Identity | Nouvelle migration appliquée |
 | `V15__recruitment_otp_challenges.sql` | OTP hashés, expiration et essais | Nouvelle migration appliquée |
+| `V16__attempt_application_link.sql` | Lien attempt/application et seuil par offre | Nouvelle migration appliquée |
+| `V17__fit_scores_subscores.sql` | Sous-scores et projection soft-skills | Nouvelle migration appliquée |
+| `V18__fit_score_dismissals.sql` | Masquage des paires par recruteur | Nouvelle migration appliquée |
 
 Hibernate fonctionne avec `ddl-auto: validate`. Toute évolution utilise une nouvelle
 migration Flyway ; aucune migration déjà appliquée ne doit être réécrite.
@@ -297,6 +350,7 @@ migration Flyway ; aucune migration déjà appliquée ne doit être réécrite.
 RECRUITMENT_CALLBACK_SECRET=<secret-aléatoire-partagé>
 RECRUITMENT_OTP_TTL=PT10M
 RECRUITMENT_OTP_MAX_ATTEMPTS=5
+GROQ_API_KEY=<optionnel>
 ```
 
 | Variable | Fonction |
@@ -304,6 +358,7 @@ RECRUITMENT_OTP_MAX_ATTEMPTS=5
 | `RECRUITMENT_CALLBACK_SECRET` | Secret partagé avec les fournisseurs de callback ; vide = callbacks refusés |
 | `RECRUITMENT_OTP_TTL` | Durée ISO-8601 de validité du code, dix minutes par défaut |
 | `RECRUITMENT_OTP_MAX_ATTEMPTS` | Nombre maximal de codes incorrects, cinq par défaut |
+| `GROQ_API_KEY` | Active le calcul Groq ; vide = calculateur déterministe offline |
 
 Ces variables configurent la sécurité et la vérification ; elles ne connectent pas à
 elles seules un fournisseur SMS ou e-mail.
@@ -318,16 +373,20 @@ elles seules un fournisseur SMS ou e-mail.
 | `404` | Ressource absente ou volontairement masquée |
 | `409` | Doublon ou résultat callback contradictoire |
 | `429` | Limite externe atteinte lorsqu'elle s'applique |
+| `502` | Fournisseur Groq indisponible ou réponse invalide |
 | `503` | Fournisseur externe indispensable indisponible |
 
 ## 12. Tests et garde-fous
 
-- Parité automatique entre les 40 routes runtime et le contrat OpenAPI.
+- Parité automatique entre les 43 routes runtime et le contrat OpenAPI.
 - Vérification que chaque endpoint est protégé ou explicitement public.
 - Tests des rôles, propriétés, swipes, états métier, OTP, callbacks et projection Identity.
 - Tests live avec JWT pour les principaux parcours et tentatives d'IDOR.
 - ArchUnit vérifie les frontières de couches et de modules.
-- Flyway valide les migrations jusqu'à V15.
+- Tests dédiés : seuil par offre, lien Application/attempt, taux hors flagged,
+  upsert/sous-scores, parsing Groq, tri/dismissal et projection publique sans réponse.
+- Flyway valide les 18 migrations jusqu'à V18 sur PostgreSQL 16 avec
+  `ddl-auto: validate`.
 
 ## 13. Zones protégées
 
@@ -344,12 +403,12 @@ elles seules un fournisseur SMS ou e-mail.
 1. Choisir le canal et le fournisseur de livraison de `OtpRequestedEvent`.
 2. Définir le module qui résout `recipientUserId` vers un téléphone ou un e-mail sans
    introduire d'appel direct entre bounded contexts.
-3. Ajouter une vue candidat des évaluations sans réponses correctes.
+3. Autoriser l'ajout ciblé de `/api/v1/tests/**` dans `shared/SecurityConfig`.
 4. Intégrer le PSP et remplacer le paiement simulé.
-5. Connecter le mobile aux endpoints Recruitment.
+5. Fournir/localiser les 13 maquettes Recruitment puis connecter le mobile aux endpoints.
 6. Ajouter les consommateurs Engagement des événements d'opportunité et de paiement.
-7. Réintroduire génération IA, dashboard ou recherche de candidats uniquement en
-   contract-first lorsqu'ils auront un runtime réel.
+7. Publier depuis Identity un événement profil/CV pour remplacer le stub provisoire
+   et enrichir le feed recruteur avec les données personnelles autorisées.
 
 ## 15. Changelog
 
@@ -360,3 +419,9 @@ elles seules un fournisseur SMS ou e-mail.
 2. 2026-07-14 — Documentation étendue avec l'inventaire complet des 40 endpoints,
    les règles d'accès, les parcours métier, les machines à états, les événements, les
    migrations, la configuration et les relations intermodules actuelles ou planifiées.
+3. 2026-07-16 — Intégration du plan Recruitment A–E : candidature liée à
+   l'assessment avec consentement et seuil par offre, résultats recruteur enrichis,
+   applicant count, moteur de fit score Groq/stub alimenté par Games, sous-scores,
+   decks bidirectionnels, dismissal, projection publique des tests et migrations
+   V16–V18. Le permit public Shared et les écrans mobiles restent explicitement
+   ouverts faute d'autorisation et de maquettes.

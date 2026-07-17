@@ -5,17 +5,24 @@ import com.zennyt.recruitment.api.security.RecruiterOnly;
 import com.zennyt.recruitment.application.usecase.*;
 import com.zennyt.recruitment.domain.model.JobOffer;
 import com.zennyt.recruitment.domain.repository.JobOfferRepository;
+import com.zennyt.recruitment.domain.repository.ApplicationRepository;
+import com.zennyt.recruitment.domain.repository.AssessmentRepository;
+import com.zennyt.recruitment.domain.repository.FitScoreRepository;
 import com.zennyt.recruitment.domain.vo.*;
 import com.zennyt.shared.application.exception.ForbiddenException;
 import com.zennyt.shared.application.exception.NotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.Authentication;
 
 import java.security.Principal;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /** Contrôleur REST pour les offres d'emploi. */
 @RestController
@@ -26,15 +33,27 @@ public class JobOfferController {
     private final UpdateJobOfferUseCase updateUseCase;
     private final ChangeJobOfferStatusUseCase changeStatusUseCase;
     private final JobOfferRepository jobOfferRepository;
+    private final ApplicationRepository applicationRepository;
+    private final AssessmentRepository assessmentRepository;
+    private final FitScoreRepository fitScoreRepository;
+    private final GetSwipeDeckUseCase swipeDeck;
 
     public JobOfferController(CreateJobOfferUseCase createUseCase,
                                UpdateJobOfferUseCase updateUseCase,
                                ChangeJobOfferStatusUseCase changeStatusUseCase,
-                               JobOfferRepository jobOfferRepository) {
+                               JobOfferRepository jobOfferRepository,
+                               ApplicationRepository applicationRepository,
+                               AssessmentRepository assessmentRepository,
+                               FitScoreRepository fitScoreRepository,
+                               GetSwipeDeckUseCase swipeDeck) {
         this.createUseCase = createUseCase;
         this.updateUseCase = updateUseCase;
         this.changeStatusUseCase = changeStatusUseCase;
         this.jobOfferRepository = jobOfferRepository;
+        this.applicationRepository = applicationRepository;
+        this.assessmentRepository = assessmentRepository;
+        this.fitScoreRepository = fitScoreRepository;
+        this.swipeDeck = swipeDeck;
     }
 
     /** POST /api/v1/job-offers — Créer une offre (publiée ACTIVE, postedAt serveur) */
@@ -51,16 +70,17 @@ public class JobOfferController {
             req.fieldOfWork(), req.description(), req.responsibilities(),
             req.minimumQualifications(), req.preferredQualifications(),
             req.whatWeOffer(), req.howToApply(), req.companyInfo(),
-            req.assessmentId(), Boolean.TRUE.equals(req.openToInternational())));
-        return ResponseEntity.status(HttpStatus.CREATED).body(JobOfferResponse.from(offer));
+            req.assessmentId(), req.passingScore() != null ? req.passingScore() : JobOffer.DEFAULT_PASSING_SCORE,
+            Boolean.TRUE.equals(req.openToInternational())));
+        return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(offer, null));
     }
 
     /** GET /api/v1/job-offers/{id} — Détail d'une offre */
     @GetMapping("/job-offers/{id}")
-    public ResponseEntity<JobOfferResponse> getById(@PathVariable UUID id) {
+    public ResponseEntity<JobOfferResponse> getById(@PathVariable UUID id, Authentication authentication) {
         return jobOfferRepository.findById(id)
             .filter(offer -> offer.status() == JobOfferStatus.ACTIVE)
-            .map(o -> ResponseEntity.ok(JobOfferResponse.from(o)))
+            .map(o -> ResponseEntity.ok(toResponse(o, authentication)))
             .orElse(ResponseEntity.notFound().build());
     }
 
@@ -77,11 +97,42 @@ public class JobOfferController {
             @RequestParam(required = false) String contractType,
             @RequestParam(required = false) String experienceLevel,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        List<JobOffer> offers = jobOfferRepository.search(
-            q, location, contractType, null, experienceLevel, null, null, null, page, size);
-        return ResponseEntity.ok(offers.stream().map(JobOfferResponse::from).toList());
+            @RequestParam(defaultValue = "20") int size,
+            Authentication authentication) {
+        List<JobOffer> offers;
+        if (isCandidate(authentication) && q == null && location == null
+                && contractType == null && experienceLevel == null) {
+            offers = swipeDeck.candidateOffers(
+                UUID.fromString(authentication.getName()), page, size);
+        } else {
+            offers = jobOfferRepository.search(
+                q, location, contractType, null, experienceLevel, null, null, null, page, size);
+        }
+        return ResponseEntity.ok(toResponses(offers, authentication));
     }
+
+    /** Deck candidat du recruteur, limité aux projections locales fit-scorées. */
+    @GetMapping("/recruiters/me/candidate-feed")
+    @RecruiterOnly
+    public ResponseEntity<CandidateFeedPageResponse> candidateFeed(
+            @RequestParam UUID jobOfferId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            Principal principal) {
+        var result = swipeDeck.recruiterCandidates(
+            UUID.fromString(principal.getName()), jobOfferId, page, size);
+        int safeSize = Math.max(1, size);
+        var items = result.content().stream().map(score -> new CandidateFeedItemResponse(
+            score.candidateId(), score.score(), score.goodFit(), score.softSkillScore())).toList();
+        return ResponseEntity.ok(new CandidateFeedPageResponse(items,
+            new PageMetaResponse(Math.max(0, page), safeSize, result.totalElements(),
+                (int) Math.ceil(result.totalElements() / (double) safeSize))));
+    }
+
+    record CandidateFeedItemResponse(UUID candidateId, int fitScore, boolean goodFit,
+                                     Integer softSkillsScore) {}
+    record PageMetaResponse(int page, int size, long totalElements, int totalPages) {}
+    record CandidateFeedPageResponse(List<CandidateFeedItemResponse> content, PageMetaResponse page) {}
 
     /** GET /api/v1/recruiters/me/job-offers — Mes offres (recruteur authentifié) */
     @GetMapping("/recruiters/me/job-offers")
@@ -94,7 +145,7 @@ public class JobOfferController {
         UUID recruiterId = UUID.fromString(principal.getName());
         JobOfferStatus statusEnum = status != null ? JobOfferStatus.valueOf(status) : null;
         List<JobOffer> offers = jobOfferRepository.findByRecruiterId(recruiterId, statusEnum, page, size);
-        return ResponseEntity.ok(offers.stream().map(JobOfferResponse::from).toList());
+        return ResponseEntity.ok(toResponses(offers, null));
     }
 
     /**
@@ -119,8 +170,8 @@ public class JobOfferController {
             req.fieldOfWork(), req.description(), req.responsibilities(),
             req.minimumQualifications(), req.preferredQualifications(),
             req.whatWeOffer(), req.howToApply(), req.companyInfo(),
-            assessmentId, req.openToInternational(), req.status()));
-        return ResponseEntity.ok(JobOfferResponse.from(offer));
+            assessmentId, req.passingScore(), req.openToInternational(), req.status()));
+        return ResponseEntity.ok(toResponse(offer, null));
     }
 
     /** PATCH /api/v1/job-offers/{id}/status — Changer le statut */
@@ -130,7 +181,7 @@ public class JobOfferController {
             @RequestBody ChangeStatusRequest req, Principal principal) {
         UUID recruiterId = UUID.fromString(principal.getName());
         JobOffer offer = changeStatusUseCase.execute(id, recruiterId, req.status());
-        return ResponseEntity.ok(JobOfferResponse.from(offer));
+        return ResponseEntity.ok(toResponse(offer, null));
     }
 
     /** DELETE /api/v1/job-offers/{id} — Supprimer une offre */
@@ -146,5 +197,42 @@ public class JobOfferController {
         offer.delete();
         jobOfferRepository.deleteById(id);
         return ResponseEntity.noContent().build();
+    }
+
+    private JobOfferResponse toResponse(JobOffer offer, Authentication authentication) {
+        return toResponses(List.of(offer), authentication).getFirst();
+    }
+
+    private List<JobOfferResponse> toResponses(List<JobOffer> offers, Authentication authentication) {
+        if (offers.isEmpty()) return List.of();
+        List<UUID> offerIds = offers.stream().map(JobOffer::id).toList();
+        Map<UUID, Long> applicantCounts = applicationRepository.countByJobOfferIds(offerIds);
+        List<UUID> assessmentIds = offers.stream().map(JobOffer::assessmentId)
+            .filter(java.util.Objects::nonNull).distinct().toList();
+        Map<UUID, String> shareableLinks = assessmentRepository.findByIdIn(assessmentIds).stream()
+            .filter(assessment -> assessment.shareableLink() != null)
+            .collect(Collectors.toMap(com.zennyt.recruitment.domain.model.Assessment::id,
+                com.zennyt.recruitment.domain.model.Assessment::shareableLink));
+        Map<UUID, com.zennyt.recruitment.domain.model.FitScore> scoresByOffer = Map.of();
+        if (isCandidate(authentication)) {
+            scoresByOffer = fitScoreRepository.findByCandidateIdAndJobOfferIds(
+                    UUID.fromString(authentication.getName()), offerIds).stream()
+                .collect(Collectors.toMap(com.zennyt.recruitment.domain.model.FitScore::jobOfferId,
+                    Function.identity(), (left, right) -> left.computedAt().isAfter(right.computedAt())
+                        ? left : right));
+        }
+        Map<UUID, com.zennyt.recruitment.domain.model.FitScore> finalScoresByOffer = scoresByOffer;
+        return offers.stream().map(offer -> {
+            String link = offer.assessmentId() == null ? null : shareableLinks.get(offer.assessmentId());
+            return JobOfferResponse.from(offer, applicantCounts.getOrDefault(offer.id(), 0L), link,
+                finalScoresByOffer.get(offer.id()));
+        }).toList();
+    }
+
+    private boolean isCandidate(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) return false;
+        return authentication.getAuthorities().stream().anyMatch(authority ->
+            "ROLE_CANDIDATE".equals(authority.getAuthority())
+                || "ROLE_STUDENT".equals(authority.getAuthority()));
     }
 }

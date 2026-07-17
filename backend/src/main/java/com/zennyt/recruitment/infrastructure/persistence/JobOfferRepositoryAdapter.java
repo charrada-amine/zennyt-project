@@ -64,14 +64,13 @@ public class JobOfferRepositoryAdapter implements JobOfferRepository {
 
     @Override
     public List<JobOffer> findFeedForCandidate(UUID candidateId, int page, int size) {
-        // Pour l'instant : retourne les offres ACTIVE triées par date
-        return jpa.findByStatus(JobOfferStatus.ACTIVE, PageRequest.of(page, size, Sort.by("postedAt").descending()))
+        return jpa.findFeedForCandidate(candidateId, PageRequest.of(page, size))
             .map(this::toDomain).getContent();
     }
 
     @Override
     public long countFeedForCandidate(UUID candidateId) {
-        return jpa.count();
+        return jpa.countByStatus(JobOfferStatus.ACTIVE);
     }
 
     // ───────────── Mappers ─────────────
@@ -93,6 +92,7 @@ public class JobOfferRepositoryAdapter implements JobOfferRepository {
         e.setMinimumQualifications(o.minimumQualifications()); e.setPreferredQualifications(o.preferredQualifications());
         e.setWhatWeOffer(o.whatWeOffer()); e.setHowToApply(o.howToApply()); e.setCompanyInfo(o.companyInfo());
         e.setAssessmentId(o.assessmentId());
+        e.setPassingScore(o.passingScore());
         e.setOpenToInternational(o.openToInternational()); e.setStatus(o.status()); e.setPostedAt(o.postedAt());
         return e;
     }
@@ -105,7 +105,7 @@ public class JobOfferRepositoryAdapter implements JobOfferRepository {
             e.getTitle(), e.getCompanyName(), loc, sal, e.getContractType(), e.getWorkplaceType(),
             e.getExperienceLevel(), e.getFieldOfWork(), e.getDescription(), e.getResponsibilities(),
             e.getMinimumQualifications(), e.getPreferredQualifications(), e.getWhatWeOffer(),
-            e.getHowToApply(), e.getCompanyInfo(), e.getAssessmentId(), e.isOpenToInternational(),
+            e.getHowToApply(), e.getCompanyInfo(), e.getAssessmentId(), e.getPassingScore(), e.isOpenToInternational(),
             e.getStatus(), e.getPostedAt());
     }
 }

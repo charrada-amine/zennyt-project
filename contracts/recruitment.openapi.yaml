@@ -106,6 +106,23 @@ paths:
               schema: { $ref: '#/components/schemas/JobOfferPage' }
         '401': { $ref: '#/components/responses/Unauthorized' }
 
+  /recruiters/me/candidate-feed:
+    get:
+      operationId: getRecruitersMeCandidateFeed
+      tags: [FitScores]
+      summary: Deck de candidats trié par fit score pour une offre possédée
+      parameters:
+        - { name: jobOfferId, in: query, required: true, schema: { type: string, format: uuid } }
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: Candidats projetés, triés par score et hors paires masquées
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CandidateFeedPage' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
   /job-offers/{jobOfferId}:
     parameters:
       - $ref: '#/components/parameters/JobOfferIdParam'
@@ -188,10 +205,10 @@ paths:
         - $ref: '#/components/parameters/SizeParam'
       responses:
         '200':
-          description: Page de candidatures pour cette offre
+          description: Candidatures enrichies et agrégats de réussite pour cette offre
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/ApplicationPage' }
+              schema: { $ref: '#/components/schemas/OfferApplicationsResult' }
         '403': { $ref: '#/components/responses/Forbidden' }
 
   # ═══════════════════════════════════════════════════════════════
@@ -308,6 +325,32 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/FitScore' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      operationId: deleteFitScores
+      tags: [FitScores]
+      summary: Retirer une paire des Fit Scores du recruteur
+      parameters:
+        - { name: candidateId, in: query, required: true, schema: { type: string, format: uuid } }
+        - { name: jobOfferId, in: query, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '204': { description: Paire masquée pour le recruteur connecté }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /tests/{token}:
+    get:
+      operationId: getPublicTestByToken
+      tags: [Assessments]
+      summary: Résoudre un test partagé sans exposer ses réponses correctes
+      security: []
+      parameters:
+        - { name: token, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Test public candidat
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PublicAssessment' }
         '404': { $ref: '#/components/responses/NotFound' }
 
   # ═══════════════════════════════════════════════════════════════
@@ -483,8 +526,9 @@ paths:
     post:
       operationId: postApplications
       tags: [Applications]
-      summary: Postuler à une offre (candidat)
-      description: Le candidat doit avoir réussi toutes les évaluations requises pour l'offre.
+      summary: Postuler directement à une offre (compatibilité historique)
+      description: Déprécié — la candidature s'ouvre désormais lors de la soumission du test associé.
+      deprecated: true
       requestBody:
         required: true
         content:
@@ -1024,11 +1068,16 @@ components:
         howToApply: { type: string }
         companyInfo: { type: string }
         assessmentId: { type: string, format: uuid, nullable: true }
+        shareableLink: { type: string, format: uri, nullable: true }
+        passingScore: { type: integer, minimum: 0, maximum: 100, default: 60 }
         openToInternational: { type: boolean }
         status: { $ref: '#/components/schemas/JobOfferStatus' }
-        candidateCount: { type: integer }
+        applicantCount: { type: integer, minimum: 0 }
         successRate: { type: integer, description: "% de candidats ayant réussi toutes les évaluations" }
         fitScore: { type: integer, description: "Score de compatibilité du candidat connecté (0-100). Absent si non connecté." }
+        goodFit: { type: boolean, nullable: true, description: "Vrai à partir du seuil provisoire de 70." }
+        softSkillScore: { type: integer, minimum: 0, maximum: 100, nullable: true }
+        cvMatchScore: { type: integer, minimum: 0, maximum: 100, nullable: true }
         postedAt: { type: string, format: date-time }
 
     JobOfferCreate:
@@ -1055,6 +1104,7 @@ components:
         howToApply: { type: string }
         companyInfo: { type: string }
         assessmentId: { type: string, format: uuid, nullable: true }
+        passingScore: { type: integer, minimum: 0, maximum: 100, default: 60 }
         openToInternational: { type: boolean, default: false }
 
     JobOfferUpdate:
@@ -1083,6 +1133,7 @@ components:
         howToApply: { type: string }
         companyInfo: { type: string }
         assessmentId: { type: string, format: uuid, nullable: true }
+        passingScore: { type: integer, minimum: 0, maximum: 100 }
         openToInternational: { type: boolean }
         status: { $ref: '#/components/schemas/JobOfferStatus' }
 
@@ -1149,6 +1200,9 @@ components:
         candidateId: { type: string, format: uuid }
         jobOfferId: { type: string, format: uuid }
         score: { type: integer, minimum: 0, maximum: 100, example: 88 }
+        goodFit: { type: boolean, description: "Vrai à partir du seuil provisoire de 70." }
+        softSkillScore: { type: integer, minimum: 0, maximum: 100, nullable: true }
+        cvMatchScore: { type: integer, minimum: 0, maximum: 100, nullable: true }
         computedAt: { type: string, format: date-time }
 
     # ── Candidate Feed ─────────────────────────────────────────
@@ -1162,6 +1216,7 @@ components:
         targetRole: { type: string }
         location: { $ref: '#/components/schemas/Location' }
         fitScore: { type: integer, minimum: 0, maximum: 100 }
+        goodFit: { type: boolean }
         softSkillsScore: { type: integer, minimum: 0, maximum: 100 }
         contractPreferences:
           type: array
@@ -1229,6 +1284,29 @@ components:
         questionCount: { type: integer }
         timeLimitSeconds: { type: integer }
 
+    PublicAssessmentQuestion:
+      type: object
+      required: [id, order, text, options]
+      properties:
+        id: { type: string, format: uuid }
+        order: { type: integer, minimum: 1 }
+        text: { type: string }
+        options:
+          type: array
+          items: { type: string }
+
+    PublicAssessment:
+      type: object
+      required: [id, title, questionCount, timeLimitSeconds, questions]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        questionCount: { type: integer }
+        timeLimitSeconds: { type: integer }
+        questions:
+          type: array
+          items: { $ref: '#/components/schemas/PublicAssessmentQuestion' }
+
     AssessmentCreate:
       type: object
       required: [title, questions]
@@ -1280,7 +1358,7 @@ components:
 
     AttemptSubmit:
       type: object
-      required: [assessmentId, jobOfferId, answers]
+      required: [assessmentId, jobOfferId, answers, consent]
       properties:
         assessmentId: { type: string, format: uuid }
         jobOfferId: { type: string, format: uuid }
@@ -1288,6 +1366,9 @@ components:
           type: array
           description: Index (0-3) de l'option sélectionnée pour chaque question, dans l'ordre
           items: { type: integer, minimum: 0, maximum: 3 }
+        consent:
+          type: boolean
+          description: Doit être vrai pour autoriser le contrôle d'intégrité anti-fraude.
 
     AssessmentAttempt:
       type: object
@@ -1296,6 +1377,7 @@ components:
         assessmentId: { type: string, format: uuid }
         candidateId: { type: string, format: uuid }
         jobOfferId: { type: string, format: uuid }
+        applicationId: { type: string, format: uuid }
         score: { type: integer, minimum: 0, maximum: 100, example: 92 }
         passed: { type: boolean }
         integrityStatus: { $ref: '#/components/schemas/IntegrityStatus' }
@@ -1361,6 +1443,39 @@ components:
           type: array
           items: { $ref: '#/components/schemas/Application' }
         page: { $ref: '#/components/schemas/PageMeta' }
+
+    BestAssessmentAttempt:
+      type: object
+      nullable: true
+      properties:
+        scorePercent: { type: integer, minimum: 0, maximum: 100 }
+        passed: { type: boolean }
+        integrityStatus: { $ref: '#/components/schemas/IntegrityStatus' }
+        submittedAt: { type: string, format: date-time }
+
+    OfferApplicationRow:
+      type: object
+      required: [applicationId, candidateId, applicationStatus]
+      properties:
+        applicationId: { type: string, format: uuid }
+        candidateId: { type: string, format: uuid }
+        applicationStatus: { $ref: '#/components/schemas/ApplicationStatus' }
+        bestAttempt: { $ref: '#/components/schemas/BestAssessmentAttempt' }
+
+    OfferApplicationsResult:
+      type: object
+      required: [applicantCount, successRate, applications]
+      properties:
+        applicantCount: { type: integer, minimum: 0 }
+        successRate:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 100
+          description: Pourcentage de réussite parmi les tentatives dont l'intégrité n'est pas NOT_VALIDATED.
+        applications:
+          type: array
+          items: { $ref: '#/components/schemas/OfferApplicationRow' }
 
     # ── Job Opportunity Offer ──────────────────────────────────
 

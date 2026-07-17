@@ -171,7 +171,7 @@ class RecordSwipeUseCaseTest {
             new Location("Tunis", "TN", true), new SalaryRange(40000, 70000, "EUR"),
             ContractType.FULL_TIME, WorkplaceType.REMOTE, ExperienceLevel.SENIOR, "Software",
             "desc", "resp", "min", "pref", "offer", "apply", "info",
-            null, false, JobOfferStatus.ACTIVE, Instant.now());
+            null, JobOffer.DEFAULT_PASSING_SCORE, false, JobOfferStatus.ACTIVE, Instant.now());
     }
 
     /**
