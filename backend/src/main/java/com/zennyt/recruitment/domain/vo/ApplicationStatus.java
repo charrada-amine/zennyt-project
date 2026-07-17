@@ -11,16 +11,13 @@ import java.util.Map;
  * avant toute persistance.
  */
 public enum ApplicationStatus {
-    SUBMITTED, VIEWED, SHORTLISTED, INTERVIEW, OFFER, REJECTED, WITHDRAWN;
+    PENDING, SHORTLISTED, APPROVED, REJECTED;
 
     private static final Map<ApplicationStatus, Set<ApplicationStatus>> TRANSITIONS = Map.of(
-        SUBMITTED,   Set.of(VIEWED, REJECTED, WITHDRAWN),
-        VIEWED,      Set.of(SHORTLISTED, REJECTED, WITHDRAWN),
-        SHORTLISTED, Set.of(INTERVIEW, REJECTED, WITHDRAWN),
-        INTERVIEW,   Set.of(OFFER, REJECTED, WITHDRAWN),
-        OFFER,       Set.of(REJECTED, WITHDRAWN),
-        REJECTED,    Set.of(),
-        WITHDRAWN,   Set.of()
+        PENDING,      Set.of(SHORTLISTED, REJECTED),
+        SHORTLISTED,  Set.of(APPROVED, REJECTED),
+        APPROVED,     Set.of(),
+        REJECTED,     Set.of()
     );
 
     public boolean canTransitionTo(ApplicationStatus target) {

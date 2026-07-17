@@ -5,12 +5,7 @@ class CvItemTile extends StatelessWidget {
   final String? subtitle;
   final String? date;
 
-  const CvItemTile({
-    super.key,
-    required this.title,
-    this.subtitle,
-    this.date,
-  });
+  const CvItemTile({super.key, required this.title, this.subtitle, this.date});
 
   @override
   Widget build(BuildContext context) {
@@ -26,16 +21,19 @@ class CvItemTile extends StatelessWidget {
                 height: 10,
                 margin: const EdgeInsets.only(top: 6),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).primaryColor.withOpacity(0.4),
+                  color: Theme.of(context).primaryColor.withValues(alpha: 0.4),
                   shape: BoxShape.circle,
-                  border: Border.all(color: Theme.of(context).primaryColor, width: 2),
+                  border: Border.all(
+                    color: Theme.of(context).primaryColor,
+                    width: 2,
+                  ),
                 ),
               ),
               Expanded(
                 child: Container(
                   width: 2,
                   margin: const EdgeInsets.symmetric(vertical: 4),
-                  color: Theme.of(context).dividerColor.withOpacity(0.05),
+                  color: Theme.of(context).dividerColor.withValues(alpha: 0.05),
                 ),
               ),
             ],
@@ -48,14 +46,33 @@ class CvItemTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                    ),
+                  ),
                   if (subtitle != null && subtitle!.isNotEmpty) ...[
                     const SizedBox(height: 2),
-                    Text(subtitle!, style: const TextStyle(color: Colors.black87, fontSize: 14)),
+                    Text(
+                      subtitle!,
+                      style: const TextStyle(
+                        color: Colors.black87,
+                        fontSize: 14,
+                      ),
+                    ),
                   ],
                   if (date != null && date!.isNotEmpty) ...[
                     const SizedBox(height: 4),
-                    Text(date!, style: TextStyle(color: Colors.grey.shade600, fontSize: 12, fontWeight: FontWeight.w500)),
+                    Text(
+                      date!,
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ],
                 ],
               ),

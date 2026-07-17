@@ -4,6 +4,7 @@ import com.zennyt.identity.application.port.FileStoragePort;
 import com.zennyt.identity.application.port.FileStoragePort.ResourceType;
 import com.zennyt.identity.application.port.TokenService;
 import com.zennyt.identity.domain.model.*;
+import com.zennyt.identity.domain.event.UserAccessStateChangedEvent;
 import com.zennyt.identity.domain.repository.OnboardingRepository;
 import com.zennyt.identity.domain.repository.ProfileRepository;
 import com.zennyt.identity.domain.repository.UserRepository;
@@ -12,6 +13,7 @@ import com.zennyt.shared.application.exception.ForbiddenException;
 import com.zennyt.shared.application.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
@@ -30,11 +32,13 @@ public class IdentityService {
     private final ProfileRepository profiles;
     private final FileStoragePort fileStorage;
     private final TokenService tokens;
+    private final ApplicationEventPublisher events;
 
     @Transactional(readOnly = true)
     public User currentUser(UUID publicId) {
         return users.findByPublicId(publicId)
-            .orElseThrow(() -> new NotFoundException("Utilisateur introuvable"));
+            .filter(User::active)
+            .orElseThrow(() -> new ForbiddenException("Compte inactif ou introuvable"));
     }
 
     @Transactional
@@ -75,8 +79,9 @@ public class IdentityService {
     public void deactivateAccount(UUID publicId) {
         User user = currentUser(publicId);
         user.deactivate();
-        users.save(user);
+        User saved = users.save(user);
         tokens.revokeAll(user.id());
+        publishAccessState(saved);
     }
 
     @Transactional
@@ -85,12 +90,13 @@ public class IdentityService {
         // Nettoyage best-effort des fichiers Cloudinary avant l'anonymisation.
         safeDelete(user.profileImagePublicId(), ResourceType.IMAGE);
         profiles.findByUserId(user.id())
-            .ifPresent(profile -> safeDelete(profile.cvPublicId(), ResourceType.IMAGE));
+            .ifPresent(profile -> safeDelete(profile.cvPublicId(), ResourceType.RAW));
         onboarding.findRecruiterByUserId(user.id())
             .ifPresent(recruiter -> safeDelete(recruiter.companyLogoPublicId(), ResourceType.IMAGE));
         user.softDelete();
-        users.save(user);
+        User saved = users.save(user);
         tokens.revokeAll(user.id());
+        publishAccessState(saved);
     }
 
     private void safeDelete(String publicId, ResourceType resourceType) {
@@ -108,7 +114,14 @@ public class IdentityService {
     public User changeRole(UUID publicId, Role role) {
         User user = currentUser(publicId);
         user.changeRole(role);
-        return users.save(user);
+        User saved = users.save(user);
+        publishAccessState(saved);
+        return saved;
+    }
+
+    private void publishAccessState(User user) {
+        events.publishEvent(UserAccessStateChangedEvent.of(
+            user.publicId(), user.role().name(), user.active()));
     }
 
     @Transactional
@@ -228,8 +241,12 @@ public class IdentityService {
 
     @Transactional(readOnly = true)
     public Profile publicProfile(Long profileId) {
-        return profiles.findById(profileId)
+        Profile profile = profiles.findById(profileId)
             .orElseThrow(() -> new NotFoundException("Profil introuvable"));
+        users.findById(profile.userId())
+            .filter(User::active)
+            .orElseThrow(() -> new NotFoundException("Profil introuvable"));
+        return profile;
     }
 
     @Transactional
@@ -240,11 +257,11 @@ public class IdentityService {
                 null, null, null, null, null, null, null, null, false, null, null, null, null)));
         String previousPublicId = profile.cvPublicId();
         FileStoragePort.StoredFile stored = fileStorage.upload(content, filename, contentType,
-            CV_FOLDER, ResourceType.IMAGE);
+            CV_FOLDER, ResourceType.RAW);
         profile.updateCv(stored.url(), stored.publicId());
         Profile saved = profiles.save(profile);
         if (previousPublicId != null) {
-            fileStorage.delete(previousPublicId, ResourceType.IMAGE);
+            fileStorage.delete(previousPublicId, ResourceType.RAW);
         }
         return saved;
     }
@@ -256,7 +273,7 @@ public class IdentityService {
         profile.clearCv();
         Profile saved = profiles.save(profile);
         if (previousPublicId != null) {
-            fileStorage.delete(previousPublicId, ResourceType.IMAGE);
+            fileStorage.delete(previousPublicId, ResourceType.RAW);
         }
         return saved;
     }

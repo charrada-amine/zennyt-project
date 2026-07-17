@@ -8,45 +8,41 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Agrégat Candidature — racine d'agrégat du contexte Recruitment.
+ * Agrégat Candidature — soumission d'un candidat à une offre.
  *
- * <p>Toute la logique métier vit ici : la création enregistre un événement,
- * les transitions de statut valident la machine à états. L'agrégat est
- * indépendant de JPA, de Spring et du web — c'est du Java pur, testable
- * unitairement sans contexte.
+ * <p>Machine à états : PENDING → SHORTLISTED → APPROVED / REJECTED.
+ * Une seule candidature par couple (candidat, offre).
  */
 public class Application extends AggregateRoot {
 
     private final UUID id;
     private final UUID candidateId;
-    private final UUID jobId;
-    private String coverLetter;
+    private final UUID jobOfferId;
     private ApplicationStatus status;
     private final Instant appliedAt;
     private Instant updatedAt;
 
-    private Application(UUID id, UUID candidateId, UUID jobId, String coverLetter) {
+    private Application(UUID id, UUID candidateId, UUID jobOfferId) {
         this.id = id;
         this.candidateId = candidateId;
-        this.jobId = jobId;
-        this.coverLetter = coverLetter;
-        this.status = ApplicationStatus.SUBMITTED;
+        this.jobOfferId = jobOfferId;
+        this.status = ApplicationStatus.PENDING;
         this.appliedAt = Instant.now();
         this.updatedAt = this.appliedAt;
     }
 
     /** Fabrique : crée une candidature et enregistre l'événement de soumission. */
-    public static Application submit(UUID candidateId, UUID jobId, String coverLetter) {
-        Application app = new Application(UUID.randomUUID(), candidateId, jobId, coverLetter);
-        app.registerEvent(ApplicationSubmittedEvent.of(app.id, candidateId, jobId));
+    public static Application submit(UUID candidateId, UUID jobOfferId) {
+        Application app = new Application(UUID.randomUUID(), candidateId, jobOfferId);
+        app.registerEvent(ApplicationSubmittedEvent.of(app.id, candidateId, jobOfferId));
         return app;
     }
 
     /** Reconstruction depuis la persistance (pas d'événement émis). */
-    public static Application rehydrate(UUID id, UUID candidateId, UUID jobId,
-                                        String coverLetter, ApplicationStatus status,
+    public static Application rehydrate(UUID id, UUID candidateId, UUID jobOfferId,
+                                        ApplicationStatus status,
                                         Instant appliedAt, Instant updatedAt) {
-        Application app = new Application(id, candidateId, jobId, coverLetter);
+        Application app = new Application(id, candidateId, jobOfferId);
         app.status = status;
         app.updatedAt = updatedAt;
         return app;
@@ -64,8 +60,7 @@ public class Application extends AggregateRoot {
 
     public UUID id() { return id; }
     public UUID candidateId() { return candidateId; }
-    public UUID jobId() { return jobId; }
-    public String coverLetter() { return coverLetter; }
+    public UUID jobOfferId() { return jobOfferId; }
     public ApplicationStatus status() { return status; }
     public Instant appliedAt() { return appliedAt; }
     public Instant updatedAt() { return updatedAt; }

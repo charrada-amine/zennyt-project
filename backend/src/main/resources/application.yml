@@ -37,6 +37,15 @@ identity:
 groq:
   api-key: ${GROQ_API_KEY:}
   model: llama-3.3-70b-versatile
+  connect-timeout-ms: ${GROQ_CONNECT_TIMEOUT_MS:5000}
+  read-timeout-ms: ${GROQ_READ_TIMEOUT_MS:20000}
+
+recruitment:
+  callbacks:
+    secret: ${RECRUITMENT_CALLBACK_SECRET:}
+  otp:
+    ttl: ${RECRUITMENT_OTP_TTL:PT10M}
+    max-attempts: ${RECRUITMENT_OTP_MAX_ATTEMPTS:5}
 
 server:
   port: 8080

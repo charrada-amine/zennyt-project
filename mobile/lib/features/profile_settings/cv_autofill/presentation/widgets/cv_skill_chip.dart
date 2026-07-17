@@ -11,7 +11,9 @@ class CvSkillChip extends StatelessWidget {
     final isTechnical = skill.type == 'TECHNICAL';
     return Chip(
       label: Text(skill.name),
-      backgroundColor: isTechnical ? Colors.blue.withOpacity(0.1) : Colors.green.withOpacity(0.1),
+      backgroundColor: isTechnical
+          ? Colors.blue.withValues(alpha: 0.1)
+          : Colors.green.withValues(alpha: 0.1),
       labelStyle: TextStyle(
         color: isTechnical ? Colors.blue[700] : Colors.green[700],
         fontSize: 12,

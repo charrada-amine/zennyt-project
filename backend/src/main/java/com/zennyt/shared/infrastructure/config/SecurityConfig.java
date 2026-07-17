@@ -64,6 +64,13 @@ public class SecurityConfig {
                     "/api/v1/auth/reset-password"
                 ).permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/jobs", "/api/v1/jobs/**").permitAll()
+                // Recruitment : feed/recherche d'offres public + callbacks externes
+                // (ces derniers s'authentifient via le header X-Callback-Secret, pas un JWT).
+                .requestMatchers(HttpMethod.GET, "/api/v1/job-offers").permitAll()
+                .requestMatchers(new RegexRequestMatcher(
+                    "^/api/v1/job-offers/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+                    "GET")).permitAll()
+                .requestMatchers("/api/v1/callbacks/**").permitAll()
                 .requestMatchers(new RegexRequestMatcher("^/api/v1/profiles/\\d+$", "GET")).permitAll()
                 .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()

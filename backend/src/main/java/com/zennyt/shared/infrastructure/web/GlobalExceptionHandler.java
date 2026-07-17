@@ -4,13 +4,22 @@ import com.zennyt.shared.application.exception.ConflictException;
 import com.zennyt.shared.application.exception.ForbiddenException;
 import com.zennyt.shared.application.exception.NotFoundException;
 import com.zennyt.shared.application.exception.ServerException;
+import com.zennyt.shared.application.exception.ServiceUnavailableException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.security.authentication.BadCredentialsException;
 
 import java.time.Instant;
@@ -36,6 +45,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiError> handleBadRequest(IllegalArgumentException ex, HttpServletRequest req) {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage(), req, List.of());
+    }
+
+    /** Opération invalide dans l'état courant (transition d'état, consentement absent) — 422. */
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiError> handleIllegalState(IllegalStateException ex, HttpServletRequest req) {
+        return build(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), req, List.of());
     }
 
     @ExceptionHandler(BadCredentialsException.class)
@@ -66,7 +81,32 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, "Erreur de validation", req, fields);
     }
 
-    // Ajouter ici les exceptions métier : NotFoundException -> 404, ForbiddenException -> 403, etc.
+    @ExceptionHandler({AuthorizationDeniedException.class, AccessDeniedException.class})
+    public ResponseEntity<ApiError> handleAccessDenied(Exception ex, HttpServletRequest req) {
+        return build(HttpStatus.FORBIDDEN, "Accès refusé", req, List.of());
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ApiError> handleUnsupportedMediaType(
+            HttpMediaTypeNotSupportedException ex, HttpServletRequest req) {
+        return build(HttpStatus.UNSUPPORTED_MEDIA_TYPE,
+            "Type de contenu non supporté", req, List.of());
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiError> handleUploadTooLarge(
+            MaxUploadSizeExceededException ex, HttpServletRequest req) {
+        return build(HttpStatus.PAYLOAD_TOO_LARGE,
+            "Le fichier dépasse la limite autorisée", req, List.of());
+    }
+
+    @ExceptionHandler({HttpMessageNotReadableException.class,
+        MissingRequestHeaderException.class,
+        MissingServletRequestParameterException.class,
+        MethodArgumentTypeMismatchException.class})
+    public ResponseEntity<ApiError> handleMalformedRequest(Exception ex, HttpServletRequest req) {
+        return build(HttpStatus.BAD_REQUEST, "Requête invalide", req, List.of());
+    }
 
     @ExceptionHandler(com.zennyt.shared.application.exception.RateLimitException.class)
     public ResponseEntity<ApiError> handleRateLimit(com.zennyt.shared.application.exception.RateLimitException ex, HttpServletRequest req) {
@@ -77,6 +117,13 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleServerException(ServerException ex, HttpServletRequest req) {
         log.error("Server exception: ", ex);
         return build(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage(), req, List.of());
+    }
+
+    @ExceptionHandler(ServiceUnavailableException.class)
+    public ResponseEntity<ApiError> handleServiceUnavailable(
+            ServiceUnavailableException ex, HttpServletRequest req) {
+        log.warn("External service unavailable: {}", ex.getMessage());
+        return build(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), req, List.of());
     }
 
     @ExceptionHandler(Exception.class)

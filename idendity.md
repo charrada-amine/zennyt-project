@@ -771,9 +771,33 @@ The mobile candidate profile supports CV upload, replacement, deletion, and prof
 ### Décisions à valider
 
 - The mobile scanned-PDF OCR guardrail is currently 10 pages at 150 DPI, capped to 2048 pixels on the longest side. This is provisional and protects device memory and processing time.
+- The Groq-backed CV parser remains the selected provider. Production must define `GROQ_API_KEY`; a missing key now fails explicitly with HTTP 503 instead of an internal error.
+
+### Identity → Recruitment access events
+
+- Identity publishes `identity.user.access-state-changed.v1` after registration, login,
+  social login, role change, deactivation and deletion.
+- Only the public UUID, role and active state are shared; no PII leaves Identity.
+- A startup snapshot republishes existing users so Recruitment can initialize its local
+  authorization projection without a direct cross-module call.
+- Inactive accounts are rejected by `/auth/me`, password changes and Recruitment access.
+
+### Backend CV and OCR safeguards
+
+- CV and image uploads validate both the declared MIME type and the binary signature.
+- The 5 MB limit is enforced before storage; invalid or empty files return a client error.
+- CV documents are uploaded, replaced and deleted consistently as `RAW` resources.
+- Public professional profiles are hidden as soon as the owning account is inactive.
+- OCR parsing is behind the `CvParserPort`; the Groq adapter has bounded connect/read
+  timeouts and translates provider unavailability to HTTP 503 and quotas to HTTP 429.
+- CV deletion targets the correct raw Cloudinary resource type.
 
 ### Changelog
 
 - 1. 2026-07-12 — Mobile CV upload now validates the 5 MB API limit, reports upload failures, reads `cvUrl`, supports CV deletion, and adds scanned-PDF OCR fallback.
+- 2. 2026-07-14 — Backend CV/image signature validation, OCR port/timeouts/error mapping,
+  inactive-account enforcement and Identity access-state events for Recruitment added;
+  Identity contract now has 46 unique operation IDs and route-parity coverage. Claude review
+  follow-up aligned CV storage to `RAW` and hid profiles owned by inactive accounts.
 
-**Dernière mise à jour :** 2026-07-12
+**Dernière mise à jour :** 2026-07-14

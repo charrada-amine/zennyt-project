@@ -2,9 +2,12 @@ openapi: 3.0.3
 info:
   title: Zennyt — Recruitment API
   description: >
-    Bounded context Recruitment : publication et recherche d'offres,
-    candidatures et suivi de leur statut, offres sauvegardées.
+    Contexte délimité Recrutement : offres d'emploi, swipes, matchs,
+    évaluations (manuel + IA), candidatures, offres d'opportunité,
+    vérification d'identité et paiement visioconférence.
   version: 1.0.0
+  contact:
+    name: Squad Recrutement
 
 servers:
   - url: https://api.zennyt.com/api/v1
@@ -13,92 +16,164 @@ servers:
     description: Staging
 
 tags:
-  - name: Jobs
-    description: Offres d'emploi
+  - name: JobOffers
+    description: Offres d'emploi — cycle de vie et recherche
+  - name: Swipes
+    description: Mécanique de swipe bidirectionnelle
+  - name: Matches
+    description: Matchs mutuels
+  - name: FitScores
+    description: Scores de compatibilité IA
+  - name: Assessments
+    description: Banque d'évaluations (création manuelle ou IA)
+  - name: AssessmentAttempts
+    description: Tentatives d'évaluation candidat
   - name: Applications
-    description: Candidatures
-  - name: SavedJobs
-    description: Offres sauvegardées
+    description: Candidatures formelles
+  - name: JobOpportunityOffers
+    description: Offres d'opportunité envoyées par le recruteur
+  - name: IdentityVerifications
+    description: Vérifications d'identité anti-fraude
+  - name: Payments
+    description: Paiement des sessions visioconférence
+  - name: RecruiterDashboard
+    description: Tableau de bord recruteur
+  - name: Callbacks
+    description: Webhooks entrants des services tiers
 
 security:
   - bearerAuth: []
 
 paths:
-  # ───────────── JOBS ─────────────
-  /jobs:
+
+  # ═══════════════════════════════════════════════════════════════
+  # JOB OFFERS
+  # ═══════════════════════════════════════════════════════════════
+
+  /job-offers:
     get:
-      tags: [Jobs]
-      summary: Rechercher et filtrer les offres
+      operationId: getJobOffers
+      tags: [JobOffers]
+      summary: Rechercher les offres actives avec filtres
       security: []
       parameters:
-        - { name: q, in: query, description: "Recherche plein texte", schema: { type: string } }
+        - { name: q, in: query, description: Recherche plein texte sur titre et description, schema: { type: string } }
         - { name: location, in: query, schema: { type: string } }
         - { name: contractType, in: query, schema: { $ref: '#/components/schemas/ContractType' } }
         - { name: experienceLevel, in: query, schema: { $ref: '#/components/schemas/ExperienceLevel' } }
-        - { name: remoteAllowed, in: query, schema: { type: boolean } }
-        - { $ref: './common.openapi.yaml#/components/parameters/PageParam' }
-        - { $ref: './common.openapi.yaml#/components/parameters/SizeParam' }
-        - { $ref: './common.openapi.yaml#/components/parameters/SortParam' }
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
       responses:
         '200':
           description: Page d'offres correspondant aux critères
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/JobPage' }
+              schema: { $ref: '#/components/schemas/JobOfferPage' }
+
     post:
-      tags: [Jobs]
-      summary: Publier une nouvelle offre (recruteur)
+      operationId: postJobOffers
+      tags: [JobOffers]
+      summary: Créer une nouvelle offre (recruteur)
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/JobPostCreate' }
+            schema: { $ref: '#/components/schemas/JobOfferCreate' }
       responses:
         '201':
           description: Offre créée
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/JobPost' }
-        '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
-        '403': { $ref: './common.openapi.yaml#/components/responses/Forbidden' }
+              schema: { $ref: '#/components/schemas/JobOffer' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
 
-  /jobs/{jobId}:
-    parameters:
-      - { name: jobId, in: path, required: true, schema: { type: string, format: uuid } }
+  /recruiters/me/job-offers:
     get:
-      tags: [Jobs]
-      summary: Détail d'une offre
+      operationId: getRecruitersMeJobOffers
+      tags: [JobOffers]
+      summary: Lister mes offres (recruteur)
+      description: Retourne les offres du recruteur connecté avec statistiques (candidateCount, successRate).
+      parameters:
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/JobOfferStatus' } }
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: Page d'offres du recruteur
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/JobOfferPage' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /recruiters/me/candidate-feed:
+    get:
+      operationId: getRecruitersMeCandidateFeed
+      tags: [FitScores]
+      summary: Deck de candidats trié par fit score pour une offre possédée
+      parameters:
+        - { name: jobOfferId, in: query, required: true, schema: { type: string, format: uuid } }
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: Candidats projetés, triés par score et hors paires masquées
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CandidateFeedPage' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /job-offers/{jobOfferId}:
+    parameters:
+      - $ref: '#/components/parameters/JobOfferIdParam'
+    get:
+      operationId: getJobOffersByJobofferid
+      tags: [JobOffers]
+      summary: Détail public d'une offre active
       security: []
       responses:
         '200':
           description: Détail de l'offre
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/JobPost' }
-        '404': { $ref: './common.openapi.yaml#/components/responses/NotFound' }
-    put:
-      tags: [Jobs]
-      summary: Mettre à jour une offre (recruteur propriétaire)
+              schema: { $ref: '#/components/schemas/JobOffer' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      operationId: patchJobOffersByJobofferid
+      tags: [JobOffers]
+      summary: Mise à jour partielle d'une offre (recruteur propriétaire)
+      description: >
+        Seuls les champs présents sont modifiés. Sert aussi à assigner /
+        désassigner une évaluation (`assessmentId`).
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/JobPostCreate' }
+            schema: { $ref: '#/components/schemas/JobOfferUpdate' }
       responses:
         '200':
           description: Offre mise à jour
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/JobPost' }
-        '403': { $ref: './common.openapi.yaml#/components/responses/Forbidden' }
-        '404': { $ref: './common.openapi.yaml#/components/responses/NotFound' }
+              schema: { $ref: '#/components/schemas/JobOffer' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      operationId: deleteJobOffersByJobofferid
+      tags: [JobOffers]
+      summary: Supprimer une offre en brouillon (recruteur propriétaire)
+      responses:
+        '204': { description: Offre supprimée }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
 
-  /jobs/{jobId}/status:
+  /job-offers/{jobOfferId}/status:
     parameters:
-      - { name: jobId, in: path, required: true, schema: { type: string, format: uuid } }
+      - $ref: '#/components/parameters/JobOfferIdParam'
     patch:
-      tags: [Jobs]
-      summary: Changer le statut d'une offre (DRAFT → PUBLISHED → PAUSED → CLOSED)
+      operationId: patchJobOffersByJobofferidStatus
+      tags: [JobOffers]
+      summary: Changer le statut d'une offre (DRAFT → ACTIVE → HIDDEN → CLOSED)
       requestBody:
         required: true
         content:
@@ -107,46 +182,381 @@ paths:
               type: object
               required: [status]
               properties:
-                status: { $ref: '#/components/schemas/JobStatus' }
+                status: { $ref: '#/components/schemas/JobOfferStatus' }
       responses:
         '200':
           description: Statut mis à jour
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/JobPost' }
+              schema: { $ref: '#/components/schemas/JobOffer' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
 
-  /jobs/matching:
+  /job-offers/{jobOfferId}/applications:
+    parameters:
+      - $ref: '#/components/parameters/JobOfferIdParam'
     get:
-      tags: [Jobs]
-      summary: Offres recommandées pour le candidat connecté (matching)
-      parameters:
-        - { $ref: './common.openapi.yaml#/components/parameters/PageParam' }
-        - { $ref: './common.openapi.yaml#/components/parameters/SizeParam' }
-      responses:
-        '200':
-          description: Offres triées par score de pertinence
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/JobPage' }
-
-  # ───────────── APPLICATIONS ─────────────
-  /applications:
-    get:
+      operationId: getJobOffersByJobofferidApplications
       tags: [Applications]
-      summary: Lister mes candidatures (candidat) ou les candidatures reçues (recruteur)
+      summary: Lister les candidatures pour une offre (recruteur)
       parameters:
         - { name: status, in: query, schema: { $ref: '#/components/schemas/ApplicationStatus' } }
-        - { $ref: './common.openapi.yaml#/components/parameters/PageParam' }
-        - { $ref: './common.openapi.yaml#/components/parameters/SizeParam' }
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
       responses:
         '200':
-          description: Page de candidatures
+          description: Candidatures enrichies et agrégats de réussite pour cette offre
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OfferApplicationsResult' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ═══════════════════════════════════════════════════════════════
+  # SWIPES
+  # ═══════════════════════════════════════════════════════════════
+
+  /swipes:
+    post:
+      operationId: postSwipes
+      tags: [Swipes]
+      summary: Enregistrer un swipe (candidat sur offre ou recruteur sur candidat)
+      description: >
+        `actorRole` est déduit du rôle de l'utilisateur connecté.
+        `targetType=JOB_OFFER` pour le candidat, `targetType=CANDIDATE` pour le recruteur.
+        Si le swipe crée un match mutuel, un `MatchCreatedEvent` est publié.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SwipeCreate' }
+      responses:
+        '201':
+          description: Swipe enregistré. Le champ `matchCreated` indique si un match a été généré.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SwipeResult' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /swipes/{swipeId}:
+    delete:
+      operationId: deleteSwipesBySwipeid
+      tags: [Swipes]
+      summary: Annuler un swipe (undo)
+      description: >
+        Le swipe doit appartenir à l'utilisateur connecté. Le match associé
+        à la même paire candidat/offre est supprimé dans la même transaction.
+      parameters:
+        - { name: swipeId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '204': { description: Swipe annulé }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /swipes/targets:
+    get:
+      operationId: getSwipesTargets
+      tags: [Swipes]
+      summary: Ids des cibles déjà swipées par un utilisateur
+      description: Permet au client d'exclure du deck les cartes déjà swipées.
+      parameters:
+        - { name: jobOfferId, in: query, required: false, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Liste d'ids de cibles
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { type: string, format: uuid }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  # ═══════════════════════════════════════════════════════════════
+  # MATCHES
+  # ═══════════════════════════════════════════════════════════════
+
+  /candidates/me/matches:
+    get:
+      operationId: getCandidatesMeMatches
+      tags: [Matches]
+      summary: Mes matchs actifs (candidat)
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: Page de matchs du candidat connecté
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MatchPage' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /recruiters/me/matches:
+    get:
+      operationId: getRecruitersMeMatches
+      tags: [Matches]
+      summary: Mes matchs actifs sur toutes mes offres (recruteur)
+      parameters:
+        - { name: jobOfferId, in: query, description: Filtrer par offre, schema: { type: string, format: uuid } }
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: Page de matchs du recruteur connecté
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MatchPage' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  # ═══════════════════════════════════════════════════════════════
+  # FIT SCORES
+  # ═══════════════════════════════════════════════════════════════
+
+  /fit-scores:
+    get:
+      operationId: getFitScores
+      tags: [FitScores]
+      summary: Score de compatibilité entre le candidat connecté et une offre
+      parameters:
+        - { name: candidateId, in: query, required: true, schema: { type: string, format: uuid } }
+        - { name: jobOfferId, in: query, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Score de compatibilité
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FitScore' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      operationId: deleteFitScores
+      tags: [FitScores]
+      summary: Retirer une paire des Fit Scores du recruteur
+      parameters:
+        - { name: candidateId, in: query, required: true, schema: { type: string, format: uuid } }
+        - { name: jobOfferId, in: query, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '204': { description: Paire masquée pour le recruteur connecté }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /fit-scores/recompute:
+    post:
+      operationId: postFitScoresRecompute
+      tags: [FitScores]
+      summary: Recalcul synchrone des fit scores (levier démo, recruteur)
+      description: >
+        Avec jobOfferId : tous les candidats projetés contre cette offre ;
+        sans corps : toutes les offres ACTIVE. Le flux normal reste asynchrone
+        (offre activée, partie jouée). Tolérant aux échecs par paire.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jobOfferId: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Nombre de paires recalculées
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pairsWritten: { type: integer }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /tests/{token}:
+    get:
+      operationId: getPublicTestByToken
+      tags: [Assessments]
+      summary: Résoudre un test partagé sans exposer ses réponses correctes
+      security: []
+      parameters:
+        - { name: token, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Test public candidat
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PublicAssessment' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ═══════════════════════════════════════════════════════════════
+  # ASSESSMENTS
+  # ═══════════════════════════════════════════════════════════════
+
+  /assessments:
+    get:
+      operationId: getAssessments
+      tags: [Assessments]
+      summary: Lister les évaluations disponibles (recruteur)
+      responses:
+        '200':
+          description: Liste des évaluations
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Assessment' }
+    post:
+      operationId: postAssessments
+      tags: [Assessments]
+      summary: Créer une évaluation manuellement (recruteur)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AssessmentCreate' }
+      responses:
+        '201':
+          description: Évaluation créée
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Assessment' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /assessments/mine:
+    get:
+      operationId: getAssessmentsMine
+      tags: [Assessments]
+      summary: Lister mes évaluations (recruteur)
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: Page d'évaluations du recruteur
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AssessmentPage' }
+
+  /assessments/{assessmentId}:
+    parameters:
+      - $ref: '#/components/parameters/AssessmentIdParam'
+    get:
+      operationId: getAssessmentsByAssessmentid
+      tags: [Assessments]
+      summary: Détail d'une évaluation avec ses questions (recruteur)
+      responses:
+        '200':
+          description: Évaluation complète
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Assessment' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      operationId: putAssessmentsByAssessmentid
+      tags: [Assessments]
+      summary: Mettre à jour une évaluation (recruteur propriétaire)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AssessmentCreate' }
+      responses:
+        '200':
+          description: Évaluation mise à jour
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Assessment' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      operationId: deleteAssessmentsByAssessmentid
+      tags: [Assessments]
+      summary: Supprimer une évaluation (recruteur propriétaire)
+      responses:
+        '204': { description: Évaluation supprimée }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ═══════════════════════════════════════════════════════════════
+  # ASSESSMENT ATTEMPTS
+  # ═══════════════════════════════════════════════════════════════
+
+  /assessment-attempts:
+    post:
+      operationId: postAssessmentAttempts
+      tags: [AssessmentAttempts]
+      summary: Soumettre les réponses d'une évaluation (candidat)
+      description: >
+        Une seule tentative autorisée par (candidateId, assessmentId, jobOfferId).
+        Après soumission, le statut `integrityStatus` est `PENDING` jusqu'au callback anti-fraude.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AttemptSubmit' }
+      responses:
+        '201':
+          description: Tentative soumise
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AssessmentAttempt' }
+        '409':
+          description: Tentative déjà soumise pour cette combinaison (assessmentId, jobOfferId)
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+    get:
+      operationId: getAssessmentAttempts
+      tags: [AssessmentAttempts]
+      summary: Lister les tentatives d'une offre (recruteur propriétaire)
+      parameters:
+        - { name: jobOfferId, in: query, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Liste des tentatives de l'offre
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/AssessmentAttempt' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /assessment-attempts/{attemptId}:
+    parameters:
+      - { name: attemptId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      operationId: getAssessmentAttemptsByAttemptid
+      tags: [AssessmentAttempts]
+      summary: Résultat d'une tentative (score + statut intégrité)
+      responses:
+        '200':
+          description: Résultat de la tentative
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AssessmentAttempt' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ═══════════════════════════════════════════════════════════════
+  # APPLICATIONS
+  # ═══════════════════════════════════════════════════════════════
+
+  /candidates/me/applications:
+    get:
+      operationId: getCandidatesMeApplications
+      tags: [Applications]
+      summary: Lister mes candidatures (candidat)
+      parameters:
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/ApplicationStatus' } }
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: Page de candidatures du candidat connecté
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ApplicationPage' }
+  /applications:
     post:
+      operationId: postApplications
       tags: [Applications]
-      summary: Soumettre une candidature (candidat)
+      summary: Postuler directement à une offre (compatibilité historique)
+      description: Déprécié — la candidature s'ouvre désormais lors de la soumission du test associé.
+      deprecated: true
       requestBody:
         required: true
         content:
@@ -158,28 +568,31 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Application' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '409':
           description: Candidature déjà existante pour cette offre
-        '403': { $ref: './common.openapi.yaml#/components/responses/Forbidden' }
 
   /applications/{applicationId}:
     parameters:
-      - { name: applicationId, in: path, required: true, schema: { type: string, format: uuid } }
+      - $ref: '#/components/parameters/ApplicationIdParam'
     get:
+      operationId: getApplicationsByApplicationid
       tags: [Applications]
-      summary: Détail d'une candidature avec son historique de statuts
+      summary: Détail d'une candidature avec historique de statuts
       responses:
         '200':
           description: Détail de la candidature
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ApplicationDetail' }
-        '404': { $ref: './common.openapi.yaml#/components/responses/NotFound' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
 
   /applications/{applicationId}/status:
     parameters:
-      - { name: applicationId, in: path, required: true, schema: { type: string, format: uuid } }
+      - $ref: '#/components/parameters/ApplicationIdParam'
     patch:
+      operationId: patchApplicationsByApplicationidStatus
       tags: [Applications]
       summary: Faire évoluer le statut d'une candidature (recruteur)
       requestBody:
@@ -191,132 +604,857 @@ paths:
               required: [status]
               properties:
                 status: { $ref: '#/components/schemas/ApplicationStatus' }
-                note: { type: string }
+                note: { type: string, description: Note interne optionnelle }
       responses:
         '200':
           description: Statut mis à jour
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Application' }
-        '403': { $ref: './common.openapi.yaml#/components/responses/Forbidden' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
 
-  # ───────────── SAVED JOBS ─────────────
-  /saved-jobs:
-    get:
-      tags: [SavedJobs]
-      summary: Lister les offres sauvegardées du candidat
-      responses:
-        '200':
-          description: Offres sauvegardées
-          content:
-            application/json:
-              schema:
-                type: array
-                items: { $ref: '#/components/schemas/JobPost' }
+  # ═══════════════════════════════════════════════════════════════
+  # JOB OPPORTUNITY OFFERS
+  # ═══════════════════════════════════════════════════════════════
+
+  /job-opportunity-offers:
     post:
-      tags: [SavedJobs]
-      summary: Sauvegarder une offre
+      operationId: postJobOpportunityOffers
+      tags: [JobOpportunityOffers]
+      summary: Recruter un candidat — envoyer une offre d'opportunité (recruteur)
+      description: >
+        Publie `JobOpportunityOfferSentEvent`. Engagement délivre la carte dans le chat.
+        Le candidat doit confirmer via OTP SMS.
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [jobId]
+              required: [candidateId, jobOfferId]
               properties:
-                jobId: { type: string, format: uuid }
+                candidateId: { type: string, format: uuid }
+                jobOfferId: { type: string, format: uuid }
       responses:
-        '201': { description: Offre sauvegardée }
+        '201':
+          description: Offre d'opportunité envoyée
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/JobOpportunityOffer' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /job-opportunity-offers/{offerId}:
+    parameters:
+      - { name: offerId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      operationId: getJobOpportunityOffersByOfferid
+      tags: [JobOpportunityOffers]
+      summary: Obtenir les données de la carte offre (candidat)
+      responses:
+        '200':
+          description: Carte d'offre d'opportunité
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/JobOpportunityOffer' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /job-opportunity-offers/{offerId}/confirm:
+    parameters:
+      - { name: offerId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      operationId: postJobOpportunityOffersByOfferidConfirm
+      tags: [JobOpportunityOffers]
+      summary: Confirmer l'offre d'opportunité — déclenche l'envoi de l'OTP SMS (candidat)
+      responses:
+        '200':
+          description: OTP SMS envoyé, en attente de vérification
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/JobOpportunityOffer' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /job-opportunity-offers/{offerId}/verify-otp:
+    parameters:
+      - { name: offerId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      operationId: postJobOpportunityOffersByOfferidVerifyOtp
+      tags: [JobOpportunityOffers]
+      summary: Soumettre le code OTP pour finaliser la confirmation (candidat)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [otpCode]
+              properties:
+                otpCode: { type: string, minLength: 6, maxLength: 6, example: "745568" }
+      responses:
+        '200':
+          description: Offre confirmée — otpVerified = true
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/JobOpportunityOffer' }
+        '400':
+          description: Code OTP invalide ou expiré
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /job-opportunity-offers/{offerId}/reject:
+    parameters:
+      - { name: offerId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      operationId: postJobOpportunityOffersByOfferidReject
+      tags: [JobOpportunityOffers]
+      summary: Rejeter l'offre d'opportunité (candidat)
+      responses:
+        '200':
+          description: Offre rejetée
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/JobOpportunityOffer' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ═══════════════════════════════════════════════════════════════
+  # IDENTITY VERIFICATIONS
+  # ═══════════════════════════════════════════════════════════════
+
+  /identity-verifications:
+    post:
+      operationId: postIdentityVerifications
+      tags: [IdentityVerifications]
+      summary: Demander une vérification anti-fraude pour un candidat (recruteur)
+      description: >
+        Publie `IdentityVerificationRequestedEvent`. Le service tiers gère la reconnaissance
+        faciale et poste le résultat via `POST /callbacks/identity-verification`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [candidateId]
+              properties:
+                candidateId: { type: string, format: uuid }
+                jobOfferId:
+                  type: string
+                  format: uuid
+                  description: Contexte optionnel — quelle offre a motivé la vérification
+      responses:
+        '201':
+          description: Demande de vérification créée
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/IdentityVerification' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /identity-verifications/{verificationId}:
+    parameters:
+      - { name: verificationId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      operationId: getIdentityVerificationsByVerificationid
+      tags: [IdentityVerifications]
+      summary: Consulter le statut d'une vérification (recruteur ou candidat concerné)
+      responses:
+        '200':
+          description: Statut de la vérification
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/IdentityVerification' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ═══════════════════════════════════════════════════════════════
+  # PAYMENTS
+  # ═══════════════════════════════════════════════════════════════
+
+  /payments:
+    post:
+      operationId: postPayments
+      tags: [Payments]
+      summary: Initier le paiement d'une session visioconférence (recruteur)
+      description: >
+        Frais : 9,99 EUR + taxe. Après confirmation OTP, publie
+        `VideoConferencePaymentConfirmedEvent` et Engagement débloque l'appel vidéo.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [matchId, cardLast4, cardType]
+              properties:
+                matchId: { type: string, format: uuid }
+                cardLast4: { type: string, minLength: 4, maxLength: 4 }
+                cardType: { type: string, example: CREDIT_CARD }
+      responses:
+        '201':
+          description: Paiement initié — OTP SMS envoyé pour confirmation
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/VideoConferencePayment' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /payments/{paymentId}:
+    parameters:
+      - { name: paymentId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      operationId: getPaymentsByPaymentid
+      tags: [Payments]
+      summary: Statut et récapitulatif de commande d'un paiement
+      responses:
+        '200':
+          description: Détail du paiement
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/VideoConferencePayment' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /payments/{paymentId}/verify-otp:
+    parameters:
+      - { name: paymentId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      operationId: postPaymentsByPaymentidVerifyOtp
+      tags: [Payments]
+      summary: Confirmer le paiement via OTP SMS (recruteur)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [otpCode]
+              properties:
+                otpCode: { type: string, minLength: 6, maxLength: 6, example: "745568" }
+      responses:
+        '200':
+          description: Paiement confirmé
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/VideoConferencePayment' }
+        '400':
+          description: Code OTP invalide ou expiré
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ═══════════════════════════════════════════════════════════════
+  # CALLBACKS TIERS
+  # ═══════════════════════════════════════════════════════════════
+
+  /callbacks/integrity:
+    post:
+      operationId: postCallbacksIntegrity
+      tags: [Callbacks]
+      summary: Résultat de vérification d'intégrité d'une tentative (anti-fraude tiers)
+      description: >
+        Route sécurisée par clé API partagée (header `X-Callback-Secret`).
+        Non exposée aux clients frontend.
+      security:
+        - callbackSecret: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AssessmentIntegrityCallback' }
+      responses:
+        '200': { description: Callback traité }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /callbacks/identity-verification:
+    post:
+      operationId: postCallbacksIdentityVerification
+      tags: [Callbacks]
+      summary: Résultat de la reconnaissance faciale (tiers anti-fraude)
+      security:
+        - callbackSecret: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/IdentityVerificationCallback' }
+      responses:
+        '200': { description: Callback traité }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /callbacks/fit-score:
+    post:
+      operationId: postCallbacksFitScore
+      tags: [Callbacks]
+      summary: Score de compatibilité calculé par l'IA externe (modèle asynchrone)
+      security:
+        - callbackSecret: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/FitScoreCallback' }
+      responses:
+        '200': { description: Callback traité }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+# ═══════════════════════════════════════════════════════════════
+# COMPONENTS
+# ═══════════════════════════════════════════════════════════════
 
 components:
+
   securitySchemes:
-    bearerAuth: { $ref: './common.openapi.yaml#/components/securitySchemes/bearerAuth' }
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    callbackSecret:
+      type: apiKey
+      in: header
+      name: X-Callback-Secret
+
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      schema: { type: integer, default: 0, minimum: 0 }
+    SizeParam:
+      name: size
+      in: query
+      schema: { type: integer, default: 20, minimum: 1, maximum: 100 }
+    JobOfferIdParam:
+      name: jobOfferId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    AssessmentIdParam:
+      name: assessmentId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    ApplicationIdParam:
+      name: applicationId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  responses:
+    BadRequest:
+      description: Requête invalide
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
+    Unauthorized:
+      description: Non authentifié
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
+    Forbidden:
+      description: Accès refusé
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
+    NotFound:
+      description: Ressource introuvable
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
 
   schemas:
+
+    # ── Enums ──────────────────────────────────────────────────
+
     ContractType:
       type: string
-      enum: [FULL_TIME, PART_TIME, CONTRACT, INTERNSHIP, FREELANCE]
+      enum: [FULL_TIME, PART_TIME, CONTRACT, TEMPORARY, APPRENTICESHIP, VOLUNTEER]
+
+    WorkplaceType:
+      type: string
+      enum: [ON_SITE, REMOTE, HYBRID, FLEXIBLE]
+
     ExperienceLevel:
       type: string
-      enum: [JUNIOR, MID, SENIOR, LEAD]
-    JobStatus:
+      enum: [JUNIOR, MID, SENIOR, EXECUTIVE]
+
+    JobOfferStatus:
       type: string
-      enum: [DRAFT, PUBLISHED, PAUSED, CLOSED]
+      enum: [DRAFT, ACTIVE, HIDDEN, CLOSED]
+
+    SwipeDirection:
+      type: string
+      enum: [LIKE, PASS]
+
+    MatchStatus:
+      type: string
+      enum: [ACTIVE, EXPIRED, CLOSED]
+
     ApplicationStatus:
       type: string
-      enum: [SUBMITTED, VIEWED, SHORTLISTED, INTERVIEW, OFFER, REJECTED, WITHDRAWN]
+      enum: [PENDING, SHORTLISTED, APPROVED, REJECTED]
 
-    JobPost:
+    AssessmentGenerationMode:
+      type: string
+      enum: [FROM_FILE, FROM_PROMPT]
+
+    AssessmentGenerationStatusEnum:
+      type: string
+      enum: [PENDING, COMPLETED, FAILED]
+
+    IntegrityStatus:
+      type: string
+      enum: [PENDING, VALIDATED, NOT_VALIDATED]
+
+    JobOpportunityStatus:
+      type: string
+      enum: [PENDING, CONFIRMED, REJECTED]
+
+    IdentityVerificationStatus:
+      type: string
+      enum: [PENDING, COMPLETED_SUCCESS, COMPLETED_FAILURE]
+
+    PaymentStatus:
+      type: string
+      enum: [PENDING, OTP_SENT, CONFIRMED, FAILED]
+
+    # ── Value Objects ──────────────────────────────────────────
+
+    SalaryRange:
+      type: object
+      properties:
+        min: { type: number, format: double, example: 12000 }
+        max: { type: number, format: double, example: 22000 }
+        currency: { type: string, example: EUR }
+
+    Location:
+      type: object
+      properties:
+        city: { type: string, example: "Paris" }
+        country: { type: string, example: "France" }
+        remote: { type: boolean }
+
+    Money:
+      type: object
+      properties:
+        amount: { type: number, format: double, example: 9.99 }
+        currency: { type: string, example: EUR }
+
+    PaymentMethodInput:
+      type: object
+      required: [cardNumber, expiryMonth, expiryYear, cvv, cardholderName]
+      properties:
+        cardNumber: { type: string, example: "4966000000000000" }
+        expiryMonth: { type: integer, example: 12 }
+        expiryYear: { type: integer, example: 2027 }
+        cvv: { type: string, example: "123" }
+        cardholderName: { type: string, example: "Kristin Watson" }
+
+    PaymentMethodSummary:
+      type: object
+      properties:
+        type: { type: string, enum: [CREDIT_CARD, DEBIT_CARD] }
+        last4: { type: string, example: "8553" }
+        expiryMonth: { type: integer }
+        expiryYear: { type: integer }
+
+    PageMeta:
+      type: object
+      properties:
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+        totalPages: { type: integer }
+
+    ApiError:
+      type: object
+      properties:
+        status: { type: integer }
+        error: { type: string }
+        message: { type: string }
+        timestamp: { type: string, format: date-time }
+
+    # ── JobOffer ───────────────────────────────────────────────
+
+    JobOffer:
       type: object
       properties:
         id: { type: string, format: uuid }
         recruiterId: { type: string, format: uuid }
-        companyName: { type: string }
-        companyLogoUrl: { type: string, format: uri }
-        title: { type: string }
-        description: { type: string }
+        hiringContactId: { type: string, format: uuid }
+        title: { type: string, example: "UX/UI Designer" }
+        companyName: { type: string, example: "Google Inc." }
+        city: { type: string, example: "Tunis" }
+        country: { type: string, example: "TN" }
+        remote: { type: boolean }
+        salaryMin: { type: number, format: double, example: 40000 }
+        salaryMax: { type: number, format: double, example: 70000 }
+        currency: { type: string, example: EUR }
         contractType: { $ref: '#/components/schemas/ContractType' }
-        location: { type: string }
-        remoteAllowed: { type: boolean }
-        salaryRange: { type: string, example: "45k-60k EUR" }
+        workplaceType: { $ref: '#/components/schemas/WorkplaceType' }
         experienceLevel: { $ref: '#/components/schemas/ExperienceLevel' }
-        requiredSkills:
-          type: array
-          items: { type: string }
-        status: { $ref: '#/components/schemas/JobStatus' }
-        viewsCount: { type: integer }
-        hasApplied: { type: boolean, description: "Vrai si le candidat connecté a déjà postulé" }
-        publishedAt: { type: string, format: date-time }
-        createdAt: { type: string, format: date-time }
+        fieldOfWork: { type: string, example: "IT, AI & Fintech" }
+        description: { type: string }
+        responsibilities: { type: string }
+        minimumQualifications: { type: string }
+        preferredQualifications: { type: string }
+        whatWeOffer: { type: string }
+        howToApply: { type: string }
+        companyInfo: { type: string }
+        assessmentId: { type: string, format: uuid, nullable: true }
+        shareableLink: { type: string, format: uri, nullable: true }
+        passingScore: { type: integer, minimum: 0, maximum: 100, default: 60 }
+        openToInternational: { type: boolean }
+        status: { $ref: '#/components/schemas/JobOfferStatus' }
+        applicantCount: { type: integer, minimum: 0 }
+        successRate: { type: integer, description: "% de candidats ayant réussi toutes les évaluations" }
+        fitScore: { type: integer, description: "Score de compatibilité du candidat connecté (0-100). Absent si non connecté." }
+        goodFit: { type: boolean, nullable: true, description: "Vrai à partir du seuil provisoire de 70." }
+        softSkillScore: { type: integer, minimum: 0, maximum: 100, nullable: true }
+        cvMatchScore: { type: integer, minimum: 0, maximum: 100, nullable: true }
+        postedAt: { type: string, format: date-time }
 
-    JobPostCreate:
+    JobOfferCreate:
       type: object
-      required: [title, description, contractType, location, experienceLevel]
+      required: [title, description, contractType, workplaceType, experienceLevel, city, country]
       properties:
         title: { type: string, minLength: 3 }
-        description: { type: string, minLength: 20 }
+        companyName: { type: string }
+        city: { type: string }
+        country: { type: string }
+        remote: { type: boolean, default: false }
+        salaryMin: { type: number, format: double }
+        salaryMax: { type: number, format: double }
+        currency: { type: string }
         contractType: { $ref: '#/components/schemas/ContractType' }
-        location: { type: string }
-        remoteAllowed: { type: boolean, default: false }
-        salaryRange: { type: string }
+        workplaceType: { $ref: '#/components/schemas/WorkplaceType' }
         experienceLevel: { $ref: '#/components/schemas/ExperienceLevel' }
-        requiredSkills:
-          type: array
-          items: { type: string }
+        fieldOfWork: { type: string }
+        description: { type: string, minLength: 20 }
+        responsibilities: { type: string }
+        minimumQualifications: { type: string }
+        preferredQualifications: { type: string }
+        whatWeOffer: { type: string }
+        howToApply: { type: string }
+        companyInfo: { type: string }
+        assessmentId: { type: string, format: uuid, nullable: true }
+        passingScore: { type: integer, minimum: 0, maximum: 100, default: 60 }
+        openToInternational: { type: boolean, default: false }
 
-    JobPage:
+    JobOfferUpdate:
+      type: object
+      description: >
+        Mise à jour partielle : tout champ absent reste inchangé.
+        `assessmentId: null` explicite désassigne l'évaluation.
+      properties:
+        title: { type: string }
+        companyName: { type: string }
+        city: { type: string }
+        country: { type: string }
+        remote: { type: boolean }
+        salaryMin: { type: number, format: double }
+        salaryMax: { type: number, format: double }
+        currency: { type: string }
+        contractType: { $ref: '#/components/schemas/ContractType' }
+        workplaceType: { $ref: '#/components/schemas/WorkplaceType' }
+        experienceLevel: { $ref: '#/components/schemas/ExperienceLevel' }
+        fieldOfWork: { type: string }
+        description: { type: string }
+        responsibilities: { type: string }
+        minimumQualifications: { type: string }
+        preferredQualifications: { type: string }
+        whatWeOffer: { type: string }
+        howToApply: { type: string }
+        companyInfo: { type: string }
+        assessmentId: { type: string, format: uuid, nullable: true }
+        passingScore: { type: integer, minimum: 0, maximum: 100 }
+        openToInternational: { type: boolean }
+        status: { $ref: '#/components/schemas/JobOfferStatus' }
+
+    JobOfferPage:
       type: object
       properties:
         content:
           type: array
-          items: { $ref: '#/components/schemas/JobPost' }
-        page: { $ref: './common.openapi.yaml#/components/schemas/PageMeta' }
+          items: { $ref: '#/components/schemas/JobOffer' }
+        page: { $ref: '#/components/schemas/PageMeta' }
+
+    # ── Swipe ──────────────────────────────────────────────────
+
+    SwipeCreate:
+      type: object
+      required: [targetId, targetType, direction]
+      properties:
+        targetId: { type: string, format: uuid }
+        targetType:
+          type: string
+          enum: [JOB_OFFER, CANDIDATE]
+        jobOfferId:
+          type: string
+          format: uuid
+          description: Requis lorsque targetType=CANDIDATE; ignoré sinon.
+        direction: { $ref: '#/components/schemas/SwipeDirection' }
+
+    SwipeResult:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        direction: { $ref: '#/components/schemas/SwipeDirection' }
+        matchCreated: { type: boolean, description: "Vrai si ce swipe a généré un match mutuel" }
+        matchId: { type: string, format: uuid, description: "Présent si matchCreated = true" }
+        swipedAt: { type: string, format: date-time }
+
+    # ── Match ──────────────────────────────────────────────────
+
+    Match:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        candidateId: { type: string, format: uuid }
+        jobOfferId: { type: string, format: uuid }
+        recruiterId: { type: string, format: uuid }
+        jobOfferTitle: { type: string }
+        status: { $ref: '#/components/schemas/MatchStatus' }
+        matchedAt: { type: string, format: date-time }
+
+    MatchPage:
+      type: object
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/Match' }
+        page: { $ref: '#/components/schemas/PageMeta' }
+
+    # ── FitScore ───────────────────────────────────────────────
+
+    FitScore:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        candidateId: { type: string, format: uuid }
+        jobOfferId: { type: string, format: uuid }
+        score: { type: integer, minimum: 0, maximum: 100, example: 88 }
+        goodFit: { type: boolean, description: "Vrai à partir du seuil provisoire de 70." }
+        softSkillScore: { type: integer, minimum: 0, maximum: 100, nullable: true }
+        cvMatchScore: { type: integer, minimum: 0, maximum: 100, nullable: true }
+        computedAt: { type: string, format: date-time }
+
+    # ── Candidate Feed ─────────────────────────────────────────
+
+    CandidateFeedItem:
+      type: object
+      description: Profil candidat tel qu'affiché dans le fil recruteur (données lues depuis Identity)
+      properties:
+        candidateId: { type: string, format: uuid }
+        fullName: { type: string }
+        targetRole: { type: string }
+        location: { $ref: '#/components/schemas/Location' }
+        fitScore: { type: integer, minimum: 0, maximum: 100 }
+        goodFit: { type: boolean }
+        softSkillsScore: { type: integer, minimum: 0, maximum: 100 }
+        contractPreferences:
+          type: array
+          items: { type: string }
+        availability: { type: string, example: "Immédiatement" }
+        international: { type: boolean }
+
+    CandidateFeedPage:
+      type: object
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/CandidateFeedItem' }
+        page: { $ref: '#/components/schemas/PageMeta' }
+
+    # ── Assessment ─────────────────────────────────────────────
+
+    AssessmentQuestion:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        order: { type: integer, minimum: 1 }
+        text: { type: string }
+        options:
+          type: array
+          minItems: 4
+          maxItems: 4
+          items: { type: string }
+          example: ["Docker", "Git", "Jenkins", "Node.js"]
+        correctOptionIndex: { type: integer, minimum: 0, maximum: 3 }
+
+    AssessmentQuestionInput:
+      type: object
+      required: [text, options, correctOptionIndex]
+      properties:
+        text: { type: string }
+        options:
+          type: array
+          minItems: 4
+          maxItems: 4
+          items: { type: string }
+        correctOptionIndex: { type: integer, minimum: 0, maximum: 3 }
+
+    Assessment:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        createdByRecruiterId: { type: string, format: uuid }
+        title: { type: string, example: "Test compétences — Développeur React" }
+        timeLimitSeconds: { type: integer, example: 1200 }
+        maxQuestions: { type: integer, example: 30 }
+        generationSource: { $ref: '#/components/schemas/AssessmentGenerationMode' }
+        shareableLink: { type: string, format: uri }
+        questions:
+          type: array
+          items: { $ref: '#/components/schemas/AssessmentQuestion' }
+        createdAt: { type: string, format: date-time }
+
+    AssessmentSummary:
+      type: object
+      description: Vue résumée d'une évaluation (sans les questions — pour le candidat avant tentative)
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        questionCount: { type: integer }
+        timeLimitSeconds: { type: integer }
+
+    PublicAssessmentQuestion:
+      type: object
+      required: [id, order, text, options]
+      properties:
+        id: { type: string, format: uuid }
+        order: { type: integer, minimum: 1 }
+        text: { type: string }
+        options:
+          type: array
+          items: { type: string }
+
+    PublicAssessment:
+      type: object
+      required: [id, title, questionCount, timeLimitSeconds, questions]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        questionCount: { type: integer }
+        timeLimitSeconds: { type: integer }
+        questions:
+          type: array
+          items: { $ref: '#/components/schemas/PublicAssessmentQuestion' }
+
+    AssessmentCreate:
+      type: object
+      required: [title, questions]
+      properties:
+        title: { type: string, minLength: 3 }
+        questions:
+          type: array
+          minItems: 1
+          maxItems: 30
+          items: { $ref: '#/components/schemas/AssessmentQuestionInput' }
+
+    AssessmentPage:
+      type: object
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/Assessment' }
+        page: { $ref: '#/components/schemas/PageMeta' }
+
+    AssessmentGenerationRequest:
+      type: object
+      required: [mode, numberOfQuestions]
+      properties:
+        mode: { $ref: '#/components/schemas/AssessmentGenerationMode' }
+        numberOfQuestions: { type: integer, minimum: 1, maximum: 30 }
+        file:
+          type: string
+          format: binary
+          description: "Requis si mode = FROM_FILE. Fichier PDF ou MCQ."
+        promptText:
+          type: string
+          maxLength: 1000
+          description: "Requis si mode = FROM_PROMPT. Description du poste et du domaine."
+
+    AssessmentGenerationStatus:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        mode: { $ref: '#/components/schemas/AssessmentGenerationMode' }
+        status: { $ref: '#/components/schemas/AssessmentGenerationStatusEnum' }
+        numberOfQuestions: { type: integer }
+        resultingAssessmentId:
+          type: string
+          format: uuid
+          description: "Présent quand status = COMPLETED"
+        requestedAt: { type: string, format: date-time }
+
+    # ── Assessment Attempt ─────────────────────────────────────
+
+    AttemptSubmit:
+      type: object
+      required: [assessmentId, jobOfferId, answers, consent]
+      properties:
+        assessmentId: { type: string, format: uuid }
+        jobOfferId: { type: string, format: uuid }
+        answers:
+          type: array
+          description: Index (0-3) de l'option sélectionnée pour chaque question, dans l'ordre
+          items: { type: integer, minimum: 0, maximum: 3 }
+        consent:
+          type: boolean
+          description: Doit être vrai pour autoriser le contrôle d'intégrité anti-fraude.
+
+    AssessmentAttempt:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        assessmentId: { type: string, format: uuid }
+        candidateId: { type: string, format: uuid }
+        jobOfferId: { type: string, format: uuid }
+        applicationId: { type: string, format: uuid }
+        score: { type: integer, minimum: 0, maximum: 100, example: 92 }
+        passed: { type: boolean }
+        integrityStatus: { $ref: '#/components/schemas/IntegrityStatus' }
+        submittedAt: { type: string, format: date-time }
+
+    AssessmentResultItem:
+      type: object
+      description: Résultat d'un candidat pour une offre (vue recruteur)
+      properties:
+        candidateId: { type: string, format: uuid }
+        candidateName: { type: string }
+        assessmentId: { type: string, format: uuid }
+        score: { type: integer, minimum: 0, maximum: 100 }
+        passed: { type: boolean }
+        integrityStatus: { $ref: '#/components/schemas/IntegrityStatus' }
+        submittedAt: { type: string, format: date-time }
+
+    AssessmentResultPage:
+      type: object
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/AssessmentResultItem' }
+        page: { $ref: '#/components/schemas/PageMeta' }
+
+    # ── Application ────────────────────────────────────────────
 
     Application:
       type: object
       properties:
         id: { type: string, format: uuid }
         candidateId: { type: string, format: uuid }
-        jobId: { type: string, format: uuid }
+        jobOfferId: { type: string, format: uuid }
         jobTitle: { type: string }
-        currentStatus: { $ref: '#/components/schemas/ApplicationStatus' }
+        status: { $ref: '#/components/schemas/ApplicationStatus' }
         appliedAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
 
     ApplicationCreate:
       type: object
-      required: [jobId]
+      required: [jobOfferId]
       properties:
-        jobId: { type: string, format: uuid }
-        coverLetter: { type: string }
+        jobOfferId: { type: string, format: uuid }
 
     ApplicationDetail:
       allOf:
         - { $ref: '#/components/schemas/Application' }
         - type: object
           properties:
-            coverLetter: { type: string }
-            cvSnapshotUrl: { type: string, format: uri }
             statusHistory:
               type: array
               items:
@@ -332,4 +1470,127 @@ components:
         content:
           type: array
           items: { $ref: '#/components/schemas/Application' }
-        page: { $ref: './common.openapi.yaml#/components/schemas/PageMeta' }
+        page: { $ref: '#/components/schemas/PageMeta' }
+
+    BestAssessmentAttempt:
+      type: object
+      nullable: true
+      properties:
+        scorePercent: { type: integer, minimum: 0, maximum: 100 }
+        passed: { type: boolean }
+        integrityStatus: { $ref: '#/components/schemas/IntegrityStatus' }
+        submittedAt: { type: string, format: date-time }
+
+    OfferApplicationRow:
+      type: object
+      required: [applicationId, candidateId, applicationStatus]
+      properties:
+        applicationId: { type: string, format: uuid }
+        candidateId: { type: string, format: uuid }
+        applicationStatus: { $ref: '#/components/schemas/ApplicationStatus' }
+        bestAttempt: { $ref: '#/components/schemas/BestAssessmentAttempt' }
+
+    OfferApplicationsResult:
+      type: object
+      required: [applicantCount, successRate, applications]
+      properties:
+        applicantCount: { type: integer, minimum: 0 }
+        successRate:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 100
+          description: Pourcentage de réussite parmi les tentatives dont l'intégrité n'est pas NOT_VALIDATED.
+        applications:
+          type: array
+          items: { $ref: '#/components/schemas/OfferApplicationRow' }
+
+    # ── Job Opportunity Offer ──────────────────────────────────
+
+    JobOpportunityOffer:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        recruiterId: { type: string, format: uuid }
+        candidateId: { type: string, format: uuid }
+        jobOfferId: { type: string, format: uuid }
+        title: { type: string, example: "Poste UX/UI Designer" }
+        salary: { $ref: '#/components/schemas/SalaryRange' }
+        status: { $ref: '#/components/schemas/JobOpportunityStatus' }
+        otpVerified: { type: boolean }
+        sentAt: { type: string, format: date-time }
+        respondedAt: { type: string, format: date-time, nullable: true }
+
+    # ── Identity Verification ──────────────────────────────────
+
+    IdentityVerification:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        requestedByRecruiterId: { type: string, format: uuid }
+        targetCandidateId: { type: string, format: uuid }
+        jobOfferId: { type: string, format: uuid, nullable: true }
+        status: { $ref: '#/components/schemas/IdentityVerificationStatus' }
+        requestedAt: { type: string, format: date-time }
+        resolvedAt: { type: string, format: date-time, nullable: true }
+
+    # ── Payment ────────────────────────────────────────────────
+
+    VideoConferencePayment:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        recruiterId: { type: string, format: uuid }
+        candidateId: { type: string, format: uuid }
+        matchId: { type: string, format: uuid }
+        amount: { $ref: '#/components/schemas/Money' }
+        tax: { $ref: '#/components/schemas/Money' }
+        total: { $ref: '#/components/schemas/Money' }
+        status: { $ref: '#/components/schemas/PaymentStatus' }
+        paymentMethod: { $ref: '#/components/schemas/PaymentMethodSummary' }
+        otpVerified: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        confirmedAt: { type: string, format: date-time, nullable: true }
+
+    # ── Recruiter Dashboard ────────────────────────────────────
+
+    RecruiterDashboard:
+      type: object
+      properties:
+        assessments:
+          type: array
+          items: { $ref: '#/components/schemas/AssessmentSummary' }
+        jobOffers:
+          type: array
+          items: { $ref: '#/components/schemas/JobOffer' }
+
+    # ── Callbacks ──────────────────────────────────────────────
+
+    AssessmentIntegrityCallback:
+      type: object
+      required: [attemptId, result]
+      properties:
+        attemptId: { type: string, format: uuid }
+        result:
+          type: string
+          enum: [VALIDATED, NOT_VALIDATED]
+        resolvedAt: { type: string, format: date-time }
+
+    IdentityVerificationCallback:
+      type: object
+      required: [verificationId, result]
+      properties:
+        verificationId: { type: string, format: uuid }
+        result:
+          type: string
+          enum: [COMPLETED_SUCCESS, COMPLETED_FAILURE]
+        resolvedAt: { type: string, format: date-time }
+
+    FitScoreCallback:
+      type: object
+      required: [candidateId, jobOfferId, score]
+      properties:
+        candidateId: { type: string, format: uuid }
+        jobOfferId: { type: string, format: uuid }
+        score: { type: integer, minimum: 0, maximum: 100 }
+        computedAt: { type: string, format: date-time }

@@ -8,6 +8,7 @@ import com.zennyt.identity.domain.model.Role;
 import com.zennyt.identity.domain.model.SocialIdentity;
 import com.zennyt.identity.domain.model.SocialProvider;
 import com.zennyt.identity.domain.model.User;
+import com.zennyt.identity.domain.event.UserAccessStateChangedEvent;
 import com.zennyt.identity.domain.repository.PasswordResetCodeRepository;
 import com.zennyt.identity.domain.repository.SocialIdentityRepository;
 import com.zennyt.identity.domain.repository.UserRepository;
@@ -22,6 +23,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
@@ -46,6 +48,7 @@ public class AuthService {
     private final PasswordResetCodeRepository passwordResetCodes;
     private final EmailPort email;
     private final Duration resetCodeTtl;
+    private final ApplicationEventPublisher events;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public AuthService(UserRepository users, PasswordEncoder passwordEncoder,
@@ -53,7 +56,8 @@ public class AuthService {
                        SocialIdentityRepository socialIdentities,
                        SocialIdentityVerifier socialIdentityVerifier,
                        PasswordResetCodeRepository passwordResetCodes, EmailPort email,
-                       @Value("${identity.password-reset.code-ttl:PT10M}") Duration resetCodeTtl) {
+                       @Value("${identity.password-reset.code-ttl:PT10M}") Duration resetCodeTtl,
+                       ApplicationEventPublisher events) {
         this.users = users;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
@@ -63,6 +67,7 @@ public class AuthService {
         this.passwordResetCodes = passwordResetCodes;
         this.email = email;
         this.resetCodeTtl = resetCodeTtl;
+        this.events = events;
     }
 
     @Transactional
@@ -79,7 +84,9 @@ public class AuthService {
         }
         User user = User.register(firstName, lastName, normalizedEmail, phoneNumber,
             passwordEncoder.encode(password), role, city, country, address, termsAccepted);
-        return tokens.issue(users.save(user));
+        User saved = users.save(user);
+        publishAccessState(saved);
+        return tokens.issue(saved);
     }
 
     @Transactional
@@ -88,6 +95,7 @@ public class AuthService {
             UsernamePasswordAuthenticationToken.unauthenticated(email, password));
         User user = users.findByEmail(email)
             .orElseThrow(() -> new IllegalArgumentException("Identifiants invalides"));
+        publishAccessState(user);
         return tokens.issue(user);
     }
 
@@ -141,6 +149,7 @@ public class AuthService {
 
         socialIdentities.save(SocialIdentity.create(
             user.id(), provider, verified.subject(), email.value()));
+        publishAccessState(user);
         return tokens.issue(user);
     }
 
@@ -158,7 +167,8 @@ public class AuthService {
     @Transactional
     public void changePassword(UUID publicId, String currentPassword, String newPassword) {
         User user = users.findByPublicId(publicId)
-            .orElseThrow(() -> new NotFoundException("Utilisateur introuvable"));
+            .filter(User::active)
+            .orElseThrow(() -> new BadCredentialsException("Compte inactif ou introuvable"));
         if (!passwordEncoder.matches(currentPassword, user.passwordHash())) {
             throw new BadCredentialsException("Mot de passe actuel incorrect");
         }
@@ -235,6 +245,11 @@ public class AuthService {
         return users.findById(userId)
             .filter(User::active)
             .orElseThrow(() -> new BadCredentialsException("Compte inactif ou introuvable"));
+    }
+
+    private void publishAccessState(User user) {
+        events.publishEvent(UserAccessStateChangedEvent.of(
+            user.publicId(), user.role().name(), user.active()));
     }
 
     private static String firstNonBlank(String preferred, String fallback) {
