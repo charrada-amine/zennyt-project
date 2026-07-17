@@ -55,6 +55,6 @@ class GetOfferApplicationsUseCaseTest {
     private AssessmentAttempt attempt(UUID candidateId, UUID offerId, int score,
                                       boolean passed, IntegrityStatus integrity) {
         return AssessmentAttempt.rehydrate(UUID.randomUUID(), UUID.randomUUID(), candidateId,
-            offerId, UUID.randomUUID(), score, passed, integrity, Instant.now());
+            offerId, UUID.randomUUID(), score, passed, true, integrity, Instant.now());
     }
 }

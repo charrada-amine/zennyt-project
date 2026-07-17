@@ -15,14 +15,17 @@ public class AssessmentAttemptEntity {
     private UUID applicationId;
     private int score;
     private boolean passed;
+    private boolean monitoringConsent;
     @Enumerated(EnumType.STRING) @Column(nullable = false) private IntegrityStatus integrityStatus;
     @Column(nullable = false) private Instant submittedAt;
 
     protected AssessmentAttemptEntity() {}
     public AssessmentAttemptEntity(UUID id, UUID assessmentId, UUID candidateId, UUID jobOfferId, UUID applicationId,
-                                   int score, boolean passed, IntegrityStatus integrityStatus, Instant submittedAt) {
+                                   int score, boolean passed, boolean monitoringConsent,
+                                   IntegrityStatus integrityStatus, Instant submittedAt) {
         this.id = id; this.assessmentId = assessmentId; this.candidateId = candidateId;
         this.jobOfferId = jobOfferId; this.applicationId = applicationId; this.score = score; this.passed = passed;
+        this.monitoringConsent = monitoringConsent;
         this.integrityStatus = integrityStatus; this.submittedAt = submittedAt;
     }
 
@@ -33,6 +36,7 @@ public class AssessmentAttemptEntity {
     public UUID getApplicationId() { return applicationId; }
     public int getScore() { return score; }
     public boolean isPassed() { return passed; }
+    public boolean isMonitoringConsent() { return monitoringConsent; }
     public IntegrityStatus getIntegrityStatus() { return integrityStatus; }
     public void setIntegrityStatus(IntegrityStatus v) { this.integrityStatus = v; }
     public Instant getSubmittedAt() { return submittedAt; }

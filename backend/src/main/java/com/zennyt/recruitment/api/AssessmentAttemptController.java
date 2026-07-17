@@ -33,7 +33,12 @@ public class AssessmentAttemptController {
     }
 
     record SubmitAttemptRequest(UUID assessmentId, UUID jobOfferId, List<Integer> answers,
-                                Boolean consent) {}
+                                Boolean consent, Boolean monitoringConsent) {
+        /** Contrat mobile corrigé : {@code monitoringConsent} ; {@code consent} accepté en legacy. */
+        boolean resolvedConsent() {
+            return monitoringConsent != null ? monitoringConsent : Boolean.TRUE.equals(consent);
+        }
+    }
     record AttemptResponse(UUID id, UUID assessmentId, UUID candidateId, UUID jobOfferId,
                            UUID applicationId, int score, boolean passed,
                            IntegrityStatus integrityStatus, String submittedAt) {
@@ -48,11 +53,8 @@ public class AssessmentAttemptController {
     @CandidateOrStudentOnly
     public ResponseEntity<AttemptResponse> submit(@RequestBody SubmitAttemptRequest req, Principal principal) {
         UUID candidateId = UUID.fromString(principal.getName());
-        if (!Boolean.TRUE.equals(req.consent())) {
-            throw new IllegalArgumentException("Le consentement au contrôle d'intégrité est obligatoire");
-        }
         var result = submitAttemptUseCase.execute(new SubmitAttemptUseCase.Command(
-            candidateId, req.assessmentId(), req.jobOfferId(), req.answers()));
+            candidateId, req.assessmentId(), req.jobOfferId(), req.answers(), req.resolvedConsent()));
         return ResponseEntity.status(HttpStatus.CREATED).body(AttemptResponse.from(result.attempt()));
     }
 

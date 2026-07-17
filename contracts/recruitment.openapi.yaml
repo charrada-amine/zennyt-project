@@ -337,6 +337,34 @@ paths:
         '204': { description: Paire masquée pour le recruteur connecté }
         '403': { $ref: '#/components/responses/Forbidden' }
 
+  /fit-scores/recompute:
+    post:
+      operationId: postFitScoresRecompute
+      tags: [FitScores]
+      summary: Recalcul synchrone des fit scores (levier démo, recruteur)
+      description: >
+        Avec jobOfferId : tous les candidats projetés contre cette offre ;
+        sans corps : toutes les offres ACTIVE. Le flux normal reste asynchrone
+        (offre activée, partie jouée). Tolérant aux échecs par paire.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jobOfferId: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Nombre de paires recalculées
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pairsWritten: { type: integer }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
   /tests/{token}:
     get:
       operationId: getPublicTestByToken

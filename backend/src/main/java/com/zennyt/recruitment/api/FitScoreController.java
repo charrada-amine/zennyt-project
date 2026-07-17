@@ -6,6 +6,7 @@ import com.zennyt.recruitment.domain.repository.FitScoreRepository;
 import com.zennyt.recruitment.domain.repository.JobOfferRepository;
 import com.zennyt.recruitment.domain.repository.FitScoreDismissalRepository;
 import com.zennyt.recruitment.application.usecase.DismissFitScoreUseCase;
+import com.zennyt.recruitment.application.usecase.RecomputeFitScoresUseCase;
 import com.zennyt.recruitment.api.security.RecruiterOnly;
 import com.zennyt.shared.application.exception.ForbiddenException;
 import org.springframework.http.ResponseEntity;
@@ -24,15 +25,18 @@ public class FitScoreController {
     private final JobOfferRepository jobOfferRepository;
     private final DismissFitScoreUseCase dismissFitScore;
     private final FitScoreDismissalRepository dismissals;
+    private final RecomputeFitScoresUseCase recomputeFitScores;
 
     public FitScoreController(FitScoreRepository fitScoreRepository,
                               JobOfferRepository jobOfferRepository,
                               DismissFitScoreUseCase dismissFitScore,
-                              FitScoreDismissalRepository dismissals) {
+                              FitScoreDismissalRepository dismissals,
+                              RecomputeFitScoresUseCase recomputeFitScores) {
         this.fitScoreRepository = fitScoreRepository;
         this.jobOfferRepository = jobOfferRepository;
         this.dismissFitScore = dismissFitScore;
         this.dismissals = dismissals;
+        this.recomputeFitScores = recomputeFitScores;
     }
 
     /** GET /api/v1/fit-scores?candidateId=&jobOfferId= — Score de compatibilité */
@@ -60,6 +64,25 @@ public class FitScoreController {
             .map(f -> ResponseEntity.ok(new FitScoreResponse(f.id(), f.candidateId(), f.jobOfferId(),
                 f.score(), f.goodFit(), f.softSkillScore(), f.cvMatchScore(), f.computedAt().toString())))
             .orElse(ResponseEntity.notFound().build());
+    }
+
+    record RecomputeRequest(UUID jobOfferId) {}
+    record RecomputeResponse(int pairsWritten) {}
+
+    /**
+     * POST /api/v1/fit-scores/recompute — Recalcul synchrone (levier démo,
+     * contrat aligné sur le backend Recruitment corrigé). Avec {@code jobOfferId} :
+     * tous les candidats projetés contre cette offre ; sans : toutes les offres
+     * ACTIVE. Le flux normal reste asynchrone (listeners offre activée / partie jouée).
+     */
+    @PostMapping("/recompute")
+    @RecruiterOnly
+    public ResponseEntity<RecomputeResponse> recompute(
+            @RequestBody(required = false) RecomputeRequest req) {
+        int written = (req != null && req.jobOfferId() != null)
+            ? recomputeFitScores.recomputeForOffer(req.jobOfferId())
+            : recomputeFitScores.recomputeAllActive();
+        return ResponseEntity.ok(new RecomputeResponse(written));
     }
 
     @DeleteMapping

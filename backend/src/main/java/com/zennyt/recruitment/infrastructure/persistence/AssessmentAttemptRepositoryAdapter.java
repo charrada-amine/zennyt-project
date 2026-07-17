@@ -27,9 +27,9 @@ public class AssessmentAttemptRepositoryAdapter implements AssessmentAttemptRepo
     @Override public long countByJobOfferId(UUID jobOfferId) { return jpa.countByJobOfferId(jobOfferId); }
 
     private AssessmentAttemptEntity toEntity(AssessmentAttempt a) {
-        return new AssessmentAttemptEntity(a.id(), a.assessmentId(), a.candidateId(), a.jobOfferId(), a.applicationId(), a.score(), a.passed(), a.integrityStatus(), a.submittedAt());
+        return new AssessmentAttemptEntity(a.id(), a.assessmentId(), a.candidateId(), a.jobOfferId(), a.applicationId(), a.score(), a.passed(), a.monitoringConsent(), a.integrityStatus(), a.submittedAt());
     }
     private AssessmentAttempt toDomain(AssessmentAttemptEntity e) {
-        return AssessmentAttempt.rehydrate(e.getId(), e.getAssessmentId(), e.getCandidateId(), e.getJobOfferId(), e.getApplicationId(), e.getScore(), e.isPassed(), e.getIntegrityStatus(), e.getSubmittedAt());
+        return AssessmentAttempt.rehydrate(e.getId(), e.getAssessmentId(), e.getCandidateId(), e.getJobOfferId(), e.getApplicationId(), e.getScore(), e.isPassed(), e.isMonitoringConsent(), e.getIntegrityStatus(), e.getSubmittedAt());
     }
 }

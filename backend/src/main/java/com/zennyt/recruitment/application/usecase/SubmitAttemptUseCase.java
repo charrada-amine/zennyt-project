@@ -23,7 +23,7 @@ import java.util.UUID;
 public class SubmitAttemptUseCase {
 
     public record Command(UUID candidateId, UUID assessmentId, UUID jobOfferId,
-                          List<Integer> answers) {}
+                          List<Integer> answers, boolean monitoringConsent) {}
     public record Result(Application application, AssessmentAttempt attempt) {}
 
     private final AssessmentAttemptRepository attempts;
@@ -45,6 +45,12 @@ public class SubmitAttemptUseCase {
     }
 
     public Result execute(Command command) {
+        if (!command.monitoringConsent()) {
+            // Case « I agree to security monitoring » du mockup — 422 sans elle,
+            // avant toute écriture (contrat aligné sur le backend Recruitment corrigé).
+            throw new IllegalStateException(
+                "Le consentement à la surveillance anti-fraude est requis pour passer le test");
+        }
         if (attempts.existsByCandidateIdAndAssessmentIdAndJobOfferId(
                 command.candidateId(), command.assessmentId(), command.jobOfferId())) {
             throw new ConflictException("Vous avez déjà passé ce test pour cette offre");
@@ -72,7 +78,8 @@ public class SubmitAttemptUseCase {
 
         AssessmentAttempt attempt = AssessmentAttempt.submit(
             command.candidateId(), command.assessmentId(), command.jobOfferId(), application.id(),
-            command.answers(), assessment.questions(), offer.passingScore());
+            command.answers(), assessment.questions(), offer.passingScore(),
+            command.monitoringConsent());
         AssessmentAttempt saved = attempts.save(attempt);
         attempt.domainEvents().forEach(events::publishEvent);
         attempt.clearEvents();

@@ -4,6 +4,7 @@ import com.zennyt.recruitment.api.security.Authenticated;
 import com.zennyt.recruitment.api.security.CandidateOrStudentOnly;
 import com.zennyt.recruitment.api.security.RecruiterOnly;
 import com.zennyt.recruitment.application.OtpService;
+import com.zennyt.recruitment.application.usecase.SendOpportunityOfferUseCase;
 import com.zennyt.recruitment.domain.model.*;
 import com.zennyt.recruitment.domain.repository.*;
 import com.zennyt.recruitment.domain.vo.*;
@@ -22,14 +23,14 @@ import java.util.UUID;
 public class JobOpportunityOfferController {
 
     private final JobOpportunityOfferRepository repository;
-    private final JobOfferRepository jobOffers;
+    private final SendOpportunityOfferUseCase sendUseCase;
     private final OtpService otp;
 
     public JobOpportunityOfferController(JobOpportunityOfferRepository repository,
-                                         JobOfferRepository jobOffers,
+                                         SendOpportunityOfferUseCase sendUseCase,
                                          OtpService otp) {
         this.repository = repository;
-        this.jobOffers = jobOffers;
+        this.sendUseCase = sendUseCase;
         this.otp = otp;
     }
 
@@ -43,18 +44,18 @@ public class JobOpportunityOfferController {
         }
     }
 
-    /** POST — Envoyer une offre d'opportunité */
+    /**
+     * POST — Envoyer une offre d'opportunité (« Recruit » direct depuis le deck,
+     * sans précondition de match ni de candidature — cadrage 16/07). Le use case
+     * vérifie que le candidat est un acteur actif connu et que l'offre appartient
+     * au recruteur, puis publie les événements de domaine.
+     */
     @PostMapping
     @RecruiterOnly
     public ResponseEntity<OfferResponse> send(@RequestBody SendOfferRequest req, Principal principal) {
         UUID recruiterId = UUID.fromString(principal.getName());
-        var jobOffer = jobOffers.findById(req.jobOfferId())
-            .orElseThrow(() -> new NotFoundException("Offre introuvable"));
-        if (!jobOffer.recruiterId().equals(recruiterId)) {
-            throw new ForbiddenException("Cette offre ne vous appartient pas");
-        }
-        JobOpportunityOffer offer = JobOpportunityOffer.send(recruiterId, req.candidateId(), req.jobOfferId());
-        return ResponseEntity.status(HttpStatus.CREATED).body(OfferResponse.from(repository.save(offer)));
+        JobOpportunityOffer offer = sendUseCase.execute(recruiterId, req.candidateId(), req.jobOfferId());
+        return ResponseEntity.status(HttpStatus.CREATED).body(OfferResponse.from(offer));
     }
 
     /** GET /{id} — Détail */

@@ -51,7 +51,7 @@ class SubmitAttemptUseCaseTest {
         when(attempts.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         var result = useCase.execute(new SubmitAttemptUseCase.Command(
-            candidateId, assessmentId, offerId, List.of(0, 1)));
+            candidateId, assessmentId, offerId, List.of(0, 1), true));
 
         assertThat(result.attempt().applicationId()).isEqualTo(result.application().id());
         assertThat(result.attempt().score()).isEqualTo(50);
@@ -68,7 +68,7 @@ class SubmitAttemptUseCaseTest {
             candidateId, assessmentId, offerId)).thenReturn(true);
 
         assertThatThrownBy(() -> useCase.execute(new SubmitAttemptUseCase.Command(
-            candidateId, assessmentId, offerId, List.of(0))))
+            candidateId, assessmentId, offerId, List.of(0), true)))
             .isInstanceOf(ConflictException.class);
         verifyNoInteractions(applications);
     }
@@ -78,7 +78,20 @@ class SubmitAttemptUseCaseTest {
         UUID applicationId = UUID.randomUUID();
         var question = new AssessmentQuestion("Q", List.of("A", "B", "C", "D"), 0);
         AssessmentAttempt attempt = AssessmentAttempt.submit(UUID.randomUUID(), UUID.randomUUID(),
-            UUID.randomUUID(), applicationId, List.of(0), List.of(question), 100);
+            UUID.randomUUID(), applicationId, List.of(0), List.of(question), 100, true);
         assertThat(attempt.passed()).isTrue();
+    }
+
+    @Test
+    void refuseLaSoumissionSansConsentementAvantToutEcriture() {
+        UUID candidateId = UUID.randomUUID();
+        UUID assessmentId = UUID.randomUUID();
+        UUID offerId = UUID.randomUUID();
+
+        assertThatThrownBy(() -> useCase.execute(new SubmitAttemptUseCase.Command(
+            candidateId, assessmentId, offerId, List.of(0), false)))
+            .isInstanceOf(IllegalStateException.class);
+        verifyNoInteractions(applications);
+        verify(attempts, never()).save(any());
     }
 }

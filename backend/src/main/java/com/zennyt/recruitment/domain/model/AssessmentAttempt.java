@@ -24,6 +24,7 @@ public class AssessmentAttempt extends AggregateRoot {
     private final List<Integer> answers;
     private int score;
     private boolean passed;
+    private boolean monitoringConsent;
     private IntegrityStatus integrityStatus;
     private Instant submittedAt;
 
@@ -42,7 +43,8 @@ public class AssessmentAttempt extends AggregateRoot {
     /** Fabrique : soumettre une tentative, calculer le score, émettre l'événement. */
     public static AssessmentAttempt submit(UUID candidateId, UUID assessmentId, UUID jobOfferId,
                                            UUID applicationId, List<Integer> answers,
-                                           List<AssessmentQuestion> questions, int passingScore) {
+                                           List<AssessmentQuestion> questions, int passingScore,
+                                           boolean monitoringConsent) {
         if (passingScore < 0 || passingScore > 100) {
             throw new IllegalArgumentException("Le seuil de réussite doit être entre 0 et 100");
         }
@@ -58,6 +60,7 @@ public class AssessmentAttempt extends AggregateRoot {
         }
         attempt.score = questions.isEmpty() ? 0 : (correct * 100) / questions.size();
         attempt.passed = attempt.score >= passingScore;
+        attempt.monitoringConsent = monitoringConsent;
 
         attempt.registerEvent(AssessmentAttemptSubmittedEvent.of(
             attempt.id, candidateId, assessmentId, jobOfferId, attempt.score));
@@ -67,12 +70,13 @@ public class AssessmentAttempt extends AggregateRoot {
     /** Reconstruction depuis la persistance. */
     public static AssessmentAttempt rehydrate(UUID id, UUID assessmentId, UUID candidateId,
                                               UUID jobOfferId, UUID applicationId,
-                                              int score, boolean passed,
+                                              int score, boolean passed, boolean monitoringConsent,
                                               IntegrityStatus integrityStatus, Instant submittedAt) {
         AssessmentAttempt attempt = new AssessmentAttempt(id, assessmentId, candidateId,
             jobOfferId, applicationId, List.of());
         attempt.score = score;
         attempt.passed = passed;
+        attempt.monitoringConsent = monitoringConsent;
         attempt.integrityStatus = integrityStatus;
         attempt.submittedAt = submittedAt;
         return attempt;
@@ -93,6 +97,7 @@ public class AssessmentAttempt extends AggregateRoot {
     public UUID applicationId() { return applicationId; }
     public int score() { return score; }
     public boolean passed() { return passed; }
+    public boolean monitoringConsent() { return monitoringConsent; }
     public IntegrityStatus integrityStatus() { return integrityStatus; }
     public Instant submittedAt() { return submittedAt; }
 }
