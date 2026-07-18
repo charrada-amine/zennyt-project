@@ -1,0 +1,26 @@
+meta {
+  name: 14 Apply to offer (CAND)
+  type: http
+  seq: 16
+}
+
+post {
+  url: {{baseUrl}}/api/v1/applications
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{candidateToken}}
+}
+
+body:json {
+  {
+    "jobOfferId": "{{demoOfferId}}"
+  }
+}
+
+script:post-response {
+  if (res.status === 201) { bru.setVar("appId", res.body.id); }
+}

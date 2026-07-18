@@ -1,0 +1,19 @@
+meta {
+  name: 22 Attempt results for offer (REC)
+  type: http
+  seq: 25
+}
+
+get {
+  url: {{baseUrl}}/api/v1/assessment-attempts?jobOfferId={{demoOfferId}}
+  body: none
+  auth: none
+}
+
+params:query {
+  jobOfferId: {{demoOfferId}}
+}
+
+headers {
+  Authorization: Bearer {{recruiterToken}}
+}

@@ -1,0 +1,19 @@
+meta {
+  name: 06 Search filtered (CAND)
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/api/v1/job-offers?experienceLevel=SENIOR
+  body: none
+  auth: none
+}
+
+params:query {
+  experienceLevel: SENIOR
+}
+
+headers {
+  Authorization: Bearer {{candidateToken}}
+}

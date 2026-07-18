@@ -1,0 +1,28 @@
+meta {
+  name: 50 Application stats (REC)
+  type: http
+  seq: 53
+}
+
+get {
+  url: {{baseUrl}}/api/v1/job-offers/{{demoOfferId}}/applications
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{recruiterToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.applicantCount: gte 1
+  res.body.successRate: isDefined
+}
+
+docs {
+  En-tête « Candidates / Success rate » de la page résultats recruteur.
+  Sur le backend intégré, les stats sont embarquées dans l'enveloppe de
+  GET /job-offers/{id}/applications (applicantCount, successRate — tentatives
+  NOT_VALIDATED exclues du taux). Réservé au propriétaire (403 sinon, cf. 51).
+}

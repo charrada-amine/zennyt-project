@@ -1,0 +1,31 @@
+meta {
+  name: 35 Send 2nd opportunity (REC)
+  type: http
+  seq: 38
+}
+
+post {
+  url: {{baseUrl}}/api/v1/job-opportunity-offers
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{recruiterToken}}
+}
+
+body:json {
+  {
+    "candidateId": "{{candidateId}}",
+    "jobOfferId": "{{demoOfferId}}"
+  }
+}
+
+script:post-response {
+  if (res.status === 201) { bru.setVar("oppId2", res.body.id); }
+}
+
+docs {
+  Deuxième offre d'opportunité, pour démontrer le rejet (requête suivante).
+}

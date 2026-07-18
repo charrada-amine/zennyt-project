@@ -1,0 +1,15 @@
+meta {
+  name: 13 Recruiter matches (REC)
+  type: http
+  seq: 15
+}
+
+get {
+  url: {{baseUrl}}/api/v1/recruiters/me/matches
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{recruiterToken}}
+}

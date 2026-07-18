@@ -1,0 +1,20 @@
+meta {
+  name: 11 Confirm opportunity offer
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/api/v1/job-opportunity-offers/{{opportunityOfferId}}/confirm
+  body: none
+  auth: none
+}
+
+headers {
+  X-Dev-User: {{candidateId}}
+}
+
+docs {
+  Le candidat confirme l'offre d'opportunite envoyee par le recruteur (Recruiter -> 10).
+  L'offre reste PENDING jusqu'a la verification OTP (etape 12).
+}

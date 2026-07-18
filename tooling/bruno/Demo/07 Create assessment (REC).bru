@@ -1,0 +1,38 @@
+meta {
+  name: 07 Create assessment (REC)
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/api/v1/assessments
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{recruiterToken}}
+}
+
+body:json {
+  {
+    "title": "Test technique (Demo)",
+    "questions": [
+      {
+        "text": "Quel outil est un système de contrôle de version ?",
+        "options": ["Docker", "Git", "Jenkins", "Node.js"],
+        "correctOptionIndex": 1
+      },
+      {
+        "text": "Quel langage tourne sur la JVM ?",
+        "options": ["Java", "Python", "Ruby", "Go"],
+        "correctOptionIndex": 0
+      }
+    ]
+  }
+}
+
+script:post-response {
+  if (res.status === 201) { bru.setVar("demoAssessmentId", res.body.id); }
+}

@@ -1,0 +1,15 @@
+meta {
+  name: 32 Opportunity offer detail (CAND)
+  type: http
+  seq: 35
+}
+
+get {
+  url: {{baseUrl}}/api/v1/job-opportunity-offers/{{oppId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{candidateToken}}
+}

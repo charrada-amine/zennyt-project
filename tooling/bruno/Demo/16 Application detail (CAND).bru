@@ -1,0 +1,15 @@
+meta {
+  name: 16 Application detail (CAND)
+  type: http
+  seq: 18
+}
+
+get {
+  url: {{baseUrl}}/api/v1/applications/{{appId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{candidateToken}}
+}

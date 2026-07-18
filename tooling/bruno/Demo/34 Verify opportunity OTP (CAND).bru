@@ -1,0 +1,26 @@
+meta {
+  name: 34 Verify opportunity OTP (CAND)
+  type: http
+  seq: 37
+}
+
+post {
+  url: {{baseUrl}}/api/v1/job-opportunity-offers/{{oppId}}/verify-otp
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{candidateToken}}
+}
+
+body:json {
+  {
+    "otpCode": "12345"
+  }
+}
+
+docs {
+  OTP non validé en dev → n'importe quel code confirme. Statut -> CONFIRMED.
+}

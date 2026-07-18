@@ -1,0 +1,33 @@
+meta {
+  name: 03 Refresh
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/auth/refresh
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "refreshToken": "{{refreshToken}}"
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    bru.setVar("accessToken", res.body.accessToken);
+    bru.setVar("refreshToken", res.body.refreshToken);
+  }
+}
+
+docs {
+  Rotation : l'ancien refresh token est révoqué, une nouvelle paire est émise.
+  Rejouer la même requête une 2e fois → 401 (le token a tourné).
+}

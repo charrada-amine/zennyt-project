@@ -1,0 +1,19 @@
+meta {
+  name: 30 Identity status SUCCESS (REC)
+  type: http
+  seq: 33
+}
+
+get {
+  url: {{baseUrl}}/api/v1/identity-verifications/{{verifId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{recruiterToken}}
+}
+
+docs {
+  status est passé de PENDING à COMPLETED_SUCCESS après le callback 29.
+}

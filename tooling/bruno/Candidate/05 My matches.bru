@@ -1,0 +1,21 @@
+meta {
+  name: 05 My matches
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/v1/candidates/me/matches
+  body: none
+  auth: none
+}
+
+headers {
+  X-Dev-User: {{candidateId}}
+}
+
+docs {
+  Matchs du candidat connecte. Un match apparait seulement apres que les DEUX
+  cotes ont swipe LIKE (Candidate -> 04 Swipe offer ET Recruiter -> 08 Swipe
+  candidate).
+}

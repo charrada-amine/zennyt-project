@@ -1,0 +1,34 @@
+meta {
+  name: 06 Apply to offer
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/v1/applications
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  X-Dev-User: {{candidateId}}
+}
+
+body:json {
+  {
+    "jobOfferId": "{{offer1}}"
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setVar("applicationId", res.body.id);
+  }
+}
+
+docs {
+  Le candidat postule a l'offre offer1. applicationId est capture pour permettre
+  au recruteur de changer le statut (Recruiter -> Change application status).
+  Un candidat ne peut postuler qu'une fois par offre.
+}

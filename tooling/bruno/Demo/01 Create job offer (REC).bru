@@ -1,0 +1,33 @@
+meta {
+  name: 01 Create job offer (REC)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/job-offers
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{recruiterToken}}
+}
+
+body:json {
+  {
+    "title": "Full-Stack Engineer (Demo)",
+    "description": "Poste de démonstration créé en direct.",
+    "contractType": "FULL_TIME",
+    "workplaceType": "HYBRID",
+    "experienceLevel": "SENIOR",
+    "city": "Tunis",
+    "country": "TN",
+    "remote": true
+  }
+}
+
+script:post-response {
+  if (res.status === 201) { bru.setVar("demoOfferId", res.body.id); }
+}

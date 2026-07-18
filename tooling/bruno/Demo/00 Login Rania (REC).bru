@@ -1,0 +1,35 @@
+meta {
+  name: 00 Login Rania (REC)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/auth/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "recruiter1@zennyt.com",
+    "password": "1234"
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    bru.setVar("recruiterToken", res.body.accessToken);
+    bru.setVar("recruiterRefreshToken", res.body.refreshToken);
+  }
+}
+
+docs {
+  Login recruteur (Rania) → stocke {{recruiterToken}} pour toutes les requêtes (REC).
+  Le backend émet un vrai JWT (sub = UUID, claims email + role), contrat identique
+  à celui de l'équipe Identity.
+}

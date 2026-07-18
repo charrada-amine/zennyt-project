@@ -1,0 +1,19 @@
+meta {
+  name: 36 Reject opportunity (CAND)
+  type: http
+  seq: 39
+}
+
+post {
+  url: {{baseUrl}}/api/v1/job-opportunity-offers/{{oppId2}}/reject
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{candidateToken}}
+}
+
+docs {
+  Le candidat rejette la 2e offre → statut REJECTED.
+}

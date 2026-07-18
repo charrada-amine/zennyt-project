@@ -1,0 +1,27 @@
+meta {
+  name: 12 Verify opportunity OTP
+  type: http
+  seq: 12
+}
+
+post {
+  url: {{baseUrl}}/api/v1/job-opportunity-offers/{{opportunityOfferId}}/verify-otp
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  X-Dev-User: {{candidateId}}
+}
+
+body:json {
+  {
+    "otpCode": "12345"
+  }
+}
+
+docs {
+  Verifie l'OTP et finalise la confirmation (statut -> CONFIRMED, otpVerified -> true).
+  En dev, n'importe quel code fonctionne.
+}

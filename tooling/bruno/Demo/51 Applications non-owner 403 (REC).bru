@@ -1,0 +1,25 @@
+meta {
+  name: 51 Applications non-owner 403 (REC)
+  type: http
+  seq: 54
+}
+
+get {
+  url: {{baseUrl}}/api/v1/job-offers/{{offer3}}/applications
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{recruiterToken}}
+}
+
+assert {
+  res.status: eq 403
+}
+
+docs {
+  Test négatif : Rania demande le pipeline de l'offre 3 (celle de Youssef)
+  → 403. Avant le 16/07, n'importe quel recruteur pouvait lire le pipeline
+  de n'importe quelle offre.
+}

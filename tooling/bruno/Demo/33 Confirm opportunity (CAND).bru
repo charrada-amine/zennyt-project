@@ -1,0 +1,15 @@
+meta {
+  name: 33 Confirm opportunity (CAND)
+  type: http
+  seq: 36
+}
+
+post {
+  url: {{baseUrl}}/api/v1/job-opportunity-offers/{{oppId}}/confirm
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{candidateToken}}
+}

@@ -1,0 +1,20 @@
+meta {
+  name: 06 Applications for offer
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/v1/job-offers/{{offer1}}/applications
+  body: none
+  auth: none
+}
+
+headers {
+  X-Dev-User: {{recruiterId}}
+}
+
+docs {
+  Candidatures recues pour l'offre seedee offer1. Le candidat doit d'abord
+  postuler (dossier Candidate -> Apply to offer).
+}

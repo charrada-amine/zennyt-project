@@ -1,0 +1,24 @@
+meta {
+  name: 24 Get fit score (CAND)
+  type: http
+  seq: 27
+}
+
+get {
+  url: {{baseUrl}}/api/v1/fit-scores?candidateId={{candidateId}}&jobOfferId={{demoOfferId}}
+  body: none
+  auth: none
+}
+
+params:query {
+  candidateId: {{candidateId}}
+  jobOfferId: {{demoOfferId}}
+}
+
+headers {
+  Authorization: Bearer {{candidateToken}}
+}
+
+docs {
+  Le score 91 posté par le callback précédent.
+}

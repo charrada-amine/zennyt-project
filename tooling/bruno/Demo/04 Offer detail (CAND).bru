@@ -1,0 +1,15 @@
+meta {
+  name: 04 Offer detail (CAND)
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/v1/job-offers/{{demoOfferId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{candidateToken}}
+}

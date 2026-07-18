@@ -1,0 +1,15 @@
+meta {
+  name: 08 List my assessments (REC)
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/api/v1/assessments/mine
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{recruiterToken}}
+}

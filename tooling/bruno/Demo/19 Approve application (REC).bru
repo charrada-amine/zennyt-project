@@ -1,0 +1,26 @@
+meta {
+  name: 19 Approve application (REC)
+  type: http
+  seq: 21
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/applications/{{appId}}/status
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{recruiterToken}}
+}
+
+body:json {
+  {
+    "status": "APPROVED"
+  }
+}
+
+docs {
+  Machine à états : SHORTLISTED -> APPROVED. (Tenter PENDING->APPROVED renverrait 400.)
+}

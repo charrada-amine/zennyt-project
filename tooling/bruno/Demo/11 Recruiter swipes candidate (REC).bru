@@ -1,0 +1,33 @@
+meta {
+  name: 11 Recruiter swipes candidate (REC)
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{baseUrl}}/api/v1/swipes
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{recruiterToken}}
+}
+
+body:json {
+  {
+    "targetId": "{{candidateId}}",
+    "targetType": "CANDIDATE",
+    "jobOfferId": "{{demoOfferId}}",
+    "direction": "LIKE"
+  }
+}
+
+script:post-response {
+  if (res.status === 201 && res.body.matched) { bru.setVar("matchId", res.body.matchId); }
+}
+
+docs {
+  Les deux côtés ont liké la même paire (candidat, offre) → matched=true, match créé.
+}

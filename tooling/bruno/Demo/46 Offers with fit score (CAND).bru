@@ -1,0 +1,26 @@
+meta {
+  name: 46 Offers with fit score (CAND)
+  type: http
+  seq: 49
+}
+
+get {
+  url: {{baseUrl}}/api/v1/job-offers?status=ACTIVE&sort=fit
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{candidateToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body[0].fitScore: isDefined
+}
+
+docs {
+  Vue candidat (Aicha) : les offres ACTIVE portent son fit score personnel,
+  sort=fit place la meilleure en tête (deck « Fits » / suggestions Search du
+  mobile). Les offres sans score calculé arrivent en dernier (fitScore null).
+}

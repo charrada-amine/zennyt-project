@@ -1,0 +1,34 @@
+meta {
+  name: 19b Attach test to offer (REC)
+  type: http
+  seq: 22
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/job-offers/{{demoOfferId}}
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{recruiterToken}}
+}
+
+body:json {
+  {
+    "assessmentId": "{{demoAssessmentId}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.assessmentId: eq {{demoAssessmentId}}
+}
+
+docs {
+  Attache le test créé en 07 à l'offre de démo. Obligatoire depuis la décision
+  de cadrage 16/07 : une tentative n'est acceptée que pour LE test de l'offre
+  (postuler = passer ce test), et c'est ce lien qui produira le 409 de la
+  requête 42 (intégrité référentielle).
+}

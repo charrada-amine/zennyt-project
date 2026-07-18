@@ -1,0 +1,31 @@
+meta {
+  name: 48 Deck after dismiss (REC)
+  type: http
+  seq: 51
+}
+
+get {
+  url: {{baseUrl}}/api/v1/recruiters/me/candidate-feed?jobOfferId={{offer2}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{recruiterToken}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+script:post-response {
+  const omar = res.body.content.find(c => c.candidateId === "44444444-4444-4444-4444-444444444444");
+  if (omar) {
+    throw new Error("Omar devrait être écarté du deck après le dismiss (47)");
+  }
+}
+
+docs {
+  Le deck de l'offre 2 ne contient plus Omar : la paire écartée (table
+  fit_score_dismissals) est exclue des listes tant qu'elle est dismissed.
+}

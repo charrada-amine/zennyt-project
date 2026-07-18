@@ -1,0 +1,29 @@
+meta {
+  name: 03 Identity verification callback
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/callbacks/identity-verification
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  X-Callback-Secret: {{callbackSecret}}
+}
+
+body:json {
+  {
+    "verificationId": "{{verificationId}}",
+    "status": "COMPLETED_SUCCESS"
+  }
+}
+
+docs {
+  Simule le service de reconnaissance faciale qui resout une verification d'identite.
+  Necessite verificationId (Recruiter -> Request identity verification).
+  Statuts : PENDING / COMPLETED_SUCCESS / COMPLETED_FAILURE.
+}

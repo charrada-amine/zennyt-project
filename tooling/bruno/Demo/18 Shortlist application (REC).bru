@@ -1,0 +1,22 @@
+meta {
+  name: 18 Shortlist application (REC)
+  type: http
+  seq: 20
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/applications/{{appId}}/status
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{recruiterToken}}
+}
+
+body:json {
+  {
+    "status": "SHORTLISTED"
+  }
+}

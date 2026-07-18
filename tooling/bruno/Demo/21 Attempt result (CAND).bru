@@ -1,0 +1,15 @@
+meta {
+  name: 21 Attempt result (CAND)
+  type: http
+  seq: 24
+}
+
+get {
+  url: {{baseUrl}}/api/v1/assessment-attempts/{{attemptId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{candidateToken}}
+}

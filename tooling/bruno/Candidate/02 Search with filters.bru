@@ -1,0 +1,26 @@
+meta {
+  name: 02 Search with filters
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/job-offers?experienceLevel=SENIOR&q=engineer
+  body: none
+  auth: none
+}
+
+params:query {
+  experienceLevel: SENIOR
+  q: engineer
+}
+
+headers {
+  X-Dev-User: {{candidateId}}
+}
+
+docs {
+  Recherche filtree. Filtres dispo : q (titre), location, contractType, experienceLevel.
+  Valeurs enum : contractType FULL_TIME/PART_TIME/CONTRACT/TEMPORARY/APPRENTICESHIP/VOLUNTEER,
+  experienceLevel JUNIOR/MID/SENIOR/EXECUTIVE.
+}

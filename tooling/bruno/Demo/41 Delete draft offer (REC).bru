@@ -1,0 +1,19 @@
+meta {
+  name: 41 Delete draft offer (REC)
+  type: http
+  seq: 44
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/job-offers/{{throwawayOfferId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{recruiterToken}}
+}
+
+docs {
+  Supprime l'offre créée en 40 → 204 No Content.
+}

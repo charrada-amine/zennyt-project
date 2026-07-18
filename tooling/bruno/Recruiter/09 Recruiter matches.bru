@@ -1,0 +1,20 @@
+meta {
+  name: 09 Recruiter matches
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/api/v1/recruiters/me/matches
+  body: none
+  auth: none
+}
+
+headers {
+  X-Dev-User: {{recruiterId}}
+}
+
+docs {
+  Matchs du recruteur. Apparait apres que le candidat a swipe LIKE sur une offre
+  appartenant a ce recruteur (Candidate -> Swipe offer). Filtrable par ?jobOfferId=.
+}

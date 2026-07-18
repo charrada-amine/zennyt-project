@@ -1,0 +1,27 @@
+meta {
+  name: 04 Logout
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/v1/auth/logout
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "refreshToken": "{{refreshToken}}"
+  }
+}
+
+docs {
+  Révoque la session du refresh token → 204. Un refresh ultérieur avec ce
+  token → 401. L'access token reste techniquement valide jusqu'à expiration
+  (15 min) — comportement standard des JWT sans liste de révocation.
+}

@@ -1,0 +1,19 @@
+meta {
+  name: 07 My applications
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/api/v1/candidates/me/applications
+  body: none
+  auth: none
+}
+
+headers {
+  X-Dev-User: {{candidateId}}
+}
+
+docs {
+  Candidatures du candidat connecte. Filtrable par ?status=PENDING|SHORTLISTED|APPROVED|REJECTED.
+}

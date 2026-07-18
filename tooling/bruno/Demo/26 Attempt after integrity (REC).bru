@@ -1,0 +1,19 @@
+meta {
+  name: 26 Attempt after integrity (REC)
+  type: http
+  seq: 29
+}
+
+get {
+  url: {{baseUrl}}/api/v1/assessment-attempts/{{attemptId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{recruiterToken}}
+}
+
+docs {
+  integrityStatus est passé de PENDING à VALIDATED suite au callback 25.
+}

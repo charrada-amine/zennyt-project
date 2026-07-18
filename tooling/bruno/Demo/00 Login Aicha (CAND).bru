@@ -1,0 +1,33 @@
+meta {
+  name: 00 Login Aicha (CAND)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/auth/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "candidate1@zennyt.com",
+    "password": "1234"
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    bru.setVar("candidateToken", res.body.accessToken);
+    bru.setVar("candidateRefreshToken", res.body.refreshToken);
+  }
+}
+
+docs {
+  Login candidate (Aicha) → stocke {{candidateToken}} pour toutes les requêtes (CAND).
+}

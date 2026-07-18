@@ -1,0 +1,15 @@
+meta {
+  name: 28 Identity status PENDING (REC)
+  type: http
+  seq: 31
+}
+
+get {
+  url: {{baseUrl}}/api/v1/identity-verifications/{{verifId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{recruiterToken}}
+}

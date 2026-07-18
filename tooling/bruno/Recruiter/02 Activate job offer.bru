@@ -1,0 +1,27 @@
+meta {
+  name: 02 Activate job offer
+  type: http
+  seq: 2
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/job-offers/{{createdOfferId}}/status
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  X-Dev-User: {{recruiterId}}
+}
+
+body:json {
+  {
+    "status": "ACTIVE"
+  }
+}
+
+docs {
+  Passe l'offre creee a l'etape 01 de DRAFT a ACTIVE. Transitions valides :
+  DRAFT->ACTIVE, ACTIVE->HIDDEN/CLOSED, HIDDEN->ACTIVE/CLOSED.
+}

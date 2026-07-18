@@ -1,0 +1,15 @@
+meta {
+  name: 02 List my offers (REC)
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/v1/recruiters/me/job-offers
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{recruiterToken}}
+}

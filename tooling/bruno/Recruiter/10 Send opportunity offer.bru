@@ -1,0 +1,34 @@
+meta {
+  name: 10 Send opportunity offer
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/api/v1/job-opportunity-offers
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  X-Dev-User: {{recruiterId}}
+}
+
+body:json {
+  {
+    "candidateId": "{{candidateId}}",
+    "jobOfferId": "{{offer1}}"
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setVar("opportunityOfferId", res.body.id);
+  }
+}
+
+docs {
+  Le recruteur envoie une offre d'opportunite au candidat. L'id est capture
+  dans opportunityOfferId. Le candidat la confirme ensuite (dossier Candidate).
+}

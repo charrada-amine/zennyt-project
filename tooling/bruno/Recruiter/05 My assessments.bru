@@ -1,0 +1,19 @@
+meta {
+  name: 05 My assessments
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/v1/assessments/mine
+  body: none
+  auth: none
+}
+
+headers {
+  X-Dev-User: {{recruiterId}}
+}
+
+docs {
+  Liste les evaluations creees par le recruteur connecte.
+}

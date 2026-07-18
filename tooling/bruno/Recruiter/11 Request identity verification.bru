@@ -1,0 +1,34 @@
+meta {
+  name: 11 Request identity verification
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/api/v1/identity-verifications
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  X-Dev-User: {{recruiterId}}
+}
+
+body:json {
+  {
+    "candidateId": "{{candidateId}}",
+    "jobOfferId": "{{offer1}}"
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setVar("verificationId", res.body.id);
+  }
+}
+
+docs {
+  Le recruteur demande une verification d'identite anti-fraude du candidat.
+  Le resultat arrive ensuite via le callback (dossier Callbacks).
+}

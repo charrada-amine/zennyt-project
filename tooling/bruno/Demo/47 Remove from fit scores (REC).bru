@@ -1,0 +1,26 @@
+meta {
+  name: 47 Remove from fit scores (REC)
+  type: http
+  seq: 50
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/fit-scores?candidateId=44444444-4444-4444-4444-444444444444&jobOfferId={{offer2}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{recruiterToken}}
+}
+
+assert {
+  res.status: eq 204
+}
+
+docs {
+  « Remove from Fit Scores » (mockup profil candidat) : Rania écarte Omar du
+  deck de son offre 2. Marquage dismissed, jamais de suppression — et un
+  recalcul (44) ne le ressuscitera pas. Réservé au recruteur propriétaire
+  de l'offre (403 sinon).
+}

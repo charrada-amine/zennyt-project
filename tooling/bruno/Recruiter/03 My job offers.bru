@@ -1,0 +1,20 @@
+meta {
+  name: 03 My job offers
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/v1/recruiters/me/job-offers
+  body: none
+  auth: none
+}
+
+headers {
+  X-Dev-User: {{recruiterId}}
+}
+
+docs {
+  Liste les offres du recruteur connecte (les 3 offres seedees + celles creees).
+  Ajoutez ?status=ACTIVE pour filtrer.
+}

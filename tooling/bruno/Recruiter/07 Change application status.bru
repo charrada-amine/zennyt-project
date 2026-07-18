@@ -1,0 +1,28 @@
+meta {
+  name: 07 Change application status
+  type: http
+  seq: 7
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/applications/{{applicationId}}/status
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  X-Dev-User: {{recruiterId}}
+}
+
+body:json {
+  {
+    "status": "SHORTLISTED"
+  }
+}
+
+docs {
+  Fait avancer une candidature. applicationId est capture quand le candidat
+  postule (dossier Candidate -> Apply to offer).
+  Machine a etats : PENDING -> SHORTLISTED -> APPROVED / REJECTED.
+}
