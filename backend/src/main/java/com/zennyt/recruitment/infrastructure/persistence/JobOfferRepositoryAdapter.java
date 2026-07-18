@@ -51,7 +51,8 @@ public class JobOfferRepositoryAdapter implements JobOfferRepository {
                                   String workplaceType, String experienceLevel, String fieldOfWork,
                                   Double salaryMin, Double salaryMax, int page, int size) {
         var pageable = PageRequest.of(page, size, Sort.by("postedAt").descending());
-        return jpa.search(query, location, contractType, experienceLevel, pageable)
+        return jpa.search(query, location, toEnum(ContractType.class, contractType),
+                toEnum(ExperienceLevel.class, experienceLevel), pageable)
             .map(this::toDomain).getContent();
     }
 
@@ -59,7 +60,18 @@ public class JobOfferRepositoryAdapter implements JobOfferRepository {
     public long countSearch(String query, String location, String contractType,
                             String workplaceType, String experienceLevel, String fieldOfWork,
                             Double salaryMin, Double salaryMax) {
-        return jpa.search(query, location, contractType, experienceLevel, PageRequest.of(0, 1)).getTotalElements();
+        return jpa.search(query, location, toEnum(ContractType.class, contractType),
+                toEnum(ExperienceLevel.class, experienceLevel), PageRequest.of(0, 1)).getTotalElements();
+    }
+
+    /** Filtre invalide → filtre ignoré plutôt que 500 (comportement de recherche permissif). */
+    private static <E extends Enum<E>> E toEnum(Class<E> type, String value) {
+        if (value == null || value.isBlank()) return null;
+        try {
+            return Enum.valueOf(type, value.toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
     }
 
     @Override

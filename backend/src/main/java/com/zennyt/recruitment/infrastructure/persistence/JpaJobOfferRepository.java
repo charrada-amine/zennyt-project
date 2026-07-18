@@ -1,5 +1,7 @@
 package com.zennyt.recruitment.infrastructure.persistence;
 
+import com.zennyt.recruitment.domain.vo.ContractType;
+import com.zennyt.recruitment.domain.vo.ExperienceLevel;
 import com.zennyt.recruitment.domain.vo.JobOfferStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -18,13 +20,15 @@ public interface JpaJobOfferRepository extends JpaRepository<JobOfferEntity, UUI
 
     // CAST(:p AS string) sur chaque référence dans LOWER : sans cela PostgreSQL
     // infère les paramètres null comme `bytea` et la fonction LOWER échoue.
+    // Les filtres enum sont typés : comparer un paramètre String à un champ
+    // @Enumerated lève QueryArgumentException sous Hibernate 6 (500 en recherche filtrée).
     @Query("SELECT j FROM JobOfferEntity j WHERE j.status = 'ACTIVE' " +
            "AND (CAST(:query AS string) IS NULL OR LOWER(j.title) LIKE LOWER(CONCAT('%', CAST(:query AS string), '%'))) " +
            "AND (CAST(:location AS string) IS NULL OR LOWER(j.locationCity) LIKE LOWER(CONCAT('%', CAST(:location AS string), '%'))) " +
-           "AND (CAST(:contractType AS string) IS NULL OR j.contractType = :contractType) " +
-           "AND (CAST(:experienceLevel AS string) IS NULL OR j.experienceLevel = :experienceLevel)")
-    Page<JobOfferEntity> search(String query, String location, String contractType,
-                                String experienceLevel, Pageable pageable);
+           "AND (:contractType IS NULL OR j.contractType = :contractType) " +
+           "AND (:experienceLevel IS NULL OR j.experienceLevel = :experienceLevel)")
+    Page<JobOfferEntity> search(String query, String location, ContractType contractType,
+                                ExperienceLevel experienceLevel, Pageable pageable);
 
     @Query("SELECT j FROM JobOfferEntity j LEFT JOIN FitScoreEntity f " +
            "ON f.jobOfferId = j.id AND f.candidateId = :candidateId " +
