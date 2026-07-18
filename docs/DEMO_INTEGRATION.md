@@ -4,12 +4,24 @@ Démo du backend **fusionné** (identity + games + recruitment alignés) sur une
 **base fraîche**, avec les 5 comptes de démo. Vérifié de bout en bout le 18/07 :
 **Bruno Demo 56/56 requêtes, 21/21 assertions**, base neuve à chaque exécution.
 
-Comptes (mdp `1234`) : `recruiter1@` (Rania), `recruiter2@` (Youssef),
+Comptes (mdp `zennyt123`) : `recruiter1@` (Rania), `recruiter2@` (Youssef),
 `candidate1@` (Aicha), `candidate2@` (Omar), `candidate3@` (Lina) `…@zennyt.com`.
+
+> ⚠️ **Le mot de passe n'est plus `1234`.** L'écran de connexion réel de l'app
+> mobile (`login_screen.dart`/`login_viewmodel.dart`) rejette côté client tout
+> mot de passe < 6 caractères, **avant même l'appel réseau** — `1234` semblait
+> "ne pas marcher" alors que le backend l'acceptait très bien. D'où `zennyt123`.
 
 > ⚠️ L'ancien conteneur `zennyt-project-backend-1` fait tourner l'ancien backend
 > REC-04, PAS le backend intégré. Le bloc ci-dessous l'arrête et lance le jar
 > intégré sur le port 8080. (Rollback : `docker start zennyt-project-backend-1`.)
+
+> ⚠️ **Appli mobile factice à désinstaller.** L'AVD `zennyt_phone` héberge aussi
+> un très vieil APK `com.example.zennyt` (avec un "t" final) — un écran de dev
+> avec 5 boutons de comptes statiques ("Zennyt — Dev Login"), sans rapport avec
+> l'app réelle. L'app réelle et actuellement en développement est
+> `com.example.zenny` (SANS "t" final, cf. `mobile/android/app/build.gradle.kts`).
+> Si ce vieil APK traîne encore : `adb uninstall com.example.zennyt`.
 
 ---
 
@@ -42,7 +54,8 @@ Start-Process -WindowStyle Hidden -FilePath java -ArgumentList @(
 do { Start-Sleep 3; try { $h = Invoke-RestMethod http://localhost:8080/actuator/health } catch {} } while (-not $h)
 
 # 3. Créer les 5 comptes (l'API exige un mdp >= 8 caractères), puis figer
-#    les UUID fixes attendus par Bruno/le seeder ET le hash BCrypt de « 1234 »
+#    les UUID fixes attendus par Bruno/le seeder ET le hash BCrypt de « zennyt123 »
+#    (PAS « 1234 » : l'app mobile refuse tout mdp < 6 caractères côté client)
 $users = @(
   @{f='Rania';   l='Ben Ali';  e='recruiter1@zennyt.com'; r='RECRUITER'; c='Tunis'},
   @{f='Youssef'; l='Trabelsi'; e='recruiter2@zennyt.com'; r='RECRUITER'; c='Sousse'},
@@ -56,7 +69,7 @@ foreach ($u in $users) {
   Invoke-RestMethod -Uri http://localhost:8080/api/v1/auth/register -Method Post `
     -ContentType 'application/json' -Body $body | Out-Null
 }
-$hash = '$2a$12$YRdSmCskupDl0hT85MsdZO6/5aBiRzwVxZMltpa4SHuwa0Pnkvjwq'  # BCrypt(12) de « 1234 »
+$hash = '$2a$12$ICQvy9treApWAg4ADVBe.Obtl7RoHSvzEI9cg8gnUr../B2tHNPgG'  # BCrypt(12) de « zennyt123 »
 docker exec zennyt-project-db-1 psql -U postgres -d zennyt_int -q -c "
 UPDATE users SET public_id='11111111-1111-1111-1111-111111111111', password_hash='$hash' WHERE email='recruiter1@zennyt.com';
 UPDATE users SET public_id='33333333-3333-3333-3333-333333333333', password_hash='$hash' WHERE email='recruiter2@zennyt.com';
@@ -76,6 +89,20 @@ Start-Process -WindowStyle Hidden -FilePath java -ArgumentList @(
 do { Start-Sleep 3; $h = $null; try { $h = Invoke-RestMethod http://localhost:8080/actuator/health } catch {} } while (-not $h)
 "PRET ✔  -> http://localhost:8080/actuator/health"
 ```
+
+## 🅲 App mobile (Android emulator)
+
+Le backend intégré doit écouter sur le **port 8080** (pas 8081) — l'app
+Android résout `10.0.2.2:8080` par défaut (`mobile/lib/core/config/app_config.dart`).
+
+```powershell
+flutter emulators --launch zennyt_phone
+cd mobile
+flutter run -d emulator-5554 --dart-define=API_BASE_URL=http://10.0.2.2:8080/api/v1
+```
+
+Prérequis : `mobile\.env` doit exister (même vide) — `pubspec.yaml` le déclare
+comme asset et le build échoue sinon (fichier gitignored, jamais committé).
 
 ## 🅰 Vérification express (2 min)
 

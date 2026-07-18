@@ -17,7 +17,7 @@ headers {
 body:json {
   {
     "email": "candidate1@zennyt.com",
-    "password": "1234"
+    "password": "zennyt123"
   }
 }
 
@@ -30,7 +30,8 @@ script:post-response {
 
 docs {
   200 → { accessToken, refreshToken, tokenType: "Bearer", expiresIn } —
-  même contrat que l'équipe Identity. Comptes seedés (mdp 1234) :
+  même contrat que l'équipe Identity. Comptes seedés (mdp zennyt123 — l'app
+  mobile refuse tout mot de passe < 6 caractères, d'où l'abandon de "1234") :
   recruiter1@, recruiter2@, candidate1@, candidate2@, candidate3@ …@zennyt.com.
   401 si mauvais mot de passe.
 }
