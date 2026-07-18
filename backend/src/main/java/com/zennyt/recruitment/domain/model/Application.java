@@ -1,6 +1,5 @@
 package com.zennyt.recruitment.domain.model;
 
-import com.zennyt.recruitment.domain.event.ApplicationSubmittedEvent;
 import com.zennyt.recruitment.domain.vo.ApplicationStatus;
 import com.zennyt.shared.domain.model.AggregateRoot;
 
@@ -31,11 +30,9 @@ public class Application extends AggregateRoot {
         this.updatedAt = this.appliedAt;
     }
 
-    /** Fabrique : crée une candidature et enregistre l'événement de soumission. */
+    /** Fabrique métier. L'événement enrichi est publié par le cas d'usage qui connaît l'offre. */
     public static Application submit(UUID candidateId, UUID jobOfferId) {
-        Application app = new Application(UUID.randomUUID(), candidateId, jobOfferId);
-        app.registerEvent(ApplicationSubmittedEvent.of(app.id, candidateId, jobOfferId));
-        return app;
+        return new Application(UUID.randomUUID(), candidateId, jobOfferId);
     }
 
     /** Reconstruction depuis la persistance (pas d'événement émis). */

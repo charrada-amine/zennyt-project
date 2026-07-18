@@ -776,8 +776,9 @@ The mobile candidate profile supports CV upload, replacement, deletion, and prof
 ### Identity → Recruitment access events
 
 - Identity publishes `identity.user.access-state-changed.v1` after registration, login,
-  social login, role change, deactivation and deletion.
-- Only the public UUID, role and active state are shared; no PII leaves Identity.
+  social login, name/avatar update, role change, deactivation and deletion.
+- The event shares the public UUID, role, active state, public display name and avatar URL so
+  Engagement can render local projections without calling Identity.
 - A startup snapshot republishes existing users so Recruitment can initialize its local
   authorization projection without a direct cross-module call.
 - Inactive accounts are rejected by `/auth/me`, password changes and Recruitment access.
@@ -799,5 +800,7 @@ The mobile candidate profile supports CV upload, replacement, deletion, and prof
   inactive-account enforcement and Identity access-state events for Recruitment added;
   Identity contract now has 46 unique operation IDs and route-parity coverage. Claude review
   follow-up aligned CV storage to `RAW` and hid profiles owned by inactive accounts.
+- 3. 2026-07-18 — Identity access-state events now include public display name/avatar and are
+  republished after identity or avatar changes for the Engagement local projection.
 
-**Dernière mise à jour :** 2026-07-14
+**Dernière mise à jour :** 2026-07-18

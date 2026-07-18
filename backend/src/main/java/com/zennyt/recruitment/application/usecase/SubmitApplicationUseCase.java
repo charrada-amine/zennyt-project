@@ -2,6 +2,7 @@ package com.zennyt.recruitment.application.usecase;
 
 import com.zennyt.recruitment.application.command.SubmitApplicationCommand;
 import com.zennyt.recruitment.domain.model.Application;
+import com.zennyt.recruitment.domain.event.ApplicationSubmittedEvent;
 import com.zennyt.recruitment.domain.repository.ApplicationRepository;
 import com.zennyt.recruitment.domain.repository.JobOfferRepository;
 import com.zennyt.recruitment.domain.vo.JobOfferStatus;
@@ -46,8 +47,9 @@ public class SubmitApplicationUseCase {
         Application application = Application.submit(cmd.candidateId(), cmd.jobOfferId());
         Application saved = repository.save(application);
 
-        saved.domainEvents().forEach(eventPublisher::publishEvent);
-        saved.clearEvents();
+        eventPublisher.publishEvent(ApplicationSubmittedEvent.of(
+            saved.id(), saved.candidateId(), saved.jobOfferId(),
+            offer.recruiterId(), offer.title()));
 
         return saved;
     }

@@ -4,7 +4,7 @@ info:
   description: >
     Bounded context Engagement : messagerie candidat/recruteur, notifications,
     enregistrement des appareils push et négociation de la connexion temps réel SignalR.
-  version: 1.0.0
+  version: 2.0.0
 
 servers:
   - url: https://api.zennyt.com/api/v1
@@ -21,15 +21,189 @@ tags:
     description: Centre de notifications
   - name: Realtime
     description: Connexion temps réel (SignalR) et appareils push
+  - name: Posts
+    description: Fil d'actualité social
+  - name: Calls
+    description: Appels audio et vidéo
+  - name: HelpCenter
+    description: Centre d'aide
+  - name: Media
+    description: Téléversement de médias Engagement
 
 security:
   - bearerAuth: []
 
 paths:
+  # ───────────── POSTS / FEED ─────────────
+  /posts:
+    get:
+      tags: [Posts]
+      operationId: listPosts
+      summary: Lister le fil d'actualité de l'utilisateur connecté
+      parameters:
+        - { $ref: './common.openapi.yaml#/components/parameters/PageParam' }
+        - { $ref: './common.openapi.yaml#/components/parameters/SizeParam' }
+      responses:
+        '200':
+          description: Page de publications
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PostPage' }
+    post:
+      tags: [Posts]
+      operationId: createPost
+      summary: Créer une publication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PostCreate' }
+      responses:
+        '201':
+          description: Publication créée
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Post' }
+
+  /posts/{postId}:
+    parameters:
+      - { name: postId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Posts]
+      operationId: getPost
+      summary: Consulter une publication
+      responses:
+        '200':
+          description: Publication
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Post' }
+        '404': { $ref: './common.openapi.yaml#/components/responses/NotFound' }
+    delete:
+      tags: [Posts]
+      operationId: deletePost
+      summary: Supprimer sa publication
+      responses:
+        '204': { description: Publication supprimée }
+
+  /posts/{postId}/likes:
+    parameters:
+      - { name: postId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Posts]
+      operationId: likePost
+      summary: Aimer une publication
+      responses:
+        '204': { description: Publication aimée }
+    delete:
+      tags: [Posts]
+      operationId: unlikePost
+      summary: Retirer son appréciation
+      responses:
+        '204': { description: Appréciation retirée }
+
+  /posts/{postId}/comments:
+    parameters:
+      - { name: postId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Posts]
+      operationId: listComments
+      summary: Lister les commentaires
+      responses:
+        '200':
+          description: Commentaires
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Comment' }
+    post:
+      tags: [Posts]
+      operationId: addComment
+      summary: Ajouter un commentaire
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CommentCreate' }
+      responses:
+        '201':
+          description: Commentaire créé
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Comment' }
+
+  /posts/{postId}/polls/vote:
+    parameters:
+      - { name: postId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Posts]
+      operationId: voteOnPoll
+      summary: Voter sur un sondage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PollVote' }
+      responses:
+        '200':
+          description: Publication mise à jour
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Post' }
+
+  /posts/{postId}/hide:
+    parameters:
+      - { name: postId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Posts]
+      operationId: hidePost
+      summary: Masquer une publication pour l'utilisateur connecté
+      responses:
+        '204': { description: Publication masquée }
+
+  /users/me/post-preferences:
+    get:
+      tags: [Posts]
+      operationId: getPostPreferences
+      summary: Consulter les préférences du fil
+      responses:
+        '200':
+          description: Préférences
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserPostPreferences' }
+    put:
+      tags: [Posts]
+      operationId: updatePostPreferences
+      summary: Modifier les préférences du fil
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UserPostPreferencesUpdate' }
+      responses:
+        '200':
+          description: Préférences mises à jour
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserPostPreferences' }
+
+  /users/{authorId}/block:
+    parameters:
+      - { name: authorId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Posts]
+      operationId: blockAuthor
+      summary: Bloquer un auteur dans le fil
+      responses:
+        '204': { description: Auteur bloqué }
+
   # ───────────── CONVERSATIONS ─────────────
   /conversations:
     get:
       tags: [Conversations]
+      operationId: listConversations
       summary: Lister les conversations de l'utilisateur connecté
       parameters:
         - { $ref: './common.openapi.yaml#/components/parameters/PageParam' }
@@ -48,6 +222,7 @@ paths:
                   page: { $ref: './common.openapi.yaml#/components/schemas/PageMeta' }
     post:
       tags: [Conversations]
+      operationId: createConversation
       summary: Démarrer une conversation liée à une candidature
       requestBody:
         required: true
@@ -70,6 +245,7 @@ paths:
       - { name: conversationId, in: path, required: true, schema: { type: string } }
     get:
       tags: [Messages]
+      operationId: listMessages
       summary: Lister les messages d'une conversation (paginé, plus récents d'abord)
       parameters:
         - { name: before, in: query, description: "Curseur — messages avant cet ID", schema: { type: string } }
@@ -85,6 +261,7 @@ paths:
         '404': { $ref: './common.openapi.yaml#/components/responses/NotFound' }
     post:
       tags: [Messages]
+      operationId: sendMessage
       summary: Envoyer un message
       requestBody:
         required: true
@@ -103,6 +280,7 @@ paths:
       - { name: conversationId, in: path, required: true, schema: { type: string } }
     post:
       tags: [Messages]
+      operationId: markConversationAsRead
       summary: Marquer la conversation comme lue
       responses:
         '204': { description: Marquée comme lue }
@@ -111,6 +289,7 @@ paths:
   /notifications:
     get:
       tags: [Notifications]
+      operationId: listNotifications
       summary: Lister les notifications de l'utilisateur
       parameters:
         - { name: unreadOnly, in: query, schema: { type: boolean, default: false } }
@@ -135,6 +314,7 @@ paths:
       - { name: notificationId, in: path, required: true, schema: { type: string, format: uuid } }
     post:
       tags: [Notifications]
+      operationId: markNotificationAsRead
       summary: Marquer une notification comme lue
       responses:
         '204': { description: Marquée comme lue }
@@ -142,6 +322,7 @@ paths:
   /notifications/read-all:
     post:
       tags: [Notifications]
+      operationId: markAllNotificationsAsRead
       summary: Tout marquer comme lu
       responses:
         '204': { description: Toutes marquées comme lues }
@@ -150,6 +331,7 @@ paths:
   /realtime/negotiate:
     post:
       tags: [Realtime]
+      operationId: negotiateRealtime
       summary: Obtenir l'URL et le jeton de connexion SignalR
       responses:
         '200':
@@ -165,6 +347,7 @@ paths:
   /realtime/devices:
     post:
       tags: [Realtime]
+      operationId: registerPushDevice
       summary: Enregistrer un appareil pour les notifications push
       requestBody:
         required: true
@@ -174,11 +357,321 @@ paths:
       responses:
         '201': { description: Appareil enregistré }
 
+  # ───────────── CALLS ─────────────
+  /calls/start:
+    post:
+      tags: [Calls]
+      operationId: initiateCall
+      summary: Initier un appel audio ou vidéo dans une conversation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CallInitiate' }
+      responses:
+        '201':
+          description: Appel initié
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CallSession' }
+
+  /calls/{callId}/join:
+    parameters:
+      - { name: callId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Calls]
+      operationId: joinCall
+      summary: Rejoindre un appel
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CallJoin' }
+      responses:
+        '200':
+          description: Appel rejoint
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CallSession' }
+
+  /calls/{callId}/end:
+    parameters:
+      - { name: callId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Calls]
+      operationId: endCall
+      summary: Terminer un appel
+      responses:
+        '204': { description: Appel terminé }
+
+  # ───────────── HELP CENTER ─────────────
+  /help-chats:
+    get:
+      tags: [HelpCenter]
+      operationId: listHelpChats
+      summary: Lister les conversations avec le support
+      responses:
+        '200':
+          description: Conversations d'aide
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/HelpChat' }
+
+  /help-chats/{helpChatId}/messages:
+    parameters:
+      - { name: helpChatId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [HelpCenter]
+      operationId: listHelpMessages
+      summary: Lister les messages d'aide
+      responses:
+        '200':
+          description: Messages d'aide
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/HelpMessage' }
+    post:
+      tags: [HelpCenter]
+      operationId: sendHelpMessage
+      summary: Envoyer un message au support
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/HelpMessageCreate' }
+      responses:
+        '201':
+          description: Message envoyé
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HelpMessage' }
+
+  /media/upload:
+    post:
+      tags: [Media]
+      operationId: uploadEngagementMedia
+      summary: Téléverser un média Engagement
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        '201':
+          description: Média téléversé
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MediaUpload' }
+
 components:
   securitySchemes:
     bearerAuth: { $ref: './common.openapi.yaml#/components/securitySchemes/bearerAuth' }
 
   schemas:
+    PostPage:
+      type: object
+      required: [content, page]
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/Post' }
+        page: { $ref: './common.openapi.yaml#/components/schemas/PageMeta' }
+
+    Post:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        authorId: { type: string, format: uuid }
+        authorName: { type: string }
+        authorPhotoUrl: { type: string, format: uri, nullable: true }
+        visibility: { $ref: '#/components/schemas/PostVisibility' }
+        content: { type: string, nullable: true }
+        media:
+          type: array
+          items: { $ref: '#/components/schemas/PostMedia' }
+        poll: { $ref: '#/components/schemas/Poll', nullable: true }
+        likesCount: { type: integer }
+        commentsCount: { type: integer }
+        isLikedByMe: { type: boolean }
+        createdAt: { type: string, format: date-time }
+
+    PostCreate:
+      type: object
+      properties:
+        content: { type: string, nullable: true }
+        visibility: { $ref: '#/components/schemas/PostVisibility' }
+        media:
+          type: array
+          items: { $ref: '#/components/schemas/PostMediaCreate' }
+        poll: { $ref: '#/components/schemas/PollCreate', nullable: true }
+
+    PostVisibility:
+      type: string
+      enum: [PUBLIC, FRIENDS]
+
+    MediaType:
+      type: string
+      enum: [IMAGE, VIDEO, DOCUMENT]
+
+    PostMedia:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        type: { $ref: '#/components/schemas/MediaType' }
+        url: { type: string, format: uri }
+
+    PostMediaCreate:
+      type: object
+      required: [type, url]
+      properties:
+        type: { $ref: '#/components/schemas/MediaType' }
+        url: { type: string, format: uri }
+
+    Poll:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        question: { type: string }
+        options:
+          type: array
+          items: { $ref: '#/components/schemas/PollOption' }
+        duration: { type: string }
+
+    PollOption:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        text: { type: string }
+        voteCount: { type: integer }
+        selectedByMe: { type: boolean }
+
+    PollCreate:
+      type: object
+      required: [question, options]
+      properties:
+        question: { type: string, minLength: 1 }
+        options:
+          type: array
+          minItems: 2
+          items: { $ref: '#/components/schemas/PollOptionCreate' }
+        duration: { type: string, default: '3 days' }
+
+    PollOptionCreate:
+      type: object
+      required: [text]
+      properties:
+        text: { type: string, minLength: 1 }
+
+    PollVote:
+      type: object
+      required: [optionId]
+      properties:
+        optionId: { type: string, format: uuid }
+
+    Comment:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        postId: { type: string, format: uuid }
+        authorId: { type: string, format: uuid }
+        authorName: { type: string }
+        authorPhotoUrl: { type: string, format: uri, nullable: true }
+        content: { type: string }
+        createdAt: { type: string, format: date-time }
+
+    CommentCreate:
+      type: object
+      required: [content]
+      properties:
+        content: { type: string, minLength: 1 }
+
+    UserPostPreferences:
+      type: object
+      properties:
+        hiddenPostIds:
+          type: array
+          items: { type: string, format: uuid }
+        blockedAuthorIds:
+          type: array
+          items: { type: string, format: uuid }
+
+    UserPostPreferencesUpdate:
+      type: object
+      properties:
+        hiddenPostIds:
+          type: array
+          items: { type: string, format: uuid }
+        blockedAuthorIds:
+          type: array
+          items: { type: string, format: uuid }
+
+    CallInitiate:
+      type: object
+      required: [conversationId, type, webrtcOffer]
+      properties:
+        conversationId: { type: string, format: uuid }
+        type: { type: string, enum: [AUDIO, VIDEO] }
+        webrtcOffer: { type: string, minLength: 1 }
+
+    CallJoin:
+      type: object
+      required: [webrtcAnswer]
+      properties:
+        webrtcAnswer: { type: string, minLength: 1 }
+
+    CallSession:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        conversationId: { type: string, format: uuid }
+        type: { type: string, enum: [AUDIO, VIDEO] }
+        status: { type: string, enum: [INITIATED, IN_PROGRESS, ENDED] }
+        initiatorId: { type: string, format: uuid }
+        counterpartId: { type: string, format: uuid }
+        webrtcOffer: { type: string }
+        webrtcAnswer: { type: string, nullable: true }
+        startedAt: { type: string, format: date-time }
+        endedAt: { type: string, format: date-time, nullable: true }
+        durationSeconds: { type: integer, nullable: true }
+
+    HelpChat:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        subtitle: { type: string }
+        lastMessageAt: { type: string, format: date-time, nullable: true }
+
+    HelpMessage:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        helpChatId: { type: string, format: uuid }
+        text: { type: string }
+        timestamp: { type: string, format: date-time }
+        isFromUser: { type: boolean }
+
+    HelpMessageCreate:
+      type: object
+      required: [text]
+      properties:
+        text: { type: string, minLength: 1 }
+
+    MediaUpload:
+      type: object
+      properties:
+        url: { type: string, format: uri }
+        publicId: { type: string }
+        resourceType: { type: string }
+
     Conversation:
       type: object
       properties:
@@ -218,7 +711,7 @@ components:
         id: { type: string, format: uuid }
         type:
           type: string
-          enum: [APPLICATION_VIEWED, APPLICATION_STATUS_CHANGED, NEW_MESSAGE, JOB_MATCH, PROFILE_VIEWED]
+          enum: [APPLICATION_VIEWED, APPLICATION_STATUS_CHANGED, NEW_MESSAGE, JOB_MATCH, PROFILE_VIEWED, NEW_COMMENT, NEW_LIKE]
         title: { type: string }
         body: { type: string }
         actionUrl: { type: string, description: "Deep link in-app, ex: /applications/{id}" }

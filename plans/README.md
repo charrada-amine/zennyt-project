@@ -15,6 +15,8 @@ Les drift checks restent documentés dans chaque plan pour la traçabilité.
 | 005 | Durcir Identity, CV et OCR | P1 | L | 001, 002 | DONE |
 | 006 | Synchroniser l’état Identity vers Recruitment par événements | P1 | L | 003, 005 | DONE |
 | 007 | Installer la couverture HTTP et les gates CI | P1 | L | 001–006 | DONE |
+| 008 | Porter le domaine Engagement Conversations / Notifications / Push | P1 | M | validation + autorisation doc | DONE |
+| 009 | Intégrer Engagement de bout en bout avec Auth, Recruitment et les 10 endpoints | P1 | L | 008 commitée + autorisations protégées | TODO |
 
 Valeurs de statut : `TODO`, `IN PROGRESS`, `DONE`, `BLOCKED`, `REJECTED`.
 
@@ -31,6 +33,14 @@ Valeurs de statut : `TODO`, `IN PROGRESS`, `DONE`, `BLOCKED`, `REJECTED`.
   Engagement.
 - Ne jamais modifier `V13__recruitment_full_schema.sql`. Toute évolution DB commence à
   `V14__...` une fois V13 stabilisée.
+- Le plan 008 est une nouvelle séquence Engagement indépendante des plans de stabilisation
+  Identity ↔ Recruitment déjà terminés. Il exige l'autorisation de créer `ENGAGEMENT_MODULE.md`
+  avant toute copie, puis reste strictement limité au domaine et à ses tests.
+- Le plan 009 dépend du domaine du plan 008 et doit être exécuté en six PR : contrat, domaine,
+  persistance, événements/auth, API/realtime, puis mobile. Le lot mobile reste bloqué tant que les
+  maquettes Conversations/Messages ne sont pas présentes. Les modifications de contrat, `pom.xml`,
+  Recruitment, migration, `core/`, `pubspec.yaml` et infra exigent les autorisations listées dans
+  le plan.
 
 ## Politique contractuelle recommandée à valider
 

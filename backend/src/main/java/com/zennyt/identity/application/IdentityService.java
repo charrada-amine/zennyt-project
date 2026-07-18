@@ -46,7 +46,9 @@ public class IdentityService {
                            String city, String country, String address) {
         User user = currentUser(publicId);
         user.updateIdentity(firstName, lastName, phoneNumber, city, country, address);
-        return users.save(user);
+        User saved = users.save(user);
+        publishAccessState(saved);
+        return saved;
     }
 
     @Transactional
@@ -60,6 +62,7 @@ public class IdentityService {
         if (previousPublicId != null) {
             fileStorage.delete(previousPublicId, ResourceType.IMAGE);
         }
+        publishAccessState(saved);
         return saved;
     }
 
@@ -72,6 +75,7 @@ public class IdentityService {
         if (previousPublicId != null) {
             fileStorage.delete(previousPublicId, ResourceType.IMAGE);
         }
+        publishAccessState(saved);
         return saved;
     }
 
@@ -121,7 +125,8 @@ public class IdentityService {
 
     private void publishAccessState(User user) {
         events.publishEvent(UserAccessStateChangedEvent.of(
-            user.publicId(), user.role().name(), user.active()));
+            user.publicId(), user.role().name(), user.active(),
+            user.firstName() + " " + user.lastName(), user.profileImageUrl()));
     }
 
     @Transactional

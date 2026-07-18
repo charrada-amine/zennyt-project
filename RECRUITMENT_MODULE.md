@@ -1,6 +1,6 @@
 # Module Recruitment
 
-**Dernière mise à jour :** 2026-07-16
+**Dernière mise à jour :** 2026-07-18
 
 ## 1. Rôle du module
 
@@ -52,8 +52,9 @@ flowchart LR
 ### 3.1 Identity → Recruitment
 
 Identity publie `identity.user.access-state-changed.v1` après inscription,
-authentification, changement de rôle, désactivation et suppression. L'événement ne
-contient que l'UUID public, le rôle et l'état actif ; aucune PII n'est copiée.
+authentification, changement de nom/avatar, changement de rôle, désactivation et suppression.
+L'événement porte l'UUID public, le rôle, l'état actif et le nom/avatar publics nécessaires aux
+projections de présentation Engagement.
 
 Recruitment maintient la projection locale `recruitment.actors`. Elle permet de
 vérifier qu'un JWT encore valide appartient toujours à un utilisateur actif et possède
@@ -425,3 +426,7 @@ elles seules un fournisseur SMS ou e-mail.
    decks bidirectionnels, dismissal, projection publique des tests et migrations
    V16–V18. Le permit public Shared et les écrans mobiles restent explicitement
    ouverts faute d'autorisation et de maquettes.
+4. 2026-07-18 — Événements `ApplicationSubmittedEvent` et
+   `ApplicationStatusChangedEvent` enrichis avec recruteur/titre et publiés après persistance
+   pour alimenter Engagement ; migration V21 ajoutée pour aligner
+   `assessment_attempts.monitoring_consent` et rétablir `ddl-auto=validate`.
