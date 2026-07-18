@@ -34,8 +34,27 @@ interface JpaPostRepository extends JpaRepository<PostEntity, UUID> {
         """, nativeQuery = true)
     Page<UUID> findVisibleIds(@Param("userId") UUID userId, Pageable pageable);
 
-    @Query(value = "SELECT user_id FROM engagement.post_likes WHERE post_id = :postId", nativeQuery = true)
-    List<UUID> findLikedUserIds(@Param("postId") UUID postId);
+    /**
+     * Statistiques de likes bornées pour une page de posts : compteur et like de
+     * l'acteur en une seule requête agrégée. Aucun chargement de tous les likers.
+     * Colonnes : post_id, likes_count, liked_by_actor.
+     */
+    @Query(value = """
+        SELECT post_id AS postId, count(*) AS likesCount,
+               bool_or(user_id = :actorId) AS likedByActor
+        FROM engagement.post_likes
+        WHERE post_id IN (:postIds)
+        GROUP BY post_id
+        """, nativeQuery = true)
+    List<Object[]> likeStats(@Param("postIds") List<UUID> postIds, @Param("actorId") UUID actorId);
+
+    /** Option choisie par l'acteur pour une page de posts. Colonnes : post_id, option_id. */
+    @Query(value = """
+        SELECT post_id AS postId, option_id AS optionId
+        FROM engagement.poll_votes
+        WHERE user_id = :actorId AND post_id IN (:postIds)
+        """, nativeQuery = true)
+    List<Object[]> selectedOptions(@Param("postIds") List<UUID> postIds, @Param("actorId") UUID actorId);
 
     @Modifying
     @Query(value = "INSERT INTO engagement.post_likes(post_id, user_id, created_at) " +
@@ -48,13 +67,16 @@ interface JpaPostRepository extends JpaRepository<PostEntity, UUID> {
         nativeQuery = true)
     int removeLike(@Param("postId") UUID postId, @Param("userId") UUID userId);
 
-    @Query(value = "SELECT count(*) > 0 FROM engagement.poll_votes " +
-        "WHERE post_id = :postId AND user_id = :userId", nativeQuery = true)
-    boolean hasVoted(@Param("postId") UUID postId, @Param("userId") UUID userId);
-
+    /** Réservation atomique du vote : la PK (post_id, user_id) arbitre la concurrence. */
     @Modifying
     @Query(value = "INSERT INTO engagement.poll_votes(post_id, user_id, option_id, created_at) " +
-        "VALUES (:postId, :userId, :optionId, :createdAt)", nativeQuery = true)
-    int recordVote(@Param("postId") UUID postId, @Param("userId") UUID userId,
-                   @Param("optionId") UUID optionId, @Param("createdAt") Instant createdAt);
+        "VALUES (:postId, :userId, :optionId, :createdAt) ON CONFLICT (post_id, user_id) DO NOTHING",
+        nativeQuery = true)
+    int recordVoteIfAbsent(@Param("postId") UUID postId, @Param("userId") UUID userId,
+                           @Param("optionId") UUID optionId, @Param("createdAt") Instant createdAt);
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query(value = "UPDATE engagement.poll_options SET vote_count = vote_count + 1 WHERE id = :optionId",
+        nativeQuery = true)
+    int incrementOptionVote(@Param("optionId") UUID optionId);
 }

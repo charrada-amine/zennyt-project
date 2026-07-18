@@ -17,6 +17,7 @@ Les drift checks restent documentés dans chaque plan pour la traçabilité.
 | 007 | Installer la couverture HTTP et les gates CI | P1 | L | 001–006 | DONE |
 | 008 | Porter le domaine Engagement Conversations / Notifications / Push | P1 | M | validation + autorisation doc | DONE |
 | 009 | Intégrer Engagement de bout en bout avec Auth, Recruitment et les 10 endpoints | P1 | L | 008 commitée + autorisations protégées | TODO |
+| 010 | Corriger les findings de la revue Engagement avant production | P0 | L | intégration backend Engagement actuelle sauvegardée | DONE |
 
 Valeurs de statut : `TODO`, `IN PROGRESS`, `DONE`, `BLOCKED`, `REJECTED`.
 
@@ -41,6 +42,9 @@ Valeurs de statut : `TODO`, `IN PROGRESS`, `DONE`, `BLOCKED`, `REJECTED`.
   maquettes Conversations/Messages ne sont pas présentes. Les modifications de contrat, `pom.xml`,
   Recruitment, migration, `core/`, `pubspec.yaml` et infra exigent les autorisations listées dans
   le plan.
+- Le plan 010 remplace la phase de stabilisation backend post-intégration de 009. Il corrige les
+  transactions inter-contextes, les sondages, la commande conversation, l'idempotence et le N+1.
+  Le mobile reste hors périmètre et doit conserver un plan séparé.
 
 ## Politique contractuelle recommandée à valider
 

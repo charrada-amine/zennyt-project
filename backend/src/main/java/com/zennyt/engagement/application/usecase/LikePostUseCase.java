@@ -18,7 +18,7 @@ public class LikePostUseCase {
     private final GetPostUseCase getPost;
     private final NotificationRepository notifications;
     @Transactional public void execute(UUID actorId, UUID postId) {
-        Post post = getPost.execute(actorId, postId);
+        Post post = getPost.execute(actorId, postId).post();
         boolean created = posts.addLike(postId, actorId);
         if (created && !post.authorId().equals(actorId)) {
             notifications.save(Notification.create(post.authorId(), NotificationType.NEW_LIKE,

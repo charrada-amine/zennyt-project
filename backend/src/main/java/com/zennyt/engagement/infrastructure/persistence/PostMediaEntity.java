@@ -17,6 +17,7 @@ class PostMediaEntity {
         this.id = id; this.postId = postId; this.type = type; this.url = url;
     }
     UUID getId() { return id; }
+    UUID getPostId() { return postId; }
     MediaType getType() { return type; }
     String getUrl() { return url; }
 }

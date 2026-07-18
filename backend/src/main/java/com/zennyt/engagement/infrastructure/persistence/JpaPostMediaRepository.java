@@ -6,5 +6,6 @@ import java.util.UUID;
 
 interface JpaPostMediaRepository extends JpaRepository<PostMediaEntity, UUID> {
     List<PostMediaEntity> findByPostId(UUID postId);
+    List<PostMediaEntity> findByPostIdIn(List<UUID> postIds);
     void deleteByPostId(UUID postId);
 }

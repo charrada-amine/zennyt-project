@@ -1,31 +1,37 @@
 package com.zennyt.engagement.application;
 
-import com.zennyt.engagement.domain.model.EngagementActor;
-import com.zennyt.engagement.domain.repository.EngagementActorRepository;
 import com.zennyt.identity.domain.event.UserAccessStateChangedEvent;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.event.EventListener;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
-/** Maintient une projection locale de sécurité sans appel direct au module Identity. */
+/**
+ * Maintient une projection locale de sécurité sans appel direct au module Identity.
+ *
+ * <p>La projection est mise à jour <b>après le commit</b> de la transaction Identity
+ * qui publie l'événement, dans une transaction indépendante ({@code REQUIRES_NEW}) :
+ * une panne de projection ne rollback donc jamais l'utilisateur Identity déjà
+ * persisté. {@code fallbackExecution = true} conserve le rejeu du snapshot de
+ * démarrage, publié hors transaction par {@code IdentityAccessSnapshotPublisher}.
+ *
+ * <p>Mécanisme in-process et non durable : pas de broker ni d'outbox ici.
+ */
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class EngagementIdentityAccessStateListener {
-    private final EngagementActorRepository actors;
+    private final EngagementIdentityAccessStateProjector projector;
 
-    @EventListener
-    @Transactional
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     public void on(UserAccessStateChangedEvent event) {
-        EngagementActor current = actors.findById(event.publicUserId()).orElse(null);
-        if (current == null) {
-            actors.save(new EngagementActor(event.publicUserId(), event.role(), event.active(),
-                event.displayName(), event.photoUrl(), event.occurredAt(), event.eventId()));
-            return;
+        try {
+            projector.project(event);
+        } catch (RuntimeException failure) {
+            // Le snapshot Identity de démarrage réconcilie cette projection au prochain boot.
+            log.error("Projection Engagement Identity échouée pour l'événement {}",
+                event.eventId(), failure);
         }
-        EngagementActor updated = current.apply(
-            event.role(), event.active(), event.displayName(), event.photoUrl(),
-            event.occurredAt(), event.eventId());
-        if (updated != current) actors.save(updated);
     }
 }

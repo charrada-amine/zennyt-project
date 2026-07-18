@@ -6,5 +6,6 @@ import java.util.UUID;
 
 interface JpaPollOptionRepository extends JpaRepository<PollOptionEntity, UUID> {
     List<PollOptionEntity> findByPostId(UUID postId);
+    List<PollOptionEntity> findByPostIdIn(List<UUID> postIds);
     void deleteByPostId(UUID postId);
 }

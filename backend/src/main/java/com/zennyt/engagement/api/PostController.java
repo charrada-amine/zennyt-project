@@ -5,6 +5,7 @@ import com.zennyt.engagement.api.security.EngagementAuthenticated;
 import com.zennyt.engagement.application.ActorDirectory;
 import com.zennyt.engagement.application.usecase.*;
 import com.zennyt.engagement.domain.model.Post;
+import com.zennyt.engagement.domain.model.PostView;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -36,7 +37,7 @@ public class PostController {
 
     @GetMapping("/posts") @EngagementAuthenticated
     public PostPage list(@RequestParam(defaultValue="0") int page, @RequestParam(defaultValue="20") int size, Principal principal) {
-        UUID actor = actor(principal); return PostPage.from(listPosts.execute(actor, page, size), actor, actors);
+        UUID actor = actor(principal); return PostPage.from(listPosts.execute(actor, page, size), actors);
     }
     @PostMapping("/posts") @EngagementAuthenticated
     public ResponseEntity<PostResponse> create(@Valid @RequestBody PostCreateRequest request, Principal principal) {
@@ -45,10 +46,10 @@ public class PostController {
             .map(value -> Post.PostMedia.create(value.type(), value.url())).toList();
         Post.Poll poll = request.poll() == null ? null : Post.Poll.create(request.poll().question(), request.poll().options(), request.poll().duration());
         return ResponseEntity.status(HttpStatus.CREATED).body(PostResponse.from(
-            createPost.execute(actor, request.visibility(), request.content(), media, poll), actor, actors));
+            PostView.fresh(createPost.execute(actor, request.visibility(), request.content(), media, poll)), actors));
     }
     @GetMapping("/posts/{postId}") @EngagementAuthenticated
-    public PostResponse get(@PathVariable UUID postId, Principal principal) { UUID actor=actor(principal); return PostResponse.from(getPost.execute(actor, postId), actor, actors); }
+    public PostResponse get(@PathVariable UUID postId, Principal principal) { UUID actor=actor(principal); return PostResponse.from(getPost.execute(actor, postId), actors); }
     @DeleteMapping("/posts/{postId}") @EngagementAuthenticated
     public ResponseEntity<Void> delete(@PathVariable UUID postId, Principal principal) { deletePost.execute(actor(principal), postId); return ResponseEntity.noContent().build(); }
     @PostMapping("/posts/{postId}/likes") @EngagementAuthenticated
@@ -62,7 +63,7 @@ public class PostController {
         return ResponseEntity.status(HttpStatus.CREATED).body(CommentResponse.from(addComment.execute(actor(principal), postId, request.content()), actors));
     }
     @PostMapping("/posts/{postId}/polls/vote") @EngagementAuthenticated
-    public PostResponse vote(@PathVariable UUID postId, @Valid @RequestBody VoteRequest request, Principal principal) { UUID actor=actor(principal); return PostResponse.from(voteOnPoll.execute(actor, postId, request.optionId()), actor, actors); }
+    public PostResponse vote(@PathVariable UUID postId, @Valid @RequestBody VoteRequest request, Principal principal) { UUID actor=actor(principal); return PostResponse.from(voteOnPoll.execute(actor, postId, request.optionId()), actors); }
     @PostMapping("/posts/{postId}/hide") @EngagementAuthenticated
     public ResponseEntity<Void> hide(@PathVariable UUID postId, Principal principal) { hidePost.execute(actor(principal), postId); return ResponseEntity.noContent().build(); }
     @GetMapping("/users/me/post-preferences") @EngagementAuthenticated

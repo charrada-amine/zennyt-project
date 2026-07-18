@@ -234,8 +234,13 @@ paths:
               properties:
                 applicationId: { type: string, format: uuid }
       responses:
+        '200':
+          description: Conversation préexistante retournée sans duplication
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Conversation' }
         '201':
-          description: Conversation créée (ou existante)
+          description: Conversation créée
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Conversation' }

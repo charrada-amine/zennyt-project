@@ -430,3 +430,12 @@ elles seules un fournisseur SMS ou e-mail.
    `ApplicationStatusChangedEvent` enrichis avec recruteur/titre et publiés après persistance
    pour alimenter Engagement ; migration V21 ajoutée pour aligner
    `assessment_attempts.monitoring_consent` et rétablir `ddl-auto=validate`.
+5. 2026-07-18 — Correctif revue (Lot A) : `IdentityAccessStateListener` passe en
+   `@TransactionalEventListener(AFTER_COMMIT, fallbackExecution=true)` +
+   `@Transactional(REQUIRES_NEW)`. La projection d'accès se met à jour dans une transaction
+   indépendante et ne rollback plus la transaction Identity émettrice ; le rejeu du snapshot de
+   démarrage (hors transaction) est préservé. Garde `lastEventAt`/`lastEventId` inchangée.
+6. 2026-07-18 — Stabilisation du listener Identity : le callback `AFTER_COMMIT` capture les
+   erreurs du projector `REQUIRES_NEW`. Une projection défaillante ne rollback pas Identity et
+   ne remonte plus une réponse HTTP 500 après un commit réussi ; le snapshot réconcilie l'état au
+   prochain démarrage.

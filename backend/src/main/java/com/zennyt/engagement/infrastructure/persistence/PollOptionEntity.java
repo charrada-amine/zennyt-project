@@ -16,6 +16,7 @@ class PollOptionEntity {
         this.id = id; this.postId = postId; this.text = text; this.voteCount = voteCount;
     }
     UUID getId() { return id; }
+    UUID getPostId() { return postId; }
     String getText() { return text; }
     int getVoteCount() { return voteCount; }
 }

@@ -11,14 +11,18 @@ import jakarta.validation.constraints.NotNull;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public final class PostDtos {
     private PostDtos() {}
 
     public record PostPage(List<PostResponse> content, PageMetaResponse page) {
-        public static PostPage from(PageSlice<Post> slice, UUID actorId, ActorDirectory actors) {
-            return new PostPage(slice.content().stream().map(post -> PostResponse.from(post, actorId, actors)).toList(),
+        public static PostPage from(PageSlice<PostView> slice, ActorDirectory actors) {
+            Map<UUID, ActorDirectory.ActorPresentation> authors = actors.presentations(
+                slice.content().stream().map(view -> view.post().authorId()).toList());
+            return new PostPage(slice.content().stream()
+                .map(view -> PostResponse.from(view, authors.get(view.post().authorId()))).toList(),
                 PageMetaResponse.from(slice));
         }
     }
@@ -26,21 +30,28 @@ public final class PostDtos {
                                PostVisibility visibility, String content, List<MediaResponse> media,
                                PollResponse poll, int likesCount, int commentsCount,
                                boolean isLikedByMe, Instant createdAt) {
-        public static PostResponse from(Post post, UUID actorId, ActorDirectory actors) {
-            PollResponse poll = post.poll() == null ? null : PollResponse.from(post.poll());
-            return new PostResponse(post.id(), post.authorId(), actors.displayName(post.authorId()),
-                actors.photoUrl(post.authorId()), post.visibility(), post.content(),
+        public static PostResponse from(PostView view, ActorDirectory actors) {
+            return from(view, actors.presentation(view.post().authorId()));
+        }
+
+        public static PostResponse from(PostView view, ActorDirectory.ActorPresentation author) {
+            Post post = view.post();
+            PollResponse poll = post.poll() == null ? null
+                : PollResponse.from(post.poll(), view.selectedOptionId());
+            return new PostResponse(post.id(), post.authorId(), author.displayName(),
+                author.photoUrl(), post.visibility(), post.content(),
                 post.media().stream().map(MediaResponse::from).toList(), poll,
-                post.likesCount(), post.commentsCount(), post.likedBy(actorId), post.createdAt());
+                (int) view.likesCount(), post.commentsCount(), view.likedByActor(), post.createdAt());
         }
     }
     public record MediaResponse(UUID id, MediaType type, String url) {
         static MediaResponse from(Post.PostMedia media) { return new MediaResponse(media.id(), media.type(), media.url()); }
     }
     public record PollResponse(UUID id, String question, List<PollOptionResponse> options, String duration) {
-        static PollResponse from(Post.Poll poll) {
+        static PollResponse from(Post.Poll poll, UUID selectedOptionId) {
             return new PollResponse(poll.id(), poll.question(),
-                poll.options().stream().map(value -> new PollOptionResponse(value.id(), value.text(), value.voteCount(), false)).toList(),
+                poll.options().stream().map(value -> new PollOptionResponse(value.id(), value.text(),
+                    value.voteCount(), value.id().equals(selectedOptionId))).toList(),
                 poll.duration());
         }
     }

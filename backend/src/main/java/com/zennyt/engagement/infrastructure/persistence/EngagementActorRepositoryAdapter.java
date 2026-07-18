@@ -6,6 +6,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
+import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 
 @Component
@@ -23,6 +25,12 @@ public class EngagementActorRepositoryAdapter implements EngagementActorReposito
     @Override
     public Optional<EngagementActor> findById(UUID userId) {
         return jpa.findById(userId).map(this::toDomain);
+    }
+
+    @Override
+    public List<EngagementActor> findAllByIds(Collection<UUID> userIds) {
+        if (userIds.isEmpty()) return List.of();
+        return jpa.findAllById(userIds).stream().map(this::toDomain).toList();
     }
 
     private EngagementActor toDomain(EngagementActorEntity entity) {

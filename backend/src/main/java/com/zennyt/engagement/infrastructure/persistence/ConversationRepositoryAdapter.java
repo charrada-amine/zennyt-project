@@ -32,6 +32,15 @@ public class ConversationRepositoryAdapter implements ConversationRepository {
     }
 
     @Override
+    public boolean createIfAbsent(Conversation conversation) {
+        return jpa.insertIfApplicationAbsent(
+            conversation.id(), conversation.applicationId(), conversation.jobOfferId(),
+            conversation.candidateId(), conversation.recruiterId(), conversation.jobTitle(),
+            conversation.lastMessagePreview(), conversation.lastMessageAt(),
+            conversation.candidateUnreadCount(), conversation.recruiterUnreadCount()) == 1;
+    }
+
+    @Override
     public Optional<Conversation> findByIdAndParticipantId(UUID id, UUID participantId) {
         return jpa.findByIdAndCandidateIdOrIdAndRecruiterId(id, participantId, id, participantId)
             .map(this::toDomain);

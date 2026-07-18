@@ -1,6 +1,6 @@
 package com.zennyt.engagement.application.usecase;
 
-import com.zennyt.engagement.domain.model.Post;
+import com.zennyt.engagement.domain.model.PostView;
 import com.zennyt.engagement.domain.repository.FriendshipRepository;
 import com.zennyt.engagement.domain.repository.PostRepository;
 import com.zennyt.engagement.domain.repository.UserPostPreferencesRepository;
@@ -19,14 +19,16 @@ public class GetPostUseCase {
     private final FriendshipRepository friendships;
 
     @Transactional(readOnly = true)
-    public Post execute(UUID actorId, UUID postId) {
-        Post post = posts.findById(postId).orElseThrow(() -> new NotFoundException("Publication introuvable"));
+    public PostView execute(UUID actorId, UUID postId) {
+        PostView view = posts.findViewById(postId, actorId)
+            .orElseThrow(() -> new NotFoundException("Publication introuvable"));
+        UUID authorId = view.post().authorId();
         var prefs = preferences.findByUserId(actorId).orElse(null);
         boolean hidden = prefs != null && (prefs.hiddenPostIds().contains(postId)
-            || prefs.blockedAuthorIds().contains(post.authorId()));
-        boolean visible = post.visibility() == PostVisibility.PUBLIC
-            || post.authorId().equals(actorId) || friendships.areFriends(actorId, post.authorId());
+            || prefs.blockedAuthorIds().contains(authorId));
+        boolean visible = view.post().visibility() == PostVisibility.PUBLIC
+            || authorId.equals(actorId) || friendships.areFriends(actorId, authorId);
         if (hidden || !visible) throw new NotFoundException("Publication introuvable");
-        return post;
+        return view;
     }
 }

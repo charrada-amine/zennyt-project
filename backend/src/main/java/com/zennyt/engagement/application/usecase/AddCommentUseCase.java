@@ -18,7 +18,7 @@ public class AddCommentUseCase {
     private final CommentRepository comments;
     private final NotificationRepository notifications;
     @Transactional public Comment execute(UUID actorId, UUID postId, String content) {
-        Post post = getPost.execute(actorId, postId);
+        Post post = getPost.execute(actorId, postId).post();
         Comment saved = comments.save(Comment.create(postId, actorId, content));
         post.incrementCommentsCount();
         posts.save(post);

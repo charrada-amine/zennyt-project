@@ -8,6 +8,7 @@ import java.util.UUID;
 
 public interface ConversationRepository {
     Conversation save(Conversation conversation);
+    boolean createIfAbsent(Conversation conversation);
     Optional<Conversation> findByIdAndParticipantId(UUID id, UUID participantId);
     Optional<Conversation> findByApplicationIdAndParticipantId(UUID applicationId, UUID participantId);
     PageSlice<Conversation> findByParticipantId(UUID participantId, int page, int size);
