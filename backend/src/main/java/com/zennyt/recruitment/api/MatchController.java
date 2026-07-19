@@ -6,6 +6,7 @@ import com.zennyt.recruitment.api.security.RecruiterOnly;
 import com.zennyt.recruitment.domain.model.Match;
 import com.zennyt.recruitment.domain.repository.JobOfferRepository;
 import com.zennyt.recruitment.domain.repository.MatchRepository;
+import com.zennyt.recruitment.domain.repository.RecruitmentActorRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,10 +21,13 @@ public class MatchController {
 
     private final MatchRepository matchRepository;
     private final JobOfferRepository jobOfferRepository;
+    private final RecruitmentActorRepository actors;
 
-    public MatchController(MatchRepository matchRepository, JobOfferRepository jobOfferRepository) {
+    public MatchController(MatchRepository matchRepository, JobOfferRepository jobOfferRepository,
+                           RecruitmentActorRepository actors) {
         this.matchRepository = matchRepository;
         this.jobOfferRepository = jobOfferRepository;
+        this.actors = actors;
     }
 
     /** GET /api/v1/candidates/me/matches — Matchs d'un candidat (?candidateId= ou identité authentifiée) */
@@ -51,10 +55,13 @@ public class MatchController {
         return ResponseEntity.ok(matches.stream().map(this::enrich).toList());
     }
 
-    /** Complète le match avec le nom de l'entreprise porté par l'offre. */
+    /** Complète le match avec le nom de l'entreprise (offre) et le nom/avatar du candidat (actor). */
     private MatchResponse enrich(Match m) {
         String companyName = jobOfferRepository.findById(m.jobOfferId())
             .map(o -> o.companyName()).orElse(null);
-        return MatchResponse.from(m, companyName);
+        var actor = actors.findById(m.candidateId());
+        return MatchResponse.from(m, companyName,
+            actor.map(a -> a.fullName()).orElse(null),
+            actor.map(a -> a.avatarUrl()).orElse(null));
     }
 }

@@ -20,12 +20,14 @@ public class IdentityAccessStateListener {
         var existing = actors.findById(event.publicUserId());
         if (existing.isEmpty()) {
             actors.save(new RecruitmentActor(event.publicUserId(), event.role(), event.active(),
+                event.fullName(), event.avatarUrl(), event.city(), event.country(),
                 event.occurredAt(), event.eventId()));
             return;
         }
         RecruitmentActor actor = existing.get();
         if (!actor.lastEventAt().isBefore(event.occurredAt())
                 || actor.lastEventId().equals(event.eventId())) return;
-        actors.save(actor.apply(event.role(), event.active(), event.occurredAt(), event.eventId()));
+        actors.save(actor.apply(event.role(), event.active(), event.fullName(), event.avatarUrl(),
+            event.city(), event.country(), event.occurredAt(), event.eventId()));
     }
 }

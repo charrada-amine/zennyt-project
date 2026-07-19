@@ -21,7 +21,7 @@ class IdentityAccessStateListenerTest {
         UUID userId = UUID.randomUUID();
         Instant firstAt = Instant.parse("2026-07-14T08:00:00Z");
         var first = new UserAccessStateChangedEvent(UUID.randomUUID(), firstAt, userId,
-            "CANDIDATE", true);
+            "CANDIDATE", true, "Aicha Gharbi", null, "Tunis", "Tunisie");
         when(repository.findById(userId)).thenReturn(Optional.empty());
 
         listener.on(first);
@@ -31,10 +31,10 @@ class IdentityAccessStateListenerTest {
 
         reset(repository);
         RecruitmentActor current = new RecruitmentActor(userId, "CANDIDATE", true,
-            firstAt, first.eventId());
+            "Aicha Gharbi", null, "Tunis", "Tunisie", firstAt, first.eventId());
         when(repository.findById(userId)).thenReturn(Optional.of(current));
         var newer = new UserAccessStateChangedEvent(UUID.randomUUID(), firstAt.plusSeconds(10), userId,
-            "RECRUITER", false);
+            "RECRUITER", false, "Aicha Gharbi", null, "Tunis", "Tunisie");
 
         listener.on(newer);
 
@@ -45,7 +45,7 @@ class IdentityAccessStateListenerTest {
         reset(repository);
         when(repository.findById(userId)).thenReturn(Optional.of(current));
         listener.on(new UserAccessStateChangedEvent(UUID.randomUUID(), firstAt.minusSeconds(1), userId,
-            "RECRUITER", false));
+            "RECRUITER", false, "Aicha Gharbi", null, "Tunis", "Tunisie"));
         verify(repository, never()).save(any());
     }
 }

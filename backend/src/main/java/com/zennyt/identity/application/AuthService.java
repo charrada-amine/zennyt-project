@@ -249,7 +249,9 @@ public class AuthService {
 
     private void publishAccessState(User user) {
         events.publishEvent(UserAccessStateChangedEvent.of(
-            user.publicId(), user.role().name(), user.active()));
+            user.publicId(), user.role().name(), user.active(),
+            user.firstName() + " " + user.lastName(), user.profileImageUrl(),
+            user.city(), user.country()));
     }
 
     private static String firstNonBlank(String preferred, String fallback) {

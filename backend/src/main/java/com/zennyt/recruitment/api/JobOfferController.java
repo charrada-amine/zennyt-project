@@ -8,6 +8,7 @@ import com.zennyt.recruitment.domain.repository.JobOfferRepository;
 import com.zennyt.recruitment.domain.repository.ApplicationRepository;
 import com.zennyt.recruitment.domain.repository.AssessmentRepository;
 import com.zennyt.recruitment.domain.repository.FitScoreRepository;
+import com.zennyt.recruitment.domain.repository.RecruitmentActorRepository;
 import com.zennyt.recruitment.domain.vo.*;
 import com.zennyt.shared.application.exception.ForbiddenException;
 import com.zennyt.shared.application.exception.NotFoundException;
@@ -37,6 +38,7 @@ public class JobOfferController {
     private final AssessmentRepository assessmentRepository;
     private final FitScoreRepository fitScoreRepository;
     private final GetSwipeDeckUseCase swipeDeck;
+    private final RecruitmentActorRepository actors;
 
     public JobOfferController(CreateJobOfferUseCase createUseCase,
                                UpdateJobOfferUseCase updateUseCase,
@@ -45,7 +47,8 @@ public class JobOfferController {
                                ApplicationRepository applicationRepository,
                                AssessmentRepository assessmentRepository,
                                FitScoreRepository fitScoreRepository,
-                               GetSwipeDeckUseCase swipeDeck) {
+                               GetSwipeDeckUseCase swipeDeck,
+                               RecruitmentActorRepository actors) {
         this.createUseCase = createUseCase;
         this.updateUseCase = updateUseCase;
         this.changeStatusUseCase = changeStatusUseCase;
@@ -54,6 +57,7 @@ public class JobOfferController {
         this.assessmentRepository = assessmentRepository;
         this.fitScoreRepository = fitScoreRepository;
         this.swipeDeck = swipeDeck;
+        this.actors = actors;
     }
 
     /** POST /api/v1/job-offers — Créer une offre (publiée ACTIVE, postedAt serveur) */
@@ -122,15 +126,23 @@ public class JobOfferController {
         var result = swipeDeck.recruiterCandidates(
             UUID.fromString(principal.getName()), jobOfferId, page, size);
         int safeSize = Math.max(1, size);
-        var items = result.content().stream().map(score -> new CandidateFeedItemResponse(
-            score.candidateId(), score.score(), score.goodFit(), score.softSkillScore())).toList();
+        var items = result.content().stream().map(score -> {
+            var actor = actors.findById(score.candidateId());
+            return new CandidateFeedItemResponse(score.candidateId(),
+                actor.map(a -> a.fullName()).orElse(null),
+                actor.map(a -> a.avatarUrl()).orElse(null),
+                actor.map(a -> a.city()).orElse(null),
+                actor.map(a -> a.country()).orElse(null),
+                score.score(), score.goodFit(), score.softSkillScore());
+        }).toList();
         return ResponseEntity.ok(new CandidateFeedPageResponse(items,
             new PageMetaResponse(Math.max(0, page), safeSize, result.totalElements(),
                 (int) Math.ceil(result.totalElements() / (double) safeSize))));
     }
 
-    record CandidateFeedItemResponse(UUID candidateId, int fitScore, boolean goodFit,
-                                     Integer softSkillsScore) {}
+    record CandidateFeedItemResponse(UUID candidateId, String fullName, String avatarUrl,
+                                     String city, String country,
+                                     int fitScore, boolean goodFit, Integer softSkillsScore) {}
     record PageMetaResponse(int page, int size, long totalElements, int totalPages) {}
     record CandidateFeedPageResponse(List<CandidateFeedItemResponse> content, PageMetaResponse page) {}
 

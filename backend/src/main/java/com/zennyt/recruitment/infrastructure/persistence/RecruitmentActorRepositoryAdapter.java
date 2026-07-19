@@ -22,12 +22,14 @@ public class RecruitmentActorRepositoryAdapter implements RecruitmentActorReposi
     public RecruitmentActor save(RecruitmentActor actor) {
         RecruitmentActorEntity entity = new RecruitmentActorEntity(
             actor.publicUserId(), actor.role(), actor.active(),
+            actor.fullName(), actor.avatarUrl(), actor.city(), actor.country(),
             actor.lastEventAt(), actor.lastEventId());
         return toDomain(jpa.save(entity));
     }
 
     private RecruitmentActor toDomain(RecruitmentActorEntity entity) {
         return new RecruitmentActor(entity.getPublicUserId(), entity.getRole(), entity.isActive(),
+            entity.getFullName(), entity.getAvatarUrl(), entity.getCity(), entity.getCountry(),
             entity.getLastEventAt(), entity.getLastEventId());
     }
 }
