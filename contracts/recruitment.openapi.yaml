@@ -595,6 +595,9 @@ paths:
       operationId: patchApplicationsByApplicationidStatus
       tags: [Applications]
       summary: Faire évoluer le statut d'une candidature (recruteur)
+      description: >
+        Publie `ApplicationStatusChangedEvent` après persistance. Engagement réagit
+        (notification au candidat, message système dans la conversation).
       requestBody:
         required: true
         content:
