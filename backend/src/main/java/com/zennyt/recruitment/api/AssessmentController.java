@@ -2,6 +2,8 @@ package com.zennyt.recruitment.api;
 
 import com.zennyt.recruitment.api.security.Authenticated;
 import com.zennyt.recruitment.api.security.RecruiterOnly;
+import com.zennyt.recruitment.application.usecase.GenerateAssessmentFromFileUseCase;
+import com.zennyt.recruitment.application.usecase.GenerateAssessmentFromPromptUseCase;
 import com.zennyt.recruitment.domain.model.Assessment;
 import com.zennyt.recruitment.domain.model.AssessmentQuestion;
 import com.zennyt.recruitment.domain.repository.AssessmentRepository;
@@ -12,7 +14,10 @@ import com.zennyt.shared.application.exception.NotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.security.Principal;
 import java.time.Instant;
 import java.util.List;
@@ -25,11 +30,17 @@ public class AssessmentController {
 
     private final AssessmentRepository assessmentRepository;
     private final JobOfferRepository jobOfferRepository;
+    private final GenerateAssessmentFromPromptUseCase generateFromPromptUseCase;
+    private final GenerateAssessmentFromFileUseCase generateFromFileUseCase;
 
     public AssessmentController(AssessmentRepository assessmentRepository,
-                                JobOfferRepository jobOfferRepository) {
+                                JobOfferRepository jobOfferRepository,
+                                GenerateAssessmentFromPromptUseCase generateFromPromptUseCase,
+                                GenerateAssessmentFromFileUseCase generateFromFileUseCase) {
         this.assessmentRepository = assessmentRepository;
         this.jobOfferRepository = jobOfferRepository;
+        this.generateFromPromptUseCase = generateFromPromptUseCase;
+        this.generateFromFileUseCase = generateFromFileUseCase;
     }
 
     record CreateAssessmentRequest(String title, Integer timeLimitSeconds, List<QuestionDto> questions) {}
@@ -69,6 +80,44 @@ public class AssessmentController {
         Assessment assessment = Assessment.createManual(recruiterId, req.title(),
             req.timeLimitSeconds() != null ? req.timeLimitSeconds() : 0, questions);
         Assessment saved = assessmentRepository.save(assessment);
+        return ResponseEntity.status(HttpStatus.CREATED).body(AssessmentResponse.from(saved));
+    }
+
+    record GenerateFromPromptRequest(String jobDescription, Integer questionCount) {}
+
+    /**
+     * POST /api/v1/assessments/generate/from-prompt — Générer un test par IA
+     * à partir d'une description libre du poste/domaine.
+     */
+    @PostMapping("/generate/from-prompt")
+    @RecruiterOnly
+    public ResponseEntity<AssessmentResponse> generateFromPrompt(
+            @RequestBody GenerateFromPromptRequest req, Principal principal) {
+        UUID recruiterId = UUID.fromString(principal.getName());
+        Assessment saved = generateFromPromptUseCase.execute(recruiterId,
+            new GenerateAssessmentFromPromptUseCase.Command(req.jobDescription(), req.questionCount()));
+        return ResponseEntity.status(HttpStatus.CREATED).body(AssessmentResponse.from(saved));
+    }
+
+    /**
+     * POST /api/v1/assessments/generate/from-file — Générer un test par IA à
+     * partir d'un fichier source uploadé (livre, manuel, MCQ existant…).
+     */
+    @PostMapping(value = "/generate/from-file", consumes = "multipart/form-data")
+    @RecruiterOnly
+    public ResponseEntity<AssessmentResponse> generateFromFile(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("questionCount") Integer questionCount,
+            Principal principal) {
+        UUID recruiterId = UUID.fromString(principal.getName());
+        byte[] content;
+        try {
+            content = file.getBytes();
+        } catch (IOException e) {
+            throw new UncheckedIOException("Échec de la lecture du fichier", e);
+        }
+        Assessment saved = generateFromFileUseCase.execute(recruiterId,
+            new GenerateAssessmentFromFileUseCase.Command(content, file.getOriginalFilename(), questionCount));
         return ResponseEntity.status(HttpStatus.CREATED).body(AssessmentResponse.from(saved));
     }
 

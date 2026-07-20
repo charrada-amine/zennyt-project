@@ -36,7 +36,7 @@ class ApiContractRouteParityTest {
             JobOpportunityOfferController.class, MatchController.class,
             PaymentController.class, PublicTestController.class, SwipeController.class));
 
-        assertThat(runtime).hasSize(45);
+        assertThat(runtime).hasSize(47);
         assertThat(contractRoutes("recruitment.openapi.yaml")).isEqualTo(runtime);
     }
 

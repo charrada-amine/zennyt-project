@@ -53,6 +53,7 @@ public class Assessment extends AggregateRoot {
         Assessment assessment = new Assessment(UUID.randomUUID(), recruiterId, title);
         assessment.generationSource = mode;
         assessment.maxQuestions = numberOfQuestions;
+        assessment.shareableLink = "https://www.zennyt.com/tests/" + assessment.id;
         return assessment;
     }
 

@@ -431,6 +431,57 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/AssessmentPage' }
 
+  /assessments/generate/from-prompt:
+    post:
+      operationId: postAssessmentsGenerateFromPrompt
+      tags: [Assessments]
+      summary: Générer un test par IA à partir d'une description libre (recruteur)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [jobDescription, questionCount]
+              properties:
+                jobDescription: { type: string, maxLength: 1000 }
+                questionCount: { type: integer, minimum: 1, maximum: 30 }
+      responses:
+        '201':
+          description: Évaluation générée
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Assessment' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '502': { description: Service de génération IA indisponible }
+
+  /assessments/generate/from-file:
+    post:
+      operationId: postAssessmentsGenerateFromFile
+      tags: [Assessments]
+      summary: Générer un test par IA à partir d'un fichier source uploadé (recruteur)
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, questionCount]
+              properties:
+                file: { type: string, format: binary }
+                questionCount: { type: integer, minimum: 1, maximum: 30 }
+      responses:
+        '201':
+          description: Évaluation générée
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Assessment' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '413': { description: Fichier trop volumineux }
+        '502': { description: Service de génération IA indisponible }
+
   /assessments/{assessmentId}:
     parameters:
       - $ref: '#/components/parameters/AssessmentIdParam'

@@ -126,6 +126,13 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), req, List.of());
     }
 
+    @ExceptionHandler(com.zennyt.recruitment.application.exception.UpstreamServiceException.class)
+    public ResponseEntity<ApiError> handleUpstreamService(
+            com.zennyt.recruitment.application.exception.UpstreamServiceException ex, HttpServletRequest req) {
+        log.warn("Recruitment upstream AI service failed: {}", ex.getMessage());
+        return build(HttpStatus.BAD_GATEWAY, ex.getMessage(), req, List.of());
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleAllExceptions(Exception ex, HttpServletRequest req) {
         log.error("Unhandled exception: ", ex);
