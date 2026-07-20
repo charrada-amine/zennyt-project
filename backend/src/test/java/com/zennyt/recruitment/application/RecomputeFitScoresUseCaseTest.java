@@ -34,8 +34,8 @@ class RecomputeFitScoresUseCaseTest {
         when(offer.id()).thenReturn(offerId);
         when(offer.description()).thenReturn("Java backend");
         when(offer.companyInfo()).thenReturn("Entreprise produit");
-        when(soft.findByCandidateId(candidateId)).thenReturn(Optional.of(
-            new SoftSkillsProjection(candidateId, 77, Instant.now())));
+        when(soft.findByCandidateId(candidateId)).thenReturn(List.of(
+            SoftSkillsProjection.create(candidateId, "MOVE_FAST", 77, Instant.now())));
         when(scores.findByCandidateIdAndJobOfferId(candidateId, offerId)).thenReturn(Optional.of(
             FitScore.calculated(existingId, candidateId, offerId, 10, 10, 10, Instant.now())));
         when(scores.save(any())).thenAnswer(invocation -> invocation.getArgument(0));

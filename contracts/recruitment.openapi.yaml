@@ -601,6 +601,25 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ApplicationPage' }
+
+  /candidates/{candidateId}/resume:
+    parameters:
+      - { name: candidateId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      operationId: getCandidatesByCandidateidResume
+      tags: [Applications]
+      summary: Résumé IA du candidat pour une offre — soft skills + hard skills (recruteur)
+      parameters:
+        - { name: jobOfferId, in: query, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Résumé IA bilingue (soft skills candidat-level, hard skills par offre)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CandidateResume' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
   /applications:
     post:
       operationId: postApplications
@@ -1531,6 +1550,20 @@ components:
       required: [jobOfferId]
       properties:
         jobOfferId: { type: string, format: uuid }
+
+    ResumeSection:
+      type: object
+      properties:
+        available: { type: boolean, description: "false = repli statique, pas de génération IA encore disponible" }
+        textFr: { type: string }
+        textEn: { type: string }
+        updatedAt: { type: string, format: date-time, nullable: true }
+
+    CandidateResume:
+      type: object
+      properties:
+        softSkills: { $ref: '#/components/schemas/ResumeSection' }
+        hardSkills: { $ref: '#/components/schemas/ResumeSection' }
 
     ApplicationDetail:
       allOf:

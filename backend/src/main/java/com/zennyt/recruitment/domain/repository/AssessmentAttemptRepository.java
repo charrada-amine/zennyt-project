@@ -23,5 +23,8 @@ public interface AssessmentAttemptRepository {
 
     List<AssessmentAttempt> findAllByJobOfferId(UUID jobOfferId);
 
+    /** Tentatives d'un candidat pour une offre (résumé IA hard skills). */
+    List<AssessmentAttempt> findByCandidateIdAndJobOfferId(UUID candidateId, UUID jobOfferId);
+
     long countByJobOfferId(UUID jobOfferId);
 }

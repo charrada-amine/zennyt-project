@@ -10,5 +10,6 @@ public interface JpaAssessmentAttemptRepository extends JpaRepository<Assessment
     boolean existsByCandidateIdAndAssessmentIdAndJobOfferId(UUID candidateId, UUID assessmentId, UUID jobOfferId);
     Page<AssessmentAttemptEntity> findByJobOfferId(UUID jobOfferId, Pageable pageable);
     List<AssessmentAttemptEntity> findAllByJobOfferId(UUID jobOfferId);
+    List<AssessmentAttemptEntity> findByCandidateIdAndJobOfferId(UUID candidateId, UUID jobOfferId);
     long countByJobOfferId(UUID jobOfferId);
 }

@@ -24,6 +24,9 @@ public class AssessmentAttemptRepositoryAdapter implements AssessmentAttemptRepo
     @Override public List<AssessmentAttempt> findAllByJobOfferId(UUID jobOfferId) {
         return jpa.findAllByJobOfferId(jobOfferId).stream().map(this::toDomain).toList();
     }
+    @Override public List<AssessmentAttempt> findByCandidateIdAndJobOfferId(UUID candidateId, UUID jobOfferId) {
+        return jpa.findByCandidateIdAndJobOfferId(candidateId, jobOfferId).stream().map(this::toDomain).toList();
+    }
     @Override public long countByJobOfferId(UUID jobOfferId) { return jpa.countByJobOfferId(jobOfferId); }
 
     private AssessmentAttemptEntity toEntity(AssessmentAttempt a) {

@@ -4,6 +4,7 @@ import com.zennyt.identity.application.port.FileStoragePort;
 import com.zennyt.identity.application.port.FileStoragePort.ResourceType;
 import com.zennyt.identity.application.port.TokenService;
 import com.zennyt.identity.domain.model.*;
+import com.zennyt.identity.domain.event.ProfileCvUpdatedEvent;
 import com.zennyt.identity.domain.event.UserAccessStateChangedEvent;
 import com.zennyt.identity.domain.repository.OnboardingRepository;
 import com.zennyt.identity.domain.repository.ProfileRepository;
@@ -211,6 +212,13 @@ public class IdentityService {
             .orElseThrow(() -> new NotFoundException("Onboarding recruteur introuvable"));
     }
 
+    /** Sauvegarde le profil et publie {@link ProfileCvUpdatedEvent} pour la projection CV de Recruitment. */
+    private Profile saveProfileAndPublish(UUID publicId, Profile profile) {
+        Profile saved = profiles.save(profile);
+        events.publishEvent(ProfileCvUpdatedEvent.of(publicId, saved));
+        return saved;
+    }
+
     @Transactional
     public Profile saveProfile(UUID publicId, ProfileData data, boolean createOnly) {
         User user = requireProfileRole(publicId);
@@ -231,7 +239,7 @@ public class IdentityService {
                 data.availabilityType(), data.availabilityDate(), data.resumeAiUrl(),
                 data.portfolioUrl());
         }
-        return profiles.save(profile);
+        return saveProfileAndPublish(publicId, profile);
     }
 
     @Transactional(readOnly = true)
@@ -261,7 +269,7 @@ public class IdentityService {
         FileStoragePort.StoredFile stored = fileStorage.upload(content, filename, contentType,
             CV_FOLDER, ResourceType.RAW);
         profile.updateCv(stored.url(), stored.publicId());
-        Profile saved = profiles.save(profile);
+        Profile saved = saveProfileAndPublish(publicId, profile);
         if (previousPublicId != null) {
             fileStorage.delete(previousPublicId, ResourceType.RAW);
         }
@@ -273,7 +281,7 @@ public class IdentityService {
         Profile profile = currentProfile(publicId);
         String previousPublicId = profile.cvPublicId();
         profile.clearCv();
-        Profile saved = profiles.save(profile);
+        Profile saved = saveProfileAndPublish(publicId, profile);
         if (previousPublicId != null) {
             fileStorage.delete(previousPublicId, ResourceType.RAW);
         }
@@ -284,84 +292,84 @@ public class IdentityService {
     public Profile addSkill(UUID publicId, Skill value) {
         Profile profile = currentProfile(publicId);
         profile.addSkill(value);
-        return profiles.save(profile);
+        return saveProfileAndPublish(publicId, profile);
     }
 
     @Transactional
     public Profile updateSkill(UUID publicId, Long id, Skill value) {
         Profile profile = currentProfile(publicId);
         profile.replaceSkill(id, value);
-        return profiles.save(profile);
+        return saveProfileAndPublish(publicId, profile);
     }
 
     @Transactional
     public void deleteSkill(UUID publicId, Long id) {
         Profile profile = currentProfile(publicId);
         profile.removeSkill(id);
-        profiles.save(profile);
+        saveProfileAndPublish(publicId, profile);
     }
 
     @Transactional
     public Profile addPosition(UUID publicId, Position value) {
         Profile profile = currentProfile(publicId);
         profile.addPosition(value);
-        return profiles.save(profile);
+        return saveProfileAndPublish(publicId, profile);
     }
 
     @Transactional
     public Profile updatePosition(UUID publicId, Long id, Position value) {
         Profile profile = currentProfile(publicId);
         profile.replacePosition(id, value);
-        return profiles.save(profile);
+        return saveProfileAndPublish(publicId, profile);
     }
 
     @Transactional
     public void deletePosition(UUID publicId, Long id) {
         Profile profile = currentProfile(publicId);
         profile.removePosition(id);
-        profiles.save(profile);
+        saveProfileAndPublish(publicId, profile);
     }
 
     @Transactional
     public Profile addCertification(UUID publicId, Certification value) {
         Profile profile = currentProfile(publicId);
         profile.addCertification(value);
-        return profiles.save(profile);
+        return saveProfileAndPublish(publicId, profile);
     }
 
     @Transactional
     public Profile updateCertification(UUID publicId, Long id, Certification value) {
         Profile profile = currentProfile(publicId);
         profile.replaceCertification(id, value);
-        return profiles.save(profile);
+        return saveProfileAndPublish(publicId, profile);
     }
 
     @Transactional
     public void deleteCertification(UUID publicId, Long id) {
         Profile profile = currentProfile(publicId);
         profile.removeCertification(id);
-        profiles.save(profile);
+        saveProfileAndPublish(publicId, profile);
     }
 
     @Transactional
     public Profile addEducation(UUID publicId, Education value) {
         Profile profile = currentProfile(publicId);
         profile.addEducation(value);
-        return profiles.save(profile);
+        return saveProfileAndPublish(publicId, profile);
     }
 
     @Transactional
     public Profile updateEducation(UUID publicId, Long id, Education value) {
         Profile profile = currentProfile(publicId);
         profile.replaceEducation(id, value);
-        return profiles.save(profile);
+        return saveProfileAndPublish(publicId, profile);
     }
 
     @Transactional
     public void deleteEducation(UUID publicId, Long id) {
         Profile profile = currentProfile(publicId);
         profile.removeEducation(id);
-        profiles.save(profile);
+        saveProfileAndPublish(publicId, profile);
     }
 
     private User requireProfileRole(UUID publicId) {

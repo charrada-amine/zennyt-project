@@ -19,7 +19,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 class RecruitmentSecurityAnnotationTest {
     private static final List<Class<?>> CONTROLLERS = List.of(
         ApplicationController.class, AssessmentAttemptController.class,
-        AssessmentController.class, CallbackController.class, FitScoreController.class,
+        AssessmentController.class, CallbackController.class, CandidateResumeController.class,
+        FitScoreController.class,
         IdentityVerificationController.class, JobOfferController.class,
         JobOpportunityOfferController.class, MatchController.class,
         PaymentController.class, PublicTestController.class, SwipeController.class);
@@ -37,7 +38,7 @@ class RecruitmentSecurityAnnotationTest {
                 .map(method -> new Endpoint(type, method)))
             .toList();
 
-        assertThat(endpoints).hasSize(47);
+        assertThat(endpoints).hasSize(48);
         assertThat(endpoints)
             .allSatisfy(endpoint -> assertThat(isProtected(endpoint.method())
                 || INTENTIONALLY_PUBLIC.contains(endpoint.key()))

@@ -37,7 +37,9 @@ public class RecomputeFitScoresUseCase {
     }
 
     public FitScore recompute(UUID candidateId, JobOffer offer) {
-        int softScore = softSkills.findByCandidateId(candidateId).map(p -> p.score()).orElse(0);
+        var modules = softSkills.findByCandidateId(candidateId);
+        int softScore = modules.isEmpty() ? 0
+            : (int) Math.round(modules.stream().mapToInt(p -> p.score()).average().orElse(0));
         var inputs = new FitScoreCalculatorPort.FitScoreInputs(
             Map.of("games", (double) softScore),
             null, // PROVISOIRE — CV fourni plus tard par un event ProfileUpdated Identity.

@@ -31,12 +31,13 @@ class ApiContractRouteParityTest {
     void recruitmentContractMatchesAllRuntimeRoutes() throws IOException {
         Set<String> runtime = runtimeRoutes(List.of(
             ApplicationController.class, AssessmentAttemptController.class,
-            AssessmentController.class, CallbackController.class, FitScoreController.class,
+            AssessmentController.class, CallbackController.class, CandidateResumeController.class,
+            FitScoreController.class,
             IdentityVerificationController.class, JobOfferController.class,
             JobOpportunityOfferController.class, MatchController.class,
             PaymentController.class, PublicTestController.class, SwipeController.class));
 
-        assertThat(runtime).hasSize(47);
+        assertThat(runtime).hasSize(48);
         assertThat(contractRoutes("recruitment.openapi.yaml")).isEqualTo(runtime);
     }
 

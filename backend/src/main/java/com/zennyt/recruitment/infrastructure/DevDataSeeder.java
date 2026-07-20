@@ -103,11 +103,11 @@ public class DevDataSeeder implements CommandLineRunner {
         // Projections soft skills des candidats de démo : sans elles, aucune paire
         // candidat×offre n'existe pour le recalcul des fit scores (les projections
         // réelles arrivent via les événements du module Games).
-        softSkillsRepository.save(new SoftSkillsProjection(CANDIDATE, 85, Instant.now()));
-        softSkillsRepository.save(new SoftSkillsProjection(
-            UUID.fromString("44444444-4444-4444-4444-444444444444"), 58, Instant.now()));
-        softSkillsRepository.save(new SoftSkillsProjection(
-            UUID.fromString("55555555-5555-5555-5555-555555555555"), 74, Instant.now()));
+        softSkillsRepository.save(SoftSkillsProjection.create(CANDIDATE, "MOVE_FAST", 85, Instant.now()));
+        softSkillsRepository.save(SoftSkillsProjection.create(
+            UUID.fromString("44444444-4444-4444-4444-444444444444"), "MOVE_FAST", 58, Instant.now()));
+        softSkillsRepository.save(SoftSkillsProjection.create(
+            UUID.fromString("55555555-5555-5555-5555-555555555555"), "MOVE_FAST", 74, Instant.now()));
 
         log.info("""
             [DevDataSeeder] Données de démo insérées :
