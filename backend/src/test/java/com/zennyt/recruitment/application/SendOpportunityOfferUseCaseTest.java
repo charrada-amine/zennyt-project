@@ -2,12 +2,17 @@ package com.zennyt.recruitment.application;
 
 import com.zennyt.recruitment.application.usecase.SendOpportunityOfferUseCase;
 import com.zennyt.recruitment.domain.event.JobOpportunityOfferSentEvent;
+import com.zennyt.recruitment.domain.model.Application;
 import com.zennyt.recruitment.domain.model.JobOffer;
 import com.zennyt.recruitment.domain.model.JobOpportunityOffer;
+import com.zennyt.recruitment.domain.model.Match;
 import com.zennyt.recruitment.domain.model.RecruitmentActor;
+import com.zennyt.recruitment.domain.repository.ApplicationRepository;
 import com.zennyt.recruitment.domain.repository.JobOfferRepository;
 import com.zennyt.recruitment.domain.repository.JobOpportunityOfferRepository;
+import com.zennyt.recruitment.domain.repository.MatchRepository;
 import com.zennyt.recruitment.domain.repository.RecruitmentActorRepository;
+import com.zennyt.recruitment.domain.vo.ApplicationStatus;
 import com.zennyt.shared.application.exception.ForbiddenException;
 import com.zennyt.shared.application.exception.NotFoundException;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,9 +29,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 /**
- * Garde-fous du sourcing direct (cadrage 16/07 : ni match ni candidature
- * exigés) : destinataire = acteur candidat actif connu, offre du recruteur
- * appelant, événements publiés après persistance.
+ * Garde-fous du sourcing (cadrage 16/07, révisé 20/07 : candidature APPROVED
+ * ou Match ACTIVE désormais exigé) : destinataire = acteur candidat actif
+ * connu, offre du recruteur appelant, événements publiés après persistance.
  */
 class SendOpportunityOfferUseCaseTest {
 
@@ -38,6 +43,8 @@ class SendOpportunityOfferUseCaseTest {
     private JobOpportunityOfferRepository repository;
     private JobOfferRepository offers;
     private RecruitmentActorRepository actors;
+    private ApplicationRepository applications;
+    private MatchRepository matches;
     private ApplicationEventPublisher events;
     private SendOpportunityOfferUseCase useCase;
 
@@ -46,8 +53,10 @@ class SendOpportunityOfferUseCaseTest {
         repository = mock(JobOpportunityOfferRepository.class);
         offers = mock(JobOfferRepository.class);
         actors = mock(RecruitmentActorRepository.class);
+        applications = mock(ApplicationRepository.class);
+        matches = mock(MatchRepository.class);
         events = mock(ApplicationEventPublisher.class);
-        useCase = new SendOpportunityOfferUseCase(repository, offers, actors, events);
+        useCase = new SendOpportunityOfferUseCase(repository, offers, actors, applications, matches, events);
 
         when(actors.findById(CANDIDATE)).thenReturn(Optional.of(
             new RecruitmentActor(CANDIDATE, "CANDIDATE", true, null, null, null, null, Instant.now(), UUID.randomUUID())));
@@ -55,13 +64,41 @@ class SendOpportunityOfferUseCaseTest {
         when(offer.recruiterId()).thenReturn(RECRUITER);
         when(offers.findById(OFFER_ID)).thenReturn(Optional.of(offer));
         when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(applications.findByCandidateIdAndJobOfferId(CANDIDATE, OFFER_ID)).thenReturn(Optional.empty());
+        when(matches.findByCandidateIdAndJobOfferId(CANDIDATE, OFFER_ID)).thenReturn(Optional.empty());
+    }
+
+    private Application approvedApplication() {
+        return Application.rehydrate(UUID.randomUUID(), CANDIDATE, OFFER_ID,
+            ApplicationStatus.APPROVED, Instant.now(), Instant.now());
     }
 
     @Test
-    void envoiDirectSansMatchNiCandidature() {
+    void envoiAutoriseAvecCandidatureApprouvee() {
+        when(applications.findByCandidateIdAndJobOfferId(CANDIDATE, OFFER_ID))
+            .thenReturn(Optional.of(approvedApplication()));
+
         JobOpportunityOffer result = useCase.execute(RECRUITER, CANDIDATE, OFFER_ID);
         assertThat(result.candidateId()).isEqualTo(CANDIDATE);
         verify(events).publishEvent(any(JobOpportunityOfferSentEvent.class));
+    }
+
+    @Test
+    void envoiAutoriseAvecMatchActif() {
+        Match match = Match.rehydrate(UUID.randomUUID(), CANDIDATE, OFFER_ID, RECRUITER,
+            "Titre", com.zennyt.recruitment.domain.vo.MatchStatus.ACTIVE, Instant.now());
+        when(matches.findByCandidateIdAndJobOfferId(CANDIDATE, OFFER_ID)).thenReturn(Optional.of(match));
+
+        JobOpportunityOffer result = useCase.execute(RECRUITER, CANDIDATE, OFFER_ID);
+        assertThat(result.candidateId()).isEqualTo(CANDIDATE);
+    }
+
+    @Test
+    void envoiRefuseSansCandidatureNiMatch() {
+        assertThatThrownBy(() -> useCase.execute(RECRUITER, CANDIDATE, OFFER_ID))
+            .isInstanceOf(ForbiddenException.class);
+        verify(repository, never()).save(any());
+        verify(events, never()).publishEvent(any());
     }
 
     @Test
@@ -91,6 +128,8 @@ class SendOpportunityOfferUseCaseTest {
 
     @Test
     void offreDUnAutreRecruteurRefusee() {
+        when(applications.findByCandidateIdAndJobOfferId(CANDIDATE, OFFER_ID))
+            .thenReturn(Optional.of(approvedApplication()));
         assertThatThrownBy(() -> useCase.execute(INTRUS, CANDIDATE, OFFER_ID))
             .isInstanceOf(ForbiddenException.class);
         verify(repository, never()).save(any());

@@ -1,5 +1,6 @@
 package com.zennyt.recruitment.domain.model;
 
+import com.zennyt.recruitment.domain.event.ApplicationShortlistedEvent;
 import com.zennyt.recruitment.domain.event.ApplicationSubmittedEvent;
 import com.zennyt.recruitment.domain.vo.ApplicationStatus;
 import com.zennyt.shared.domain.model.AggregateRoot;
@@ -56,6 +57,9 @@ public class Application extends AggregateRoot {
         }
         this.status = target;
         this.updatedAt = Instant.now();
+        if (target == ApplicationStatus.SHORTLISTED) {
+            registerEvent(ApplicationShortlistedEvent.of(id, candidateId, jobOfferId));
+        }
     }
 
     public UUID id() { return id; }

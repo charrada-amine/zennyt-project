@@ -7,6 +7,7 @@ import com.zennyt.recruitment.api.security.RecruiterOnly;
 import com.zennyt.recruitment.application.command.SubmitApplicationCommand;
 import com.zennyt.recruitment.application.usecase.ApplicationAccessUseCase;
 import com.zennyt.recruitment.application.usecase.ChangeApplicationStatusUseCase;
+import com.zennyt.recruitment.application.usecase.RespondToShortlistUseCase;
 import com.zennyt.recruitment.application.usecase.SubmitApplicationUseCase;
 import com.zennyt.recruitment.application.usecase.GetOfferApplicationsUseCase;
 import com.zennyt.recruitment.domain.model.Application;
@@ -27,17 +28,20 @@ public class ApplicationController {
 
     private final SubmitApplicationUseCase submitUseCase;
     private final ChangeApplicationStatusUseCase changeStatusUseCase;
+    private final RespondToShortlistUseCase respondToShortlistUseCase;
     private final ApplicationAccessUseCase accessUseCase;
     private final ApplicationRepository applicationRepository;
     private final GetOfferApplicationsUseCase getOfferApplicationsUseCase;
 
     public ApplicationController(SubmitApplicationUseCase submitUseCase,
                                   ChangeApplicationStatusUseCase changeStatusUseCase,
+                                  RespondToShortlistUseCase respondToShortlistUseCase,
                                   ApplicationAccessUseCase accessUseCase,
                                   ApplicationRepository applicationRepository,
                                   GetOfferApplicationsUseCase getOfferApplicationsUseCase) {
         this.submitUseCase = submitUseCase;
         this.changeStatusUseCase = changeStatusUseCase;
+        this.respondToShortlistUseCase = respondToShortlistUseCase;
         this.accessUseCase = accessUseCase;
         this.applicationRepository = applicationRepository;
         this.getOfferApplicationsUseCase = getOfferApplicationsUseCase;
@@ -115,6 +119,16 @@ public class ApplicationController {
             @RequestBody ChangeApplicationStatusRequest req, Principal principal) {
         Application app = changeStatusUseCase.execute(
             id, UUID.fromString(principal.getName()), req.status());
+        return ResponseEntity.ok(ApplicationResponse.from(app));
+    }
+
+    /** PATCH /api/v1/applications/{id}/respond — Répondre à une présélection (candidat) */
+    @PatchMapping("/applications/{id}/respond")
+    @CandidateOrStudentOnly
+    public ResponseEntity<ApplicationResponse> respond(@PathVariable UUID id,
+            @RequestBody RespondToApplicationRequest req, Principal principal) {
+        Application app = respondToShortlistUseCase.execute(
+            id, UUID.fromString(principal.getName()), req.approve());
         return ResponseEntity.ok(ApplicationResponse.from(app));
     }
 }

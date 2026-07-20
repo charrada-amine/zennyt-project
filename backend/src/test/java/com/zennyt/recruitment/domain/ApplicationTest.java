@@ -1,5 +1,6 @@
 package com.zennyt.recruitment.domain;
 
+import com.zennyt.recruitment.domain.event.ApplicationShortlistedEvent;
 import com.zennyt.recruitment.domain.event.ApplicationSubmittedEvent;
 import com.zennyt.recruitment.domain.model.Application;
 import com.zennyt.recruitment.domain.vo.ApplicationStatus;
@@ -37,5 +38,14 @@ class ApplicationTest {
         app.changeStatus(ApplicationStatus.SHORTLISTED);
         app.changeStatus(ApplicationStatus.APPROVED);
         assertEquals(ApplicationStatus.APPROVED, app.status());
+    }
+
+    @Test
+    void changeStatus_to_SHORTLISTED_emits_notification_event() {
+        Application app = Application.submit(UUID.randomUUID(), UUID.randomUUID());
+        app.clearEvents();
+        app.changeStatus(ApplicationStatus.SHORTLISTED);
+        assertEquals(1, app.domainEvents().size());
+        assertInstanceOf(ApplicationShortlistedEvent.class, app.domainEvents().get(0));
     }
 }

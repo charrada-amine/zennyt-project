@@ -614,6 +614,32 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
 
+  /applications/{applicationId}/respond:
+    parameters:
+      - $ref: '#/components/parameters/ApplicationIdParam'
+    patch:
+      operationId: patchApplicationsByApplicationidRespond
+      tags: [Applications]
+      summary: Le candidat répond à une présélection (approuve ou rejette)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [approve]
+              properties:
+                approve: { type: boolean }
+      responses:
+        '200':
+          description: Réponse enregistrée
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Application' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
   # ═══════════════════════════════════════════════════════════════
   # JOB OPPORTUNITY OFFERS
   # ═══════════════════════════════════════════════════════════════
@@ -952,6 +978,11 @@ components:
           schema: { $ref: '#/components/schemas/ApiError' }
     NotFound:
       description: Ressource introuvable
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
+    UnprocessableEntity:
+      description: État invalide pour cette opération
       content:
         application/json:
           schema: { $ref: '#/components/schemas/ApiError' }
