@@ -2,6 +2,7 @@ package com.zennyt.recruitment.api;
 
 import com.zennyt.recruitment.api.dto.CreateJobOfferRequest;
 import com.zennyt.recruitment.api.dto.SwipeRequest;
+import com.zennyt.recruitment.api.security.AdminOnly;
 import com.zennyt.recruitment.api.security.Authenticated;
 import com.zennyt.recruitment.api.security.CandidateOrStudentOnly;
 import com.zennyt.recruitment.api.security.RecruiterOnly;
@@ -22,7 +23,7 @@ class RecruitmentSecurityAnnotationTest {
         AssessmentController.class, CallbackController.class, CandidateResumeController.class,
         FitScoreController.class,
         IdentityVerificationController.class, JobOfferController.class,
-        JobOpportunityOfferController.class, MatchController.class,
+        JobOpportunityOfferController.class, JobPositionController.class, MatchController.class,
         PaymentController.class, PublicTestController.class, SwipeController.class);
 
     private static final Set<String> INTENTIONALLY_PUBLIC = Set.of(
@@ -38,7 +39,7 @@ class RecruitmentSecurityAnnotationTest {
                 .map(method -> new Endpoint(type, method)))
             .toList();
 
-        assertThat(endpoints).hasSize(48);
+        assertThat(endpoints).hasSize(53);
         assertThat(endpoints)
             .allSatisfy(endpoint -> assertThat(isProtected(endpoint.method())
                 || INTENTIONALLY_PUBLIC.contains(endpoint.key()))
@@ -63,6 +64,7 @@ class RecruitmentSecurityAnnotationTest {
         return method.isAnnotationPresent(Authenticated.class)
             || method.isAnnotationPresent(CandidateOrStudentOnly.class)
             || method.isAnnotationPresent(RecruiterOnly.class)
+            || method.isAnnotationPresent(AdminOnly.class)
             || method.isAnnotationPresent(PreAuthorize.class);
     }
 

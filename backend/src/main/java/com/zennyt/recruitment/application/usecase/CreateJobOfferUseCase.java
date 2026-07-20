@@ -3,6 +3,7 @@ package com.zennyt.recruitment.application.usecase;
 import com.zennyt.recruitment.domain.model.JobOffer;
 import com.zennyt.recruitment.domain.repository.AssessmentRepository;
 import com.zennyt.recruitment.domain.repository.JobOfferRepository;
+import com.zennyt.recruitment.domain.repository.JobPositionRepository;
 import com.zennyt.recruitment.domain.vo.*;
 import com.zennyt.shared.application.exception.ForbiddenException;
 import com.zennyt.shared.application.exception.NotFoundException;
@@ -24,18 +25,21 @@ public class CreateJobOfferUseCase {
         String fieldOfWork, String description, String responsibilities,
         String minimumQualifications, String preferredQualifications,
         String whatWeOffer, String howToApply, String companyInfo,
-        UUID assessmentId, int passingScore, boolean openToInternational
+        UUID assessmentId, UUID jobPositionId, int passingScore, boolean openToInternational
     ) {}
 
     private final JobOfferRepository repository;
     private final AssessmentRepository assessmentRepository;
+    private final JobPositionRepository jobPositionRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     public CreateJobOfferUseCase(JobOfferRepository repository,
                                  AssessmentRepository assessmentRepository,
+                                 JobPositionRepository jobPositionRepository,
                                  ApplicationEventPublisher eventPublisher) {
         this.repository = repository;
         this.assessmentRepository = assessmentRepository;
+        this.jobPositionRepository = jobPositionRepository;
         this.eventPublisher = eventPublisher;
     }
 
@@ -48,6 +52,10 @@ public class CreateJobOfferUseCase {
                 throw new ForbiddenException("Cette évaluation appartient à un autre recruteur");
             }
         }
+        if (cmd.jobPositionId() != null) {
+            jobPositionRepository.findById(cmd.jobPositionId())
+                .orElseThrow(() -> new NotFoundException("Métier inexistant : " + cmd.jobPositionId()));
+        }
         JobOffer offer = JobOffer.create(recruiterId, cmd.title(), cmd.description(),
             cmd.contractType(), cmd.workplaceType(), cmd.experienceLevel(), cmd.location(),
             cmd.passingScore());
@@ -55,7 +63,7 @@ public class CreateJobOfferUseCase {
             cmd.contractType(), cmd.workplaceType(), cmd.experienceLevel(), cmd.fieldOfWork(),
             cmd.description(), cmd.responsibilities(), cmd.minimumQualifications(),
             cmd.preferredQualifications(), cmd.whatWeOffer(), cmd.howToApply(), cmd.companyInfo(),
-            cmd.assessmentId(), cmd.openToInternational());
+            cmd.assessmentId(), cmd.jobPositionId(), cmd.openToInternational());
         // Contrat frontend : une offre créée est immédiatement publiée, avec
         // status et postedAt imposés par le serveur (jamais par le client).
         offer.changeStatus(JobOfferStatus.ACTIVE);

@@ -3,6 +3,7 @@ package com.zennyt.recruitment.application.usecase;
 import com.zennyt.recruitment.domain.model.JobOffer;
 import com.zennyt.recruitment.domain.repository.AssessmentRepository;
 import com.zennyt.recruitment.domain.repository.JobOfferRepository;
+import com.zennyt.recruitment.domain.repository.JobPositionRepository;
 import com.zennyt.recruitment.domain.vo.*;
 import com.zennyt.shared.application.exception.ForbiddenException;
 import com.zennyt.shared.application.exception.NotFoundException;
@@ -35,19 +36,22 @@ public class UpdateJobOfferUseCase {
         String fieldOfWork, String description, String responsibilities,
         String minimumQualifications, String preferredQualifications,
         String whatWeOffer, String howToApply, String companyInfo,
-        Optional<UUID> assessmentId, Integer passingScore, Boolean openToInternational,
+        Optional<UUID> assessmentId, UUID jobPositionId, Integer passingScore, Boolean openToInternational,
         JobOfferStatus status
     ) {}
 
     private final JobOfferRepository repository;
     private final AssessmentRepository assessmentRepository;
+    private final JobPositionRepository jobPositionRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     public UpdateJobOfferUseCase(JobOfferRepository repository,
                                  AssessmentRepository assessmentRepository,
+                                 JobPositionRepository jobPositionRepository,
                                  ApplicationEventPublisher eventPublisher) {
         this.repository = repository;
         this.assessmentRepository = assessmentRepository;
+        this.jobPositionRepository = jobPositionRepository;
         this.eventPublisher = eventPublisher;
     }
 
@@ -71,6 +75,12 @@ public class UpdateJobOfferUseCase {
                         "Cette évaluation appartient à un autre recruteur");
                 }
             }
+        }
+
+        UUID jobPositionId = cmd.jobPositionId() != null ? cmd.jobPositionId() : offer.jobPositionId();
+        if (cmd.jobPositionId() != null) {
+            jobPositionRepository.findById(cmd.jobPositionId())
+                .orElseThrow(() -> new NotFoundException("Métier inexistant : " + cmd.jobPositionId()));
         }
 
         Location loc = offer.location();
@@ -101,7 +111,7 @@ public class UpdateJobOfferUseCase {
             cmd.whatWeOffer() != null ? cmd.whatWeOffer() : offer.whatWeOffer(),
             cmd.howToApply() != null ? cmd.howToApply() : offer.howToApply(),
             cmd.companyInfo() != null ? cmd.companyInfo() : offer.companyInfo(),
-            assessmentId,
+            assessmentId, jobPositionId,
             cmd.openToInternational() != null ? cmd.openToInternational() : offer.openToInternational());
         if (cmd.passingScore() != null) {
             offer.setPassingScore(cmd.passingScore());

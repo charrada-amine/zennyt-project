@@ -18,6 +18,8 @@ servers:
 tags:
   - name: JobOffers
     description: Offres d'emploi — cycle de vie et recherche
+  - name: JobPositions
+    description: Référentiel de métiers (matrice de pondération Fit Score) — sélection position/niveau à la création d'offre
   - name: Swipes
     description: Mécanique de swipe bidirectionnelle
   - name: Matches
@@ -45,6 +47,105 @@ security:
   - bearerAuth: []
 
 paths:
+
+  # ═══════════════════════════════════════════════════════════════
+  # JOB POSITIONS (référentiel métiers)
+  # ═══════════════════════════════════════════════════════════════
+
+  /job-positions:
+    get:
+      operationId: getJobPositions
+      tags: [JobPositions]
+      summary: Référentiel approuvé (sélection position -> niveau à la création d'offre)
+      parameters:
+        - { name: sector, in: query, description: Filtrer par secteur (omis = tous secteurs + transverses), schema: { type: string } }
+      responses:
+        '200':
+          description: Liste des métiers approuvés
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/JobPosition' }
+    post:
+      operationId: postJobPositions
+      tags: [JobPositions]
+      summary: Proposer un métier absent du référentiel (recruteur)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+                sector: { type: string, nullable: true }
+      responses:
+        '201':
+          description: Métier proposé, en attente d'approbation
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/JobPosition' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /job-positions/pending:
+    get:
+      operationId: getJobPositionsPending
+      tags: [JobPositions]
+      summary: File d'attente d'approbation (admin)
+      responses:
+        '200':
+          description: Métiers en attente d'approbation
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/JobPosition' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /job-positions/{jobPositionId}/approve:
+    parameters:
+      - { name: jobPositionId, in: path, required: true, schema: { type: string, format: uuid } }
+    patch:
+      operationId: patchJobPositionsByJobpositionidApprove
+      tags: [JobPositions]
+      summary: Approuver un métier proposé (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [profileType]
+              properties:
+                profileType: { $ref: '#/components/schemas/JobProfileType' }
+      responses:
+        '200':
+          description: Métier approuvé
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/JobPosition' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+  /job-positions/{jobPositionId}/reject:
+    parameters:
+      - { name: jobPositionId, in: path, required: true, schema: { type: string, format: uuid } }
+    patch:
+      operationId: patchJobPositionsByJobpositionidReject
+      tags: [JobPositions]
+      summary: Rejeter un métier proposé (admin)
+      responses:
+        '200':
+          description: Métier rejeté
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/JobPosition' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
 
   # ═══════════════════════════════════════════════════════════════
   # JOB OFFERS
@@ -1071,7 +1172,32 @@ components:
 
     ExperienceLevel:
       type: string
-      enum: [JUNIOR, MID, SENIOR, EXECUTIVE]
+      enum: [JUNIOR, SENIOR, LEAD, MANAGER]
+
+    JobProfileType:
+      type: string
+      description: Profil dominant du métier (Couche A de la matrice de pondération Fit Score, inspiré RIASEC)
+      enum: [TECHNIQUE, ANALYTIQUE, RELATIONNEL, MANAGERIAL, CONVENTIONNEL, ARTISTIQUE]
+
+    JobPositionStatus:
+      type: string
+      enum: [APPROVED, PENDING_APPROVAL, REJECTED]
+
+    JobPosition:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string, example: "Développeur" }
+        sector: { type: string, nullable: true, description: "null = métier transverse", example: "IT, AI & Fintech" }
+        profileType: { $ref: '#/components/schemas/JobProfileType' }
+        calibrated: { type: boolean, description: "false = pondération v1 non validée en atelier RH" }
+        status: { $ref: '#/components/schemas/JobPositionStatus' }
+        levelLabels:
+          type: object
+          description: Libellé affiché par niveau (défauts Junior/Senior/Lead/Manager sauf métiers avec intitulé usuel)
+          additionalProperties: { type: string }
+          example: { JUNIOR: "Apprenti / Ouvrier débutant", SENIOR: "Compagnon confirmé", LEAD: "Chef d'équipe", MANAGER: "Chef de chantier" }
+        createdAt: { type: string, format: date-time }
 
     JobOfferStatus:
       type: string
@@ -1197,6 +1323,7 @@ components:
         howToApply: { type: string }
         companyInfo: { type: string }
         assessmentId: { type: string, format: uuid, nullable: true }
+        jobPositionId: { type: string, format: uuid, nullable: true }
         shareableLink: { type: string, format: uri, nullable: true }
         passingScore: { type: integer, minimum: 0, maximum: 100, default: 60 }
         openToInternational: { type: boolean }
@@ -1233,6 +1360,7 @@ components:
         howToApply: { type: string }
         companyInfo: { type: string }
         assessmentId: { type: string, format: uuid, nullable: true }
+        jobPositionId: { type: string, format: uuid, nullable: true }
         passingScore: { type: integer, minimum: 0, maximum: 100, default: 60 }
         openToInternational: { type: boolean, default: false }
 
@@ -1262,6 +1390,7 @@ components:
         howToApply: { type: string }
         companyInfo: { type: string }
         assessmentId: { type: string, format: uuid, nullable: true }
+        jobPositionId: { type: string, format: uuid, nullable: true }
         passingScore: { type: integer, minimum: 0, maximum: 100 }
         openToInternational: { type: boolean }
         status: { $ref: '#/components/schemas/JobOfferStatus' }

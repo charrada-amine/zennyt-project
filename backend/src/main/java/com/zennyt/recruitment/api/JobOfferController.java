@@ -74,7 +74,8 @@ public class JobOfferController {
             req.fieldOfWork(), req.description(), req.responsibilities(),
             req.minimumQualifications(), req.preferredQualifications(),
             req.whatWeOffer(), req.howToApply(), req.companyInfo(),
-            req.assessmentId(), req.passingScore() != null ? req.passingScore() : JobOffer.DEFAULT_PASSING_SCORE,
+            req.assessmentId(), req.jobPositionId(),
+            req.passingScore() != null ? req.passingScore() : JobOffer.DEFAULT_PASSING_SCORE,
             Boolean.TRUE.equals(req.openToInternational())));
         return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(offer, null));
     }
@@ -182,7 +183,7 @@ public class JobOfferController {
             req.fieldOfWork(), req.description(), req.responsibilities(),
             req.minimumQualifications(), req.preferredQualifications(),
             req.whatWeOffer(), req.howToApply(), req.companyInfo(),
-            assessmentId, req.passingScore(), req.openToInternational(), req.status()));
+            assessmentId, req.jobPositionId(), req.passingScore(), req.openToInternational(), req.status()));
         return ResponseEntity.ok(toResponse(offer, null));
     }
 

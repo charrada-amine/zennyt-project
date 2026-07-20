@@ -37,6 +37,7 @@ public class JobOffer extends AggregateRoot {
     private String howToApply;
     private String companyInfo;
     private UUID assessmentId;
+    private UUID jobPositionId;
     private int passingScore;
     private boolean openToInternational;
     private JobOfferStatus status;
@@ -79,7 +80,8 @@ public class JobOffer extends AggregateRoot {
                                      String fieldOfWork, String description, String responsibilities,
                                      String minimumQualifications, String preferredQualifications,
                                      String whatWeOffer, String howToApply, String companyInfo,
-                                     UUID assessmentId, int passingScore, boolean openToInternational,
+                                     UUID assessmentId, UUID jobPositionId, int passingScore,
+                                     boolean openToInternational,
                                      JobOfferStatus status, Instant postedAt) {
         JobOffer offer = new JobOffer(id, recruiterId, title, description,
             contractType, workplaceType, experienceLevel, location, passingScore);
@@ -94,6 +96,7 @@ public class JobOffer extends AggregateRoot {
         offer.howToApply = howToApply;
         offer.companyInfo = companyInfo;
         offer.assessmentId = assessmentId;
+        offer.jobPositionId = jobPositionId;
         offer.openToInternational = openToInternational;
         offer.status = status;
         offer.postedAt = postedAt;
@@ -117,7 +120,8 @@ public class JobOffer extends AggregateRoot {
                        ExperienceLevel experienceLevel, String fieldOfWork, String description,
                        String responsibilities, String minimumQualifications,
                        String preferredQualifications, String whatWeOffer, String howToApply,
-                       String companyInfo, UUID assessmentId, boolean openToInternational) {
+                       String companyInfo, UUID assessmentId, UUID jobPositionId,
+                       boolean openToInternational) {
         this.title = title;
         this.companyName = companyName;
         this.location = location;
@@ -134,6 +138,7 @@ public class JobOffer extends AggregateRoot {
         this.howToApply = howToApply;
         this.companyInfo = companyInfo;
         this.assessmentId = assessmentId;
+        this.jobPositionId = jobPositionId;
         this.openToInternational = openToInternational;
     }
 
@@ -176,6 +181,7 @@ public class JobOffer extends AggregateRoot {
     public String howToApply() { return howToApply; }
     public String companyInfo() { return companyInfo; }
     public UUID assessmentId() { return assessmentId; }
+    public UUID jobPositionId() { return jobPositionId; }
     public int passingScore() { return passingScore; }
     public boolean openToInternational() { return openToInternational; }
     public JobOfferStatus status() { return status; }

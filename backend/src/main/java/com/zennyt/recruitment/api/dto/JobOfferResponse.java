@@ -15,7 +15,7 @@ public record JobOfferResponse(
     String fieldOfWork, String description, String responsibilities,
     String minimumQualifications, String preferredQualifications,
     String whatWeOffer, String howToApply, String companyInfo,
-    UUID assessmentId, String shareableLink, int passingScore, boolean openToInternational,
+    UUID assessmentId, UUID jobPositionId, String shareableLink, int passingScore, boolean openToInternational,
     JobOfferStatus status, long applicantCount, Integer fitScore, Boolean goodFit,
     Integer softSkillScore, Integer cvMatchScore, Instant postedAt
 ) {
@@ -36,7 +36,7 @@ public record JobOfferResponse(
             o.contractType(), o.workplaceType(), o.experienceLevel(),
             o.fieldOfWork(), o.description(), o.responsibilities(),
             o.minimumQualifications(), o.preferredQualifications(),
-            o.whatWeOffer(), o.howToApply(), o.companyInfo(), o.assessmentId(),
+            o.whatWeOffer(), o.howToApply(), o.companyInfo(), o.assessmentId(), o.jobPositionId(),
             shareableLink, o.passingScore(), o.openToInternational(), o.status(), applicantCount,
             fitScore != null ? fitScore.score() : null,
             fitScore != null ? fitScore.goodFit() : null,

@@ -38,6 +38,7 @@ public class JobOfferEntity {
     @Column(columnDefinition = "TEXT") private String howToApply;
     @Column(columnDefinition = "TEXT") private String companyInfo;
     private UUID assessmentId;
+    private UUID jobPositionId;
     @Column(nullable = false) private int passingScore;
     private boolean openToInternational;
 
@@ -92,6 +93,8 @@ public class JobOfferEntity {
     public void setCompanyInfo(String v) { this.companyInfo = v; }
     public UUID getAssessmentId() { return assessmentId; }
     public void setAssessmentId(UUID v) { this.assessmentId = v; }
+    public UUID getJobPositionId() { return jobPositionId; }
+    public void setJobPositionId(UUID v) { this.jobPositionId = v; }
     public int getPassingScore() { return passingScore; }
     public void setPassingScore(int v) { this.passingScore = v; }
     public boolean isOpenToInternational() { return openToInternational; }

@@ -83,7 +83,7 @@ public class DevDataSeeder implements CommandLineRunner {
         // Bruno 51/54 (offre étrangère → 403), comme le seed REC-04 d'origine.
         jobOfferRepository.save(activeOffer(OFFER_3, RECRUITER_2, "Engineering Manager",
             "Encadrement d'une squad produit de 6 personnes.",
-            ContractType.FULL_TIME, WorkplaceType.ON_SITE, ExperienceLevel.EXECUTIVE, "Lyon"));
+            ContractType.FULL_TIME, WorkplaceType.ON_SITE, ExperienceLevel.MANAGER, "Lyon"));
 
         assessmentRepository.save(Assessment.rehydrate(ASSESSMENT_1, RECRUITER,
             "Test technique back-end", 600, 2, null, null,
@@ -136,6 +136,6 @@ public class DevDataSeeder implements CommandLineRunner {
             "Software", description,
             "Responsabilités à définir.", "Bac+5 ou équivalent.", "Expérience en équipe agile.",
             "Package compétitif, télétravail, formation.", "Postulez via l'application.", "Zennyt Inc.",
-            null, JobOffer.DEFAULT_PASSING_SCORE, false, JobOfferStatus.ACTIVE, Instant.now());
+            null, null, JobOffer.DEFAULT_PASSING_SCORE, false, JobOfferStatus.ACTIVE, Instant.now());
     }
 }

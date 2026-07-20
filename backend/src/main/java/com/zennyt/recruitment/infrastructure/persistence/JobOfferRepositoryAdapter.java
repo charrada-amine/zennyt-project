@@ -104,6 +104,7 @@ public class JobOfferRepositoryAdapter implements JobOfferRepository {
         e.setMinimumQualifications(o.minimumQualifications()); e.setPreferredQualifications(o.preferredQualifications());
         e.setWhatWeOffer(o.whatWeOffer()); e.setHowToApply(o.howToApply()); e.setCompanyInfo(o.companyInfo());
         e.setAssessmentId(o.assessmentId());
+        e.setJobPositionId(o.jobPositionId());
         e.setPassingScore(o.passingScore());
         e.setOpenToInternational(o.openToInternational()); e.setStatus(o.status()); e.setPostedAt(o.postedAt());
         return e;
@@ -117,7 +118,8 @@ public class JobOfferRepositoryAdapter implements JobOfferRepository {
             e.getTitle(), e.getCompanyName(), loc, sal, e.getContractType(), e.getWorkplaceType(),
             e.getExperienceLevel(), e.getFieldOfWork(), e.getDescription(), e.getResponsibilities(),
             e.getMinimumQualifications(), e.getPreferredQualifications(), e.getWhatWeOffer(),
-            e.getHowToApply(), e.getCompanyInfo(), e.getAssessmentId(), e.getPassingScore(), e.isOpenToInternational(),
+            e.getHowToApply(), e.getCompanyInfo(), e.getAssessmentId(), e.getJobPositionId(),
+            e.getPassingScore(), e.isOpenToInternational(),
             e.getStatus(), e.getPostedAt());
     }
 }

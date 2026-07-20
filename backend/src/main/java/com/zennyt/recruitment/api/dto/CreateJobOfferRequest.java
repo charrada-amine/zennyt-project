@@ -19,5 +19,5 @@ public record CreateJobOfferRequest(
     String fieldOfWork, String description, String responsibilities,
     String minimumQualifications, String preferredQualifications,
     String whatWeOffer, String howToApply, String companyInfo,
-    UUID assessmentId, Integer passingScore, Boolean openToInternational
+    UUID assessmentId, UUID jobPositionId, Integer passingScore, Boolean openToInternational
 ) {}
