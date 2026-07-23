@@ -36,6 +36,11 @@ public class JobPositionRepositoryAdapter implements JobPositionRepository {
         return entities.stream().map(this::toDomain).toList();
     }
 
+    @Override
+    public boolean existsByNameAndSector(String name, String sector) {
+        return jpa.existsByNameAndSector(name, sector);
+    }
+
     private JobPosition toDomain(JobPositionEntity entity) {
         return JobPosition.rehydrate(entity.getId(), entity.getName(), entity.getSector(),
             entity.getProfileType(), entity.isCalibrated(), entity.getStatus(),

@@ -2,6 +2,7 @@ package com.zennyt.recruitment.application.usecase;
 
 import com.zennyt.recruitment.domain.model.JobPosition;
 import com.zennyt.recruitment.domain.repository.JobPositionRepository;
+import com.zennyt.shared.application.exception.ConflictException;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
@@ -23,6 +24,9 @@ public class ProposeJobPositionUseCase {
     }
 
     public JobPosition execute(UUID recruiterId, String name, String sector) {
+        if (positions.existsByNameAndSector(name, sector)) {
+            throw new ConflictException("Ce métier existe déjà dans le référentiel");
+        }
         return positions.save(JobPosition.propose(name, sector, recruiterId));
     }
 }

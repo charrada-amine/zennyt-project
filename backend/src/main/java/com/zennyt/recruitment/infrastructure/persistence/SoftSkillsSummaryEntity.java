@@ -3,7 +3,6 @@ package com.zennyt.recruitment.infrastructure.persistence;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 
 import java.time.Instant;
@@ -13,8 +12,8 @@ import java.util.UUID;
 @Table(name = "soft_skills_summary", schema = "recruitment")
 public class SoftSkillsSummaryEntity {
     @Id private UUID candidateId;
-    @Lob @Column(nullable = false) private String textFr;
-    @Lob @Column(nullable = false) private String textEn;
+    @Column(nullable = false, columnDefinition = "TEXT") private String textFr;
+    @Column(nullable = false, columnDefinition = "TEXT") private String textEn;
     @Column(nullable = false) private Instant updatedAt;
 
     protected SoftSkillsSummaryEntity() {}

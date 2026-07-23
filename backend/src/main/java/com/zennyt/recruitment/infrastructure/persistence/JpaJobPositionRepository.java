@@ -9,4 +9,5 @@ import java.util.UUID;
 public interface JpaJobPositionRepository extends JpaRepository<JobPositionEntity, UUID> {
     List<JobPositionEntity> findByStatusAndSector(JobPositionStatus status, String sector);
     List<JobPositionEntity> findByStatus(JobPositionStatus status);
+    boolean existsByNameAndSector(String name, String sector);
 }

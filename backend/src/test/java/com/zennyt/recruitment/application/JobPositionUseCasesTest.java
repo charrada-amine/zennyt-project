@@ -6,6 +6,7 @@ import com.zennyt.recruitment.domain.model.JobPosition;
 import com.zennyt.recruitment.domain.repository.JobPositionRepository;
 import com.zennyt.recruitment.domain.vo.JobPositionStatus;
 import com.zennyt.recruitment.domain.vo.JobProfileType;
+import com.zennyt.shared.application.exception.ConflictException;
 import com.zennyt.shared.application.exception.NotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,6 +42,15 @@ class JobPositionUseCasesTest {
         assertThat(created.status()).isEqualTo(JobPositionStatus.PENDING_APPROVAL);
         assertThat(created.proposedByRecruiterId()).isEqualTo(RECRUITER);
         verify(positions).save(any());
+    }
+
+    @Test
+    void proposeDuplicateNameAndSectorThrows() {
+        when(positions.existsByNameAndSector("Développeur Rust", "IT, AI & Fintech")).thenReturn(true);
+
+        assertThatThrownBy(() -> proposeUseCase.execute(RECRUITER, "Développeur Rust", "IT, AI & Fintech"))
+            .isInstanceOf(ConflictException.class);
+        verify(positions, never()).save(any());
     }
 
     @Test

@@ -3,7 +3,6 @@ package com.zennyt.recruitment.infrastructure.persistence;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 
 import java.time.Instant;
@@ -13,7 +12,7 @@ import java.util.UUID;
 @Table(name = "cv_profile_projection", schema = "recruitment")
 public class CvProfileProjectionEntity {
     @Id private UUID candidateId;
-    @Lob @Column(nullable = false) private String cvText;
+    @Column(nullable = false, columnDefinition = "TEXT") private String cvText;
     @Column(nullable = false) private Instant updatedAt;
 
     protected CvProfileProjectionEntity() {}

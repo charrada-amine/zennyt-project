@@ -3,7 +3,6 @@ package com.zennyt.recruitment.infrastructure.persistence;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 
@@ -17,8 +16,8 @@ public class HardSkillsSummaryEntity {
     @Id private UUID id;
     @Column(name = "candidate_id", nullable = false) private UUID candidateId;
     @Column(name = "job_offer_id", nullable = false) private UUID jobOfferId;
-    @Lob @Column(nullable = false) private String textFr;
-    @Lob @Column(nullable = false) private String textEn;
+    @Column(nullable = false, columnDefinition = "TEXT") private String textFr;
+    @Column(nullable = false, columnDefinition = "TEXT") private String textEn;
     @Column(nullable = false) private Instant updatedAt;
 
     protected HardSkillsSummaryEntity() {}
