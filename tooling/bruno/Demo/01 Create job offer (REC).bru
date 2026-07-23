@@ -1,7 +1,7 @@
 meta {
   name: 01 Create job offer (REC)
   type: http
-  seq: 3
+  seq: 8
 }
 
 post {
@@ -24,10 +24,21 @@ body:json {
     "experienceLevel": "SENIOR",
     "city": "Tunis",
     "country": "TN",
-    "remote": true
+    "remote": true,
+    "jobPositionId": "{{demoJobPositionId}}"
   }
 }
 
 script:post-response {
   if (res.status === 201) { bru.setVar("demoOfferId", res.body.id); }
+}
+
+assert {
+  res.status: eq 201
+  res.body.jobPositionId: eq {{demoJobPositionId}}
+}
+
+docs {
+  jobPositionId (nullable) référence le métier approuvé à l'étape "00d" —
+  relie le nouveau référentiel à la création d'offre.
 }

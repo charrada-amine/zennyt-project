@@ -103,7 +103,7 @@ Où peuvent vivre les données d'une requête :
 ## Valeurs d'énumération autorisées
 - **ContractType** : FULL_TIME, PART_TIME, CONTRACT, TEMPORARY, APPRENTICESHIP, VOLUNTEER
 - **WorkplaceType** : ON_SITE, REMOTE, HYBRID, FLEXIBLE
-- **ExperienceLevel** : JUNIOR, MID, SENIOR, EXECUTIVE
+- **ExperienceLevel** : JUNIOR, SENIOR, LEAD, MANAGER (remappé 20/07, ex. JUNIOR/MID/SENIOR/EXECUTIVE)
 - **JobOfferStatus** : DRAFT, ACTIVE, HIDDEN, CLOSED
 - **ApplicationStatus** : PENDING, SHORTLISTED, APPROVED, REJECTED
 - **SwipeDirection** : LIKE, PASS

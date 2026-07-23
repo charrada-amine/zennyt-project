@@ -1,0 +1,25 @@
+meta {
+  name: 56 Reject job position (ADMIN)
+  type: http
+  seq: 68
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/job-positions/{{throwawayJobPositionId}}/reject
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{adminToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq REJECTED
+}
+
+docs {
+  Autre issue possible pour un métier proposé : PENDING_APPROVAL -> REJECTED.
+  Reste invisible dans le référentiel partagé (GET /job-positions).
+}

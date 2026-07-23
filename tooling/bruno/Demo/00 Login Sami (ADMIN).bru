@@ -1,0 +1,36 @@
+meta {
+  name: 00 Login Sami (ADMIN)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/auth/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "admin1@zennyt.com",
+    "password": "zennyt123"
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    bru.setVar("adminToken", res.body.accessToken);
+  }
+}
+
+docs {
+  Login admin (Sami) → stocke {{adminToken}}. Nouveau rôle ADMIN (20/07), utilisé
+  pour l'approbation du référentiel de métiers ci-dessous. L'auto-inscription
+  refuse ce rôle (`"Le rôle administrateur ne peut pas être créé publiquement"`,
+  400) — ce compte a été promu par SQL au bootstrap, comme les UUID figés des
+  5 autres comptes de démo.
+}

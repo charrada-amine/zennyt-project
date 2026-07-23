@@ -1,0 +1,32 @@
+meta {
+  name: 09b Generate assessment from file (REC)
+  type: http
+  seq: 18
+}
+
+post {
+  url: {{baseUrl}}/api/v1/assessments/generate/from-file
+  body: multipartForm
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{recruiterToken}}
+}
+
+body:multipart-form {
+  file: @file(Demo/fixtures/job-description-sample.pdf)
+  questionCount: 3
+}
+
+assert {
+  res.status: eq 201
+  res.body.questions: length 3
+}
+
+docs {
+  Deuxième mode de génération (20/07) : source = fichier uploadé (PDF), traité
+  comme un document source (manuel, livre, QCM existant) et non comme une
+  description de poste — extraction de texte via PDFBox (PdfSourceDocumentExtractorPort,
+  hors couche application par contrainte ArchitectureTest).
+}

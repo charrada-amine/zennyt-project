@@ -1,0 +1,34 @@
+meta {
+  name: 18a Recruiter cannot approve directly 403 (REC)
+  type: http
+  seq: 28
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/applications/{{appId}}/status
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{recruiterToken}}
+}
+
+body:json {
+  {
+    "status": "APPROVED"
+  }
+}
+
+assert {
+  res.status: eq 403
+}
+
+docs {
+  Décision du 20/07 (renverse celle du 16/07) : le recruteur présélectionne
+  (PENDING -> SHORTLISTED, étape précédente) mais ne peut plus décider seul
+  de l'issue — SHORTLISTED -> APPROVED/REJECTED n'appartient qu'au candidat.
+  Tenter l'ancien comportement renvoie maintenant 403. Voir l'étape suivante
+  pour le bon chemin.
+}

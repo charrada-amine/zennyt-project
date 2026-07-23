@@ -1,0 +1,27 @@
+meta {
+  name: 00a List job positions (CAND)
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/v1/job-positions
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{candidateToken}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Référentiel de 142 métiers (20/07), seedé depuis la matrice de pondération
+  Fit Score. Accessible à tout utilisateur authentifié, `status=APPROVED`
+  uniquement. Chaque métier embarque `levelLabels` (Junior/Senior/Lead/Manager
+  ou intitulé métier, ex. "Apprenti / Ouvrier débutant") — un select
+  position → level peut se peupler sans round-trip supplémentaire.
+}

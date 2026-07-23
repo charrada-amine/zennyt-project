@@ -1,0 +1,39 @@
+meta {
+  name: 24a Get candidate resume (REC)
+  type: http
+  seq: 36
+}
+
+get {
+  url: {{baseUrl}}/api/v1/candidates/{{candidateId}}/resume?jobOfferId={{demoOfferId}}
+  body: none
+  auth: none
+}
+
+params:query {
+  jobOfferId: {{demoOfferId}}
+}
+
+headers {
+  Authorization: Bearer {{recruiterToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.softSkills: isDefined
+  res.body.hardSkills: isDefined
+}
+
+docs {
+  Nouveau (20/07) : résumé IA bilingue (fr+en) du candidat pour cette offre.
+  - softSkills : niveau candidat, généré uniquement à partir des jeux
+    psychométriques (module Games) — repli statique si aucun jeu joué.
+  - hardSkills : CV + résultat au test de CETTE offre (candidat×offre),
+    régénéré à chaque soumission.
+
+  hardSkills.available peut valoir false juste après "20 Submit assessment
+  attempt" : la génération est asynchrone (HardSkillsSummaryListener, appel
+  Groq hors thread de requête). Rejouer cette requête quelques secondes plus
+  tard montre le vrai résumé une fois généré — même mécanique que le tunnel
+  OTP (cf. docs/DEMO_INTEGRATION.md §B), assumé et documenté plutôt que masqué.
+}

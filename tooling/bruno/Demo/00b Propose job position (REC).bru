@@ -1,0 +1,45 @@
+meta {
+  name: 00b Propose job position (REC)
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/v1/job-positions
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{recruiterToken}}
+}
+
+body:json {
+  {
+    "name": "AI Platform Engineer (Demo {{demoRunId}})",
+    "sector": "IT, AI & Fintech"
+  }
+}
+
+script:pre-request {
+  if (!bru.getVar("demoRunId")) { bru.setVar("demoRunId", Date.now()); }
+}
+
+script:post-response {
+  if (res.status === 201) { bru.setVar("demoJobPositionId", res.body.id); }
+}
+
+assert {
+  res.status: eq 201
+  res.body.status: eq PENDING_APPROVAL
+  res.body.profileType: isNull
+}
+
+docs {
+  Le recruteur propose un métier absent du référentiel — pas de champ
+  profileType : la matrice dit elle-même que cette classification demande un
+  atelier RH, donc un admin la tranche à l'approbation (étape suivante).
+  Utilisable immédiatement sur l'offre du recruteur, mais invisible dans le
+  select partagé tant qu'il n'est pas APPROVED.
+}

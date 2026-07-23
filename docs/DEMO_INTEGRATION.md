@@ -1,11 +1,16 @@
 # Démo encadrant — backend intégré (`integration-recruitment-align`)
 
 Démo du backend **fusionné** (identity + games + recruitment alignés) sur une
-**base fraîche**, avec les 5 comptes de démo. Vérifié de bout en bout le 18/07 :
-**Bruno Demo 56/56 requêtes, 21/21 assertions**, base neuve à chaque exécution.
+**base fraîche**, avec les 6 comptes de démo. Vérifié de bout en bout le 20/07 :
+**Bruno Demo 67/67 requêtes, 45/45 assertions**, base neuve à chaque exécution —
+couvre maintenant les 4 fonctionnalités backend du 20/07 (présélection →
+réponse candidat, génération de test par IA, résumé IA candidat, référentiel
+de métiers). Détail : `RECAP_20260720_BACKEND.md` à la racine du repo.
 
 Comptes (mdp `zennyt123`) : `recruiter1@` (Rania), `recruiter2@` (Youssef),
-`candidate1@` (Aicha), `candidate2@` (Omar), `candidate3@` (Lina) `…@zennyt.com`.
+`candidate1@` (Aicha), `candidate2@` (Omar), `candidate3@` (Lina),
+`admin1@` (Sami, rôle ADMIN — nouveau 20/07, promu par SQL car l'auto-inscription
+refuse ce rôle) `…@zennyt.com`.
 
 > ⚠️ **Le mot de passe n'est plus `1234`.** L'écran de connexion réel de l'app
 > mobile (`login_screen.dart`/`login_viewmodel.dart`) rejette côté client tout
@@ -53,15 +58,19 @@ Start-Process -WindowStyle Hidden -FilePath java -ArgumentList @(
 ) -RedirectStandardOutput backend-int.log -RedirectStandardError backend-int.err.log
 do { Start-Sleep 3; try { $h = Invoke-RestMethod http://localhost:8080/actuator/health } catch {} } while (-not $h)
 
-# 3. Créer les 5 comptes (l'API exige un mdp >= 8 caractères), puis figer
+# 3. Créer les 6 comptes (l'API exige un mdp >= 8 caractères), puis figer
 #    les UUID fixes attendus par Bruno/le seeder ET le hash BCrypt de « zennyt123 »
 #    (PAS « 1234 » : l'app mobile refuse tout mdp < 6 caractères côté client)
+#    admin1 s'inscrit en RECRUITER puis est promu ADMIN par SQL ci-dessous :
+#    l'auto-inscription refuse ce rôle ("Le rôle administrateur ne peut pas
+#    être créé publiquement", 400) — même mécanique que les UUID figés.
 $users = @(
   @{f='Rania';   l='Ben Ali';  e='recruiter1@zennyt.com'; r='RECRUITER'; c='Tunis'},
   @{f='Youssef'; l='Trabelsi'; e='recruiter2@zennyt.com'; r='RECRUITER'; c='Sousse'},
   @{f='Aicha';   l='Gharbi';   e='candidate1@zennyt.com'; r='CANDIDATE'; c='Tunis'},
   @{f='Omar';    l='Sassi';    e='candidate2@zennyt.com'; r='CANDIDATE'; c='Sfax'},
-  @{f='Lina';    l='Bouazizi'; e='candidate3@zennyt.com'; r='CANDIDATE'; c='Tunis'}
+  @{f='Lina';    l='Bouazizi'; e='candidate3@zennyt.com'; r='CANDIDATE'; c='Tunis'},
+  @{f='Sami';    l='Khelifi';  e='admin1@zennyt.com';     r='RECRUITER'; c='Tunis'}
 )
 foreach ($u in $users) {
   $body = @{ firstName=$u.f; lastName=$u.l; email=$u.e; password='bootstrap-1234';
@@ -76,6 +85,7 @@ UPDATE users SET public_id='33333333-3333-3333-3333-333333333333', password_hash
 UPDATE users SET public_id='22222222-2222-2222-2222-222222222222', password_hash='$hash' WHERE email='candidate1@zennyt.com';
 UPDATE users SET public_id='44444444-4444-4444-4444-444444444444', password_hash='$hash' WHERE email='candidate2@zennyt.com';
 UPDATE users SET public_id='55555555-5555-5555-5555-555555555555', password_hash='$hash' WHERE email='candidate3@zennyt.com';
+UPDATE users SET public_id='66666666-6666-6666-6666-666666666666', password_hash='$hash', role='ADMIN' WHERE email='admin1@zennyt.com';
 DELETE FROM recruitment.actors;"
 
 # 4. Redémarrer le backend : la projection recruitment.actors est rejouée au boot
@@ -111,13 +121,23 @@ cd tooling\bruno
 npx @usebruno/cli run Demo --env Local
 ```
 
-Attendu : **56 requêtes, 0 échec, 21/21 assertions.** Le dossier Demo couvre :
-login JWT réel, offres, recherche filtrée, swipes + matchs, candidatures
-(shortlist → approve), **la tentative EST la candidature** (consentement 422 sans,
-`applicationId` dans la réponse), résultats + stats (enveloppe applications),
-fit scores (recompute Groq, deck `/recruiters/me/candidate-feed`, dismiss),
-vérification d'identité, opportunités, paiements, et les tests négatifs
-(401 secret callback, 403 non-propriétaire, 404 candidat fantôme).
+Attendu : **67 requêtes, 0 échec, 45/45 assertions.** Le dossier Demo couvre :
+login JWT réel (recruteur, candidat, **admin**), **référentiel de métiers**
+(liste, proposition recruteur, approbation/rejet admin, `jobPositionId` sur
+l'offre), offres, recherche filtrée, **génération de test par IA** (prompt
+libre + fichier PDF uploadé), swipes + matchs, candidatures (shortlist →
+**réponse du candidat**, plus recruteur-approuve-directement = 403 volontaire),
+**la tentative EST la candidature** (consentement 422 sans, `applicationId`
+dans la réponse), **résumé IA candidat** (soft + hard skills), résultats +
+stats (enveloppe applications), fit scores (recompute Groq, deck
+`/recruiters/me/candidate-feed`, dismiss), vérification d'identité,
+opportunités, paiements, et les tests négatifs (401 secret callback, 403
+non-propriétaire, 404 candidat fantôme).
+
+Les numéros de fichier ne suivent plus l'ordre d'exécution après les
+insertions du 20/07 (ex. "24a" tourne bien après "24", mais "44" tourne après
+"42" à cause d'un trou de numérotation historique) — l'ordre réel est piloté
+par `seq` dans chaque `.bru`, pas par le préfixe du nom de fichier.
 
 ## 🅱 Le tunnel OTP réel — à montrer en direct (argument fort)
 
@@ -137,10 +157,37 @@ Même mécanique pour le paiement (37 → 39).
 
 ## Notes / limites connues
 
-- `POST /assessments/generate` (génération IA du QCM) n'existe **pas encore**
-  sur le backend intégré (retiré du dossier Demo, cf. plan de portage).
 - L'assertion `pairsWritten >= 1` du recompute (44) suppose une **base fraîche**
   (les projections soft-skills sont seedées par `DevDataSeeder`).
 - Les dossiers Bruno hors `Demo` (Auth, Candidate, Recruiter, Callbacks) datent
   de REC-04 et peuvent référencer d'anciennes routes — seule la collection
   `Demo` est la suite de régression vérifiée sur le backend intégré.
+- La collection **est idempotente même sur base non fraîche** : "00b Propose
+  job position" et "55 Propose throwaway position" suffixent leur nom avec un
+  timestamp (`{{demoRunId}}`, fixé une fois par run via `script:pre-request`)
+  pour ne jamais reproduire la collision de contrainte unique (nom, secteur)
+  observée le 20/07 en rejouant `Demo` deux fois via le GUI sans reset —
+  vérifié en rejouant deux fois d'affilée sans reset (67/67, 45/45 les deux
+  fois). Une base fraîche reste recommandée avant une vraie démo (assertion
+  `pairsWritten` ci-dessus), mais un rejeu accidentel en GUI ne casse plus
+  toute la chaîne en cascade.
+- **Résumé IA candidat (24a)** : `hardSkills` est généré de façon asynchrone
+  (`HardSkillsSummaryListener`, appel Groq hors thread de requête) après
+  soumission d'une tentative. `available` peut valoir `false` juste après —
+  rejouer la requête quelques secondes plus tard montre le vrai résumé, comme
+  pour le tunnel OTP (§B).
+- Bug corrigé le 20/07 pendant cette vérification : `@Lob` sur `String` dans
+  `CvProfileProjectionEntity`/`HardSkillsSummaryEntity`/`SoftSkillsSummaryEntity`
+  faisait échouer le **boot** (Hibernate attendait `oid`, la migration déclare
+  `TEXT`) — le backend intégré ne démarrait tout simplement pas sur une vraie
+  base tant que ce n'était pas corrigé (`@Column(columnDefinition = "TEXT")`,
+  même convention que `JobOfferEntity`/`AssessmentEntity`). Comme le bug
+  ci-dessous, invisible aux tests unitaires — seule cette vérification live
+  l'a révélé.
+- Bug corrigé le 20/07 pendant cette vérification : `POST /job-positions`
+  renvoyait un 500 brut (contrainte SQL non gérée) au lieu d'un 409 propre
+  sur un doublon (nom, secteur) — `ProposeJobPositionUseCase` fait maintenant
+  un `existsByNameAndSector` avant écriture, comme le reste du code applicatif
+  (cf. `ConflictException`). Trouvé uniquement grâce à cette première
+  vérification live — les tests unitaires (repository mocké) ne
+  l'auraient jamais détecté.
