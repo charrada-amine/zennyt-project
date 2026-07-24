@@ -1,5 +1,7 @@
 import '../domain/config/memory_quest_config.dart';
 import '../domain/config/move_fast_config.dart';
+import '../domain/decision_scenario_catalog.dart';
+import '../domain/entities/decision_metrics.dart';
 import '../domain/entities/device_calibration.dart';
 import '../domain/entities/game_score.dart';
 import '../domain/entities/game_session.dart';
@@ -13,6 +15,7 @@ import '../domain/entities/prevision_puzzle_metrics.dart';
 import '../domain/entities/score_breakdown.dart';
 import '../domain/entities/task_scheduling_metrics.dart';
 import '../domain/repositories/games_repository.dart';
+import 'decision_scoring.dart';
 
 /// [GamesRepository] MOCK — permet de jouer en totale autonomie, sans backend.
 ///
@@ -30,6 +33,12 @@ import '../domain/repositories/games_repository.dart';
 class GamesMockRepository implements GamesRepository {
   final Map<String, GameSession> _sessions = {};
   int _counter = 0;
+
+  // « Je Décide » — miroir EXACT du barème serveur (moteur + couche provisoire).
+  // Catalogue VIDE tant que le psychologue n'a pas fourni les 30 scénarios : le
+  // scoring lève une erreur si `DECISION_CORE` est soumis (parité backend, non
+  // jouable). Le câblage UI (`je_decide_*.dart`) est un lot séparé.
+  static const _decisionScoring = DecisionScoring(EmptyDecisionScenarioCatalog());
 
   // Config « Chemin Optimal » — miroir de OptimalPathConfig (backend).
   static const double _optimalPathTolerance = 0.10; // optimal_path_tolerance
@@ -83,6 +92,10 @@ class GamesMockRepository implements GamesRepository {
       MiniGame.taskScheduling => _scoreTaskScheduling(
         metrics as TaskSchedulingMetrics,
       ),
+      MiniGame.decisionCore => _decisionScoring.score(
+        metrics as DecisionMetrics,
+        deviceCalibration?.calibrationOffsetMs ?? 0.0,
+      ),
     };
     final attempts = [
       ...current.attempts,
@@ -92,6 +105,7 @@ class GamesMockRepository implements GamesRepository {
     final complete =
         miniGame == MiniGame.moveFastCore ||
         miniGame == MiniGame.memoryQuestCore ||
+        miniGame == MiniGame.decisionCore ||
         attempts.length >= _expectedMiniGames(current.gameType);
     final max = complete
         ? attempts.fold<int>(0, (sum, a) => sum + a.score.maxPoints)
@@ -328,6 +342,8 @@ class GamesMockRepository implements GamesRepository {
         _breakdownPrevision(metrics as PrevisionPuzzleMetrics, score),
       MiniGame.memoryQuestCore =>
         _breakdownMemoryQuest(metrics as MemoryQuestMetrics, score),
+      MiniGame.decisionCore =>
+        _decisionScoring.breakdown(metrics as DecisionMetrics, score),
     };
   }
 

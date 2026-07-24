@@ -578,18 +578,19 @@ components:
           description: "Nombre BRUT de réajustements ; score dérivé serveur (<2→2 · 2-4→1 · >4→0)."
 
     GameMetrics:
-      # ⚠️ Chaque membre est encapsulé en { type: object, allOf: [ $ref ] } — et non
-      # un $ref nu. À 6 membres exactement, le normaliseur d'openapi-generator 7.5.0
-      # (processSimplifyOneOf) collecte le type de chaque membre dans un TreeSet ;
-      # un $ref nu a un type null → TreeSet.add(null) lève une NPE. Le type: object
-      # explicite évite ce cas (sémantique inchangée : le membre reste le schéma référencé).
+      # NB : membres en $ref nus (source de vérité = SubmitResultRequest.toMetrics côté
+      # code, la génération games n'étant pas consommée par les contrôleurs, écrits à la
+      # main). À 6 membres exactement, openapi-generator 7.5.0 logue une NPE NON FATALE
+      # dans processSimplifyOneOf (TreeSet du type de chaque membre, null pour un $ref) —
+      # la génération se poursuit et le build réussit. Ne PAS encapsuler en
+      # { type: object, allOf: [ $ref ] } : cela dédouble les champs du DTO généré (échec compile).
       oneOf:
-        - { type: object, allOf: [ { $ref: '#/components/schemas/OptimalPathMetrics' } ] }
-        - { type: object, allOf: [ { $ref: '#/components/schemas/TaskSchedulingMetrics' } ] }
-        - { type: object, allOf: [ { $ref: '#/components/schemas/MoveFastMetrics' } ] }
-        - { type: object, allOf: [ { $ref: '#/components/schemas/PrevisionPuzzleMetrics' } ] }
-        - { type: object, allOf: [ { $ref: '#/components/schemas/MemoryQuestMetrics' } ] }
-        - { type: object, allOf: [ { $ref: '#/components/schemas/DecisionMetrics' } ] }
+        - $ref: '#/components/schemas/OptimalPathMetrics'
+        - $ref: '#/components/schemas/TaskSchedulingMetrics'
+        - $ref: '#/components/schemas/MoveFastMetrics'
+        - $ref: '#/components/schemas/PrevisionPuzzleMetrics'
+        - $ref: '#/components/schemas/MemoryQuestMetrics'
+        - $ref: '#/components/schemas/DecisionMetrics'
 
     SubmitResultRequest:
       type: object
