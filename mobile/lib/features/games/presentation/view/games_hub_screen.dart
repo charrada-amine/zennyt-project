@@ -68,7 +68,14 @@ class GamesHubScreen extends ConsumerWidget {
                       _SwatchSpec(_magenta),
                       _SwatchSpec(_softGray),
                     ],
-                    onTap: () => context.push(AppRoutes.gamesMoveFast),
+                    games: const [
+                      _GameEntry(
+                        label: 'Move Fast',
+                        subtitle: 'Rule switching · Je bouge',
+                        route: AppRoutes.gamesMoveFast,
+                        icon: Icons.near_me_rounded,
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 12),
                   _GameCategoryCard(
@@ -79,11 +86,18 @@ class GamesHubScreen extends ConsumerWidget {
                       _SwatchSpec(_magenta),
                       _SwatchSpec(_softPink),
                     ],
-                    onTap: () => context.push(AppRoutes.gamesInvestigate),
+                    games: const [
+                      _GameEntry(
+                        label: 'Memory Quest',
+                        subtitle: 'Digit & object span · J\'investigue',
+                        route: AppRoutes.gamesInvestigate,
+                        icon: Icons.apps_rounded,
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 12),
-                  // Decision-Making : module non implémenté → carte inactive.
-                  // (Ne PAS câbler vers Predictive Puzzle, qui est un jeu Planifik.)
+                  // Decision-Making : « Je Décide » reste distinct de
+                  // Predictive Puzzle, qui appartient à Planifik.
                   _GameCategoryCard(
                     title: 'Decision-Making',
                     iconAsset: _iconDecision,
@@ -91,8 +105,17 @@ class GamesHubScreen extends ConsumerWidget {
                       _SwatchSpec(_softSlate),
                       _SwatchSpec(_softPink),
                     ],
+                    games: const [
+                      _GameEntry(
+                        label: 'Je Décide',
+                        subtitle: 'Everyday choices · decision style',
+                        route: AppRoutes.gamesJeDecide,
+                        icon: Icons.alt_route_rounded,
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 12),
+                  // Executive Planning (Planifik) : 3 mini-jeux → menu de sélection.
                   _GameCategoryCard(
                     title: 'Executive Planning',
                     iconAsset: _iconPlanning,
@@ -100,7 +123,26 @@ class GamesHubScreen extends ConsumerWidget {
                       _SwatchSpec(_softBlue),
                       _SwatchSpec(_magenta),
                     ],
-                    onTap: () => context.push(AppRoutes.gamesPlanifik),
+                    games: const [
+                      _GameEntry(
+                        label: 'Optimal Path',
+                        subtitle: 'Path Mind · shortest route',
+                        route: AppRoutes.gamesPlanifik,
+                        icon: Icons.route_rounded,
+                      ),
+                      _GameEntry(
+                        label: 'Task Scheduling',
+                        subtitle: 'Dependencies & deadlines',
+                        route: AppRoutes.gamesTaskScheduling,
+                        icon: Icons.event_note_rounded,
+                      ),
+                      _GameEntry(
+                        label: 'Predictive Puzzle',
+                        subtitle: 'Tower of Hanoi · foresight',
+                        route: AppRoutes.gamesPredictivePuzzle,
+                        icon: Icons.extension_rounded,
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 12),
                   _GameCategoryCard(
@@ -246,23 +288,51 @@ class _ProfileBadge extends StatelessWidget {
   }
 }
 
+/// Un jeu jouable au sein d'une catégorie (une carte peut en regrouper plusieurs).
+class _GameEntry {
+  const _GameEntry({
+    required this.label,
+    required this.route,
+    required this.icon,
+    this.subtitle,
+  });
+
+  final String label;
+  final String route;
+  final IconData icon;
+  final String? subtitle;
+}
+
 class _GameCategoryCard extends StatelessWidget {
   const _GameCategoryCard({
     required this.title,
     required this.iconAsset,
     required this.swatches,
-    this.onTap,
+    this.games = const [],
   });
 
   final String title;
   final String iconAsset;
   final List<_SwatchSpec> swatches;
-  final VoidCallback? onTap;
+
+  /// Jeux de la catégorie. Vide → module non implémenté (carte inactive).
+  /// 1 jeu → navigation directe. Plusieurs → petit menu de sélection.
+  final List<_GameEntry> games;
+
+  void _handleTap(BuildContext context) {
+    if (games.isEmpty) return;
+    if (games.length == 1) {
+      context.push(games.first.route);
+      return;
+    }
+    _showGamePicker(context, title: title, games: games);
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Une carte sans onTap = module non implémenté → visuellement inactive.
-    final enabled = onTap != null;
+    // Une carte sans jeu = module non implémenté → visuellement inactive.
+    final enabled = games.isNotEmpty;
+    final onTap = enabled ? () => _handleTap(context) : null;
     final content = Container(
       height: 116,
       padding: const EdgeInsets.fromLTRB(24, 12, 10, 10),
@@ -374,6 +444,153 @@ class _GameCategoryCard extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(12),
           child: enabled ? content : Opacity(opacity: 0.55, child: content),
+        ),
+      ),
+    );
+  }
+}
+
+/// Petit menu (bottom sheet) pour choisir un jeu quand la catégorie en regroupe
+/// plusieurs. Ferme la feuille puis navigue vers le jeu sélectionné.
+void _showGamePicker(
+  BuildContext context, {
+  required String title,
+  required List<_GameEntry> games,
+}) {
+  showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: Colors.white,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (sheetContext) {
+      return SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 42,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: _softGray,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                title,
+                style: AppTypography.titleLarge.copyWith(
+                  color: _ink,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'Choose a game to play',
+                style: TextStyle(
+                  color: _muted,
+                  fontFamily: AppTypography.fontFamily,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 0,
+                ),
+              ),
+              const SizedBox(height: 16),
+              for (final game in games) ...[
+                _GamePickerTile(
+                  game: game,
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    context.push(game.route);
+                  },
+                ),
+                const SizedBox(height: 10),
+              ],
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
+/// Ligne d'un jeu dans le menu de sélection.
+class _GamePickerTile extends StatelessWidget {
+  const _GamePickerTile({required this.game, required this.onTap});
+
+  final _GameEntry game;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: _blue, width: 1.2),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: _blue.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(game.icon, color: _blue, size: 24),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      game.label,
+                      style: AppTypography.titleLarge.copyWith(
+                        color: _blue,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0,
+                      ),
+                    ),
+                    if (game.subtitle != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        game.subtitle!,
+                        style: TextStyle(
+                          color: _muted,
+                          fontFamily: AppTypography.fontFamily,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 0,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(Icons.chevron_right_rounded, color: _blue, size: 24),
+            ],
+          ),
         ),
       ),
     );

@@ -25,6 +25,7 @@ import '../../features/profile_settings/presentation/view/personal_informations_
 import '../../features/profile_settings/presentation/view/privacy_policy_screen.dart';
 import '../../features/navigation/presentation/view/main_navigation_screen.dart';
 import '../../features/games/presentation/view/investigate_screen.dart';
+import '../../features/games/presentation/view/je_decide_screen.dart';
 import '../../features/games/presentation/view/move_fast_screen.dart';
 import '../../features/games/presentation/view/planifik_screen.dart';
 import '../../features/games/presentation/view/predictive_puzzle_screen.dart';
@@ -194,6 +195,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const InvestigateScreen(),
       ),
       GoRoute(
+        path: AppRoutes.gamesJeDecide,
+        name: AppRoutes.nGamesJeDecide,
+        builder: (context, state) => const JeDecideScreen(),
+      ),
+      GoRoute(
         path: AppRoutes.profileSettings,
         name: AppRoutes.nProfileSettings,
         pageBuilder: (context, state) {
@@ -293,7 +299,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           final imagePaths = state.uri.queryParameters['imagePaths'];
           final url = state.uri.queryParameters['url'];
           return CvProcessingScreen(
-            filePath: filePath, 
+            filePath: filePath,
             imagePaths: imagePaths,
             url: url,
           );
