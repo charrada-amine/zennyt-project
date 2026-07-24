@@ -4,9 +4,11 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../data/decision_progress_store.dart';
 import '../../../navigation/presentation/viewmodel/nav_tab_provider.dart';
 import '../../../navigation/presentation/widgets/app_bottom_nav.dart';
 import 'je_decide_gameplay.dart';
+import 'je_decide_results.dart';
 import '../widgets/game_system_components.dart';
 
 const _ink = Color(0xFF28234F);
@@ -39,13 +41,13 @@ enum _DecisionStage {
   practiceIntro,
   practiceScenario,
   gameplay,
+  results,
 }
 
-/// Phase 1 mobile de « Je Décide ».
+/// Parcours mobile de « Je Décide ».
 ///
-/// Cette phase couvre uniquement l'accueil, l'onboarding, la player card et
-/// le premier scénario de pratique fourni par la maquette. Elle ne démarre
-/// aucune session backend et ne calcule aucun score.
+/// Les écrans et transitions suivent les maquettes Phases 1–4. Cette version
+/// ne démarre aucune session backend et ne calcule aucun score côté client.
 class JeDecideScreen extends ConsumerStatefulWidget {
   const JeDecideScreen({super.key});
 
@@ -62,8 +64,49 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
   int _selectedTheme = 0;
   int _selectedAvatar = 0;
   int? _selectedChoice;
+  bool _checkingSavedProgress = true;
+  bool _resumeSavedJourney = false;
+  DecisionGameplayStep _savedResumeStep = DecisionGameplayStep.encouragement;
 
   static const _themes = [_magenta, _violet, _cyan, _orange];
+
+  @override
+  void initState() {
+    super.initState();
+    _restoreSavedJourney();
+  }
+
+  Future<void> _restoreSavedJourney() async {
+    final hasSavedCheckpoint = await DecisionProgressStore()
+        .hasSavedCheckpoint();
+    final savedStepName = hasSavedCheckpoint
+        ? await DecisionProgressStore().loadSavedStep()
+        : null;
+    if (!mounted) return;
+    setState(() {
+      _checkingSavedProgress = false;
+      _resumeSavedJourney = hasSavedCheckpoint;
+      _savedResumeStep = DecisionGameplayStep.values.firstWhere(
+        (step) => step.name == savedStepName,
+        orElse: () => DecisionGameplayStep.encouragement,
+      );
+      if (hasSavedCheckpoint) _stage = _DecisionStage.gameplay;
+    });
+  }
+
+  Future<void> _completeGameplay() async {
+    await DecisionProgressStore().clearCheckpoint();
+    if (!mounted) return;
+    setState(() {
+      _resumeSavedJourney = false;
+      _stage = _DecisionStage.results;
+    });
+  }
+
+  Future<void> _finishResults() async {
+    await DecisionProgressStore().clearCheckpoint();
+    if (mounted) context.go(AppRoutes.games);
+  }
 
   @override
   void dispose() {
@@ -74,7 +117,8 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
 
   bool get _showBottomNav =>
       _stage != _DecisionStage.practiceScenario &&
-      _stage != _DecisionStage.gameplay;
+      _stage != _DecisionStage.gameplay &&
+      _stage != _DecisionStage.results;
 
   ({String eyebrow, String title}) get _headerCopy => switch (_stage) {
     _DecisionStage.welcome => (eyebrow: 'Decision Journey', title: 'Je Décide'),
@@ -96,6 +140,10 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
       title: 'Practice 1 / 2',
     ),
     _DecisionStage.gameplay => (eyebrow: 'Decision Journey', title: 'Gameplay'),
+    _DecisionStage.results => (
+      eyebrow: 'Decision Journey',
+      title: 'Your profile',
+    ),
   };
 
   void _setStage(_DecisionStage stage) {
@@ -125,6 +173,8 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
         _setStage(_DecisionStage.practiceIntro);
       case _DecisionStage.gameplay:
         context.go(AppRoutes.games);
+      case _DecisionStage.results:
+        context.go(AppRoutes.games);
     }
   }
 
@@ -144,14 +194,53 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
     context.go(AppRoutes.home);
   }
 
+  Future<void> _openJourneyMenu() async {
+    final action = await showDialog<DecisionPauseAction>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const DecisionPauseDialog(gameplayActive: false),
+    );
+    if (!mounted) return;
+    switch (action) {
+      case DecisionPauseAction.rules:
+        await showDialog<void>(
+          context: context,
+          builder: (_) => const DecisionRulesDialog(),
+        );
+        if (mounted) await _openJourneyMenu();
+        return;
+      case DecisionPauseAction.exit:
+        context.go(AppRoutes.games);
+        return;
+      case DecisionPauseAction.resume || null:
+        return;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_checkingSavedProgress) {
+      return const Scaffold(backgroundColor: _canvas, body: SizedBox.expand());
+    }
     if (_stage == _DecisionStage.gameplay) {
       return Scaffold(
-        backgroundColor: _violet,
+        backgroundColor: _canvas,
         body: DecisionGameplayView(
           onClose: () => context.go(AppRoutes.games),
-          onComplete: () => context.go(AppRoutes.games),
+          onComplete: _completeGameplay,
+          initialStep: _resumeSavedJourney
+              ? DecisionGameplayStep.resumeJourney
+              : DecisionGameplayStep.analytical,
+          resumeStepAfterWelcome: _savedResumeStep,
+        ),
+      );
+    }
+    if (_stage == _DecisionStage.results) {
+      return Scaffold(
+        backgroundColor: _canvas,
+        body: DecisionResultsFlow(
+          onClose: () => context.go(AppRoutes.games),
+          onDone: _finishResults,
         ),
       );
     }
@@ -173,6 +262,7 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
                   eyebrow: header.eyebrow,
                   title: header.title,
                   onBack: _back,
+                  onMore: _openJourneyMenu,
                 ),
               ),
               Expanded(
@@ -231,6 +321,7 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
             : () => _setStage(_DecisionStage.gameplay),
       ),
       _DecisionStage.gameplay => const SizedBox.shrink(),
+      _DecisionStage.results => const SizedBox.shrink(),
     };
   }
 }
@@ -240,11 +331,13 @@ class _DecisionHeader extends StatelessWidget {
     required this.eyebrow,
     required this.title,
     required this.onBack,
+    required this.onMore,
   });
 
   final String eyebrow;
   final String title;
   final VoidCallback onBack;
+  final VoidCallback onMore;
 
   @override
   Widget build(BuildContext context) {
@@ -284,30 +377,36 @@ class _DecisionHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
-          const _HeaderMoreMark(),
+          _HeaderMoreButton(onPressed: onMore),
         ],
       ),
     );
   }
 }
 
-/// Repère visuel du handoff. Aucun menu n'est inventé tant que son contenu
-/// n'est pas fourni pour une phase ultérieure.
-class _HeaderMoreMark extends StatelessWidget {
-  const _HeaderMoreMark();
+class _HeaderMoreButton extends StatelessWidget {
+  const _HeaderMoreButton({required this.onPressed});
+
+  final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
-    return ExcludeSemantics(
-      child: Container(
-        width: 48,
-        height: 48,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(color: _border),
-          borderRadius: BorderRadius.circular(15),
+    return Semantics(
+      button: true,
+      label: 'Open journey menu',
+      child: IconButton(
+        key: const ValueKey('decision-more-menu'),
+        tooltip: 'Journey menu',
+        onPressed: onPressed,
+        icon: const Icon(Icons.more_horiz_rounded, color: _ink, size: 28),
+        style: IconButton.styleFrom(
+          fixedSize: const Size(48, 48),
+          backgroundColor: Colors.white,
+          side: const BorderSide(color: _border),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
         ),
-        child: const Icon(Icons.more_horiz_rounded, color: _ink, size: 28),
       ),
     );
   }

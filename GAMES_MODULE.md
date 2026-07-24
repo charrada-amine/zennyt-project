@@ -18,7 +18,7 @@ Chaque **jeu** correspond à un `GameType` (un domaine cognitif = une fiche) et 
 | ↳ **Planifik — « Je planifie » (domaine)** | `PLANIFIK` | *(les 3 mini-jeux ci-dessus)* | Planification | 🟢 **Complet** — profil global **/30** | Flame + Flutter |
 | **Move Fast — « Je bouge »** | `MOVE_FAST` | `MOVE_FAST_CORE` | Flexibilité cognitive — switching de règles (niveau unique : Orientation ⇄ Mouvement **aléatoire**) | 🟢 **Complet** — barème d'escalade (50 × mult., streak 4, bonus 250) | Flutter custom |
 | **Memory Quest — « J'investigue »** | `MEMORY_QUEST` | `MEMORY_QUEST_CORE` | Mémoire de travail — Mission A (digit span) + B (objets) + distraction | 🟢 **Complet** — 7 niveaux (3→9), calibrage → timeout (score dépend du temps), `session_valid` ; composite **/100** | Flutter custom |
-| **« Je Décide » — Phases 1–2** | `DECISION` | — | Prise de décision | 🟡 **Onboarding + player card + pratique + démonstrateur gameplay mobile** (II/ER/DT/CS/RE, XP, badge) ; aucun score/backend à ce stade | Flutter |
+| **« Je Décide » — Phases 1–4 mobile** | `DECISION` | — | Prise de décision | 🟡 **Parcours UI complet** : onboarding, pratique, formats II/ER/DT/CS/RE, checkpoint/reprise, pause/règles, profil radar, insights et export/partage placeholder. **Profil = aperçu maquette**, aucun score/backend à ce stade | Flutter |
 | **Gestion émotionnelle — « Je gère »** | *(à créer)* | — | Régulation émotionnelle | 🔴 **Non déclaré** — absent de `GameType`, carte hub inactive | — |
 
 > **Barème par mini-jeu** : Chemin Optimal / Ordonnancement / Tour de Hanoï → **/10** chacun ; leur somme = **profil Planifik /30**. Move Fast → points d'escalade (normalisés /100 pour l'interprétation). Memory Quest → **composite /100**. Score **toujours calculé serveur** (le client n'envoie que des métriques).
@@ -266,14 +266,16 @@ sur l'onglet Careers/Progress ; les routes de jeu restent plein écran.
 | | `domain/entities/game_score.dart` | Score noté (immuable). |
 | | `domain/entities/game_session.dart` | `GameSession` + `GameAttempt` (miroir de l'agrégat backend). |
 | **domain / repo** | `domain/repositories/games_repository.dart` | Port : `startSession`, `submitResult`. |
-| **data** | `data/dtos/game_session_dto.dart` | Parse la réponse API → entité domaine. |
+| **data** | `data/decision_progress_store.dart` | Checkpoint local « Je Décide » : conserve uniquement le point de reprise ; les choix individuels ne sont pas persistés. |
+| | `data/dtos/game_session_dto.dart` | Parse la réponse API → entité domaine. |
 | | `data/games_repository_impl.dart` | Impl **Dio** → `/api/v1/games`. Convertit erreurs en `ApiException`. |
 | | `data/games_mock_repository.dart` | Impl **MOCK** en mémoire : reproduit le barème serveur → jouable **sans backend**. |
 | **presentation** | `presentation/games_providers.dart` | Bascule mock/backend via `--dart-define=GAMES_MOCK` (défaut `true`). |
 | | `presentation/games_controller.dart` | `AsyncNotifier<GameSession?>` : `start()` / `submit()`. |
 | | `presentation/view/games_hub_screen.dart` | Hub jeux style maquette Progress : header « Play & discover your talent », couverture, 5 cartes de domaines cognitifs (logos `assets/games icons/` via `Image.asset`), bottom nav via `ProgressScreen`. |
-| | `presentation/view/je_decide_screen.dart` | **« Je Décide » Phases 1–2** : accueil, onboarding 3 pages, player card, sélection de 6 avatars, tutoriel et entrée vers le gameplay. UI uniquement, sans score ni session backend. |
-| | `presentation/view/je_decide_gameplay.dart` | Démonstrateur **Phase 2** : shell violet, progression, cartes 2/3 options, timer DT 7 s avec timeout calme, paire CS consécutive, préférence différée, feedback XP et badge. XP visuel uniquement ; aucune dimension interne ni score exposé/calculé. |
+| | `presentation/view/je_decide_screen.dart` | **« Je Décide » Phases 1–4** : machine d'états du welcome au profil final, restauration automatique d'un checkpoint local. UI uniquement, sans session backend. |
+| | `presentation/view/je_decide_gameplay.dart` | Gameplay **Phases 2–3** : scénarios représentatifs, timer DT 7 s, paire CS, feedback XP, encouragement, badge/dimension, checkpoint, pause/règles et sauvegarde/reprise. XP visuel uniquement ; aucun score calculé. |
+| | `presentation/view/je_decide_results.dart` | Résultats **Phase 4** : fin de parcours, préparation, radar accessible, score-ring/forces/axe de progression/détails et export-partage placeholder. Valeurs strictement issues de la maquette et marquées `DecisionProfilePreview`, jamais calculées depuis les choix. |
 | | `presentation/view/planifik_screen.dart` | Flow complet **Optimal Path** (intro Path Mind, How To Play, gameplay **multi-niveaux**, score, comparaison) + HUD stations, **menu pause** (`_PauseDialog`), légende, contrôles + bouton « Continue to scheduling » (→ Planifik #2). Voir [Flow Optimal Path](#-flow-optimal-path-mobile). |
 | | `presentation/view/task_scheduling_screen.dart` | **Planifik #2 « Ordonnancement de tâches »** : tap-to-place d'un lot de tâches (dépendances + échéances affichées), mesure (deps/horaires/cohérence/réajustements), soumet via le repo, `ScoreDetailPanel`, enchaîne vers #3. |
 | | `presentation/view/move_fast_screen.dart` | Écran complet « Je bouge » (intro, tutoriels, gameplay **niveau unique à règle aléatoire**, résultats). Voir [Niveau Move Fast](#-niveau-move-fast-mobile). |
@@ -400,16 +402,18 @@ Le mobile accumule un `PrevisionPuzzleLevelMetrics` **par niveau** (`_levelMetri
 (barème catégoriel de la fiche) puis font la **moyenne arrondie** via `scorePrevisionPuzzle` — un seul
 `Attempt` enregistré. `globalPlanSuccess` est exposé dans la réponse mais reste **hors du score**.
 
-### 🧭 Flow « Je Décide » — Phases 1–2 (mobile)
+### 🧭 Flow « Je Décide » — Phases 1–4 (mobile)
 
-`je_decide_screen.dart` implémente uniquement les écrans fournis dans le handoff, dans une machine
-d'états locale :
+`je_decide_screen.dart` orchestre les écrans fournis dans les trois dossiers de handoff, dans une
+machine d'états locale :
 
 `welcome → onboarding (3 pages) → playerCard → avatar → practiceIntro → practiceScenario`
 
-`→ analytical → riskBalance → quickChoice → stabilityFirst → stabilitySecond`
+`→ analytical → riskBalance → quickChoice → xpFeedback → checkpoint → encouragement`
 
-`→ selfControl → xpFeedback → badge → hub`.
+`→ badge → dimensionComplete → stabilityFirst → stabilitySecond → selfControl`
+
+`→ journeyComplete → preparing → profile → strengths → details → export → hub`.
 
 - **Welcome** : hero violet, objectif/durée/format, étapes et confidentialité.
 - **Onboarding** : carousel « Every choice tells a story », « No pressure » et
@@ -425,12 +429,22 @@ d'états locale :
 - **Choix rapide** : timer visuel + numérique de 7 s, état critique orange à 2 s, timeout calme
   puis passage automatique au scénario suivant. Aucune notion de réussite/échec.
 - **Feedback** : écran `+12 XP` et badge `Steady Explorer`. Ces valeurs reproduisent seulement les
-  états visuels de la Phase 2 ; elles ne constituent pas un barème.
+  états visuels des maquettes ; elles ne constituent pas un barème.
+- **Checkpoint/reprise** : à mi-parcours, pause optionnelle, écran de progression sauvegardée et
+  restauration automatique. `DecisionProgressStore` conserve uniquement le nom de l'étape de
+  reprise dans `SharedPreferences`, jamais les réponses.
+- **Menu pause** : la croix gameplay ouvre un dialogue avec reprise, son/musique, règles et
+  sauvegarde/sortie. Le timer DT est réellement suspendu puis reprend au même nombre de secondes.
+- **Résultats Phase 4** : fin 30/30, préparation, radar avec équivalent textuel accessible, profil,
+  forces, axe de progression, cinq dimensions détaillées et écran export/partage placeholder.
+  Le profil `82/100 — Analytical Decision-Maker` et ses cinq valeurs sont un **aperçu exact de la
+  maquette**, isolé dans `DecisionProfilePreview` ; il n'est pas dérivé des choix.
 - La bottom nav partagée reste visible pendant l'introduction et disparaît pendant la pratique et
-  tout le gameplay.
-- La Phase 2 se termine provisoirement après le badge et revient au hub. Le deuxième écran de
-  pratique, le catalogue complet des 30 scénarios, la randomisation, le profil final, le scoring,
-  les métriques et les appels backend restent reportés aux phases 3–4.
+  tout le gameplay/résultat.
+- Restent à fournir avant l'intégration backend : `Practice 2/2`, catalogue des 30 scénarios,
+  mapping option→dimension (0–3), seuils de profil, règles XP/badges et règles de randomisation.
+  Tant qu'ils manquent, aucun `MiniGame.DECISION_CORE`, métrique, score, appel backend ni profil
+  psychométrique réel n'est créé côté client.
 
 La carte `Decision-Making` du hub pointe exclusivement vers `/games/je-decide`. Predictive Puzzle
 reste dans `Executive Planning`.
@@ -543,7 +557,7 @@ Schémas : `GameType`, `MiniGame`, `SessionStatus`, `StartSessionRequest`, `Opti
 | **« J'investigue » — backend (Phase 4)** : mini-jeu `MEMORY_QUEST_CORE`, `MemoryQuestMetrics` (mesures par tâche), `MemoryQuestScoringService` (tâches 0–5 → **composite /100**), indicateurs + détail du score exposés, migration **V12** (CHECK), parité mock ; mobile soumet via le repository (score serveur autoritatif) | 🟢 Fait |
 | **« J'investigue » — système de niveaux** (7 niveaux, longueur 3→9, +1 après 3 tâches réussies ; objets 4→12 ; distraction gatée niveau ≥ 3 ; arrêt à `max_sequence_length`/`max_session_duration_min`) | 🟢 Fait (backend + mobile + parité mock) |
 | **« J'investigue » — calibrage appareil → timeout** (1er module dont le **score dépend du temps**) : `max_task_time_ms + offset` ; tâche dépassant le seuil ajusté = échec voidé ; `session_valid` | 🟢 Fait — socle `DeviceCalibration`/`CalibrationService` **réutilisé** (non modifié) |
-| **« Je Décide » (`DECISION`) — Phases 1–2 mobile** | 🟡 Fait — onboarding, player card, avatars, pratique, cinq formats de gameplay, timer/timeout, XP et badge ; catalogue complet/backend/scoring/profil reportés aux phases 3–4 |
+| **« Je Décide » (`DECISION`) — Phases 1–4 mobile** | 🟡 Fait côté UI — parcours complet jusqu'au profil, timer/timeout, transitions, pause/règles, checkpoint/reprise, radar/insights/export placeholder ; **profil maquette uniquement**. Catalogue complet/backend/scoring réel en attente des règles |
 | **Gestion émotionnelle — « Je gère »** (régulation émotionnelle, 5ᵉ domaine) | 🔴 **À faire** — **non déclaré** dans `GameType`, carte hub inactive |
 | Bascule mock ⇄ backend | 🟢 `--dart-define=GAMES_MOCK` |
 | Socle de calibrage appareil (méthode « technique », transversal) | 🟢 Fait — appliqué à Move Fast (indicateurs `*Adjusted`), réutilisable Decision/Memory Quest |
@@ -577,7 +591,7 @@ Schémas : `GameType`, `MiniGame`, `SessionStatus`, `StartSessionRequest`, `Opti
 | 16 | **« J'investigue » — `max_task_time_ms`** | **6000 ms PROVISOIRE** (délai max d'une tâche avant échec par dépassement) | Fiche : aucune valeur scientifique ; recommande le 95ᵉ percentile pilote | `MemoryQuestConfig.MAX_TASK_TIME_MS` |
 | 17 | **« J'investigue » — seuil critique d'offset de calibrage** | **100 ms PROVISOIRE** (au-delà → session invalide) | Non chiffré par la fiche | `MemoryQuestConfig.CRITICAL_CALIBRATION_OFFSET_MS` |
 | 18 | **« J'investigue » — seuil « trop de timeouts » (critère validité 3)** | **> 3 tâches PROVISOIRE** (au-delà → session invalide) | Non chiffré par la fiche | `MemoryQuestConfig.MAX_TIMEOUT_TASKS` |
-| 19 | **« Je Décide » — frontière Phases 1–2** | Après `Practice 1/2`, enchaînement sur le démonstrateur des cinq formats fourni ; arrêt après le badge et retour hub. XP purement visuel, sans score/profil/backend | `Practice 2/2`, catalogue des 30 scénarios et règles de scoring réservés aux phases 3–4 | `je_decide_screen.dart`, `je_decide_gameplay.dart` |
+| 19 | **« Je Décide » — frontière mobile/backend** | Le parcours UI Phases 1–4 est navigable. Le profil final est l'aperçu statique de la maquette (`DecisionProfilePreview`) et ne dépend jamais des choix ; XP purement visuel | `Practice 2/2`, catalogue 30 scénarios, mapping option→dimension, seuils de profil, XP/badges et randomisation non fournis | `je_decide_screen.dart`, `je_decide_gameplay.dart`, `je_decide_results.dart` |
 
 **Conforme à la fiche, NE PAS toucher** : profil global Planifik /30 (`interpretGlobal`), cœur du barème Move Fast (50 × multiplicateur, streak 4, bonus 250), barème catégoriel « Predictive Puzzle » (seule fiche validée), architecture par Domain Events.
 
@@ -599,6 +613,22 @@ vous touchez à l'un de ces chemins :
 - [ ] Un barème change → mettre à jour la section **Barème** (backend **et** mock mobile doivent rester identiques).
 - [ ] Un nouveau jeu/mini-jeu devient jouable → mettre à jour le **tableau de statut** et la **roadmap**.
 - [ ] Mettre à jour la ligne ci-dessous.
+
+**Changelog (29) — 2026-07-24** : correctif menu pause « Je Décide » — le bouton
+`…` des écrans welcome/onboarding/player card/avatar/pratique ouvre désormais réellement le menu
+du parcours (continuer, règles, audio, sortie), et le gameplay expose une icône pause explicite
+au lieu de masquer cette action derrière la croix. Le même menu/règles est réutilisé, le timer DT
+reste gelé pendant son ouverture. Tests widget ajoutés pour les deux points d'entrée.
+
+**Changelog (28) — 2026-07-24** : « Je Décide » Phases 3–4 mobile — transitions
+Phase 3, checkpoint et reprise locale sans conserver les choix, menu pause/règles avec gel réel
+du timer, écrans pause/progression sauvegardée/welcome back, fin de parcours 30/30, préparation,
+radar accessible, profil/forces/détails et export-partage placeholder. Les badges et graphiques
+sont dessinés nativement (aucun asset flou ajouté). Le profil final reprend exactement l'exemple
+de la maquette dans `DecisionProfilePreview` et reste explicitement non psychométrique : aucun
+calcul mobile, métrique, contrat ou backend ajouté faute de catalogue/barème validé. Tests widget
+du flow complet premier écran→profil, pause/règles/timer, checkpoint/reprise et résultats ajoutés.
+Zones protégées inchangées.
 
 **Changelog (27) — 2026-07-24** : « Je Décide » Phase 2 mobile — nouveau
 `je_decide_gameplay.dart` avec shell violet responsive, progression, formats II/ER/DT/CS/RE,
@@ -626,3 +656,10 @@ améliorations UI ; génération initiale Planifik « Chemin Optimal » + Move F
 
 > 💡 Astuce équipe : ajoutez ce fichier aux `CODEOWNERS` du dossier `games` et référencez-le dans la
 > description de vos PR pour qu'il reste « à la une ».
+
+**Dernière mise à jour** : 2026-07-24 — **(28)** « Je Décide » Phases 3–4 mobile :
+flow UI complété du checkpoint au profil final, pause/règles, sauvegarde-reprise locale,
+radar/insights/export placeholder ; profil exemple isolé et aucun scoring/backend inventé.
+
+**Dernière mise à jour** : 2026-07-24 — **(29)** menu pause « Je Décide » rendu
+explicitement accessible depuis le bouton `…` des écrans de parcours et l'icône pause du gameplay.

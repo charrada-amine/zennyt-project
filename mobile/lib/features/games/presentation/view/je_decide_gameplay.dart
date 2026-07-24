@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_typography.dart';
+import '../../data/decision_progress_store.dart';
 import '../widgets/game_system_components.dart';
 
 const _decisionInk = Color(0xFF28234F);
@@ -14,23 +15,29 @@ const _decisionSoftPink = Color(0xFFFFF1F7);
 const _decisionTimer = Color(0xFF2BD06F);
 const _decisionWarning = Color(0xFFFFA033);
 
-/// Écrans de référence livrés dans la Phase 2 de « Je Décide ».
+/// Étapes de gameplay et de transition livrées dans les Phases 2–3.
 ///
 /// Cette séquence démontre les cinq formats de scénario et leurs états
 /// d'interaction. Le catalogue complet, le scoring et la persistance restent
-/// volontairement hors de ce widget jusqu'aux phases 3–4.
+/// volontairement hors de ce widget jusqu'à validation du barème serveur.
 enum DecisionGameplayStep {
   analytical,
   riskBalance,
   quickChoice,
+  xpFeedback,
+  checkpoint,
+  encouragement,
+  pause,
+  savedProgress,
+  resumeJourney,
+  badge,
+  dimensionComplete,
   stabilityFirst,
   stabilitySecond,
   selfControl,
-  xpFeedback,
-  badge,
 }
 
-/// Boucle de gameplay mobile de la Phase 2.
+/// Boucle de gameplay mobile des Phases 2–3.
 ///
 /// Les valeurs XP reproduisent uniquement les états visuels des maquettes :
 /// elles ne constituent pas un barème et ne sont jamais soumises au backend.
@@ -40,11 +47,13 @@ class DecisionGameplayView extends StatefulWidget {
     required this.onClose,
     required this.onComplete,
     this.initialStep = DecisionGameplayStep.analytical,
+    this.resumeStepAfterWelcome = DecisionGameplayStep.encouragement,
   });
 
   final VoidCallback onClose;
   final VoidCallback onComplete;
   final DecisionGameplayStep initialStep;
+  final DecisionGameplayStep resumeStepAfterWelcome;
 
   @override
   State<DecisionGameplayView> createState() => _DecisionGameplayViewState();
@@ -58,6 +67,7 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
   Timer? _countdown;
   Timer? _timeoutAdvance;
   late DecisionGameplayStep _step;
+  late DecisionGameplayStep _resumeTarget;
   int _secondsRemaining = _quickChoiceDuration;
   bool _timedOut = false;
 
@@ -65,6 +75,7 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
   void initState() {
     super.initState();
     _step = widget.initialStep;
+    _resumeTarget = widget.resumeStepAfterWelcome;
     if (_step == DecisionGameplayStep.quickChoice) {
       _scheduleQuickChoiceTimer();
     }
@@ -84,21 +95,33 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
     DecisionGameplayStep.analytical => 4,
     DecisionGameplayStep.riskBalance => 7,
     DecisionGameplayStep.quickChoice => 13,
+    DecisionGameplayStep.xpFeedback ||
+    DecisionGameplayStep.checkpoint ||
+    DecisionGameplayStep.pause ||
+    DecisionGameplayStep.savedProgress => 15,
+    DecisionGameplayStep.encouragement ||
+    DecisionGameplayStep.resumeJourney ||
+    DecisionGameplayStep.badge ||
+    DecisionGameplayStep.dimensionComplete => 16,
     DecisionGameplayStep.stabilityFirst => 19,
     DecisionGameplayStep.stabilitySecond => 20,
-    DecisionGameplayStep.selfControl ||
-    DecisionGameplayStep.xpFeedback ||
-    DecisionGameplayStep.badge => 25,
+    DecisionGameplayStep.selfControl => 30,
   };
 
   int get _visualXp => switch (_step) {
     DecisionGameplayStep.analytical => 36,
     DecisionGameplayStep.riskBalance => 48,
-    DecisionGameplayStep.quickChoice => 72,
+    DecisionGameplayStep.quickChoice || DecisionGameplayStep.xpFeedback => 48,
+    DecisionGameplayStep.checkpoint ||
+    DecisionGameplayStep.pause ||
+    DecisionGameplayStep.savedProgress => 60,
+    DecisionGameplayStep.encouragement ||
+    DecisionGameplayStep.resumeJourney => 60,
+    DecisionGameplayStep.badge => 72,
+    DecisionGameplayStep.dimensionComplete => 84,
     DecisionGameplayStep.stabilityFirst => 96,
     DecisionGameplayStep.stabilitySecond => 108,
-    DecisionGameplayStep.selfControl || DecisionGameplayStep.xpFeedback => 132,
-    DecisionGameplayStep.badge => 144,
+    DecisionGameplayStep.selfControl => 144,
   };
 
   bool get _isChoiceStep => switch (_step) {
@@ -108,8 +131,17 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
     DecisionGameplayStep.stabilityFirst ||
     DecisionGameplayStep.stabilitySecond ||
     DecisionGameplayStep.selfControl => true,
-    DecisionGameplayStep.xpFeedback || DecisionGameplayStep.badge => false,
+    DecisionGameplayStep.xpFeedback ||
+    DecisionGameplayStep.checkpoint ||
+    DecisionGameplayStep.encouragement ||
+    DecisionGameplayStep.pause ||
+    DecisionGameplayStep.savedProgress ||
+    DecisionGameplayStep.resumeJourney ||
+    DecisionGameplayStep.badge ||
+    DecisionGameplayStep.dimensionComplete => false,
   };
+
+  bool get _usesLightShell => !_isChoiceStep;
 
   int? get _selection => _selections[_step];
 
@@ -120,10 +152,12 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
     });
   }
 
-  void _startQuickChoiceTimer() {
+  void _startQuickChoiceTimer({bool reset = true}) {
     _countdown?.cancel();
-    _secondsRemaining = _quickChoiceDuration;
-    _timedOut = false;
+    if (reset) {
+      _secondsRemaining = _quickChoiceDuration;
+      _timedOut = false;
+    }
     _countdown = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted || _selection != null) {
         timer.cancel();
@@ -144,7 +178,7 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
             : const Duration(milliseconds: 1500),
         () {
           if (mounted && _step == DecisionGameplayStep.quickChoice) {
-            _goTo(DecisionGameplayStep.stabilityFirst);
+            _goTo(DecisionGameplayStep.xpFeedback);
           }
         },
       );
@@ -179,18 +213,70 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
       case DecisionGameplayStep.riskBalance:
         _goTo(DecisionGameplayStep.quickChoice);
       case DecisionGameplayStep.quickChoice:
+        _goTo(DecisionGameplayStep.xpFeedback);
+      case DecisionGameplayStep.xpFeedback:
+        _goTo(DecisionGameplayStep.checkpoint);
+      case DecisionGameplayStep.checkpoint:
+        _goTo(DecisionGameplayStep.encouragement);
+      case DecisionGameplayStep.encouragement:
+        _goTo(DecisionGameplayStep.badge);
+      case DecisionGameplayStep.pause:
+        _goTo(DecisionGameplayStep.encouragement);
+      case DecisionGameplayStep.savedProgress:
+        _goTo(DecisionGameplayStep.resumeJourney);
+      case DecisionGameplayStep.resumeJourney:
+        _goTo(_resumeTarget);
+      case DecisionGameplayStep.badge:
+        _goTo(DecisionGameplayStep.dimensionComplete);
+      case DecisionGameplayStep.dimensionComplete:
         _goTo(DecisionGameplayStep.stabilityFirst);
       case DecisionGameplayStep.stabilityFirst:
         _goTo(DecisionGameplayStep.stabilitySecond);
       case DecisionGameplayStep.stabilitySecond:
         _goTo(DecisionGameplayStep.selfControl);
       case DecisionGameplayStep.selfControl:
-        _goTo(DecisionGameplayStep.xpFeedback);
-      case DecisionGameplayStep.xpFeedback:
-        _goTo(DecisionGameplayStep.badge);
-      case DecisionGameplayStep.badge:
         widget.onComplete();
     }
+  }
+
+  Future<void> _openPauseMenu() async {
+    final timerWasRunning =
+        _step == DecisionGameplayStep.quickChoice &&
+        _selection == null &&
+        !_timedOut;
+    _countdown?.cancel();
+    final action = await showDialog<DecisionPauseAction>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const DecisionPauseDialog(),
+    );
+    if (!mounted) return;
+    switch (action) {
+      case DecisionPauseAction.rules:
+        await showDialog<void>(
+          context: context,
+          builder: (_) => const DecisionRulesDialog(),
+        );
+        if (mounted) await _openPauseMenu();
+        return;
+      case DecisionPauseAction.exit:
+        _resumeTarget = _step;
+        await DecisionProgressStore().saveCheckpoint(stepName: _step.name);
+        if (mounted) _goTo(DecisionGameplayStep.savedProgress);
+        return;
+      case DecisionPauseAction.resume || null:
+        if (timerWasRunning && mounted) {
+          _startQuickChoiceTimer(reset: false);
+        }
+    }
+  }
+
+  Future<void> _saveFromCheckpoint() async {
+    _resumeTarget = DecisionGameplayStep.encouragement;
+    await DecisionProgressStore().saveCheckpoint(
+      stepName: DecisionGameplayStep.encouragement.name,
+    );
+    if (mounted) _goTo(DecisionGameplayStep.savedProgress);
   }
 
   @override
@@ -198,8 +284,11 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
     final animationDuration = _reduceMotion
         ? Duration.zero
         : const Duration(milliseconds: 250);
+    final shellColor = _usesLightShell
+        ? const Color(0xFFF7F8FE)
+        : _decisionViolet;
     return ColoredBox(
-      color: _decisionViolet,
+      color: shellColor,
       child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 10, 20, 18),
@@ -208,10 +297,14 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
               _DecisionProgressHeader(
                 scenarioNumber: _scenarioNumber,
                 xp: _visualXp,
-                onClose: widget.onClose,
+                onPause: _openPauseMenu,
+                light: _usesLightShell,
               ),
               const SizedBox(height: 12),
-              _JourneyProgress(value: _scenarioNumber / 30),
+              _JourneyProgress(
+                value: _scenarioNumber / 30,
+                light: _usesLightShell,
+              ),
               if (_step == DecisionGameplayStep.quickChoice) ...[
                 const SizedBox(height: 10),
                 _DecisionTimer(
@@ -397,7 +490,28 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
         onSelected: _select,
       ),
       DecisionGameplayStep.xpFeedback => _XpFeedbackView(onContinue: _continue),
+      DecisionGameplayStep.checkpoint => _CheckpointView(
+        onContinue: _continue,
+        onPause: () => _goTo(DecisionGameplayStep.pause),
+      ),
+      DecisionGameplayStep.encouragement => _EncouragementView(
+        onContinue: _continue,
+      ),
+      DecisionGameplayStep.pause => _JourneyPausedView(
+        onResume: _continue,
+        onExit: _saveFromCheckpoint,
+      ),
+      DecisionGameplayStep.savedProgress => _SavedProgressView(
+        onResume: _continue,
+        onBack: widget.onClose,
+      ),
+      DecisionGameplayStep.resumeJourney => _ResumeJourneyView(
+        onContinue: _continue,
+      ),
       DecisionGameplayStep.badge => _BadgeView(onContinue: _continue),
+      DecisionGameplayStep.dimensionComplete => _DimensionCompleteView(
+        onContinue: _continue,
+      ),
     };
   }
 }
@@ -406,12 +520,14 @@ class _DecisionProgressHeader extends StatelessWidget {
   const _DecisionProgressHeader({
     required this.scenarioNumber,
     required this.xp,
-    required this.onClose,
+    required this.onPause,
+    required this.light,
   });
 
   final int scenarioNumber;
   final int xp;
-  final VoidCallback onClose;
+  final VoidCallback onPause;
+  final bool light;
 
   @override
   Widget build(BuildContext context) {
@@ -421,12 +537,12 @@ class _DecisionProgressHeader extends StatelessWidget {
         children: [
           Semantics(
             button: true,
-            label: 'Close decision journey',
+            label: 'Pause decision journey',
             child: IconButton(
-              key: const ValueKey('decision-close'),
-              tooltip: 'Close',
-              onPressed: onClose,
-              icon: const Icon(Icons.close_rounded),
+              key: const ValueKey('decision-pause-button'),
+              tooltip: 'Pause',
+              onPressed: onPause,
+              icon: const Icon(Icons.pause_rounded),
               style: IconButton.styleFrom(
                 fixedSize: const Size(48, 48),
                 backgroundColor: Colors.white,
@@ -444,7 +560,7 @@ class _DecisionProgressHeader extends StatelessWidget {
               child: Text(
                 'Scenario ${scenarioNumber.toString().padLeft(2, '0')} / 30',
                 style: AppTypography.titleMedium.copyWith(
-                  color: Colors.white,
+                  color: light ? _decisionInk : Colors.white,
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -474,9 +590,10 @@ class _DecisionProgressHeader extends StatelessWidget {
 }
 
 class _JourneyProgress extends StatelessWidget {
-  const _JourneyProgress({required this.value});
+  const _JourneyProgress({required this.value, required this.light});
 
   final double value;
+  final bool light;
 
   @override
   Widget build(BuildContext context) {
@@ -487,7 +604,9 @@ class _JourneyProgress extends StatelessWidget {
         child: LinearProgressIndicator(
           minHeight: 6,
           value: value.clamp(0, 1),
-          backgroundColor: Colors.white.withValues(alpha: 0.88),
+          backgroundColor: light
+              ? _decisionBorder
+              : Colors.white.withValues(alpha: 0.88),
           valueColor: const AlwaysStoppedAnimation(_decisionMagenta),
         ),
       ),
@@ -1064,6 +1183,656 @@ class _BadgeView extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _CheckpointView extends StatelessWidget {
+  const _CheckpointView({required this.onContinue, required this.onPause});
+
+  final VoidCallback onContinue;
+  final VoidCallback onPause;
+
+  @override
+  Widget build(BuildContext context) {
+    return _LightStepScroll(
+      children: [
+        const SizedBox(height: 18),
+        const _BadgeMark(label: 'MB', color: _decisionViolet),
+        const SizedBox(height: 20),
+        Text(
+          'Halfway there',
+          key: const ValueKey('decision-checkpoint-title'),
+          textAlign: TextAlign.center,
+          style: AppTypography.headlineMedium.copyWith(
+            color: _decisionInk,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'You’ve completed 15 of 30 scenarios.',
+          textAlign: TextAlign.center,
+          style: AppTypography.bodyMedium.copyWith(color: _decisionMuted),
+        ),
+        const SizedBox(height: 18),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(18),
+          decoration: _lightCardDecoration(),
+          child: Column(
+            children: [
+              const Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Journey progress',
+                      style: TextStyle(
+                        color: _decisionInk,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    '50%',
+                    style: TextStyle(
+                      color: _decisionMagenta,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              const _JourneyProgress(value: 0.5, light: true),
+              const SizedBox(height: 18),
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 8,
+                runSpacing: 8,
+                children: const [
+                  _MilestoneChip(label: 'Thoughtful'),
+                  _MilestoneChip(label: 'Focused'),
+                  _MilestoneChip(label: 'Adaptive'),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+        GamePrimaryButton(
+          key: const ValueKey('decision-checkpoint-continue'),
+          label: 'Continue journey',
+          onPressed: onContinue,
+        ),
+        const SizedBox(height: 10),
+        GameOutlineButton(
+          key: const ValueKey('decision-checkpoint-pause'),
+          label: 'Take a short pause',
+          onPressed: onPause,
+        ),
+      ],
+    );
+  }
+}
+
+class _EncouragementView extends StatelessWidget {
+  const _EncouragementView({required this.onContinue});
+
+  final VoidCallback onContinue;
+
+  @override
+  Widget build(BuildContext context) {
+    return _LightStepScroll(
+      children: [
+        const SizedBox(height: 48),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(24, 34, 24, 30),
+          decoration: _lightCardDecoration(),
+          child: Column(
+            children: [
+              const _BadgeMark(label: '16', color: _decisionMagenta),
+              const SizedBox(height: 28),
+              Text(
+                'Nice reflection. Let’s continue.',
+                key: const ValueKey('decision-encouragement-title'),
+                textAlign: TextAlign.center,
+                style: AppTypography.headlineSmall.copyWith(
+                  color: _decisionInk,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Another scenario is ready.',
+                textAlign: TextAlign.center,
+                style: AppTypography.bodyMedium.copyWith(color: _decisionMuted),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 28),
+        GamePrimaryButton(
+          key: const ValueKey('decision-encouragement-continue'),
+          label: 'Continue',
+          onPressed: onContinue,
+        ),
+      ],
+    );
+  }
+}
+
+class _JourneyPausedView extends StatelessWidget {
+  const _JourneyPausedView({required this.onResume, required this.onExit});
+
+  final VoidCallback onResume;
+  final VoidCallback onExit;
+
+  @override
+  Widget build(BuildContext context) {
+    return _LightStepScroll(
+      children: [
+        const SizedBox(height: 48),
+        const _BadgeMark(label: 'Ⅱ', color: _decisionViolet),
+        const SizedBox(height: 24),
+        Text(
+          'Pause your journey',
+          key: const ValueKey('decision-journey-paused'),
+          textAlign: TextAlign.center,
+          style: AppTypography.headlineMedium.copyWith(
+            color: _decisionInk,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          'Your progress is saved. Come back whenever you’re ready.',
+          textAlign: TextAlign.center,
+          style: AppTypography.bodyMedium.copyWith(
+            color: _decisionMuted,
+            height: 1.4,
+          ),
+        ),
+        const SizedBox(height: 24),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(18),
+          decoration: _lightCardDecoration(),
+          child: const _CompletionLine(
+            label: 'Journey complete',
+            value: '15 / 30',
+          ),
+        ),
+        const SizedBox(height: 28),
+        GamePrimaryButton(
+          key: const ValueKey('decision-pause-resume'),
+          label: 'Resume journey',
+          onPressed: onResume,
+        ),
+        const SizedBox(height: 10),
+        GameOutlineButton(
+          key: const ValueKey('decision-pause-exit'),
+          label: 'Exit for now',
+          onPressed: onExit,
+        ),
+      ],
+    );
+  }
+}
+
+class _SavedProgressView extends StatelessWidget {
+  const _SavedProgressView({required this.onResume, required this.onBack});
+
+  final VoidCallback onResume;
+  final VoidCallback onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    return _LightStepScroll(
+      children: [
+        const SizedBox(height: 28),
+        const _BadgeMark(label: '✓', color: Color(0xFF2BC66D)),
+        const SizedBox(height: 22),
+        Text(
+          'Progress saved',
+          key: const ValueKey('decision-progress-saved'),
+          style: AppTypography.headlineMedium.copyWith(
+            color: _decisionInk,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 20),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: _lightCardDecoration(),
+          child: const Column(
+            children: [
+              _CompletionLine(label: 'Scenarios complete', value: '15'),
+              Divider(height: 28, color: _decisionBorder),
+              _CompletionLine(label: 'Scenarios remaining', value: '15'),
+              Divider(height: 28, color: _decisionBorder),
+              _CompletionLine(label: 'Estimated time left', value: '7–10 min'),
+            ],
+          ),
+        ),
+        const SizedBox(height: 28),
+        GamePrimaryButton(
+          key: const ValueKey('decision-saved-resume'),
+          label: 'Resume',
+          onPressed: onResume,
+        ),
+        const SizedBox(height: 10),
+        GameOutlineButton(label: 'Back to home', onPressed: onBack),
+      ],
+    );
+  }
+}
+
+class _ResumeJourneyView extends StatelessWidget {
+  const _ResumeJourneyView({required this.onContinue});
+
+  final VoidCallback onContinue;
+
+  @override
+  Widget build(BuildContext context) {
+    return _LightStepScroll(
+      children: [
+        const SizedBox(height: 30),
+        const _BadgeMark(label: 'SE', color: _decisionMagenta),
+        const SizedBox(height: 22),
+        Text(
+          'Welcome back',
+          key: const ValueKey('decision-welcome-back'),
+          style: AppTypography.headlineMedium.copyWith(
+            color: _decisionInk,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'You’re halfway through your decision journey.',
+          textAlign: TextAlign.center,
+          style: AppTypography.bodyMedium.copyWith(color: _decisionMuted),
+        ),
+        const SizedBox(height: 24),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: _lightCardDecoration(),
+          child: const Column(
+            children: [
+              _CompletionLine(label: 'Completed', value: '15 / 30'),
+              SizedBox(height: 16),
+              _JourneyProgress(value: 0.5, light: true),
+            ],
+          ),
+        ),
+        const SizedBox(height: 28),
+        GamePrimaryButton(
+          key: const ValueKey('decision-resume-continue'),
+          label: 'Continue from scenario 16',
+          onPressed: onContinue,
+        ),
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.lock_outline_rounded, color: _decisionMagenta),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                'Your previous choices are saved.',
+                textAlign: TextAlign.center,
+                style: AppTypography.bodySmall.copyWith(color: _decisionMuted),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _DimensionCompleteView extends StatelessWidget {
+  const _DimensionCompleteView({required this.onContinue});
+
+  final VoidCallback onContinue;
+
+  @override
+  Widget build(BuildContext context) {
+    return _LightStepScroll(
+      children: [
+        const SizedBox(height: 20),
+        const _BadgeMark(label: 'RN', color: _decisionMagenta),
+        const SizedBox(height: 20),
+        Text(
+          'New milestone',
+          style: AppTypography.bodyMedium.copyWith(color: _decisionMuted),
+        ),
+        const SizedBox(height: 5),
+        Text(
+          'Risk Navigator',
+          key: const ValueKey('decision-dimension-complete'),
+          style: AppTypography.headlineMedium.copyWith(
+            color: _decisionInk,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 24),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(18),
+          decoration: _lightCardDecoration(),
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _MiniBadge(label: 'AE', active: true),
+              _MiniBadge(label: 'RN', active: true),
+              _MiniBadge(label: 'QC', active: false),
+              _MiniBadge(label: 'SE', active: false),
+              _MiniBadge(label: 'SP', active: false),
+            ],
+          ),
+        ),
+        const SizedBox(height: 28),
+        GamePrimaryButton(
+          key: const ValueKey('decision-dimension-continue'),
+          label: 'Continue',
+          onPressed: onContinue,
+        ),
+      ],
+    );
+  }
+}
+
+class _LightStepScroll extends StatelessWidget {
+  const _LightStepScroll({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(child: Column(children: children));
+  }
+}
+
+class _BadgeMark extends StatelessWidget {
+  const _BadgeMark({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 112,
+      height: 112,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: color.withValues(alpha: 0.35), width: 2),
+      ),
+      child: Container(
+        width: 72,
+        height: 72,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        child: Text(
+          label,
+          style: AppTypography.headlineSmall.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MiniBadge extends StatelessWidget {
+  const _MiniBadge({required this.label, required this.active});
+
+  final String label;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 48,
+      height: 48,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: active ? _decisionMagenta : const Color(0xFFF0F2F8),
+        shape: BoxShape.circle,
+        border: Border.all(color: active ? _decisionMagenta : _decisionBorder),
+      ),
+      child: Text(
+        label,
+        style: AppTypography.bodySmall.copyWith(
+          color: active ? Colors.white : _decisionMuted,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+}
+
+class _MilestoneChip extends StatelessWidget {
+  const _MilestoneChip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: _decisionSoftPink,
+        borderRadius: BorderRadius.circular(99),
+      ),
+      child: Text(
+        label,
+        style: AppTypography.bodySmall.copyWith(
+          color: _decisionMagenta,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+class _CompletionLine extends StatelessWidget {
+  const _CompletionLine({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(label, style: const TextStyle(color: _decisionInk)),
+        ),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            style: const TextStyle(
+              color: _decisionInk,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+BoxDecoration _lightCardDecoration() => BoxDecoration(
+  color: Colors.white,
+  borderRadius: BorderRadius.circular(24),
+  border: Border.all(color: _decisionBorder),
+  boxShadow: const [
+    BoxShadow(color: Color(0x12211A63), blurRadius: 18, offset: Offset(0, 8)),
+  ],
+);
+
+enum DecisionPauseAction { resume, rules, exit }
+
+class DecisionPauseDialog extends StatefulWidget {
+  const DecisionPauseDialog({super.key, this.gameplayActive = true});
+
+  final bool gameplayActive;
+
+  @override
+  State<DecisionPauseDialog> createState() => _DecisionPauseDialogState();
+}
+
+class _DecisionPauseDialogState extends State<DecisionPauseDialog> {
+  bool _sound = true;
+  bool _music = true;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 22),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(22, 24, 22, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              widget.gameplayActive ? 'Journey paused' : 'Journey menu',
+              key: const ValueKey('decision-pause-dialog'),
+              style: AppTypography.headlineSmall.copyWith(
+                color: _decisionInk,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              widget.gameplayActive
+                  ? 'Your current choice and timer are safely paused.'
+                  : 'Take a break, review the rules or leave the journey.',
+              textAlign: TextAlign.center,
+              style: AppTypography.bodySmall.copyWith(color: _decisionMuted),
+            ),
+            const SizedBox(height: 18),
+            SwitchListTile.adaptive(
+              value: _sound,
+              onChanged: (value) => setState(() => _sound = value),
+              secondary: const Icon(Icons.volume_up_rounded),
+              title: const Text('Sound'),
+            ),
+            SwitchListTile.adaptive(
+              value: _music,
+              onChanged: (value) => setState(() => _music = value),
+              secondary: const Icon(Icons.music_note_rounded),
+              title: const Text('Music'),
+            ),
+            const SizedBox(height: 12),
+            GamePrimaryButton(
+              key: const ValueKey('decision-pause-dialog-resume'),
+              label: widget.gameplayActive ? 'Resume journey' : 'Continue',
+              onPressed: () =>
+                  Navigator.of(context).pop(DecisionPauseAction.resume),
+            ),
+            const SizedBox(height: 10),
+            GameOutlineButton(
+              key: const ValueKey('decision-view-rules'),
+              label: 'View rules',
+              icon: Icons.menu_book_rounded,
+              onPressed: () =>
+                  Navigator.of(context).pop(DecisionPauseAction.rules),
+            ),
+            const SizedBox(height: 10),
+            TextButton(
+              onPressed: () =>
+                  Navigator.of(context).pop(DecisionPauseAction.exit),
+              child: Text(
+                widget.gameplayActive ? 'Save and exit' : 'Exit journey',
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class DecisionRulesDialog extends StatelessWidget {
+  const DecisionRulesDialog({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('How to play'),
+      content: const SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _RuleLine(
+              icon: Icons.article_outlined,
+              text: 'Read each everyday scenario.',
+            ),
+            _RuleLine(
+              icon: Icons.touch_app_rounded,
+              text: 'Choose what feels natural — there is no right or wrong.',
+            ),
+            _RuleLine(
+              icon: Icons.timer_outlined,
+              text: 'Quick choices allow 7 seconds and move on calmly.',
+            ),
+            _RuleLine(
+              icon: Icons.link_rounded,
+              text: 'Two-part scenarios always stay together.',
+            ),
+            _RuleLine(
+              icon: Icons.lock_outline_rounded,
+              text: 'Your individual choices stay private.',
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          key: const ValueKey('decision-rules-back'),
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Back'),
+        ),
+      ],
+    );
+  }
+}
+
+class _RuleLine extends StatelessWidget {
+  const _RuleLine({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: _decisionMagenta),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(color: _decisionInk, height: 1.35),
+            ),
+          ),
+        ],
       ),
     );
   }
