@@ -101,6 +101,7 @@ public class JobOfferController {
             @RequestParam(required = false) String location,
             @RequestParam(required = false) String contractType,
             @RequestParam(required = false) String experienceLevel,
+            @RequestParam(required = false) String sort,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             Authentication authentication) {
@@ -113,7 +114,7 @@ public class JobOfferController {
             totalElements = jobOfferRepository.countFeedForCandidate(candidateId);
         } else {
             offers = jobOfferRepository.search(
-                q, location, contractType, null, experienceLevel, null, null, null, page, size);
+                q, location, contractType, null, experienceLevel, null, null, null, sort, page, size);
             totalElements = jobOfferRepository.countSearch(
                 q, location, contractType, null, experienceLevel, null, null, null);
         }
@@ -151,12 +152,13 @@ public class JobOfferController {
     @RecruiterOnly
     public ResponseEntity<PageResponse<JobOfferSummaryResponse>> myOffers(
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) String sort,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             Principal principal) {
         UUID recruiterId = UUID.fromString(principal.getName());
         JobOfferStatus statusEnum = status != null ? JobOfferStatus.valueOf(status) : null;
-        List<JobOffer> offers = jobOfferRepository.findByRecruiterId(recruiterId, statusEnum, page, size);
+        List<JobOffer> offers = jobOfferRepository.findByRecruiterId(recruiterId, statusEnum, sort, page, size);
         long totalElements = jobOfferRepository.countByRecruiterId(recruiterId, statusEnum);
         return ResponseEntity.ok(PageResponse.of(toSummaries(offers, null), page, size, totalElements));
     }

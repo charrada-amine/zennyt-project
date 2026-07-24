@@ -164,6 +164,7 @@ paths:
         - { name: location, in: query, schema: { type: string } }
         - { name: contractType, in: query, schema: { $ref: '#/components/schemas/ContractType' } }
         - { name: experienceLevel, in: query, schema: { $ref: '#/components/schemas/ExperienceLevel' } }
+        - { name: sort, in: query, description: "Tri au format champ,direction (ex. postedAt,desc)", schema: { type: string } }
         - $ref: '#/components/parameters/PageParam'
         - $ref: '#/components/parameters/SizeParam'
       responses:
@@ -199,6 +200,7 @@ paths:
       description: Retourne les offres du recruteur connecté avec statistiques (candidateCount, successRate).
       parameters:
         - { name: status, in: query, schema: { $ref: '#/components/schemas/JobOfferStatus' } }
+        - { name: sort, in: query, description: "Tri au format champ,direction (ex. postedAt,desc)", schema: { type: string } }
         - $ref: '#/components/parameters/PageParam'
         - $ref: '#/components/parameters/SizeParam'
       responses:
@@ -801,6 +803,7 @@ paths:
       tags: [TestResults]
       summary: Résultats paginés pour cette offre, joints aux données candidat (recruteur, propriétaire)
       parameters:
+        - { name: sort, in: query, description: "Tri au format champ,direction (ex. completedAt,desc)", schema: { type: string } }
         - $ref: '#/components/parameters/PageParam'
         - $ref: '#/components/parameters/SizeParam'
       responses:

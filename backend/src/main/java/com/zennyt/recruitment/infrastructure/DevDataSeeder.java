@@ -65,7 +65,7 @@ public class DevDataSeeder implements CommandLineRunner {
     @Override
     public void run(String... args) {
         // Idempotent : si le recruteur de démo a déjà des offres, on ne reseed pas.
-        if (!jobOfferRepository.findByRecruiterId(RECRUITER, null, 0, 1).isEmpty()) {
+        if (!jobOfferRepository.findByRecruiterId(RECRUITER, null, null, 0, 1).isEmpty()) {
             log.info("[DevDataSeeder] Données de démo déjà présentes — seeding ignoré.");
             return;
         }

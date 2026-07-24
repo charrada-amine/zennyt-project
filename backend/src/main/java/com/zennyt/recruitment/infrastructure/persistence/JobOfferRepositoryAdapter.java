@@ -11,10 +11,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Component
 public class JobOfferRepositoryAdapter implements JobOfferRepository {
+
+    private static final Set<String> SORTABLE_FIELDS = Set.of("postedAt", "salaryMin", "salaryMax", "title");
+    private static final Sort DEFAULT_SORT = Sort.by("postedAt").descending();
 
     private final JpaJobOfferRepository jpa;
 
@@ -32,8 +36,8 @@ public class JobOfferRepositoryAdapter implements JobOfferRepository {
     public void deleteById(UUID id) { jpa.deleteById(id); }
 
     @Override
-    public List<JobOffer> findByRecruiterId(UUID recruiterId, JobOfferStatus status, int page, int size) {
-        var pageable = PageRequest.of(page, size, Sort.by("postedAt").descending());
+    public List<JobOffer> findByRecruiterId(UUID recruiterId, JobOfferStatus status, String sort, int page, int size) {
+        var pageable = PageRequest.of(page, size, SortParam.parse(sort, SORTABLE_FIELDS, DEFAULT_SORT));
         var result = status != null
             ? jpa.findByRecruiterIdAndStatus(recruiterId, status, pageable)
             : jpa.findByRecruiterId(recruiterId, pageable);
@@ -64,8 +68,8 @@ public class JobOfferRepositoryAdapter implements JobOfferRepository {
     @Override
     public List<JobOffer> search(String query, String location, String contractType,
                                   String workplaceType, String experienceLevel, String fieldOfWork,
-                                  Double salaryMin, Double salaryMax, int page, int size) {
-        var pageable = PageRequest.of(page, size, Sort.by("postedAt").descending());
+                                  Double salaryMin, Double salaryMax, String sort, int page, int size) {
+        var pageable = PageRequest.of(page, size, SortParam.parse(sort, SORTABLE_FIELDS, DEFAULT_SORT));
         return jpa.search(query, location, toEnum(ContractType.class, contractType),
                 toEnum(ExperienceLevel.class, experienceLevel), pageable)
             .map(this::toDomain).getContent();

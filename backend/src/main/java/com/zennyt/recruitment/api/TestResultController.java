@@ -67,10 +67,11 @@ public class TestResultController {
     @GetMapping
     @RecruiterOnly
     public ResponseEntity<PageResponse<TestResultListItem>> listForJob(@PathVariable UUID jobId,
+            @RequestParam(required = false) String sort,
             @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size,
             Principal principal) {
         UUID recruiterId = UUID.fromString(principal.getName());
-        List<TestResult> results = useCase.listForJob(recruiterId, jobId, page, size);
+        List<TestResult> results = useCase.listForJob(recruiterId, jobId, sort, page, size);
         long totalElements = useCase.countForJob(recruiterId, jobId);
         var items = results.stream().map(this::toListItem).toList();
         return ResponseEntity.ok(PageResponse.of(items, page, size, totalElements));

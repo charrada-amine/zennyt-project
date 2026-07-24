@@ -17,8 +17,12 @@ public interface TestResultRepository {
 
     boolean existsByCandidateIdAndJobOfferId(UUID candidateId, UUID jobOfferId);
 
-    /** Page de résultats pour une offre (vue liste recruteur). */
-    List<TestResult> findByJobOfferId(UUID jobOfferId, int page, int size);
+    /**
+     * Page de résultats pour une offre (vue liste recruteur).
+     * @param sort {@code "champ,direction"} (ex. {@code "completedAt,desc"}) — {@code null}/vide
+     *             ou champ non reconnu retombe sur le tri par défaut (contrat squad web §7.2).
+     */
+    List<TestResult> findByJobOfferId(UUID jobOfferId, String sort, int page, int size);
 
     long countByJobOfferId(UUID jobOfferId);
 

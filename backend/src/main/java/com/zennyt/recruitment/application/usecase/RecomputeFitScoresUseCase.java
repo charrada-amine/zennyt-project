@@ -74,7 +74,7 @@ public class RecomputeFitScoresUseCase {
     public int recomputeAllActive() {
         int written = 0;
         for (JobOffer offer : offers.search(null, null, null, null, null, null, null, null,
-                0, MAX_BATCH_SIZE)) {
+                null, 0, MAX_BATCH_SIZE)) {
             for (Pair pair : pairsForOffer(offer.id())) {
                 if (recomputeQuietly(pair)) written++;
             }

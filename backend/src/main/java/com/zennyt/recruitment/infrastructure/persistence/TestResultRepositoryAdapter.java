@@ -7,14 +7,19 @@ import com.zennyt.recruitment.domain.model.TestAnswer;
 import com.zennyt.recruitment.domain.model.TestResult;
 import com.zennyt.recruitment.domain.repository.TestResultRepository;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Component
 public class TestResultRepositoryAdapter implements TestResultRepository {
+    private static final Set<String> SORTABLE_FIELDS = Set.of("completedAt", "percentage", "score");
+    private static final Sort DEFAULT_SORT = Sort.by("completedAt").descending();
+
     private final JpaTestResultRepository jpa;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -31,8 +36,9 @@ public class TestResultRepositoryAdapter implements TestResultRepository {
         return jpa.existsByCandidateIdAndJobOfferId(candidateId, jobOfferId);
     }
 
-    @Override public List<TestResult> findByJobOfferId(UUID jobOfferId, int page, int size) {
-        return jpa.findByJobOfferId(jobOfferId, PageRequest.of(page, size)).map(this::toDomain).getContent();
+    @Override public List<TestResult> findByJobOfferId(UUID jobOfferId, String sort, int page, int size) {
+        var pageable = PageRequest.of(page, size, SortParam.parse(sort, SORTABLE_FIELDS, DEFAULT_SORT));
+        return jpa.findByJobOfferId(jobOfferId, pageable).map(this::toDomain).getContent();
     }
 
     @Override public long countByJobOfferId(UUID jobOfferId) { return jpa.countByJobOfferId(jobOfferId); }

@@ -36,9 +36,9 @@ public class GetTestResultsUseCase {
         return testResults.findByCandidateIdAndJobOfferId(candidateId, jobOfferId);
     }
 
-    public List<TestResult> listForJob(UUID recruiterId, UUID jobOfferId, int page, int size) {
+    public List<TestResult> listForJob(UUID recruiterId, UUID jobOfferId, String sort, int page, int size) {
         requireOwnedOffer(jobOfferId, recruiterId);
-        return testResults.findByJobOfferId(jobOfferId, page, size);
+        return testResults.findByJobOfferId(jobOfferId, sort, page, size);
     }
 
     public long countForJob(UUID recruiterId, UUID jobOfferId) {
