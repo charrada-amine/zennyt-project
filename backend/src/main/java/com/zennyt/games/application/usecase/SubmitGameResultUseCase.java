@@ -1,14 +1,18 @@
 package com.zennyt.games.application.usecase;
 
 import com.zennyt.games.application.command.SubmitGameResultCommand;
+import com.zennyt.games.domain.catalog.DecisionScenarioCatalog;
 import com.zennyt.games.domain.model.GameSession;
 import com.zennyt.games.domain.model.MiniGame;
 import com.zennyt.games.domain.repository.DeviceCalibrationRepository;
 import com.zennyt.games.domain.repository.GameSessionRepository;
 import com.zennyt.games.domain.service.CalibrationService;
+import com.zennyt.games.domain.service.DecisionScoringService;
 import com.zennyt.games.domain.service.MemoryQuestScoringService;
 import com.zennyt.games.domain.service.PlanifikScoringService;
 import com.zennyt.games.domain.service.ScoreBreakdownService;
+import com.zennyt.games.domain.vo.DecisionMetrics;
+import com.zennyt.games.domain.vo.DecisionReport;
 import com.zennyt.games.domain.vo.DeviceCalibration;
 import com.zennyt.games.domain.vo.MemoryQuestMetrics;
 import com.zennyt.games.domain.vo.MemoryQuestReport;
@@ -50,13 +54,18 @@ public class SubmitGameResultUseCase {
     private final CalibrationService calibration = new CalibrationService();
     private final ScoreBreakdownService breakdown = new ScoreBreakdownService();
     private final MemoryQuestScoringService memoryQuest = new MemoryQuestScoringService();
+    private final DecisionScoringService decision;
 
     public SubmitGameResultUseCase(GameSessionRepository repository,
                                    DeviceCalibrationRepository calibrationRepository,
-                                   ApplicationEventPublisher eventPublisher) {
+                                   ApplicationEventPublisher eventPublisher,
+                                   DecisionScenarioCatalog decisionCatalog) {
         this.repository = repository;
         this.calibrationRepository = calibrationRepository;
         this.eventPublisher = eventPublisher;
+        // « Je Décide » : le catalogue (port) est injecté ; l'impl vivante est vide
+        // tant que le psychologue n'a pas fourni les 30 scénarios.
+        this.decision = new DecisionScoringService(decisionCatalog);
     }
 
     /**
@@ -73,6 +82,7 @@ public class SubmitGameResultUseCase {
                           MoveFastFlexibilityReport moveFastReport,
                           PrevisionPuzzleReport previsionPuzzleReport,
                           MemoryQuestReport memoryQuestReport,
+                          DecisionReport decisionReport,
                           ScoreBreakdown scoreBreakdown) {
     }
 
@@ -97,11 +107,28 @@ public class SubmitGameResultUseCase {
         saved.domainEvents().forEach(eventPublisher::publishEvent);
         saved.clearEvents();
 
+        // « Je Décide » : le détail par dimension vient du report (catalogue), pas
+        // des seules métriques — on le calcule une fois et le réutilise.
+        DecisionReport decisionReport = decisionReport(command);
+
         // Détail du score (panneau) : mêmes métriques + même barème que le score.
-        ScoreBreakdown scoreBreakdown = breakdown.build(command.metrics(), score);
+        ScoreBreakdown scoreBreakdown = decisionReport != null
+            ? breakdown.decision(decisionReport, score)
+            : breakdown.build(command.metrics(), score);
 
         return new Outcome(saved, moveFastReport(command, saved),
-            previsionPuzzleReport(command), memoryQuestReport(command), scoreBreakdown);
+            previsionPuzzleReport(command), memoryQuestReport(command),
+            decisionReport, scoreBreakdown);
+    }
+
+    /** Dérive les indicateurs pour « Je Décide » (dimensions, SCW, validité) ; null sinon. */
+    private DecisionReport decisionReport(SubmitGameResultCommand command) {
+        if (command.miniGame() != MiniGame.DECISION_CORE
+            || !(command.metrics() instanceof DecisionMetrics metrics)) {
+            return null;
+        }
+        // Le calibrage appareil ajuste le temps imparti DT (double ajustement langue + calibrage).
+        return decision.report(metrics, calibration.offsetMs(command.deviceCalibration()));
     }
 
     /** Dérive les indicateurs qualitatifs pour « Predictive Puzzle » ; null sinon. */
@@ -143,6 +170,9 @@ public class SubmitGameResultUseCase {
             case PREVISION_PUZZLE -> scoring.scorePrevisionPuzzle(expectMetrics(command, PrevisionPuzzleMetrics.class));
             case MEMORY_QUEST_CORE -> memoryQuest.score(
                 expectMetrics(command, MemoryQuestMetrics.class),
+                calibration.offsetMs(command.deviceCalibration()));
+            case DECISION_CORE -> decision.score(
+                expectMetrics(command, DecisionMetrics.class),
                 calibration.offsetMs(command.deviceCalibration()));
         };
     }

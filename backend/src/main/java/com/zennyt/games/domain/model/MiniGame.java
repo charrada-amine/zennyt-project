@@ -26,7 +26,14 @@ public enum MiniGame {
     /** Move Fast #1 — « Je bouge ». Barème dynamique selon le nombre de réponses. */
     MOVE_FAST_CORE(GameType.MOVE_FAST, 0, true),
     /** Memory Quest — « J'investigue ». Composite /100 (A + B + distraction). */
-    MEMORY_QUEST_CORE(GameType.MEMORY_QUEST, 100, true);
+    MEMORY_QUEST_CORE(GameType.MEMORY_QUEST, 100, true),
+    /**
+     * « Je Décide » — prise de décision. Score agrégé = SCW /100.
+     * Non jouable tant que le {@code DecisionScenarioCatalog} est vide (30 scénarios
+     * + étiquetage des options à fournir) — même patron que TASK_SCHEDULING avant
+     * implémentation. Repasser à {@code true} une fois le catalogue rempli.
+     */
+    DECISION_CORE(GameType.DECISION, 100, false);
 
     private final GameType gameType;
     private final int maxPoints;

@@ -2,6 +2,7 @@ package com.zennyt.games.api.dto;
 
 import com.zennyt.games.domain.model.Attempt;
 import com.zennyt.games.domain.model.GameSession;
+import com.zennyt.games.domain.vo.DecisionReport;
 import com.zennyt.games.domain.vo.MemoryQuestReport;
 import com.zennyt.games.domain.vo.MoveFastFlexibilityReport;
 import com.zennyt.games.domain.vo.PrevisionPuzzleReport;
@@ -26,6 +27,7 @@ public record GameSessionResponse(
     MoveFastIndicatorsResponse moveFastIndicators,
     PrevisionPuzzleIndicatorsResponse previsionPuzzleIndicators,
     MemoryQuestIndicatorsResponse memoryQuestIndicators,
+    DecisionIndicatorsResponse decisionIndicators,
     List<ScoreBreakdownLineResponse> scoreBreakdown
 ) {
     /** Résultat d'un mini-jeu au sein de la session. */
@@ -123,6 +125,54 @@ public record GameSessionResponse(
         }
     }
 
+    /** Indicateurs « Je Décide » (calculés serveur ; détail par dimension + SCW + validité). */
+    public record DecisionIndicatorsResponse(
+        int rawScore,
+        int rawMax,
+        int scwScore,
+        String level,
+        List<DimensionScoreResponse> dimensions,
+        List<String> interpretations,
+        boolean avgTimePlausible,
+        boolean randomResponseRateOk,
+        boolean impulsiveRateOk,
+        boolean deviceLatencyWithinNorm,
+        boolean sessionUsable,
+        double averageResponseTimeMs,
+        double medianResponseTimeMs,
+        double stdDevResponseTimeMs,
+        double impulsiveResponsePercent,
+        double slowResponsePercent,
+        double intraSessionVariability,
+        int decisionChangesCount,
+        double averageResponseTimeAdjustedMs,
+        boolean dtScoreCalibrationAdjusted,
+        boolean calibrationApplied,
+        boolean calibrationReliable,
+        double calibrationOffsetMs
+    ) {
+        public record DimensionScoreResponse(
+            String dimension, Integer score, int maxScore, boolean exploitable, int answeredItems) {
+        }
+
+        static DecisionIndicatorsResponse from(DecisionReport r) {
+            return new DecisionIndicatorsResponse(
+                r.rawScore(), r.rawMax(), r.scwScore(), r.level(),
+                r.dimensions().stream()
+                    .map(d -> new DimensionScoreResponse(
+                        d.dimension().name(), d.score(), d.maxScore(), d.exploitable(), d.answeredItems()))
+                    .toList(),
+                r.interpretations(),
+                r.avgTimePlausible(), r.randomResponseRateOk(), r.impulsiveRateOk(),
+                r.deviceLatencyWithinNorm(), r.sessionUsable(),
+                r.averageResponseTimeMs(), r.medianResponseTimeMs(), r.stdDevResponseTimeMs(),
+                r.impulsiveResponsePercent(), r.slowResponsePercent(), r.intraSessionVariability(),
+                r.decisionChangesCount(), r.averageResponseTimeAdjustedMs(),
+                r.dtScoreCalibrationAdjusted(), r.calibrationApplied(), r.calibrationReliable(),
+                r.calibrationOffsetMs());
+        }
+    }
+
     /** Une ligne du détail du score (panneau « d'où viennent mes points »). */
     public record ScoreBreakdownLineResponse(
         String kind, String label, String detail, Integer points, Integer maxPoints) {
@@ -133,13 +183,14 @@ public record GameSessionResponse(
     }
 
     public static GameSessionResponse from(GameSession s) {
-        return from(s, null, null, null, null);
+        return from(s, null, null, null, null, null);
     }
 
     public static GameSessionResponse from(GameSession s,
                                            MoveFastFlexibilityReport moveFastReport,
                                            PrevisionPuzzleReport previsionPuzzleReport,
                                            MemoryQuestReport memoryQuestReport,
+                                           DecisionReport decisionReport,
                                            ScoreBreakdown scoreBreakdown) {
         return new GameSessionResponse(
             s.id(), s.playerId(), s.gameType().name(), s.status().name(),
@@ -151,6 +202,7 @@ public record GameSessionResponse(
                 : PrevisionPuzzleIndicatorsResponse.from(previsionPuzzleReport),
             memoryQuestReport == null ? null
                 : MemoryQuestIndicatorsResponse.from(memoryQuestReport),
+            decisionReport == null ? null : DecisionIndicatorsResponse.from(decisionReport),
             scoreBreakdown == null ? null
                 : scoreBreakdown.lines().stream().map(ScoreBreakdownLineResponse::from).toList());
     }

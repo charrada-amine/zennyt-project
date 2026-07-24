@@ -11,9 +11,6 @@ const _blue = Color(0xFF17458F);
 const _magenta = Color(0xFFD72C83);
 const _muted = Color(0xFF5D5D66);
 const _softGray = Color(0xFFEDEDED);
-const _softPink = Color(0xFFF8B8D2);
-const _softBlue = Color(0xFF3E7DE8);
-const _softSlate = Color(0xFFC8D3DC);
 
 // Logos par catégorie (fournis dans assets/games icons/).
 // NB : les noms de fichiers contiennent une espace avant « .png » — à respecter.
@@ -22,6 +19,14 @@ const _iconMemory = 'assets/games icons/Working Memory .png';
 const _iconDecision = 'assets/games icons/Decision-Making .png';
 const _iconPlanning = 'assets/games icons/Executive Planning .png';
 const _iconEmotion = 'assets/games icons/Emotional Regulation .png';
+
+// Logos officiels des jeux, repris des premières pages de chaque jeu.
+const _logoMoveFast = 'assets/games icons/Move Fast.png';
+const _logoMemoryQuest = 'assets/games icons/Memory Quest.png';
+const _logoJeDecide = 'assets/games icons/Je Decide.png';
+const _logoOptimalPath = 'assets/games icons/Optimal Path.png';
+const _logoTaskScheduling = 'assets/games icons/Task Scheduling.png';
+const _logoPredictivePuzzle = 'assets/games icons/Predictive Puzzle.png';
 
 /// Hub des jeux sérieux, aligné sur l'écran Progress / Games de la maquette.
 class GamesHubScreen extends ConsumerWidget {
@@ -61,37 +66,31 @@ class GamesHubScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 26),
                   _GameCategoryCard(
+                    key: const ValueKey('game-category-cognitive-flexibility'),
                     title: 'Cognitive Flexibility',
                     iconAsset: _iconFlexibility,
-                    swatches: const [
-                      _SwatchSpec(_softBlue, Icons.near_me_rounded),
-                      _SwatchSpec(_magenta),
-                      _SwatchSpec(_softGray),
-                    ],
                     games: const [
                       _GameEntry(
                         label: 'Move Fast',
                         subtitle: 'Rule switching · Je bouge',
                         route: AppRoutes.gamesMoveFast,
-                        icon: Icons.near_me_rounded,
+                        logoAsset: _logoMoveFast,
+                        fallbackIcon: Icons.near_me_rounded,
                       ),
                     ],
                   ),
                   const SizedBox(height: 12),
                   _GameCategoryCard(
+                    key: const ValueKey('game-category-working-memory'),
                     title: 'Working Memory',
                     iconAsset: _iconMemory,
-                    swatches: const [
-                      _SwatchSpec(_softBlue, Icons.apps_rounded),
-                      _SwatchSpec(_magenta),
-                      _SwatchSpec(_softPink),
-                    ],
                     games: const [
                       _GameEntry(
                         label: 'Memory Quest',
                         subtitle: 'Digit & object span · J\'investigue',
                         route: AppRoutes.gamesInvestigate,
-                        icon: Icons.apps_rounded,
+                        logoAsset: _logoMemoryQuest,
+                        fallbackIcon: Icons.apps_rounded,
                       ),
                     ],
                   ),
@@ -99,60 +98,54 @@ class GamesHubScreen extends ConsumerWidget {
                   // Decision-Making : « Je Décide » reste distinct de
                   // Predictive Puzzle, qui appartient à Planifik.
                   _GameCategoryCard(
+                    key: const ValueKey('game-category-decision-making'),
                     title: 'Decision-Making',
                     iconAsset: _iconDecision,
-                    swatches: const [
-                      _SwatchSpec(_softSlate),
-                      _SwatchSpec(_softPink),
-                    ],
                     games: const [
                       _GameEntry(
                         label: 'Je Décide',
                         subtitle: 'Everyday choices · decision style',
                         route: AppRoutes.gamesJeDecide,
-                        icon: Icons.alt_route_rounded,
+                        logoAsset: _logoJeDecide,
+                        fallbackIcon: Icons.alt_route_rounded,
                       ),
                     ],
                   ),
                   const SizedBox(height: 12),
                   // Executive Planning (Planifik) : 3 mini-jeux → menu de sélection.
                   _GameCategoryCard(
+                    key: const ValueKey('game-category-executive-planning'),
                     title: 'Executive Planning',
                     iconAsset: _iconPlanning,
-                    swatches: const [
-                      _SwatchSpec(_softBlue),
-                      _SwatchSpec(_magenta),
-                    ],
                     games: const [
                       _GameEntry(
                         label: 'Optimal Path',
                         subtitle: 'Path Mind · shortest route',
                         route: AppRoutes.gamesPlanifik,
-                        icon: Icons.route_rounded,
+                        logoAsset: _logoOptimalPath,
+                        fallbackIcon: Icons.route_rounded,
                       ),
                       _GameEntry(
                         label: 'Task Scheduling',
                         subtitle: 'Dependencies & deadlines',
                         route: AppRoutes.gamesTaskScheduling,
-                        icon: Icons.event_note_rounded,
+                        logoAsset: _logoTaskScheduling,
+                        fallbackIcon: Icons.event_note_rounded,
                       ),
                       _GameEntry(
                         label: 'Predictive Puzzle',
                         subtitle: 'Tower of Hanoi · foresight',
                         route: AppRoutes.gamesPredictivePuzzle,
-                        icon: Icons.extension_rounded,
+                        logoAsset: _logoPredictivePuzzle,
+                        fallbackIcon: Icons.extension_rounded,
                       ),
                     ],
                   ),
                   const SizedBox(height: 12),
                   _GameCategoryCard(
+                    key: const ValueKey('game-category-emotional-regulation'),
                     title: 'Emotional Regulation',
                     iconAsset: _iconEmotion,
-                    swatches: const [
-                      _SwatchSpec(_softBlue),
-                      _SwatchSpec(_magenta),
-                      _SwatchSpec(_softSlate),
-                    ],
                   ),
                 ],
               ),
@@ -293,27 +286,28 @@ class _GameEntry {
   const _GameEntry({
     required this.label,
     required this.route,
-    required this.icon,
+    required this.logoAsset,
+    required this.fallbackIcon,
     this.subtitle,
   });
 
   final String label;
   final String route;
-  final IconData icon;
+  final String logoAsset;
+  final IconData fallbackIcon;
   final String? subtitle;
 }
 
 class _GameCategoryCard extends StatelessWidget {
   const _GameCategoryCard({
+    super.key,
     required this.title,
     required this.iconAsset,
-    required this.swatches,
     this.games = const [],
   });
 
   final String title;
   final String iconAsset;
-  final List<_SwatchSpec> swatches;
 
   /// Jeux de la catégorie. Vide → module non implémenté (carte inactive).
   /// 1 jeu → navigation directe. Plusieurs → petit menu de sélection.
@@ -375,14 +369,7 @@ class _GameCategoryCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 8),
-                Row(
-                  children: [
-                    for (final swatch in swatches) ...[
-                      _Swatch(spec: swatch),
-                      const SizedBox(width: 8),
-                    ],
-                  ],
-                ),
+                _CategoryGameLogos(games: games),
                 const Spacer(),
                 const FittedBox(
                   fit: BoxFit.scaleDown,
@@ -546,15 +533,12 @@ class _GamePickerTile extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Container(
-                width: 44,
-                height: 44,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: _blue.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(game.icon, color: _blue, size: 24),
+              _GameLogoBadge(
+                game: game,
+                contextName: 'picker',
+                size: 56,
+                iconSize: 27,
+                radius: 13,
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -623,31 +607,84 @@ class _ComingSoonBadge extends StatelessWidget {
   }
 }
 
-class _SwatchSpec {
-  const _SwatchSpec(this.color, [this.icon]);
+class _CategoryGameLogos extends StatelessWidget {
+  const _CategoryGameLogos({required this.games});
 
-  final Color color;
-  final IconData? icon;
-}
-
-class _Swatch extends StatelessWidget {
-  const _Swatch({required this.spec});
-
-  final _SwatchSpec spec;
+  final List<_GameEntry> games;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 28,
-      height: 28,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: spec.color,
-        borderRadius: BorderRadius.circular(4),
+    if (games.isEmpty) {
+      return SizedBox(
+        height: 32,
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
+            'Jeux à venir',
+            style: AppTypography.bodySmall.copyWith(
+              color: _muted,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      );
+    }
+    return SizedBox(
+      height: 36,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: games.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        itemBuilder: (_, index) => _GameLogoBadge(
+          game: games[index],
+          contextName: 'category',
+          size: 36,
+          iconSize: 19,
+          radius: 9,
+        ),
       ),
-      child: spec.icon == null
-          ? null
-          : Icon(spec.icon, color: Colors.white, size: 18),
+    );
+  }
+}
+
+class _GameLogoBadge extends StatelessWidget {
+  const _GameLogoBadge({
+    required this.game,
+    required this.contextName,
+    required this.size,
+    required this.iconSize,
+    required this.radius,
+  });
+
+  final _GameEntry game;
+  final String contextName;
+  final double size;
+  final double iconSize;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      image: true,
+      label: '${game.label} logo',
+      child: SizedBox(
+        key: ValueKey('$contextName-game-logo-${game.label}'),
+        width: size,
+        height: size,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(radius),
+          child: Image.asset(
+            game.logoAsset,
+            fit: BoxFit.contain,
+            filterQuality: FilterQuality.high,
+            errorBuilder: (context, error, stackTrace) => ColoredBox(
+              color: const Color(0xFFF1F4FA),
+              child: Icon(game.fallbackIcon, color: _blue, size: iconSize),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

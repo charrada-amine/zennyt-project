@@ -5,6 +5,7 @@ import com.zennyt.games.domain.config.MoveFastConfig;
 import com.zennyt.games.domain.config.OptimalPathConfig;
 import com.zennyt.games.domain.config.PrevisionPuzzleConfig;
 import com.zennyt.games.domain.config.TaskSchedulingConfig;
+import com.zennyt.games.domain.vo.DecisionReport;
 import com.zennyt.games.domain.vo.GameMetrics;
 import com.zennyt.games.domain.vo.MemoryQuestMetrics;
 import com.zennyt.games.domain.vo.MoveFastMetrics;
@@ -49,6 +50,28 @@ public class ScoreBreakdownService {
             return memoryQuest(m, score);
         }
         return null;
+    }
+
+    /**
+     * « Je Décide » — une ligne par dimension /18, puis brut /90, puis SCW /100.
+     * Le détail par dimension vient du {@link DecisionReport} (catalogue serveur),
+     * pas des seules métriques : d'où une signature dédiée.
+     */
+    public ScoreBreakdown decision(DecisionReport report, Score score) {
+        List<Line> lines = new ArrayList<>();
+        lines.add(Line.note("Chaque dimension est notée /18 (6 items × 3) ; brut = somme /90 ; "
+            + "SCW = score composite standardisé pondéré /100 (poids provisoires)."));
+        for (DecisionReport.DimensionScore d : report.dimensions()) {
+            if (d.exploitable() && d.score() != null) {
+                lines.add(Line.criterion(d.dimension().name(),
+                    d.answeredItems() + " items", d.score(), d.maxScore()));
+            } else {
+                lines.add(Line.info(d.dimension().name(), "bloc non exploitable (> 2 items manquants)"));
+            }
+        }
+        lines.add(Line.subtotal("Brut", report.rawScore(), report.rawMax()));
+        lines.add(Line.total("SCW", score.rawPoints(), score.maxPoints()));
+        return new ScoreBreakdown(lines);
     }
 
     /** « J'investigue » — notes par tâche (0–5) puis composite /100. */

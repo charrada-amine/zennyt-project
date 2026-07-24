@@ -18,7 +18,7 @@ Chaque **jeu** correspond à un `GameType` (un domaine cognitif = une fiche) et 
 | ↳ **Planifik — « Je planifie » (domaine)** | `PLANIFIK` | *(les 3 mini-jeux ci-dessus)* | Planification | 🟢 **Complet** — profil global **/30** | Flame + Flutter |
 | **Move Fast — « Je bouge »** | `MOVE_FAST` | `MOVE_FAST_CORE` | Flexibilité cognitive — switching de règles (niveau unique : Orientation ⇄ Mouvement **aléatoire**) | 🟢 **Complet** — barème d'escalade (50 × mult., streak 4, bonus 250) | Flutter custom |
 | **Memory Quest — « J'investigue »** | `MEMORY_QUEST` | `MEMORY_QUEST_CORE` | Mémoire de travail — Mission A (digit span) + B (objets) + distraction | 🟢 **Complet** — 7 niveaux (3→9), calibrage → timeout (score dépend du temps), `session_valid` ; composite **/100** | Flutter custom |
-| **« Je Décide » — Phases 1–4 mobile** | `DECISION` | — | Prise de décision | 🟡 **Parcours UI complet** : onboarding, pratique, formats II/ER/DT/CS/RE, checkpoint/reprise, pause/règles, profil radar, insights et export/partage placeholder. **Profil = aperçu maquette**, aucun score/backend à ce stade | Flutter |
+| **« Je Décide » — Phases 1–4 mobile** | `DECISION` | `DECISION_CORE` | Prise de décision (II, ER, DT, CS, RE — /18 chacune → /90 → SCW /100) | 🟡 **Parcours UI complet** (aperçu maquette) + 🟢 **moteur backend prêt** : agrégation, règle DT, imputation, interprétations, validité, couche provisoire isolée. **Non jouable end-to-end** tant que le catalogue de 30 scénarios est vide (`DECISION_CORE.isPlayable()=false`) | Flutter (UI) / Java (moteur) |
 | **Gestion émotionnelle — « Je gère »** | *(à créer)* | — | Régulation émotionnelle | 🔴 **Non déclaré** — absent de `GameType`, carte hub inactive | — |
 
 > **Barème par mini-jeu** : Chemin Optimal / Ordonnancement / Tour de Hanoï → **/10** chacun ; leur somme = **profil Planifik /30**. Move Fast → points d'escalade (normalisés /100 pour l'interprétation). Memory Quest → **composite /100**. Score **toujours calculé serveur** (le client n'envoie que des métriques).
@@ -214,6 +214,33 @@ Le client envoie `practiceTrialExcludedCount` + `responses[]`, un objet par essa
 
 - Interprétation mini-jeu (provisoire, partagée, `OptimalPathConfig.MINI_GAME_INTERPRETATION_BANDS`) : 0–3 *Très faible* · 4–6 *Moyen* · 7–10 *Bon à excellent*
 
+### 🧭 « Je Décide » (`DECISION_CORE`) — moteur définitif + couche provisoire isolée
+
+Prise de décision (fiche « JE DÉCIDE »). Architecture **imposée : deux couches strictement séparées**. Le moteur ne code jamais une valeur provisoire — il la lit dans le seul fichier `DecisionProvisionalRules`. Remplacer le provisoire ne demande **aucune** modification du moteur.
+
+**Couche MOTEUR (définitive — `DecisionConfig` + `DecisionScoringService`)**
+- **Structure** : 5 dimensions (`II, ER, DT, CS, RE`), **6 items/dimension**, 30 items notés, item /3, 3 items d'entraînement, ordre des blocs randomisé, mode évaluation, score **jamais** montré au joueur.
+- **Agrégation** : dimension = somme des 6 items → **/18** ; brut = somme des 5 dimensions → **/90** ; score agrégé du mini-jeu = **SCW /100** (un seul `Attempt`, `rawPoints=SCW`, `maxPoints=100` ; détail par dimension dans la réponse API).
+- **Règle DT** (seule dimension dont le score dépend du temps) : temps imparti effectif = `7 s × multiplicateur_langue + calibration_offset_ms` (**double ajustement** langue puis calibrage, socle `CalibrationService` réutilisé, non modifié). Correct (option OPTIMALE) et latence **< 75 %** → **3** ; correct mais **≥ 75 %** → **2** ; incorrect → **score de qualité de l'option**. Multiplicateurs **fournis** : `en 1.00 · fr 1.20 · de 1.25`.
+- **Imputation** : ≤ 2 items manquants dans un bloc → chaque manquant imputé par la **moyenne du bloc** (⇔ moyenne des présents × 6) ; **> 2 → bloc non exploitable** (exclu du SCW, `exploitable=false`).
+- **Interprétations automatiques** (textes de la fiche) : SCW ≥ 75 → *fonction décisionnelle élevée* · II bas + CS bas → *difficulté d'analyse et incohérence* · ER élevé + RE bas → *prise de risque sous émotion* · DT élevé → *bonne performance sous pression*.
+- **Qualité de session** : `avgTimePlausible`, `impulsiveRateOk`, `randomResponseRateOk`, `deviceLatencyWithinNorm` → `sessionUsable` ; contrôles **renforcés** en mode non supervisé.
+- **Indicateurs** : RT moyen/médian/écart-type, `impulsiveResponsePercent`, `slowResponsePercent`, `intraSessionVariability`, `decisionChangesCount`, `averageResponseTimeAdjustedMs`, `dtScoreCalibrationAdjusted` — exposés dans `GameSessionResponse.decisionIndicators`.
+
+**Couche PROVISOIRE (un seul fichier — `DecisionProvisionalRules`, chaque constante `// PROVISOIRE`)**
+- **a — mapping option → score par QUALITÉ** (pas par scénario) : enum `OptionQuality` avec les libellés exacts de la fiche — `OPTIMAL→3` (optimal/cohérent) · `SATISFACTORY→2` (satisfaisant/suboptimal) · `PARTIAL→1` (partiel/incohérent) · `DEFICIENT→0` (déficitaire/non pertinent). Le catalogue étiquette **chaque option** d'une qualité, jamais d'un score brut.
+- **b — poids SCW = 1.0** pour les 5 dimensions (la fiche dit « pondéré » sans donner les poids) : `scw = (Σ dim×poids)/(18×Σ poids)×100`. Vérifié sur l'exemple validé de la fiche (II=12, ER=9, DT=15, CS=14, RE=10 → raw=60 → **SCW ≈ 66,7**).
+- **c — bornes de niveau** (seul ≥ 75 vient de la fiche) : **Élevé ≥ 75** · Normal 60–74 · Borderline 45–59 · Fragile < 45.
+- **d — règle CS** (paire liée) : la note dérive de la cohérence entre les deux réponses — cohérentes → OPTIMAL · partielles → SATISFACTORY · contradictoires → DEFICIENT (`coherenceQuality`).
+- **e — multiplicateurs es/it/pt** (estimations sectorielles : 1.22 / 1.18 / 1.22) + **fallback `ar`** documenté (1.20, tracé) plutôt qu'un échec.
+- Seuils « bas/élevé » par dimension (déclencheurs des interprétations) et seuils de qualité de session : provisoires, isolés ici.
+
+**Catalogue — port injectable** : `DecisionScenarioCatalog` (dimension + format + `OptionQuality` par option). Implémentation vivante **vide** `EmptyDecisionScenarioCatalog` (`// EN ATTENTE DU PSYCHOLOGUE — 30 scénarios + étiquetage`). **Aucun contenu de scénario n'est inventé.** `MiniGame.DECISION_CORE.isPlayable()=false` tant que le catalogue est vide (même patron que `TASK_SCHEDULING` avant implémentation).
+
+**À demander au psychologue pour remplacer le provisoire** : (bloquant) **catalogue des 30 scénarios + étiquetage `OptionQuality` des options** ; poids SCW réels ; bornes de niveau hors ≥ 75 ; multiplicateurs es/it/pt/ar ; échelles post-test fatigue/motivation (et age/educationLevel).
+
+**Détail du score** (`ScoreBreakdownService.decision`) : une ligne par dimension `/18`, puis brut `/90`, puis `SCW /100`. **Parité mock** à répliquer dans `games_mock_repository.dart` (câblage UI → backend = lot séparé ; les écrans `je_decide_*.dart` ne sont pas modifiés).
+
 ### 🎯 Socle de calibrage appareil (transversal — Tâche 4)
 
 Méthode **« technique » pure** (fiche « JE BOUGE » Tableau 2 révisé + guide Calibrage_Appareil) : sépare la **latence machine** du **temps de réaction cognitif**. La méthode « hybrid » des autres fiches est **écartée** (mélange latence matérielle et cognition → invalidée).
@@ -236,10 +263,11 @@ Méthode **« technique » pure** (fiche « JE BOUGE » Tableau 2 révisé + gui
 
 Chaque critère affiche la **valeur mesurée entre parenthèses** et les **points/max**. Libellés fidèles aux barèmes ci-dessus. La décomposition Move Fast (points de jeu vs bonus) provient de `MoveFastConfig.replay` — même source que le score.
 
-### Schéma DB (`V9__games_schema.sql`, `V11__games_device_calibrations.sql`, `V12__games_memory_quest_minigame.sql`)
+### Schéma DB (`V9__games_schema.sql`, `V11__games_device_calibrations.sql`, `V12__games_memory_quest_minigame.sql`, `V24__games_decision_minigame.sql`)
 
 - `games.game_sessions` : `id`, `player_id`, `game_type`, `status`, `started_at`, `completed_at` + `CHECK` sur type/status, index `(player_id)` et `(game_type, status)`.
 - **V12** (« J'investigue ») : la contrainte `ck_game_attempts_mini_game` autorise désormais `MEMORY_QUEST_CORE` (aucune nouvelle table — le composite est un `Attempt` /100).
+- **V24** (« Je Décide ») : la contrainte `ck_game_attempts_mini_game` autorise désormais `DECISION_CORE` (aucune nouvelle table — le SCW est un `Attempt` /100 ; `DECISION` était déjà autorisé au niveau session par V9).
 - `games.device_calibrations` (**V11**, Tâche 4) : PK/FK `session_id` (au plus un calibrage/session), `calibration_method`, `input_mode`, `device_category`, `refresh_rate_hz`, `hardware_concurrency?`, `device_memory_gb?`, `input_processing_latency_ms?`, `display_latency_ms`, `calibration_offset_ms`, `reduced_reliability` + `CHECK` sur méthode/mode/catégorie. **Les temps bruts ne sont pas modifiés** : la table conserve le profil + l'offset pour audit.
 - `games.game_attempts` : `session_id` (FK CASCADE), `mini_game`, `raw_points`, `max_points`, `level`, `recorded_at` + `CHECK` mini_game/points, index `(session_id)`.
 
@@ -272,7 +300,7 @@ sur l'onglet Careers/Progress ; les routes de jeu restent plein écran.
 | | `data/games_mock_repository.dart` | Impl **MOCK** en mémoire : reproduit le barème serveur → jouable **sans backend**. |
 | **presentation** | `presentation/games_providers.dart` | Bascule mock/backend via `--dart-define=GAMES_MOCK` (défaut `true`). |
 | | `presentation/games_controller.dart` | `AsyncNotifier<GameSession?>` : `start()` / `submit()`. |
-| | `presentation/view/games_hub_screen.dart` | Hub jeux style maquette Progress : header « Play & discover your talent », couverture, 5 cartes de domaines cognitifs (logos `assets/games icons/` via `Image.asset`), bottom nav via `ProgressScreen`. |
+| | `presentation/view/games_hub_screen.dart` | Hub jeux style maquette Progress : header « Play & discover your talent », 5 cartes de domaines cognitifs, illustration de catégorie + logos PNG officiels des jeux (`assets/games icons/`) ; le picker multi-jeux réutilise les mêmes images. |
 | | `presentation/view/je_decide_screen.dart` | **« Je Décide » Phases 1–4** : machine d'états du welcome au profil final, restauration automatique d'un checkpoint local. UI uniquement, sans session backend. |
 | | `presentation/view/je_decide_gameplay.dart` | Gameplay **Phases 2–3** : scénarios représentatifs, timer DT 7 s, paire CS, feedback XP, encouragement, badge/dimension, checkpoint, pause/règles et sauvegarde/reprise. XP visuel uniquement ; aucun score calculé. |
 | | `presentation/view/je_decide_results.dart` | Résultats **Phase 4** : fin de parcours, préparation, radar accessible, score-ring/forces/axe de progression/détails et export-partage placeholder. Valeurs strictement issues de la maquette et marquées `DecisionProfilePreview`, jamais calculées depuis les choix. |
@@ -305,8 +333,14 @@ Le hub n'est plus une liste `ListTile` générique. Il suit la maquette fournie 
 - Indicateur **Coverage 0%** en magenta.
 - 5 cartes bordées bleu : Cognitive Flexibility, Working Memory, Decision-Making,
   Executive Planning, Emotional Regulation.
-- Chaque carte affiche : titre + chevron, swatches couleur, durée `10-13mins`,
-  `N° aptitudes`, illustration PNG.
+- Chaque carte affiche : titre + chevron, **logos PNG officiels des jeux réellement disponibles**
+  (un logo pour Move Fast/Memory Quest/Je Décide, trois pour Planifik), durée `10-13mins`,
+  `N° aptitudes`, illustration PNG. Les anciennes swatches décoratives ont été supprimées.
+- Le bottom sheet d'une catégorie multi-jeux reprend le **même fichier image** pour chaque entrée
+  (`Optimal Path`, `Task Scheduling`, `Predictive Puzzle`) afin de conserver l'identité visuelle
+  entre le hub et le sélecteur. Les six logos proviennent des couvertures officielles fournies :
+  `Move Fast.png`, `Memory Quest.png`, `Je Decide.png`, `Optimal Path.png`,
+  `Task Scheduling.png`, `Predictive Puzzle.png`.
 - Assets déclarés dans `mobile/pubspec.yaml` :
   `assets/04 Optimal Path/` (`image 120.png`, `image 120-1.png`, `image 121.png`,
   `image 121-1.png`, `image 121-2.png`) **et** `assets/04 Predictive Puzzle/`
@@ -543,7 +577,7 @@ Schémas : `GameType`, `MiniGame`, `SessionStatus`, `StartSessionRequest`, `Opti
 | Move Fast — essais d'échauffement (warm-up) exclus du scoring/stats | 🟢 Fait |
 | Move Fast — condition de fin (`SessionEndMode`) | 🟠 **Configurable** : défaut `FIXED_BUDGET` (12/18/84 s, DIVERGE de la fiche) / `REACH_MAX_MULTIPLIER` (fiche) — bascule = 1 constante, à valider par le psychologue |
 | Move Fast — bandes d'interprétation (/100) | 🟠 Provisoires, **non validées** par le psychologue |
-| Hub Games / Progress — maquette 5 domaines cognitifs + assets `04 Optimal Path` + bottom nav conservée | 🟢 Fait |
+| Hub Games / Progress — maquette 5 domaines cognitifs, mini-logos des jeux dans les cartes + picker, bottom nav conservée | 🟢 Fait |
 | Planifik #3 `PREVISION_PUZZLE` — Predictive Puzzle | 🟢 Fait |
 | Predictive Puzzle — **3 niveaux (3 → 4 → 5 disques, optimal `2^n − 1`)** + disques responsive | 🟢 Fait |
 | Predictive Puzzle — **barème catégoriel de la fiche** (1er essai/erreurs/coups superflus), remplace l'ancienne formule inventée | 🟢 Fait |
@@ -614,6 +648,15 @@ vous touchez à l'un de ces chemins :
 - [ ] Un nouveau jeu/mini-jeu devient jouable → mettre à jour le **tableau de statut** et la **roadmap**.
 - [ ] Mettre à jour la ligne ci-dessous.
 
+**Changelog (31) — 2026-07-24** : Hub Games — remplacement des swatches décoratives
+par les mini-logos des jeux disponibles dans chaque catégorie. Les mêmes symboles vectoriels et
+accents couleur sont maintenant réutilisés dans le bottom sheet Executive Planning pour Optimal
+Path, Task Scheduling et Predictive Puzzle. Emotional Regulation reste explicitement « Jeux à
+venir ». Aucun asset/dépendance/pubspec ajouté ; test widget hub + picker ajouté.
+
+**Changelog (30) — 2026-07-24** : **« Je Décide » — moteur backend (`DECISION_CORE`)**,
+deux couches strictement séparées. **MOTEUR (définitif)** : `DecisionConfig` (5 dimensions × 6 items /18 → /90, item /3, règle DT à **double ajustement** langue `7 s × mult` puis `+ offset` calibrage — correct+rapide `<75%`→3 / correct+lent→2 / incorrect→qualité option, multiplicateurs fournis en/fr/de, imputation ≤2→moyenne du bloc / >2→non exploitable) et `DecisionScoringService` (agrégation, SCW, interprétations fiche, qualité de session renforcée si non supervisé, indicateurs temporels). **PROVISOIRE (un seul fichier `DecisionProvisionalRules`, chaque constante `// PROVISOIRE`)** : (a) mapping option→score par **qualité** (`OptionQuality` OPTIMAL/SATISFACTORY/PARTIAL/DEFICIENT = 3/2/1/0) ; (b) **poids SCW = 1.0** (vérifié : raw=60 → **SCW 66,7**) ; (c) bornes de niveau (seul ≥75 fiche) Élevé/Normal/Borderline/Fragile ; (d) dérivation CS depuis la cohérence de la paire ; (e) multiplicateurs es/it/pt + fallback ar tracé. **Catalogue** port `DecisionScenarioCatalog` + impl vivante **vide** `EmptyDecisionScenarioCatalog` (`// EN ATTENTE DU PSYCHOLOGUE — 30 scénarios + étiquetage`) → `DECISION_CORE.isPlayable()=false` (patron `TASK_SCHEDULING`) ; **aucun contenu de scénario inventé**. VO `DecisionMetrics`/`DecisionItemResponse`/`DecisionReport` + enums `DecisionDimension`/`DecisionItemFormat`/`OptionQuality`/`AdministrationMode`. Contrat OpenAPI (`DecisionMetrics`/`DecisionIndicators`/`DecisionDimension`/`AdministrationMode`, `DECISION_CORE`, `decisionIndicators`), câblage `SubmitResultRequest.toMetrics`/use case/`GameSessionResponse`/`ScoreBreakdownService.decision` (dimensions /18 → brut /90 → SCW /100), `interpretGlobal(DECISION)`. Migration **V24** (CHECK `game_attempts` += `DECISION_CORE`). Tests `DecisionScoringTest` (6×OPTIMAL→18/18, **exemple fiche 66,7→Normal**, DT rapide/lent, DT langue en 7 s vs fr 8,4 s, DT calibrage ne bascule pas 3→2, imputation 2→moyenne / 3→non exploitable, les 4 interprétations, `session_usable=false` par critère, **délégation moteur→provisoire** = swappabilité). Domaine pur (ArchUnit). **Reste : parité mock `games_mock_repository.dart` + câblage UI `je_decide_*.dart` (lot séparé), et le catalogue psychologue.** Zones protégées inchangées (barèmes Planifik/Move Fast/Memory Quest, events, socle calibrage réutilisé, pom/pubspec, écrans mobile).
+
 **Changelog (29) — 2026-07-24** : correctif menu pause « Je Décide » — le bouton
 `…` des écrans welcome/onboarding/player card/avatar/pratique ouvre désormais réellement le menu
 du parcours (continuer, règles, audio, sortie), et le gameplay expose une icône pause explicite
@@ -661,5 +704,17 @@ améliorations UI ; génération initiale Planifik « Chemin Optimal » + Move F
 flow UI complété du checkpoint au profil final, pause/règles, sauvegarde-reprise locale,
 radar/insights/export placeholder ; profil exemple isolé et aucun scoring/backend inventé.
 
-**Dernière mise à jour** : 2026-07-24 — **(29)** menu pause « Je Décide » rendu
-explicitement accessible depuis le bouton `…` des écrans de parcours et l'icône pause du gameplay.
+**Dernière mise à jour** : 2026-07-24 — **(30)** « Je Décide » — moteur backend `DECISION_CORE`
+(deux couches séparées : moteur définitif `DecisionConfig`/`DecisionScoringService` + couche provisoire
+isolée `DecisionProvisionalRules` ; catalogue port vide en attente du psychologue ; SCW /100, règle DT à
+double ajustement, imputation, interprétations, validité ; contrat + V24 + tests, domaine pur). **(29)** menu
+pause « Je Décide » rendu explicitement accessible depuis le bouton `…` des écrans de parcours et l'icône pause du gameplay.
+
+**Dernière mise à jour** : 2026-07-24 — **(31)** Hub Games : mini-logos et chartes
+couleur des jeux affichés dans les cartes de catégorie et dans le sélecteur multi-jeux.
+
+**Dernière mise à jour** : 2026-07-24 — **(32)** Hub Games : remplacement des
+pictogrammes provisoires par les six logos PNG officiels fournis (Move Fast, Memory Quest,
+Je Décide, Optimal Path, Task Scheduling, Predictive Puzzle), affichés à l'identique dans
+les cartes de catégorie et le sélecteur. Contrôle qualité : fichiers nets et transparents,
+aucune régénération nécessaire. Aucun barème, contrat, endpoint ou event modifié.

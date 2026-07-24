@@ -1,7 +1,10 @@
 package com.zennyt.games.api.dto;
 
 import com.zennyt.games.domain.model.MiniGame;
+import com.zennyt.games.domain.vo.AdministrationMode;
 import com.zennyt.games.domain.vo.CostlyZonesAvoided;
+import com.zennyt.games.domain.vo.DecisionItemResponse;
+import com.zennyt.games.domain.vo.DecisionMetrics;
 import com.zennyt.games.domain.vo.GameMetrics;
 import com.zennyt.games.domain.vo.MemoryQuestMetrics;
 import com.zennyt.games.domain.vo.MemoryTaskKind;
@@ -70,7 +73,15 @@ public record SubmitResultRequest(
         Boolean dependenciesRespected,
         Boolean timeConstraintsRespected,
         @Min(0) Integer planningCoherence,
-        @Min(0) Integer adjustmentCount
+        @Min(0) Integer adjustmentCount,
+        // « Je Décide » (DECISION_CORE) — mesures par item + contexte de session.
+        @Size(min = 1) @Valid List<DecisionItemPayload> decisionItems,
+        String sessionLanguage,
+        String administrationMode,
+        @Min(0) Integer age,
+        String educationLevel,
+        @Min(0) Integer fatigue,
+        @Min(0) Integer motivation
     ) {}
 
     /** Socle de calibrage appareil (optionnel). Le score n'en dépend pas pour Move Fast. */
@@ -123,6 +134,19 @@ public record SubmitResultRequest(
         @Min(1) Integer optimalMoves,
         @NotNull @Min(0) Integer retries,
         @NotNull Boolean completed
+    ) {}
+
+    /**
+     * Réponse mesurée à un item « Je Décide ». Le client envoie l'option choisie
+     * et le temps — jamais de qualité ni de points (décidés serveur via le catalogue).
+     */
+    public record DecisionItemPayload(
+        @NotNull String itemId,
+        @NotNull com.zennyt.games.domain.vo.DecisionDimension dimension,
+        String selectedOptionId,
+        @NotNull @Min(0) Integer responseTimeMs,
+        Boolean answered,
+        @Min(0) Integer decisionChangesCount
     ) {}
 
     /** Une tâche « J'investigue » mesurée (le timeout est décidé serveur). */
@@ -195,7 +219,25 @@ public record SubmitResultRequest(
                 required(metrics.timeConstraintsRespected(), "timeConstraintsRespected"),
                 required(metrics.planningCoherence(), "planningCoherence"),
                 required(metrics.adjustmentCount(), "adjustmentCount"));
+            case DECISION_CORE -> new DecisionMetrics(
+                required(metrics.decisionItems(), "decisionItems").stream()
+                    .map(SubmitResultRequest::toDecisionItem).toList(),
+                metrics.sessionLanguage(),
+                metrics.administrationMode() == null ? AdministrationMode.SUPERVISED
+                    : parseEnum(AdministrationMode.class, metrics.administrationMode()),
+                metrics.age(), metrics.educationLevel(), metrics.fatigue(), metrics.motivation());
         };
+    }
+
+    private static DecisionItemResponse toDecisionItem(DecisionItemPayload p) {
+        boolean answered = p.answered() == null || p.answered();
+        return new DecisionItemResponse(
+            required(p.itemId(), "itemId"),
+            required(p.dimension(), "dimension"),
+            p.selectedOptionId(),
+            required(p.responseTimeMs(), "responseTimeMs"),
+            answered,
+            orZero(p.decisionChangesCount()));
     }
 
     private static int orZero(Integer value) {
