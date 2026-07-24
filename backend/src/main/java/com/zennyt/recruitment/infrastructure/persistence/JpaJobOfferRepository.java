@@ -18,6 +18,13 @@ public interface JpaJobOfferRepository extends JpaRepository<JobOfferEntity, UUI
     long countByStatus(JobOfferStatus status);
     boolean existsByAssessmentId(UUID assessmentId);
 
+    @Query("SELECT j.id FROM JobOfferEntity j WHERE j.assessmentId = :assessmentId")
+    java.util.List<UUID> findIdsByAssessmentId(UUID assessmentId);
+
+    @Query("SELECT j.assessmentId, COUNT(j) FROM JobOfferEntity j " +
+           "WHERE j.assessmentId IN :assessmentIds GROUP BY j.assessmentId")
+    java.util.List<Object[]> countGroupedByAssessmentId(java.util.List<UUID> assessmentIds);
+
     // CAST(:p AS string) sur chaque référence dans LOWER : sans cela PostgreSQL
     // infère les paramètres null comme `bytea` et la fonction LOWER échoue.
     // Les filtres enum sont typés : comparer un paramètre String à un champ
@@ -35,4 +42,27 @@ public interface JpaJobOfferRepository extends JpaRepository<JobOfferEntity, UUI
            "WHERE j.status = 'ACTIVE' " +
            "ORDER BY CASE WHEN f.score IS NULL THEN 1 ELSE 0 END, f.score DESC, j.postedAt DESC")
     Page<JobOfferEntity> findFeedForCandidate(UUID candidateId, Pageable pageable);
+
+    // Object[] = {JobOfferEntity, SwipeDirection du swipe recruteur réciproque (ou null)}.
+    // Exclut les offres swipées LEFT par ce candidat ou déjà matchées ; priorité aux
+    // offres où le recruteur a déjà swipé RIGHT sur ce candidat (contrat squad web §5.5).
+    @Query("SELECT j, recruiterSwipe.direction FROM JobOfferEntity j " +
+           "LEFT JOIN SwipeEntity ownSwipe ON ownSwipe.jobOfferId = j.id " +
+           "  AND ownSwipe.candidateId = :candidateId AND ownSwipe.side = com.zennyt.recruitment.domain.vo.SwipeSide.CANDIDATE " +
+           "LEFT JOIN SwipeEntity recruiterSwipe ON recruiterSwipe.jobOfferId = j.id " +
+           "  AND recruiterSwipe.candidateId = :candidateId AND recruiterSwipe.side = com.zennyt.recruitment.domain.vo.SwipeSide.RECRUITER " +
+           "LEFT JOIN MatchEntity m ON m.jobOfferId = j.id AND m.candidateId = :candidateId " +
+           "WHERE j.status = 'ACTIVE' AND m IS NULL " +
+           "AND (ownSwipe IS NULL OR ownSwipe.direction <> com.zennyt.recruitment.domain.vo.SwipeDirection.LEFT) " +
+           "ORDER BY CASE WHEN recruiterSwipe.direction = com.zennyt.recruitment.domain.vo.SwipeDirection.RIGHT THEN 0 ELSE 1 END, " +
+           "j.postedAt DESC")
+    Page<Object[]> findMatchingDeckForCandidate(UUID candidateId, Pageable pageable);
+
+    @Query("SELECT COUNT(j) FROM JobOfferEntity j " +
+           "LEFT JOIN SwipeEntity ownSwipe ON ownSwipe.jobOfferId = j.id " +
+           "  AND ownSwipe.candidateId = :candidateId AND ownSwipe.side = com.zennyt.recruitment.domain.vo.SwipeSide.CANDIDATE " +
+           "LEFT JOIN MatchEntity m ON m.jobOfferId = j.id AND m.candidateId = :candidateId " +
+           "WHERE j.status = 'ACTIVE' AND m IS NULL " +
+           "AND (ownSwipe IS NULL OR ownSwipe.direction <> com.zennyt.recruitment.domain.vo.SwipeDirection.LEFT)")
+    long countMatchingDeckForCandidate(UUID candidateId);
 }

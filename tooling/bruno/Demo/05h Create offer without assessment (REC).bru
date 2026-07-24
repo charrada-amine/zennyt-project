@@ -1,0 +1,44 @@
+meta {
+  name: 05h Create offer without assessment (REC)
+  type: http
+  seq: 47
+}
+
+post {
+  url: {{baseUrl}}/api/v1/job-offers
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{recruiterToken}}
+}
+
+body:json {
+  {
+    "title": "Offre sans test de compétences",
+    "description": "Offre créée uniquement pour démontrer NO_ASSESSMENT_LINKED.",
+    "contractType": "PART_TIME",
+    "workplaceType": "ON_SITE",
+    "experienceLevel": "JUNIOR",
+    "city": "Sfax",
+    "country": "TN",
+    "salaryMin": 800,
+    "salaryMax": 1200,
+    "responsibilities": "N/A",
+    "minimumQualifications": "N/A",
+    "openToInternational": false
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setVar("noAssessmentOfferId", res.body.id);
+  }
+}
+
+docs {
+  Offre neuve, jamais liée à un test — assessmentId reste null tant qu'aucun
+  PATCH (03g) ne la lie explicitement.
+}

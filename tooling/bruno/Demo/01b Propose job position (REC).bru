@@ -1,0 +1,35 @@
+meta {
+  name: 01b Propose job position (REC)
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/api/v1/job-positions
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{recruiterToken}}
+}
+
+body:json {
+  {
+    "name": "Ingénieur Plateforme Démo {{demoRunId}}",
+    "sector": "Tech"
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setVar("demoJobPositionId", res.body.id);
+  }
+}
+
+docs {
+  Le recruteur propose un métier absent du référentiel → PENDING_APPROVAL.
+  Nom suffixé par {{demoRunId}} pour éviter le conflit (nom, secteur) sur un
+  rejeu sans reset de base.
+}

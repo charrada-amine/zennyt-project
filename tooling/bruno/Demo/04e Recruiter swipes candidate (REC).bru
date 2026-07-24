@@ -1,0 +1,34 @@
+meta {
+  name: 04e Recruiter swipes candidate (REC)
+  type: http
+  seq: 34
+}
+
+post {
+  url: {{baseUrl}}/api/v1/job-offers/{{demoOfferId}}/candidates/{{candidateId}}/swipes
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{recruiterToken}}
+}
+
+body:json {
+  {
+    "direction": "RIGHT"
+  }
+}
+
+script:post-response {
+  if (res.status === 201 && res.body.matched) {
+    bru.setVar("demoMatchId", res.body.match.id);
+  }
+}
+
+docs {
+  Le recruteur like le candidat pour cette offre → les deux côtés ont
+  maintenant RIGHT → matched:true, Match créé dans la même transaction que
+  le swipe (élimine les races entre swipes quasi simultanés).
+}

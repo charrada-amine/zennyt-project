@@ -1,0 +1,25 @@
+meta {
+  name: 05d List results for job (REC)
+  type: http
+  seq: 43
+}
+
+get {
+  url: {{baseUrl}}/api/v1/job-offers/{{demoOfferId}}/test-results?page=0&size=20
+  body: none
+  auth: none
+}
+
+params:query {
+  page: 0
+  size: 20
+}
+
+headers {
+  Authorization: Bearer {{recruiterToken}}
+}
+
+docs {
+  Résultats paginés, joints aux données candidat (fullName/avatarUrl depuis
+  la projection acteur). Réservé au recruteur propriétaire de l'offre.
+}

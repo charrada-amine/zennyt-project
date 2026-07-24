@@ -1,0 +1,25 @@
+meta {
+  name: 04g Candidate matches (CAND)
+  type: http
+  seq: 36
+}
+
+get {
+  url: {{baseUrl}}/api/v1/candidates/me/matches?page=0&size=20
+  body: none
+  auth: none
+}
+
+params:query {
+  page: 0
+  size: 20
+}
+
+headers {
+  Authorization: Bearer {{candidateToken}}
+}
+
+docs {
+  Le match de 04e apparaît, avec jobOffer{id,title,companyName} joint en
+  lecture (jamais dupliqué sur le Match lui-même).
+}

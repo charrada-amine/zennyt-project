@@ -1,9 +1,9 @@
 package com.zennyt.recruitment.application.usecase;
 
-import com.zennyt.recruitment.domain.repository.AssessmentAttemptRepository;
 import com.zennyt.recruitment.domain.repository.HardSkillsSummaryRepository;
 import com.zennyt.recruitment.domain.repository.JobOfferRepository;
 import com.zennyt.recruitment.domain.repository.SoftSkillsSummaryRepository;
+import com.zennyt.recruitment.domain.repository.TestResultRepository;
 import com.zennyt.shared.application.exception.ForbiddenException;
 import com.zennyt.shared.application.exception.NotFoundException;
 import org.springframework.stereotype.Service;
@@ -32,7 +32,7 @@ public class GetCandidateResumeUseCase {
     public static final String SOFT_SKILLS_NOT_PLAYED_EN = "No psychometric games have been completed yet.";
 
     private final JobOfferRepository jobOffers;
-    private final AssessmentAttemptRepository attempts;
+    private final TestResultRepository testResults;
     private final SoftSkillsSummaryRepository softSkillsSummaries;
     private final HardSkillsSummaryRepository hardSkillsSummaries;
 
@@ -40,11 +40,11 @@ public class GetCandidateResumeUseCase {
     public record Result(Section softSkills, Section hardSkills) {}
 
     public GetCandidateResumeUseCase(JobOfferRepository jobOffers,
-                                     AssessmentAttemptRepository attempts,
+                                     TestResultRepository testResults,
                                      SoftSkillsSummaryRepository softSkillsSummaries,
                                      HardSkillsSummaryRepository hardSkillsSummaries) {
         this.jobOffers = jobOffers;
-        this.attempts = attempts;
+        this.testResults = testResults;
         this.softSkillsSummaries = softSkillsSummaries;
         this.hardSkillsSummaries = hardSkillsSummaries;
     }
@@ -60,7 +60,7 @@ public class GetCandidateResumeUseCase {
             .map(s -> new Section(true, s.textFr(), s.textEn(), s.updatedAt()))
             .orElseGet(() -> new Section(false, SOFT_SKILLS_NOT_PLAYED_FR, SOFT_SKILLS_NOT_PLAYED_EN, null));
 
-        boolean tested = !attempts.findByCandidateIdAndJobOfferId(candidateId, jobOfferId).isEmpty();
+        boolean tested = testResults.existsByCandidateIdAndJobOfferId(candidateId, jobOfferId);
         Section hardSkills = hardSkillsSummaries.findByCandidateIdAndJobOfferId(candidateId, jobOfferId)
             .map(s -> new Section(true, s.textFr(), s.textEn(), s.updatedAt()))
             .orElseGet(() -> tested

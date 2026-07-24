@@ -1,7 +1,7 @@
 meta {
   name: 00 Login Sami (ADMIN)
   type: http
-  seq: 3
+  seq: 6
 }
 
 post {
@@ -28,9 +28,6 @@ script:post-response {
 }
 
 docs {
-  Login admin (Sami) → stocke {{adminToken}}. Nouveau rôle ADMIN (20/07), utilisé
-  pour l'approbation du référentiel de métiers ci-dessous. L'auto-inscription
-  refuse ce rôle (`"Le rôle administrateur ne peut pas être créé publiquement"`,
-  400) — ce compte a été promu par SQL au bootstrap, comme les UUID figés des
-  5 autres comptes de démo.
+  Login admin (Sami) — promu ADMIN par SQL après inscription (l'auto-
+  inscription refuse ce rôle). Approuve/rejette le référentiel de métiers.
 }

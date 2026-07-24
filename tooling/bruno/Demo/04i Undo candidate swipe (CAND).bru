@@ -1,0 +1,21 @@
+meta {
+  name: 04i Undo candidate swipe (CAND)
+  type: http
+  seq: 38
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/job-offers/{{demoOfferId}}/swipes/me
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{candidateToken}}
+}
+
+docs {
+  204 — le swipe candidat est annulé, et le Match (qui existait) est supprimé
+  dans la même transaction. Le swipe recruteur, lui, n'est jamais touché —
+  il redevient simplement visible dans son deck.
+}

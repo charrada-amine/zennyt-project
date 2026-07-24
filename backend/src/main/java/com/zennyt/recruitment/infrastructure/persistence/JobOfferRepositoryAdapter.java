@@ -7,7 +7,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -40,6 +42,19 @@ public class JobOfferRepositoryAdapter implements JobOfferRepository {
 
     @Override
     public boolean existsByAssessmentId(UUID assessmentId) { return jpa.existsByAssessmentId(assessmentId); }
+
+    @Override
+    public List<UUID> findIdsByAssessmentId(UUID assessmentId) { return jpa.findIdsByAssessmentId(assessmentId); }
+
+    @Override
+    public Map<UUID, Long> countByAssessmentIds(List<UUID> assessmentIds) {
+        if (assessmentIds.isEmpty()) return Map.of();
+        Map<UUID, Long> counts = new HashMap<>();
+        for (Object[] row : jpa.countGroupedByAssessmentId(assessmentIds)) {
+            counts.put((UUID) row[0], (Long) row[1]);
+        }
+        return counts;
+    }
 
     @Override
     public long countByRecruiterId(UUID recruiterId, JobOfferStatus status) {
@@ -85,41 +100,48 @@ public class JobOfferRepositoryAdapter implements JobOfferRepository {
         return jpa.countByStatus(JobOfferStatus.ACTIVE);
     }
 
+    @Override
+    public List<MatchingDeckOffer> findMatchingDeckForCandidate(UUID candidateId, int page, int size) {
+        return jpa.findMatchingDeckForCandidate(candidateId, PageRequest.of(page, size)).stream()
+            .map(row -> new MatchingDeckOffer(toDomain((JobOfferEntity) row[0]),
+                row[1] == SwipeDirection.RIGHT))
+            .toList();
+    }
+
+    @Override
+    public long countMatchingDeckForCandidate(UUID candidateId) {
+        return jpa.countMatchingDeckForCandidate(candidateId);
+    }
+
     // ───────────── Mappers ─────────────
     private JobOfferEntity toEntity(JobOffer o) {
         JobOfferEntity e = new JobOfferEntity();
         e.setId(o.id()); e.setRecruiterId(o.recruiterId()); e.setHiringContactId(o.hiringContactId());
-        e.setTitle(o.title()); e.setCompanyName(o.companyName());
+        e.setTitle(o.title());
         if (o.location() != null) {
             e.setLocationCity(o.location().city()); e.setLocationCountry(o.location().country());
-            e.setLocationRemote(o.location().remote());
         }
-        if (o.salary() != null) {
-            e.setSalaryMin(o.salary().min()); e.setSalaryMax(o.salary().max());
-            e.setSalaryCurrency(o.salary().currency());
-        }
+        e.setSalaryMin(o.salaryMin()); e.setSalaryMax(o.salaryMax());
         e.setContractType(o.contractType()); e.setWorkplaceType(o.workplaceType());
-        e.setExperienceLevel(o.experienceLevel()); e.setFieldOfWork(o.fieldOfWork());
+        e.setExperienceLevel(o.experienceLevel());
         e.setDescription(o.description()); e.setResponsibilities(o.responsibilities());
         e.setMinimumQualifications(o.minimumQualifications()); e.setPreferredQualifications(o.preferredQualifications());
-        e.setWhatWeOffer(o.whatWeOffer()); e.setHowToApply(o.howToApply()); e.setCompanyInfo(o.companyInfo());
+        e.setWhatWeOffer(o.whatWeOffer()); e.setHowToApply(o.howToApply());
         e.setAssessmentId(o.assessmentId());
         e.setJobPositionId(o.jobPositionId());
-        e.setPassingScore(o.passingScore());
         e.setOpenToInternational(o.openToInternational()); e.setStatus(o.status()); e.setPostedAt(o.postedAt());
+        e.setUpdatedAt(o.updatedAt());
         return e;
     }
 
     private JobOffer toDomain(JobOfferEntity e) {
-        Location loc = new Location(e.getLocationCity(), e.getLocationCountry(), e.isLocationRemote());
-        SalaryRange sal = (e.getSalaryMin() != null && e.getSalaryMax() != null && e.getSalaryCurrency() != null)
-            ? new SalaryRange(e.getSalaryMin(), e.getSalaryMax(), e.getSalaryCurrency()) : null;
+        Location loc = new Location(e.getLocationCity(), e.getLocationCountry());
         return JobOffer.rehydrate(e.getId(), e.getRecruiterId(), e.getHiringContactId(),
-            e.getTitle(), e.getCompanyName(), loc, sal, e.getContractType(), e.getWorkplaceType(),
-            e.getExperienceLevel(), e.getFieldOfWork(), e.getDescription(), e.getResponsibilities(),
+            e.getTitle(), loc, e.getSalaryMin(), e.getSalaryMax(), e.getContractType(), e.getWorkplaceType(),
+            e.getExperienceLevel(), e.getDescription(), e.getResponsibilities(),
             e.getMinimumQualifications(), e.getPreferredQualifications(), e.getWhatWeOffer(),
-            e.getHowToApply(), e.getCompanyInfo(), e.getAssessmentId(), e.getJobPositionId(),
-            e.getPassingScore(), e.isOpenToInternational(),
-            e.getStatus(), e.getPostedAt());
+            e.getHowToApply(), e.getAssessmentId(), e.getJobPositionId(),
+            e.isOpenToInternational(),
+            e.getStatus(), e.getPostedAt(), e.getUpdatedAt());
     }
 }

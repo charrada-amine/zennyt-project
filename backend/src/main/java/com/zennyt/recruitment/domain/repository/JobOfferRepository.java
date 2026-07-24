@@ -26,6 +26,12 @@ public interface JobOfferRepository {
     /** Une offre référence-t-elle encore cette évaluation ? (intégrité avant suppression) */
     boolean existsByAssessmentId(UUID assessmentId);
 
+    /** Ids des offres référençant encore cette évaluation. */
+    List<UUID> findIdsByAssessmentId(UUID assessmentId);
+
+    /** Nombre d'offres référençant chaque évaluation (vue liste recruteur). */
+    java.util.Map<UUID, Long> countByAssessmentIds(List<UUID> assessmentIds);
+
     /** Recherche plein texte avec filtres (vue candidat, offres ACTIVE uniquement). */
     List<JobOffer> search(String query, String location, String contractType,
                           String workplaceType, String experienceLevel, String fieldOfWork,
@@ -39,4 +45,16 @@ public interface JobOfferRepository {
     List<JobOffer> findFeedForCandidate(UUID candidateId, int page, int size);
 
     long countFeedForCandidate(UUID candidateId);
+
+    /** Offre + indicateur "le recruteur a déjà swipé RIGHT sur ce candidat pour cette offre". */
+    record MatchingDeckOffer(JobOffer offer, boolean recruiterAlreadyInterested) {}
+
+    /**
+     * Deck de swipe candidat (contrat squad web §5.5) : offres ACTIVE, exclut celles
+     * déjà swipées LEFT ou déjà matchées, priorité aux offres où le recruteur a déjà
+     * swipé RIGHT sur ce candidat.
+     */
+    List<MatchingDeckOffer> findMatchingDeckForCandidate(UUID candidateId, int page, int size);
+
+    long countMatchingDeckForCandidate(UUID candidateId);
 }

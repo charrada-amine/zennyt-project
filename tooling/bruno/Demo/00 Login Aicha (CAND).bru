@@ -1,7 +1,7 @@
 meta {
   name: 00 Login Aicha (CAND)
   type: http
-  seq: 2
+  seq: 3
 }
 
 post {
@@ -24,10 +24,10 @@ body:json {
 script:post-response {
   if (res.status === 200) {
     bru.setVar("candidateToken", res.body.accessToken);
-    bru.setVar("candidateRefreshToken", res.body.refreshToken);
   }
 }
 
 docs {
-  Login candidate (Aicha) → stocke {{candidateToken}} pour toutes les requêtes (CAND).
+  Login candidate principale (Aicha) — suit le parcours complet : swipe,
+  match, test de compétences, opportunité.
 }

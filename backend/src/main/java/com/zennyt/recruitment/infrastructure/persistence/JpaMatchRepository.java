@@ -10,8 +10,6 @@ public interface JpaMatchRepository extends JpaRepository<MatchEntity, UUID> {
     Page<MatchEntity> findByCandidateId(UUID candidateId, Pageable pageable);
     Optional<MatchEntity> findFirstByCandidateIdAndJobOfferId(UUID candidateId, UUID jobOfferId);
     long countByCandidateId(UUID candidateId);
-    Page<MatchEntity> findByRecruiterId(UUID recruiterId, Pageable pageable);
-    Page<MatchEntity> findByRecruiterIdAndJobOfferId(UUID recruiterId, UUID jobOfferId, Pageable pageable);
-    long countByRecruiterId(UUID recruiterId);
-    long countByRecruiterIdAndJobOfferId(UUID recruiterId, UUID jobOfferId);
+    Page<MatchEntity> findByJobOfferId(UUID jobOfferId, Pageable pageable);
+    long countByJobOfferId(UUID jobOfferId);
 }

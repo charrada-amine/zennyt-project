@@ -1,13 +1,16 @@
 package com.zennyt.recruitment.application.usecase;
 
-import com.zennyt.recruitment.domain.model.Swipe;
-import com.zennyt.recruitment.domain.model.Match;
 import com.zennyt.recruitment.domain.model.JobOffer;
-import com.zennyt.recruitment.domain.repository.SwipeRepository;
-import com.zennyt.recruitment.domain.repository.MatchRepository;
+import com.zennyt.recruitment.domain.model.Match;
+import com.zennyt.recruitment.domain.model.Swipe;
 import com.zennyt.recruitment.domain.repository.JobOfferRepository;
-import com.zennyt.recruitment.domain.vo.SwipeDirection;
+import com.zennyt.recruitment.domain.repository.MatchRepository;
+import com.zennyt.recruitment.domain.repository.RecruitmentActorRepository;
+import com.zennyt.recruitment.domain.repository.SwipeRepository;
 import com.zennyt.recruitment.domain.vo.JobOfferStatus;
+import com.zennyt.recruitment.domain.vo.SwipeDirection;
+import com.zennyt.recruitment.domain.vo.SwipeSide;
+import com.zennyt.shared.application.exception.ConflictException;
 import com.zennyt.shared.application.exception.ForbiddenException;
 import com.zennyt.shared.application.exception.NotFoundException;
 import org.springframework.context.ApplicationEventPublisher;
@@ -17,101 +20,80 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
 
 /**
- * Cas d'usage : enregistrer un swipe (candidat ou recruteur).
+ * Cas d'usage : enregistrer un swipe (candidat ou recruteur) sur une paire
+ * (offre, candidat).
  *
- * <p>Si le swipe est un LIKE et que le côté opposé a déjà swipé LIKE,
- * un Match mutuel est automatiquement créé et son événement publié.
+ * <p>Transaction unique (contrat squad web §5.5) : insertion du swipe,
+ * vérification du swipe réciproque, création du Match si les deux côtés ont
+ * swipé RIGHT — élimine les races entre swipes quasi simultanés des deux côtés.
+ * Aucune réécriture silencieuse : un swipe déjà actif pour ce côté est un 409
+ * (il faut d'abord l'annuler).
  */
 @Service
 @Transactional
 public class RecordSwipeUseCase {
 
+    public record Result(Swipe swipe, Match match) {}
+
     private final SwipeRepository swipeRepository;
     private final MatchRepository matchRepository;
     private final JobOfferRepository jobOfferRepository;
+    private final RecruitmentActorRepository actors;
     private final ApplicationEventPublisher eventPublisher;
 
     public RecordSwipeUseCase(SwipeRepository swipeRepository, MatchRepository matchRepository,
-                               JobOfferRepository jobOfferRepository, ApplicationEventPublisher eventPublisher) {
+                              JobOfferRepository jobOfferRepository, RecruitmentActorRepository actors,
+                              ApplicationEventPublisher eventPublisher) {
         this.swipeRepository = swipeRepository;
         this.matchRepository = matchRepository;
         this.jobOfferRepository = jobOfferRepository;
+        this.actors = actors;
         this.eventPublisher = eventPublisher;
     }
 
-    public record SwipeResult(Swipe swipe, Match match) {}
-
     /**
-     * Enregistre un swipe et crée un match si — et seulement si — le côté opposé a
-     * déjà swipé LIKE sur la même paire {@code (candidateId, jobOfferId)}.
-     *
-     * @param jobOfferId l'offre concernée ; ignoré pour un swipe candidat (déduit de
-     *                   {@code targetId}), <b>requis</b> pour un swipe recruteur sur candidat.
+     * @param actorId candidat (side=CANDIDATE, alors {@code actorId == candidateId}) ou
+     *                recruteur propriétaire de l'offre (side=RECRUITER)
+     * @param candidateId le candidat concerné par ce swipe
      */
-    public SwipeResult execute(UUID actorId, UUID targetId, String targetType,
-                               UUID jobOfferId, SwipeDirection direction) {
-        if (!Swipe.TARGET_JOB_OFFER.equals(targetType)
-                && !Swipe.TARGET_CANDIDATE.equals(targetType)) {
-            throw new IllegalArgumentException("Type de cible invalide");
-        }
-        if (Swipe.TARGET_CANDIDATE.equals(targetType) && jobOfferId == null) {
-            throw new IllegalArgumentException("L'offre est obligatoire pour un swipe recruteur");
-        }
-        UUID resolvedOfferId = Swipe.TARGET_JOB_OFFER.equals(targetType) ? targetId : jobOfferId;
-        JobOffer offer = jobOfferRepository.findById(resolvedOfferId)
+    public Result execute(UUID actorId, UUID jobOfferId, UUID candidateId, SwipeSide side, SwipeDirection direction) {
+        JobOffer offer = jobOfferRepository.findById(jobOfferId)
             .orElseThrow(() -> new NotFoundException("Offre introuvable"));
-        if (Swipe.TARGET_CANDIDATE.equals(targetType)
-                && !offer.recruiterId().equals(actorId)) {
-            throw new ForbiddenException("Cette offre ne vous appartient pas");
-        }
-        if (Swipe.TARGET_JOB_OFFER.equals(targetType)
-                && offer.status() != JobOfferStatus.ACTIVE) {
-            throw new IllegalArgumentException("Cette offre n'est pas active");
-        }
-        // On normalise d'abord la paire (candidateId, jobOfferId)…
-        Swipe swipe = Swipe.record(actorId, targetId, targetType, jobOfferId, direction);
 
-        // …puis upsert sur (acteur, candidat, offre) : re-swiper la même cible met à
-        // jour le swipe existant (idempotence) au lieu de le dupliquer. Un recruteur
-        // peut toujours swiper le même candidat pour des offres différentes.
-        var existing = swipeRepository.findByActorAndPair(actorId, swipe.candidateId(), swipe.jobOfferId());
-        if (existing.isPresent()) {
-            Swipe previous = existing.get();
-            if (previous.direction() == direction) {
-                Match existingMatch = direction == SwipeDirection.LIKE
-                    ? matchRepository.findByCandidateIdAndJobOfferId(
-                        previous.candidateId(), previous.jobOfferId()).orElse(null)
-                    : null;
-                return new SwipeResult(previous, existingMatch);
+        if (side == SwipeSide.RECRUITER) {
+            if (!offer.recruiterId().equals(actorId)) {
+                throw new ForbiddenException("Cette offre ne vous appartient pas");
             }
-            // Direction changée : remplacer le swipe et nettoyer un match devenu orphelin.
-            swipeRepository.deleteById(previous.id());
-            if (previous.direction() == SwipeDirection.LIKE) {
-                matchRepository.findByCandidateIdAndJobOfferId(previous.candidateId(), previous.jobOfferId())
-                    .ifPresent(m -> matchRepository.deleteById(m.id()));
-            }
+            actors.findById(candidateId).filter(a -> a.active())
+                .orElseThrow(() -> new NotFoundException("Candidat introuvable : " + candidateId));
         }
 
+        if (offer.status() != JobOfferStatus.ACTIVE) {
+            throw new ConflictException("JOB_NOT_ACTIVE", "Cette offre n'est pas active");
+        }
+        if (matchRepository.findByCandidateIdAndJobOfferId(candidateId, jobOfferId).isPresent()) {
+            throw new ConflictException("ALREADY_MATCHED", "Un match existe déjà pour cette paire");
+        }
+        if (swipeRepository.find(jobOfferId, candidateId, side).isPresent()) {
+            throw new ConflictException("SWIPE_ALREADY_EXISTS",
+                "Un swipe existe déjà pour cette paire — annulez-le avant de re-swiper");
+        }
+
+        Swipe swipe = Swipe.record(jobOfferId, candidateId, side, direction);
         Swipe saved = swipeRepository.save(swipe);
         saved.domainEvents().forEach(eventPublisher::publishEvent);
         saved.clearEvents();
 
         Match match = null;
-        if (direction == SwipeDirection.LIKE) {
-            // On cherche le swipe OPPOSÉ (type de cible inverse) sur la même paire :
-            // cela exclut structurellement le swipe que l'on vient d'enregistrer.
-            var mutual = swipeRepository.findMutualLike(
-                saved.candidateId(), saved.jobOfferId(), saved.mutualTargetType(), SwipeDirection.LIKE);
-            if (mutual.isPresent()) {
-                JobOffer matchedOffer = jobOfferRepository.findById(saved.jobOfferId()).orElseThrow();
-                match = Match.create(saved.candidateId(), saved.jobOfferId(),
-                    matchedOffer.recruiterId(), matchedOffer.title());
+        if (direction == SwipeDirection.RIGHT) {
+            var reciprocal = swipeRepository.find(jobOfferId, candidateId, saved.mutualSide());
+            if (reciprocal.isPresent() && reciprocal.get().direction() == SwipeDirection.RIGHT) {
+                match = Match.create(candidateId, jobOfferId, offer.recruiterId());
                 match = matchRepository.save(match);
                 match.domainEvents().forEach(eventPublisher::publishEvent);
                 match.clearEvents();
             }
         }
-
-        return new SwipeResult(saved, match);
+        return new Result(saved, match);
     }
 }

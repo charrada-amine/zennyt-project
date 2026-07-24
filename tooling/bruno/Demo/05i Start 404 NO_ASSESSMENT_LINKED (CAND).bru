@@ -1,0 +1,19 @@
+meta {
+  name: 05i Start 404 NO_ASSESSMENT_LINKED (CAND)
+  type: http
+  seq: 48
+}
+
+post {
+  url: {{baseUrl}}/api/v1/job-offers/{{noAssessmentOfferId}}/test-attempts
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{candidateToken}}
+}
+
+docs {
+  L'offre de 05h n'a pas de test lié → 404 {error: "NO_ASSESSMENT_LINKED"}.
+}

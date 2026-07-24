@@ -22,15 +22,18 @@ public record UserAccessStateChangedEvent(
     String fullName,
     String avatarUrl,
     String city,
-    String country
+    String country,
+    String companyName,
+    String companyInfo
 ) implements DomainEvent {
 
     public static UserAccessStateChangedEvent of(UUID publicUserId, String role, boolean active,
                                                  String fullName, String avatarUrl,
-                                                 String city, String country) {
+                                                 String city, String country,
+                                                 String companyName, String companyInfo) {
         return new UserAccessStateChangedEvent(
             UUID.randomUUID(), Instant.now(), publicUserId, role, active,
-            fullName, avatarUrl, city, country);
+            fullName, avatarUrl, city, country, companyName, companyInfo);
     }
 
     @Override

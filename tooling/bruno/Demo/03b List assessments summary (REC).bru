@@ -1,0 +1,21 @@
+meta {
+  name: 03b List assessments summary (REC)
+  type: http
+  seq: 23
+}
+
+get {
+  url: {{baseUrl}}/api/v1/assessments
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{recruiterToken}}
+}
+
+docs {
+  Vue résumée (AssessmentSummaryResponse[]) — pas les questions complètes,
+  juste linkedJobOffersCount/questionsCount. Le détail complet vit sur
+  GET /assessments/{id} (03c) et GET /assessments/mine (paginé).
+}

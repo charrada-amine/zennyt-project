@@ -121,10 +121,19 @@ public class IdentityService {
     }
 
     private void publishAccessState(User user) {
+        String companyName = null;
+        String companyInfo = null;
+        if (user.role() == Role.RECRUITER) {
+            var recruiter = onboarding.findRecruiterByUserId(user.id()).orElse(null);
+            if (recruiter != null) {
+                companyName = recruiter.companyName();
+                companyInfo = recruiter.aboutMe();
+            }
+        }
         events.publishEvent(UserAccessStateChangedEvent.of(
             user.publicId(), user.role().name(), user.active(),
             user.firstName() + " " + user.lastName(), user.profileImageUrl(),
-            user.city(), user.country()));
+            user.city(), user.country(), companyName, companyInfo));
     }
 
     @Transactional

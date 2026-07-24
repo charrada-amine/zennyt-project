@@ -20,12 +20,12 @@ public class CreateJobOfferUseCase {
 
     /** Commande de création — tous les champs descriptifs de l'offre. */
     public record Command(
-        String title, String companyName, Location location, SalaryRange salary,
+        String title, Location location, Double salaryMin, Double salaryMax,
         ContractType contractType, WorkplaceType workplaceType, ExperienceLevel experienceLevel,
-        String fieldOfWork, String description, String responsibilities,
+        String description, String responsibilities,
         String minimumQualifications, String preferredQualifications,
-        String whatWeOffer, String howToApply, String companyInfo,
-        UUID assessmentId, UUID jobPositionId, int passingScore, boolean openToInternational
+        String whatWeOffer, String howToApply,
+        UUID assessmentId, UUID jobPositionId, boolean openToInternational
     ) {}
 
     private final JobOfferRepository repository;
@@ -57,12 +57,11 @@ public class CreateJobOfferUseCase {
                 .orElseThrow(() -> new NotFoundException("Métier inexistant : " + cmd.jobPositionId()));
         }
         JobOffer offer = JobOffer.create(recruiterId, cmd.title(), cmd.description(),
-            cmd.contractType(), cmd.workplaceType(), cmd.experienceLevel(), cmd.location(),
-            cmd.passingScore());
-        offer.update(cmd.title(), cmd.companyName(), cmd.location(), cmd.salary(),
-            cmd.contractType(), cmd.workplaceType(), cmd.experienceLevel(), cmd.fieldOfWork(),
+            cmd.contractType(), cmd.workplaceType(), cmd.experienceLevel(), cmd.location());
+        offer.update(cmd.title(), cmd.location(), cmd.salaryMin(), cmd.salaryMax(),
+            cmd.contractType(), cmd.workplaceType(), cmd.experienceLevel(),
             cmd.description(), cmd.responsibilities(), cmd.minimumQualifications(),
-            cmd.preferredQualifications(), cmd.whatWeOffer(), cmd.howToApply(), cmd.companyInfo(),
+            cmd.preferredQualifications(), cmd.whatWeOffer(), cmd.howToApply(),
             cmd.assessmentId(), cmd.jobPositionId(), cmd.openToInternational());
         // Contrat frontend : une offre créée est immédiatement publiée, avec
         // status et postedAt imposés par le serveur (jamais par le client).

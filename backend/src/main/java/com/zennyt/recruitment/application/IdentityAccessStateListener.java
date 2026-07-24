@@ -21,6 +21,7 @@ public class IdentityAccessStateListener {
         if (existing.isEmpty()) {
             actors.save(new RecruitmentActor(event.publicUserId(), event.role(), event.active(),
                 event.fullName(), event.avatarUrl(), event.city(), event.country(),
+                event.companyName(), event.companyInfo(),
                 event.occurredAt(), event.eventId()));
             return;
         }
@@ -28,6 +29,7 @@ public class IdentityAccessStateListener {
         if (!actor.lastEventAt().isBefore(event.occurredAt())
                 || actor.lastEventId().equals(event.eventId())) return;
         actors.save(actor.apply(event.role(), event.active(), event.fullName(), event.avatarUrl(),
-            event.city(), event.country(), event.occurredAt(), event.eventId()));
+            event.city(), event.country(), event.companyName(), event.companyInfo(),
+            event.occurredAt(), event.eventId()));
     }
 }

@@ -1,6 +1,6 @@
 package com.zennyt.recruitment.domain.vo;
 
-/** Direction d'un swipe : LIKE (intéressé) ou PASS (passer). */
+/** Direction d'un swipe : RIGHT (intéressé) ou LEFT (passer). */
 public enum SwipeDirection {
-    LIKE, PASS
+    RIGHT, LEFT
 }

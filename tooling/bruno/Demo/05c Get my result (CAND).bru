@@ -1,0 +1,20 @@
+meta {
+  name: 05c Get my result (CAND)
+  type: http
+  seq: 42
+}
+
+get {
+  url: {{baseUrl}}/api/v1/job-offers/{{demoOfferId}}/test-results/me
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{candidateToken}}
+}
+
+docs {
+  Gating "déjà complété" côté app mobile — 404 tant qu'aucune tentative n'a
+  été soumise, 200 avec le résultat sinon.
+}

@@ -1,0 +1,26 @@
+meta {
+  name: 04h Recruiter matches for offer (REC)
+  type: http
+  seq: 37
+}
+
+get {
+  url: {{baseUrl}}/api/v1/job-offers/{{demoOfferId}}/matches?page=0&size=20
+  body: none
+  auth: none
+}
+
+params:query {
+  page: 0
+  size: 20
+}
+
+headers {
+  Authorization: Bearer {{recruiterToken}}
+}
+
+docs {
+  …et côté recruteur, avec candidate{id,fullName,avatarUrl} joint.
+  Ownership-checked : 403/404 si l'offre n'appartient pas à l'appelant
+  (remplace l'ancien ?jobOfferId= sur /recruiters/me/matches).
+}

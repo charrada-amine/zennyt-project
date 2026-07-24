@@ -1,0 +1,21 @@
+meta {
+  name: 02c Offer detail (CAND)
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{baseUrl}}/api/v1/job-offers/{{demoOfferId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{candidateToken}}
+}
+
+docs {
+  Détail d'une offre côté candidat — recruiter{id, companyName, companyInfo}
+  joint en lecture depuis la projection acteur (jamais dupliqué sur l'offre
+  elle-même).
+}

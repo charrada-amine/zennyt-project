@@ -23,16 +23,16 @@ public class JobPositionEntity {
     @Enumerated(EnumType.STRING) @Column(nullable = false) private JobPositionStatus status;
     private UUID proposedByRecruiterId;
     private String juniorLabel;
+    private String midLabel;
     private String seniorLabel;
-    private String leadLabel;
-    private String managerLabel;
+    private String executiveLabel;
     @Column(nullable = false) private Instant createdAt;
 
     protected JobPositionEntity() {}
 
     JobPositionEntity(UUID id, String name, String sector, JobProfileType profileType,
                       boolean calibrated, JobPositionStatus status, UUID proposedByRecruiterId,
-                      String juniorLabel, String seniorLabel, String leadLabel, String managerLabel,
+                      String juniorLabel, String midLabel, String seniorLabel, String executiveLabel,
                       Instant createdAt) {
         this.id = id;
         this.name = name;
@@ -42,9 +42,9 @@ public class JobPositionEntity {
         this.status = status;
         this.proposedByRecruiterId = proposedByRecruiterId;
         this.juniorLabel = juniorLabel;
+        this.midLabel = midLabel;
         this.seniorLabel = seniorLabel;
-        this.leadLabel = leadLabel;
-        this.managerLabel = managerLabel;
+        this.executiveLabel = executiveLabel;
         this.createdAt = createdAt;
     }
 
@@ -56,8 +56,8 @@ public class JobPositionEntity {
     public JobPositionStatus getStatus() { return status; }
     public UUID getProposedByRecruiterId() { return proposedByRecruiterId; }
     public String getJuniorLabel() { return juniorLabel; }
+    public String getMidLabel() { return midLabel; }
     public String getSeniorLabel() { return seniorLabel; }
-    public String getLeadLabel() { return leadLabel; }
-    public String getManagerLabel() { return managerLabel; }
+    public String getExecutiveLabel() { return executiveLabel; }
     public Instant getCreatedAt() { return createdAt; }
 }

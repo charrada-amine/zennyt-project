@@ -1,0 +1,44 @@
+meta {
+  name: 02h Create throwaway offer (REC)
+  type: http
+  seq: 18
+}
+
+post {
+  url: {{baseUrl}}/api/v1/job-offers
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{recruiterToken}}
+}
+
+body:json {
+  {
+    "title": "Offre jetable — brouillon",
+    "description": "Offre créée uniquement pour démontrer le cycle DRAFT et la suppression.",
+    "contractType": "FULL_TIME",
+    "workplaceType": "ON_SITE",
+    "experienceLevel": "JUNIOR",
+    "city": "Sousse",
+    "country": "TN",
+    "salaryMin": 1000,
+    "salaryMax": 1500,
+    "responsibilities": "N/A",
+    "minimumQualifications": "N/A",
+    "openToInternational": false
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setVar("throwawayOfferId", res.body.id);
+  }
+}
+
+docs {
+  Offre séparée (ne perturbe pas la chaîne swipe/match sur {{demoOfferId}}) —
+  créée ACTIVE par défaut, repassée en DRAFT juste après (02i).
+}

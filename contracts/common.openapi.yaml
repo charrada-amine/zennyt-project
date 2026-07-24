@@ -40,18 +40,24 @@ components:
   schemas:
     Error:
       type: object
-      description: Format d'erreur unifié (RFC 7807 simplifié).
-      required: [timestamp, status, error, message, path]
+      description: >
+        Format d'erreur unifié : `error` est un code machine-readable —
+        spécifique à la règle métier en cause quand il y en a un
+        (`JOB_NOT_ACTIVE`, `ASSESSMENT_IN_USE`, `NO_ASSESSMENT_LINKED`,
+        `SWIPE_ALREADY_EXISTS`, `ALREADY_MATCHED`, `ATTEMPT_ALREADY_CONSUMED`,
+        `ATTEMPT_ALREADY_SUBMITTED`, `VALIDATION_ERROR`...), sinon un code
+        générique dérivé du statut HTTP (`BAD_REQUEST`, `UNAUTHORIZED`,
+        `FORBIDDEN`, `NOT_FOUND`, `CONFLICT`...). Des champs de contexte
+        additionnels apparaissent au même niveau selon le cas — ex.
+        `fieldErrors` (validation), `linkedJobOfferIds` (suppression
+        d'évaluation bloquée).
+      required: [error, message]
       properties:
-        timestamp: { type: string, format: date-time }
-        status: { type: integer, example: 400 }
-        error: { type: string, example: "Bad Request" }
+        error: { type: string, example: "VALIDATION_ERROR" }
         message: { type: string, example: "Le champ email est invalide." }
-        path: { type: string, example: "/api/v1/auth/login" }
-        traceId: { type: string, description: "Identifiant de corrélation App Insights" }
         fieldErrors:
           type: array
-          description: Détail des erreurs de validation par champ.
+          description: Détail des erreurs de validation par champ (VALIDATION_ERROR uniquement).
           items:
             type: object
             properties:

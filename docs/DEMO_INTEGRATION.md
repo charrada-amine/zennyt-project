@@ -1,11 +1,17 @@
 # Démo encadrant — backend intégré (`integration-recruitment-align`)
 
 Démo du backend **fusionné** (identity + games + recruitment alignés) sur une
-**base fraîche**, avec les 6 comptes de démo. Vérifié de bout en bout le 20/07 :
-**Bruno Demo 67/67 requêtes, 45/45 assertions**, base neuve à chaque exécution —
-couvre maintenant les 4 fonctionnalités backend du 20/07 (présélection →
-réponse candidat, génération de test par IA, résumé IA candidat, référentiel
-de métiers). Détail : `RECAP_20260720_BACKEND.md` à la racine du repo.
+**base fraîche**, avec les 6 comptes de démo. Collection Bruno **Demo**
+réécrite le 23/07 pour suivre la réconciliation du backend Recruitment contre
+`contracts/recruitment.openapi.yaml` (contrat squad web) : **75 requêtes**
+(6 logins + 69 étapes), base neuve à chaque exécution — couvre désormais le
+référentiel de métiers, les offres (CRUD complet PUT/PATCH), les évaluations
+(CRUD + génération IA), les swipes/matchs redesignés (routes imbriquées sous
+`/job-offers`, plus d'entité Application), les tentatives/résultats de test
+de compétences (mélange par tentative, remplace Assessment Attempt +
+anti-fraude par callback), les fit scores, le résumé IA candidat, la
+vérification d'identité, les offres d'opportunité et les paiements — voir
+`tooling/bruno/Demo/README.md` pour le détail requête par requête.
 
 Comptes (mdp `zennyt123`) : `recruiter1@` (Rania), `recruiter2@` (Youssef),
 `candidate1@` (Aicha), `candidate2@` (Omar), `candidate3@` (Lina),
@@ -121,61 +127,61 @@ cd tooling\bruno
 npx @usebruno/cli run Demo --env Local
 ```
 
-Attendu : **67 requêtes, 0 échec, 45/45 assertions.** Le dossier Demo couvre :
-login JWT réel (recruteur, candidat, **admin**), **référentiel de métiers**
-(liste, proposition recruteur, approbation/rejet admin, `jobPositionId` sur
-l'offre), offres, recherche filtrée, **génération de test par IA** (prompt
-libre + fichier PDF uploadé), swipes + matchs, candidatures (shortlist →
-**réponse du candidat**, plus recruteur-approuve-directement = 403 volontaire),
-**la tentative EST la candidature** (consentement 422 sans, `applicationId`
-dans la réponse), **résumé IA candidat** (soft + hard skills), résultats +
-stats (enveloppe applications), fit scores (recompute Groq, deck
+Attendu : **75 requêtes, 0 échec.** Le dossier Demo couvre : login JWT réel
+(2 recruteurs, 3 candidats, **admin**), **référentiel de métiers** (liste,
+proposition recruteur, approbation admin), offres (création, PUT
+remplacement complet, PATCH statut réversible, recherche filtrée, 400
+validation), évaluations (CRUD, **génération de test par IA** prompt libre +
+fichier PDF, 409 en cours d'utilisation), **swipes + matchs redesignés**
+(routes imbriquées `/job-offers/{id}/...`, 409 déjà-swipé/déjà-matché, undo
++ re-match), **tentatives/résultats de test de compétences** (mélange
+questions/options par tentative, 404/409 propres au domaine, abandon), résumé
+IA candidat (soft + hard skills), fit scores (recompute Groq, deck
 `/recruiters/me/candidate-feed`, dismiss), vérification d'identité,
-opportunités, paiements, et les tests négatifs (401 secret callback, 403
-non-propriétaire, 404 candidat fantôme).
+opportunités (OTP réel, rejet code invalide), paiements, et les tests
+négatifs (401 secret callback, 403 non-propriétaire, 404 candidat fantôme).
+Détail requête par requête : `tooling/bruno/Demo/README.md`.
 
-Les numéros de fichier ne suivent plus l'ordre d'exécution après les
-insertions du 20/07 (ex. "24a" tourne bien après "24", mais "44" tourne après
-"42" à cause d'un trou de numérotation historique) — l'ordre réel est piloté
-par `seq` dans chaque `.bru`, pas par le préfixe du nom de fichier.
+L'ordre réel d'exécution est piloté par `seq` dans chaque `.bru`, pas par le
+préfixe du nom de fichier (les deux coïncident dans cette collection, mais ne
+vous fiez pas au tri alphabétique si vous réordonnez des étapes).
 
 ## 🅱 Le tunnel OTP réel — à montrer en direct (argument fort)
 
 Le backend intégré génère un **vrai OTP** (6 chiffres, salé + haché SHA-256,
 TTL 10 min, 5 tentatives max) — fini le « tout code passe » de l'ancien dev.
-En dev le code est livré dans le log applicatif (`DevOtpDeliveryLogger`).
+En dev le code est livré dans le log applicatif (`DevOtpDeliveryLogger`). La
+collection Bruno ne démontre que le rejet déterministe (mauvais code → 401,
+requêtes `09d`/`10c`) ; pour aller jusqu'au succès en direct :
 
-1. Bruno : `31 Send opportunity offer` puis `33 Confirm opportunity`.
-2. `34 Verify opportunity OTP` avec `12345` → **401** (le mauvais code est rejeté — le montrer !).
+1. Bruno : `09a Send opportunity offer` puis `09c Confirm opportunity`.
+2. `09d Verify opportunity OTP wrong code` → **401** (le mauvais code est rejeté — le montrer !).
 3. Récupérer le vrai code :
    ```powershell
    Select-String "DEV OTP" backend-int.log | Select-Object -Last 1
    ```
-4. Rejouer `34` avec ce code → **200**, statut `CONFIRMED`, `otpVerified: true`.
+4. Rejouer la vérification avec ce code (modifier `otpCode` dans `09d`, ou
+   dupliquer la requête) → **200**, statut `CONFIRMED`, `otpVerified: true`.
 
-Même mécanique pour le paiement (37 → 39).
+Même mécanique pour le paiement (`10a` → `10c`).
 
 ## Notes / limites connues
 
-- L'assertion `pairsWritten >= 1` du recompute (44) suppose une **base fraîche**
-  (les projections soft-skills sont seedées par `DevDataSeeder`).
-- Les dossiers Bruno hors `Demo` (Auth, Candidate, Recruiter, Callbacks) datent
-  de REC-04 et peuvent référencer d'anciennes routes — seule la collection
-  `Demo` est la suite de régression vérifiée sur le backend intégré.
-- La collection **est idempotente même sur base non fraîche** : "00b Propose
-  job position" et "55 Propose throwaway position" suffixent leur nom avec un
-  timestamp (`{{demoRunId}}`, fixé une fois par run via `script:pre-request`)
-  pour ne jamais reproduire la collision de contrainte unique (nom, secteur)
-  observée le 20/07 en rejouant `Demo` deux fois via le GUI sans reset —
-  vérifié en rejouant deux fois d'affilée sans reset (67/67, 45/45 les deux
-  fois). Une base fraîche reste recommandée avant une vraie démo (assertion
-  `pairsWritten` ci-dessus), mais un rejeu accidentel en GUI ne casse plus
-  toute la chaîne en cascade.
-- **Résumé IA candidat (24a)** : `hardSkills` est généré de façon asynchrone
+- La collection Bruno ne contient plus que **`Demo`** — les anciens dossiers
+  REC-04 (`Auth`, `Candidate`, `Recruiter`, `Callbacks`, header simulé
+  `X-Dev-User`) ont été supprimés le 23/07 : ils référençaient des routes qui
+  n'existent plus (`/swipes` plat, `/applications`, `/assessment-attempts`).
+- **Une seule tentative de test par (candidat, offre), pour toujours**,
+  appliquée en base (contrainte unique). Rejouer `Demo` en entier sur une base
+  non fraîche fera échouer `05a`/`05j` avec `ATTEMPT_ALREADY_CONSUMED` — une
+  **base fraîche reste recommandée** pour un run complet 100% vert ; seule la
+  proposition de métier (`01b`) est réellement idempotente (nom suffixé par
+  `{{demoRunId}}`, fixé une fois par run via `script:pre-request` sur `01a`).
+- **Résumé IA candidat (06a)** : `hardSkills` est généré de façon asynchrone
   (`HardSkillsSummaryListener`, appel Groq hors thread de requête) après
-  soumission d'une tentative. `available` peut valoir `false` juste après —
-  rejouer la requête quelques secondes plus tard montre le vrai résumé, comme
-  pour le tunnel OTP (§B).
+  soumission d'une tentative (`05b`). `available` peut valoir `false` juste
+  après — rejouer la requête quelques secondes plus tard montre le vrai
+  résumé, comme pour le tunnel OTP (§B).
 - Bug corrigé le 20/07 pendant cette vérification : `@Lob` sur `String` dans
   `CvProfileProjectionEntity`/`HardSkillsSummaryEntity`/`SoftSkillsSummaryEntity`
   faisait échouer le **boot** (Hibernate attendait `oid`, la migration déclare

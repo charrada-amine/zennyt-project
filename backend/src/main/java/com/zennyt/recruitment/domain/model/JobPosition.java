@@ -27,9 +27,9 @@ public class JobPosition extends AggregateRoot {
     private JobPositionStatus status;
     private final UUID proposedByRecruiterId; // null pour les métiers seedés
     private String juniorLabel;
+    private String midLabel;
     private String seniorLabel;
-    private String leadLabel;
-    private String managerLabel;
+    private String executiveLabel;
     private final Instant createdAt;
 
     private JobPosition(UUID id, String name, String sector, JobProfileType profileType,
@@ -58,14 +58,14 @@ public class JobPosition extends AggregateRoot {
     /** Reconstruction depuis la persistance. */
     public static JobPosition rehydrate(UUID id, String name, String sector, JobProfileType profileType,
                                         boolean calibrated, JobPositionStatus status,
-                                        UUID proposedByRecruiterId, String juniorLabel, String seniorLabel,
-                                        String leadLabel, String managerLabel, Instant createdAt) {
+                                        UUID proposedByRecruiterId, String juniorLabel, String midLabel,
+                                        String seniorLabel, String executiveLabel, Instant createdAt) {
         JobPosition position = new JobPosition(id, name, sector, profileType, calibrated, status,
             proposedByRecruiterId, createdAt);
         position.juniorLabel = juniorLabel;
+        position.midLabel = midLabel;
         position.seniorLabel = seniorLabel;
-        position.leadLabel = leadLabel;
-        position.managerLabel = managerLabel;
+        position.executiveLabel = executiveLabel;
         return position;
     }
 
@@ -93,16 +93,16 @@ public class JobPosition extends AggregateRoot {
     public String levelLabel(ExperienceLevel level) {
         String custom = switch (level) {
             case JUNIOR -> juniorLabel;
+            case MID -> midLabel;
             case SENIOR -> seniorLabel;
-            case LEAD -> leadLabel;
-            case MANAGER -> managerLabel;
+            case EXECUTIVE -> executiveLabel;
         };
         if (custom != null && !custom.isBlank()) return custom;
         return switch (level) {
             case JUNIOR -> "Junior";
+            case MID -> "Mid";
             case SENIOR -> "Senior";
-            case LEAD -> "Lead";
-            case MANAGER -> "Manager";
+            case EXECUTIVE -> "Executive";
         };
     }
 
@@ -114,8 +114,8 @@ public class JobPosition extends AggregateRoot {
     public JobPositionStatus status() { return status; }
     public UUID proposedByRecruiterId() { return proposedByRecruiterId; }
     public String juniorLabel() { return juniorLabel; }
+    public String midLabel() { return midLabel; }
     public String seniorLabel() { return seniorLabel; }
-    public String leadLabel() { return leadLabel; }
-    public String managerLabel() { return managerLabel; }
+    public String executiveLabel() { return executiveLabel; }
     public Instant createdAt() { return createdAt; }
 }

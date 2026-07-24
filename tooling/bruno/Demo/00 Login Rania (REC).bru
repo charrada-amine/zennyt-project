@@ -24,12 +24,10 @@ body:json {
 script:post-response {
   if (res.status === 200) {
     bru.setVar("recruiterToken", res.body.accessToken);
-    bru.setVar("recruiterRefreshToken", res.body.refreshToken);
   }
 }
 
 docs {
-  Login recruteur (Rania) → stocke {{recruiterToken}} pour toutes les requêtes (REC).
-  Le backend émet un vrai JWT (sub = UUID, claims email + role), contrat identique
-  à celui de l'équipe Identity.
+  Login recruteur (Rania) — vrai JWT (contrat aligné squad Identity). Toutes
+  les requêtes REC de cette collection portent {{recruiterToken}} en Bearer.
 }

@@ -1,0 +1,20 @@
+meta {
+  name: 09f Reject opportunity (CAND)
+  type: http
+  seq: 68
+}
+
+post {
+  url: {{baseUrl}}/api/v1/job-opportunity-offers/{{demoOpportunity2Id}}/reject
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{candidateToken}}
+}
+
+docs {
+  Aicha refuse la 2e offre → status REJECTED. Pas d'OTP sur le refus,
+  uniquement sur la confirmation (09c).
+}

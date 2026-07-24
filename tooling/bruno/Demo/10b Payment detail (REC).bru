@@ -1,0 +1,19 @@
+meta {
+  name: 10b Payment detail (REC)
+  type: http
+  seq: 72
+}
+
+get {
+  url: {{baseUrl}}/api/v1/payments/{{demoPaymentId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{recruiterToken}}
+}
+
+docs {
+  Statut OTP_SENT. Réservé au recruteur qui a initié le paiement.
+}

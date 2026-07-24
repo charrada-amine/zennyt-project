@@ -1,0 +1,29 @@
+meta {
+  name: 05b Submit test attempt (CAND)
+  type: http
+  seq: 41
+}
+
+post {
+  url: {{baseUrl}}/api/v1/test-attempts/{{demoAttemptId}}/submit
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{candidateToken}}
+}
+
+body:json {
+  {
+    "answers": {{demoTestAnswers}}
+  }
+}
+
+docs {
+  Réponses démélangées côté serveur puis notées → percentage 100, passed:true
+  (seuil fixe global 70%, TestResult.PASS_THRESHOLD — plus de passingScore
+  par offre). Ni answers ni détail de correction dans la réponse candidat
+  (voir 05f pour la vue recruteur avec correction).
+}

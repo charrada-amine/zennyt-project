@@ -1,0 +1,28 @@
+meta {
+  name: 01d Approve job position (ADMIN)
+  type: http
+  seq: 10
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/job-positions/{{demoJobPositionId}}/approve
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{adminToken}}
+}
+
+body:json {
+  {
+    "profileType": "TECHNIQUE"
+  }
+}
+
+docs {
+  L'admin approuve le métier proposé en 01b, en fixant son profil dominant
+  (Couche A de la matrice Fit Score) → status APPROVED. Utilisé comme
+  jobPositionId de l'offre créée en 02a.
+}

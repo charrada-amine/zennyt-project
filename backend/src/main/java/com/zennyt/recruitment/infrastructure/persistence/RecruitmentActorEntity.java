@@ -33,6 +33,12 @@ public class RecruitmentActorEntity {
     @Column(name = "country")
     private String country;
 
+    @Column(name = "company_name")
+    private String companyName;
+
+    @Column(name = "company_info", columnDefinition = "TEXT")
+    private String companyInfo;
+
     @Column(name = "last_event_at", nullable = false)
     private Instant lastEventAt;
 
@@ -43,6 +49,7 @@ public class RecruitmentActorEntity {
 
     public RecruitmentActorEntity(UUID publicUserId, String role, boolean active,
                                   String fullName, String avatarUrl, String city, String country,
+                                  String companyName, String companyInfo,
                                   Instant lastEventAt, UUID lastEventId) {
         this.publicUserId = publicUserId;
         this.role = role;
@@ -51,18 +58,23 @@ public class RecruitmentActorEntity {
         this.avatarUrl = avatarUrl;
         this.city = city;
         this.country = country;
+        this.companyName = companyName;
+        this.companyInfo = companyInfo;
         this.lastEventAt = lastEventAt;
         this.lastEventId = lastEventId;
     }
 
     public void apply(String role, boolean active, String fullName, String avatarUrl,
-                      String city, String country, Instant eventAt, UUID eventId) {
+                      String city, String country, String companyName, String companyInfo,
+                      Instant eventAt, UUID eventId) {
         this.role = role;
         this.active = active;
         this.fullName = fullName;
         this.avatarUrl = avatarUrl;
         this.city = city;
         this.country = country;
+        this.companyName = companyName;
+        this.companyInfo = companyInfo;
         this.lastEventAt = eventAt;
         this.lastEventId = eventId;
     }
@@ -74,6 +86,8 @@ public class RecruitmentActorEntity {
     public String getAvatarUrl() { return avatarUrl; }
     public String getCity() { return city; }
     public String getCountry() { return country; }
+    public String getCompanyName() { return companyName; }
+    public String getCompanyInfo() { return companyInfo; }
     public Instant getLastEventAt() { return lastEventAt; }
     public UUID getLastEventId() { return lastEventId; }
 }

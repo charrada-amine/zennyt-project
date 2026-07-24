@@ -26,19 +26,21 @@ public class Assessment extends AggregateRoot {
     private String shareableLink;
     private List<AssessmentQuestion> questions;
     private final Instant createdAt;
+    private Instant updatedAt;
 
-    private Assessment(UUID id, UUID createdByRecruiterId, String title) {
+    private Assessment(UUID id, UUID createdByRecruiterId, String title, Instant createdAt) {
         this.id = id;
         this.createdByRecruiterId = createdByRecruiterId;
         this.title = title;
         this.questions = new ArrayList<>();
-        this.createdAt = Instant.now();
+        this.createdAt = createdAt;
+        this.updatedAt = createdAt;
     }
 
     /** Fabrique : crée une évaluation manuelle avec des questions. */
     public static Assessment createManual(UUID recruiterId, String title, int timeLimitSeconds,
                                           List<AssessmentQuestion> questions) {
-        Assessment assessment = new Assessment(UUID.randomUUID(), recruiterId, title);
+        Assessment assessment = new Assessment(UUID.randomUUID(), recruiterId, title, Instant.now());
         assessment.timeLimitSeconds = timeLimitSeconds;
         assessment.questions = numbered(questions);
         assessment.maxQuestions = questions.size();
@@ -50,7 +52,7 @@ public class Assessment extends AggregateRoot {
     /** Fabrique : crée une évaluation générée par IA (les questions seront ajoutées après). */
     public static Assessment createFromGeneration(UUID recruiterId, String title,
                                                    AssessmentGenerationMode mode, int numberOfQuestions) {
-        Assessment assessment = new Assessment(UUID.randomUUID(), recruiterId, title);
+        Assessment assessment = new Assessment(UUID.randomUUID(), recruiterId, title, Instant.now());
         assessment.generationSource = mode;
         assessment.maxQuestions = numberOfQuestions;
         assessment.shareableLink = "https://www.zennyt.com/tests/" + assessment.id;
@@ -62,13 +64,14 @@ public class Assessment extends AggregateRoot {
                                         int timeLimitSeconds, int maxQuestions,
                                         AssessmentGenerationMode generationSource,
                                         String shareableLink, List<AssessmentQuestion> questions,
-                                        Instant createdAt) {
-        Assessment assessment = new Assessment(id, createdByRecruiterId, title);
+                                        Instant createdAt, Instant updatedAt) {
+        Assessment assessment = new Assessment(id, createdByRecruiterId, title, createdAt);
         assessment.timeLimitSeconds = timeLimitSeconds;
         assessment.maxQuestions = maxQuestions;
         assessment.generationSource = generationSource;
         assessment.shareableLink = shareableLink;
         assessment.questions = questions != null ? new ArrayList<>(questions) : new ArrayList<>();
+        assessment.updatedAt = updatedAt;
         return assessment;
     }
 
@@ -84,12 +87,14 @@ public class Assessment extends AggregateRoot {
             this.questions = numbered(questions);
             this.maxQuestions = questions.size();
         }
+        this.updatedAt = Instant.now();
     }
 
     /** Ajoute les questions générées par l'IA. */
     public void applyGeneratedQuestions(List<AssessmentQuestion> generated) {
         this.questions = numbered(generated);
         this.maxQuestions = generated.size();
+        this.updatedAt = Instant.now();
     }
 
     /** Renumérote l'ordre des questions (1-based) sans toucher à leurs ids. */
@@ -110,4 +115,5 @@ public class Assessment extends AggregateRoot {
     public String shareableLink() { return shareableLink; }
     public List<AssessmentQuestion> questions() { return List.copyOf(questions); }
     public Instant createdAt() { return createdAt; }
+    public Instant updatedAt() { return updatedAt; }
 }

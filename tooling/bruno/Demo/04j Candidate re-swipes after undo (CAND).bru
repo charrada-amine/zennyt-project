@@ -1,0 +1,35 @@
+meta {
+  name: 04j Candidate re-swipes after undo (CAND)
+  type: http
+  seq: 39
+}
+
+post {
+  url: {{baseUrl}}/api/v1/job-offers/{{demoOfferId}}/swipes
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{candidateToken}}
+}
+
+body:json {
+  {
+    "direction": "RIGHT"
+  }
+}
+
+script:post-response {
+  if (res.status === 201 && res.body.matched) {
+    bru.setVar("demoMatchId", res.body.match.id);
+  }
+}
+
+docs {
+  matched:true immédiatement — le swipe recruteur (jamais annulé) était
+  toujours RIGHT, donc le nouveau swipe candidat reforme le match tout de
+  suite. Démontre que Match est un pur effet de bord des swipes, sans état
+  intermédiaire propre.
+}

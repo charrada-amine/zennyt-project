@@ -1,0 +1,27 @@
+meta {
+  name: 07b Get fit score (CAND)
+  type: http
+  seq: 54
+}
+
+get {
+  url: {{baseUrl}}/api/v1/fit-scores?candidateId={{candidateId}}&jobOfferId={{demoOfferId}}
+  body: none
+  auth: none
+}
+
+params:query {
+  candidateId: {{candidateId}}
+  jobOfferId: {{demoOfferId}}
+}
+
+headers {
+  Authorization: Bearer {{candidateToken}}
+}
+
+docs {
+  Lit le score déjà en base — précalculé de façon asynchrone à l'activation
+  de l'offre (voir 07a), pas la valeur 88 postée par 07a (rejetée en 409).
+  Un candidat ne peut lire que son propre score (403 sinon) ; un recruteur
+  doit posséder l'offre.
+}

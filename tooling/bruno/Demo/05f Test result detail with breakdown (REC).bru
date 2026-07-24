@@ -1,0 +1,21 @@
+meta {
+  name: 05f Test result detail with breakdown (REC)
+  type: http
+  seq: 45
+}
+
+get {
+  url: {{baseUrl}}/api/v1/job-offers/{{demoOfferId}}/test-results/{{candidateId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{recruiterToken}}
+}
+
+docs {
+  answerBreakdown : question par question, selectedAnswer/correctAnswer/
+  isCorrect — la seule vue où la correction apparaît, jamais exposée au
+  candidat (§7.3 contrat squad web).
+}

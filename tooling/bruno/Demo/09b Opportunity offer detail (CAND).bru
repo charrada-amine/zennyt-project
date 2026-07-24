@@ -1,0 +1,20 @@
+meta {
+  name: 09b Opportunity offer detail (CAND)
+  type: http
+  seq: 64
+}
+
+get {
+  url: {{baseUrl}}/api/v1/job-opportunity-offers/{{demoOpportunityId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{candidateToken}}
+}
+
+docs {
+  Aicha consulte l'offre d'opportunité reçue. Lisible par les deux
+  participants (candidat destinataire, recruteur émetteur) uniquement.
+}

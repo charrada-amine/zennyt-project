@@ -1,22 +1,19 @@
 package com.zennyt.recruitment.application;
 
 import com.zennyt.recruitment.application.usecase.GetCandidateResumeUseCase;
-import com.zennyt.recruitment.domain.model.AssessmentAttempt;
 import com.zennyt.recruitment.domain.model.HardSkillsSummary;
 import com.zennyt.recruitment.domain.model.JobOffer;
 import com.zennyt.recruitment.domain.model.SoftSkillsSummary;
-import com.zennyt.recruitment.domain.repository.AssessmentAttemptRepository;
 import com.zennyt.recruitment.domain.repository.HardSkillsSummaryRepository;
 import com.zennyt.recruitment.domain.repository.JobOfferRepository;
 import com.zennyt.recruitment.domain.repository.SoftSkillsSummaryRepository;
-import com.zennyt.recruitment.domain.vo.IntegrityStatus;
+import com.zennyt.recruitment.domain.repository.TestResultRepository;
 import com.zennyt.shared.application.exception.ForbiddenException;
 import com.zennyt.shared.application.exception.NotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -32,7 +29,7 @@ class GetCandidateResumeUseCaseTest {
     private static final UUID INTRUS = UUID.randomUUID();
 
     private JobOfferRepository jobOffers;
-    private AssessmentAttemptRepository attempts;
+    private TestResultRepository testResults;
     private SoftSkillsSummaryRepository softSkillsSummaries;
     private HardSkillsSummaryRepository hardSkillsSummaries;
     private GetCandidateResumeUseCase useCase;
@@ -40,15 +37,15 @@ class GetCandidateResumeUseCaseTest {
     @BeforeEach
     void setUp() {
         jobOffers = mock(JobOfferRepository.class);
-        attempts = mock(AssessmentAttemptRepository.class);
+        testResults = mock(TestResultRepository.class);
         softSkillsSummaries = mock(SoftSkillsSummaryRepository.class);
         hardSkillsSummaries = mock(HardSkillsSummaryRepository.class);
-        useCase = new GetCandidateResumeUseCase(jobOffers, attempts, softSkillsSummaries, hardSkillsSummaries);
+        useCase = new GetCandidateResumeUseCase(jobOffers, testResults, softSkillsSummaries, hardSkillsSummaries);
 
         JobOffer offer = mock(JobOffer.class);
         when(offer.recruiterId()).thenReturn(RECRUITER);
         when(jobOffers.findById(OFFER_ID)).thenReturn(Optional.of(offer));
-        when(attempts.findByCandidateIdAndJobOfferId(CANDIDATE, OFFER_ID)).thenReturn(List.of());
+        when(testResults.existsByCandidateIdAndJobOfferId(CANDIDATE, OFFER_ID)).thenReturn(false);
         when(softSkillsSummaries.findByCandidateId(CANDIDATE)).thenReturn(Optional.empty());
         when(hardSkillsSummaries.findByCandidateIdAndJobOfferId(CANDIDATE, OFFER_ID)).thenReturn(Optional.empty());
     }
@@ -93,9 +90,7 @@ class GetCandidateResumeUseCaseTest {
 
     @Test
     void attemptWithoutSummaryYetYieldsPendingFallback() {
-        AssessmentAttempt attempt = AssessmentAttempt.rehydrate(UUID.randomUUID(), UUID.randomUUID(),
-            CANDIDATE, OFFER_ID, UUID.randomUUID(), 80, true, true, IntegrityStatus.VALIDATED, Instant.now());
-        when(attempts.findByCandidateIdAndJobOfferId(CANDIDATE, OFFER_ID)).thenReturn(List.of(attempt));
+        when(testResults.existsByCandidateIdAndJobOfferId(CANDIDATE, OFFER_ID)).thenReturn(true);
 
         var result = useCase.execute(CANDIDATE, OFFER_ID, RECRUITER);
 
@@ -106,9 +101,7 @@ class GetCandidateResumeUseCaseTest {
 
     @Test
     void hardSkillsSummaryReturnedWhenAvailable() {
-        AssessmentAttempt attempt = AssessmentAttempt.rehydrate(UUID.randomUUID(), UUID.randomUUID(),
-            CANDIDATE, OFFER_ID, UUID.randomUUID(), 80, true, true, IntegrityStatus.VALIDATED, Instant.now());
-        when(attempts.findByCandidateIdAndJobOfferId(CANDIDATE, OFFER_ID)).thenReturn(List.of(attempt));
+        when(testResults.existsByCandidateIdAndJobOfferId(CANDIDATE, OFFER_ID)).thenReturn(true);
         when(hardSkillsSummaries.findByCandidateIdAndJobOfferId(CANDIDATE, OFFER_ID)).thenReturn(Optional.of(
             HardSkillsSummary.create(CANDIDATE, OFFER_ID, "fr hard", "en hard", Instant.now())));
 

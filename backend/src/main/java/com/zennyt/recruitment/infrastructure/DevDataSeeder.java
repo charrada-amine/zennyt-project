@@ -73,7 +73,7 @@ public class DevDataSeeder implements CommandLineRunner {
         // L'offre 1 est liée à l'évaluation de démo (assessmentId non null).
         JobOffer offer1 = activeOffer(OFFER_1, "Senior Backend Engineer",
             "Conception et développement de microservices Java/Spring.",
-            ContractType.FULL_TIME, WorkplaceType.REMOTE, ExperienceLevel.SENIOR, "Tunis");
+            ContractType.FULL_TIME, WorkplaceType.REMOTE, ExperienceLevel.MID, "Tunis");
         offer1.assignAssessment(ASSESSMENT_1);
         jobOfferRepository.save(offer1);
         jobOfferRepository.save(activeOffer(OFFER_2, "UX/UI Designer",
@@ -83,7 +83,7 @@ public class DevDataSeeder implements CommandLineRunner {
         // Bruno 51/54 (offre étrangère → 403), comme le seed REC-04 d'origine.
         jobOfferRepository.save(activeOffer(OFFER_3, RECRUITER_2, "Engineering Manager",
             "Encadrement d'une squad produit de 6 personnes.",
-            ContractType.FULL_TIME, WorkplaceType.ON_SITE, ExperienceLevel.MANAGER, "Lyon"));
+            ContractType.FULL_TIME, WorkplaceType.ON_SITE, ExperienceLevel.EXECUTIVE, "Lyon"));
 
         assessmentRepository.save(Assessment.rehydrate(ASSESSMENT_1, RECRUITER,
             "Test technique back-end", 600, 2, null, null,
@@ -94,7 +94,7 @@ public class DevDataSeeder implements CommandLineRunner {
                 new AssessmentQuestion(
                     "Quel langage tourne sur la JVM ?",
                     List.of("Java", "Python", "Ruby", "Go"), 0)),
-            Instant.now()));
+            Instant.now(), Instant.now()));
 
         fitScoreRepository.save(FitScore.rehydrate(
             UUID.fromString("c0000000-0000-0000-0000-000000000001"),
@@ -128,14 +128,14 @@ public class DevDataSeeder implements CommandLineRunner {
     private JobOffer activeOffer(UUID id, UUID recruiterId, String title, String description,
                                  ContractType contract, WorkplaceType workplace,
                                  ExperienceLevel level, String city) {
+        Instant now = Instant.now();
         return JobOffer.rehydrate(
-            id, recruiterId, null, title, "Zennyt Inc.",
-            new Location(city, "TN", workplace == WorkplaceType.REMOTE),
-            new SalaryRange(40000, 70000, "EUR"),
+            id, recruiterId, null, title,
+            new Location(city, "TN"), 40000.0, 70000.0,
             contract, workplace, level,
-            "Software", description,
+            description,
             "Responsabilités à définir.", "Bac+5 ou équivalent.", "Expérience en équipe agile.",
-            "Package compétitif, télétravail, formation.", "Postulez via l'application.", "Zennyt Inc.",
-            null, null, JobOffer.DEFAULT_PASSING_SCORE, false, JobOfferStatus.ACTIVE, Instant.now());
+            "Package compétitif, télétravail, formation.", "Postulez via l'application.",
+            null, null, false, JobOfferStatus.ACTIVE, now, now);
     }
 }

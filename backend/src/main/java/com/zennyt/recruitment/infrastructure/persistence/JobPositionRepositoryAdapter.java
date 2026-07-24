@@ -21,7 +21,7 @@ public class JobPositionRepositoryAdapter implements JobPositionRepository {
     public JobPosition save(JobPosition position) {
         return toDomain(jpa.save(new JobPositionEntity(position.id(), position.name(), position.sector(),
             position.profileType(), position.calibrated(), position.status(), position.proposedByRecruiterId(),
-            position.juniorLabel(), position.seniorLabel(), position.leadLabel(), position.managerLabel(),
+            position.juniorLabel(), position.midLabel(), position.seniorLabel(), position.executiveLabel(),
             position.createdAt())));
     }
 
@@ -44,7 +44,7 @@ public class JobPositionRepositoryAdapter implements JobPositionRepository {
     private JobPosition toDomain(JobPositionEntity entity) {
         return JobPosition.rehydrate(entity.getId(), entity.getName(), entity.getSector(),
             entity.getProfileType(), entity.isCalibrated(), entity.getStatus(),
-            entity.getProposedByRecruiterId(), entity.getJuniorLabel(), entity.getSeniorLabel(),
-            entity.getLeadLabel(), entity.getManagerLabel(), entity.getCreatedAt());
+            entity.getProposedByRecruiterId(), entity.getJuniorLabel(), entity.getMidLabel(),
+            entity.getSeniorLabel(), entity.getExecutiveLabel(), entity.getCreatedAt());
     }
 }
