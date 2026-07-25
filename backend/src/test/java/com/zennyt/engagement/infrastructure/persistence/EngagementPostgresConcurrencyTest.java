@@ -12,7 +12,7 @@ import com.zennyt.engagement.domain.repository.EngagementApplicationRepository;
 import com.zennyt.engagement.domain.repository.EngagementActorRepository;
 import com.zennyt.engagement.domain.vo.PostVisibility;
 import com.zennyt.identity.domain.event.UserAccessStateChangedEvent;
-import com.zennyt.recruitment.domain.event.ApplicationSubmittedEvent;
+import com.zennyt.recruitment.domain.event.MatchCreatedEvent;
 import com.zennyt.shared.application.exception.ConflictException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -145,7 +145,7 @@ class EngagementPostgresConcurrencyTest {
 
     @Test
     void failed_application_event_round_trips_through_the_durable_retry_store() {
-        ApplicationSubmittedEvent event = ApplicationSubmittedEvent.of(
+        MatchCreatedEvent event = MatchCreatedEvent.of(
             UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), "Backend Engineer");
 
         retryStore.enqueue(event, "temporary failure");

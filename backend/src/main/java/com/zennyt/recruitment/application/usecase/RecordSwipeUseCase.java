@@ -88,7 +88,7 @@ public class RecordSwipeUseCase {
         if (direction == SwipeDirection.RIGHT) {
             var reciprocal = swipeRepository.find(jobOfferId, candidateId, saved.mutualSide());
             if (reciprocal.isPresent() && reciprocal.get().direction() == SwipeDirection.RIGHT) {
-                match = Match.create(candidateId, jobOfferId, offer.recruiterId());
+                match = Match.create(candidateId, jobOfferId, offer.recruiterId(), offer.title());
                 match = matchRepository.save(match);
                 match.domainEvents().forEach(eventPublisher::publishEvent);
                 match.clearEvents();

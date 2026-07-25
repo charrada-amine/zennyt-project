@@ -30,9 +30,9 @@ public class Match extends AggregateRoot {
     }
 
     /** Fabrique : crée un match et enregistre l'événement. */
-    public static Match create(UUID candidateId, UUID jobOfferId, UUID recruiterId) {
+    public static Match create(UUID candidateId, UUID jobOfferId, UUID recruiterId, String jobTitle) {
         Match match = new Match(UUID.randomUUID(), candidateId, jobOfferId, recruiterId, Instant.now());
-        match.registerEvent(MatchCreatedEvent.of(match.id, candidateId, jobOfferId, recruiterId));
+        match.registerEvent(MatchCreatedEvent.of(match.id, candidateId, jobOfferId, recruiterId, jobTitle));
         return match;
     }
 
