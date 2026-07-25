@@ -36,6 +36,7 @@ public class AssessmentRepositoryAdapter implements AssessmentRepository {
         e.setTitle(a.title()); e.setTimeLimitSeconds(a.timeLimitSeconds());
         e.setMaxQuestions(a.maxQuestions()); e.setGenerationSource(a.generationSource());
         e.setShareableLink(a.shareableLink()); e.setCreatedAt(a.createdAt());
+        e.setUpdatedAt(a.updatedAt());
         try { e.setQuestionsJson(objectMapper.writeValueAsString(a.questions())); }
         catch (JsonProcessingException ex) { e.setQuestionsJson("[]"); }
         return e;
@@ -47,6 +48,6 @@ public class AssessmentRepositoryAdapter implements AssessmentRepository {
         catch (Exception ex) { questions = List.of(); }
         return Assessment.rehydrate(e.getId(), e.getCreatedByRecruiterId(), e.getTitle(),
             e.getTimeLimitSeconds(), e.getMaxQuestions(), e.getGenerationSource(),
-            e.getShareableLink(), questions, e.getCreatedAt());
+            e.getShareableLink(), questions, e.getCreatedAt(), e.getUpdatedAt());
     }
 }

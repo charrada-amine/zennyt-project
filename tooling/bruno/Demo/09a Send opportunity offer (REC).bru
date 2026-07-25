@@ -1,0 +1,35 @@
+meta {
+  name: 09a Send opportunity offer (REC)
+  type: http
+  seq: 63
+}
+
+post {
+  url: {{baseUrl}}/api/v1/job-opportunity-offers
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{recruiterToken}}
+}
+
+body:json {
+  {
+    "candidateId": "{{candidateId}}",
+    "jobOfferId": "{{demoOfferId}}"
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setVar("demoOpportunityId", res.body.id);
+  }
+}
+
+docs {
+  "Recruit" direct — exige désormais un Match ACTIVE sur cette offre (le
+  tunnel présélection/candidature n'existe plus, contrat squad web). Aicha et
+  Rania sont matchées depuis 04j.
+}

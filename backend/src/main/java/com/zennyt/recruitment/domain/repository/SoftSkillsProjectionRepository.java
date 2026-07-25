@@ -8,6 +8,7 @@ import java.util.UUID;
 
 public interface SoftSkillsProjectionRepository {
     SoftSkillsProjection save(SoftSkillsProjection projection);
-    Optional<SoftSkillsProjection> findByCandidateId(UUID candidateId);
+    Optional<SoftSkillsProjection> findByCandidateIdAndModule(UUID candidateId, String module);
+    List<SoftSkillsProjection> findByCandidateId(UUID candidateId);
     List<UUID> findCandidateIds(int limit);
 }

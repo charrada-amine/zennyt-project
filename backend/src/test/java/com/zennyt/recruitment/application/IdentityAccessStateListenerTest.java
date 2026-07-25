@@ -29,7 +29,7 @@ class IdentityAccessStateListenerTest {
         UUID userId = UUID.randomUUID();
         Instant firstAt = Instant.parse("2026-07-14T08:00:00Z");
         var first = new UserAccessStateChangedEvent(UUID.randomUUID(), firstAt, userId,
-            "CANDIDATE", true, "Ada", null);
+            "CANDIDATE", true, "Aicha Gharbi", null, "Tunis", "Tunisie", null, null);
         when(repository.findById(userId)).thenReturn(Optional.empty());
 
         projector.project(first);
@@ -39,10 +39,10 @@ class IdentityAccessStateListenerTest {
 
         reset(repository);
         RecruitmentActor current = new RecruitmentActor(userId, "CANDIDATE", true,
-            firstAt, first.eventId());
+            "Aicha Gharbi", null, "Tunis", "Tunisie", null, null, firstAt, first.eventId());
         when(repository.findById(userId)).thenReturn(Optional.of(current));
         var newer = new UserAccessStateChangedEvent(UUID.randomUUID(), firstAt.plusSeconds(10), userId,
-            "RECRUITER", false, "Grace", null);
+            "RECRUITER", false, "Aicha Gharbi", null, "Tunis", "Tunisie", null, null);
 
         projector.project(newer);
 
@@ -53,7 +53,7 @@ class IdentityAccessStateListenerTest {
         reset(repository);
         when(repository.findById(userId)).thenReturn(Optional.of(current));
         projector.project(new UserAccessStateChangedEvent(UUID.randomUUID(), firstAt.minusSeconds(1), userId,
-            "RECRUITER", false, "Older", null));
+            "RECRUITER", false, "Aicha Gharbi", null, "Tunis", "Tunisie", null, null));
         verify(repository, never()).save(any());
     }
 
@@ -87,7 +87,7 @@ class IdentityAccessStateListenerTest {
         var safeListener = new IdentityAccessStateListener(failing);
 
         safeListener.on(UserAccessStateChangedEvent.of(
-            UUID.randomUUID(), "CANDIDATE", true, "Ada", null));
+            UUID.randomUUID(), "CANDIDATE", true, "Ada", null, null, null, null, null));
 
         verify(failing).project(any());
     }

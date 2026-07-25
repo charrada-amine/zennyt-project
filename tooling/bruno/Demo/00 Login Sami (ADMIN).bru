@@ -1,0 +1,33 @@
+meta {
+  name: 00 Login Sami (ADMIN)
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/v1/auth/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "admin1@zennyt.com",
+    "password": "zennyt123"
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    bru.setVar("adminToken", res.body.accessToken);
+  }
+}
+
+docs {
+  Login admin (Sami) — promu ADMIN par SQL après inscription (l'auto-
+  inscription refuse ce rôle). Approuve/rejette le référentiel de métiers.
+}

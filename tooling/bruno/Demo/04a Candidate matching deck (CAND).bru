@@ -1,0 +1,27 @@
+meta {
+  name: 04a Candidate matching deck (CAND)
+  type: http
+  seq: 30
+}
+
+get {
+  url: {{baseUrl}}/api/v1/job-offers/matching-deck?page=0&size=20
+  body: none
+  auth: none
+}
+
+params:query {
+  page: 0
+  size: 20
+}
+
+headers {
+  Authorization: Bearer {{candidateToken}}
+}
+
+docs {
+  Deck d'offres à swiper — exclut celles déjà swipées LEFT ou déjà matchées,
+  priorité aux offres où le recruteur a déjà swipé RIGHT sur ce candidat
+  (recruiterAlreadyInterested). Filtrage/tri 100% SQL, pas de post-traitement
+  côté client.
+}

@@ -25,8 +25,8 @@ public interface MatchRepository {
 
     long countByCandidateId(UUID candidateId);
 
-    /** Matchs du recruteur, optionnellement filtrés par offre. */
-    List<Match> findByRecruiterId(UUID recruiterId, UUID jobOfferId, int page, int size);
+    /** Matchs pour une offre (propriété déjà vérifiée par l'appelant). */
+    List<Match> findByJobOfferId(UUID jobOfferId, int page, int size);
 
-    long countByRecruiterId(UUID recruiterId, UUID jobOfferId);
+    long countByJobOfferId(UUID jobOfferId);
 }

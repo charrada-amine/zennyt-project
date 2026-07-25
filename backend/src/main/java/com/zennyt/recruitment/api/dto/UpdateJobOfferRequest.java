@@ -8,21 +8,14 @@ import java.util.UUID;
 /**
  * DTO de requête pour la mise à jour partielle d'une offre (PATCH).
  *
- * <p>Tout champ absent du JSON est laissé inchangé. {@code assessmentId}
- * utilise {@link JsonNullable} pour distinguer « absent » (inchangé) de
- * « null » explicite (désassigner l'évaluation). {@code recruiterId},
- * {@code id} et {@code postedAt} ne sont jamais modifiables.
+ * <p>Contrat squad web §3.3 : seuls {@code status} et {@code assessmentId}
+ * sont modifiables par ce endpoint — tout autre champ passe par PUT. Un champ
+ * JSON inconnu déclenche un 400 (désérialisation Jackson stricte par défaut).
+ * {@code assessmentId} utilise {@link JsonNullable} pour distinguer « absent »
+ * (inchangé) de « null » explicite (désassigner l'évaluation).
  */
 public record UpdateJobOfferRequest(
-    String title, String companyName,
-    String city, String country, Boolean remote,
-    Double salaryMin, Double salaryMax, String currency,
-    ContractType contractType, WorkplaceType workplaceType, ExperienceLevel experienceLevel,
-    String fieldOfWork, String description, String responsibilities,
-    String minimumQualifications, String preferredQualifications,
-    String whatWeOffer, String howToApply, String companyInfo,
-    JsonNullable<UUID> assessmentId, Integer passingScore, Boolean openToInternational,
-    JobOfferStatus status
+    JsonNullable<UUID> assessmentId, JobOfferStatus status
 ) {
     public UpdateJobOfferRequest {
         if (assessmentId == null) assessmentId = JsonNullable.undefined();

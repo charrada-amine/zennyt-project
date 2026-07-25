@@ -1,0 +1,31 @@
+meta {
+  name: 01a List job positions (CAND)
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/api/v1/job-positions
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{candidateToken}}
+}
+
+script:pre-request {
+  if (!bru.getVar("demoRunId")) {
+    bru.setVar("demoRunId", Date.now().toString());
+  }
+}
+
+docs {
+  Référentiel de métiers approuvés (formulaire de création d'offre). Ouvert
+  à tout acteur authentifié — pas seulement les recruteurs.
+
+  Fixe aussi {{demoRunId}} pour toute la collection : les requêtes qui créent
+  des ressources nommées (proposition de métier) suffixent leur nom avec cet
+  identifiant, pour rester rejouables sans reset de base (contrainte unique
+  nom+secteur).
+}

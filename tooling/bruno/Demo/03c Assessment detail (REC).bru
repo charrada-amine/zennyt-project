@@ -1,0 +1,20 @@
+meta {
+  name: 03c Assessment detail (REC)
+  type: http
+  seq: 24
+}
+
+get {
+  url: {{baseUrl}}/api/v1/assessments/{{demoAssessmentId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{recruiterToken}}
+}
+
+docs {
+  Détail complet, questions + correctOptionIndex inclus — réservé au
+  recruteur propriétaire (403 pour un autre recruteur, cf. 09-style checks).
+}

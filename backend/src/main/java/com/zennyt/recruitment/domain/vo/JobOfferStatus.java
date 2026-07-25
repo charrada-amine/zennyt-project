@@ -1,25 +1,16 @@
 package com.zennyt.recruitment.domain.vo;
 
-import java.util.Map;
-import java.util.Set;
-
 /**
- * Statut d'une offre d'emploi et règles de transition.
+ * Statut d'une offre d'emploi.
  *
- * <p>Machine à états : DRAFT → ACTIVE → HIDDEN → CLOSED.
+ * <p>Librement réversible dans n'importe quelle direction, aucun état terminal
+ * (contrat squad web, §3.1 — "freely reversible, no terminal state").
  * Seul le recruteur propriétaire peut changer le statut.
  */
 public enum JobOfferStatus {
-    DRAFT, ACTIVE, HIDDEN, CLOSED;
-
-    private static final Map<JobOfferStatus, Set<JobOfferStatus>> TRANSITIONS = Map.of(
-        DRAFT,   Set.of(ACTIVE),
-        ACTIVE,  Set.of(HIDDEN, CLOSED),
-        HIDDEN,  Set.of(ACTIVE, CLOSED),
-        CLOSED,  Set.of()
-    );
+    DRAFT, ACTIVE, CLOSED;
 
     public boolean canTransitionTo(JobOfferStatus target) {
-        return TRANSITIONS.getOrDefault(this, Set.of()).contains(target);
+        return true;
     }
 }

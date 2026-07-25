@@ -1,0 +1,47 @@
+meta {
+  name: 02a Create job offer (REC)
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/api/v1/job-offers
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{recruiterToken}}
+}
+
+body:json {
+  {
+    "title": "Ingénieur Backend Senior",
+    "description": "Rejoignez notre équipe plateforme pour construire l'API de matching.",
+    "contractType": "FULL_TIME",
+    "workplaceType": "REMOTE",
+    "experienceLevel": "SENIOR",
+    "city": "Tunis",
+    "country": "TN",
+    "salaryMin": 3000,
+    "salaryMax": 5000,
+    "responsibilities": "Concevoir et maintenir les APIs du contexte Recruitment.",
+    "minimumQualifications": "5 ans d'expérience Java/Spring Boot.",
+    "jobPositionId": "{{demoJobPositionId}}",
+    "openToInternational": false
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setVar("demoOfferId", res.body.id);
+  }
+}
+
+docs {
+  Le recruteur crée une offre — toujours publiée ACTIVE immédiatement, status
+  et postedAt imposés par le serveur (jamais par le client). Aucun
+  passingScore : le seuil de réussite du test de compétences est désormais un
+  taux fixe global (70%), pas un réglage par offre.
+}

@@ -5,21 +5,35 @@ import com.zennyt.shared.domain.event.DomainEvent;
 import java.time.Instant;
 import java.util.UUID;
 
-/** État d'accès et présentation publique publié aux autres bounded contexts. */
+/**
+ * État d'accès publié aux autres bounded contexts.
+ *
+ * <p>Porte aussi le strict nécessaire d'affichage (nom, avatar, localisation)
+ * pour que recruitment puisse enrichir ses listes candidat/recruteur sans
+ * appel direct au module Identity — juste des données publiques de profil,
+ * pas de PII sensible (email, téléphone, adresse).
+ */
 public record UserAccessStateChangedEvent(
     UUID eventId,
     Instant occurredAt,
     UUID publicUserId,
     String role,
     boolean active,
-    String displayName,
-    String photoUrl
+    String fullName,
+    String avatarUrl,
+    String city,
+    String country,
+    String companyName,
+    String companyInfo
 ) implements DomainEvent {
 
     public static UserAccessStateChangedEvent of(UUID publicUserId, String role, boolean active,
-                                                 String displayName, String photoUrl) {
+                                                 String fullName, String avatarUrl,
+                                                 String city, String country,
+                                                 String companyName, String companyInfo) {
         return new UserAccessStateChangedEvent(
-            UUID.randomUUID(), Instant.now(), publicUserId, role, active, displayName, photoUrl);
+            UUID.randomUUID(), Instant.now(), publicUserId, role, active,
+            fullName, avatarUrl, city, country, companyName, companyInfo);
     }
 
     @Override

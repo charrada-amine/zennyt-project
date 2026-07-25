@@ -19,11 +19,11 @@ public class EngagementIdentityAccessStateProjector {
         EngagementActor current = actors.findById(event.publicUserId()).orElse(null);
         if (current == null) {
             actors.save(new EngagementActor(event.publicUserId(), event.role(), event.active(),
-                event.displayName(), event.photoUrl(), event.occurredAt(), event.eventId()));
+                event.fullName(), event.avatarUrl(), event.occurredAt(), event.eventId()));
             return;
         }
         EngagementActor updated = current.apply(
-            event.role(), event.active(), event.displayName(), event.photoUrl(),
+            event.role(), event.active(), event.fullName(), event.avatarUrl(),
             event.occurredAt(), event.eventId());
         if (updated != current) actors.save(updated);
     }

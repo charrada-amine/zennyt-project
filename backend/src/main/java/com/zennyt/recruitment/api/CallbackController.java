@@ -23,22 +23,18 @@ import java.util.UUID;
 public class CallbackController {
 
     private final FitScoreRepository fitScoreRepository;
-    private final AssessmentAttemptRepository attemptRepository;
     private final IdentityVerificationRepository verificationRepository;
     private final CallbackSecretVerifier secretVerifier;
 
     public CallbackController(FitScoreRepository fitScoreRepository,
-                               AssessmentAttemptRepository attemptRepository,
                                IdentityVerificationRepository verificationRepository,
                                CallbackSecretVerifier secretVerifier) {
         this.fitScoreRepository = fitScoreRepository;
-        this.attemptRepository = attemptRepository;
         this.verificationRepository = verificationRepository;
         this.secretVerifier = secretVerifier;
     }
 
     record FitScoreCallback(UUID candidateId, UUID jobOfferId, int score) {}
-    record IntegrityCallback(UUID attemptId, IntegrityStatus status) {}
     record IdentityCallback(UUID verificationId, IdentityVerificationStatus status) {}
 
     /** POST /api/v1/callbacks/fit-score — Score IA calculé */
@@ -56,24 +52,6 @@ public class CallbackController {
         }
         FitScore score = FitScore.fromCallback(cb.candidateId(), cb.jobOfferId(), cb.score(), Instant.now());
         fitScoreRepository.save(score);
-        return ResponseEntity.ok().build();
-    }
-
-    /** POST /api/v1/callbacks/integrity — Résultat anti-fraude d'évaluation */
-    @PostMapping("/integrity")
-    public ResponseEntity<Void> integrity(@RequestBody IntegrityCallback cb,
-                                           @RequestHeader(value = "X-Callback-Secret", required = false) String secret) {
-        secretVerifier.verify(secret);
-        AssessmentAttempt attempt = attemptRepository.findById(cb.attemptId())
-            .orElseThrow(() -> new NotFoundException("Tentative introuvable"));
-        if (attempt.integrityStatus() == cb.status()) {
-            return ResponseEntity.ok().build();
-        }
-        if (attempt.integrityStatus() != IntegrityStatus.PENDING) {
-            throw new ConflictException("L'intégrité a déjà été résolue");
-        }
-        attempt.resolveIntegrity(cb.status());
-        attemptRepository.save(attempt);
         return ResponseEntity.ok().build();
     }
 

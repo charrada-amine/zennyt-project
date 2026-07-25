@@ -5,6 +5,7 @@ import com.zennyt.recruitment.domain.model.FitScore;
 import com.zennyt.recruitment.domain.model.JobOffer;
 import com.zennyt.recruitment.domain.repository.FitScoreRepository;
 import com.zennyt.recruitment.domain.repository.JobOfferRepository;
+import com.zennyt.recruitment.domain.repository.RecruitmentActorRepository;
 import com.zennyt.recruitment.domain.repository.SoftSkillsProjectionRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,23 +26,30 @@ public class RecomputeFitScoresUseCase {
     private final FitScoreRepository fitScores;
     private final JobOfferRepository offers;
     private final SoftSkillsProjectionRepository softSkills;
+    private final RecruitmentActorRepository actors;
 
     public RecomputeFitScoresUseCase(FitScoreCalculatorPort calculator,
                                      FitScoreRepository fitScores,
                                      JobOfferRepository offers,
-                                     SoftSkillsProjectionRepository softSkills) {
+                                     SoftSkillsProjectionRepository softSkills,
+                                     RecruitmentActorRepository actors) {
         this.calculator = calculator;
         this.fitScores = fitScores;
         this.offers = offers;
         this.softSkills = softSkills;
+        this.actors = actors;
     }
 
     public FitScore recompute(UUID candidateId, JobOffer offer) {
-        int softScore = softSkills.findByCandidateId(candidateId).map(p -> p.score()).orElse(0);
+        var modules = softSkills.findByCandidateId(candidateId);
+        int softScore = modules.isEmpty() ? 0
+            : (int) Math.round(modules.stream().mapToInt(p -> p.score()).average().orElse(0));
+        String companyInfo = actors.findById(offer.recruiterId())
+            .map(actor -> actor.companyInfo()).orElse(null);
         var inputs = new FitScoreCalculatorPort.FitScoreInputs(
             Map.of("games", (double) softScore),
             null, // PROVISOIRE — CV fourni plus tard par un event ProfileUpdated Identity.
-            offer.description(), offer.companyInfo());
+            offer.description(), companyInfo);
         var result = calculator.calculate(inputs);
         UUID existingId = fitScores.findByCandidateIdAndJobOfferId(candidateId, offer.id())
             .map(FitScore::id).orElse(null);
@@ -66,7 +74,7 @@ public class RecomputeFitScoresUseCase {
     public int recomputeAllActive() {
         int written = 0;
         for (JobOffer offer : offers.search(null, null, null, null, null, null, null, null,
-                0, MAX_BATCH_SIZE)) {
+                null, 0, MAX_BATCH_SIZE)) {
             for (Pair pair : pairsForOffer(offer.id())) {
                 if (recomputeQuietly(pair)) written++;
             }

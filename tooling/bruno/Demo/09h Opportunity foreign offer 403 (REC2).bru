@@ -1,0 +1,28 @@
+meta {
+  name: 09h Opportunity foreign offer 403 (REC2)
+  type: http
+  seq: 70
+}
+
+post {
+  url: {{baseUrl}}/api/v1/job-opportunity-offers
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{recruiter2Token}}
+}
+
+body:json {
+  {
+    "candidateId": "{{candidateId}}",
+    "jobOfferId": "{{demoOfferId}}"
+  }
+}
+
+docs {
+  Youssef (recruiter2) tente d'envoyer une opportunité adossée à l'offre de
+  Rania → 403, ni adossée à l'offre d'un autre recruteur.
+}

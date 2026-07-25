@@ -9,6 +9,7 @@ import com.zennyt.identity.domain.model.SocialIdentity;
 import com.zennyt.identity.domain.model.SocialProvider;
 import com.zennyt.identity.domain.model.User;
 import com.zennyt.identity.domain.event.UserAccessStateChangedEvent;
+import com.zennyt.identity.domain.repository.OnboardingRepository;
 import com.zennyt.identity.domain.repository.PasswordResetCodeRepository;
 import com.zennyt.identity.domain.repository.SocialIdentityRepository;
 import com.zennyt.identity.domain.repository.UserRepository;
@@ -49,6 +50,7 @@ public class AuthService {
     private final EmailPort email;
     private final Duration resetCodeTtl;
     private final ApplicationEventPublisher events;
+    private final OnboardingRepository onboarding;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public AuthService(UserRepository users, PasswordEncoder passwordEncoder,
@@ -57,7 +59,7 @@ public class AuthService {
                        SocialIdentityVerifier socialIdentityVerifier,
                        PasswordResetCodeRepository passwordResetCodes, EmailPort email,
                        @Value("${identity.password-reset.code-ttl:PT10M}") Duration resetCodeTtl,
-                       ApplicationEventPublisher events) {
+                       ApplicationEventPublisher events, OnboardingRepository onboarding) {
         this.users = users;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
@@ -68,6 +70,7 @@ public class AuthService {
         this.email = email;
         this.resetCodeTtl = resetCodeTtl;
         this.events = events;
+        this.onboarding = onboarding;
     }
 
     @Transactional
@@ -248,9 +251,19 @@ public class AuthService {
     }
 
     private void publishAccessState(User user) {
+        String companyName = null;
+        String companyInfo = null;
+        if (user.role() == Role.RECRUITER) {
+            var recruiter = onboarding.findRecruiterByUserId(user.id()).orElse(null);
+            if (recruiter != null) {
+                companyName = recruiter.companyName();
+                companyInfo = recruiter.aboutMe();
+            }
+        }
         events.publishEvent(UserAccessStateChangedEvent.of(
             user.publicId(), user.role().name(), user.active(),
-            user.firstName() + " " + user.lastName(), user.profileImageUrl()));
+            user.firstName() + " " + user.lastName(), user.profileImageUrl(),
+            user.city(), user.country(), companyName, companyInfo));
     }
 
     private static String firstNonBlank(String preferred, String fallback) {

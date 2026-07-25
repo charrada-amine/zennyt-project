@@ -1,0 +1,28 @@
+meta {
+  name: 04f Re-swipe 409 ALREADY_MATCHED (CAND)
+  type: http
+  seq: 35
+}
+
+post {
+  url: {{baseUrl}}/api/v1/job-offers/{{demoOfferId}}/swipes
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{candidateToken}}
+}
+
+body:json {
+  {
+    "direction": "RIGHT"
+  }
+}
+
+docs {
+  Un Match existe déjà pour cette paire → 409 {error: "ALREADY_MATCHED"}
+  (vérifié avant même l'existence d'un swipe actif — un match implique
+  toujours qu'un swipe existe déjà des deux côtés).
+}

@@ -1,0 +1,26 @@
+meta {
+  name: 07e Remove from fit scores (REC)
+  type: http
+  seq: 57
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/fit-scores?candidateId={{candidateId}}&jobOfferId={{demoOfferId}}
+  body: none
+  auth: none
+}
+
+params:query {
+  candidateId: {{candidateId}}
+  jobOfferId: {{demoOfferId}}
+}
+
+headers {
+  Authorization: Bearer {{recruiterToken}}
+}
+
+docs {
+  204 — le recruteur écarte Aicha du deck fit-score (dismissed, jamais
+  supprimé : le score reste en base, juste filtré). Un recalcul (07c) ne la
+  ressuscite pas dans le deck (voir 07f).
+}

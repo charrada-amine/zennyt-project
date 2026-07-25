@@ -1,0 +1,26 @@
+meta {
+  name: 03f Generate assessment from file (REC)
+  type: http
+  seq: 27
+}
+
+post {
+  url: {{baseUrl}}/api/v1/assessments/generate/from-file
+  body: multipartForm
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{recruiterToken}}
+}
+
+body:multipart-form {
+  file: @file(Demo/fixtures/job-description-sample.pdf)
+  questionCount: 5
+}
+
+docs {
+  Génération IA à partir d'un fichier source uploadé (PDF extrait via
+  PDFBox) — même moteur que 03e, mais le texte source vient du fichier
+  plutôt que du prompt libre.
+}

@@ -12,7 +12,7 @@ import com.zennyt.engagement.domain.repository.EngagementApplicationRepository;
 import com.zennyt.engagement.domain.repository.EngagementActorRepository;
 import com.zennyt.engagement.domain.vo.PostVisibility;
 import com.zennyt.identity.domain.event.UserAccessStateChangedEvent;
-import com.zennyt.recruitment.domain.event.ApplicationSubmittedEvent;
+import com.zennyt.recruitment.domain.event.MatchCreatedEvent;
 import com.zennyt.shared.application.exception.ConflictException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -123,7 +123,7 @@ class EngagementPostgresConcurrencyTest {
     void identity_projection_runs_after_commit_supports_fallback_and_never_breaks_the_emitter() {
         UUID transactionalUser = UUID.randomUUID();
         var transactionalEvent = UserAccessStateChangedEvent.of(
-            transactionalUser, "CANDIDATE", true, "Ada", null);
+            transactionalUser, "CANDIDATE", true, "Ada", null, null, null, null, null);
         TransactionTemplate transaction = new TransactionTemplate(transactionManager);
 
         transaction.executeWithoutResult(status -> {
@@ -134,17 +134,18 @@ class EngagementPostgresConcurrencyTest {
 
         UUID fallbackUser = UUID.randomUUID();
         events.publishEvent(UserAccessStateChangedEvent.of(
-            fallbackUser, "STUDENT", true, "Grace", null));
+            fallbackUser, "STUDENT", true, "Grace", null, null, null, null, null));
         assertThat(actors.findById(fallbackUser)).isPresent();
 
         // Un événement invalide fait échouer les projections locales, pas la transaction émettrice.
         transaction.executeWithoutResult(status -> events.publishEvent(
-            UserAccessStateChangedEvent.of(UUID.randomUUID(), null, true, "Invalid", null)));
+            UserAccessStateChangedEvent.of(UUID.randomUUID(), null, true, "Invalid", null,
+                null, null, null, null)));
     }
 
     @Test
     void failed_application_event_round_trips_through_the_durable_retry_store() {
-        ApplicationSubmittedEvent event = ApplicationSubmittedEvent.of(
+        MatchCreatedEvent event = MatchCreatedEvent.of(
             UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), "Backend Engineer");
 
         retryStore.enqueue(event, "temporary failure");

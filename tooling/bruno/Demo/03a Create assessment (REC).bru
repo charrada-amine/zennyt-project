@@ -1,0 +1,40 @@
+meta {
+  name: 03a Create assessment (REC)
+  type: http
+  seq: 22
+}
+
+post {
+  url: {{baseUrl}}/api/v1/assessments
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{recruiterToken}}
+}
+
+body:json {
+  {
+    "title": "Test Backend Java/Spring",
+    "timeLimitSeconds": 600,
+    "questions": [
+      { "text": "Quelle annotation déclare un bean Spring géré ?", "options": ["@Component", "@Data", "@Getter", "@Slf4j"], "correctOptionIndex": 0 },
+      { "text": "Quel HTTP status pour une création réussie ?", "options": ["200", "201", "204", "409"], "correctOptionIndex": 1 },
+      { "text": "Quelle interface JPA fournit findById ?", "options": ["EntityManager", "CrudRepository", "Session", "Query"], "correctOptionIndex": 1 },
+      { "text": "Quel mot-clé rend un champ immuable en Java ?", "options": ["static", "transient", "final", "volatile"], "correctOptionIndex": 2 }
+    ]
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setVar("demoAssessmentId", res.body.id);
+  }
+}
+
+docs {
+  Le recruteur crée un test à 4 questions (4 options chacune, exactement).
+  correctOptionIndex n'est jamais exposé au candidat (voir 05a/05c).
+}

@@ -3,8 +3,7 @@ package com.zennyt.engagement.infrastructure.persistence;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zennyt.engagement.application.port.ApplicationEventRetryStore;
-import com.zennyt.recruitment.domain.event.ApplicationStatusChangedEvent;
-import com.zennyt.recruitment.domain.event.ApplicationSubmittedEvent;
+import com.zennyt.recruitment.domain.event.MatchCreatedEvent;
 import com.zennyt.shared.domain.event.DomainEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -60,8 +59,7 @@ public class ApplicationEventRetryStoreAdapter implements ApplicationEventRetryS
 
     private DomainEvent deserialize(PendingApplicationEventEntity entity) {
         Class<? extends DomainEvent> eventClass = switch (entity.getEventType()) {
-            case "recruitment.application.submitted" -> ApplicationSubmittedEvent.class;
-            case "recruitment.application.status_changed" -> ApplicationStatusChangedEvent.class;
+            case "recruitment.match.created" -> MatchCreatedEvent.class;
             default -> throw new IllegalStateException(
                 "Type d'événement Engagement inconnu: " + entity.getEventType());
         };

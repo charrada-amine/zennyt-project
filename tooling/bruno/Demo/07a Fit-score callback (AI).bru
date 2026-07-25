@@ -1,0 +1,37 @@
+meta {
+  name: 07a Fit-score callback (AI)
+  type: http
+  seq: 53
+}
+
+post {
+  url: {{baseUrl}}/api/v1/callbacks/fit-score
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  X-Callback-Secret: {{callbackSecret}}
+}
+
+body:json {
+  {
+    "candidateId": "{{candidateId}}",
+    "jobOfferId": "{{demoOfferId}}",
+    "score": 88
+  }
+}
+
+docs {
+  Le service IA externe poste un score de compatibilité — pas de
+  X-Dev-User/Bearer ici, juste le secret partagé X-Callback-Secret (voir 11a
+  pour le refus avec un mauvais secret).
+
+  Statut réel attendu ici : **409**, pas 200 — l'activation de l'offre en
+  02a a déclenché `JobOfferFitScoreListener` (async, après commit), qui a
+  déjà précalculé un score pour cette paire avant que cette requête ne
+  s'exécute. Le callback refuse un score différent pour une paire déjà
+  scorée (pas de réécriture silencieuse) — voir 07b pour lire le score
+  réellement en base.
+}

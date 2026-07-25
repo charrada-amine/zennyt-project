@@ -1,0 +1,33 @@
+meta {
+  name: 00 Login Omar (CAND2)
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/v1/auth/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "candidate2@zennyt.com",
+    "password": "zennyt123"
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    bru.setVar("candidate2Token", res.body.accessToken);
+  }
+}
+
+docs {
+  Login 2e candidat (Omar) — utilisé pour le scénario d'abandon de test
+  (garde le compte principal Aicha "propre" côté résultat COMPLETED).
+}

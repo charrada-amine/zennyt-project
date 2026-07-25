@@ -1,0 +1,21 @@
+meta {
+  name: 05k Abandon attempt (CAND2)
+  type: http
+  seq: 50
+}
+
+post {
+  url: {{baseUrl}}/api/v1/test-attempts/{{demoAttempt2Id}}/abandon
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{candidate2Token}}
+}
+
+docs {
+  Abandon explicite (app fermée, retour arrière) — TestResult status
+  ABANDONED, score 0, non réussi. Ne déclenche jamais la régénération du
+  résumé IA hard skills (rien de significatif à résumer).
+}

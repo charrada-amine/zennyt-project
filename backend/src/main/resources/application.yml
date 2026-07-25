@@ -1,6 +1,10 @@
 spring:
   application:
     name: zennyt-api
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true   # 400 sur un champ inconnu (contrat squad web §1/§3.3),
+                                          # au lieu de l'ignorer silencieusement
   jpa:
     hibernate:
       ddl-auto: validate          # le schéma est géré par migrations (Flyway/Liquibase), jamais auto

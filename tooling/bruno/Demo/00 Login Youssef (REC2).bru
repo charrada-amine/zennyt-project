@@ -1,0 +1,33 @@
+meta {
+  name: 00 Login Youssef (REC2)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/auth/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "recruiter2@zennyt.com",
+    "password": "zennyt123"
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    bru.setVar("recruiter2Token", res.body.accessToken);
+  }
+}
+
+docs {
+  Login 2e recruteur (Youssef) — utilisé pour les tests d'isolation
+  (un recruteur ne peut pas agir sur les ressources d'un autre).
+}

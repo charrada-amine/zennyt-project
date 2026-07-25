@@ -1,0 +1,30 @@
+meta {
+  name: 12a Bad login shared error envelope (AUTH)
+  type: http
+  seq: 75
+}
+
+post {
+  url: {{baseUrl}}/api/v1/auth/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "candidate1@zennyt.com",
+    "password": "wrong-password"
+  }
+}
+
+docs {
+  401 {error: "UNAUTHORIZED", message}. GlobalExceptionHandler et
+  l'enveloppe d'erreur unifiée sont partagés par Identity ET Recruitment —
+  ce n'est pas une convention propre à ce contexte (voir aussi 02g, 03h,
+  04c/04f/04j, 05g/05i/05l, 09d/09g/09h, 10c, 11a pour les codes propres à
+  Recruitment).
+}

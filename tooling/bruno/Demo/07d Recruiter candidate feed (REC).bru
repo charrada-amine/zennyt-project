@@ -1,0 +1,27 @@
+meta {
+  name: 07d Recruiter candidate feed (REC)
+  type: http
+  seq: 56
+}
+
+get {
+  url: {{baseUrl}}/api/v1/recruiters/me/candidate-feed?jobOfferId={{demoOfferId}}&page=0&size=20
+  body: none
+  auth: none
+}
+
+params:query {
+  jobOfferId: {{demoOfferId}}
+  page: 0
+  size: 20
+}
+
+headers {
+  Authorization: Bearer {{recruiterToken}}
+}
+
+docs {
+  Deck recruteur trié par score réel de la paire (candidat, offre) — limité
+  aux profils projetés localement et fit-scorés (07c). Distinct du deck de
+  swipe brut (04d) : celui-ci est piloté par le Fit Score IA.
+}

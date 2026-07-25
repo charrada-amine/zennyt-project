@@ -32,7 +32,8 @@ class IdentityAccessStateListenerTest {
         Instant occurredAt = Instant.parse("2026-07-18T08:00:00Z");
         UUID eventId = UUID.randomUUID();
         var event = new UserAccessStateChangedEvent(
-            eventId, occurredAt, userId, "CANDIDATE", true, "Ada Lovelace", "https://img.test/ada");
+            eventId, occurredAt, userId, "CANDIDATE", true, "Ada Lovelace", "https://img.test/ada",
+            null, null, null, null);
         when(actors.findById(userId)).thenReturn(Optional.empty());
 
         projector.project(event);
@@ -44,9 +45,11 @@ class IdentityAccessStateListenerTest {
             userId, "CANDIDATE", true, "Ada Lovelace", "https://img.test/ada", occurredAt, eventId);
         when(actors.findById(userId)).thenReturn(Optional.of(current));
         projector.project(new UserAccessStateChangedEvent(
-            UUID.randomUUID(), occurredAt.minusSeconds(1), userId, "RECRUITER", false, "Older", null));
+            UUID.randomUUID(), occurredAt.minusSeconds(1), userId, "RECRUITER", false, "Older", null,
+            null, null, null, null));
         projector.project(new UserAccessStateChangedEvent(
-            eventId, occurredAt.plusSeconds(1), userId, "RECRUITER", false, "Replay", null));
+            eventId, occurredAt.plusSeconds(1), userId, "RECRUITER", false, "Replay", null,
+            null, null, null, null));
 
         verify(actors, never()).save(any());
     }
@@ -83,7 +86,7 @@ class IdentityAccessStateListenerTest {
         var safeListener = new EngagementIdentityAccessStateListener(failing);
 
         safeListener.on(UserAccessStateChangedEvent.of(
-            UUID.randomUUID(), "CANDIDATE", true, "Ada", null));
+            UUID.randomUUID(), "CANDIDATE", true, "Ada", null, null, null, null, null));
 
         verify(failing).project(any());
     }

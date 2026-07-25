@@ -1,0 +1,26 @@
+meta {
+  name: 02d Search offers (CAND)
+  type: http
+  seq: 14
+}
+
+get {
+  url: {{baseUrl}}/api/v1/job-offers?page=0&size=20
+  body: none
+  auth: none
+}
+
+params:query {
+  page: 0
+  size: 20
+}
+
+headers {
+  Authorization: Bearer {{candidateToken}}
+}
+
+docs {
+  Sans filtre, un candidat authentifié reçoit son fil recommandé (trié fit
+  score) plutôt que la recherche brute — même route, comportement dérivé du
+  rôle de l'appelant.
+}

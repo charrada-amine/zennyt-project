@@ -1,0 +1,28 @@
+meta {
+  name: 04c Re-swipe 409 SWIPE_ALREADY_EXISTS (CAND)
+  type: http
+  seq: 32
+}
+
+post {
+  url: {{baseUrl}}/api/v1/job-offers/{{demoOfferId}}/swipes
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{candidateToken}}
+}
+
+body:json {
+  {
+    "direction": "RIGHT"
+  }
+}
+
+docs {
+  Re-swiper sans annuler d'abord → 409 {error: "SWIPE_ALREADY_EXISTS"}.
+  Aucune réécriture silencieuse : il faut DELETE .../swipes/me (04i) avant de
+  re-swiper.
+}

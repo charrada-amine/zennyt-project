@@ -1,0 +1,27 @@
+meta {
+  name: 05j Start attempt as Omar (CAND2)
+  type: http
+  seq: 49
+}
+
+post {
+  url: {{baseUrl}}/api/v1/job-offers/{{demoOfferId}}/test-attempts
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{candidate2Token}}
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setVar("demoAttempt2Id", res.body.attemptId);
+  }
+}
+
+docs {
+  2e candidat (Omar) sur la même offre — chaque paire (candidateId,
+  jobOfferId) a sa propre tentative indépendante. Utilisé pour le scénario
+  d'abandon (05k) sans toucher au résultat COMPLETED d'Aicha.
+}

@@ -1,0 +1,20 @@
+meta {
+  name: 02k Delete draft offer (REC)
+  type: http
+  seq: 21
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/job-offers/{{throwawayOfferId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{recruiterToken}}
+}
+
+docs {
+  204 — l'offre jetable est supprimée. Suppression réservée au recruteur
+  propriétaire (403 sinon).
+}

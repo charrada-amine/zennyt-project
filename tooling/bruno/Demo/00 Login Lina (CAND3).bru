@@ -1,0 +1,33 @@
+meta {
+  name: 00 Login Lina (CAND3)
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/v1/auth/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "candidate3@zennyt.com",
+    "password": "zennyt123"
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    bru.setVar("candidate3Token", res.body.accessToken);
+  }
+}
+
+docs {
+  Login 3e candidate (Lina) — utilisée pour peupler le deck fit-score
+  (§ Fit Scores) aux côtés d'Aicha et Omar.
+}

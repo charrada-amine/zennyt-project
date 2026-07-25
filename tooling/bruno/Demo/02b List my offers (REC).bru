@@ -1,0 +1,25 @@
+meta {
+  name: 02b List my offers (REC)
+  type: http
+  seq: 12
+}
+
+get {
+  url: {{baseUrl}}/api/v1/recruiters/me/job-offers?page=0&size=20
+  body: none
+  auth: none
+}
+
+params:query {
+  page: 0
+  size: 20
+}
+
+headers {
+  Authorization: Bearer {{recruiterToken}}
+}
+
+docs {
+  Offres du recruteur connecté — y compris ses brouillons (contrairement à
+  la recherche publique). Enveloppe de pagination {content, page}.
+}
