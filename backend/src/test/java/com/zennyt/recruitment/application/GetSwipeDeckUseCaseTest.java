@@ -30,8 +30,8 @@ class GetSwipeDeckUseCaseTest {
         when(offer.recruiterId()).thenReturn(recruiterId);
         when(offers.findById(offerId)).thenReturn(Optional.of(offer));
         when(scores.findByJobOfferIdOrderByScoreDesc(offerId)).thenReturn(List.of(
-            FitScore.calculated(UUID.randomUUID(), firstCandidate, offerId, 95, 90, 98, Instant.now()),
-            FitScore.calculated(UUID.randomUUID(), dismissedCandidate, offerId, 80, 75, 85, Instant.now())));
+            FitScore.calculated(UUID.randomUUID(), firstCandidate, offerId, 95, 90, 98, null, 100, Instant.now()),
+            FitScore.calculated(UUID.randomUUID(), dismissedCandidate, offerId, 80, 75, 85, null, 100, Instant.now())));
         when(dismissals.isDismissed(recruiterId, dismissedCandidate, offerId)).thenReturn(true);
 
         var deck = new GetSwipeDeckUseCase(offers, scores, dismissals)

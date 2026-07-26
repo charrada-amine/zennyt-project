@@ -98,7 +98,7 @@ public class DevDataSeeder implements CommandLineRunner {
 
         fitScoreRepository.save(FitScore.rehydrate(
             UUID.fromString("c0000000-0000-0000-0000-000000000001"),
-            CANDIDATE, OFFER_1, 87, 82, 91, Instant.now()));
+            CANDIDATE, OFFER_1, 87, 82, 91, null, 100, Instant.now()));
 
         // Projections soft skills des candidats de démo : sans elles, aucune paire
         // candidat×offre n'existe pour le recalcul des fit scores (les projections

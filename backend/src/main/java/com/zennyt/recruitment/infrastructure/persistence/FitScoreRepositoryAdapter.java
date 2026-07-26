@@ -16,7 +16,7 @@ public class FitScoreRepositoryAdapter implements FitScoreRepository {
     /** Upsert atomique : un seul score par paire — le dernier calcul gagne. */
     @Override @Transactional public FitScore save(FitScore f) {
         jpa.upsert(f.id(), f.candidateId(), f.jobOfferId(), f.score(),
-            f.softSkillScore(), f.cvMatchScore(), f.computedAt());
+            f.softSkillScore(), f.cvMatchScore(), f.hardSkillScore(), f.coverageRatio(), f.computedAt());
         return jpa.findFirstByCandidateIdAndJobOfferIdOrderByComputedAtDesc(
                 f.candidateId(), f.jobOfferId())
             .map(this::toDomain)
@@ -34,5 +34,9 @@ public class FitScoreRepositoryAdapter implements FitScoreRepository {
             .map(this::toDomain).toList();
     }
 
-    private FitScore toDomain(FitScoreEntity e) { return FitScore.rehydrate(e.getId(), e.getCandidateId(), e.getJobOfferId(), e.getScore(), e.getSoftSkillScore(), e.getCvMatchScore(), e.getComputedAt()); }
+    private FitScore toDomain(FitScoreEntity e) {
+        return FitScore.rehydrate(e.getId(), e.getCandidateId(), e.getJobOfferId(), e.getScore(),
+            e.getSoftSkillScore(), e.getCvMatchScore(), e.getHardSkillScore(), e.getCoverageRatio(),
+            e.getComputedAt());
+    }
 }

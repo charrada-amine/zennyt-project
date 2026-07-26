@@ -20,6 +20,8 @@ tags:
     description: Offres d'emploi — cycle de vie et recherche
   - name: JobPositions
     description: Référentiel de métiers (matrice de pondération Fit Score) — sélection position/niveau à la création d'offre
+  - name: JobRoleProfiles
+    description: Référentiel de pondération Fit Score (profil métier × niveau) — pré-remplissage des curseurs de pondération
   - name: Swipes
     description: Mécanique de swipe bidirectionnelle
   - name: Matches
@@ -148,6 +150,24 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+  # ═══════════════════════════════════════════════════════════════
+  # JOB ROLE PROFILES (référentiel de pondération Fit Score)
+  # ═══════════════════════════════════════════════════════════════
+
+  /job-role-profiles:
+    get:
+      operationId: getJobRoleProfiles
+      tags: [JobRoleProfiles]
+      summary: Référentiel de pondération (24 lignes, profil métier × niveau — CdC Fit Score v3 §4.3/§9)
+      responses:
+        '200':
+          description: Les 24 lignes du référentiel
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/JobRoleProfile' }
 
   # ═══════════════════════════════════════════════════════════════
   # JOB OFFERS
@@ -1234,6 +1254,28 @@ components:
           example: { JUNIOR: "Apprenti / Ouvrier débutant", MID: "Compagnon confirmé", SENIOR: "Chef d'équipe", EXECUTIVE: "Chef de chantier" }
         createdAt: { type: string, format: date-time }
 
+    TypeEvaluationHard:
+      type: string
+      description: Mode de mesure du hard skills du profil — QCM sauf ARTISTIQUE (Portfolio par défaut)
+      enum: [QCM, PORTFOLIO, MIXTE]
+
+    JobRoleProfile:
+      type: object
+      description: Pondération de référence pour un couple (profil métier, niveau) — jamais par métier individuel (CdC Fit Score v3 §4.3)
+      properties:
+        profileType: { $ref: '#/components/schemas/JobProfileType' }
+        level: { $ref: '#/components/schemas/ExperienceLevel' }
+        softWeight: { type: integer, minimum: 0, maximum: 100 }
+        hardWeight: { type: integer, minimum: 0, maximum: 100 }
+        expectedHardWeight: { type: integer, minimum: 0, maximum: 100, description: "Informationnel uniquement — jamais utilisé dans le calcul du score" }
+        cognitiveFlexibilityWeight: { type: integer, minimum: 0, maximum: 100 }
+        workingMemoryWeight: { type: integer, minimum: 0, maximum: 100 }
+        decisionMakingWeight: { type: integer, minimum: 0, maximum: 100 }
+        executivePlanningWeight: { type: integer, minimum: 0, maximum: 100 }
+        emotionalRegulationWeight: { type: integer, minimum: 0, maximum: 100 }
+        typeEvaluationHard: { $ref: '#/components/schemas/TypeEvaluationHard' }
+        calibrated: { type: boolean, description: "false = pondération v1 non validée en atelier RH" }
+
     JobOfferStatus:
       type: string
       description: Librement réversible dans n'importe quelle direction, aucun état terminal.
@@ -1358,8 +1400,20 @@ components:
         goodFit: { type: boolean, nullable: true, description: "Vrai à partir du seuil provisoire de 70." }
         softSkillScore: { type: integer, minimum: 0, maximum: 100, nullable: true }
         cvMatchScore: { type: integer, minimum: 0, maximum: 100, nullable: true }
+        hardSkillScore: { type: integer, minimum: 0, maximum: 100, nullable: true, description: "null tant qu'aucune tentative de QCM n'est complétée" }
+        partialData: { type: boolean, nullable: true, description: "Couverture des jeux psychométriques sous le seuil (CdC Fit Score v3 §3.3)" }
+        hardSkillsAlert: { $ref: '#/components/schemas/HardSkillsAlertLevel' }
         postedAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
+
+    HardSkillsAlertLevel:
+      type: string
+      description: >
+        Alerte "hard skills manquant" (CdC Fit Score v3 §6) quand aucun QCM
+        n'est attaché à l'offre — purement informationnel, jamais utilisé
+        dans le calcul du Fit Score. ARTISTIQUE reste toujours à INFO
+        (évaluation par portfolio, fonctionnement normal, pas une anomalie).
+      enum: [NONE, INFO, MODERATE, STRONG]
 
     RecruiterSummary:
       type: object
@@ -1430,6 +1484,9 @@ components:
         goodFit: { type: boolean, nullable: true }
         softSkillScore: { type: integer, nullable: true }
         cvMatchScore: { type: integer, nullable: true }
+        hardSkillScore: { type: integer, nullable: true }
+        partialData: { type: boolean, nullable: true }
+        hardSkillsAlert: { $ref: '#/components/schemas/HardSkillsAlertLevel' }
 
     JobOfferSummaryPage:
       type: object
@@ -1592,6 +1649,8 @@ components:
         goodFit: { type: boolean, description: "Vrai à partir du seuil provisoire de 70." }
         softSkillScore: { type: integer, minimum: 0, maximum: 100, nullable: true }
         cvMatchScore: { type: integer, minimum: 0, maximum: 100, nullable: true }
+        hardSkillScore: { type: integer, minimum: 0, maximum: 100, nullable: true, description: "null tant qu'aucune tentative de QCM n'est complétée" }
+        partialData: { type: boolean, description: "Couverture des jeux psychométriques sous le seuil (CdC Fit Score v3 §3.3) — badge « données partielles »" }
         computedAt: { type: string, format: date-time }
 
     # ── Candidate Feed ─────────────────────────────────────────
@@ -1607,6 +1666,8 @@ components:
         fitScore: { type: integer, minimum: 0, maximum: 100 }
         goodFit: { type: boolean }
         softSkillsScore: { type: integer, minimum: 0, maximum: 100 }
+        hardSkillScore: { type: integer, minimum: 0, maximum: 100, nullable: true }
+        partialData: { type: boolean }
         contractPreferences:
           type: array
           items: { type: string }

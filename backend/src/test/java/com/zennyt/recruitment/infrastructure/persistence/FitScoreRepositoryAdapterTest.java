@@ -21,14 +21,14 @@ class FitScoreRepositoryAdapterTest {
         UUID offerId = UUID.randomUUID();
         Instant computedAt = Instant.now();
         FitScore score = FitScore.calculated(
-            id, candidateId, offerId, 84, 77, 91, computedAt);
+            id, candidateId, offerId, 84, 77, 91, null, 100, computedAt);
         when(jpa.findFirstByCandidateIdAndJobOfferIdOrderByComputedAtDesc(candidateId, offerId))
             .thenReturn(Optional.of(new FitScoreEntity(
-                id, candidateId, offerId, 84, 77, 91, computedAt)));
+                id, candidateId, offerId, 84, 77, 91, null, 100, computedAt)));
 
         FitScore saved = new FitScoreRepositoryAdapter(jpa).save(score);
 
-        verify(jpa).upsert(id, candidateId, offerId, 84, 77, 91, computedAt);
+        verify(jpa).upsert(id, candidateId, offerId, 84, 77, 91, null, 100, computedAt);
         assertThat(saved.score()).isEqualTo(84);
     }
 }

@@ -20,10 +20,12 @@ public record JobOfferSummaryResponse(
     ContractType contractType, WorkplaceType workplaceType, ExperienceLevel experienceLevel,
     JobOfferStatus status, Instant postedAt,
     UUID jobPositionId, long applicantCount,
-    Integer fitScore, Boolean goodFit, Integer softSkillScore, Integer cvMatchScore
+    Integer fitScore, Boolean goodFit, Integer softSkillScore, Integer cvMatchScore,
+    Integer hardSkillScore, Boolean partialData, HardSkillsAlertLevel hardSkillsAlert
 ) {
     public static JobOfferSummaryResponse from(JobOffer o, String companyName, long applicantCount,
-                                               com.zennyt.recruitment.domain.model.FitScore fitScore) {
+                                               com.zennyt.recruitment.domain.model.FitScore fitScore,
+                                               HardSkillsAlertLevel hardSkillsAlert) {
         return new JobOfferSummaryResponse(
             o.id(), o.title(), companyName,
             o.location() != null ? o.location().city() : null,
@@ -35,7 +37,10 @@ public record JobOfferSummaryResponse(
             fitScore != null ? fitScore.score() : null,
             fitScore != null ? fitScore.goodFit() : null,
             fitScore != null ? fitScore.softSkillScore() : null,
-            fitScore != null ? fitScore.cvMatchScore() : null
+            fitScore != null ? fitScore.cvMatchScore() : null,
+            fitScore != null ? fitScore.hardSkillScore() : null,
+            fitScore != null ? fitScore.partialData() : null,
+            hardSkillsAlert
         );
     }
 }
