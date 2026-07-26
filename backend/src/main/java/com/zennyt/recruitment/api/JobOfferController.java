@@ -2,8 +2,10 @@ package com.zennyt.recruitment.api;
 
 import com.zennyt.recruitment.api.dto.*;
 import com.zennyt.recruitment.api.security.RecruiterOnly;
+import com.zennyt.recruitment.application.JobRoleProfileResolver;
 import com.zennyt.recruitment.application.usecase.*;
 import com.zennyt.recruitment.domain.model.JobOffer;
+import com.zennyt.recruitment.domain.model.JobRoleProfile;
 import com.zennyt.recruitment.domain.repository.JobOfferRepository;
 import com.zennyt.recruitment.domain.repository.SwipeRepository;
 import com.zennyt.recruitment.domain.repository.AssessmentRepository;
@@ -40,6 +42,7 @@ public class JobOfferController {
     private final FitScoreRepository fitScoreRepository;
     private final GetSwipeDeckUseCase swipeDeck;
     private final RecruitmentActorRepository actors;
+    private final JobRoleProfileResolver roleProfileResolver;
 
     public JobOfferController(CreateJobOfferUseCase createUseCase,
                                ReplaceJobOfferUseCase replaceUseCase,
@@ -50,7 +53,8 @@ public class JobOfferController {
                                AssessmentRepository assessmentRepository,
                                FitScoreRepository fitScoreRepository,
                                GetSwipeDeckUseCase swipeDeck,
-                               RecruitmentActorRepository actors) {
+                               RecruitmentActorRepository actors,
+                               JobRoleProfileResolver roleProfileResolver) {
         this.createUseCase = createUseCase;
         this.replaceUseCase = replaceUseCase;
         this.updateUseCase = updateUseCase;
@@ -61,6 +65,7 @@ public class JobOfferController {
         this.fitScoreRepository = fitScoreRepository;
         this.swipeDeck = swipeDeck;
         this.actors = actors;
+        this.roleProfileResolver = roleProfileResolver;
     }
 
     /** POST /api/v1/job-offers — Créer une offre (publiée ACTIVE, postedAt serveur) */
@@ -138,14 +143,16 @@ public class JobOfferController {
                 actor.map(a -> a.avatarUrl()).orElse(null),
                 actor.map(a -> a.city()).orElse(null),
                 actor.map(a -> a.country()).orElse(null),
-                score.score(), score.goodFit(), score.softSkillScore());
+                score.score(), score.goodFit(), score.softSkillScore(),
+                score.hardSkillScore(), score.partialData());
         }).toList();
         return ResponseEntity.ok(PageResponse.of(items, page, size, result.totalElements()));
     }
 
     record CandidateFeedItemResponse(UUID candidateId, String fullName, String avatarUrl,
                                      String city, String country,
-                                     int fitScore, boolean goodFit, Integer softSkillsScore) {}
+                                     int fitScore, boolean goodFit, Integer softSkillsScore,
+                                     Integer hardSkillScore, boolean partialData) {}
 
     /** GET /api/v1/recruiters/me/job-offers — Mes offres (recruteur authentifié) */
     @GetMapping("/recruiters/me/job-offers")
@@ -231,7 +238,20 @@ public class JobOfferController {
         var fitScore = fitScore(offer, authentication);
         var recruiter = actors.findById(offer.recruiterId());
         return JobOfferResponse.from(offer, applicantCounts.getOrDefault(offer.id(), 0L), link, fitScore,
-            recruiter.map(a -> a.companyName()).orElse(null), recruiter.map(a -> a.companyInfo()).orElse(null));
+            recruiter.map(a -> a.companyName()).orElse(null), recruiter.map(a -> a.companyInfo()).orElse(null),
+            hardSkillsAlert(offer));
+    }
+
+    /**
+     * Alerte « hard skills manquant » (CdC Fit Score v3 §6) — purement
+     * informationnelle, jamais utilisée dans le calcul du Fit Score. NONE si
+     * un QCM est déjà attaché, ou si l'offre n'est pas encore reliée au
+     * référentiel de métiers (pas de base pour dériver une alerte).
+     */
+    private HardSkillsAlertLevel hardSkillsAlert(JobOffer offer) {
+        if (offer.assessmentId() != null) return HardSkillsAlertLevel.NONE;
+        JobRoleProfile roleProfile = roleProfileResolver.resolve(offer);
+        return roleProfile != null ? roleProfile.hardSkillsAlert() : HardSkillsAlertLevel.NONE;
     }
 
     private String shareableLink(JobOffer offer) {

@@ -10,6 +10,7 @@ import com.zennyt.recruitment.domain.repository.FitScoreRepository;
 import com.zennyt.recruitment.domain.repository.JobOfferRepository;
 import com.zennyt.recruitment.domain.repository.RecruitmentActorRepository;
 import com.zennyt.recruitment.domain.repository.SoftSkillsProjectionRepository;
+import com.zennyt.recruitment.domain.repository.TestResultRepository;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -44,10 +45,13 @@ class RecomputeFitScoresUseCaseTest {
         when(soft.findByCandidateId(candidateId)).thenReturn(List.of(
             SoftSkillsProjection.create(candidateId, "MOVE_FAST", 77, Instant.now())));
         when(scores.findByCandidateIdAndJobOfferId(candidateId, offerId)).thenReturn(Optional.of(
-            FitScore.calculated(existingId, candidateId, offerId, 10, 10, 10, Instant.now())));
+            FitScore.calculated(existingId, candidateId, offerId, 10, 10, 10, null, 100, Instant.now())));
         when(scores.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        JobRoleProfileResolver roleProfileResolver = mock(JobRoleProfileResolver.class);
+        TestResultRepository testResults = mock(TestResultRepository.class);
 
-        FitScore result = new RecomputeFitScoresUseCase(calculator, scores, offers, soft, actors)
+        FitScore result = new RecomputeFitScoresUseCase(calculator, scores, offers, soft, actors,
+                roleProfileResolver, testResults)
             .recompute(candidateId, offer);
 
         assertThat(result.id()).isEqualTo(existingId);
@@ -67,8 +71,11 @@ class RecomputeFitScoresUseCaseTest {
         UUID offerId = UUID.randomUUID();
         when(offers.findById(offerId)).thenReturn(Optional.of(mock(JobOffer.class)));
         when(soft.findCandidateIds(RecomputeFitScoresUseCase.MAX_BATCH_SIZE)).thenReturn(List.of());
+        JobRoleProfileResolver roleProfileResolver = mock(JobRoleProfileResolver.class);
+        TestResultRepository testResults = mock(TestResultRepository.class);
 
-        var pairs = new RecomputeFitScoresUseCase(calculator, scores, offers, soft, actors)
+        var pairs = new RecomputeFitScoresUseCase(calculator, scores, offers, soft, actors,
+                roleProfileResolver, testResults)
             .pairsForOffer(offerId);
 
         verify(soft).findCandidateIds(RecomputeFitScoresUseCase.MAX_BATCH_SIZE);

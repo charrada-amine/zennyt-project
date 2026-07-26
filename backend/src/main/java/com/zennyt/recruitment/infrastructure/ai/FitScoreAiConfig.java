@@ -19,10 +19,15 @@ public class FitScoreAiConfig {
             @Value("${groq.api-key:}") String apiKey,
             @Value("${groq.model:llama-3.3-70b-versatile}") String model,
             @Value("${groq.connect-timeout-ms:5000}") int connectTimeoutMs,
-            @Value("${groq.read-timeout-ms:20000}") int readTimeoutMs) {
-        if (apiKey == null || apiKey.isBlank()) return new StubFitScoreCalculator();
-        return new GroqFitScoreCalculator(objectMapper, apiKey, model,
-            connectTimeoutMs, readTimeoutMs);
+            @Value("${groq.read-timeout-ms:20000}") int readTimeoutMs,
+            @Value("${recruitment.fitscore.engine:deterministic}") String engine) {
+        FitScoreCalculatorPort aiCalculator = (apiKey == null || apiKey.isBlank())
+            ? new StubFitScoreCalculator()
+            : new GroqFitScoreCalculator(objectMapper, apiKey, model, connectTimeoutMs, readTimeoutMs);
+        // D3 (PLAN_FITSCORE_V3.md) — formule déterministe par défaut ; l'IA reste
+        // le moteur de repli pour les offres pas encore reliées au référentiel
+        // de métiers, et reste sélectionnable seule via cette propriété.
+        return "groq".equalsIgnoreCase(engine) ? aiCalculator : new DeterministicFitScoreCalculator(aiCalculator);
     }
 
     @Bean(name = "recruitmentFitScoreExecutor")

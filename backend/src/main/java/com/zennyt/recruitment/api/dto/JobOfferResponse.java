@@ -28,17 +28,19 @@ public record JobOfferResponse(
     String whatWeOffer, String howToApply,
     UUID assessmentId, UUID jobPositionId, String shareableLink, boolean openToInternational,
     JobOfferStatus status, long applicantCount, Integer fitScore, Boolean goodFit,
-    Integer softSkillScore, Integer cvMatchScore, Instant postedAt, Instant updatedAt
+    Integer softSkillScore, Integer cvMatchScore, Integer hardSkillScore, Boolean partialData,
+    HardSkillsAlertLevel hardSkillsAlert, Instant postedAt, Instant updatedAt
 ) {
     public record RecruiterSummary(UUID id, String companyName, String companyInfo) {}
 
     public static JobOfferResponse from(JobOffer o) {
-        return from(o, 0, null, null, null, null);
+        return from(o, 0, null, null, null, null, HardSkillsAlertLevel.NONE);
     }
 
     public static JobOfferResponse from(JobOffer o, long applicantCount, String shareableLink,
                                         com.zennyt.recruitment.domain.model.FitScore fitScore,
-                                        String recruiterCompanyName, String recruiterCompanyInfo) {
+                                        String recruiterCompanyName, String recruiterCompanyInfo,
+                                        HardSkillsAlertLevel hardSkillsAlert) {
         return new JobOfferResponse(
             o.id(), o.recruiterId(),
             new RecruiterSummary(o.recruiterId(), recruiterCompanyName, recruiterCompanyInfo),
@@ -55,6 +57,9 @@ public record JobOfferResponse(
             fitScore != null ? fitScore.goodFit() : null,
             fitScore != null ? fitScore.softSkillScore() : null,
             fitScore != null ? fitScore.cvMatchScore() : null,
+            fitScore != null ? fitScore.hardSkillScore() : null,
+            fitScore != null ? fitScore.partialData() : null,
+            hardSkillsAlert,
             o.postedAt(), o.updatedAt()
         );
     }
