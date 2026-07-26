@@ -276,7 +276,8 @@ public class JobOfferController {
         return offers.stream().map(offer -> {
             String companyName = actors.findById(offer.recruiterId()).map(a -> a.companyName()).orElse(null);
             return JobOfferSummaryResponse.from(offer, companyName,
-                applicantCounts.getOrDefault(offer.id(), 0L), scoresByOffer.get(offer.id()));
+                applicantCounts.getOrDefault(offer.id(), 0L), scoresByOffer.get(offer.id()),
+                hardSkillsAlert(offer));
         }).toList();
     }
 

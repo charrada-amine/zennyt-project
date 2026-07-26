@@ -1486,6 +1486,7 @@ components:
         cvMatchScore: { type: integer, nullable: true }
         hardSkillScore: { type: integer, nullable: true }
         partialData: { type: boolean, nullable: true }
+        hardSkillsAlert: { $ref: '#/components/schemas/HardSkillsAlertLevel' }
 
     JobOfferSummaryPage:
       type: object
