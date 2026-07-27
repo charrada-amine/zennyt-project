@@ -11,6 +11,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -58,6 +59,10 @@ public class HuggingFaceEmbeddingPort implements EmbeddingPort {
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
+            // RestTemplate ajoute par défaut un Accept multi-valeurs (text/plain en tête via
+            // StringHttpMessageConverter) que l'endpoint hf-inference rejette avec un 400 —
+            // confirmé en direct (2026-07-27). Restreindre explicitement à application/json.
+            headers.setAccept(List.of(MediaType.APPLICATION_JSON));
             headers.setBearerAuth(apiKey);
             Map<String, Object> body = Map.of("inputs", text);
             var response = restTemplate.postForEntity(apiUrl, new HttpEntity<>(body, headers), String.class);
