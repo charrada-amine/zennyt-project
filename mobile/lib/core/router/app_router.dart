@@ -33,6 +33,20 @@ import '../../features/splash/presentation/view/splash_screen.dart';
 import '../../features/profile_settings/cv_autofill/presentation/view/cv_camera_capture_screen.dart';
 import '../../features/profile_settings/cv_autofill/presentation/view/cv_processing_screen.dart';
 import '../../features/profile_settings/cv_autofill/presentation/view/cv_review_screen.dart';
+
+import '../../features/call/presentation/pages/call_page.dart';
+
+import '../../features/chat/presentation/pages/chats_page.dart';
+import '../../features/chat/presentation/pages/chat_detail_page.dart';
+import '../../features/chat/domain/entities/chat.dart';
+import '../../features/home/presentation/pages/create_post_page.dart';
+import '../../features/home/presentation/pages/media_picker_page.dart';
+import '../../features/home/presentation/pages/create_poll_page.dart';
+import '../../features/help_center/presentation/pages/help_center_page.dart';
+import '../../features/help_center/presentation/pages/help_chat_detail_page.dart';
+import '../../features/help_center/domain/entities/help_chat.dart';
+import '../../features/test/presentation/pages/messaging_test_page.dart';
+import '../../features/notifications/presentation/pages/notifications_page.dart';
 import 'app_routes.dart';
 
 /// Routes the user can reach while signed out (onboarding + the whole sign-up
@@ -161,6 +175,130 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.home,
         name: AppRoutes.nHome,
         builder: (context, state) => const MainNavigationScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.call,
+        name: AppRoutes.nCall,
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          final contactName = extra?['contactName'] as String? ?? 'Test';
+          final conversationId = extra?['conversationId'] as String?;
+          final counterpartId = extra?['counterpartId'] as String?;
+          final myUserId = extra?['myUserId'] as String?;
+          final incomingOffer =
+              extra?['incomingOffer'] as Map<String, dynamic>?;
+
+          final bool isVideoCall = incomingOffer != null
+              ? (incomingOffer['isVideoCall'] as bool? ??
+                  (incomingOffer['callType'] as String?) != 'audio')
+              : (extra?['isVideoCall'] as bool? ?? false);
+          return CallPage(
+            contactName: contactName,
+            conversationId: conversationId,
+            counterpartId: counterpartId,
+            myUserId: myUserId,
+            incomingOffer: incomingOffer,
+            startWithCameraOn: isVideoCall,
+            isVideoCall: isVideoCall,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.videoCall,
+        name: AppRoutes.nVideoCall,
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          final contactName = extra?['contactName'] as String? ?? 'Test';
+          final conversationId = extra?['conversationId'] as String?;
+          final counterpartId = extra?['counterpartId'] as String?;
+          final myUserId = extra?['myUserId'] as String?;
+          final incomingOffer =
+              extra?['incomingOffer'] as Map<String, dynamic>?;
+
+          final bool isVideoCall = incomingOffer != null
+              ? (incomingOffer['isVideoCall'] as bool? ??
+                  (incomingOffer['callType'] as String?) != 'audio')
+              : (extra?['isVideoCall'] as bool? ?? true);
+          return CallPage(
+            contactName: contactName,
+            conversationId: conversationId,
+            counterpartId: counterpartId,
+            myUserId: myUserId,
+            incomingOffer: incomingOffer,
+            startWithCameraOn: isVideoCall,
+            isVideoCall: isVideoCall,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.chats,
+        name: AppRoutes.nChats,
+        builder: (context, state) => const ChatsPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.chatDetail,
+        name: AppRoutes.nChatDetail,
+        builder: (context, state) {
+          final conversation = state.extra as Conversation?;
+          return ChatDetailPage(
+            conversation: conversation ??
+                Conversation(
+                  id: state.pathParameters['id'] ?? '1',
+                  counterpartName: 'Test Contact',
+                  lastMessagePreview: 'Hello!',
+                  lastMessageAt: DateTime.now(),
+                  isHiringContact: false,
+                ),
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.createPost,
+        name: AppRoutes.nCreatePost,
+        builder: (context, state) => const CreatePostPage(),
+        routes: [
+          GoRoute(
+            path: 'media',
+            name: AppRoutes.nCreatePostMedia,
+            builder: (context, state) => const MediaPickerPage(),
+          ),
+          GoRoute(
+            path: 'poll',
+            name: AppRoutes.nCreatePostPoll,
+            builder: (context, state) => const CreatePollPage(),
+          ),
+        ],
+      ),
+      GoRoute(
+        path: AppRoutes.helpCenter,
+        name: AppRoutes.nHelpCenter,
+        builder: (context, state) => const HelpCenterPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.helpCenterDetail,
+        name: AppRoutes.nHelpCenterDetail,
+        builder: (context, state) {
+          final helpChat = state.extra as HelpChat?;
+          return HelpChatDetailPage(
+            helpChat: helpChat ??
+                const HelpChat(
+                  id: '1',
+                  title: 'Help Center',
+                  subtitle: 'Support conversation',
+                  time: '09:08',
+                ),
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.testFeatures,
+        name: AppRoutes.nTestFeatures,
+        builder: (context, state) => const MessagingTestPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.notifications,
+        name: AppRoutes.nNotifications,
+        builder: (context, state) => const NotificationsPage(),
       ),
       // Games (jeux sérieux cognitifs)
       GoRoute(
@@ -293,7 +431,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           final imagePaths = state.uri.queryParameters['imagePaths'];
           final url = state.uri.queryParameters['url'];
           return CvProcessingScreen(
-            filePath: filePath, 
+            filePath: filePath,
             imagePaths: imagePaths,
             url: url,
           );

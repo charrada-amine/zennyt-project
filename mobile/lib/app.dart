@@ -9,6 +9,7 @@ import 'core/router/app_router.dart';
 import 'l10n/gen/app_localizations.dart';
 import 'core/theme/theme.dart';
 import 'core/theme/theme_provider.dart';
+import 'shared/widgets/no_connection_overlay.dart';
 
 /// Root application widget. Wires the design-system themes, localization and the
 /// GoRouter.
@@ -17,14 +18,17 @@ class ZennytApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // If you need custom locale switching later, you can still observe it,
-    // but DevicePreview overrides it in debug.
     final locale = ref.watch(localeProvider);
     final themeMode = ref.watch(themeProvider);
     final router = ref.watch(goRouterProvider);
 
     return MaterialApp.router(
-      builder: DevicePreview.appBuilder,
+      builder: (context, child) {
+        final previewChild = DevicePreview.appBuilder(context, child);
+        return NoConnectionOverlay(
+          child: previewChild,
+        );
+      },
       onGenerateTitle: (context) => context.l10n.appName,
       debugShowCheckedModeBanner: false,
       locale: DevicePreview.locale(context) ?? locale,

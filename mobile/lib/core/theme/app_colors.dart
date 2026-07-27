@@ -160,6 +160,32 @@ class AppColors {
   static const Color white = Color(0xFFFFFFFF);
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // ADDITIONAL FEATURE & PANEL COLORS (Integrated from amine project)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  static const Color iconColor = Color(0xFF214389);
+  static const Color chipSelected = Color(0xFF11428D);
+  static const Color chipUnselected = Color(0xFFF2F2F7);
+  static const Color panelBackground = Colors.white;
+  static const Color primaryGrey = Color(0xFF666666);
+  static const Color primaryBlue = Color(0xFF4F46E5);
+  static const Color primaryPink = Color(0xFFD02F7C);
+  static const Color subtitleColor = Color(0xFF525458);
+  static const Color hiringTagBg = Color(0xFFEFF8FF);
+  static const Color hiringTagText = Color(0xFF11428D);
+  static const Color itemDivider = Color(0xFFF1F4F5);
+  static const Color itemDividerDark = Color(0x631A1A1A);
+
+  static const Color textDark = Color(0xFF26224D);
+  static const Color textMuted2 = Color(0xFF555570);
+  static const Color surfaceLight = Color(0xFFF8F8FC);
+  static const Color selectedBg = Color(0xFFEEF0FF);
+  static const Color linkBlue = Color(0xFF1877F2);
+  static const Color dividerThin = Color(0xFFF1F4F5);
+  static const Color cardShadow = Color(0x0F212125);
+  static const Color backBtnBorder = Color(0x39E0E0E0);
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // SURFACE & BACKGROUND COLORS
   // Pixel-verified screen backgrounds
   // ═══════════════════════════════════════════════════════════════════════════

@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 class AppColorScheme extends ThemeExtension<AppColorScheme> {
   const AppColorScheme({
     // ── Backgrounds ──
+    required this.panelBackground,
     required this.scaffoldBg,
     required this.cardSurface,
 
@@ -49,9 +50,11 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
 
     // ── General UI ──
     required this.iconDefault,
+    required this.iconDisabled,
     required this.shadowColor,
     required this.inputFill,
     required this.placeholderBg,
+
     // ── Brand / Status ──
     required this.primary,
     required this.accent,
@@ -59,9 +62,23 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     required this.success,
     required this.info,
     required this.onPrimary,
+
+    // ── Poll & Post Features ──
+    required this.pollSelectedBg,
+    required this.pollSelectedBorder,
+    required this.pollUnselectedBorder,
+    required this.pollOptionTextSelected,
+    required this.pollOptionTextUnselected,
+    required this.pollPercentageText,
+
+    // ── Links & Documents ──
+    required this.linkColor,
+    required this.mediaErrorBg,
+    required this.documentBg,
   });
 
   // ── Backgrounds ──
+  final Color panelBackground;
   final Color scaffoldBg;
   final Color cardSurface;
 
@@ -99,6 +116,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
 
   // ── General UI ──
   final Color iconDefault;
+  final Color iconDisabled;
   final Color shadowColor;
   final Color inputFill;
   final Color placeholderBg;
@@ -111,11 +129,25 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
   final Color info;
   final Color onPrimary;
 
+  // ── Poll & Post Features ──
+  final Color pollSelectedBg;
+  final Color pollSelectedBorder;
+  final Color pollUnselectedBorder;
+  final Color pollOptionTextSelected;
+  final Color pollOptionTextUnselected;
+  final Color pollPercentageText;
+
+  // ── Links & Documents ──
+  final Color linkColor;
+  final Color mediaErrorBg;
+  final Color documentBg;
+
   // ═══════════════════════════════════════════════════════════════════════════
   // LIGHT SCHEME
   // ═══════════════════════════════════════════════════════════════════════════
 
   static const light = AppColorScheme(
+    panelBackground: Color(0xFFFFFFFF),
     scaffoldBg: Color(0xFFFFFFFF),
     cardSurface: Color(0xFFFFFFFF),
 
@@ -146,6 +178,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     navLabelUnselected: Color(0xFF7C8393),
 
     iconDefault: Color(0xFF232323),
+    iconDisabled: Color(0xFFC7C7C7),
     shadowColor: Color(0x14000000),
     inputFill: Color(0xFFF3F3F3),
     placeholderBg: Color(0xFFF3F3F3),
@@ -156,6 +189,17 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     success: Color(0xFF35A936),
     info: Color(0xFF1877F2),
     onPrimary: Color(0xFFFFFFFF),
+
+    pollSelectedBg: Color(0xFFEEF0FF),
+    pollSelectedBorder: Color(0xFF214389),
+    pollUnselectedBorder: Color(0xFFD9D9D9),
+    pollOptionTextSelected: Color(0xFF26224D),
+    pollOptionTextUnselected: Color(0xFF555570),
+    pollPercentageText: Color(0xFF7C8393),
+
+    linkColor: Color(0xFF1877F2),
+    mediaErrorBg: Color(0xFFD9D9D9),
+    documentBg: Color(0xFFF3F3F3),
   );
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -163,6 +207,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
   // ═══════════════════════════════════════════════════════════════════════════
 
   static const dark = AppColorScheme(
+    panelBackground: Color(0xFF232323),
     scaffoldBg: Color(0xFF1A1A2E),
     cardSurface: Color(0xFF252540),
 
@@ -193,6 +238,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     navLabelUnselected: Color(0xFF6E6E80),
 
     iconDefault: Color(0xFFFFFFFF),
+    iconDisabled: Color(0xFF555570),
     shadowColor: Color(0x00000000), // Shadows invisible in dark mode
     inputFill: Color(0xFF252540),
     placeholderBg: Color(0xFF252540),
@@ -203,6 +249,17 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     success: Color(0xFF4CAF50),
     info: Color(0xFF448AFF),
     onPrimary: Color(0xFFFFFFFF),
+
+    pollSelectedBg: Color(0xFF2E2E45),
+    pollSelectedBorder: Color(0xFF4C6FFF),
+    pollUnselectedBorder: Color(0xFF3A3A55),
+    pollOptionTextSelected: Color(0xFFFFFFFF),
+    pollOptionTextUnselected: Color(0xFFA0A0B0),
+    pollPercentageText: Color(0xFF6E6E80),
+
+    linkColor: Color(0xFF6FA8FF),
+    mediaErrorBg: Color(0xFF2E2E45),
+    documentBg: Color(0xFF252540),
   );
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -211,6 +268,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
 
   @override
   AppColorScheme copyWith({
+    Color? panelBackground,
     Color? scaffoldBg,
     Color? cardSurface,
     Color? textPrimary,
@@ -234,6 +292,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     Color? navLabelSelected,
     Color? navLabelUnselected,
     Color? iconDefault,
+    Color? iconDisabled,
     Color? shadowColor,
     Color? inputFill,
     Color? placeholderBg,
@@ -243,8 +302,18 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     Color? success,
     Color? info,
     Color? onPrimary,
+    Color? pollSelectedBg,
+    Color? pollSelectedBorder,
+    Color? pollUnselectedBorder,
+    Color? pollOptionTextSelected,
+    Color? pollOptionTextUnselected,
+    Color? pollPercentageText,
+    Color? linkColor,
+    Color? mediaErrorBg,
+    Color? documentBg,
   }) {
     return AppColorScheme(
+      panelBackground: panelBackground ?? this.panelBackground,
       scaffoldBg: scaffoldBg ?? this.scaffoldBg,
       cardSurface: cardSurface ?? this.cardSurface,
       textPrimary: textPrimary ?? this.textPrimary,
@@ -270,6 +339,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
       navLabelSelected: navLabelSelected ?? this.navLabelSelected,
       navLabelUnselected: navLabelUnselected ?? this.navLabelUnselected,
       iconDefault: iconDefault ?? this.iconDefault,
+      iconDisabled: iconDisabled ?? this.iconDisabled,
       shadowColor: shadowColor ?? this.shadowColor,
       inputFill: inputFill ?? this.inputFill,
       placeholderBg: placeholderBg ?? this.placeholderBg,
@@ -279,6 +349,17 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
       success: success ?? this.success,
       info: info ?? this.info,
       onPrimary: onPrimary ?? this.onPrimary,
+      pollSelectedBg: pollSelectedBg ?? this.pollSelectedBg,
+      pollSelectedBorder: pollSelectedBorder ?? this.pollSelectedBorder,
+      pollUnselectedBorder: pollUnselectedBorder ?? this.pollUnselectedBorder,
+      pollOptionTextSelected:
+          pollOptionTextSelected ?? this.pollOptionTextSelected,
+      pollOptionTextUnselected:
+          pollOptionTextUnselected ?? this.pollOptionTextUnselected,
+      pollPercentageText: pollPercentageText ?? this.pollPercentageText,
+      linkColor: linkColor ?? this.linkColor,
+      mediaErrorBg: mediaErrorBg ?? this.mediaErrorBg,
+      documentBg: documentBg ?? this.documentBg,
     );
   }
 
@@ -286,6 +367,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
   AppColorScheme lerp(AppColorScheme? other, double t) {
     if (other is! AppColorScheme) return this;
     return AppColorScheme(
+      panelBackground: Color.lerp(panelBackground, other.panelBackground, t)!,
       scaffoldBg: Color.lerp(scaffoldBg, other.scaffoldBg, t)!,
       cardSurface: Color.lerp(cardSurface, other.cardSurface, t)!,
       textPrimary: Color.lerp(textPrimary, other.textPrimary, t)!,
@@ -337,6 +419,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
         t,
       )!,
       iconDefault: Color.lerp(iconDefault, other.iconDefault, t)!,
+      iconDisabled: Color.lerp(iconDisabled, other.iconDisabled, t)!,
       shadowColor: Color.lerp(shadowColor, other.shadowColor, t)!,
       inputFill: Color.lerp(inputFill, other.inputFill, t)!,
       placeholderBg: Color.lerp(placeholderBg, other.placeholderBg, t)!,
@@ -346,6 +429,20 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
       success: Color.lerp(success, other.success, t)!,
       info: Color.lerp(info, other.info, t)!,
       onPrimary: Color.lerp(onPrimary, other.onPrimary, t)!,
+      pollSelectedBg: Color.lerp(pollSelectedBg, other.pollSelectedBg, t)!,
+      pollSelectedBorder:
+          Color.lerp(pollSelectedBorder, other.pollSelectedBorder, t)!,
+      pollUnselectedBorder:
+          Color.lerp(pollUnselectedBorder, other.pollUnselectedBorder, t)!,
+      pollOptionTextSelected:
+          Color.lerp(pollOptionTextSelected, other.pollOptionTextSelected, t)!,
+      pollOptionTextUnselected: Color.lerp(
+          pollOptionTextUnselected, other.pollOptionTextUnselected, t)!,
+      pollPercentageText:
+          Color.lerp(pollPercentageText, other.pollPercentageText, t)!,
+      linkColor: Color.lerp(linkColor, other.linkColor, t)!,
+      mediaErrorBg: Color.lerp(mediaErrorBg, other.mediaErrorBg, t)!,
+      documentBg: Color.lerp(documentBg, other.documentBg, t)!,
     );
   }
 }

@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../fits/presentation/view/fits_screen.dart';
-import '../../../home/presentation/view/home_screen.dart';
-import '../../../notifications/presentation/view/notifications_screen.dart';
+import '../../../home/presentation/pages/home_page.dart';
+import '../../../notifications/presentation/pages/notifications_page.dart';
 import '../../../progress/presentation/view/progress_screen.dart';
 import '../../../search/presentation/view/search_screen.dart';
 import '../../../../core/theme/theme.dart';
@@ -51,11 +51,11 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
       body: IndexedStack(
         index: tab,
         children: const [
-          HomeScreen(),
+          HomePage(),
           FitsScreen(),
           ProgressScreen(),
           SearchScreen(),
-          NotificationsScreen(),
+          NotificationsPage()
         ],
       ),
       bottomNavigationBar: AppBottomNav(

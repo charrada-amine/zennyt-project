@@ -511,4 +511,413 @@ class AppLocalizationsFr extends AppLocalizations {
   String cvReviewSaveFailed(String error) {
     return 'Échec de l\'enregistrement du profil : $error';
   }
+
+  @override
+  String get acceptAction => 'Accepter';
+
+  @override
+  String get actionFailed => 'Action échouée.\nVeuillez réessayer.';
+
+  @override
+  String get add => 'Ajouter';
+
+  @override
+  String get addAnOption => 'Ajouter une option';
+
+  @override
+  String get aiResumeLabel => 'CV IA';
+
+  @override
+  String get allChats => 'Tous les chats';
+
+  @override
+  String get andTwoOthers => 'et 2 autres';
+
+  @override
+  String get areYouSureLogOut => 'Êtes-vous sûr de vouloir vous déconnecter ?';
+
+  @override
+  String get audioCall => 'Appel audio';
+
+  @override
+  String get block => 'Bloquer';
+
+  @override
+  String get calling => 'Appel en cours...';
+
+  @override
+  String get cameraOff => 'Caméra désactivée';
+
+  @override
+  String get cameraOn => 'Caméra activée';
+
+  @override
+  String get closeLabel => 'Fermer';
+
+  @override
+  String get commentPlaceholder => 'Ajouter un commentaire...';
+
+  @override
+  String commentsAndShares(String comments, String shares) {
+    return '$comments commentaires .\n$shares partages';
+  }
+
+  @override
+  String get commentsTitle => 'Commentaires';
+
+  @override
+  String get confirmOffer => 'Confirmer l\'offre';
+
+  @override
+  String get connected => 'Connecté';
+
+  @override
+  String get conversationId => 'ID de conversation';
+
+  @override
+  String get customerService => 'Service client 24/7';
+
+  @override
+  String get deleteLabel => 'Supprimer';
+
+  @override
+  String get discussionAssistant => 'Assistant de discussion';
+
+  @override
+  String get discussionAssistantTyping => 'L\'assistant de discussion écrit';
+
+  @override
+  String get documentLabel => 'Document';
+
+  @override
+  String get earpiece => 'Écouteur';
+
+  @override
+  String get editProfile => 'Modifier le profil';
+
+  @override
+  String effectApplied(String effect) {
+    return 'Effet $effect appliqué !';
+  }
+
+  @override
+  String get effects => 'Effets';
+
+  @override
+  String get end => 'Fin';
+
+  @override
+  String errorLabel(String error) {
+    return 'Erreur : $error';
+  }
+
+  @override
+  String get errorText => 'Erreur';
+
+  @override
+  String get exploreOffer => 'Explorer l\'offre';
+
+  @override
+  String get filter1 => 'Filtre 1';
+
+  @override
+  String get filter2 => 'Filtre 2';
+
+  @override
+  String get filter3 => 'Filtre 3';
+
+  @override
+  String get filterAll => 'Tout';
+
+  @override
+  String get filterJobOffers => 'Offres d\'emploi';
+
+  @override
+  String get filterProfessionals => 'Professionnels';
+
+  @override
+  String get flip => 'Retourner';
+
+  @override
+  String get friendsVisibility => 'Amis';
+
+  @override
+  String get great => 'Génial';
+
+  @override
+  String get hide => 'Masquer';
+
+  @override
+  String get hiringContact => 'Contact recrutement';
+
+  @override
+  String get iAppreciateYourService => 'J\'apprécie votre service';
+
+  @override
+  String get identityVerificationDescription =>
+      'Le recruteur a demandé une vérification d\'identité avec reconnaissance faciale pour garantir la confiance et la sécurité.';
+
+  @override
+  String get identityVerificationRequired =>
+      'Vérification d\'identité requise !';
+
+  @override
+  String get important => 'Important !';
+
+  @override
+  String get importantAlertDescription =>
+      'L\'entretien vidéo sera automatiquement enregistré à des fins de modération.\nNe demandez pas les coordonnées personnelles d\'un candidat.';
+
+  @override
+  String get jobOpportunity => 'Opportunité d\'emploi';
+
+  @override
+  String get justNow => 'À l\'instant';
+
+  @override
+  String likedByAndOthers(String name, String others) {
+    return 'Aimé par $name et $others autres';
+  }
+
+  @override
+  String likedYourPost(String name) {
+    return '$name a aimé votre publication';
+  }
+
+  @override
+  String get mediaAdd => 'Ajouter';
+
+  @override
+  String mediaAddCount(int count) {
+    return 'Ajouter ($count)';
+  }
+
+  @override
+  String get mediaLabel => 'Média';
+
+  @override
+  String get mediaPermissionDenied =>
+      'L\'accès à la bibliothèque de photos est requis pour sélectionner des médias.';
+
+  @override
+  String get mediaRecents => 'Récents';
+
+  @override
+  String get mute => 'Muet';
+
+  @override
+  String get myId => 'Mon ID (UUID)';
+
+  @override
+  String get newLike => 'Nouveau like';
+
+  @override
+  String get newProject => 'Nouveau projet';
+
+  @override
+  String get noChats => 'Aucun chat';
+
+  @override
+  String get noCommentsYet => 'Aucun commentaire pour le moment.';
+
+  @override
+  String get noMatchingOffers => 'Aucune offre ne correspond.';
+
+  @override
+  String get noNotifications => 'Aucune notification à afficher.';
+
+  @override
+  String get noPortfolioItems => 'Aucun élément de portfolio';
+
+  @override
+  String get noPostsToShow => 'Aucune publication à afficher.';
+
+  @override
+  String get ok => 'OK';
+
+  @override
+  String get oneVote => '1 vote';
+
+  @override
+  String optionIndex(int index) {
+    return 'Option $index';
+  }
+
+  @override
+  String optionsCount(int count) {
+    return '$count options';
+  }
+
+  @override
+  String get outputCard => 'Ajouter votre carte';
+
+  @override
+  String get overview => 'Aperçu';
+
+  @override
+  String get perMonth => '/Mo.';
+
+  @override
+  String get poll => 'Sondage';
+
+  @override
+  String get pollAttached => 'Sondage joint';
+
+  @override
+  String get pollDisclaimer =>
+      '* Nous n\'autorisons pas les demandes liées aux opinions politiques, aux informations médicales ou à d\'autres données sensibles.\nCette option est uniquement destinée aux questions liées à Progress Careers.';
+
+  @override
+  String get poor => 'Mauvais';
+
+  @override
+  String get portfolioLabel => 'Portfolio';
+
+  @override
+  String get postAction => 'Publier';
+
+  @override
+  String get postCreationFailed =>
+      'Impossible de publier votre article.\nVeuillez réessayer.';
+
+  @override
+  String get postHidden => 'Publication masquée de votre fil d\'actualité.';
+
+  @override
+  String get postLabel => 'Publication';
+
+  @override
+  String get prepareYourId => 'Préparez votre carte d\'identité';
+
+  @override
+  String get profileLabel => 'Profil';
+
+  @override
+  String get publicVisibility => 'Public';
+
+  @override
+  String get publishLabel => 'Publier';
+
+  @override
+  String get rateYourExperience => 'Évaluez votre expérience';
+
+  @override
+  String get read => 'Lu';
+
+  @override
+  String get recipientId => 'ID destinataire (UUID)';
+
+  @override
+  String get recruiter => 'Recruteur';
+
+  @override
+  String get rejectAction => 'Rejeter';
+
+  @override
+  String get rejectOffer => 'Refuser l\'offre';
+
+  @override
+  String get remoteLabel => 'Distant';
+
+  @override
+  String get report => 'Signaler';
+
+  @override
+  String get resumeAi => 'CV IA';
+
+  @override
+  String get retry => 'Réessayer';
+
+  @override
+  String get scoreLabel => 'Score';
+
+  @override
+  String get send => 'Envoyer';
+
+  @override
+  String get sendMessage => 'Envoyer un message...';
+
+  @override
+  String get sent => 'Envoyé';
+
+  @override
+  String get shareLabel => 'Partager';
+
+  @override
+  String get showAll => 'Voir tout';
+
+  @override
+  String get showLabel => 'Afficher';
+
+  @override
+  String get softSkillsScore => 'SCORE DE COMPÉTENCES';
+
+  @override
+  String get speaker => 'Haut-parleur';
+
+  @override
+  String get stayTuned => 'Restez à l\'écoute pour de nouvelles notifications.';
+
+  @override
+  String get tellUsMore => 'Dites-nous en plus';
+
+  @override
+  String get thankYouForYourOpinion => 'Merci pour votre avis';
+
+  @override
+  String get timeframe => 'Période';
+
+  @override
+  String timeLeft(String duration) {
+    return 'Plus que $duration';
+  }
+
+  @override
+  String get today => 'Aujourd\'hui';
+
+  @override
+  String get typeTheQuestion => 'Tapez la question';
+
+  @override
+  String get userBlocked =>
+      'Utilisateur bloqué.\nSes publications sont masquées de votre fil d\'actualité.';
+
+  @override
+  String get verifyNow => 'Vérifier maintenant';
+
+  @override
+  String get videoCall => 'Appel vidéo';
+
+  @override
+  String get videoOn => 'Vidéo activée';
+
+  @override
+  String voteCount(int count) {
+    return '$count votes';
+  }
+
+  @override
+  String get voted => 'Voté';
+
+  @override
+  String votesCount(int count) {
+    return '$count votes';
+  }
+
+  @override
+  String weAreOffering(String position) {
+    return 'Nous offrons un poste de $position avec un salaire de ';
+  }
+
+  @override
+  String get whatCanWeImprove => 'Que pouvons-nous améliorer ?';
+
+  @override
+  String get yesterday => 'Hier';
+
+  @override
+  String get yourComments => 'Vos commentaires';
+
+  @override
+  String get yourQuestion => 'Votre question';
 }
