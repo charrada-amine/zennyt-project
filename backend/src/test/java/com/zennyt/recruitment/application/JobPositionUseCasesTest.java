@@ -6,6 +6,7 @@ import com.zennyt.recruitment.domain.model.JobPosition;
 import com.zennyt.recruitment.domain.repository.JobPositionRepository;
 import com.zennyt.recruitment.domain.vo.JobPositionStatus;
 import com.zennyt.recruitment.domain.vo.JobProfileType;
+import com.zennyt.recruitment.infrastructure.ai.NoOpEmbeddingPort;
 import com.zennyt.shared.application.exception.ConflictException;
 import com.zennyt.shared.application.exception.NotFoundException;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,7 +31,8 @@ class JobPositionUseCasesTest {
     @BeforeEach
     void setUp() {
         positions = mock(JobPositionRepository.class);
-        proposeUseCase = new ProposeJobPositionUseCase(positions);
+        proposeUseCase = new ProposeJobPositionUseCase(positions, new NoOpEmbeddingPort(),
+            new JobProfileTypeClassifier(new NoOpEmbeddingPort()));
         reviewUseCase = new ReviewJobPositionUseCase(positions);
         when(positions.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
     }
@@ -54,6 +56,20 @@ class JobPositionUseCasesTest {
     }
 
     @Test
+    void proposeThreadsClassifierSuggestionIntoSavedPosition() {
+        JobProfileTypeClassifier classifier = mock(JobProfileTypeClassifier.class);
+        when(classifier.suggest(any())).thenReturn(JobProfileType.MANAGERIAL);
+        var useCase = new ProposeJobPositionUseCase(positions, new NoOpEmbeddingPort(), classifier);
+
+        JobPosition created = useCase.execute(RECRUITER, "Chef de projet growth", null);
+
+        assertThat(created.suggestedProfileType()).isEqualTo(JobProfileType.MANAGERIAL);
+        assertThat(created.profileType())
+            .as("la suggestion n'assigne jamais le profil final, seul l'admin le fait à l'approbation")
+            .isNull();
+    }
+
+    @Test
     void approveUnknownPositionThrows() {
         UUID id = UUID.randomUUID();
         when(positions.findById(id)).thenReturn(Optional.empty());
@@ -65,7 +81,7 @@ class JobPositionUseCasesTest {
     @Test
     void approveExistingPendingPosition() {
         UUID id = UUID.randomUUID();
-        JobPosition pending = JobPosition.propose("Développeur Rust", null, RECRUITER);
+        JobPosition pending = JobPosition.propose("Développeur Rust", null, RECRUITER, null, null);
         when(positions.findById(id)).thenReturn(Optional.of(pending));
 
         JobPosition approved = reviewUseCase.approve(id, JobProfileType.TECHNIQUE);
@@ -77,7 +93,7 @@ class JobPositionUseCasesTest {
     @Test
     void rejectExistingPendingPosition() {
         UUID id = UUID.randomUUID();
-        JobPosition pending = JobPosition.propose("Développeur Rust", null, RECRUITER);
+        JobPosition pending = JobPosition.propose("Développeur Rust", null, RECRUITER, null, null);
         when(positions.findById(id)).thenReturn(Optional.of(pending));
 
         JobPosition rejected = reviewUseCase.reject(id);

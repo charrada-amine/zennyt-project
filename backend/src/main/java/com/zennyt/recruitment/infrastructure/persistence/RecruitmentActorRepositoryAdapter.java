@@ -27,6 +27,9 @@ public class RecruitmentActorRepositoryAdapter implements RecruitmentActorReposi
             actor.publicUserId(), actor.role(), actor.active(),
             actor.fullName(), actor.avatarUrl(), actor.city(), actor.country(),
             actor.companyName(), actor.companyInfo(),
+            actor.workplaceTypePreference(), actor.contractTypePreference(),
+            actor.targetLocation(), actor.openInternationally(),
+            actor.yearsOfExperience(), actor.lookingFor(), actor.lookingForEmbedding(),
             actor.lastEventAt(), actor.lastEventId());
         return toDomain(jpa.save(entity));
     }
@@ -35,6 +38,9 @@ public class RecruitmentActorRepositoryAdapter implements RecruitmentActorReposi
         return new RecruitmentActor(entity.getPublicUserId(), entity.getRole(), entity.isActive(),
             entity.getFullName(), entity.getAvatarUrl(), entity.getCity(), entity.getCountry(),
             entity.getCompanyName(), entity.getCompanyInfo(),
+            entity.getWorkplaceTypePreference(), entity.getContractTypePreference(),
+            entity.getTargetLocation(), entity.getOpenInternationally(),
+            entity.getYearsOfExperience(), entity.getLookingFor(), entity.getLookingForEmbedding(),
             entity.getLastEventAt(), entity.getLastEventId());
     }
 

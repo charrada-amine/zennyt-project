@@ -44,12 +44,35 @@ groq:
   connect-timeout-ms: ${GROQ_CONNECT_TIMEOUT_MS:5000}
   read-timeout-ms: ${GROQ_READ_TIMEOUT_MS:20000}
 
+# Recherche sémantique "Recommended for you" (rôle recherché <-> métier) et
+# classification d'un nouveau métier proposé. Clé absente = NoOpEmbeddingPort
+# (aucune empreinte calculée, signal neutre) — voir plan. Fournisseur : HuggingFace
+# Inference Providers, provider "hf-inference" (gratuit). Générer un token
+# "fine-grained" avec la permission "Make calls to Inference Providers" sur
+# huggingface.co/settings/tokens (PAS un simple token "read") et le mettre dans
+# un fichier .env / application-local.yml local, jamais collé dans le chat.
+embedding:
+  huggingface:
+    api-key: ${EMBEDDING_HF_API_KEY:}
+    model: ${EMBEDDING_HF_MODEL:intfloat/multilingual-e5-small}
+  connect-timeout-ms: ${EMBEDDING_CONNECT_TIMEOUT_MS:5000}
+  read-timeout-ms: ${EMBEDDING_READ_TIMEOUT_MS:15000}
+
 recruitment:
   callbacks:
     secret: ${RECRUITMENT_CALLBACK_SECRET:}
   otp:
     ttl: ${RECRUITMENT_OTP_TTL:PT10M}
     max-attempts: ${RECRUITMENT_OTP_MAX_ATTEMPTS:5}
+  ranking:
+    # Points ajoutés au Fit Score par critère de préférence respecté (contrat,
+    # télétravail, localisation, international) — jamais assez pour renverser
+    # un vrai écart de Fit Score. Valeurs de départ, ajustables sans redéploiement de code.
+    criterion-bonus: ${RECRUITMENT_RANKING_CRITERION_BONUS:2.0}
+    # Poids du bonus de similarité sémantique (rôle recherché <-> métier), 0-1 x ce poids.
+    semantic-weight: ${RECRUITMENT_RANKING_SEMANTIC_WEIGHT:2.0}
+    # Taille du pool d'offres actives re-classées avant pagination (voir CandidateFeedRanker).
+    pool-size: ${RECRUITMENT_RANKING_POOL_SIZE:200}
 
 server:
   port: 8080

@@ -22,7 +22,7 @@ public class JobPositionRepositoryAdapter implements JobPositionRepository {
         return toDomain(jpa.save(new JobPositionEntity(position.id(), position.name(), position.sector(),
             position.profileType(), position.calibrated(), position.status(), position.proposedByRecruiterId(),
             position.juniorLabel(), position.midLabel(), position.seniorLabel(), position.executiveLabel(),
-            position.createdAt())));
+            position.createdAt(), position.embedding(), position.suggestedProfileType())));
     }
 
     @Override
@@ -41,10 +41,21 @@ public class JobPositionRepositoryAdapter implements JobPositionRepository {
         return jpa.existsByNameAndSector(name, sector);
     }
 
+    @Override
+    public List<JobPosition> findByEmbeddingIsNull() {
+        return jpa.findByEmbeddingIsNull().stream().map(this::toDomain).toList();
+    }
+
+    @Override
+    public List<JobPosition> findByIds(List<UUID> ids) {
+        return jpa.findAllById(ids).stream().map(this::toDomain).toList();
+    }
+
     private JobPosition toDomain(JobPositionEntity entity) {
         return JobPosition.rehydrate(entity.getId(), entity.getName(), entity.getSector(),
             entity.getProfileType(), entity.isCalibrated(), entity.getStatus(),
             entity.getProposedByRecruiterId(), entity.getJuniorLabel(), entity.getMidLabel(),
-            entity.getSeniorLabel(), entity.getExecutiveLabel(), entity.getCreatedAt());
+            entity.getSeniorLabel(), entity.getExecutiveLabel(), entity.getCreatedAt(), entity.getEmbedding(),
+            entity.getSuggestedProfileType());
     }
 }

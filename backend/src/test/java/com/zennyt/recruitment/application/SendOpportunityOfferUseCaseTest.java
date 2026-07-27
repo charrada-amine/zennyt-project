@@ -55,7 +55,8 @@ class SendOpportunityOfferUseCaseTest {
         useCase = new SendOpportunityOfferUseCase(repository, offers, actors, matches, events);
 
         when(actors.findById(CANDIDATE)).thenReturn(Optional.of(
-            new RecruitmentActor(CANDIDATE, "CANDIDATE", true, null, null, null, null, null, null, Instant.now(), UUID.randomUUID())));
+            new RecruitmentActor(CANDIDATE, "CANDIDATE", true, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, Instant.now(), UUID.randomUUID())));
         JobOffer offer = mock(JobOffer.class);
         when(offer.recruiterId()).thenReturn(RECRUITER);
         when(offers.findById(OFFER_ID)).thenReturn(Optional.of(offer));
@@ -96,7 +97,8 @@ class SendOpportunityOfferUseCaseTest {
     @Test
     void candidatDesactiveRefuse() {
         when(actors.findById(CANDIDATE)).thenReturn(Optional.of(
-            new RecruitmentActor(CANDIDATE, "CANDIDATE", false, null, null, null, null, null, null, Instant.now(), UUID.randomUUID())));
+            new RecruitmentActor(CANDIDATE, "CANDIDATE", false, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, Instant.now(), UUID.randomUUID())));
         assertThatThrownBy(() -> useCase.execute(RECRUITER, CANDIDATE, OFFER_ID))
             .isInstanceOf(NotFoundException.class);
     }
@@ -104,7 +106,8 @@ class SendOpportunityOfferUseCaseTest {
     @Test
     void cibleRecruteurRefusee() {
         when(actors.findById(CANDIDATE)).thenReturn(Optional.of(
-            new RecruitmentActor(CANDIDATE, "RECRUITER", true, null, null, null, null, null, null, Instant.now(), UUID.randomUUID())));
+            new RecruitmentActor(CANDIDATE, "RECRUITER", true, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, Instant.now(), UUID.randomUUID())));
         assertThatThrownBy(() -> useCase.execute(RECRUITER, CANDIDATE, OFFER_ID))
             .isInstanceOf(IllegalArgumentException.class);
     }

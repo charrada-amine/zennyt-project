@@ -16,7 +16,7 @@ class JobPositionTest {
 
     @Test
     void proposeCreatesPendingPositionWithoutProfileType() {
-        JobPosition position = JobPosition.propose("Développeur Rust", "IT, AI & Fintech", UUID.randomUUID());
+        JobPosition position = JobPosition.propose("Développeur Rust", "IT, AI & Fintech", UUID.randomUUID(), null, null);
 
         assertThat(position.status()).isEqualTo(JobPositionStatus.PENDING_APPROVAL);
         assertThat(position.profileType()).isNull();
@@ -25,13 +25,13 @@ class JobPositionTest {
 
     @Test
     void blankNameRejected() {
-        assertThatThrownBy(() -> JobPosition.propose("  ", null, UUID.randomUUID()))
+        assertThatThrownBy(() -> JobPosition.propose("  ", null, UUID.randomUUID(), null, null))
             .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void approveAssignsProfileTypeAndStatus() {
-        JobPosition position = JobPosition.propose("Développeur Rust", null, UUID.randomUUID());
+        JobPosition position = JobPosition.propose("Développeur Rust", null, UUID.randomUUID(), null, null);
 
         position.approve(JobProfileType.TECHNIQUE);
 
@@ -41,7 +41,7 @@ class JobPositionTest {
 
     @Test
     void cannotApproveTwice() {
-        JobPosition position = JobPosition.propose("Développeur Rust", null, UUID.randomUUID());
+        JobPosition position = JobPosition.propose("Développeur Rust", null, UUID.randomUUID(), null, null);
         position.approve(JobProfileType.TECHNIQUE);
 
         assertThatThrownBy(() -> position.approve(JobProfileType.TECHNIQUE))
@@ -50,7 +50,7 @@ class JobPositionTest {
 
     @Test
     void rejectMarksPositionRejected() {
-        JobPosition position = JobPosition.propose("Développeur Rust", null, UUID.randomUUID());
+        JobPosition position = JobPosition.propose("Développeur Rust", null, UUID.randomUUID(), null, null);
 
         position.reject();
 
@@ -61,7 +61,7 @@ class JobPositionTest {
     void levelLabelFallsBackToDefaultWhenNoOverride() {
         JobPosition position = JobPosition.rehydrate(UUID.randomUUID(), "Développeur", "IT, AI & Fintech",
             JobProfileType.TECHNIQUE, false, JobPositionStatus.APPROVED, null,
-            null, null, null, null, Instant.now());
+            null, null, null, null, Instant.now(), null, null);
 
         assertThat(position.levelLabel(ExperienceLevel.JUNIOR)).isEqualTo("Junior");
         assertThat(position.levelLabel(ExperienceLevel.SENIOR)).isEqualTo("Senior");
@@ -71,7 +71,8 @@ class JobPositionTest {
     void levelLabelUsesCustomOverrideWhenPresent() {
         JobPosition position = JobPosition.rehydrate(UUID.randomUUID(), "Ouvrier / Compagnon qualifié",
             "Construction & Infrastructure", JobProfileType.TECHNIQUE, false, JobPositionStatus.APPROVED, null,
-            "Apprenti / Ouvrier débutant", "Compagnon confirmé", "Chef d'équipe", "Chef de chantier", Instant.now());
+            "Apprenti / Ouvrier débutant", "Compagnon confirmé", "Chef d'équipe", "Chef de chantier", Instant.now(),
+            null, null);
 
         assertThat(position.levelLabel(ExperienceLevel.JUNIOR)).isEqualTo("Apprenti / Ouvrier débutant");
         assertThat(position.levelLabel(ExperienceLevel.EXECUTIVE)).isEqualTo("Chef de chantier");

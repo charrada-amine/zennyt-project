@@ -45,14 +45,16 @@ public class JobPositionController {
 
     record JobPositionResponse(UUID id, String name, String sector, JobProfileType profileType,
                                boolean calibrated, JobPositionStatus status,
-                               Map<String, String> levelLabels, Instant createdAt) {
+                               Map<String, String> levelLabels, Instant createdAt,
+                               JobProfileType suggestedProfileType) {
         static JobPositionResponse from(JobPosition position) {
             Map<String, String> labels = new LinkedHashMap<>();
             for (ExperienceLevel level : ExperienceLevel.values()) {
                 labels.put(level.name(), position.levelLabel(level));
             }
             return new JobPositionResponse(position.id(), position.name(), position.sector(),
-                position.profileType(), position.calibrated(), position.status(), labels, position.createdAt());
+                position.profileType(), position.calibrated(), position.status(), labels, position.createdAt(),
+                position.suggestedProfileType());
         }
     }
 

@@ -59,7 +59,7 @@ class RecordSwipeUseCaseTest {
         actors = mock(RecruitmentActorRepository.class);
         when(actors.findById(CANDIDATE)).thenReturn(Optional.of(
             new RecruitmentActor(CANDIDATE, "CANDIDATE", true, null, null, null, null, null, null,
-                Instant.now(), UUID.randomUUID())));
+                null, null, null, null, null, null, null, Instant.now(), UUID.randomUUID())));
         eventPublisher = mock(ApplicationEventPublisher.class);
         useCase = new RecordSwipeUseCase(swipeRepository, matchRepository, jobOfferRepository, actors, eventPublisher);
     }

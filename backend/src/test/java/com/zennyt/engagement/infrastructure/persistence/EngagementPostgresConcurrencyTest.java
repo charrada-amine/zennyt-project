@@ -123,7 +123,8 @@ class EngagementPostgresConcurrencyTest {
     void identity_projection_runs_after_commit_supports_fallback_and_never_breaks_the_emitter() {
         UUID transactionalUser = UUID.randomUUID();
         var transactionalEvent = UserAccessStateChangedEvent.of(
-            transactionalUser, "CANDIDATE", true, "Ada", null, null, null, null, null);
+            transactionalUser, "CANDIDATE", true, "Ada", null, null, null, null, null,
+            null, null, null, null, null, null);
         TransactionTemplate transaction = new TransactionTemplate(transactionManager);
 
         transaction.executeWithoutResult(status -> {
@@ -134,13 +135,14 @@ class EngagementPostgresConcurrencyTest {
 
         UUID fallbackUser = UUID.randomUUID();
         events.publishEvent(UserAccessStateChangedEvent.of(
-            fallbackUser, "STUDENT", true, "Grace", null, null, null, null, null));
+            fallbackUser, "STUDENT", true, "Grace", null, null, null, null, null,
+            null, null, null, null, null, null));
         assertThat(actors.findById(fallbackUser)).isPresent();
 
         // Un événement invalide fait échouer les projections locales, pas la transaction émettrice.
         transaction.executeWithoutResult(status -> events.publishEvent(
             UserAccessStateChangedEvent.of(UUID.randomUUID(), null, true, "Invalid", null,
-                null, null, null, null)));
+                null, null, null, null, null, null, null, null, null, null)));
     }
 
     @Test

@@ -10,4 +10,5 @@ public interface JpaJobPositionRepository extends JpaRepository<JobPositionEntit
     List<JobPositionEntity> findByStatusAndSector(JobPositionStatus status, String sector);
     List<JobPositionEntity> findByStatus(JobPositionStatus status);
     boolean existsByNameAndSector(String name, String sector);
+    List<JobPositionEntity> findByEmbeddingIsNull();
 }
