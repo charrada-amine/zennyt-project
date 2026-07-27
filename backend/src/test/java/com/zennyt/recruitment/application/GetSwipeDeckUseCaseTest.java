@@ -34,7 +34,7 @@ class GetSwipeDeckUseCaseTest {
             FitScore.calculated(UUID.randomUUID(), dismissedCandidate, offerId, 80, 75, 85, null, 100, Instant.now())));
         when(dismissals.isDismissed(recruiterId, dismissedCandidate, offerId)).thenReturn(true);
 
-        var deck = new GetSwipeDeckUseCase(offers, scores, dismissals)
+        var deck = new GetSwipeDeckUseCase(offers, scores, dismissals, mock(CandidateFeedRanker.class), 200)
             .recruiterCandidates(recruiterId, offerId, 0, 20);
 
         assertThat(deck.totalElements()).isEqualTo(1);

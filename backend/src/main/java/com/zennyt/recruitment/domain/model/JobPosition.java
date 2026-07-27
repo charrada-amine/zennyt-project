@@ -31,6 +31,8 @@ public class JobPosition extends AggregateRoot {
     private String seniorLabel;
     private String executiveLabel;
     private final Instant createdAt;
+    private String embedding; // empreinte numérique du nom (JSON), voir EmbeddingCodec — calculée une fois
+    private JobProfileType suggestedProfileType; // proposé par IA à la soumission, l'admin choisit librement à l'approbation
 
     private JobPosition(UUID id, String name, String sector, JobProfileType profileType,
                         boolean calibrated, JobPositionStatus status, UUID proposedByRecruiterId,
@@ -46,27 +48,39 @@ public class JobPosition extends AggregateRoot {
     }
 
     /** Fabrique : un recruteur propose un métier absent du référentiel. */
-    public static JobPosition propose(String name, String sector, UUID recruiterId) {
+    public static JobPosition propose(String name, String sector, UUID recruiterId, String embedding,
+                                      JobProfileType suggestedProfileType) {
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("Le nom du métier est obligatoire");
         }
-        return new JobPosition(UUID.randomUUID(), name.trim(),
+        JobPosition position = new JobPosition(UUID.randomUUID(), name.trim(),
             sector != null && !sector.isBlank() ? sector.trim() : null,
             null, false, JobPositionStatus.PENDING_APPROVAL, recruiterId, Instant.now());
+        position.embedding = embedding;
+        position.suggestedProfileType = suggestedProfileType;
+        return position;
     }
 
     /** Reconstruction depuis la persistance. */
     public static JobPosition rehydrate(UUID id, String name, String sector, JobProfileType profileType,
                                         boolean calibrated, JobPositionStatus status,
                                         UUID proposedByRecruiterId, String juniorLabel, String midLabel,
-                                        String seniorLabel, String executiveLabel, Instant createdAt) {
+                                        String seniorLabel, String executiveLabel, Instant createdAt,
+                                        String embedding, JobProfileType suggestedProfileType) {
         JobPosition position = new JobPosition(id, name, sector, profileType, calibrated, status,
             proposedByRecruiterId, createdAt);
         position.juniorLabel = juniorLabel;
         position.midLabel = midLabel;
         position.seniorLabel = seniorLabel;
         position.executiveLabel = executiveLabel;
+        position.embedding = embedding;
+        position.suggestedProfileType = suggestedProfileType;
         return position;
+    }
+
+    /** Renseigne l'empreinte numérique du nom (backfill au démarrage, ou recalcul si le nom change). */
+    public void updateEmbedding(String embedding) {
+        this.embedding = embedding;
     }
 
     /** Un admin approuve un métier proposé, en lui assignant son profil (Couche A). */
@@ -118,4 +132,6 @@ public class JobPosition extends AggregateRoot {
     public String seniorLabel() { return seniorLabel; }
     public String executiveLabel() { return executiveLabel; }
     public Instant createdAt() { return createdAt; }
+    public String embedding() { return embedding; }
+    public JobProfileType suggestedProfileType() { return suggestedProfileType; }
 }

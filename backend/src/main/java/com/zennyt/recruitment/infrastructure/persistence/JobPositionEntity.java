@@ -27,13 +27,15 @@ public class JobPositionEntity {
     private String seniorLabel;
     private String executiveLabel;
     @Column(nullable = false) private Instant createdAt;
+    @Column(columnDefinition = "TEXT") private String embedding;
+    @Enumerated(EnumType.STRING) private JobProfileType suggestedProfileType;
 
     protected JobPositionEntity() {}
 
     JobPositionEntity(UUID id, String name, String sector, JobProfileType profileType,
                       boolean calibrated, JobPositionStatus status, UUID proposedByRecruiterId,
                       String juniorLabel, String midLabel, String seniorLabel, String executiveLabel,
-                      Instant createdAt) {
+                      Instant createdAt, String embedding, JobProfileType suggestedProfileType) {
         this.id = id;
         this.name = name;
         this.sector = sector;
@@ -46,6 +48,8 @@ public class JobPositionEntity {
         this.seniorLabel = seniorLabel;
         this.executiveLabel = executiveLabel;
         this.createdAt = createdAt;
+        this.embedding = embedding;
+        this.suggestedProfileType = suggestedProfileType;
     }
 
     public UUID getId() { return id; }
@@ -60,4 +64,6 @@ public class JobPositionEntity {
     public String getSeniorLabel() { return seniorLabel; }
     public String getExecutiveLabel() { return executiveLabel; }
     public Instant getCreatedAt() { return createdAt; }
+    public String getEmbedding() { return embedding; }
+    public JobProfileType getSuggestedProfileType() { return suggestedProfileType; }
 }

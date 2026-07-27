@@ -6,6 +6,7 @@ import com.zennyt.identity.application.port.TokenService;
 import com.zennyt.identity.domain.model.*;
 import com.zennyt.identity.domain.repository.OnboardingRepository;
 import com.zennyt.identity.domain.repository.PasswordResetCodeRepository;
+import com.zennyt.identity.domain.repository.ProfileRepository;
 import com.zennyt.identity.domain.repository.SocialIdentityRepository;
 import com.zennyt.identity.domain.repository.UserRepository;
 import com.zennyt.shared.domain.vo.Email;
@@ -46,9 +47,11 @@ class AuthServiceTest {
         email = mock(EmailPort.class);
         OnboardingRepository onboarding = mock(OnboardingRepository.class);
         when(onboarding.findRecruiterByUserId(any())).thenReturn(Optional.empty());
+        ProfileRepository profiles = mock(ProfileRepository.class);
+        when(profiles.findByUserId(any())).thenReturn(Optional.empty());
         service = new AuthService(users, passwordEncoder, mock(AuthenticationManager.class),
             tokens, socialIdentities, verifier, passwordResetCodes, email, Duration.ofMinutes(10),
-            mock(ApplicationEventPublisher.class), onboarding);
+            mock(ApplicationEventPublisher.class), onboarding, profiles);
     }
 
     @Test

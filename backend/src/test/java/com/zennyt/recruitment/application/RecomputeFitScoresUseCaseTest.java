@@ -41,7 +41,8 @@ class RecomputeFitScoresUseCaseTest {
         RecruitmentActorRepository actors = mock(RecruitmentActorRepository.class);
         when(actors.findById(recruiterId)).thenReturn(Optional.of(
             new RecruitmentActor(recruiterId, "RECRUITER", true, null, null, null, null,
-                "Zennyt Inc.", "Entreprise produit", Instant.now(), UUID.randomUUID())));
+                "Zennyt Inc.", "Entreprise produit", null, null, null, null, null, null, null,
+                Instant.now(), UUID.randomUUID())));
         when(soft.findByCandidateId(candidateId)).thenReturn(List.of(
             SoftSkillsProjection.create(candidateId, "MOVE_FAST", 77, Instant.now())));
         when(scores.findByCandidateIdAndJobOfferId(candidateId, offerId)).thenReturn(Optional.of(

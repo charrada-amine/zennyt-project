@@ -134,10 +134,18 @@ public class IdentityService {
                 companyInfo = recruiter.aboutMe();
             }
         }
+        Profile profile = user.role() == Role.RECRUITER ? null
+            : profiles.findByUserId(user.id()).orElse(null);
         events.publishEvent(UserAccessStateChangedEvent.of(
             user.publicId(), user.role().name(), user.active(),
             user.firstName() + " " + user.lastName(), user.profileImageUrl(),
-            user.city(), user.country(), companyName, companyInfo));
+            user.city(), user.country(), companyName, companyInfo,
+            profile != null && profile.workplaceType() != null ? profile.workplaceType().name() : null,
+            profile != null && profile.jobType() != null ? profile.jobType().name() : null,
+            profile != null ? profile.targetJobLocation() : null,
+            profile != null ? profile.openInternationally() : null,
+            profile != null ? profile.yearsOfExperience() : null,
+            profile != null ? profile.lookingFor() : null));
     }
 
     @Transactional

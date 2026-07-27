@@ -13,4 +13,7 @@ public interface JobPositionRepository {
     /** @param sector optionnel — null renvoie tous les secteurs (et les métiers transverses) */
     List<JobPosition> findByStatus(JobPositionStatus status, String sector);
     boolean existsByNameAndSector(String name, String sector);
+    /** Métiers sans empreinte numérique calculée — utilisé par le backfill au démarrage. */
+    List<JobPosition> findByEmbeddingIsNull();
+    List<JobPosition> findByIds(List<UUID> ids);
 }

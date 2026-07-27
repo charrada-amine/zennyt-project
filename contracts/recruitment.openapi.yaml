@@ -1253,6 +1253,10 @@ components:
           additionalProperties: { type: string }
           example: { JUNIOR: "Apprenti / Ouvrier débutant", MID: "Compagnon confirmé", SENIOR: "Chef d'équipe", EXECUTIVE: "Chef de chantier" }
         createdAt: { type: string, format: date-time }
+        suggestedProfileType:
+          allOf: [{ $ref: '#/components/schemas/JobProfileType' }]
+          nullable: true
+          description: Suggestion IA à la soumission (similarité sémantique) — l'admin choisit librement le profil final à l'approbation
 
     TypeEvaluationHard:
       type: string

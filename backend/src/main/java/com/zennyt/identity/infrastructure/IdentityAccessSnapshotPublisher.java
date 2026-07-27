@@ -1,8 +1,10 @@
 package com.zennyt.identity.infrastructure;
 
 import com.zennyt.identity.domain.event.UserAccessStateChangedEvent;
+import com.zennyt.identity.domain.model.Profile;
 import com.zennyt.identity.domain.model.Role;
 import com.zennyt.identity.domain.repository.OnboardingRepository;
+import com.zennyt.identity.domain.repository.ProfileRepository;
 import com.zennyt.identity.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.ApplicationArguments;
@@ -16,6 +18,7 @@ import org.springframework.stereotype.Component;
 public class IdentityAccessSnapshotPublisher implements ApplicationRunner {
     private final UserRepository users;
     private final OnboardingRepository onboarding;
+    private final ProfileRepository profiles;
     private final ApplicationEventPublisher events;
 
     @Override
@@ -30,10 +33,18 @@ public class IdentityAccessSnapshotPublisher implements ApplicationRunner {
                     companyInfo = recruiter.aboutMe();
                 }
             }
+            Profile profile = user.role() == Role.RECRUITER ? null
+                : profiles.findByUserId(user.id()).orElse(null);
             events.publishEvent(UserAccessStateChangedEvent.of(
                 user.publicId(), user.role().name(), user.active(),
                 user.firstName() + " " + user.lastName(), user.profileImageUrl(),
-                user.city(), user.country(), companyName, companyInfo));
+                user.city(), user.country(), companyName, companyInfo,
+                profile != null && profile.workplaceType() != null ? profile.workplaceType().name() : null,
+                profile != null && profile.jobType() != null ? profile.jobType().name() : null,
+                profile != null ? profile.targetJobLocation() : null,
+                profile != null ? profile.openInternationally() : null,
+                profile != null ? profile.yearsOfExperience() : null,
+                profile != null ? profile.lookingFor() : null));
         });
     }
 }
