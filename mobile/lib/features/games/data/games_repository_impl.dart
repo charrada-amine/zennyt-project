@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import '../../../core/error/api_exception.dart';
 import '../domain/entities/device_calibration.dart';
+import '../domain/entities/emotional_radar.dart';
 import '../domain/entities/game_session.dart';
 import '../domain/entities/game_type.dart';
 import '../domain/entities/game_metrics.dart';
@@ -47,6 +48,37 @@ class GamesRepositoryImpl implements GamesRepository {
         },
       );
       return GameSessionDto.fromJson(res.data!).toEntity();
+    });
+  }
+
+  @override
+  Future<EmotionalRadarSceneSet> emotionalRadarScenes(String sessionId) {
+    return _guard(() async {
+      final res = await _dio.get<Map<String, dynamic>>(
+        '/games/sessions/$sessionId/emotional-radar/scenes',
+      );
+      return EmotionalRadarSceneSet.fromJson(res.data!);
+    });
+  }
+
+  @override
+  Future<EmotionalRadarFeedback> answerEmotionalRadarScene({
+    required String sessionId,
+    required String sceneId,
+    required BasicEmotion emotion,
+    required String nuanceKey,
+    required int intensity,
+  }) {
+    return _guard(() async {
+      final res = await _dio.post<Map<String, dynamic>>(
+        '/games/sessions/$sessionId/emotional-radar/scenes/$sceneId/answers',
+        data: {
+          'selectedEmotion': emotion.wire,
+          'selectedNuance': nuanceKey,
+          'selectedIntensity': intensity,
+        },
+      );
+      return EmotionalRadarFeedback.fromJson(res.data!);
     });
   }
 

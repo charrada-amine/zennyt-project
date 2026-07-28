@@ -24,6 +24,7 @@ import '../../features/profile_settings/presentation/view/account_center_screen.
 import '../../features/profile_settings/presentation/view/personal_informations_screen.dart';
 import '../../features/profile_settings/presentation/view/privacy_policy_screen.dart';
 import '../../features/navigation/presentation/view/main_navigation_screen.dart';
+import '../../features/games/presentation/view/emotional_radar_screen.dart';
 import '../../features/games/presentation/view/investigate_screen.dart';
 import '../../features/games/presentation/view/je_decide_screen.dart';
 import '../../features/games/presentation/view/move_fast_screen.dart';
@@ -198,6 +199,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.gamesJeDecide,
         name: AppRoutes.nGamesJeDecide,
         builder: (context, state) => const JeDecideScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.gamesEmotionalRadar,
+        name: AppRoutes.nGamesEmotionalRadar,
+        builder: (context, state) => const EmotionalRadarScreen(),
       ),
       GoRoute(
         path: AppRoutes.profileSettings,

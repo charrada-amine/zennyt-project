@@ -200,6 +200,10 @@ public class PlanifikScoringService {
             // les bornes de niveau PROVISOIRES (seul ≥ 75 vient de la fiche).
             case DECISION -> DecisionProvisionalRules.levelForScw(normalized);
             case MEMORY_QUEST -> "Non interprété";
+            // « Emotional Radar » : bandes PROVISOIRES alignées sur les autres jeux,
+            // isolées dans EmotionalRadarProvisionalRules (aucune fiche ne les fixe).
+            case EMOTIONAL_REGULATION ->
+                com.zennyt.games.domain.config.EmotionalRadarProvisionalRules.interpret(normalized);
         };
     }
 

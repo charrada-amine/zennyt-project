@@ -3,6 +3,7 @@ package com.zennyt.games.api.dto;
 import com.zennyt.games.domain.model.Attempt;
 import com.zennyt.games.domain.model.GameSession;
 import com.zennyt.games.domain.vo.DecisionReport;
+import com.zennyt.games.domain.vo.EmotionalRadarReport;
 import com.zennyt.games.domain.vo.MemoryQuestReport;
 import com.zennyt.games.domain.vo.MoveFastFlexibilityReport;
 import com.zennyt.games.domain.vo.PrevisionPuzzleReport;
@@ -28,8 +29,40 @@ public record GameSessionResponse(
     PrevisionPuzzleIndicatorsResponse previsionPuzzleIndicators,
     MemoryQuestIndicatorsResponse memoryQuestIndicators,
     DecisionIndicatorsResponse decisionIndicators,
+    EmotionalRadarIndicatorsResponse emotionalRadarIndicators,
     List<ScoreBreakdownLineResponse> scoreBreakdown
 ) {
+    /**
+     * Indicateurs de reconnaissance émotionnelle (calculés serveur).
+     * Présent uniquement quand le résultat soumis concerne Emotional Radar.
+     */
+    public record EmotionalRadarIndicatorsResponse(
+        int scenesPlayed,
+        double emotionAccuracyPercent,
+        double nuanceAccuracyPercent,
+        double intensityCalibrationPercent,
+        int averageResponseTimeMs,
+        int helpOpenedCount,
+        List<ConfusionResponse> confusedEmotions
+    ) {
+        /** Une confusion : famille attendue vs famille choisie. */
+        public record ConfusionResponse(String expected, String selected) {
+        }
+
+        static EmotionalRadarIndicatorsResponse from(EmotionalRadarReport r) {
+            return new EmotionalRadarIndicatorsResponse(
+                r.scenesPlayed(),
+                r.emotionAccuracyPercent(),
+                r.nuanceAccuracyPercent(),
+                r.intensityCalibrationPercent(),
+                r.averageResponseTimeMs(),
+                r.helpOpenedCount(),
+                r.confusedEmotions().stream()
+                    .map(c -> new ConfusionResponse(
+                        c.expected().name(), c.selected().name()))
+                    .toList());
+        }
+    }
     /** Résultat d'un mini-jeu au sein de la session. */
     public record AttemptResponse(String miniGame, ScoreResponse score, Instant recordedAt) {
         static AttemptResponse from(Attempt a) {
@@ -183,7 +216,7 @@ public record GameSessionResponse(
     }
 
     public static GameSessionResponse from(GameSession s) {
-        return from(s, null, null, null, null, null);
+        return from(s, null, null, null, null, null, null);
     }
 
     public static GameSessionResponse from(GameSession s,
@@ -191,6 +224,7 @@ public record GameSessionResponse(
                                            PrevisionPuzzleReport previsionPuzzleReport,
                                            MemoryQuestReport memoryQuestReport,
                                            DecisionReport decisionReport,
+                                           EmotionalRadarReport emotionalRadarReport,
                                            ScoreBreakdown scoreBreakdown) {
         return new GameSessionResponse(
             s.id(), s.playerId(), s.gameType().name(), s.status().name(),
@@ -203,6 +237,8 @@ public record GameSessionResponse(
             memoryQuestReport == null ? null
                 : MemoryQuestIndicatorsResponse.from(memoryQuestReport),
             decisionReport == null ? null : DecisionIndicatorsResponse.from(decisionReport),
+            emotionalRadarReport == null ? null
+                : EmotionalRadarIndicatorsResponse.from(emotionalRadarReport),
             scoreBreakdown == null ? null
                 : scoreBreakdown.lines().stream().map(ScoreBreakdownLineResponse::from).toList());
     }

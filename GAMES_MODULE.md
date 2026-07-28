@@ -19,7 +19,7 @@ Chaque **jeu** correspond à un `GameType` (un domaine cognitif = une fiche) et 
 | **Move Fast — « Je bouge »** | `MOVE_FAST` | `MOVE_FAST_CORE` | Flexibilité cognitive — switching de règles (niveau unique : Orientation ⇄ Mouvement **aléatoire**) | 🟢 **Complet** — barème d'escalade (50 × mult., streak 4, bonus 250) | Flutter custom |
 | **Memory Quest — « J'investigue »** | `MEMORY_QUEST` | `MEMORY_QUEST_CORE` | Mémoire de travail — Mission A (digit span) + B (objets) + distraction | 🟢 **Complet** — 7 niveaux (3→9), calibrage → timeout (score dépend du temps), `session_valid` ; composite **/100** | Flutter custom |
 | **« Je Décide » — Phases 1–4 mobile** | `DECISION` | `DECISION_CORE` | Prise de décision (II, ER, DT, CS, RE — /18 chacune → /90 → SCW /100) | 🟡 **Parcours UI complet** (aperçu maquette) + 🟢 **moteur backend prêt** : agrégation, règle DT, imputation, interprétations, validité, couche provisoire isolée. **Non jouable end-to-end** tant que le catalogue de 30 scénarios est vide (`DECISION_CORE.isPlayable()=false`) | Flutter (UI) / Java (moteur) |
-| **Gestion émotionnelle — « Je gère »** | *(à créer)* | — | Régulation émotionnelle | 🔴 **Non déclaré** — absent de `GameType`, carte hub inactive | — |
+| **Emotional Radar — « Je gère »** | `EMOTIONAL_REGULATION` | `EMOTIONAL_RADAR_CORE` | Régulation émotionnelle — reconnaissance d'émotion (famille + nuance + intensité) | 🟢 Jouable **9 pts/scène** — 3 scènes rédigées (27), 15 visées (135) ; **contenu servi par le backend** | Flutter custom |
 
 > **Barème par mini-jeu** : Chemin Optimal / Ordonnancement / Tour de Hanoï → **/10** chacun ; leur somme = **profil Planifik /30**. Move Fast → points d'escalade (normalisés /100 pour l'interprétation). Memory Quest → **composite /100**. Score **toujours calculé serveur** (le client n'envoie que des métriques).
 
@@ -103,6 +103,25 @@ Contexte **indépendant** : ne dépend que de `shared`, s'intègre au reste **un
 | | `domain/service/CalibrationService.java` | **Service transversal** : `offsetMs` + `adjust` (temps brut − offset). Réutilisable dès qu'un score dépendra du temps (Decision, Memory Quest). |
 | | `domain/service/ScoreBreakdownService.java` | **Détail du score** (panneau) : lignes « comme des logs » à partir des mêmes métriques + même barème. Miroir mock exact. |
 | | `domain/vo/ScoreBreakdown.java` | Lignes du détail (`NOTE`/`INFO`/`CRITERION`/`SUBTOTAL`/`TOTAL`). |
+| **Emotional Radar** | `api/EmotionalRadarController.java` | 3 routes : scènes, validation d'une scène, téléversement média. Couche fine. |
+| | `api/dto/EmotionalRadarDtos.java` | **Point de filtrage unique de la clé de correction** : `SceneResponse.from` omet `expected*` + `explanation`. Ne jamais y ajouter de champ `expected*`. |
+| | `application/usecase/GetEmotionalRadarScenesUseCase.java` | Scènes de la session + taxonomie (le contrôleur les expurge). |
+| | `application/usecase/AnswerEmotionalRadarSceneUseCase.java` | Note UNE scène, **persiste** la réponse, renvoie le feedback + cumul. |
+| | `application/usecase/UploadEmotionalRadarMediaUseCase.java` | Téléverse un média et le rattache à sa scène (ports uniquement — ArchUnit). |
+| | `application/port/GamesMediaStoragePort.java` | Port média **propre au contexte** `games` (patron identity/engagement). |
+| | `domain/config/EmotionalRadarConfig.java` | **Barème définitif** : 3/4/2, dégradé d'intensité, `GRADIENT_BONUS_ENABLED`, `TOTAL_SCENES`. Java pur. |
+| | `domain/config/EmotionalRadarProvisionalRules.java` | **Couche PROVISOIRE isolée** : taxonomie des nuances (`FIGMA` vs `PROVISIONAL`) + bandes d'interprétation. Patron `DecisionProvisionalRules`. |
+| | `domain/service/EmotionalRadarScoringService.java` | `grade` (corrige une scène) + `score` (agrège les réponses persistées) + `report`. Java pur. |
+| | `domain/vo/EmotionalRadarScene.java` | Scène **avec** clé de correction — auto-validante (alt text / transcript obligatoires). Jamais sérialisée telle quelle. |
+| | `domain/vo/EmotionalRadarAnswer.java` | Réponse **déjà notée** — source de vérité du score. |
+| | `domain/vo/EmotionalRadarMetrics.java` · `EmotionalRadarSceneMetric.java` | Mesures **comportementales seules** (temps, aide, plein écran) — aucune réponse, aucun point. |
+| | `domain/vo/EmotionalRadarReport.java` | Indicateurs : justesse émotion/nuance, calibrage d'intensité, confusions. |
+| | `domain/vo/BasicEmotion.java` · `SceneMediaType.java` | 6 familles ; DIALOGUE/TEXT/IMAGE/VIDEO (+ exigences d'accessibilité). |
+| | `domain/catalog/EmotionalRadarSceneCatalog.java` | Port du catalogue (patron `DecisionScenarioCatalog`). |
+| | `domain/repository/EmotionalRadarAnswerRepository.java` · `EmotionalRadarSceneRepository.java` | Ports : réponses notées (upsert par session+scène) ; écriture de scène (média). |
+| | `infrastructure/catalog/DatabaseEmotionalRadarSceneCatalog.java` | Catalogue en base — **non vide** (3 scènes). |
+| | `infrastructure/persistence/EmotionalRadarScene{Entity,RepositoryAdapter}.java` · `EmotionalRadarAnswer{Entity,RepositoryAdapter}.java` · `Jpa*` | Persistance ; l'état « scène média incomplète » reste confiné à l'infrastructure. |
+| | `infrastructure/storage/CloudinaryGamesMediaStorageAdapter.java` | Adaptateur média dédié `games` (dossier `zennyt/games/emotional-radar`). |
 | **domain / event** | `domain/event/GameResultRecordedEvent.java` | `games.result.recorded` — **seul** point d'intégration inter-contextes. |
 | **domain / repo** | `domain/repository/GameSessionRepository.java` | Port (interface) — le domaine ne connaît jamais JPA. |
 | | `domain/repository/DeviceCalibrationRepository.java` | Port du calibrage (upsert par `sessionId`). |
@@ -119,6 +138,7 @@ Contexte **indépendant** : ne dépend que de `shared`, s'intègre au reste **un
 | | `test/java/com/zennyt/games/domain/TaskSchedulingScoringTest.java` | Barème Ordonnancement : parfait 10/10, dépendances non respectées, `adjustment_count`=2 → 1 pt, =5 → 0 pt. |
 | | `test/java/com/zennyt/games/domain/PrevisionPuzzleScoringTest.java` | Barème catégoriel « Predictive Puzzle » : parfait 10/10, 0+2+2=4, niveau échoué, moyenne 3 niveaux, `globalPlanSuccess`. |
 | | `test/java/com/zennyt/games/domain/CalibrationTest.java` | Socle calibrage : offset/display latency, fallback, `adjust`, indicateurs Move Fast `*Adjusted`. |
+| | `test/java/com/zennyt/games/domain/EmotionalRadarScoringTest.java` | Barème 3/4/2, dégradé d'intensité, 27/27 sur 3 scènes, bonus neutralisé, nuance étrangère à la famille rejetée, **anti-triche** (le score ignore les métriques client), alt text/transcript obligatoires, `FIGMA` vs `PROVISIONAL`. |
 | | `test/java/com/zennyt/games/domain/ScoreBreakdownServiceTest.java` | Détail du score : split Move Fast, somme des critères Optimal Path, barème catégoriel Predictive Puzzle. |
 
 ### API REST (`/api/v1/games`)
@@ -127,6 +147,9 @@ Contexte **indépendant** : ne dépend que de `shared`, s'intègre au reste **un
 |---------|-------|------|---------|---------|
 | `POST` | `/sessions` | `StartSessionRequest { gameType }` | `201` `GameSession` (IN_PROGRESS) | 400, 401 |
 | `POST` | `/sessions/{sessionId}/results` | `SubmitResultRequest { miniGame, metrics, deviceCalibration? }` | `200` `GameSession` (+ indicateurs selon le jeu) | 400, 404 |
+| `GET` | `/sessions/{sessionId}/emotional-radar/scenes` | — | `200` `EmotionalRadarSceneList` — scènes + taxonomie, **sans réponse attendue** | 401, 404 |
+| `POST` | `/sessions/{sessionId}/emotional-radar/scenes/{sceneId}/answers` | `{ selectedEmotion, selectedNuance, selectedIntensity }` | `200` `EmotionalRadarFeedback` — correction notée et persistée serveur | 400, 404 |
+| `POST` | `/emotional-radar/scenes/{sceneId}/media` | `multipart/form-data { file, altText?, transcript? }` | `201` `EmotionalRadarScene` | 400, 404 |
 
 Authentification : `bearerAuth` (JWT) — `playerId = jwt.getSubject()`.
 
@@ -214,6 +237,96 @@ Le client envoie `practiceTrialExcludedCount` + `responses[]`, un objet par essa
 
 - Interprétation mini-jeu (provisoire, partagée, `OptimalPathConfig.MINI_GAME_INTERPRETATION_BANDS`) : 0–3 *Très faible* · 4–6 *Moyen* · 7–10 *Bon à excellent*
 
+### ❤️ « Emotional Radar » (`EMOTIONAL_RADAR_CORE`) — reconnaissance émotionnelle
+
+Cinquième domaine cognitif (« Je gère »). Le candidat observe une scène, identifie la **famille
+d'émotion**, précise la **nuance**, puis évalue l'**intensité** sur 5 niveaux.
+
+**Première singularité du module : le contenu vit dans le backend.** Texte, image et vidéo des
+scènes sont servis par l'API — aucun autre jeu n'a son matériel hors de l'application.
+
+**Barème par scène — /9** (constantes dans `EmotionalRadarConfig`, carte *Scoring* du handoff)
+- **Émotion de base** : famille exacte → **3 pts**, sinon 0 (tout ou rien)
+- **Nuance** : nuance exacte → **4 pts**, sinon 0 (tout ou rien)
+- **Intensité** : écart 0 → **2 pts** · écart 1 → **1 pt** · écart ≥ 2 → **0**
+- **Gradient bonus `+1`** : implémenté mais **désactivé** (`GRADIENT_BONUS_ENABLED = false`)
+- Score du mini-jeu = **somme des scènes** ; `maxPoints = scènes jouées × 9` (barème **dynamique**,
+  `MiniGame.maxPoints = 0` comme `MOVE_FAST_CORE`)
+
+> **⚠️ Pourquoi le bonus est neutralisé.** L'activer porterait une scène à 10 points et
+> contredirait les **deux** totaux affichés par la maquette : 27 (3 scènes) et 135 (15 scènes).
+> Le VO `Score` refuse par ailleurs `rawPoints > maxPoints`. Une seule constante (+ son miroir
+> mobile) suffit à le réactiver si le psychologue le valide.
+
+#### 🔒 La clé de correction ne quitte jamais le serveur
+
+Les maquettes exigent un feedback **après chaque scène** (émotion attendue, nuance attendue,
+intensité suggérée, explication) — ce qui, naïvement, imposerait d'envoyer la réponse au client.
+Résolution : **notation par scène côté serveur**.
+
+```
+GET  /sessions/{id}/emotional-radar/scenes   → énoncés + médias, AUCUNE réponse
+POST /sessions/{id}/emotional-radar/scenes/{sceneId}/answers
+                                              → note, PERSISTE, puis renvoie la correction
+POST /sessions/{id}/results                   → EmotionalRadarMetrics = temps uniquement
+```
+
+`EmotionalRadarMetrics` ne transporte **ni réponse ni point** — seulement ce que le serveur ne peut
+pas observer (`responseTimeMs`, `helpOpened`, `fullscreenOpened`, `reducedMotion`). Le score est
+reconstruit depuis les `EmotionalRadarAnswer` que le serveur a lui-même notées : **un payload final
+falsifié ne peut pas modifier le score** — il n'existe même pas de champ à falsifier.
+
+`EmotionalRadarDtos.SceneResponse.from` est le **point de filtrage unique** : c'est la seule
+projection d'une scène vers le client, et elle omet délibérément les quatre champs `expected*` +
+`explanation`. Ne jamais y ajouter de champ `expected*`.
+
+#### 📚 Catalogue de scènes & taxonomie
+
+- Port `EmotionalRadarSceneCatalog` (patron `DecisionScenarioCatalog`), impl
+  `DatabaseEmotionalRadarSceneCatalog` — contrairement à « Je Décide », elle **n'est pas vide**.
+- **3 scènes rédigées** livrées par `V25` (les seules dont le handoff fournit le contenu) :
+  1. *Dialogue* — « Friend: I am sorry, I have to cancel tonight. » → **Sadness / Disappointment / 3**
+  2. *Text* — « You hear a strange noise at night while alone at home. » → **Fear / Anxiety / 4**
+  3. *Image* — « A child cries alone in a quiet courtyard. » → **Sadness / Empathic pain / 3**
+     (scène `active = false` tant que son média n'est pas téléversé)
+- `TOTAL_SCENES` = **3** aujourd'hui, 15 visées. **Les 12 scènes manquantes ne sont pas inventées.**
+
+> **⚠️ Contradiction Figma tranchée (scène 3).** La table *Phase 2 scene answer data* indique
+> `Joy → Triumph → 4` ; les planches *Dark Mode Support*, *Responsive* tablette **et** desktop
+> indiquent `Sadness → Empathic pain → 3`, cette dernière précisant « The scene is interpersonal and
+> silent. The answer should capture sadness observed in someone else. » **Trois planches
+> concordantes + justification textuelle** l'emportent sur la ligne isolée du tableau.
+
+**Taxonomie émotion → nuances** (`EmotionalRadarProvisionalRules`, table `emotional_radar_nuances`) :
+chaque nuance porte sa **source**. `FIGMA` = lisible sur une planche, fait autorité —
+**SADNESS** en entier (Disappointment, Nostalgia, Empathic pain, Sympathy, Guilt), plus
+`FEAR → Anxiety` et `JOY → Excitement/Triumph`. `PROVISIONAL` = sous-catégories d'Ekman ajoutées
+faute de taxonomie fournie (ANGER, DISGUST, SURPRISE n'apparaissent sur **aucune** planche alors que
+les six familles sont sélectionnables dès l'étape 1). Le moteur ne code jamais ces valeurs en dur.
+
+#### 🖼️ Médias
+
+`GamesMediaStoragePort` + `CloudinaryGamesMediaStorageAdapter` — même patron qu'`identity`
+(`FileStoragePort`) et `engagement` (`EngagementMediaStoragePort`), chacun possédant le sien
+au-dessus du bean partagé `CloudinaryConfig`. **Aucune dépendance ajoutée, aucun code d'un autre
+module appelé.** Dossier distant dédié `zennyt/games/emotional-radar`.
+
+Accessibilité portée par le **domaine**, pas seulement par la DB : `EmotionalRadarScene` refuse une
+scène IMAGE/VIDEO sans `mediaUrl` ni `altText`, et une scène VIDEO sans `transcript` (planche
+*Accessibility Compliance* : « Scene media needs alt text or text equivalent; future video needs
+subtitles/transcript »). Une scène média incomplète reste `active = false` et n'est jamais servie.
+
+#### 🎨 Imperfections de maquette corrigées
+
+| # | Constat | Correction |
+|---|---------|------------|
+| 1 | Scène 3 : réponse contradictoire entre 4 planches | `Sadness / Empathic pain / 3` |
+| 2 | Carte d'échec : « Your answer » affiche `Joy / Excitement / 2` mais « Best answer » omet l'intensité | les deux lignes en `famille / nuance / niveau` |
+| 3 | Carte de succès : copie différente en clair (« You identified… ») et en sombre (« The emotional pattern was… ») | voix active du mode clair partout |
+| 4 | Le score reste à `Score 0` sur la carte de feedback (il ne passe à 9 qu'à la scène suivante) alors que la planche sombre l'incrémente sur la carte (9 → 18) | mise à jour **dès la validation** |
+| 5 | CTA de feedback : « Next scene » en clair, « Continue » en sombre | « Next scene » partout |
+| 6 | Hub : le titre « Emotional Regulation » se tronquait en « Emotional R… » | titre réduit pour tenir (`FittedBox`) — passer à la ligne ferait déborder la carte |
+
 ### 🧭 « Je Décide » (`DECISION_CORE`) — moteur définitif + couche provisoire isolée
 
 Prise de décision (fiche « JE DÉCIDE »). Architecture **imposée : deux couches strictement séparées**. Le moteur ne code jamais une valeur provisoire — il la lit dans le seul fichier `DecisionProvisionalRules`. Remplacer le provisoire ne demande **aucune** modification du moteur.
@@ -298,6 +411,12 @@ sur l'onglet Careers/Progress ; les routes de jeu restent plein écran.
 | | `data/dtos/game_session_dto.dart` | Parse la réponse API → entité domaine. |
 | | `data/games_repository_impl.dart` | Impl **Dio** → `/api/v1/games`. Convertit erreurs en `ApiException`. |
 | | `data/games_mock_repository.dart` | Impl **MOCK** en mémoire : reproduit le barème serveur → jouable **sans backend**. |
+| **Emotional Radar** | `domain/entities/emotional_radar.dart` | Entités : `BasicEmotion`, `SceneMediaType`, `EmotionalNuance` (+ `NuanceSource`), `EmotionalRadarScene` (**sans** réponse attendue), `SceneSet`, `Feedback`, `Metrics`. |
+| | `domain/config/emotional_radar_config.dart` | **Miroir Dart du barème** (3/4/2, dégradé, bonus off, libellés d'intensité, bandes). Parité backend. |
+| | `domain/config/emotional_radar_provisional_rules.dart` | **Miroir de la taxonomie** — `FIGMA` vs `PROVISIONAL`. |
+| | `presentation/view/emotional_radar_screen.dart` | Machine d'états `cover → tutorial → gameplay → feedback → transition → results` + pause / aide / plein écran / erreur. |
+| | `presentation/view/emotional_radar_gameplay.dart` | `SceneCard` (média + équivalent textuel voisin), `AnswerPanel` (révélation progressive), `FeedbackCard`. |
+| | `presentation/widgets/emotional_radar_components.dart` | Boutons d'émotion, chips de nuance, sélecteur d'intensité, étapes verrouillées/validées, palette — cibles ≥ 48 px, jamais de sens porté par la couleur seule. |
 | **presentation** | `presentation/games_providers.dart` | Bascule mock/backend via `--dart-define=GAMES_MOCK` (défaut `true`). |
 | | `presentation/games_controller.dart` | `AsyncNotifier<GameSession?>` : `start()` / `submit()`. |
 | | `presentation/view/games_hub_screen.dart` | Hub jeux style maquette Progress : header « Play & discover your talent », 5 cartes de domaines cognitifs, illustration de catégorie + logos PNG officiels des jeux (`assets/games icons/`) ; le picker multi-jeux réutilise les mêmes images. |
@@ -592,7 +711,11 @@ Schémas : `GameType`, `MiniGame`, `SessionStatus`, `StartSessionRequest`, `Opti
 | **« J'investigue » — système de niveaux** (7 niveaux, longueur 3→9, +1 après 3 tâches réussies ; objets 4→12 ; distraction gatée niveau ≥ 3 ; arrêt à `max_sequence_length`/`max_session_duration_min`) | 🟢 Fait (backend + mobile + parité mock) |
 | **« J'investigue » — calibrage appareil → timeout** (1er module dont le **score dépend du temps**) : `max_task_time_ms + offset` ; tâche dépassant le seuil ajusté = échec voidé ; `session_valid` | 🟢 Fait — socle `DeviceCalibration`/`CalibrationService` **réutilisé** (non modifié) |
 | **« Je Décide » (`DECISION`) — Phases 1–4 mobile** | 🟡 Fait côté UI — parcours complet jusqu'au profil, timer/timeout, transitions, pause/règles, checkpoint/reprise, radar/insights/export placeholder ; **profil maquette uniquement**. Catalogue complet/backend/scoring réel en attente des règles |
-| **Gestion émotionnelle — « Je gère »** (régulation émotionnelle, 5ᵉ domaine) | 🔴 **À faire** — **non déclaré** dans `GameType`, carte hub inactive |
+| **« Emotional Radar » (`EMOTIONAL_REGULATION`) — 5ᵉ domaine** : `GameType` + `EMOTIONAL_RADAR_CORE`, barème 9 pts/scène, écran Flutter complet (cover, tutoriel, gameplay à révélation progressive, feedback, transition, résultats, pause/aide/plein écran), parité mock | 🟢 **Fait** — jouable sur les 3 scènes rédigées (27 pts) |
+| Emotional Radar — **contenu servi par le backend** (texte/image/vidéo) : catalogue en base, `GamesMediaStoragePort` + adaptateur Cloudinary dédié, endpoint de téléversement | 🟢 Fait — 1ᵉʳ jeu du module dont le matériel n'est pas embarqué |
+| Emotional Radar — **notation par scène côté serveur** (clé de correction jamais envoyée au client ; score reconstruit depuis les réponses persistées) | 🟢 Fait — migration **V25**, table `emotional_radar_answers` |
+| Emotional Radar — taxonomie ANGER/DISGUST/SURPRISE (Ekman) | 🟠 **PROVISOIRE** — absente des maquettes, à valider par le psychologue |
+| Emotional Radar — 12 scènes manquantes (15 visées) | 🔴 En attente du psychologue — aucune scène inventée |
 | Bascule mock ⇄ backend | 🟢 `--dart-define=GAMES_MOCK` |
 | Socle de calibrage appareil (méthode « technique », transversal) | 🟢 Fait — appliqué à Move Fast (indicateurs `*Adjusted`), réutilisable Decision/Memory Quest |
 | Calibrage — table `games.device_calibrations` (V11) + fallback fiabilité réduite | 🟢 Fait |
@@ -625,6 +748,14 @@ Schémas : `GameType`, `MiniGame`, `SessionStatus`, `StartSessionRequest`, `Opti
 | 16 | **« J'investigue » — `max_task_time_ms`** | **6000 ms PROVISOIRE** (délai max d'une tâche avant échec par dépassement) | Fiche : aucune valeur scientifique ; recommande le 95ᵉ percentile pilote | `MemoryQuestConfig.MAX_TASK_TIME_MS` |
 | 17 | **« J'investigue » — seuil critique d'offset de calibrage** | **100 ms PROVISOIRE** (au-delà → session invalide) | Non chiffré par la fiche | `MemoryQuestConfig.CRITICAL_CALIBRATION_OFFSET_MS` |
 | 18 | **« J'investigue » — seuil « trop de timeouts » (critère validité 3)** | **> 3 tâches PROVISOIRE** (au-delà → session invalide) | Non chiffré par la fiche | `MemoryQuestConfig.MAX_TIMEOUT_TASKS` |
+| 20 | **Emotional Radar — barème d'intensité** | écart 0 → 2 pts · 1 → 1 pt · ≥ 2 → 0 | Maquette : seulement « Intensity 2 pts ». Le dégradé traduit la tuile « 81% Intensity — Calibration quality » | `EmotionalRadarConfig.intensityScore` |
+| 21 | **Emotional Radar — gradient bonus** | **désactivé** (`GRADIENT_BONUS_ENABLED=false`) : l'activer donnerait 10 pts/scène, incompatible avec les totaux 27 et 135 de la maquette | Maquette : « Gradient bonus +1 optional » | `EmotionalRadarConfig.GRADIENT_BONUS_ENABLED` |
+| 22 | **Emotional Radar — nuance tout-ou-rien** | 4 pts si exacte, 0 sinon (pas de crédit partiel pour « bonne famille, mauvaise nuance ») | Non spécifié | `EmotionalRadarScoringService.grade` |
+| 23 | **Emotional Radar — réponse de la scène 3** | `Sadness / Empathic pain / 3` | **Contradiction Figma** : 3 planches contre la ligne du tableau (`Joy → Triumph → 4`) | `V25__games_emotional_radar.sql` |
+| 24 | **Emotional Radar — nuances ANGER / DISGUST / SURPRISE** | sous-catégories **d'Ekman**, marquées `PROVISIONAL`, isolées dans la couche provisoire | **Absentes de toutes les planches** alors que les 6 familles sont sélectionnables | `EmotionalRadarProvisionalRules` + colonne `source` |
+| 25 | **Emotional Radar — `total_scenes` = 3** | 3 scènes rédigées ; l'UI annonce « / 15 » | Planche « Phase 2 QA notes » : les 15 scènes sont en Phase 3 | `EmotionalRadarConfig.TOTAL_SCENES` |
+| 26 | **Emotional Radar — bandes d'interprétation** (/100) | <40/<60/<75/<90 — alignées sur les autres jeux | Aucune fiche | `EmotionalRadarProvisionalRules.interpret` |
+| 27 | **Emotional Radar — autorisation de l'upload média** | endpoint **authentifié seulement** — aucun rôle admin n'existe dans `games` | Non spécifié — **arbitrage produit attendu** | `EmotionalRadarController.uploadMedia` |
 | 19 | **« Je Décide » — frontière mobile/backend** | Le parcours UI Phases 1–4 est navigable. Le profil final est l'aperçu statique de la maquette (`DecisionProfilePreview`) et ne dépend jamais des choix ; XP purement visuel | `Practice 2/2`, catalogue 30 scénarios, mapping option→dimension, seuils de profil, XP/badges et randomisation non fournis | `je_decide_screen.dart`, `je_decide_gameplay.dart`, `je_decide_results.dart` |
 
 **Conforme à la fiche, NE PAS toucher** : profil global Planifik /30 (`interpretGlobal`), cœur du barème Move Fast (50 × multiplicateur, streak 4, bonus 250), barème catégoriel « Predictive Puzzle » (seule fiche validée), architecture par Domain Events.
@@ -647,6 +778,54 @@ vous touchez à l'un de ces chemins :
 - [ ] Un barème change → mettre à jour la section **Barème** (backend **et** mock mobile doivent rester identiques).
 - [ ] Un nouveau jeu/mini-jeu devient jouable → mettre à jour le **tableau de statut** et la **roadmap**.
 - [ ] Mettre à jour la ligne ci-dessous.
+
+**Changelog (33) — 2026-07-26** : **Nouveau jeu « Emotional Radar » (`EMOTIONAL_REGULATION` /
+`EMOTIONAL_RADAR_CORE`)** — 5ᵉ domaine cognitif, la carte hub « Emotional Regulation » n'est plus
+inactive. **Barème** (`EmotionalRadarConfig`, carte *Scoring* du handoff) : émotion 3 + nuance 4 +
+intensité 2 = **9 pts/scène** ; intensité en dégradé (écart 0 → 2 · 1 → 1 · ≥ 2 → 0) ; **gradient
+bonus implémenté mais désactivé** — l'activer donnerait 10 pts/scène et contredirait les deux totaux
+de la maquette (27 pour 3 scènes, 135 pour 15), que `Score` refuserait de toute façon
+(`rawPoints > maxPoints`). Barème **dynamique** (`maxPoints = 0` comme `MOVE_FAST_CORE`).
+**Anti-triche — la clé de correction ne quitte jamais le serveur** : les maquettes exigent un
+feedback après chaque scène, résolu par une **notation par scène côté serveur**
+(`POST .../scenes/{id}/answers` note **et persiste**), tandis que `EmotionalRadarMetrics` ne
+transporte que des mesures comportementales (temps, aide, plein écran) — **aucune réponse, aucun
+point**. Le score est reconstruit depuis les `emotional_radar_answers` persistées : un payload final
+falsifié ne peut rien changer. `EmotionalRadarDtos.SceneResponse.from` est le **point de filtrage
+unique** (omet les 4 champs `expected*` + `explanation`). **Contenu servi par le backend** (1ᵉʳ jeu
+du module) : catalogue en base (port `EmotionalRadarSceneCatalog`, impl **non vide**),
+`GamesMediaStoragePort` + `CloudinaryGamesMediaStorageAdapter` (patron identity/engagement, dossier
+`zennyt/games/emotional-radar`, **aucune dépendance ajoutée**), endpoint de téléversement.
+**Accessibilité portée par le domaine** : `EmotionalRadarScene` refuse une scène IMAGE/VIDEO sans
+`altText`, une VIDEO sans `transcript` ; une scène média incomplète reste `active=false`.
+**Migration V25** : `emotional_radar_scenes` / `_nuances` / `_answers` (PK `(session, scène)` →
+re-valider n'ajoute pas de points) + extension des CHECK `game_sessions.game_type` (⚠️ nom réel de
+la contrainte V9 : `ck_game_sessions_type`) et `game_attempts.mini_game`. **3 scènes rédigées
+seeded** — les 12 manquantes ne sont **pas inventées** (planche « Phase 2 QA notes » : Phase 3).
+⚠️ **Contradiction Figma tranchée** : scène 3 = `Sadness / Empathic pain / 3` (planches Dark Mode +
+Responsive tablette + desktop, avec justification écrite) et non `Joy → Triumph → 4` (ligne isolée
+du tableau de handoff). ⚠️ **Taxonomie des nuances** : `SADNESS` complète + `FEAR→Anxiety` +
+`JOY→Excitement/Triumph` viennent des planches (`source=FIGMA`) ; **ANGER, DISGUST et SURPRISE
+n'apparaissent nulle part** alors que les 6 familles sont sélectionnables → complétées par les
+sous-catégories **d'Ekman**, marquées `PROVISIONAL` et isolées dans `EmotionalRadarProvisionalRules`
+(patron `DecisionProvisionalRules` — le moteur ne code aucune valeur provisoire).
+**Mobile** : écran complet (cover, règles, gameplay à **révélation progressive** — étapes 2 et 3
+verrouillées, `Validate` inactif tant que les 3 choix ne sont pas faits —, feedback correct/incorrect,
+transition, résultats + détail du score, pause, aide, plein écran), route `/games/emotional-radar`,
+composants dédiés (cibles ≥ 48 px, **jamais de sens porté par la couleur seule**, `Semantics` alignés
+sur la planche d'accessibilité), **parité mock** complète (miroir du barème + catalogue des 3 scènes
+hors-ligne, clé de correction confinée à la couche data). **5 imperfections de maquette corrigées**
+(scène 3, intensité absente de « Best answer », copie de succès divergente clair/sombre, score figé
+à 0 sur la carte de feedback, CTA « Continue » vs « Next scene ») **+ 1 bug UI** : le titre
+« Emotional Regulation » du hub se tronquait en « Emotional R… » (réduit pour tenir — passer à la
+ligne faisait déborder la carte de 15 px). **Tests** : backend `EmotionalRadarScoringTest` (12 cas,
+dont l'anti-triche et les invariants d'accessibilité) → **230 verts**, ArchUnit vert (le use case
+d'upload passe par un **port** et non par JPA) ; mobile `emotional_radar_mock_test` (10, parité) +
+`emotional_radar_screen_test` (8, parcours complet jusqu'à 27/27) → **62 verts**,
+`flutter analyze` clean. ⚠️ **Ouvert** : aucun rôle admin n'existe dans `games`, l'upload média est
+donc seulement authentifié — arbitrage produit attendu. Asset `Emotional Radar.png` attendu (repli
+sur l'icône de catégorie en attendant). Zones protégées inchangées (barèmes Planifik/Move Fast/
+Memory Quest/Decision, events, socle calibrage, `pom.xml`/`pubspec.yaml` non modifiés).
 
 **Changelog (31) — 2026-07-24** : Hub Games — remplacement des swatches décoratives
 par les mini-logos des jeux disponibles dans chaque catégorie. Les mêmes symboles vectoriels et
@@ -718,3 +897,11 @@ pictogrammes provisoires par les six logos PNG officiels fournis (Move Fast, Mem
 Je Décide, Optimal Path, Task Scheduling, Predictive Puzzle), affichés à l'identique dans
 les cartes de catégorie et le sélecteur. Contrôle qualité : fichiers nets et transparents,
 aucune régénération nécessaire. Aucun barème, contrat, endpoint ou event modifié.
+
+**Dernière mise à jour** : 2026-07-26 — **(33)** Nouveau jeu **« Emotional Radar »**
+(`EMOTIONAL_REGULATION` / `EMOTIONAL_RADAR_CORE`, 5ᵉ domaine) : barème 9 pts/scène, **contenu
+(texte/image/vidéo) servi par le backend** — 1ᵉʳ jeu du module dans ce cas —, **notation par scène
+côté serveur** pour que la clé de correction ne quitte jamais le serveur, migration V25 avec les
+3 scènes rédigées, écran Flutter complet + parité mock. Contradiction Figma de la scène 3 tranchée
+et nuances ANGER/DISGUST/SURPRISE ajoutées en couche **provisoire** (Ekman) — à valider par le
+psychologue.

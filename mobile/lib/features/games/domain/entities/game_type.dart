@@ -2,12 +2,15 @@
 /// contracts/games.openapi.yaml. État actuel : [GameType.moveFast],
 /// [GameType.planifik] (3 mini-jeux jouables, /30) et [GameType.memoryQuest]
 /// sont implémentés ; [GameType.decision] est déclaré mais sans logique ; la
-/// régulation émotionnelle (« Je gère ») n'a pas encore de GameType.
+/// régulation émotionnelle (« Je gère ») héberge Emotional Radar.
 enum GameType {
   planifik('PLANIFIK'),
   moveFast('MOVE_FAST'),
   memoryQuest('MEMORY_QUEST'),
-  decision('DECISION');
+  decision('DECISION'),
+
+  /// « Je gère » — régulation émotionnelle (mini-jeu Emotional Radar).
+  emotionalRegulation('EMOTIONAL_REGULATION');
 
   /// Valeur transmise à l'API (nom de l'enum côté back).
   final String wire;

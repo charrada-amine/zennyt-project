@@ -62,6 +62,7 @@ public class GamesController {
         return ResponseEntity.ok(GameSessionResponse.from(
             outcome.session(), outcome.moveFastReport(),
             outcome.previsionPuzzleReport(), outcome.memoryQuestReport(),
-            outcome.decisionReport(), outcome.scoreBreakdown()));
+            outcome.decisionReport(), outcome.emotionalRadarReport(),
+            outcome.scoreBreakdown()));
     }
 }

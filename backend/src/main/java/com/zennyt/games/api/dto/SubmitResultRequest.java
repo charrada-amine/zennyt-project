@@ -5,6 +5,8 @@ import com.zennyt.games.domain.vo.AdministrationMode;
 import com.zennyt.games.domain.vo.CostlyZonesAvoided;
 import com.zennyt.games.domain.vo.DecisionItemResponse;
 import com.zennyt.games.domain.vo.DecisionMetrics;
+import com.zennyt.games.domain.vo.EmotionalRadarMetrics;
+import com.zennyt.games.domain.vo.EmotionalRadarSceneMetric;
 import com.zennyt.games.domain.vo.GameMetrics;
 import com.zennyt.games.domain.vo.MemoryQuestMetrics;
 import com.zennyt.games.domain.vo.MemoryTaskKind;
@@ -81,7 +83,25 @@ public record SubmitResultRequest(
         @Min(0) Integer age,
         String educationLevel,
         @Min(0) Integer fatigue,
-        @Min(0) Integer motivation
+        @Min(0) Integer motivation,
+        // « Emotional Radar » — mesures COMPORTEMENTALES uniquement. Aucune réponse
+        // ni point : le score vient des réponses notées serveur scène par scène.
+        @Size(min = 1) @Valid List<EmotionalRadarScenePayload> emotionalRadarScenes
+    ) {}
+
+    /**
+     * Mesures d'une scène « Emotional Radar ».
+     *
+     * <p>Volontairement dépourvu de {@code selectedEmotion}/{@code selectedNuance} :
+     * ces choix ont déjà été envoyés — et notés — à la validation de la scène. Les
+     * réintroduire ici rouvrirait la porte à un score falsifiable.
+     */
+    public record EmotionalRadarScenePayload(
+        @NotNull UUID sceneId,
+        @NotNull @Min(0) Integer responseTimeMs,
+        Boolean helpOpened,
+        Boolean fullscreenOpened,
+        Boolean reducedMotion
     ) {}
 
     /** Socle de calibrage appareil (optionnel). Le score n'en dépend pas pour Move Fast. */
@@ -226,7 +246,19 @@ public record SubmitResultRequest(
                 metrics.administrationMode() == null ? AdministrationMode.SUPERVISED
                     : parseEnum(AdministrationMode.class, metrics.administrationMode()),
                 metrics.age(), metrics.educationLevel(), metrics.fatigue(), metrics.motivation());
+            case EMOTIONAL_RADAR_CORE -> new EmotionalRadarMetrics(
+                required(metrics.emotionalRadarScenes(), "emotionalRadarScenes").stream()
+                    .map(SubmitResultRequest::toEmotionalRadarScene).toList());
         };
+    }
+
+    private static EmotionalRadarSceneMetric toEmotionalRadarScene(EmotionalRadarScenePayload p) {
+        return new EmotionalRadarSceneMetric(
+            required(p.sceneId(), "sceneId"),
+            required(p.responseTimeMs(), "responseTimeMs"),
+            Boolean.TRUE.equals(p.helpOpened()),
+            Boolean.TRUE.equals(p.fullscreenOpened()),
+            Boolean.TRUE.equals(p.reducedMotion()));
     }
 
     private static DecisionItemResponse toDecisionItem(DecisionItemPayload p) {

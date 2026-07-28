@@ -27,6 +27,9 @@ const _logoJeDecide = 'assets/games icons/Je Decide.png';
 const _logoOptimalPath = 'assets/games icons/Optimal Path.png';
 const _logoTaskScheduling = 'assets/games icons/Task Scheduling.png';
 const _logoPredictivePuzzle = 'assets/games icons/Predictive Puzzle.png';
+// Logo Emotional Radar : nom SANS espace avant « .png » (convention des logos
+// de jeu, contrairement aux icônes de catégorie qui en portent une).
+const _logoEmotionalRadar = 'assets/games icons/Emotional Radar.png';
 
 /// Hub des jeux sérieux, aligné sur l'écran Progress / Games de la maquette.
 class GamesHubScreen extends ConsumerWidget {
@@ -146,6 +149,15 @@ class GamesHubScreen extends ConsumerWidget {
                     key: const ValueKey('game-category-emotional-regulation'),
                     title: 'Emotional Regulation',
                     iconAsset: _iconEmotion,
+                    games: const [
+                      _GameEntry(
+                        label: 'Emotional Radar',
+                        subtitle: 'Recognize emotions in real situations',
+                        route: AppRoutes.gamesEmotionalRadar,
+                        logoAsset: _logoEmotionalRadar,
+                        fallbackIcon: Icons.favorite_rounded,
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -345,15 +357,22 @@ class _GameCategoryCard extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Flexible(
-                      child: Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTypography.titleLarge.copyWith(
-                          color: _blue,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0,
+                      // « Emotional Regulation » est plus long que les autres
+                      // titres : à 20 px il se tronquait en « Emotional R… ».
+                      // On le réduit pour qu'il tienne, au lieu de le couper —
+                      // passer à la ligne ferait déborder la carte (hauteur fixe).
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          title,
+                          maxLines: 1,
+                          style: AppTypography.titleLarge.copyWith(
+                            color: _blue,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0,
+                          ),
                         ),
                       ),
                     ),

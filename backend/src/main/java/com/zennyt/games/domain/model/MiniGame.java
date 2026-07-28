@@ -33,7 +33,14 @@ public enum MiniGame {
      * + étiquetage des options à fournir) — même patron que TASK_SCHEDULING avant
      * implémentation. Repasser à {@code true} une fois le catalogue rempli.
      */
-    DECISION_CORE(GameType.DECISION, 100, false);
+    DECISION_CORE(GameType.DECISION, 100, false),
+    /**
+     * « Emotional Radar » — reconnaissance émotionnelle. Barème <b>dynamique</b>
+     * (comme {@code MOVE_FAST_CORE}, d'où {@code maxPoints = 0}) : le maximum vaut
+     * {@code scènes jouées × 9}, le {@code Score} le porte lui-même. Les points
+     * proviennent des réponses notées serveur scène par scène, jamais du client.
+     */
+    EMOTIONAL_RADAR_CORE(GameType.EMOTIONAL_REGULATION, 0, true);
 
     private final GameType gameType;
     private final int maxPoints;

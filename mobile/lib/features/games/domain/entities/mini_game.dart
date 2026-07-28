@@ -6,7 +6,8 @@ enum MiniGame {
   previsionPuzzle('PREVISION_PUZZLE'),
   moveFastCore('MOVE_FAST_CORE'),
   memoryQuestCore('MEMORY_QUEST_CORE'),
-  decisionCore('DECISION_CORE');
+  decisionCore('DECISION_CORE'),
+  emotionalRadarCore('EMOTIONAL_RADAR_CORE');
 
   final String wire;
   const MiniGame(this.wire);

@@ -1,8 +1,11 @@
+import '../domain/config/emotional_radar_config.dart';
+import '../domain/config/emotional_radar_provisional_rules.dart';
 import '../domain/config/memory_quest_config.dart';
 import '../domain/config/move_fast_config.dart';
 import '../domain/decision_scenario_catalog.dart';
 import '../domain/entities/decision_metrics.dart';
 import '../domain/entities/device_calibration.dart';
+import '../domain/entities/emotional_radar.dart';
 import '../domain/entities/game_score.dart';
 import '../domain/entities/game_session.dart';
 import '../domain/entities/game_type.dart';
@@ -96,6 +99,10 @@ class GamesMockRepository implements GamesRepository {
         metrics as DecisionMetrics,
         deviceCalibration?.calibrationOffsetMs ?? 0.0,
       ),
+      // Emotional Radar : le score vient des réponses notées à la validation de
+      // chaque scène (`_emotionalRadarAnswers`), jamais des métriques reçues —
+      // exactement comme le backend. Les métriques n'apportent que les temps.
+      MiniGame.emotionalRadarCore => _scoreEmotionalRadar(sessionId),
     };
     final attempts = [
       ...current.attempts,
@@ -106,6 +113,7 @@ class GamesMockRepository implements GamesRepository {
         miniGame == MiniGame.moveFastCore ||
         miniGame == MiniGame.memoryQuestCore ||
         miniGame == MiniGame.decisionCore ||
+        miniGame == MiniGame.emotionalRadarCore ||
         attempts.length >= _expectedMiniGames(current.gameType);
     final max = complete
         ? attempts.fold<int>(0, (sum, a) => sum + a.score.maxPoints)
@@ -121,7 +129,7 @@ class GamesMockRepository implements GamesRepository {
       attempts: attempts,
       startedAt: current.startedAt,
       completedAt: complete ? DateTime.now() : current.completedAt,
-      scoreBreakdown: _buildBreakdown(miniGame, metrics, score),
+      scoreBreakdown: _buildBreakdown(miniGame, metrics, score, sessionId),
     );
     _sessions[sessionId] = updated;
     return updated;
@@ -332,6 +340,9 @@ class GamesMockRepository implements GamesRepository {
     MiniGame miniGame,
     GameMetrics metrics,
     GameScore score,
+    // Emotional Radar est le seul jeu dont le détail vient des réponses notées
+    // et non des métriques : il lui faut la session pour les retrouver.
+    String sessionId,
   ) {
     return switch (miniGame) {
       MiniGame.moveFastCore => _breakdownMoveFast(metrics as MoveFastMetrics, score),
@@ -344,7 +355,60 @@ class GamesMockRepository implements GamesRepository {
         _breakdownMemoryQuest(metrics as MemoryQuestMetrics, score),
       MiniGame.decisionCore =>
         _decisionScoring.breakdown(metrics as DecisionMetrics, score),
+      MiniGame.emotionalRadarCore => _breakdownEmotionalRadar(sessionId, score),
     };
+  }
+
+  /// Miroir de `ScoreBreakdownService.emotionalRadar` (backend).
+  List<ScoreBreakdownLine> _breakdownEmotionalRadar(String sessionId, GameScore score) {
+    final answers = _emotionalRadarAnswers[sessionId] ?? const <_MockGradedAnswer>[];
+    return [
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.note,
+        label:
+            'Chaque scène vaut ${EmotionalRadarConfig.pointsPerScene} points : '
+            'émotion de base ${EmotionalRadarConfig.emotionPoints}, '
+            'nuance ${EmotionalRadarConfig.nuancePoints}, '
+            'intensité ${EmotionalRadarConfig.intensityPoints} '
+            '(écart 0 → 2 pts · écart 1 → 1 pt · écart ≥ 2 → 0).',
+      ),
+      for (final a in answers) ...[
+        ScoreBreakdownLine(
+          kind: ScoreBreakdownKind.criterion,
+          label: 'Scène ${a.sceneOrder} — Émotion de base',
+          detail: '${a.selectedEmotion.label} / attendu ${a.expectedEmotion.label}',
+          points: a.emotionPoints,
+          maxPoints: EmotionalRadarConfig.emotionPoints,
+        ),
+        ScoreBreakdownLine(
+          kind: ScoreBreakdownKind.criterion,
+          label: 'Scène ${a.sceneOrder} — Nuance',
+          detail: '${a.selectedNuance} / attendu ${a.expectedNuance}',
+          points: a.nuancePoints,
+          maxPoints: EmotionalRadarConfig.nuancePoints,
+        ),
+        ScoreBreakdownLine(
+          kind: ScoreBreakdownKind.criterion,
+          label: 'Scène ${a.sceneOrder} — Intensité',
+          detail: '${a.selectedIntensity} / attendu ${a.expectedIntensity} '
+              '(écart ${(a.expectedIntensity - a.selectedIntensity).abs()})',
+          points: a.intensityPoints,
+          maxPoints: EmotionalRadarConfig.intensityPoints,
+        ),
+        ScoreBreakdownLine(
+          kind: ScoreBreakdownKind.subtotal,
+          label: 'Scène ${a.sceneOrder}',
+          points: a.points,
+          maxPoints: EmotionalRadarConfig.pointsPerScene,
+        ),
+      ],
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.total,
+        label: 'Total (${answers.length} scènes)',
+        points: score.rawPoints,
+        maxPoints: score.maxPoints,
+      ),
+    ];
   }
 
   List<ScoreBreakdownLine> _breakdownMemoryQuest(
@@ -578,6 +642,240 @@ class GamesMockRepository implements GamesRepository {
       GameType.moveFast => 1,
       GameType.memoryQuest => 1, // « J'investigue » = un composite (A+B+distraction)
       GameType.decision => 0,
+      GameType.emotionalRegulation => 1, // Emotional Radar = un composite
     };
   }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // « Emotional Radar » — miroir EXACT du barème serveur
+  // (`EmotionalRadarScoringService` + `EmotionalRadarConfig`).
+  //
+  // Le mock ne peut pas répliquer le catalogue servi par le backend : il embarque
+  // les 3 scènes rédigées pour rester jouable hors-ligne. La CLÉ DE CORRECTION
+  // reste ici, dans la couche data — l'écran ne la voit jamais et doit passer par
+  // `answerEmotionalRadarScene`, exactement comme avec le vrai backend.
+  // ══════════════════════════════════════════════════════════════════════════
+
+  /// Réponses notées par session — équivalent de `games.emotional_radar_answers`.
+  final Map<String, List<_MockGradedAnswer>> _emotionalRadarAnswers = {};
+
+  /// Les 3 scènes rédigées (planche « Developer handoff »).
+  ///
+  /// ⚠️ Scène 3 : la table du handoff dit « Joy → Triumph → 4 », mais les
+  /// planches Dark Mode + Responsive (tablette ET desktop) disent
+  /// « Sadness → Empathic pain → 3 ». Trois planches contre une → cette dernière
+  /// est retenue, comme côté backend (migration V25).
+  static final List<_MockScene> _mockScenes = [
+    _MockScene(
+      id: 'a1e5c7d2-0000-4000-8000-000000000001',
+      order: 1,
+      mediaType: SceneMediaType.dialogue,
+      prompt: 'Friend: "I am sorry, I have to cancel tonight."',
+      instruction: 'Observe the situation, then identify the emotional pattern.',
+      expectedEmotion: BasicEmotion.sadness,
+      expectedNuance: 'DISAPPOINTMENT',
+      expectedIntensity: 3,
+      explanation:
+          'Disappointment belongs to the sadness family because the situation '
+          'involves an unmet expectation.',
+    ),
+    _MockScene(
+      id: 'a1e5c7d2-0000-4000-8000-000000000002',
+      order: 2,
+      mediaType: SceneMediaType.text,
+      prompt: 'You hear a strange noise at night while alone at home.',
+      instruction: 'Observe the situation, then identify the emotional pattern.',
+      expectedEmotion: BasicEmotion.fear,
+      expectedNuance: 'ANXIETY',
+      expectedIntensity: 4,
+      explanation:
+          'Anxiety appears when the threat is uncertain, invisible, or not yet '
+          'confirmed.',
+    ),
+    _MockScene(
+      id: 'a1e5c7d2-0000-4000-8000-000000000003',
+      order: 3,
+      mediaType: SceneMediaType.image,
+      prompt: 'A child cries alone in a quiet courtyard.',
+      instruction: 'Observe the image, then identify the emotional pattern.',
+      altText: 'A child crying alone in a quiet courtyard.',
+      expectedEmotion: BasicEmotion.sadness,
+      expectedNuance: 'EMPATHIC_PAIN',
+      expectedIntensity: 3,
+      explanation:
+          "Empathic pain is sadness felt for someone else's distress rather "
+          "than one's own.",
+    ),
+  ];
+
+  @override
+  Future<EmotionalRadarSceneSet> emotionalRadarScenes(String sessionId) async {
+    await Future<void>.delayed(const Duration(milliseconds: 120));
+    return EmotionalRadarSceneSet(
+      totalScenes: _mockScenes.length,
+      maxPoints: EmotionalRadarConfig.maxPointsFor(_mockScenes.length),
+      emotions: emotionalRadarNuanceCatalog,
+      scenes: _mockScenes.map((s) => s.toScene()).toList(),
+    );
+  }
+
+  @override
+  Future<EmotionalRadarFeedback> answerEmotionalRadarScene({
+    required String sessionId,
+    required String sceneId,
+    required BasicEmotion emotion,
+    required String nuanceKey,
+    required int intensity,
+  }) async {
+    await Future<void>.delayed(const Duration(milliseconds: 120));
+
+    final scene = _mockScenes.firstWhere(
+      (s) => s.id == sceneId,
+      orElse: () => throw StateError('Scène mock introuvable : $sceneId'),
+    );
+
+    // Miroir de EmotionalRadarScoringService.grade(...)
+    final emotionOk = emotion == scene.expectedEmotion;
+    final nuanceOk =
+        scene.expectedNuance.toUpperCase() == nuanceKey.toUpperCase();
+
+    final emotionPts = emotionOk ? EmotionalRadarConfig.emotionPoints : 0;
+    final nuancePts = nuanceOk ? EmotionalRadarConfig.nuancePoints : 0;
+    final intensityPts = EmotionalRadarConfig.intensityScore(
+      scene.expectedIntensity,
+      intensity,
+    );
+    var scenePoints = emotionPts + nuancePts + intensityPts;
+
+    final perfect =
+        emotionOk && nuanceOk && intensityPts == EmotionalRadarConfig.intensityPoints;
+    if (EmotionalRadarConfig.gradientBonusEnabled && perfect) {
+      scenePoints += EmotionalRadarConfig.gradientBonusPoints;
+    }
+
+    // Upsert par (session, scène) : re-valider ne double pas les points.
+    final answers = _emotionalRadarAnswers.putIfAbsent(sessionId, () => []);
+    answers.removeWhere((a) => a.sceneId == sceneId);
+    answers.add(
+      _MockGradedAnswer(
+        sceneId: sceneId,
+        sceneOrder: scene.order,
+        selectedEmotion: emotion,
+        selectedNuance: nuanceKey,
+        selectedIntensity: intensity,
+        expectedEmotion: scene.expectedEmotion,
+        expectedNuance: scene.expectedNuance,
+        expectedIntensity: scene.expectedIntensity,
+        emotionPoints: emotionPts,
+        nuancePoints: nuancePts,
+        intensityPoints: intensityPts,
+        points: scenePoints,
+      ),
+    );
+    answers.sort((a, b) => a.sceneOrder.compareTo(b.sceneOrder));
+
+    final total = answers.fold<int>(0, (sum, a) => sum + a.points);
+
+    return EmotionalRadarFeedback(
+      correct: emotionOk && nuanceOk,
+      expectedEmotion: scene.expectedEmotion,
+      expectedNuance: scene.expectedNuance,
+      suggestedIntensity: scene.expectedIntensity,
+      explanation: scene.explanation,
+      emotionPoints: emotionPts,
+      nuancePoints: nuancePts,
+      intensityPoints: intensityPts,
+      scenePoints: scenePoints,
+      totalPoints: total,
+      answeredScenes: answers.length,
+    );
+  }
+
+  /// Score = somme des réponses notées, comme le backend.
+  GameScore _scoreEmotionalRadar(String sessionId) {
+    final answers = _emotionalRadarAnswers[sessionId] ?? const [];
+    if (answers.isEmpty) {
+      throw StateError(
+        'Aucune scène validée : le score Emotional Radar ne peut pas être calculé.',
+      );
+    }
+    final raw = answers.fold<int>(0, (sum, a) => sum + a.points);
+    final max = EmotionalRadarConfig.maxPointsFor(answers.length);
+    final normalized = raw * 100.0 / max;
+    return GameScore(
+      rawPoints: raw,
+      maxPoints: max,
+      normalized: normalized,
+      level: EmotionalRadarConfig.interpret(normalized),
+    );
+  }
+}
+
+/// Scène du catalogue mock — porte la clé de correction, comme la base côté serveur.
+class _MockScene {
+  const _MockScene({
+    required this.id,
+    required this.order,
+    required this.mediaType,
+    required this.prompt,
+    required this.instruction,
+    required this.expectedEmotion,
+    required this.expectedNuance,
+    required this.expectedIntensity,
+    required this.explanation,
+    this.altText,
+  });
+
+  final String id;
+  final int order;
+  final SceneMediaType mediaType;
+  final String prompt;
+  final String instruction;
+  final BasicEmotion expectedEmotion;
+  final String expectedNuance;
+  final int expectedIntensity;
+  final String explanation;
+  final String? altText;
+
+  /// Projection expurgée — miroir de `EmotionalRadarDtos.SceneResponse.from`.
+  EmotionalRadarScene toScene() => EmotionalRadarScene(
+        id: id,
+        sceneOrder: order,
+        mediaType: mediaType,
+        promptText: prompt,
+        instructionText: instruction,
+        altText: altText,
+      );
+}
+
+/// Réponse notée conservée par le mock (équivalent d'une ligne persistée
+/// dans `games.emotional_radar_answers`).
+class _MockGradedAnswer {
+  const _MockGradedAnswer({
+    required this.sceneId,
+    required this.sceneOrder,
+    required this.selectedEmotion,
+    required this.selectedNuance,
+    required this.selectedIntensity,
+    required this.expectedEmotion,
+    required this.expectedNuance,
+    required this.expectedIntensity,
+    required this.emotionPoints,
+    required this.nuancePoints,
+    required this.intensityPoints,
+    required this.points,
+  });
+
+  final String sceneId;
+  final int sceneOrder;
+  final BasicEmotion selectedEmotion;
+  final String selectedNuance;
+  final int selectedIntensity;
+  final BasicEmotion expectedEmotion;
+  final String expectedNuance;
+  final int expectedIntensity;
+  final int emotionPoints;
+  final int nuancePoints;
+  final int intensityPoints;
+  final int points;
 }

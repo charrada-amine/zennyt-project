@@ -66,6 +66,80 @@ paths:
         '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
         '404': { $ref: './common.openapi.yaml#/components/responses/NotFound' }
 
+  /games/sessions/{sessionId}/emotional-radar/scenes:
+    parameters:
+      - { name: sessionId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Games]
+      summary: Scènes d'Emotional Radar pour cette session
+      description: >
+        Renvoie les scènes (texte, image, vidéo) et la taxonomie émotion → nuances.
+        La réponse attendue et l'explication ne sont JAMAIS incluses : la correction
+        est faite serveur, scène par scène.
+      responses:
+        '200':
+          description: Scènes de la session
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EmotionalRadarSceneList' }
+        '401': { $ref: './common.openapi.yaml#/components/responses/Unauthorized' }
+        '404': { $ref: './common.openapi.yaml#/components/responses/NotFound' }
+
+  /games/sessions/{sessionId}/emotional-radar/scenes/{sceneId}/answers:
+    parameters:
+      - { name: sessionId, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: sceneId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Games]
+      summary: Valider la réponse d'une scène et obtenir la correction
+      description: >
+        Le serveur note la réponse, la persiste, puis renvoie le feedback affiché par
+        l'écran. C'est ce résultat persisté — et non le payload final — qui alimente
+        le score du mini-jeu.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EmotionalRadarAnswerRequest' }
+      responses:
+        '200':
+          description: Réponse notée
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EmotionalRadarFeedback' }
+        '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
+        '404': { $ref: './common.openapi.yaml#/components/responses/NotFound' }
+
+  /games/emotional-radar/scenes/{sceneId}/media:
+    parameters:
+      - { name: sceneId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Games]
+      summary: Téléverser le média (image ou vidéo) d'une scène
+      description: >
+        Gestion de contenu : stocke le fichier et rattache son URL à la scène.
+        ⚠️ Aucun rôle d'administration n'existe encore dans le contexte games —
+        l'accès est pour l'instant restreint aux utilisateurs authentifiés.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+                altText: { type: string }
+                transcript: { type: string }
+      responses:
+        '201':
+          description: Média rattaché à la scène
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EmotionalRadarScene' }
+        '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
+        '404': { $ref: './common.openapi.yaml#/components/responses/NotFound' }
+
 components:
   securitySchemes:
     bearerAuth: { $ref: './common.openapi.yaml#/components/securitySchemes/bearerAuth' }
@@ -73,8 +147,11 @@ components:
   schemas:
     GameType:
       type: string
-      description: Type de jeu sérieux.
-      enum: [PLANIFIK, MOVE_FAST, MEMORY_QUEST, DECISION]
+      description: >
+        Type de jeu sérieux (un domaine cognitif = un type). EMOTIONAL_REGULATION
+        (« Je gère ») héberge le mini-jeu Emotional Radar, sur le modèle de PLANIFIK
+        qui héberge ses trois mini-jeux.
+      enum: [PLANIFIK, MOVE_FAST, MEMORY_QUEST, DECISION, EMOTIONAL_REGULATION]
 
     MiniGame:
       type: string
@@ -82,7 +159,7 @@ components:
         Mini-jeu évalué dans une session. DECISION_CORE (« Je Décide ») est déclaré
         mais non jouable tant que le catalogue de scénarios est vide (même patron
         que TASK_SCHEDULING avant implémentation).
-      enum: [OPTIMAL_PATH, TASK_SCHEDULING, PREVISION_PUZZLE, MOVE_FAST_CORE, MEMORY_QUEST_CORE, DECISION_CORE]
+      enum: [OPTIMAL_PATH, TASK_SCHEDULING, PREVISION_PUZZLE, MOVE_FAST_CORE, MEMORY_QUEST_CORE, DECISION_CORE, EMOTIONAL_RADAR_CORE]
 
     SessionStatus:
       type: string
@@ -577,13 +654,177 @@ components:
           minimum: 0
           description: "Nombre BRUT de réajustements ; score dérivé serveur (<2→2 · 2-4→1 · >4→0)."
 
+    BasicEmotion:
+      type: string
+      description: Famille d'émotion de base (étape 1 d'Emotional Radar).
+      enum: [JOY, SADNESS, ANGER, FEAR, DISGUST, SURPRISE]
+
+    SceneMediaType:
+      type: string
+      description: >
+        Support de la scène. IMAGE et VIDEO exigent un altText ; VIDEO exige en plus
+        un transcript (planche « Accessibility Compliance »).
+      enum: [DIALOGUE, TEXT, IMAGE, VIDEO]
+
+    EmotionalRadarNuance:
+      type: object
+      description: Nuance proposée pour une famille d'émotion.
+      properties:
+        key: { type: string, example: DISAPPOINTMENT }
+        label: { type: string, example: Disappointment }
+        source:
+          type: string
+          enum: [FIGMA, PROVISIONAL]
+          description: >
+            PROVISIONAL = sous-catégorie Ekman ajoutée faute de taxonomie fournie,
+            isolée dans EmotionalRadarProvisionalRules. À valider par le psychologue.
+
+    EmotionalRadarScene:
+      type: object
+      description: >
+        Scène telle que servie au client. Ne contient JAMAIS la réponse attendue
+        ni l'explication : la correction est faite serveur (anti-triche).
+      properties:
+        id: { type: string, format: uuid }
+        sceneOrder: { type: integer, example: 1 }
+        mediaType: { $ref: '#/components/schemas/SceneMediaType' }
+        promptText:
+          type: string
+          # NB : exemple volontairement sans guillemets droits — openapi-generator
+          # 7.5.0 les ré-échappe mal dans les exemples générés (`\\"` → Java invalide).
+          example: 'Friend: I am sorry, I have to cancel tonight.'
+        instructionText:
+          type: string
+          example: Observe the situation, then identify the emotional pattern.
+        mediaUrl: { type: string, nullable: true }
+        altText:
+          type: string
+          nullable: true
+          description: Équivalent textuel — obligatoire pour IMAGE et VIDEO.
+        transcript:
+          type: string
+          nullable: true
+          description: Transcription/sous-titres — obligatoire pour VIDEO.
+
+    EmotionalRadarSceneList:
+      type: object
+      properties:
+        totalScenes:
+          type: integer
+          description: Nombre de scènes de la session (3 aujourd'hui, 15 à terme).
+          example: 3
+        maxPoints:
+          type: integer
+          description: totalScenes × 9.
+          example: 27
+        emotions:
+          type: array
+          description: Les 6 familles et leurs nuances sélectionnables.
+          items:
+            type: object
+            properties:
+              emotion: { $ref: '#/components/schemas/BasicEmotion' }
+              nuances:
+                type: array
+                items: { $ref: '#/components/schemas/EmotionalRadarNuance' }
+        scenes:
+          type: array
+          items: { $ref: '#/components/schemas/EmotionalRadarScene' }
+
+    EmotionalRadarAnswerRequest:
+      type: object
+      required: [selectedEmotion, selectedNuance, selectedIntensity]
+      properties:
+        selectedEmotion: { $ref: '#/components/schemas/BasicEmotion' }
+        selectedNuance: { type: string, example: DISAPPOINTMENT }
+        selectedIntensity: { type: integer, minimum: 1, maximum: 5, example: 3 }
+
+    EmotionalRadarFeedback:
+      type: object
+      description: >
+        Correction d'UNE scène, calculée et persistée serveur. C'est le seul moment
+        où la réponse attendue est divulguée — jamais avant validation.
+      properties:
+        correct: { type: boolean }
+        expectedEmotion: { $ref: '#/components/schemas/BasicEmotion' }
+        expectedNuance: { type: string, example: DISAPPOINTMENT }
+        suggestedIntensity: { type: integer, example: 3 }
+        explanation:
+          type: string
+          example: Disappointment belongs to the sadness family because the situation involves an unmet expectation.
+        emotionPoints: { type: integer, example: 3 }
+        nuancePoints: { type: integer, example: 4 }
+        intensityPoints: { type: integer, example: 2 }
+        scenePoints: { type: integer, example: 9 }
+        totalPoints:
+          type: integer
+          description: Cumul des scènes déjà notées dans la session.
+          example: 9
+        answeredScenes: { type: integer, example: 1 }
+
+    EmotionalRadarSceneMetric:
+      type: object
+      description: >
+        Mesures COMPORTEMENTALES d'une scène. Ne contient ni réponse ni points —
+        ceux-ci proviennent des réponses notées et persistées par le serveur.
+      required: [sceneId, responseTimeMs]
+      properties:
+        sceneId: { type: string, format: uuid }
+        responseTimeMs: { type: integer, minimum: 0 }
+        helpOpened: { type: boolean, default: false }
+        fullscreenOpened: { type: boolean, default: false }
+        reducedMotion: { type: boolean, default: false }
+
+    EmotionalRadarMetrics:
+      type: object
+      description: >
+        Métriques finales d'Emotional Radar. Volontairement dépourvues de réponses :
+        le score est reconstruit depuis les réponses notées serveur, donc un payload
+        falsifié ne peut pas le modifier (AGENTS.md §7.4).
+      required: [scenes]
+      properties:
+        scenes:
+          type: array
+          minItems: 1
+          items: { $ref: '#/components/schemas/EmotionalRadarSceneMetric' }
+
+    EmotionalRadarIndicators:
+      type: object
+      description: Indicateurs de reconnaissance émotionnelle dérivés serveur.
+      properties:
+        scenesPlayed: { type: integer, example: 3 }
+        emotionAccuracyPercent:
+          type: number
+          format: double
+          description: Justesse du choix de famille.
+          example: 89.0
+        nuanceAccuracyPercent:
+          type: number
+          format: double
+          example: 76.0
+        intensityCalibrationPercent:
+          type: number
+          format: double
+          description: Qualité de calibrage de l'intensité.
+          example: 81.0
+        averageResponseTimeMs: { type: integer, example: 8400 }
+        helpOpenedCount: { type: integer, example: 1 }
+        confusedEmotions:
+          type: array
+          description: Familles confondues (attendue → choisie).
+          items:
+            type: object
+            properties:
+              expected: { $ref: '#/components/schemas/BasicEmotion' }
+              selected: { $ref: '#/components/schemas/BasicEmotion' }
+
     GameMetrics:
       # NB : membres en $ref nus (source de vérité = SubmitResultRequest.toMetrics côté
       # code, la génération games n'étant pas consommée par les contrôleurs, écrits à la
-      # main). À 6 membres exactement, openapi-generator 7.5.0 logue une NPE NON FATALE
+      # main). À 6 membres exactement, openapi-generator 7.5.0 loguait une NPE NON FATALE
       # dans processSimplifyOneOf (TreeSet du type de chaque membre, null pour un $ref) —
-      # la génération se poursuit et le build réussit. Ne PAS encapsuler en
-      # { type: object, allOf: [ $ref ] } : cela dédouble les champs du DTO généré (échec compile).
+      # le 7e membre (EmotionalRadarMetrics) sort de ce cas particulier. Ne PAS encapsuler
+      # en { type: object, allOf: [ $ref ] } : cela dédouble les champs du DTO (échec compile).
       oneOf:
         - $ref: '#/components/schemas/OptimalPathMetrics'
         - $ref: '#/components/schemas/TaskSchedulingMetrics'
@@ -591,6 +832,7 @@ components:
         - $ref: '#/components/schemas/PrevisionPuzzleMetrics'
         - $ref: '#/components/schemas/MemoryQuestMetrics'
         - $ref: '#/components/schemas/DecisionMetrics'
+        - $ref: '#/components/schemas/EmotionalRadarMetrics'
 
     SubmitResultRequest:
       type: object
@@ -649,6 +891,10 @@ components:
           allOf: [ { $ref: '#/components/schemas/DecisionIndicators' } ]
           nullable: true
           description: "Présent uniquement quand le résultat soumis concerne « Je Décide »."
+        emotionalRadarIndicators:
+          allOf: [ { $ref: '#/components/schemas/EmotionalRadarIndicators' } ]
+          nullable: true
+          description: "Présent uniquement quand le résultat soumis concerne Emotional Radar."
         scoreBreakdown:
           type: array
           nullable: true
