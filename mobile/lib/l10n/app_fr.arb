@@ -189,7 +189,7 @@
   "cameraOn": "Caméra activée",
   "closeLabel": "Fermer",
   "commentPlaceholder": "Ajouter un commentaire...",
-  "commentsAndShares": "{comments} commentaires .\n{shares} partages",
+  "commentsAndShares": "{comments} commentaires · {shares} partages",
   "commentsTitle": "Commentaires",
   "confirmOffer": "Confirmer l'offre",
   "connected": "Connecté",
@@ -329,5 +329,12 @@
   "whatCanWeImprove": "Que pouvons-nous améliorer ?",
   "yesterday": "Hier",
   "yourComments": "Vos commentaires",
-  "yourQuestion": "Votre question"
+  "yourQuestion": "Votre question",
+
+  "homeError": "Erreur : {error}",
+  "timeframe1Day": "1 jour",
+  "timeframe3Days": "3 jours",
+  "timeframe7Days": "7 jours",
+  "timeframe14Days": "14 jours",
+  "dateFormatted": "{day}/{month}/{year}"
 }

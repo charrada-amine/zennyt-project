@@ -216,6 +216,7 @@ class _PostCardState extends ConsumerState<PostCard> {
     final isConnected = await checkInternetWithLoader(context, ref);
     if (!isConnected) return;
 
+    final l10n = AppLocalizations.of(context);
     final currentUserAsync = ref.read(currentUserProvider);
     if (currentUserAsync.value == null) return;
 
@@ -243,8 +244,8 @@ class _PostCardState extends ConsumerState<PostCard> {
         final notification = AppNotification(
           id: DateTime.now().millisecondsSinceEpoch.toString(),
           userId: widget.post.authorId,
-          title: 'New Like',
-          subtitle: '${currentUser.name} liked your post',
+          title: l10n.newLike,
+          subtitle: l10n.likedYourPost(currentUser.name),
           createdAt: DateTime.now(),
           type: NotificationType.newLike,
           isRead: false,
@@ -344,7 +345,7 @@ class _PostCardState extends ConsumerState<PostCard> {
                           Padding(
                             padding: const EdgeInsets.only(left: 8),
                             child: Text(
-                              'and 2 others',
+                              l10n.andTwoOthers,
                               style: TextStyle(
                                   color: colors.textMuted, fontSize: 14),
                             ),
@@ -425,7 +426,7 @@ class _PostCardState extends ConsumerState<PostCard> {
             ),
           const SizedBox(height: 12),
           Text(
-            '${widget.post.commentsCount} Comments . ${widget.post.sharesCount} Shares',
+            l10n.commentsAndShares(widget.post.commentsCount, widget.post.sharesCount),
             style: TextStyle(color: colors.textMuted, fontSize: 13),
           ),
           const SizedBox(height: 12),
@@ -458,7 +459,7 @@ class _PostCardState extends ConsumerState<PostCard> {
               Flexible(
                 flex: 2,
                 child: Text(
-                  'Liked by Anna & $_likesCount others',
+                  l10n.likedByAndOthers('Anna', _likesCount.toString()),
                   style: TextStyle(color: colors.textMuted, fontSize: 13),
                   overflow: TextOverflow.ellipsis,
                 ),

@@ -150,7 +150,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                 );
               },
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, _) => Center(child: Text('Erreur: $error')),
+              error: (error, _) => Center(child: Text(AppLocalizations.of(context).homeError(error.toString()))),
             ),
           ),
         ],

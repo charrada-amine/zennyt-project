@@ -29,7 +29,7 @@ class AddOptionsBottomSheet {
                 children: [
                   OptionItem(
                     icon: FontAwesomeIcons.image,
-                    label: 'Media',
+                    label: l10n.mediaLabel,
                     onTap: () {
                       Navigator.pop(context);
                       onMediaTap?.call();
@@ -37,14 +37,14 @@ class AddOptionsBottomSheet {
                   ),
                   OptionItem(
                     icon: FontAwesomeIcons.trophy,
-                    label: 'Score',
+                    label: l10n.scoreLabel,
                     onTap: () {
                       Navigator.pop(context);
                     },
                   ),
                   OptionItem(
                     icon: FontAwesomeIcons.userPen,
-                    label: 'AI Resume',
+                    label: l10n.aiResumeLabel,
                     onTap: () {
                       Navigator.pop(context);
                     },
@@ -57,7 +57,7 @@ class AddOptionsBottomSheet {
                 children: [
                   OptionItem(
                     icon: FontAwesomeIcons.file,
-                    label: 'Document',
+                    label: l10n.documentLabel,
                     onTap: () {
                       Navigator.pop(context);
                       onDocumentTap?.call();

@@ -20,12 +20,22 @@ class _CreatePollPageState extends ConsumerState<CreatePollPage> {
   late List<TextEditingController> _optionControllers;
   String _selectedTimeframe = '3 days';
 
-  final List<String> _timeframeOptions = [
-    '1 day',
-    '3 days',
-    '7 days',
-    '14 days',
-  ];
+  static const _timeframeValues = ['1 day', '3 days', '7 days', '14 days'];
+
+  String _timeframeLabel(AppLocalizations l10n, String value) {
+    switch (value) {
+      case '1 day':
+        return l10n.timeframe1Day;
+      case '3 days':
+        return l10n.timeframe3Days;
+      case '7 days':
+        return l10n.timeframe7Days;
+      case '14 days':
+        return l10n.timeframe14Days;
+      default:
+        return value;
+    }
+  }
 
   @override
   void initState() {
@@ -285,11 +295,11 @@ class _CreatePollPageState extends ConsumerState<CreatePollPage> {
                                 : Icons.expand_more,
                             color: AppColors.iconColor,
                           ),
-                          items: _timeframeOptions.map((tf) {
+                          items: _timeframeValues.map((tf) {
                             return DropdownMenuItem(
                               value: tf,
                               child: Text(
-                                tf,
+                                _timeframeLabel(l10n, tf),
                                 style: const TextStyle(
                                   fontSize: 15,
                                   color: AppColors.textDark,

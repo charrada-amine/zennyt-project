@@ -1139,7 +1139,7 @@ abstract class AppLocalizations {
   /// No description provided for @commentsAndShares.
   ///
   /// In en, this message translates to:
-  /// **'{comments} Comments .\n{shares} Shares'**
+  /// **'{comments} Comments · {shares} Shares'**
   String commentsAndShares(String comments, String shares);
 
   /// No description provided for @commentsTitle.
@@ -1831,6 +1831,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your question'**
   String get yourQuestion;
+
+  /// No description provided for @homeError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error: {error}'**
+  String homeError(String error);
+
+  /// No description provided for @timeframe1Day.
+  ///
+  /// In en, this message translates to:
+  /// **'1 day'**
+  String get timeframe1Day;
+
+  /// No description provided for @timeframe3Days.
+  ///
+  /// In en, this message translates to:
+  /// **'3 days'**
+  String get timeframe3Days;
+
+  /// No description provided for @timeframe7Days.
+  ///
+  /// In en, this message translates to:
+  /// **'7 days'**
+  String get timeframe7Days;
+
+  /// No description provided for @timeframe14Days.
+  ///
+  /// In en, this message translates to:
+  /// **'14 days'**
+  String get timeframe14Days;
+
+  /// No description provided for @dateFormatted.
+  ///
+  /// In en, this message translates to:
+  /// **'{day}/{month}/{year}'**
+  String dateFormatted(String day, String month, String year);
 }
 
 class _AppLocalizationsDelegate

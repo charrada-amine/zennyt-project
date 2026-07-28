@@ -552,7 +552,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String commentsAndShares(String comments, String shares) {
-    return '$comments Comments .\n$shares Shares';
+    return '$comments Comments · $shares Shares';
   }
 
   @override
@@ -967,4 +967,26 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get yourQuestion => 'Your question';
+
+  @override
+  String homeError(String error) {
+    return 'Error: $error';
+  }
+
+  @override
+  String get timeframe1Day => '1 day';
+
+  @override
+  String get timeframe3Days => '3 days';
+
+  @override
+  String get timeframe7Days => '7 days';
+
+  @override
+  String get timeframe14Days => '14 days';
+
+  @override
+  String dateFormatted(String day, String month, String year) {
+    return '$day/$month/$year';
+  }
 }

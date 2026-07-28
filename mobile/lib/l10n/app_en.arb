@@ -210,7 +210,7 @@
   "cameraOn": "Camera On",
   "closeLabel": "Close",
   "commentPlaceholder": "Add a comment...",
-  "commentsAndShares": "{comments} Comments .\n{shares} Shares",
+  "commentsAndShares": "{comments} Comments · {shares} Shares",
   "@commentsAndShares": {
     "placeholders": {
       "comments": { "type": "String" },
@@ -412,5 +412,24 @@
   "whatCanWeImprove": "What can we improve?",
   "yesterday": "Yesterday",
   "yourComments": "Your comments",
-  "yourQuestion": "Your question"
+  "yourQuestion": "Your question",
+
+  "homeError": "Error: {error}",
+  "@homeError": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "timeframe1Day": "1 day",
+  "timeframe3Days": "3 days",
+  "timeframe7Days": "7 days",
+  "timeframe14Days": "14 days",
+  "dateFormatted": "{day}/{month}/{year}",
+  "@dateFormatted": {
+    "placeholders": {
+      "day": { "type": "String" },
+      "month": { "type": "String" },
+      "year": { "type": "String" }
+    }
+  }
 }

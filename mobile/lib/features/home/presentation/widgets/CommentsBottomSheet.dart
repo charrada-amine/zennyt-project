@@ -75,12 +75,17 @@ class _CommentsBottomSheetState extends ConsumerState<CommentsBottomSheet> {
     }
   }
 
-  String _formatDate(DateTime date) {
+  String _formatDate(BuildContext context, DateTime date) {
+    final l10n = AppLocalizations.of(context);
     final diff = DateTime.now().difference(date);
-    if (diff.inMinutes < 1) return "À l'instant";
-    if (diff.inHours < 1) return "Il y a ${diff.inMinutes} min";
-    if (diff.inDays < 1) return "Il y a ${diff.inHours} h";
-    return "${date.day}/${date.month}/${date.year}";
+    if (diff.inMinutes < 1) return l10n.justNow;
+    if (diff.inHours < 1) return l10n.timeAgoMinutes(diff.inMinutes);
+    if (diff.inDays < 1) return l10n.timeAgoHours(diff.inHours);
+    return l10n.dateFormatted(
+      date.day.toString().padLeft(2, '0'),
+      date.month.toString().padLeft(2, '0'),
+      date.year.toString(),
+    );
   }
 
   @override
@@ -170,7 +175,7 @@ class _CommentsBottomSheetState extends ConsumerState<CommentsBottomSheet> {
                             ),
                             subtitle: Text(c.content),
                             trailing: Text(
-                              _formatDate(c.createdAt),
+                              _formatDate(context, c.createdAt),
                               style: const TextStyle(
                                 fontSize: 10,
                               ),
