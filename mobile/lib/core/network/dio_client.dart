@@ -79,8 +79,8 @@ class SecureStorageAuthInterceptor extends QueuedInterceptor {
 
   SecureStorageAuthInterceptor({required this.dio, required this.storage});
 
-  static const _accessKey = 'access_token';
-  static const _refreshKey = 'refresh_token';
+  static const _accessKey = 'auth.accessToken';
+  static const _refreshKey = 'auth.refreshToken';
 
   @override
   Future<void> onRequest(

@@ -34,7 +34,7 @@ class PostRemoteDataSourceImpl implements PostRemoteDataSource {
   Future<PaginatedPostsResult> getPosts({int page = 0, int size = 100}) async {
     try {
       final res = await dio.get(
-        '/api/v1/posts',
+        '/posts',
         queryParameters: {
           'page': page,
           'size': size,
@@ -75,7 +75,7 @@ class PostRemoteDataSourceImpl implements PostRemoteDataSource {
   Future<PostModel> createPost(PostModel post) async {
     try {
       final res = await dio.post(
-        '/api/v1/posts',
+        '/posts',
         data: post.toJson(),
       );
       return PostModel.fromJson(res.data as Map<String, dynamic>);
@@ -87,12 +87,16 @@ class PostRemoteDataSourceImpl implements PostRemoteDataSource {
   @override
   Future<CurrentUserModel> getCurrentUser() async {
     try {
-      final res = await dio.get('/api/v1/profiles/me');
+      final res = await dio.get('/profiles/me');
       final data = res.data as Map<String, dynamic>;
+      final avatarUrl = data['profileImageUrl'] as String? ??
+          data['avatarUrl'] as String? ??
+          data['cvUrl'] as String? ??
+          '';
       return CurrentUserModel(
         id: data['userId']?.toString() ?? data['id']?.toString() ?? '',
         name: data['currentPosition'] as String? ?? 'User',
-        avatarUrl: data['cvUrl'] as String? ?? '',
+        avatarUrl: avatarUrl,
         friendIds: const [],
       );
     } on DioException catch (e) {
@@ -104,7 +108,7 @@ class PostRemoteDataSourceImpl implements PostRemoteDataSource {
   Future<UserPostPreferencesModel> getUserPostPreferences(String userId) async {
     try {
       final res = await dio.get(
-        '/api/v1/users/me/post-preferences',
+        '/users/me/post-preferences',
       );
       return UserPostPreferencesModel.fromJson(
           res.data as Map<String, dynamic>);
@@ -119,7 +123,7 @@ class PostRemoteDataSourceImpl implements PostRemoteDataSource {
   ) async {
     try {
       final res = await dio.put(
-        '/api/v1/users/me/post-preferences',
+        '/users/me/post-preferences',
         data: preferences.toJson(),
       );
       return UserPostPreferencesModel.fromJson(
@@ -133,7 +137,7 @@ class PostRemoteDataSourceImpl implements PostRemoteDataSource {
   Future<void> likePost(String postId, String userId) async {
     try {
       await dio.post(
-        '/api/v1/posts/$postId/likes',
+        '/posts/$postId/likes',
       );
     } on DioException catch (e) {
       throw handleDioException(e);
@@ -144,7 +148,7 @@ class PostRemoteDataSourceImpl implements PostRemoteDataSource {
   Future<void> unlikePost(String postId, String userId) async {
     try {
       await dio.delete(
-        '/api/v1/posts/$postId/likes',
+        '/posts/$postId/likes',
       );
     } on DioException catch (e) {
       throw handleDioException(e);
@@ -155,7 +159,7 @@ class PostRemoteDataSourceImpl implements PostRemoteDataSource {
   Future<CommentModel> addComment(CommentModel comment) async {
     try {
       final res = await dio.post(
-        '/api/v1/posts/${comment.postId}/comments',
+        '/posts/${comment.postId}/comments',
         data: comment.toJson(),
       );
       return CommentModel.fromJson(res.data as Map<String, dynamic>);
@@ -171,7 +175,7 @@ class PostRemoteDataSourceImpl implements PostRemoteDataSource {
   ) async {
     try {
       final res = await dio.get(
-        '/api/v1/posts/$postId/comments',
+        '/posts/$postId/comments',
       );
       final List<dynamic> items = res.data as List<dynamic>;
 
@@ -187,7 +191,7 @@ class PostRemoteDataSourceImpl implements PostRemoteDataSource {
   Future<PostModel> votePoll(String postId, String optionId, String userId) async {
     try {
       final res = await dio.post(
-        '/api/v1/posts/$postId/polls/vote',
+        '/posts/$postId/polls/vote',
         data: {'optionId': optionId},
       );
       return PostModel.fromJson(res.data as Map<String, dynamic>);
@@ -204,7 +208,7 @@ class PostRemoteDataSourceImpl implements PostRemoteDataSource {
         'file': MultipartFile.fromBytes(bytes, filename: fileName),
         'filename': fileName,
       });
-      final res = await dio.post('/api/v1/media/upload', data: formData);
+      final res = await dio.post('/media/upload', data: formData);
       return res.data as Map<String, dynamic>;
     } on DioException catch (e) {
       throw handleDioException(e);

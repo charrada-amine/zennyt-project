@@ -225,6 +225,36 @@
   "importantAlertDescription": "L'entretien vidéo sera automatiquement enregistré à des fins de modération.\nNe demandez pas les coordonnées personnelles d'un candidat.",
   "jobOpportunity": "Opportunité d'emploi",
   "justNow": "À l'instant",
+  "timeAgoMinutes": "Il y a {count} {count, plural, =1{minute} other{minutes}}",
+  "@timeAgoMinutes": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "timeAgoHours": "Il y a {count} {count, plural, =1{heure} other{heures}}",
+  "@timeAgoHours": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "timeAgoDays": "Il y a {count} {count, plural, =1{jour} other{jours}}",
+  "@timeAgoDays": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "timeAgoMonths": "Il y a {count} mois",
+  "@timeAgoMonths": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "timeAgoYears": "Il y a {count} {count, plural, =1{an} other{ans}}",
+  "@timeAgoYears": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
   "likedByAndOthers": "Aimé par {name} et {others} autres",
   "likedYourPost": "{name} a aimé votre publication",
   "mediaAdd": "Ajouter",

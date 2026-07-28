@@ -1,22 +1,29 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:zennyt/l10n/gen/app_localizations.dart';
 import 'package:zennyt/core/constants.dart';
+import 'package:zennyt/core/avatar/avatar_service.dart';
+import 'package:zennyt/features/auth/presentation/auth_controller.dart';
 import '../../../../shared/widgets/initials_avatar.dart';
 
-class ProfileRow extends StatelessWidget {
+class ProfileRow extends ConsumerWidget {
   const ProfileRow({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final user = ref.watch(authControllerProvider).value;
+    final avatarUrl = (user?.profileImageUrl != null && user!.profileImageUrl!.isNotEmpty)
+        ? user.profileImageUrl!
+        : const AvatarService().defaultFor(user?.email ?? 'zennyt');
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          const InitialsAvatar(
-            url:
-                "https://plus.unsplash.com/premium_photo-1738449261730-2bc6a8ab40b5?q=80&w=1632&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+          InitialsAvatar(
+            url: avatarUrl,
             size: 60,
           ),
           const SizedBox(width: 20),
@@ -53,3 +60,4 @@ class ProfileRow extends StatelessWidget {
     );
   }
 }
+

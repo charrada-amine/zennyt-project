@@ -110,8 +110,6 @@ class _HomePageState extends ConsumerState<HomePage> {
           Expanded(
             child: postsAsync.when(
               data: (posts) {
-                print("feed posts: ${posts}");
-                print("feed posts avatar urls: ${posts.first.authorAvatarUrl}");
                 if (posts.isEmpty) {
                   return SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),

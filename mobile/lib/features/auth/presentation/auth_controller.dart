@@ -195,8 +195,11 @@ class AuthController extends AsyncNotifier<AppUser?> {
     try {
       final user = await ref.read(authRepositoryProvider).getMe();
       state = AsyncData(user);
-    } on ApiException {
-      // Keep the cached user; interceptor governs token validity.
+    } catch (_) {
+      final token = await ref.read(tokenStorageProvider).readAccessToken();
+      if (token == null || token.isEmpty) {
+        state = const AsyncData(null);
+      }
     }
   }
 

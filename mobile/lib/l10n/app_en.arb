@@ -262,6 +262,36 @@
   "importantAlertDescription": "The video interview will be automatically recorded for moderation purposes.\nDo not ask for a candidate's personal contact details.",
   "jobOpportunity": "Job Opportunity",
   "justNow": "Just now",
+  "timeAgoMinutes": "{count} {count, plural, =1{minute} other{minutes}} ago",
+  "@timeAgoMinutes": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "timeAgoHours": "{count} {count, plural, =1{hour} other{hours}} ago",
+  "@timeAgoHours": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "timeAgoDays": "{count} {count, plural, =1{day} other{days}} ago",
+  "@timeAgoDays": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "timeAgoMonths": "{count} {count, plural, =1{month} other{months}} ago",
+  "@timeAgoMonths": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "timeAgoYears": "{count} {count, plural, =1{year} other{years}} ago",
+  "@timeAgoYears": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
   "likedByAndOthers": "Liked by {name} & {others} others",
   "@likedByAndOthers": {
     "placeholders": {

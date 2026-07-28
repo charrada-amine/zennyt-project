@@ -29,7 +29,7 @@ class MessageRemoteDataSourceImpl implements MessageRemoteDataSource {
       String conversationId, String userId) async {
     try {
       final res = await dio.get(
-        '/api/v1/conversations/$conversationId/messages',
+        '/conversations/$conversationId/messages',
       );
       final data = res.data;
       final List<dynamic> items = data is List<dynamic> ? data : [];
@@ -56,7 +56,7 @@ class MessageRemoteDataSourceImpl implements MessageRemoteDataSource {
         attachmentUrl: attachmentUrl,
       );
       final res = await dio.post(
-        '/api/v1/conversations/$conversationId/messages',
+        '/conversations/$conversationId/messages',
         data: body.toJson(),
       );
       return MessageModel.fromJson(res.data as Map<String, dynamic>);

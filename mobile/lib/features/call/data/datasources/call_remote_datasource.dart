@@ -26,7 +26,7 @@ class CallRemoteDataSourceImpl implements CallRemoteDataSource {
   Future<void> startCall(CallModel call) async {
     try {
       await dio.post(
-        '/api/v1/calls/start',
+        'calls/start',
         data: {
           'conversationId': call.id,
           'type': call.type == CallType.audio ? 'AUDIO' : 'VIDEO',

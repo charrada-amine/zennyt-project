@@ -28,8 +28,16 @@ class NetworkInfoImpl implements NetworkInfo {
 
   Future<bool> _doCheck() async {
     try {
+      final baseUri = Uri.parse(dio.options.baseUrl);
+      final healthUri = Uri(
+        scheme: baseUri.scheme,
+        host: baseUri.host,
+        port: baseUri.port,
+        path: '/actuator/health',
+      ).toString();
+
       await dio.get(
-        '/actuator/health',
+        healthUri,
         options: Options(
           connectTimeout: const Duration(seconds: 5),
           receiveTimeout: const Duration(seconds: 5),

@@ -5,8 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zennyt/l10n/gen/app_localizations.dart';
 import 'package:zennyt/features/home/domain/entities/comment.dart';
 import 'package:zennyt/shared/providers/internet_provider.dart';
-import 'package:zennyt/shared/widgets/no_connection_overlay.dart';
 import 'package:zennyt/features/home/presentation/providers/home_providers.dart';
+import 'package:zennyt/core/avatar/avatar_service.dart';
+import 'package:zennyt/features/auth/presentation/auth_controller.dart';
 
 class CommentsBottomSheet extends ConsumerStatefulWidget {
   final String postId;
@@ -25,6 +26,12 @@ class _CommentsBottomSheetState extends ConsumerState<CommentsBottomSheet> {
   final TextEditingController _controller = TextEditingController();
   bool _isSubmitting = false;
 
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   Future<void> _submitComment() async {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
@@ -33,7 +40,14 @@ class _CommentsBottomSheetState extends ConsumerState<CommentsBottomSheet> {
     if (!isConnected) return;
 
     final user = ref.read(currentUserProvider).value;
-    if (user == null) return;
+    final authUser = ref.read(authControllerProvider).value;
+    if (user == null && authUser == null) return;
+
+    final avatarUrl = (authUser?.profileImageUrl != null && authUser!.profileImageUrl!.isNotEmpty)
+        ? authUser.profileImageUrl!
+        : (user?.avatarUrl != null && user!.avatarUrl.isNotEmpty
+            ? user.avatarUrl
+            : const AvatarService().defaultFor(authUser?.email ?? 'zennyt'));
 
     setState(() => _isSubmitting = true);
 
@@ -41,9 +55,11 @@ class _CommentsBottomSheetState extends ConsumerState<CommentsBottomSheet> {
       final comment = Comment(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         postId: widget.postId,
-        authorId: user.id,
-        authorName: user.name,
-        authorAvatarUrl: user.avatarUrl,
+        authorId: user?.id ?? authUser?.id ?? '',
+        authorName: (authUser?.fullName.trim().isNotEmpty ?? false)
+            ? authUser!.fullName.trim()
+            : (user?.name ?? 'User'),
+        authorAvatarUrl: avatarUrl,
         content: text,
         createdAt: DateTime.now(),
       );
@@ -72,6 +88,13 @@ class _CommentsBottomSheetState extends ConsumerState<CommentsBottomSheet> {
     final l10n = AppLocalizations.of(context)!;
     final commentsAsync = ref.watch(commentsProvider(widget.postId));
     final user = ref.watch(currentUserProvider).value;
+    final authUser = ref.watch(authControllerProvider).value;
+
+    final effectiveAvatarUrl = (authUser?.profileImageUrl != null && authUser!.profileImageUrl!.isNotEmpty)
+        ? authUser.profileImageUrl!
+        : (user?.avatarUrl != null && user!.avatarUrl.isNotEmpty
+            ? user.avatarUrl
+            : const AvatarService().defaultFor(authUser?.email ?? 'zennyt'));
 
     return DraggableScrollableSheet(
       initialChildSize: 0.70,
@@ -132,12 +155,12 @@ class _CommentsBottomSheetState extends ConsumerState<CommentsBottomSheet> {
                         itemBuilder: (context, index) {
                           final c = comments[index];
 
+                          final commentAvatarUrl = (c.authorAvatarUrl != null && c.authorAvatarUrl!.isNotEmpty)
+                              ? c.authorAvatarUrl!
+                              : const AvatarService().defaultFor(c.authorName);
                           return ListTile(
                             leading: CircleAvatar(
-                              backgroundImage: NetworkImage(
-                                c.authorAvatarUrl ??
-                                    "https://cdn-icons-png.flaticon.com/512/149/149071.png",
-                              ),
+                              backgroundImage: NetworkImage(commentAvatarUrl),
                             ),
                             title: Text(
                               c.authorName,
@@ -169,10 +192,7 @@ class _CommentsBottomSheetState extends ConsumerState<CommentsBottomSheet> {
                     children: [
                       CircleAvatar(
                         radius: 16,
-                        backgroundImage: NetworkImage(
-                          user?.avatarUrl ??
-                              "https://cdn-icons-png.flaticon.com/512/149/149071.png",
-                        ),
+                        backgroundImage: NetworkImage(effectiveAvatarUrl),
                       ),
                       const SizedBox(width: 10),
                       Expanded(

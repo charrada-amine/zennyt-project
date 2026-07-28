@@ -1352,6 +1352,36 @@ abstract class AppLocalizations {
   /// **'Just now'**
   String get justNow;
 
+  /// No description provided for @timeAgoMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} {count, plural, =1{minute} other{minutes}} ago'**
+  String timeAgoMinutes(int count);
+
+  /// No description provided for @timeAgoHours.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} {count, plural, =1{hour} other{hours}} ago'**
+  String timeAgoHours(int count);
+
+  /// No description provided for @timeAgoDays.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} {count, plural, =1{day} other{days}} ago'**
+  String timeAgoDays(int count);
+
+  /// No description provided for @timeAgoMonths.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} {count, plural, =1{month} other{months}} ago'**
+  String timeAgoMonths(int count);
+
+  /// No description provided for @timeAgoYears.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} {count, plural, =1{year} other{years}} ago'**
+  String timeAgoYears(int count);
+
   /// No description provided for @likedByAndOthers.
   ///
   /// In en, this message translates to:

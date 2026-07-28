@@ -675,6 +675,55 @@ class AppLocalizationsFr extends AppLocalizations {
   String get justNow => 'À l\'instant';
 
   @override
+  String timeAgoMinutes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'minutes',
+      one: 'minute',
+    );
+    return 'Il y a $count $_temp0';
+  }
+
+  @override
+  String timeAgoHours(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'heures',
+      one: 'heure',
+    );
+    return 'Il y a $count $_temp0';
+  }
+
+  @override
+  String timeAgoDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'jours',
+      one: 'jour',
+    );
+    return 'Il y a $count $_temp0';
+  }
+
+  @override
+  String timeAgoMonths(int count) {
+    return 'Il y a $count mois';
+  }
+
+  @override
+  String timeAgoYears(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'ans',
+      one: 'an',
+    );
+    return 'Il y a $count $_temp0';
+  }
+
+  @override
   String likedByAndOthers(String name, String others) {
     return 'Aimé par $name et $others autres';
   }

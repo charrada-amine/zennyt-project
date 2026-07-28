@@ -24,7 +24,7 @@ class ConversationRemoteDataSourceImpl implements ConversationRemoteDataSource {
   @override
   Future<List<ConversationModel>> getConversations(String userId) async {
     try {
-      final res = await dio.get('/api/v1/conversations');
+      final res = await dio.get('/conversations');
       final data = res.data;
       final List<dynamic> items = data is Map<String, dynamic>
           ? (data['content'] as List<dynamic>? ?? [])
@@ -42,7 +42,7 @@ class ConversationRemoteDataSourceImpl implements ConversationRemoteDataSource {
       String applicationId, String userId) async {
     try {
       final res = await dio.post(
-        '/api/v1/conversations',
+        '/conversations',
         data: {
           'applicationId': applicationId,
         },
@@ -57,7 +57,7 @@ class ConversationRemoteDataSourceImpl implements ConversationRemoteDataSource {
   Future<void> markConversationRead(
       String conversationId, String userId) async {
     try {
-      await dio.post('/api/v1/conversations/$conversationId/read');
+      await dio.post('/conversations/$conversationId/read');
     } on DioException catch (e) {
       throw handleDioException(e);
     }

@@ -7,7 +7,8 @@ import 'package:go_router/go_router.dart';
 import 'package:zennyt/core/constants.dart';
 import 'package:zennyt/l10n/gen/app_localizations.dart';
 import 'package:zennyt/shared/providers/internet_provider.dart';
-import 'package:zennyt/shared/widgets/no_connection_overlay.dart';
+import 'package:zennyt/core/avatar/avatar_service.dart';
+import 'package:zennyt/features/auth/presentation/auth_controller.dart';
 import '../../data/models/post_model.dart';
 import '../../domain/entities/post.dart';
 import '../providers/home_providers.dart';
@@ -28,6 +29,7 @@ class CreatePostPage extends ConsumerStatefulWidget {
 
 class _CreatePostPageState extends ConsumerState<CreatePostPage> {
   final TextEditingController _textController = TextEditingController();
+  bool _canPost = false;
   Poll? _attachedPoll;
   bool _isSubmitting = false;
 
@@ -38,7 +40,22 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
   }
 
   void _onContentChanged() {
-    setState(() {});
+    final canPost = _evaluateCanPost();
+    if (canPost != _canPost) {
+      setState(() => _canPost = canPost);
+    }
+  }
+
+  bool _evaluateCanPost() {
+    final selectedMedia = ref.read(selectedPostMediaProvider);
+    final selectedDocuments = ref.read(selectedPostDocumentsProvider);
+    final hasMedia = selectedMedia.isNotEmpty;
+    final hasDocuments = selectedDocuments.isNotEmpty;
+    final hasPoll = _attachedPoll != null;
+    return _textController.text.isNotEmpty ||
+        hasMedia ||
+        hasDocuments ||
+        hasPoll;
   }
 
   void _openAddOptions() {
@@ -56,6 +73,7 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
       setState(() {
         _attachedPoll = result;
       });
+      _onContentChanged();
     }
   }
 
@@ -79,16 +97,6 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
     }
   }
 
-  bool get _canPost {
-    final hasMedia = ref.watch(selectedPostMediaProvider).isNotEmpty;
-    final hasDocuments = ref.watch(selectedPostDocumentsProvider).isNotEmpty;
-    final hasPoll = _attachedPoll != null;
-    return _textController.text.isNotEmpty ||
-        hasMedia ||
-        hasDocuments ||
-        hasPoll;
-  }
-
   Future<void> _submitPost() async {
     if (!_canPost || _isSubmitting) return;
 
@@ -97,7 +105,18 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
 
     final l10n = AppLocalizations.of(context);
     final currentUser = await ref.read(currentUserProvider.future);
+    final authUser = ref.read(authControllerProvider).value;
     final visibility = ref.read(postVisibilityProvider);
+
+    final authorAvatarUrl = (authUser?.profileImageUrl != null && authUser!.profileImageUrl!.isNotEmpty)
+        ? authUser.profileImageUrl!
+        : (currentUser.avatarUrl.isNotEmpty
+            ? currentUser.avatarUrl
+            : const AvatarService().defaultFor(authUser?.email ?? 'zennyt'));
+
+    final authorName = (authUser?.fullName.trim().isNotEmpty ?? false)
+        ? authUser!.fullName.trim()
+        : currentUser.name;
 
     setState(() => _isSubmitting = true);
 
@@ -106,8 +125,8 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         authorId: currentUser.id,
         visibility: visibility,
-        authorName: currentUser.name,
-        authorAvatarUrl: currentUser.avatarUrl,
+        authorName: authorName,
+        authorAvatarUrl: authorAvatarUrl,
         timeAgo: l10n.justNow,
         content: _textController.text.trim().isEmpty
             ? null
@@ -148,6 +167,11 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
     final selectedDocuments = ref.watch(selectedPostDocumentsProvider);
     final visibility = ref.watch(postVisibilityProvider);
     final currentUserAsync = ref.watch(currentUserProvider);
+    final authUser = ref.watch(authControllerProvider).value;
+
+    final effectiveAvatarUrl = (authUser?.profileImageUrl != null && authUser!.profileImageUrl!.isNotEmpty)
+        ? authUser.profileImageUrl!
+        : const AvatarService().defaultFor(authUser?.email ?? 'zennyt');
 
     return Scaffold(
       backgroundColor: AppColors.panelBackground,
@@ -160,7 +184,7 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
                 onPostTap: _submitPost,
                 isPostEnabled: _canPost && !_isSubmitting,
                 visibility: visibility,
-                avatarUrl: currentUser.avatarUrl,
+                avatarUrl: effectiveAvatarUrl,
                 onVisibilityChanged: (value) {
                   ref.read(postVisibilityProvider.notifier).state = value;
                 },
@@ -169,14 +193,14 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
                 onPostTap: null,
                 isPostEnabled: false,
                 visibility: visibility,
-                avatarUrl: '',
+                avatarUrl: effectiveAvatarUrl,
                 onVisibilityChanged: (_) {},
               ),
               error: (_, __) => CreatePostHeader(
                 onPostTap: null,
                 isPostEnabled: false,
                 visibility: visibility,
-                avatarUrl: '',
+                avatarUrl: effectiveAvatarUrl,
                 onVisibilityChanged: (_) {},
               ),
             ),

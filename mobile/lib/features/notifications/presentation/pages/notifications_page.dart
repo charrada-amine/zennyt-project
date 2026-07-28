@@ -16,6 +16,7 @@ import '../../domain/entities/app_notification.dart';
 import '../../../chat/presentation/providers/chat_providers.dart';
 import '../../../chat/domain/entities/chat.dart';
 import '../../../home/presentation/providers/home_providers.dart';
+import '../../../navigation/presentation/viewmodel/nav_tab_provider.dart';
 
 class NotificationsPage extends ConsumerStatefulWidget {
   const NotificationsPage({super.key});
@@ -82,7 +83,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
       padding: const EdgeInsets.only(right: 16),
       child: GestureDetector(
         onTap: _showVerificationDialog,
-        child: Container(
+        child: SizedBox(
           width: 28,
           height: 28,
           child: Center(
@@ -201,7 +202,11 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
       appBar: PlatformAppBar(
         showBack: true,
         onLeadingPressed: () {
-          context.go('/home');
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context);
+          } else {
+            ref.read(navTabProvider.notifier).select(0);
+          }
         },
         title: Text(
           l10n.notifications,

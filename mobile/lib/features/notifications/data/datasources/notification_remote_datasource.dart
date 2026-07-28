@@ -22,7 +22,7 @@ class NotificationRemoteDataSourceImpl implements NotificationRemoteDataSource {
   Future<List<AppNotificationModel>> getNotifications(String userId) async {
     try {
       final res = await dio.get(
-        '/api/v1/notifications',
+        '/notifications',
       );
       final data = res.data;
       final List<dynamic> items = data is Map<String, dynamic>
@@ -40,7 +40,7 @@ class NotificationRemoteDataSourceImpl implements NotificationRemoteDataSource {
   Future<void> markAsRead(String id, String userId) async {
     try {
       await dio.post(
-        '/api/v1/notifications/$id/read',
+        '/notifications/$id/read',
       );
     } on DioException catch (e) {
       throw handleDioException(e);
@@ -51,7 +51,7 @@ class NotificationRemoteDataSourceImpl implements NotificationRemoteDataSource {
   Future<void> markAllAsRead(String userId) async {
     try {
       await dio.post(
-        '/api/v1/notifications/read-all',
+        '/notifications/read-all',
       );
     } on DioException catch (e) {
       throw handleDioException(e);
@@ -61,7 +61,7 @@ class NotificationRemoteDataSourceImpl implements NotificationRemoteDataSource {
   @override
   Future<void> createNotification(AppNotificationModel notification) async {
     try {
-      await dio.post('/api/v1/notifications', data: notification.toJson());
+      await dio.post('/notifications', data: notification.toJson());
     } on DioException catch (e) {
       throw handleDioException(e);
     }

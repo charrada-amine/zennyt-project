@@ -13,6 +13,7 @@ import 'package:zennyt/features/home/presentation/widgets/CommentsBottomSheet.da
 import 'package:zennyt/shared/providers/internet_provider.dart';
 import 'package:zennyt/shared/widgets/no_connection_overlay.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../../core/avatar/avatar_service.dart';
 import '../../../../shared/widgets/initials_avatar.dart';
 import '../../domain/entities/post.dart';
 import '../../domain/usecases/like_post.dart';
@@ -33,6 +34,33 @@ class PostCard extends ConsumerStatefulWidget {
 class _PostCardState extends ConsumerState<PostCard> {
   late bool _isLiked;
   late int _likesCount;
+
+  String _formatTimeAgo(BuildContext context, DateTime? createdAt, String fallbackTimeAgo) {
+    if (createdAt == null) return fallbackTimeAgo;
+    final l10n = AppLocalizations.of(context);
+
+    final now = DateTime.now().toUtc();
+    final diff = now.difference(createdAt.toUtc());
+
+    if (diff.inSeconds < 60) {
+      return l10n.justNow;
+    }
+    if (diff.inMinutes < 60) {
+      return l10n.timeAgoMinutes(diff.inMinutes);
+    }
+    if (diff.inHours < 24) {
+      return l10n.timeAgoHours(diff.inHours);
+    }
+    if (diff.inDays < 30) {
+      return l10n.timeAgoDays(diff.inDays);
+    }
+    if (diff.inDays < 365) {
+      final months = diff.inDays ~/ 30;
+      return l10n.timeAgoMonths(months);
+    }
+    final years = diff.inDays ~/ 365;
+    return l10n.timeAgoYears(years);
+  }
 
   @override
   void initState() {
@@ -291,7 +319,12 @@ class _PostCardState extends ConsumerState<PostCard> {
         children: [
           Row(
             children: [
-              InitialsAvatar(url: widget.post.authorAvatarUrl, size: 60),
+              InitialsAvatar(
+                url: widget.post.authorAvatarUrl.isNotEmpty
+                    ? widget.post.authorAvatarUrl
+                    : const AvatarService().defaultFor(widget.post.authorName),
+                size: 60,
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -324,7 +357,7 @@ class _PostCardState extends ConsumerState<PostCard> {
                             width: 16, height: 16),
                         const SizedBox(width: 4),
                         Text(
-                          widget.post.timeAgo,
+                          _formatTimeAgo(context, widget.post.createdAt, widget.post.timeAgo),
                           style:
                               TextStyle(color: colors.textMuted, fontSize: 13),
                         ),

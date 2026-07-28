@@ -1,20 +1,38 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
+import '../../core/config/app_config.dart';
 import '../widgets/no_connection_overlay.dart';
 
 Future<bool> checkInternet() async {
   try {
-    return await InternetConnection().hasInternetAccess.timeout(
-          const Duration(seconds: 3),
+    final hasInternet = await InternetConnection().hasInternetAccess.timeout(
+          const Duration(seconds: 2),
           onTimeout: () => false,
         );
-  } catch (_) {
-    return false;
-  }
+    if (hasInternet) return true;
+
+    final baseUrlStr = AppConfig.baseUrl;
+    if (baseUrlStr.isNotEmpty) {
+      final uri = Uri.parse(baseUrlStr);
+      if (uri.hasAuthority && uri.host.isNotEmpty) {
+        final port =
+            uri.port != 0 ? uri.port : (uri.scheme == 'https' ? 443 : 80);
+        final socket = await Socket.connect(
+          uri.host,
+          port,
+          timeout: const Duration(seconds: 2),
+        );
+        socket.destroy();
+        return true;
+      }
+    }
+  } catch (_) {}
+  return false;
 }
 
 Future<bool> checkInternetWithLoader(BuildContext context, WidgetRef ref) async {
@@ -58,10 +76,14 @@ class InternetNotifier extends Notifier<bool> {
     checkInternet().then((connected) {
       _lastState = connected;
       state = connected;
-      if (!connected) _showOfflineToast();
+      if (connected) {
+        _hasShownOfflineToast = false;
+      } else {
+        _showOfflineToast();
+      }
     });
 
-    _timer = Timer.periodic(const Duration(seconds: 3), (_) async {
+    _timer = Timer.periodic(const Duration(seconds: 5), (_) async {
       final isConnected = await checkInternet();
       if (isConnected == _lastState) return;
       _lastState = isConnected;
