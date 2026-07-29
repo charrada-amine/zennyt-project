@@ -989,4 +989,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String dateFormatted(String day, String month, String year) {
     return '$day/$month/$year';
   }
+
+  @override
+  String get sessionExpired => 'Your session has expired. Please log in again.';
+
+  @override
+  String likesCount(String count) {
+    return '$count likes';
+  }
 }

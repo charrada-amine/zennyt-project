@@ -991,4 +991,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String dateFormatted(String day, String month, String year) {
     return '$day/$month/$year';
   }
+
+  @override
+  String get sessionExpired =>
+      'Votre session a expiré. Veuillez vous reconnecter.';
+
+  @override
+  String likesCount(String count) {
+    return '$count mentions j\'aime';
+  }
 }

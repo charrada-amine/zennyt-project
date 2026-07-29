@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:zennyt/core/constants.dart';
 import 'package:zennyt/l10n/gen/app_localizations.dart';
+import '../../../../core/theme/app_color_scheme.dart';
 import '../../../../shared/widgets/initials_avatar.dart';
 import '../../domain/entities/post.dart';
 
@@ -41,11 +42,11 @@ class CreatePostHeader extends StatelessWidget {
                   AppConstants.isCupertino
                       ? CupertinoIcons.globe
                       : Icons.public,
-                  color: AppColors.iconColor,
+                  color: context.colors.textPrimary,
                 ),
                 title: Text(l10n.publicVisibility),
                 trailing: visibility == PostVisibility.public
-                    ? const Icon(Icons.check, color: AppColors.iconColor)
+                    ? Icon(Icons.check, color: context.colors.textPrimary)
                     : null,
                 onTap: () {
                   onVisibilityChanged(PostVisibility.public);
@@ -57,11 +58,11 @@ class CreatePostHeader extends StatelessWidget {
                   AppConstants.isCupertino
                       ? CupertinoIcons.person_2
                       : Icons.people_outline,
-                  color: AppColors.iconColor,
+                  color: context.colors.textPrimary,
                 ),
                 title: Text(l10n.friendsVisibility),
                 trailing: visibility == PostVisibility.friends
-                    ? const Icon(Icons.check, color: AppColors.iconColor)
+                    ? Icon(Icons.check, color: context.colors.textPrimary)
                     : null,
                 onTap: () {
                   onVisibilityChanged(PostVisibility.friends);
@@ -97,10 +98,10 @@ class CreatePostHeader extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: const BoxDecoration(
-        color: AppColors.panelBackground,
+      decoration: BoxDecoration(
+        color: context.colors.panelBackground,
         border: Border(
-          bottom: BorderSide(color: AppColors.itemDivider, width: 1),
+          bottom: BorderSide(color: context.colors.divider, width: 1),
         ),
       ),
       child: Row(
@@ -128,14 +129,14 @@ class CreatePostHeader extends StatelessWidget {
                   children: [
                     Icon(
                       _visibilityIcon(),
-                      color: AppColors.primaryGrey,
+                      color: context.colors.textSecondary,
                       size: 16,
                     ),
                     const SizedBox(width: 4),
                     Text(
                       _visibilityLabel(l10n),
-                      style: const TextStyle(
-                        color: AppColors.primaryGrey,
+                      style: TextStyle(
+                        color: context.colors.textSecondary,
                         fontSize: 14,
                       ),
                     ),
@@ -143,7 +144,7 @@ class CreatePostHeader extends StatelessWidget {
                       AppConstants.isCupertino
                           ? CupertinoIcons.chevron_down
                           : Icons.expand_more,
-                      color: AppColors.primaryGrey,
+                      color: context.colors.textSecondary,
                       size: 14,
                     ),
                   ],
@@ -158,7 +159,7 @@ class CreatePostHeader extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 8),
               decoration: BoxDecoration(
                 color: isPostEnabled
-                    ? AppColors.iconColor
+                    ? context.colors.brandNavy
                     : context.colors.iconDisabled,
                 borderRadius: BorderRadius.circular(8),
               ),

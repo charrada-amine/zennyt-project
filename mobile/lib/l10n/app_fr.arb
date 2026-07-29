@@ -336,5 +336,8 @@
   "timeframe3Days": "3 jours",
   "timeframe7Days": "7 jours",
   "timeframe14Days": "14 jours",
-  "dateFormatted": "{day}/{month}/{year}"
+  "dateFormatted": "{day}/{month}/{year}",
+
+  "sessionExpired": "Votre session a expiré. Veuillez vous reconnecter.",
+  "likesCount": "{count} mentions j'aime"
 }

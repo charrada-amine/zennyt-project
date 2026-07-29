@@ -8,6 +8,7 @@ import 'package:zennyt/shared/providers/internet_provider.dart';
 import 'package:zennyt/features/home/presentation/providers/home_providers.dart';
 import 'package:zennyt/core/avatar/avatar_service.dart';
 import 'package:zennyt/features/auth/presentation/auth_controller.dart';
+import 'package:zennyt/core/theme/theme.dart';
 
 class CommentsBottomSheet extends ConsumerStatefulWidget {
   final String postId;
@@ -43,11 +44,14 @@ class _CommentsBottomSheetState extends ConsumerState<CommentsBottomSheet> {
     final authUser = ref.read(authControllerProvider).value;
     if (user == null && authUser == null) return;
 
-    final avatarUrl = (authUser?.profileImageUrl != null && authUser!.profileImageUrl!.isNotEmpty)
-        ? authUser.profileImageUrl!
-        : (user?.avatarUrl != null && user!.avatarUrl.isNotEmpty
+    final authorName = (authUser?.fullName.trim().isNotEmpty ?? false)
+        ? authUser!.fullName.trim()
+        : (user?.name ?? 'User');
+
+    final avatarUrl = authUser?.effectiveAvatarUrl ??
+        (user?.avatarUrl != null && user!.avatarUrl.isNotEmpty
             ? user.avatarUrl
-            : const AvatarService().defaultFor(authUser?.email ?? 'zennyt'));
+            : const AvatarService().defaultFor(authorName));
 
     setState(() => _isSubmitting = true);
 
@@ -90,16 +94,16 @@ class _CommentsBottomSheetState extends ConsumerState<CommentsBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
+    final colors = context.colors;
+    final l10n = AppLocalizations.of(context);
     final commentsAsync = ref.watch(commentsProvider(widget.postId));
     final user = ref.watch(currentUserProvider).value;
     final authUser = ref.watch(authControllerProvider).value;
 
-    final effectiveAvatarUrl = (authUser?.profileImageUrl != null && authUser!.profileImageUrl!.isNotEmpty)
-        ? authUser.profileImageUrl!
-        : (user?.avatarUrl != null && user!.avatarUrl.isNotEmpty
+    final effectiveAvatarUrl = authUser?.effectiveAvatarUrl ??
+        (user?.avatarUrl != null && user!.avatarUrl.isNotEmpty
             ? user.avatarUrl
-            : const AvatarService().defaultFor(authUser?.email ?? 'zennyt'));
+            : const AvatarService().defaultFor('zennyt'));
 
     return DraggableScrollableSheet(
       initialChildSize: 0.70,
@@ -115,28 +119,45 @@ class _CommentsBottomSheetState extends ConsumerState<CommentsBottomSheet> {
             },
           ),
           child: Container(
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(
+            decoration: BoxDecoration(
+              color: colors.cardSurface,
+              borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(20),
               ),
             ),
             child: Column(
               children: [
-                const SizedBox(height: 8),
-                Text(
-                  l10n.commentsTitle,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(top: 10, bottom: 6),
+                    decoration: BoxDecoration(
+                      color: colors.divider,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
-                const Divider(),
+                Text(
+                  l10n.commentsTitle,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: colors.textPrimary,
+                  ),
+                ),
+                Divider(color: colors.divider, height: 16),
                 Expanded(
                   child: commentsAsync.when(
-                    loading: () =>
-                        const Center(child: CircularProgressIndicator()),
-                    error: (_, __) => Center(child: Text(l10n.errorText)),
+                    loading: () => Center(
+                      child: CircularProgressIndicator(color: colors.primary),
+                    ),
+                    error: (err, stack) => Center(
+                      child: Text(
+                        l10n.errorText,
+                        style: TextStyle(color: colors.textSecondary),
+                      ),
+                    ),
                     data: (comments) {
                       if (comments.isEmpty) {
                         return ListView(
@@ -145,7 +166,10 @@ class _CommentsBottomSheetState extends ConsumerState<CommentsBottomSheet> {
                             Center(
                               child: Padding(
                                 padding: const EdgeInsets.all(20.0),
-                                child: Text(l10n.noCommentsYet),
+                                child: Text(
+                                  l10n.noCommentsYet,
+                                  style: TextStyle(color: colors.textSecondary),
+                                ),
                               ),
                             ),
                           ],
@@ -160,24 +184,43 @@ class _CommentsBottomSheetState extends ConsumerState<CommentsBottomSheet> {
                         itemBuilder: (context, index) {
                           final c = comments[index];
 
-                          final commentAvatarUrl = (c.authorAvatarUrl != null && c.authorAvatarUrl!.isNotEmpty)
+                          final isMyComment = (authUser != null &&
+                                  (c.authorId == authUser.id ||
+                                      c.authorName.trim().toLowerCase() ==
+                                          authUser.fullName.trim().toLowerCase())) ||
+                              (user != null &&
+                                  (c.authorId == user.id ||
+                                      c.authorName.trim().toLowerCase() ==
+                                          user.name.trim().toLowerCase()));
+
+                          final commentAvatarUrl = (c.authorAvatarUrl != null &&
+                                  c.authorAvatarUrl!.isNotEmpty)
                               ? c.authorAvatarUrl!
-                              : const AvatarService().defaultFor(c.authorName);
+                              : (isMyComment
+                                  ? (authUser?.effectiveAvatarUrl ??
+                                      const AvatarService().defaultFor(c.authorName))
+                                  : const AvatarService().defaultFor(c.authorName));
                           return ListTile(
                             leading: CircleAvatar(
+                              backgroundColor: colors.inputFill,
                               backgroundImage: NetworkImage(commentAvatarUrl),
                             ),
                             title: Text(
                               c.authorName,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontWeight: FontWeight.bold,
+                                color: colors.textPrimary,
                               ),
                             ),
-                            subtitle: Text(c.content),
+                            subtitle: Text(
+                              c.content,
+                              style: TextStyle(color: colors.textSecondary),
+                            ),
                             trailing: Text(
                               _formatDate(context, c.createdAt),
-                              style: const TextStyle(
-                                fontSize: 10,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: colors.textMuted,
                               ),
                             ),
                           );
@@ -186,42 +229,75 @@ class _CommentsBottomSheetState extends ConsumerState<CommentsBottomSheet> {
                     },
                   ),
                 ),
-                Padding(
-                  padding: EdgeInsets.only(
-                    bottom: MediaQuery.of(context).viewInsets.bottom + 10,
-                    left: 10,
-                    right: 10,
-                    top: 5,
-                  ),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 16,
-                        backgroundImage: NetworkImage(effectiveAvatarUrl),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: TextField(
-                          controller: _controller,
-                          decoration: InputDecoration(
-                            hintText: l10n.commentPlaceholder,
-                            border: InputBorder.none,
+                SafeArea(
+                  top: false,
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      bottom: MediaQuery.of(context).viewInsets.bottom + 10,
+                      left: 14,
+                      right: 14,
+                      top: 8,
+                    ),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 18,
+                          backgroundColor: colors.inputFill,
+                          backgroundImage: NetworkImage(effectiveAvatarUrl),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: colors.inputFill,
+                              borderRadius: BorderRadius.circular(24),
+                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: TextField(
+                              controller: _controller,
+                              style: TextStyle(
+                                color: colors.textPrimary,
+                                fontSize: 14,
+                              ),
+                              decoration: InputDecoration(
+                                hintText: l10n.commentPlaceholder,
+                                hintStyle: TextStyle(
+                                  color: colors.textMuted,
+                                  fontSize: 14,
+                                ),
+                                border: InputBorder.none,
+                                isDense: true,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                      _isSubmitting
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
+                        const SizedBox(width: 8),
+                        _isSubmitting
+                            ? SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: colors.primary,
+                                ),
+                              )
+                            : TextButton(
+                                onPressed: _submitComment,
+                                style: TextButton.styleFrom(
+                                  foregroundColor: colors.primary,
+                                ),
+                                child: Text(
+                                  l10n.postLabel,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
-                            )
-                          : TextButton(
-                              onPressed: _submitComment,
-                              child: Text(l10n.postLabel),
-                            ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ],

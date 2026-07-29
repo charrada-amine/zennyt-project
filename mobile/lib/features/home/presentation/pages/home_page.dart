@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:zennyt/core/constants.dart';
 import 'package:zennyt/core/router/app_routes.dart';
 import 'package:zennyt/l10n/gen/app_localizations.dart';
+import 'package:zennyt/core/theme/app_color_scheme.dart';
 import 'package:zennyt/shared/widgets/platform_app_bar.dart';
 import 'package:zennyt/shared/widgets/platform_scaffold.dart';
 import '../providers/home_providers.dart';
@@ -65,7 +66,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             AppConstants.isCupertino
                 ? CupertinoIcons.line_horizontal_3
                 : Icons.menu,
-            color: AppColors.iconColor,
+            color: context.colors.textPrimary,
             size: 28,
           ),
         ),
@@ -73,7 +74,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           GestureDetector(
             onTap: () => context.push(AppRoutes.chats),
             child: Container(
-              margin: const EdgeInsets.only(bottom: 12),
+              margin: const EdgeInsets.only(right: 16),
               width: 40,
               height: 40,
               padding: const EdgeInsets.all(4),
@@ -102,8 +103,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           const ProfileRow(),
           const SizedBox(height: 16),
           Divider(
-            color:
-                isDarkMode ? AppColors.itemDividerDark : AppColors.itemDivider,
+            color: context.colors.divider,
             height: 1,
             thickness: 2,
           ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:zennyt/core/constants.dart';
+import '../../../../core/theme/app_color_scheme.dart';
 
 class CreatePostBottomActions extends StatelessWidget {
   final VoidCallback onAddTap;
@@ -22,27 +23,27 @@ class CreatePostBottomActions extends StatelessWidget {
         children: [
           GestureDetector(
             onTap: onMediaTap,
-            child: const FaIcon(
+            child: FaIcon(
               FontAwesomeIcons.image,
-              color: AppColors.iconColor,
+              color: context.colors.primary,
               size: 24,
             ),
           ),
           const SizedBox(width: 16),
           GestureDetector(
             onTap: () {},
-            child: const FaIcon(
+            child: FaIcon(
               FontAwesomeIcons.trophy,
-              color: AppColors.iconColor,
+              color: context.colors.primary,
               size: 24,
             ),
           ),
           const SizedBox(width: 16),
           GestureDetector(
             onTap: onAddTap,
-            child: const Icon(
+            child: Icon(
               Icons.add,
-              color: AppColors.iconColor,
+              color: context.colors.primary,
               size: 24,
             ),
           ),

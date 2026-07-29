@@ -1867,6 +1867,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{day}/{month}/{year}'**
   String dateFormatted(String day, String month, String year);
+
+  /// No description provided for @sessionExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Your session has expired. Please log in again.'**
+  String get sessionExpired;
+
+  /// No description provided for @likesCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} likes'**
+  String likesCount(String count);
 }
 
 class _AppLocalizationsDelegate

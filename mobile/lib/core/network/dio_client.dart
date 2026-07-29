@@ -76,8 +76,17 @@ class DioClient {
 class SecureStorageAuthInterceptor extends QueuedInterceptor {
   final Dio dio;
   final FlutterSecureStorage storage;
+  late final Dio _refreshDio;
 
-  SecureStorageAuthInterceptor({required this.dio, required this.storage});
+  SecureStorageAuthInterceptor({required this.dio, required this.storage}) {
+    // Use a SEPARATE Dio for refresh calls to avoid QueuedInterceptor deadlock.
+    _refreshDio = Dio(BaseOptions(
+      baseUrl: dio.options.baseUrl,
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 10),
+      sendTimeout: const Duration(seconds: 10),
+    ));
+  }
 
   static const _accessKey = 'auth.accessToken';
   static const _refreshKey = 'auth.refreshToken';
@@ -105,7 +114,13 @@ class SecureStorageAuthInterceptor extends QueuedInterceptor {
       try {
         final refreshed = await _refreshToken();
         if (refreshed) {
-          final clone = await _retry(err.requestOptions);
+          // Retry with the new token using the bare Dio to avoid re-queuing.
+          final opts = err.requestOptions;
+          final newToken = await storage.read(key: _accessKey);
+          if (newToken != null) {
+            opts.headers['Authorization'] = 'Bearer $newToken';
+          }
+          final clone = await _refreshDio.fetch<dynamic>(opts);
           return handler.resolve(clone);
         }
         await storage.deleteAll();
@@ -125,18 +140,20 @@ class SecureStorageAuthInterceptor extends QueuedInterceptor {
     final refreshToken = await storage.read(key: _refreshKey);
     if (refreshToken == null) return false;
 
-    final res =
-        await dio.post('/auth/refresh', data: {'refreshToken': refreshToken});
-    if (res.statusCode == 200) {
-      await storage.write(key: _accessKey, value: res.data['accessToken']);
-      await storage.write(key: _refreshKey, value: res.data['refreshToken']);
-      return true;
+    try {
+      final res = await _refreshDio.post(
+        '/auth/refresh',
+        data: {'refreshToken': refreshToken},
+      );
+      if (res.statusCode == 200) {
+        await storage.write(key: _accessKey, value: res.data['accessToken']);
+        await storage.write(key: _refreshKey, value: res.data['refreshToken']);
+        return true;
+      }
+      return false;
+    } on DioException {
+      return false;
     }
-    return false;
-  }
-
-  Future<Response<dynamic>> _retry(RequestOptions options) {
-    return dio.fetch(options);
   }
 }
 

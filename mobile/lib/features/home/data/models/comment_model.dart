@@ -26,12 +26,18 @@ class CommentModel extends Comment {
       createdAt = DateTime.now();
     }
 
+    final avatarUrl = (json['authorAvatarUrl'] ??
+            json['authorPhotoUrl'] ??
+            json['authorProfileImageUrl'] ??
+            json['avatarUrl'] ??
+            json['profileImageUrl']) as String?;
+
     return CommentModel(
       id: json['id'] as String,
       postId: json['postId'] as String,
       authorId: json['authorId'] as String,
       authorName: json['authorName'] as String,
-      authorAvatarUrl: json['authorAvatarUrl'] as String?,
+      authorAvatarUrl: avatarUrl,
       content: json['content'] as String,
       createdAt: createdAt,
     );
@@ -44,6 +50,8 @@ class CommentModel extends Comment {
       'authorId': authorId,
       'authorName': authorName,
       'authorAvatarUrl': authorAvatarUrl,
+      'authorPhotoUrl': authorAvatarUrl,
+      'profileImageUrl': authorAvatarUrl,
       'content': content,
       'createdAt': createdAt.toIso8601String(),
     };

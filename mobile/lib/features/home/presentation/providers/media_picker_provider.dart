@@ -74,6 +74,22 @@ class MediaPickerNotifier extends Notifier<MediaPickerState> {
     await _loadAlbum(recents, albums: albums);
   }
 
+  Future<void> requestPermissionAndLoad() async {
+    state = state.copyWith(isLoading: true);
+    final permission = await PhotoManager.requestPermissionExtend();
+    if (permission.isAuth) {
+      await _initialize();
+    } else {
+      await PhotoManager.openSetting();
+      final checkAgain = await PhotoManager.requestPermissionExtend();
+      if (checkAgain.isAuth) {
+        await _initialize();
+      } else {
+        state = state.copyWith(isLoading: false, hasPermission: false);
+      }
+    }
+  }
+
   Future<void> selectAlbum(AssetPathEntity album) async {
     state = state.copyWith(isLoading: true, selectedAlbum: album);
     await _loadAlbum(album);

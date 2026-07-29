@@ -14,9 +14,8 @@ class ProfileRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final user = ref.watch(authControllerProvider).value;
-    final avatarUrl = (user?.profileImageUrl != null && user!.profileImageUrl!.isNotEmpty)
-        ? user.profileImageUrl!
-        : const AvatarService().defaultFor(user?.email ?? 'zennyt');
+    final avatarUrl = user?.effectiveAvatarUrl ??
+        const AvatarService().defaultFor('zennyt');
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),

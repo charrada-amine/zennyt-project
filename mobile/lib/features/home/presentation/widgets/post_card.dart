@@ -72,10 +72,9 @@ class _PostCardState extends ConsumerState<PostCard> {
   @override
   void didUpdateWidget(covariant PostCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.post.id != widget.post.id) {
-      _isLiked = widget.post.isLikedByMe;
-      _likesCount = int.tryParse(widget.post.likesCount) ?? 0;
-    }
+    // Always sync with latest data from the provider
+    _isLiked = widget.post.isLikedByMe;
+    _likesCount = int.tryParse(widget.post.likesCount) ?? 0;
   }
 
   Future<void> _launchUrl(String url) async {
@@ -254,6 +253,9 @@ class _PostCardState extends ConsumerState<PostCard> {
         await ref.read(createNotificationUseCaseProvider)(notification);
         ref.invalidate(notificationsProvider);
       }
+
+      // Refresh feed to sync like counts from server
+      ref.invalidate(postsProvider);
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -456,14 +458,12 @@ class _PostCardState extends ConsumerState<PostCard> {
                   : const FaIcon(FontAwesomeIcons.share,
                       color: AppColors.iconColor),
               const Spacer(),
-              Flexible(
-                flex: 2,
-                child: Text(
-                  l10n.likedByAndOthers('Anna', _likesCount.toString()),
+              if (_likesCount > 0)
+                Text(
+                  l10n.likesCount(_likesCount.toString()),
+                  textAlign: TextAlign.right,
                   style: TextStyle(color: colors.textMuted, fontSize: 13),
-                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
             ],
           ),
         ],

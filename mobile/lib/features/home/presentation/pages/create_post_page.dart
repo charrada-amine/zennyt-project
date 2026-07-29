@@ -9,6 +9,7 @@ import 'package:zennyt/l10n/gen/app_localizations.dart';
 import 'package:zennyt/shared/providers/internet_provider.dart';
 import 'package:zennyt/core/avatar/avatar_service.dart';
 import 'package:zennyt/features/auth/presentation/auth_controller.dart';
+import '../../../../core/theme/app_color_scheme.dart';
 import '../../data/models/post_model.dart';
 import '../../domain/entities/post.dart';
 import '../providers/home_providers.dart';
@@ -108,15 +109,14 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
     final authUser = ref.read(authControllerProvider).value;
     final visibility = ref.read(postVisibilityProvider);
 
-    final authorAvatarUrl = (authUser?.profileImageUrl != null && authUser!.profileImageUrl!.isNotEmpty)
-        ? authUser.profileImageUrl!
-        : (currentUser.avatarUrl.isNotEmpty
-            ? currentUser.avatarUrl
-            : const AvatarService().defaultFor(authUser?.email ?? 'zennyt'));
-
     final authorName = (authUser?.fullName.trim().isNotEmpty ?? false)
         ? authUser!.fullName.trim()
         : currentUser.name;
+
+    final authorAvatarUrl = authUser?.effectiveAvatarUrl ??
+        (currentUser.avatarUrl.isNotEmpty
+            ? currentUser.avatarUrl
+            : const AvatarService().defaultFor(authorName));
 
     setState(() => _isSubmitting = true);
 
@@ -169,12 +169,11 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
     final currentUserAsync = ref.watch(currentUserProvider);
     final authUser = ref.watch(authControllerProvider).value;
 
-    final effectiveAvatarUrl = (authUser?.profileImageUrl != null && authUser!.profileImageUrl!.isNotEmpty)
-        ? authUser.profileImageUrl!
-        : const AvatarService().defaultFor(authUser?.email ?? 'zennyt');
+    final effectiveAvatarUrl = authUser?.effectiveAvatarUrl ??
+        const AvatarService().defaultFor('zennyt');
 
     return Scaffold(
-      backgroundColor: AppColors.panelBackground,
+      backgroundColor: context.colors.scaffoldBg,
       resizeToAvoidBottomInset: false,
       body: SafeArea(
         child: Column(
@@ -257,27 +256,27 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.surfaceLight,
+          color: context.colors.surfaceRaised,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.iconColor.withOpacity(0.2)),
+          border: Border.all(color: context.colors.border),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.poll_outlined,
-                  color: AppColors.iconColor,
+                  color: context.colors.textPrimary,
                   size: 20,
                 ),
                 const SizedBox(width: 8),
                 Text(
                   l10n.pollAttached,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.iconColor,
+                    color: context.colors.textPrimary,
                   ),
                 ),
                 const Spacer(),
@@ -289,7 +288,7 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
                   },
                   child: Icon(
                     Icons.close,
-                    color: Colors.grey[500],
+                    color: context.colors.textSecondary,
                     size: 20,
                   ),
                 ),
@@ -298,9 +297,9 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
             const SizedBox(height: 8),
             Text(
               poll.question,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
-                color: AppColors.textDark,
+                color: context.colors.textPrimary,
               ),
             ),
             const SizedBox(height: 4),

@@ -91,7 +91,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
               AppConstants.isCupertino
                   ? CupertinoIcons.info
                   : Icons.info_outline_rounded,
-              color: AppColors.iconColor,
+              color: context.colors.info,
             ),
           ),
         ),
@@ -120,17 +120,17 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
           children: [
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: AppColors.primaryPink,
+                color: context.colors.accent,
               ),
             ),
             if (unreadCount > 0) ...[
               const SizedBox(width: 8),
               CircleAvatar(
                 radius: 10,
-                backgroundColor: AppColors.primaryPink,
+                backgroundColor: context.colors.accent,
                 child: Text(
                   '$unreadCount',
                   style: const TextStyle(
@@ -154,19 +154,19 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                 children: [
                   Text(
                     l10n.showAll,
-                    style: const TextStyle(
-                      color: AppColors.primaryGrey,
+                    style: TextStyle(
+                      color: context.colors.textSecondary,
                       fontWeight: FontWeight.w600,
                       fontSize: 13,
                     ),
                   ),
                   const SizedBox(height: 4),
-                  const SizedBox(
+                  SizedBox(
                     width: 50,
                     child: Divider(
                       height: 1,
                       thickness: 1,
-                      color: AppColors.primaryGrey,
+                      color: context.colors.textSecondary,
                     ),
                   ),
                 ],
@@ -181,10 +181,10 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Text(
         label,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w600,
-          color: AppColors.textDark,
+          color: context.colors.textPrimary,
         ),
       ),
     );
@@ -210,10 +210,10 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
         },
         title: Text(
           l10n.notifications,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
-            color: AppColors.textDark,
+            color: context.colors.textPrimary,
           ),
         ),
         actions: isVerified ? null : [_buildVerificationInfoIcon()],
@@ -225,30 +225,30 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
             if (notifications.isEmpty) {
               return Center(
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
                       AppConstants.isCupertino
                           ? CupertinoIcons.bell
                           : Icons.notifications_none,
                       size: 64,
-                      color: AppColors.primaryBlue,
+                      color: context.colors.brandIndigo,
                     ),
                     const SizedBox(height: 16),
                     Text(
                       l10n.noNotifications,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.primaryBlue,
+                        color: context.colors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       l10n.stayTuned,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
-                        color: AppColors.primaryGrey,
+                        color: context.colors.textSecondary,
                       ),
                     ),
                   ],

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/chat_providers.dart';
+import '../../../../core/theme/app_color_scheme.dart';
 import '../../../../core/constants.dart';
 import 'package:zennyt/l10n/gen/app_localizations.dart';
 import '../widgets/chat_list_item.dart';
@@ -33,18 +34,18 @@ class ChatsPage extends ConsumerWidget {
       appBar: PlatformAppBar(
         title: Text(
           l10n.allChats,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
-            color: AppColors.textDark,
+            color: context.colors.textPrimary,
           ),
         ),
         showBack: true,
       ),
-      backgroundColor: AppColors.panelBackground,
+      backgroundColor: context.colors.scaffoldBg,
       body: Container(
         decoration: BoxDecoration(
-          color: AppColors.panelBackground,
+          color: context.colors.scaffoldBg,
           borderRadius: BorderRadius.circular(20),
           boxShadow: const [
             BoxShadow(
@@ -77,8 +78,8 @@ class ChatsPage extends ConsumerWidget {
                         ),
                         decoration: BoxDecoration(
                           color: isSelected
-                              ? AppColors.chipSelected
-                              : AppColors.chipUnselected,
+                              ? context.colors.primary
+                              : context.colors.surfaceRaised,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
@@ -119,12 +120,12 @@ class ChatsPage extends ConsumerWidget {
 
                     return ListView.separated(
                       itemCount: filtered.length,
-                      separatorBuilder: (context, index) => const Divider(
+                      separatorBuilder: (context, index) => Divider(
                         height: 1,
                         thickness: 0.5,
                         indent: 20,
                         endIndent: 20,
-                        color: AppColors.itemDivider,
+                        color: context.colors.divider,
                       ),
                       itemBuilder: (context, index) {
                         final conversation = filtered[index];

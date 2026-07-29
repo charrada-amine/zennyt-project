@@ -431,5 +431,12 @@
       "month": { "type": "String" },
       "year": { "type": "String" }
     }
+  },
+  "sessionExpired": "Your session has expired. Please log in again.",
+  "likesCount": "{count} likes",
+  "@likesCount": {
+    "placeholders": {
+      "count": { "type": "String" }
+    }
   }
 }

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:zennyt/core/constants.dart';
+import 'package:zennyt/core/theme/theme.dart';
 import 'package:zennyt/l10n/gen/app_localizations.dart';
 
 import '../providers/media_picker_provider.dart';
@@ -85,13 +86,50 @@ class MediaPickerPage extends ConsumerWidget {
     }
 
     if (!state.hasPermission) {
+      final colors = context.colors;
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(
-            l10n.mediaPermissionDenied,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: AppColors.primaryGrey),
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.photo_library_outlined,
+                size: 64,
+                color: colors.primary,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                l10n.mediaPermissionDenied,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: colors.textSecondary,
+                  fontSize: 15,
+                ),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: () {
+                  notifier.requestPermissionAndLoad();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: colors.primary,
+                  foregroundColor: colors.onPrimary,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                ),
+                icon: const Icon(Icons.settings, size: 20),
+                label: const Text(
+                  'Allow Access / Open Settings',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
           ),
         ),
       );

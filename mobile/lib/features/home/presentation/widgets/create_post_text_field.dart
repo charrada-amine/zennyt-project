@@ -15,17 +15,17 @@ class CreatePostTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: AppConstants.isCupertino
           ? CupertinoTextField(
               controller: controller,
               placeholder: l10n.newProject,
-              placeholderStyle: const TextStyle(color: AppColors.primaryGrey),
+              placeholderStyle: TextStyle(color: context.colors.textSecondary),
               style: TextStyle(
                 color: context.colors.textPrimary,
-                fontSize: 16,
+                fontSize: 18,
               ),
               textAlignVertical: TextAlignVertical.top,
               minLines: 1,
@@ -37,7 +37,7 @@ class CreatePostTextField extends StatelessWidget {
               controller: controller,
               decoration: InputDecoration(
                 hintText: l10n.newProject,
-                hintStyle: TextStyle(color: AppColors.primaryGrey),
+                hintStyle: TextStyle(color: context.colors.textSecondary),
                 filled: false,
                 fillColor: Colors.transparent,
                 border: InputBorder.none,
