@@ -36,26 +36,7 @@ Future<bool> checkInternet() async {
 }
 
 Future<bool> checkInternetWithLoader(BuildContext context, WidgetRef ref) async {
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (_) => const Center(
-      child: Card(
-        color: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(16))),
-        child: Padding(
-          padding: EdgeInsets.all(24),
-          child: CircularProgressIndicator(strokeWidth: 3),
-        ),
-      ),
-    ),
-  );
-
   final isConnected = await checkInternet();
-
-  if (context.mounted) {
-    Navigator.of(context, rootNavigator: true).pop();
-  }
 
   if (!isConnected) {
     ref.read(showNoInternetOverlayProvider.notifier).state = true;
