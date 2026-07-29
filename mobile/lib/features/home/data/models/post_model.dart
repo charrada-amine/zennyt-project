@@ -8,20 +8,24 @@ class PostMediaModel extends PostMedia {
   });
 
   factory PostMediaModel.fromJson(Map<String, dynamic> json) {
+    final rawType = (json['type'] as String?)?.toUpperCase() ?? 'IMAGE';
+    final rawUrl = (json['url'] ?? json['imageUrl'] ?? json['mediaUrl'] ?? json['photoUrl']) as String? ?? '';
+    final rawId = (json['id'] ?? json['publicId'] ?? DateTime.now().millisecondsSinceEpoch).toString();
+
     return PostMediaModel(
-      id: json['id'] as String,
+      id: rawId,
       type: MediaType.values.firstWhere(
-        (e) => e.name == json['type'],
+        (e) => e.name.toUpperCase() == rawType,
         orElse: () => MediaType.image,
       ),
-      url: json['url'] as String,
+      url: rawUrl,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'type': type.name,
+      'type': type.name.toUpperCase(),
       'url': url,
     };
   }
@@ -116,24 +120,33 @@ class PostModel extends Post {
 
   factory PostModel.fromJson(Map<String, dynamic> json) {
     final mediaJson = json['media'] as List<dynamic>?;
+    final fallbackImageUrl = (json['imageUrl'] ?? json['photoUrl'] ?? json['mediaUrl']) as String?;
 
-    final oldImageUrl = json['imageUrl'] as String?;
+    final List<PostMedia> mediaList = [];
+    if (mediaJson != null && mediaJson.isNotEmpty) {
+      for (final item in mediaJson) {
+        try {
+          if (item is Map<String, dynamic>) {
+            final pm = PostMediaModel.fromJson(item);
+            if (pm.url.isNotEmpty) mediaList.add(pm);
+          } else if (item is String && item.isNotEmpty) {
+            mediaList.add(PostMediaModel(
+              id: DateTime.now().millisecondsSinceEpoch.toString(),
+              type: MediaType.image,
+              url: item,
+            ));
+          }
+        } catch (_) {}
+      }
+    }
 
-    final List<PostMedia> mediaList = mediaJson != null
-        ? mediaJson
-            .map(
-              (item) => PostMediaModel.fromJson(item as Map<String, dynamic>),
-            )
-            .toList()
-        : oldImageUrl != null
-            ? [
-                PostMediaModel(
-                  id: 'legacy-image',
-                  type: MediaType.image,
-                  url: oldImageUrl,
-                ),
-              ]
-            : [];
+    if (mediaList.isEmpty && fallbackImageUrl != null && fallbackImageUrl.isNotEmpty) {
+      mediaList.add(PostMediaModel(
+        id: 'legacy-image',
+        type: MediaType.image,
+        url: fallbackImageUrl,
+      ));
+    }
 
     final pollJson = json['poll'] as Map<String, dynamic>?;
     final Poll? poll = pollJson != null ? PollModel.fromJson(pollJson) : null;
@@ -150,12 +163,12 @@ class PostModel extends Post {
     }
 
     return PostModel(
-      id: json['id'] as String,
-      authorId: json['authorId'] as String? ?? json['authorName'] as String,
+      id: (json['id'] ?? '').toString(),
+      authorId: (json['authorId'] ?? json['authorName'] ?? '').toString(),
       visibility: _parseVisibility(json['visibility'] as String?),
-      authorName: json['authorName'] as String,
-      authorAvatarUrl: json['authorPhotoUrl'] as String? ?? '',
-      timeAgo: json['timeAgo'] as String? ?? '',
+      authorName: (json['authorName'] ?? json['author'] ?? 'User').toString(),
+      authorAvatarUrl: (json['authorPhotoUrl'] ?? json['authorAvatarUrl'] ?? json['profileImageUrl'] ?? '').toString(),
+      timeAgo: (json['timeAgo'] ?? '').toString(),
       isMultipleAuthors: json['isMultipleAuthors'] as bool? ?? false,
       content: json['content'] as String?,
       media: mediaList,
@@ -169,12 +182,14 @@ class PostModel extends Post {
   }
 
   Map<String, dynamic> toJson() {
+    final firstImageUrl = media.isNotEmpty ? media.first.url : null;
     return {
       'id': id,
       'authorId': authorId,
       'visibility': visibility.name.toUpperCase(),
       'authorName': authorName,
       'authorPhotoUrl': authorAvatarUrl,
+      'imageUrl': firstImageUrl,
       'timeAgo': timeAgo,
       'isMultipleAuthors': isMultipleAuthors,
       'content': content,

@@ -1,3 +1,6 @@
+import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart' show StateProvider;
 import 'package:photo_manager/photo_manager.dart';
@@ -223,7 +226,7 @@ class CreatePostController extends AsyncNotifier<void> {
   Future<void> build() async {}
 
   Future<void> submit(Post post) async {
-    print('🚀 submit() called');
+    debugPrint('🚀 submit() called');
     state = const AsyncLoading();
 
     try {
@@ -234,9 +237,20 @@ class CreatePostController extends AsyncNotifier<void> {
       for (int i = 0; i < visualAssets.length; i++) {
         final asset = visualAssets[i];
         try {
-          final bytes = await asset.originBytes;
-          if (bytes == null) continue;
-          final fileName = (await asset.titleAsync) ?? 'media_$i';
+          Uint8List? bytes = await asset.originBytes;
+          if (bytes == null || bytes.isEmpty) {
+            final file = await asset.file;
+            if (file != null) {
+              bytes = await file.readAsBytes();
+            }
+          }
+          if (bytes == null || bytes.isEmpty) {
+            bytes = await asset.thumbnailDataWithSize(const ThumbnailSize(1920, 1080));
+          }
+          if (bytes == null || bytes.isEmpty) continue;
+
+          final rawTitle = await asset.titleAsync;
+          final fileName = rawTitle.isNotEmpty ? rawTitle : 'media_$i.jpg';
           final mediaType =
               asset.type == AssetType.video ? MediaType.video : MediaType.image;
           final result = await uploadUseCase(bytes, fileName);
@@ -253,7 +267,7 @@ class CreatePostController extends AsyncNotifier<void> {
             },
           );
         } catch (e) {
-          print('Error processing asset $i: $e');
+          debugPrint('Error processing asset $i: $e');
           rethrow;
         }
       }
@@ -262,8 +276,8 @@ class CreatePostController extends AsyncNotifier<void> {
       for (int i = 0; i < docFiles.length; i++) {
         final pf = docFiles[i];
         try {
-          final bytes = pf.bytes;
-          if (bytes == null) continue;
+          final Uint8List? bytes = pf.bytes ?? (pf.path != null ? await File(pf.path!).readAsBytes() : null);
+          if (bytes == null || bytes.isEmpty) continue;
           final result = await uploadUseCase(bytes, pf.name);
           result.fold(
             (failure) => throw failure,
@@ -278,7 +292,7 @@ class CreatePostController extends AsyncNotifier<void> {
             },
           );
         } catch (e) {
-          print('Error processing document $i: $e');
+          debugPrint('Error processing document $i: $e');
           rethrow;
         }
       }
@@ -316,7 +330,7 @@ class CreatePostController extends AsyncNotifier<void> {
         },
       );
     } catch (e, stack) {
-      print(stack);
+      debugPrint('Error submitting post: $stack');
       state = AsyncError(
         e is Failure ? e : ServerFailure(e.toString()),
         stack,

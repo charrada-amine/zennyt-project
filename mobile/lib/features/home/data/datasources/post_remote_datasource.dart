@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 
 import 'package:dio/dio.dart';
 
@@ -41,12 +42,20 @@ class PostRemoteDataSourceImpl implements PostRemoteDataSource {
         },
       );
       final data = res.data;
-      final List<dynamic> items = data is Map<String, dynamic>
+      final List<dynamic> rawItems = data is Map<String, dynamic>
           ? (data['content'] as List<dynamic>? ?? [])
           : (data as List<dynamic>);
-      final posts = items
-          .map((e) => PostModel.fromJson(e as Map<String, dynamic>))
-          .toList();
+
+      final List<PostModel> posts = [];
+      for (final item in rawItems) {
+        try {
+          if (item is Map<String, dynamic>) {
+            posts.add(PostModel.fromJson(item));
+          }
+        } catch (e, stack) {
+          debugPrint('Error parsing post item: $e\n$stack');
+        }
+      }
 
       // Parse pagination metadata
       int totalElements = 0;
