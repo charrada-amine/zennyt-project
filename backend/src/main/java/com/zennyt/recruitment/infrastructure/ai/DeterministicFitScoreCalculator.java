@@ -8,9 +8,14 @@ import com.zennyt.recruitment.domain.model.JobRoleProfile;
  * l'estimation Groq par la formule pondérée profil métier × niveau (D3,
  * PLAN_FITSCORE_V3.md) dès qu'une offre est reliée au référentiel de métiers.
  *
- * <p>Repli intégral sur {@code fallback} (Groq/Stub) si l'offre n'a pas encore
- * de {@code jobPositionId} — aucune dégradation pour les offres antérieures
- * au référentiel.
+ * <p>Aucun repli : si l'offre n'est reliée à aucun métier du référentiel (ou à un
+ * métier pas encore approuvé, donc sans profil), le calcul renvoie {@code null} et
+ * <b>rien n'est écrit</b>. L'ancien repli sur un moteur IA externe a été supprimé :
+ * il produisait, de façon invisible, des scores calculés selon une logique
+ * complètement différente des autres, ~12× plus lents (mesuré : ~361 ms contre
+ * ~29 ms) et dépendants d'un service tiers. Une paire incalculable est désormais
+ * simplement en attente de l'approbation de son métier par un admin — le balayage
+ * de rattrapage la calculera dès que ce sera fait.
  *
  * <p>Le mécanisme de couverture (CdC §3.3, mécanisme 1 — {@code score ×
  * couverture}) est câblé mais actuellement un no-op : aucun suivi de
@@ -22,21 +27,18 @@ import com.zennyt.recruitment.domain.model.JobRoleProfile;
  * — les appliquer ajouterait du calcul sans changer le résultat. Ils
  * s'activeront d'eux-mêmes le jour où Games exposera un score par module.
  *
- * <p>Le CV-matching (D1) n'est pas recalculé ici — {@code cvMatchScore} reste
- * une donnée affichée hors formule, non câblée pour l'instant (aucune source
- * de CV n'est encore branchée, cf. RecomputeFitScoresUseCase).
+ * <p>Le CV n'intervient pas dans la formule (décision D1 enfin tranchée) : le CdC
+ * v3 ne le mentionne nulle part, et {@code cvMatchScore} a été supprimé plutôt
+ * que conservé en champ toujours nul. L'extraction de texte de CV reste utilisée
+ * ailleurs, pour le résumé IA du profil candidat.
  */
 public class DeterministicFitScoreCalculator implements FitScoreCalculatorPort {
-    private final FitScoreCalculatorPort fallback;
 
-    public DeterministicFitScoreCalculator(FitScoreCalculatorPort fallback) {
-        this.fallback = fallback;
-    }
-
+    /** @return {@code null} si l'offre n'a pas de pondération résolue — rien à écrire. */
     @Override
     public FitScoreResult calculate(FitScoreInputs inputs) {
         JobRoleProfile roleProfile = inputs.roleProfile();
-        if (roleProfile == null) return fallback.calculate(inputs);
+        if (roleProfile == null) return null;
 
         int rawSoftScore = bounded((int) Math.round(inputs.softSkills().values().stream()
             .mapToDouble(Double::doubleValue).average().orElse(0)));
@@ -49,7 +51,7 @@ public class DeterministicFitScoreCalculator implements FitScoreCalculatorPort {
         int hardScore = hasHardScore ? inputs.hardSkillScore() : 0;
 
         int score = bounded(Math.round((softScore * softWeight + hardScore * hardWeight) / 100f));
-        return new FitScoreResult(score, softScore, 0);
+        return new FitScoreResult(score, softScore);
     }
 
     private int bounded(int value) { return Math.max(0, Math.min(100, value)); }

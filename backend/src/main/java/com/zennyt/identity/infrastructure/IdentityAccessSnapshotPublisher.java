@@ -11,10 +11,19 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
-/** Rejoue un snapshot idempotent pour initialiser les projections des autres contextes. */
+/**
+ * Rejoue un snapshot idempotent pour initialiser les projections des autres contextes.
+ *
+ * <p>{@code @Transactional} est <b>indispensable</b> : la lecture du profil candidat
+ * traverse une collection paresseuse ({@code ProfileEntity.skills}). Sans session
+ * ouverte, un {@code LazyInitializationException} remonte jusqu'au démarrage et
+ * <b>empêche l'application de booter</b> dès qu'un seul profil candidat existe en base.
+ */
 @Component
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class IdentityAccessSnapshotPublisher implements ApplicationRunner {
     private final UserRepository users;
     private final OnboardingRepository onboarding;

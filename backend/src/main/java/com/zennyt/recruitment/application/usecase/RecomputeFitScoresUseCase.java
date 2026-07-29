@@ -5,6 +5,8 @@ import com.zennyt.recruitment.application.port.FitScoreCalculatorPort;
 import com.zennyt.recruitment.domain.model.FitScore;
 import com.zennyt.recruitment.domain.model.JobOffer;
 import com.zennyt.recruitment.domain.model.JobRoleProfile;
+import com.zennyt.recruitment.domain.model.RecruitmentActor;
+import com.zennyt.recruitment.domain.model.SoftSkillsProjection;
 import com.zennyt.recruitment.domain.model.TestResult;
 import com.zennyt.recruitment.domain.repository.FitScoreRepository;
 import com.zennyt.recruitment.domain.repository.JobOfferRepository;
@@ -16,8 +18,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /** Calcule et upsert les scores par paire dans des lots volontairement bornés. */
 @Service
@@ -59,26 +65,105 @@ public class RecomputeFitScoresUseCase {
         this.testResults = testResults;
     }
 
+    /**
+     * Recalcul d'une paire, chargement paire par paire — chemin des 3 déclencheurs
+     * existants (partie jouée, offre publiée, test de compétences soumis).
+     *
+     * <p>Coûte 8 allers-retours BDD (6 lectures, 1 upsert, 1 relecture) : acceptable à
+     * l'unité, prohibitif en masse. Le balayage de rattrapage utilise
+     * {@link #recomputeBatch} qui produit exactement le même résultat en préchargeant
+     * tout le lot d'un coup — voir {@code RecomputeFitScoresUseCaseBatchTest}.
+     */
     public FitScore recompute(UUID candidateId, JobOffer offer) {
-        var modules = softSkills.findByCandidateId(candidateId);
-        int softScore = modules.isEmpty() ? 0
-            : (int) Math.round(modules.stream().mapToInt(p -> p.score()).average().orElse(0));
+        int softScore = averageSoftScore(softSkills.findByCandidateId(candidateId));
         String companyInfo = actors.findById(offer.recruiterId())
             .map(actor -> actor.companyInfo()).orElse(null);
         JobRoleProfile roleProfile = roleProfileResolver.resolve(offer);
         Integer hardSkillScore = testResults.findByCandidateIdAndJobOfferId(candidateId, offer.id())
             .map(TestResult::percentage).orElse(null);
-
-        var inputs = new FitScoreCalculatorPort.FitScoreInputs(
-            Map.of("games", (double) softScore),
-            null, // PROVISOIRE — CV fourni plus tard par un event ProfileUpdated Identity.
-            offer.description(), companyInfo, roleProfile, hardSkillScore, DEFAULT_COVERAGE_RATIO);
-        var result = calculator.calculate(inputs);
         UUID existingId = fitScores.findByCandidateIdAndJobOfferId(candidateId, offer.id())
             .map(FitScore::id).orElse(null);
-        return fitScores.save(FitScore.calculated(existingId, candidateId, offer.id(),
-            result.score(), result.softSkillScore(), result.cvMatchScore(),
-            hardSkillScore, DEFAULT_COVERAGE_RATIO, Instant.now()));
+        FitScore computed =
+            score(candidateId, offer, softScore, companyInfo, roleProfile, hardSkillScore, existingId);
+        return computed == null ? null : fitScores.save(computed);
+    }
+
+    /**
+     * Recalcul par lot — précharge chaque type de donnée en une requête pour tout le lot,
+     * puis applique le même calcul que {@link #recompute}. Utilisé uniquement par le
+     * balayage de rattrapage ; les 3 déclencheurs existants ne passent jamais ici.
+     *
+     * @return les scores calculés (déjà écrits), dans l'ordre des paires fournies
+     */
+    public List<FitScore> recomputeBatch(List<Pair> pairs) {
+        if (pairs.isEmpty()) return List.of();
+        List<UUID> candidateIds = pairs.stream().map(Pair::candidateId).distinct().toList();
+        List<JobOffer> offers = pairs.stream().map(Pair::offer)
+            .collect(Collectors.toMap(JobOffer::id, Function.identity(), (a, b) -> a))
+            .values().stream().toList();
+        List<UUID> offerIds = offers.stream().map(JobOffer::id).toList();
+
+        Map<UUID, Integer> softScoreByCandidate = softSkills.findByCandidateIds(candidateIds).stream()
+            .collect(Collectors.groupingBy(SoftSkillsProjection::candidateId,
+                Collectors.collectingAndThen(Collectors.toList(),
+                    RecomputeFitScoresUseCase::averageSoftScore)));
+        Map<UUID, String> companyInfoByRecruiter = actors.findByIds(
+                offers.stream().map(JobOffer::recruiterId).distinct().toList()).stream()
+            .filter(actor -> actor.companyInfo() != null)
+            .collect(Collectors.toMap(RecruitmentActor::publicUserId, RecruitmentActor::companyInfo));
+        Map<UUID, JobRoleProfile> roleProfileByOffer = roleProfileResolver.resolveAll(offers);
+        Map<String, Integer> hardScoreByPair = testResults
+                .findByCandidateIdsAndJobOfferIds(candidateIds, offerIds).stream()
+            .collect(Collectors.toMap(
+                result -> pairKey(result.candidateId(), result.jobOfferId()),
+                TestResult::percentage, (a, b) -> a));
+        Map<String, UUID> existingIdByPair = fitScores
+                .findByCandidateIdsAndJobOfferIds(candidateIds, offerIds).stream()
+            .collect(Collectors.toMap(
+                existing -> pairKey(existing.candidateId(), existing.jobOfferId()),
+                FitScore::id, (a, b) -> a));
+
+        List<FitScore> computed = new ArrayList<>(pairs.size());
+        for (Pair pair : pairs) {
+            String key = pairKey(pair.candidateId(), pair.offer().id());
+            FitScore result = score(pair.candidateId(), pair.offer(),
+                softScoreByCandidate.getOrDefault(pair.candidateId(), 0),
+                companyInfoByRecruiter.get(pair.offer().recruiterId()),
+                roleProfileByOffer.get(pair.offer().id()),
+                hardScoreByPair.get(key),
+                existingIdByPair.get(key));
+            // null = offre sans métier approuvé, donc incalculable : on n'écrit rien
+            // plutôt que d'inventer un score. Le balayage l'exclut déjà en amont.
+            if (result != null) computed.add(result);
+        }
+        fitScores.saveAll(computed);
+        return computed;
+    }
+
+    /**
+     * Calcul pur — aucune E/S. Unique implémentation de la formule, partagée par le
+     * chemin unitaire et le chemin par lot : c'est ce qui garantit qu'ils ne peuvent
+     * pas diverger.
+     */
+    private FitScore score(UUID candidateId, JobOffer offer, int softScore, String companyInfo,
+                           JobRoleProfile roleProfile, Integer hardSkillScore, UUID existingId) {
+        var inputs = new FitScoreCalculatorPort.FitScoreInputs(
+            Map.of("games", (double) softScore),
+            offer.description(), companyInfo, roleProfile, hardSkillScore, DEFAULT_COVERAGE_RATIO);
+        var result = calculator.calculate(inputs);
+        if (result == null) return null; // offre sans métier approuvé : incalculable
+        return FitScore.calculated(existingId, candidateId, offer.id(),
+            result.score(), result.softSkillScore(),
+            hardSkillScore, DEFAULT_COVERAGE_RATIO, Instant.now());
+    }
+
+    private static int averageSoftScore(List<SoftSkillsProjection> modules) {
+        return modules.isEmpty() ? 0
+            : (int) Math.round(modules.stream().mapToInt(SoftSkillsProjection::score).average().orElse(0));
+    }
+
+    private static String pairKey(UUID candidateId, UUID jobOfferId) {
+        return candidateId + "|" + jobOfferId;
     }
 
     /**

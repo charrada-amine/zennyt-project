@@ -5,10 +5,14 @@ import com.zennyt.recruitment.domain.model.AssessmentQuestion;
 import com.zennyt.recruitment.domain.model.FitScore;
 import com.zennyt.recruitment.domain.model.JobOffer;
 import com.zennyt.recruitment.domain.model.SoftSkillsProjection;
+import com.zennyt.recruitment.domain.model.JobPosition;
 import com.zennyt.recruitment.domain.repository.AssessmentRepository;
 import com.zennyt.recruitment.domain.repository.FitScoreRepository;
 import com.zennyt.recruitment.domain.repository.JobOfferRepository;
+import com.zennyt.recruitment.domain.repository.JobPositionRepository;
 import com.zennyt.recruitment.domain.repository.SoftSkillsProjectionRepository;
+import com.zennyt.recruitment.domain.vo.JobPositionStatus;
+import com.zennyt.recruitment.domain.vo.JobProfileType;
 import com.zennyt.recruitment.domain.vo.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,14 +56,36 @@ public class DevDataSeeder implements CommandLineRunner {
     private final FitScoreRepository fitScoreRepository;
     private final SoftSkillsProjectionRepository softSkillsRepository;
 
+    private final JobPositionRepository jobPositionRepository;
+
     public DevDataSeeder(JobOfferRepository jobOfferRepository,
                          AssessmentRepository assessmentRepository,
                          FitScoreRepository fitScoreRepository,
-                         SoftSkillsProjectionRepository softSkillsRepository) {
+                         SoftSkillsProjectionRepository softSkillsRepository,
+                         JobPositionRepository jobPositionRepository) {
         this.jobOfferRepository = jobOfferRepository;
         this.assessmentRepository = assessmentRepository;
         this.fitScoreRepository = fitScoreRepository;
         this.softSkillsRepository = softSkillsRepository;
+        this.jobPositionRepository = jobPositionRepository;
+    }
+
+    /**
+     * Premier métier approuvé du profil demandé.
+     *
+     * <p>Indispensable depuis que le Fit Score n'a plus de repli IA : une offre sans
+     * métier au profil assigné n'a pas de pondération, donc <b>aucun score</b> — les
+     * offres de démo seraient invisibles dans le fil candidat et la collection Bruno
+     * n'aurait rien à vérifier. Recherche par profil plutôt que par nom pour ne pas
+     * casser si les libellés du référentiel évoluent.
+     */
+    private UUID positionOf(JobProfileType profileType) {
+        return jobPositionRepository.findByStatus(JobPositionStatus.APPROVED, null).stream()
+            .filter(position -> position.profileType() == profileType)
+            .map(JobPosition::id)
+            .findFirst()
+            .orElseThrow(() -> new IllegalStateException(
+                "Référentiel de métiers non seedé : aucun métier approuvé de profil " + profileType));
     }
 
     @Override
@@ -70,20 +96,25 @@ public class DevDataSeeder implements CommandLineRunner {
             return;
         }
 
+        // Chaque offre est reliée à un métier du référentiel : sans lui, plus de
+        // pondération donc plus de Fit Score du tout (le repli IA a été supprimé).
         // L'offre 1 est liée à l'évaluation de démo (assessmentId non null).
         JobOffer offer1 = activeOffer(OFFER_1, "Senior Backend Engineer",
             "Conception et développement de microservices Java/Spring.",
-            ContractType.FULL_TIME, WorkplaceType.REMOTE, ExperienceLevel.MID, "Tunis");
+            ContractType.FULL_TIME, WorkplaceType.REMOTE, ExperienceLevel.MID, "Tunis",
+            positionOf(JobProfileType.TECHNIQUE));
         offer1.assignAssessment(ASSESSMENT_1);
         jobOfferRepository.save(offer1);
         jobOfferRepository.save(activeOffer(OFFER_2, "UX/UI Designer",
             "Conception d'interfaces mobiles et design system.",
-            ContractType.FULL_TIME, WorkplaceType.HYBRID, ExperienceLevel.JUNIOR, "Paris"));
+            ContractType.FULL_TIME, WorkplaceType.HYBRID, ExperienceLevel.JUNIOR, "Paris",
+            positionOf(JobProfileType.ARTISTIQUE)));
         // L'offre 3 appartient au 2e recruteur (Youssef) : support des tests négatifs
         // Bruno 51/54 (offre étrangère → 403), comme le seed REC-04 d'origine.
         jobOfferRepository.save(activeOffer(OFFER_3, RECRUITER_2, "Engineering Manager",
             "Encadrement d'une squad produit de 6 personnes.",
-            ContractType.FULL_TIME, WorkplaceType.ON_SITE, ExperienceLevel.EXECUTIVE, "Lyon"));
+            ContractType.FULL_TIME, WorkplaceType.ON_SITE, ExperienceLevel.EXECUTIVE, "Lyon",
+            positionOf(JobProfileType.MANAGERIAL)));
 
         assessmentRepository.save(Assessment.rehydrate(ASSESSMENT_1, RECRUITER,
             "Test technique back-end", 600, 2, null, null,
@@ -98,7 +129,7 @@ public class DevDataSeeder implements CommandLineRunner {
 
         fitScoreRepository.save(FitScore.rehydrate(
             UUID.fromString("c0000000-0000-0000-0000-000000000001"),
-            CANDIDATE, OFFER_1, 87, 82, 91, null, 100, Instant.now()));
+            CANDIDATE, OFFER_1, 87, 82, null, 100, Instant.now()));
 
         // Projections soft skills des candidats de démo : sans elles, aucune paire
         // candidat×offre n'existe pour le recalcul des fit scores (les projections
@@ -121,13 +152,14 @@ public class DevDataSeeder implements CommandLineRunner {
     /** Construit une offre directement en statut ACTIVE (visible dans le feed candidat). */
     private JobOffer activeOffer(UUID id, String title, String description,
                                  ContractType contract, WorkplaceType workplace,
-                                 ExperienceLevel level, String city) {
-        return activeOffer(id, RECRUITER, title, description, contract, workplace, level, city);
+                                 ExperienceLevel level, String city, UUID jobPositionId) {
+        return activeOffer(id, RECRUITER, title, description, contract, workplace, level, city,
+            jobPositionId);
     }
 
     private JobOffer activeOffer(UUID id, UUID recruiterId, String title, String description,
                                  ContractType contract, WorkplaceType workplace,
-                                 ExperienceLevel level, String city) {
+                                 ExperienceLevel level, String city, UUID jobPositionId) {
         Instant now = Instant.now();
         return JobOffer.rehydrate(
             id, recruiterId, null, title,
@@ -136,6 +168,6 @@ public class DevDataSeeder implements CommandLineRunner {
             description,
             "Responsabilités à définir.", "Bac+5 ou équivalent.", "Expérience en équipe agile.",
             "Package compétitif, télétravail, formation.", "Postulez via l'application.",
-            null, null, false, JobOfferStatus.ACTIVE, now, now);
+            null, jobPositionId, false, JobOfferStatus.ACTIVE, now, now);
     }
 }

@@ -29,7 +29,7 @@ class RecomputeFitScoresUseCaseTest {
         UUID offerId = UUID.randomUUID();
         UUID existingId = UUID.randomUUID();
         FitScoreCalculatorPort calculator = inputs ->
-            new FitScoreCalculatorPort.FitScoreResult(84, 77, 91);
+            new FitScoreCalculatorPort.FitScoreResult(84, 77);
         FitScoreRepository scores = mock(FitScoreRepository.class);
         JobOfferRepository offers = mock(JobOfferRepository.class);
         SoftSkillsProjectionRepository soft = mock(SoftSkillsProjectionRepository.class);
@@ -46,7 +46,7 @@ class RecomputeFitScoresUseCaseTest {
         when(soft.findByCandidateId(candidateId)).thenReturn(List.of(
             SoftSkillsProjection.create(candidateId, "MOVE_FAST", 77, Instant.now())));
         when(scores.findByCandidateIdAndJobOfferId(candidateId, offerId)).thenReturn(Optional.of(
-            FitScore.calculated(existingId, candidateId, offerId, 10, 10, 10, null, 100, Instant.now())));
+            FitScore.calculated(existingId, candidateId, offerId, 10, 10, null, 100, Instant.now())));
         when(scores.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         JobRoleProfileResolver roleProfileResolver = mock(JobRoleProfileResolver.class);
         TestResultRepository testResults = mock(TestResultRepository.class);
@@ -58,13 +58,12 @@ class RecomputeFitScoresUseCaseTest {
         assertThat(result.id()).isEqualTo(existingId);
         assertThat(result.score()).isEqualTo(84);
         assertThat(result.softSkillScore()).isEqualTo(77);
-        assertThat(result.cvMatchScore()).isEqualTo(91);
     }
 
     @Test
     void publicationBatchIsBounded() {
         FitScoreCalculatorPort calculator = inputs ->
-            new FitScoreCalculatorPort.FitScoreResult(50, 50, 50);
+            new FitScoreCalculatorPort.FitScoreResult(50, 50);
         FitScoreRepository scores = mock(FitScoreRepository.class);
         JobOfferRepository offers = mock(JobOfferRepository.class);
         SoftSkillsProjectionRepository soft = mock(SoftSkillsProjectionRepository.class);

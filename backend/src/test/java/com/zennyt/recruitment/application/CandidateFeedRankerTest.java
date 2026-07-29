@@ -41,7 +41,7 @@ class CandidateFeedRankerTest {
         when(actors.findById(CANDIDATE)).thenReturn(Optional.of(candidate(
             WorkplaceType.REMOTE, ContractType.FULL_TIME, null, null, null)));
         when(fitScores.findByCandidateIdAndJobOfferIds(eq(CANDIDATE), any())).thenReturn(List.of(
-            FitScore.calculated(UUID.randomUUID(), CANDIDATE, scoredButNoMatch.id(), 40, 40, 40, null, 100, Instant.now())));
+            FitScore.calculated(UUID.randomUUID(), CANDIDATE, scoredButNoMatch.id(), 40, 40, null, 100, Instant.now())));
         when(positions.findByIds(any())).thenReturn(List.of());
 
         var ranked = ranker.rank(CANDIDATE, List.of(unscoredPerfectMatch, scoredButNoMatch));
@@ -57,8 +57,8 @@ class CandidateFeedRankerTest {
         when(actors.findById(CANDIDATE)).thenReturn(Optional.of(candidate(
             WorkplaceType.REMOTE, ContractType.FULL_TIME, null, null, null)));
         when(fitScores.findByCandidateIdAndJobOfferIds(eq(CANDIDATE), any())).thenReturn(List.of(
-            FitScore.calculated(UUID.randomUUID(), CANDIDATE, noMatch.id(), 80, 80, 80, null, 100, Instant.now()),
-            FitScore.calculated(UUID.randomUUID(), CANDIDATE, fullMatch.id(), 80, 80, 80, null, 100, Instant.now())));
+            FitScore.calculated(UUID.randomUUID(), CANDIDATE, noMatch.id(), 80, 80, null, 100, Instant.now()),
+            FitScore.calculated(UUID.randomUUID(), CANDIDATE, fullMatch.id(), 80, 80, null, 100, Instant.now())));
         when(positions.findByIds(any())).thenReturn(List.of());
 
         var ranked = ranker.rank(CANDIDATE, List.of(noMatch, fullMatch));
@@ -73,8 +73,8 @@ class CandidateFeedRankerTest {
         when(actors.findById(CANDIDATE)).thenReturn(Optional.of(candidate(
             WorkplaceType.REMOTE, ContractType.FULL_TIME, null, null, null)));
         when(fitScores.findByCandidateIdAndJobOfferIds(eq(CANDIDATE), any())).thenReturn(List.of(
-            FitScore.calculated(UUID.randomUUID(), CANDIDATE, highScoreFewMatches.id(), 90, 90, 90, null, 100, Instant.now()),
-            FitScore.calculated(UUID.randomUUID(), CANDIDATE, lowScoreFullMatch.id(), 80, 80, 80, null, 100, Instant.now())));
+            FitScore.calculated(UUID.randomUUID(), CANDIDATE, highScoreFewMatches.id(), 90, 90, null, 100, Instant.now()),
+            FitScore.calculated(UUID.randomUUID(), CANDIDATE, lowScoreFullMatch.id(), 80, 80, null, 100, Instant.now())));
         when(positions.findByIds(any())).thenReturn(List.of());
 
         // 90 (0 critère) vs 80 + 2*2 (2 critères) = 84 -> le vrai Fit Score l'emporte
@@ -90,8 +90,8 @@ class CandidateFeedRankerTest {
         JobOffer second = offer(UUID.randomUUID(), ContractType.CONTRACT, WorkplaceType.ON_SITE);
         when(actors.findById(CANDIDATE)).thenReturn(Optional.empty());
         when(fitScores.findByCandidateIdAndJobOfferIds(eq(CANDIDATE), any())).thenReturn(List.of(
-            FitScore.calculated(UUID.randomUUID(), CANDIDATE, first.id(), 70, 70, 70, null, 100, Instant.now()),
-            FitScore.calculated(UUID.randomUUID(), CANDIDATE, second.id(), 70, 70, 70, null, 100, Instant.now())));
+            FitScore.calculated(UUID.randomUUID(), CANDIDATE, first.id(), 70, 70, null, 100, Instant.now()),
+            FitScore.calculated(UUID.randomUUID(), CANDIDATE, second.id(), 70, 70, null, 100, Instant.now())));
         when(positions.findByIds(any())).thenReturn(List.of());
 
         var ranked = ranker.rank(CANDIDATE, List.of(first, second));
@@ -108,8 +108,8 @@ class CandidateFeedRankerTest {
         when(actors.findById(CANDIDATE)).thenReturn(Optional.of(
             candidate(null, null, null, null, "[1.0,0.0]")));
         when(fitScores.findByCandidateIdAndJobOfferIds(eq(CANDIDATE), any())).thenReturn(List.of(
-            FitScore.calculated(UUID.randomUUID(), CANDIDATE, closeRole.id(), 80, 80, 80, null, 100, Instant.now()),
-            FitScore.calculated(UUID.randomUUID(), CANDIDATE, distantRole.id(), 80, 80, 80, null, 100, Instant.now())));
+            FitScore.calculated(UUID.randomUUID(), CANDIDATE, closeRole.id(), 80, 80, null, 100, Instant.now()),
+            FitScore.calculated(UUID.randomUUID(), CANDIDATE, distantRole.id(), 80, 80, null, 100, Instant.now())));
         when(positions.findByIds(any())).thenReturn(List.of(
             jobPosition(matchingPositionId, "[1.0,0.0]"), jobPosition(oppositePositionId, "[-1.0,0.0]")));
 

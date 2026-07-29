@@ -35,6 +35,12 @@ public class SoftSkillsProjectionRepositoryAdapter implements SoftSkillsProjecti
     }
 
     @Override
+    public List<SoftSkillsProjection> findByCandidateIds(List<UUID> candidateIds) {
+        if (candidateIds.isEmpty()) return List.of();
+        return jpa.findByCandidateIdIn(candidateIds).stream().map(this::toDomain).toList();
+    }
+
+    @Override
     public List<UUID> findCandidateIds(int limit) {
         return jpa.findCandidateIds(PageRequest.of(0, Math.max(1, limit)));
     }

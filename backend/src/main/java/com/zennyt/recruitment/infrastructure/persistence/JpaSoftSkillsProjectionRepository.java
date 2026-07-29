@@ -15,6 +15,8 @@ public interface JpaSoftSkillsProjectionRepository
 
     List<SoftSkillsProjectionEntity> findByCandidateId(UUID candidateId);
 
+    List<SoftSkillsProjectionEntity> findByCandidateIdIn(List<UUID> candidateIds);
+
     @Query("select projection.candidateId from SoftSkillsProjectionEntity projection " +
            "group by projection.candidateId order by max(projection.updatedAt) desc")
     List<UUID> findCandidateIds(Pageable pageable);

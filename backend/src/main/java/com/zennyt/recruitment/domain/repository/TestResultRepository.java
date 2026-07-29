@@ -15,6 +15,15 @@ public interface TestResultRepository {
 
     Optional<TestResult> findByCandidateIdAndJobOfferId(UUID candidateId, UUID jobOfferId);
 
+    /**
+     * Variante par lot de {@link #findByCandidateIdAndJobOfferId} — une seule requête pour
+     * tout un lot de recalcul.
+     *
+     * <p>Sur-lecture assumée : renvoie le produit des deux listes, pas seulement les paires
+     * demandées. L'appelant filtre par paire en mémoire. Borné par la taille du lot.
+     */
+    List<TestResult> findByCandidateIdsAndJobOfferIds(List<UUID> candidateIds, List<UUID> jobOfferIds);
+
     boolean existsByCandidateIdAndJobOfferId(UUID candidateId, UUID jobOfferId);
 
     /**

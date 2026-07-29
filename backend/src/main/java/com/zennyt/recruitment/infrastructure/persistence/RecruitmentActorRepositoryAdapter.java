@@ -22,6 +22,12 @@ public class RecruitmentActorRepositoryAdapter implements RecruitmentActorReposi
     }
 
     @Override
+    public List<RecruitmentActor> findByIds(List<UUID> publicUserIds) {
+        if (publicUserIds.isEmpty()) return List.of();
+        return jpa.findAllById(publicUserIds).stream().map(this::toDomain).toList();
+    }
+
+    @Override
     public RecruitmentActor save(RecruitmentActor actor) {
         RecruitmentActorEntity entity = new RecruitmentActorEntity(
             actor.publicUserId(), actor.role(), actor.active(),

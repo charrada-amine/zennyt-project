@@ -32,6 +32,13 @@ public class TestResultRepositoryAdapter implements TestResultRepository {
         return jpa.findFirstByCandidateIdAndJobOfferId(candidateId, jobOfferId).map(this::toDomain);
     }
 
+    @Override public List<TestResult> findByCandidateIdsAndJobOfferIds(List<UUID> candidateIds,
+                                                                      List<UUID> jobOfferIds) {
+        if (candidateIds.isEmpty() || jobOfferIds.isEmpty()) return List.of();
+        return jpa.findByCandidateIdInAndJobOfferIdIn(candidateIds, jobOfferIds).stream()
+            .map(this::toDomain).toList();
+    }
+
     @Override public boolean existsByCandidateIdAndJobOfferId(UUID candidateId, UUID jobOfferId) {
         return jpa.existsByCandidateIdAndJobOfferId(candidateId, jobOfferId);
     }

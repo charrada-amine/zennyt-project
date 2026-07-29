@@ -23,8 +23,8 @@ class DeterministicFitScoreCalculatorTest {
     @Test
     void fullCoverageLeavesSoftScoreUnchanged() {
         // CdC §3.3 : score brut 90, couverture 100% -> score ajusté 90 (inchangé).
-        var calculator = new DeterministicFitScoreCalculator(inputs -> new FitScoreResult(0, 0, 0));
-        var inputs = new FitScoreInputs(Map.of("games", 90.0), null, "desc", null,
+        var calculator = new DeterministicFitScoreCalculator();
+        var inputs = new FitScoreInputs(Map.of("games", 90.0), "desc", null,
             TECHNIQUE_SENIOR, null, 100);
 
         FitScoreResult result = calculator.calculate(inputs);
@@ -37,8 +37,8 @@ class DeterministicFitScoreCalculatorTest {
     @Test
     void partialCoverageReducesSoftScoreProportionally() {
         // CdC §3.3 : score brut 90, couverture 40% -> score ajusté 36.
-        var calculator = new DeterministicFitScoreCalculator(inputs -> new FitScoreResult(0, 0, 0));
-        var inputs = new FitScoreInputs(Map.of("games", 90.0), null, "desc", null,
+        var calculator = new DeterministicFitScoreCalculator();
+        var inputs = new FitScoreInputs(Map.of("games", 90.0), "desc", null,
             TECHNIQUE_SENIOR, null, 40);
 
         FitScoreResult result = calculator.calculate(inputs);
@@ -49,8 +49,8 @@ class DeterministicFitScoreCalculatorTest {
 
     @Test
     void hardWeightAppliesOnlyWhenAttemptCompleted() {
-        var calculator = new DeterministicFitScoreCalculator(inputs -> new FitScoreResult(0, 0, 0));
-        var inputs = new FitScoreInputs(Map.of("games", 80.0), null, "desc", null,
+        var calculator = new DeterministicFitScoreCalculator();
+        var inputs = new FitScoreInputs(Map.of("games", 80.0), "desc", null,
             TECHNIQUE_SENIOR, 60, 100);
 
         FitScoreResult result = calculator.calculate(inputs);
@@ -60,14 +60,14 @@ class DeterministicFitScoreCalculatorTest {
     }
 
     @Test
-    void delegatesToFallbackWhenOfferHasNoResolvedRoleProfile() {
-        FitScoreCalculatorPort fallback = inputs -> new FitScoreResult(42, 42, 42);
-        var calculator = new DeterministicFitScoreCalculator(fallback);
-        var inputs = new FitScoreInputs(Map.of("games", 90.0), null, "desc", null,
+    void computesNothingWhenOfferHasNoResolvedRoleProfile() {
+        // Remplace l'ancien test de repli sur un moteur IA externe : ce repli est
+        // supprimé. Sans pondération résolue (offre sans métier, ou métier pas encore
+        // approuvé), il n'y a pas de score à inventer — rien n'est calculé ni écrit.
+        var calculator = new DeterministicFitScoreCalculator();
+        var inputs = new FitScoreInputs(Map.of("games", 90.0), "desc", null,
             null, null, 100);
 
-        FitScoreResult result = calculator.calculate(inputs);
-
-        assertThat(result.score()).isEqualTo(42);
+        assertThat(calculator.calculate(inputs)).isNull();
     }
 }
