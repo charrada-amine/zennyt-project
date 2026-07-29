@@ -57,44 +57,43 @@ class ChatsPage extends ConsumerWidget {
         child: Column(
           children: [
             const SizedBox(height: 20),
-            Transform.translate(
-              offset: const Offset(-30, 0),
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.only(left: 12, right: 16),
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: List.generate(filters.length, (i) {
-                    final isSelected = selectedFilter == i;
-                    return Padding(
-                      padding: EdgeInsets.only(
-                        right: i == filters.length - 1 ? 0 : 8,
-                      ),
-                      child: GestureDetector(
-                        onTap: () =>
-                            ref.read(chatFilterProvider.notifier).state = i,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
+            SingleChildScrollView(
+              padding: const EdgeInsets.only(left: 12, right: 16),
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: List.generate(filters.length, (i) {
+                  final isSelected = selectedFilter == i;
+                  return Padding(
+                    padding: EdgeInsets.only(
+                      right: i == filters.length - 1 ? 0 : 8,
+                    ),
+                    child: GestureDetector(
+                      onTap: () =>
+                          ref.read(chatFilterProvider.notifier).state = i,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? AppColors.chipSelected
+                              : AppColors.chipUnselected,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          filters[i],
+                          style: TextStyle(
                             color: isSelected
-                                ? AppColors.chipSelected
-                                : AppColors.chipUnselected,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            filters[i],
-                            style: TextStyle(
-                              color: isSelected ? context.colors.cardSurface : context.colors.textPrimary,
-                              fontWeight: FontWeight.w300,
-                            ),
+                                ? context.colors.cardSurface
+                                : context.colors.textPrimary,
+                            fontWeight: FontWeight.w300,
                           ),
                         ),
                       ),
-                    );
-                  }),
-                ),
+                    ),
+                  );
+                }),
               ),
             ),
             const SizedBox(height: 12),
@@ -109,8 +108,10 @@ class ChatsPage extends ConsumerWidget {
                     final filtered = selectedFilter == 0
                         ? conversations
                         : selectedFilter == 1
-                            ? conversations.where((c) => c.isHiringContact).toList()
-                            : conversations.where((c) => !c.isHiringContact).toList();
+                        ? conversations.where((c) => c.isHiringContact).toList()
+                        : conversations
+                              .where((c) => !c.isHiringContact)
+                              .toList();
 
                     if (filtered.isEmpty) {
                       return Center(child: Text(l10n.noChats));
@@ -130,7 +131,10 @@ class ChatsPage extends ConsumerWidget {
                         return ChatListItem(
                           conversation: conversation,
                           onTap: () {
-                            context.push('/chats/${conversation.id}', extra: conversation);
+                            context.push(
+                              '/chats/${conversation.id}',
+                              extra: conversation,
+                            );
                           },
                         );
                       },
