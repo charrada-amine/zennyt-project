@@ -62,7 +62,7 @@ public class FitScoreController {
         }
         return fitScoreRepository.findByCandidateIdAndJobOfferId(candidateId, jobOfferId)
             .map(f -> ResponseEntity.ok(new FitScoreResponse(f.id(), f.candidateId(), f.jobOfferId(),
-                f.score(), f.goodFit(), f.softSkillScore(), f.cvMatchScore(), f.hardSkillScore(),
+                f.score(), f.goodFit(), f.softSkillScore(), f.hardSkillScore(),
                 f.partialData(), f.computedAt().toString())))
             .orElse(ResponseEntity.notFound().build());
     }
@@ -96,6 +96,6 @@ public class FitScoreController {
     }
 
     record FitScoreResponse(UUID id, UUID candidateId, UUID jobOfferId, int score, boolean goodFit,
-                            Integer softSkillScore, Integer cvMatchScore, Integer hardSkillScore,
+                            Integer softSkillScore, Integer hardSkillScore,
                             boolean partialData, String computedAt) {}
 }

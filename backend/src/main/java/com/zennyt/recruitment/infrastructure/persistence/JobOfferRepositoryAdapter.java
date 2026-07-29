@@ -33,6 +33,12 @@ public class JobOfferRepositoryAdapter implements JobOfferRepository {
     public Optional<JobOffer> findById(UUID id) { return jpa.findById(id).map(this::toDomain); }
 
     @Override
+    public List<JobOffer> findByIds(List<UUID> ids) {
+        if (ids.isEmpty()) return List.of();
+        return jpa.findAllById(ids).stream().map(this::toDomain).toList();
+    }
+
+    @Override
     public void deleteById(UUID id) { jpa.deleteById(id); }
 
     @Override

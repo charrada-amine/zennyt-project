@@ -1403,7 +1403,6 @@ components:
         fitScore: { type: integer, description: "Score de compatibilité du candidat connecté (0-100). Absent si non connecté." }
         goodFit: { type: boolean, nullable: true, description: "Vrai à partir du seuil provisoire de 70." }
         softSkillScore: { type: integer, minimum: 0, maximum: 100, nullable: true }
-        cvMatchScore: { type: integer, minimum: 0, maximum: 100, nullable: true }
         hardSkillScore: { type: integer, minimum: 0, maximum: 100, nullable: true, description: "null tant qu'aucune tentative de QCM n'est complétée" }
         partialData: { type: boolean, nullable: true, description: "Couverture des jeux psychométriques sous le seuil (CdC Fit Score v3 §3.3)" }
         hardSkillsAlert: { $ref: '#/components/schemas/HardSkillsAlertLevel' }
@@ -1432,7 +1431,8 @@ components:
     JobOfferCreate:
       type: object
       required: [title, description, contractType, workplaceType, experienceLevel, city, country,
-                 salaryMin, salaryMax, responsibilities, minimumQualifications, openToInternational]
+                 salaryMin, salaryMax, responsibilities, minimumQualifications, openToInternational,
+                 jobPositionId]
       properties:
         title: { type: string, minLength: 3 }
         city: { type: string }
@@ -1448,7 +1448,14 @@ components:
         preferredQualifications: { type: string }
         whatWeOffer: { type: string }
         howToApply: { type: string }
-        jobPositionId: { type: string, format: uuid, nullable: true }
+        jobPositionId:
+          type: string
+          format: uuid
+          description: >
+            Métier du référentiel — obligatoire. Sans lui, la formule Fit Score n'a pas
+            de pondération et l'offre resterait sans score. Le recruteur choisit un
+            métier existant (GET /job-positions) ou en propose un nouveau
+            (POST /job-positions), immédiatement utilisable en attente d'approbation.
         openToInternational: { type: boolean, default: false }
 
     JobOfferUpdate:
@@ -1487,7 +1494,6 @@ components:
         fitScore: { type: integer, nullable: true }
         goodFit: { type: boolean, nullable: true }
         softSkillScore: { type: integer, nullable: true }
-        cvMatchScore: { type: integer, nullable: true }
         hardSkillScore: { type: integer, nullable: true }
         partialData: { type: boolean, nullable: true }
         hardSkillsAlert: { $ref: '#/components/schemas/HardSkillsAlertLevel' }
@@ -1652,7 +1658,6 @@ components:
         score: { type: integer, minimum: 0, maximum: 100, example: 88 }
         goodFit: { type: boolean, description: "Vrai à partir du seuil provisoire de 70." }
         softSkillScore: { type: integer, minimum: 0, maximum: 100, nullable: true }
-        cvMatchScore: { type: integer, minimum: 0, maximum: 100, nullable: true }
         hardSkillScore: { type: integer, minimum: 0, maximum: 100, nullable: true, description: "null tant qu'aucune tentative de QCM n'est complétée" }
         partialData: { type: boolean, description: "Couverture des jeux psychométriques sous le seuil (CdC Fit Score v3 §3.3) — badge « données partielles »" }
         computedAt: { type: string, format: date-time }

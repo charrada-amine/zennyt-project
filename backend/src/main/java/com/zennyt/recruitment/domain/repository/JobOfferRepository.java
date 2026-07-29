@@ -16,6 +16,9 @@ public interface JobOfferRepository {
 
     Optional<JobOffer> findById(UUID id);
 
+    /** Variante par lot de {@link #findById} — une seule requête pour tout un lot de recalcul. */
+    List<JobOffer> findByIds(List<UUID> ids);
+
     void deleteById(UUID id);
 
     /**

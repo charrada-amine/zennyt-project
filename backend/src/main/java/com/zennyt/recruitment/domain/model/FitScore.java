@@ -18,17 +18,15 @@ public class FitScore {
     private final UUID jobOfferId;
     private final int score;
     private final Integer softSkillScore;
-    private final Integer cvMatchScore;
     private final Integer hardSkillScore;
     private final int coverageRatio;
     private final Instant computedAt;
 
     private FitScore(UUID id, UUID candidateId, UUID jobOfferId, int score,
-                     Integer softSkillScore, Integer cvMatchScore, Integer hardSkillScore,
+                     Integer softSkillScore, Integer hardSkillScore,
                      int coverageRatio, Instant computedAt) {
         validateScore(score, "Le score");
         if (softSkillScore != null) validateScore(softSkillScore, "Le sous-score soft skills");
-        if (cvMatchScore != null) validateScore(cvMatchScore, "Le sous-score CV");
         if (hardSkillScore != null) validateScore(hardSkillScore, "Le sous-score hard skills");
         validateScore(coverageRatio, "Le taux de couverture");
         this.id = id;
@@ -36,7 +34,6 @@ public class FitScore {
         this.jobOfferId = jobOfferId;
         this.score = score;
         this.softSkillScore = softSkillScore;
-        this.cvMatchScore = cvMatchScore;
         this.hardSkillScore = hardSkillScore;
         this.coverageRatio = coverageRatio;
         this.computedAt = computedAt;
@@ -45,23 +42,23 @@ public class FitScore {
     /** Créé à partir d'un callback IA externe — pas de détail par sous-score, couverture pleine par défaut. */
     public static FitScore fromCallback(UUID candidateId, UUID jobOfferId, int score, Instant computedAt) {
         return new FitScore(UUID.randomUUID(), candidateId, jobOfferId, score,
-            null, null, null, 100, computedAt != null ? computedAt : Instant.now());
+            null, null, 100, computedAt != null ? computedAt : Instant.now());
     }
 
     /** Résultat du calculateur local, en conservant l'id lors d'un upsert. */
     public static FitScore calculated(UUID existingId, UUID candidateId, UUID jobOfferId,
-                                      int score, int softSkillScore, int cvMatchScore,
+                                      int score, int softSkillScore,
                                       Integer hardSkillScore, int coverageRatio, Instant computedAt) {
         return new FitScore(existingId != null ? existingId : UUID.randomUUID(), candidateId,
-            jobOfferId, score, softSkillScore, cvMatchScore, hardSkillScore, coverageRatio,
+            jobOfferId, score, softSkillScore, hardSkillScore, coverageRatio,
             computedAt != null ? computedAt : Instant.now());
     }
 
     /** Reconstruction depuis la persistance. */
     public static FitScore rehydrate(UUID id, UUID candidateId, UUID jobOfferId, int score,
-                                     Integer softSkillScore, Integer cvMatchScore, Integer hardSkillScore,
+                                     Integer softSkillScore, Integer hardSkillScore,
                                      int coverageRatio, Instant computedAt) {
-        return new FitScore(id, candidateId, jobOfferId, score, softSkillScore, cvMatchScore,
+        return new FitScore(id, candidateId, jobOfferId, score, softSkillScore,
             hardSkillScore, coverageRatio, computedAt);
     }
 
@@ -77,7 +74,6 @@ public class FitScore {
     public int score() { return score; }
     public boolean goodFit() { return score >= FitScorePolicy.GOOD_FIT_MIN_SCORE; }
     public Integer softSkillScore() { return softSkillScore; }
-    public Integer cvMatchScore() { return cvMatchScore; }
     public Integer hardSkillScore() { return hardSkillScore; }
     public int coverageRatio() { return coverageRatio; }
 

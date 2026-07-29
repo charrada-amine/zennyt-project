@@ -52,10 +52,15 @@ public class CreateJobOfferUseCase {
                 throw new ForbiddenException("Cette évaluation appartient à un autre recruteur");
             }
         }
-        if (cmd.jobPositionId() != null) {
-            jobPositionRepository.findById(cmd.jobPositionId())
-                .orElseThrow(() -> new NotFoundException("Métier inexistant : " + cmd.jobPositionId()));
+        // Obligatoire depuis la suppression du repli IA : sans métier, la formule n'a
+        // pas de pondération et l'offre resterait sans Fit Score. Le recruteur choisit
+        // un métier du référentiel, ou en propose un nouveau (ProposeJobPositionUseCase),
+        // immédiatement utilisable en attente d'approbation.
+        if (cmd.jobPositionId() == null) {
+            throw new IllegalArgumentException("Le métier (jobPositionId) est obligatoire");
         }
+        jobPositionRepository.findById(cmd.jobPositionId())
+            .orElseThrow(() -> new NotFoundException("Métier inexistant : " + cmd.jobPositionId()));
         JobOffer offer = JobOffer.create(recruiterId, cmd.title(), cmd.description(),
             cmd.contractType(), cmd.workplaceType(), cmd.experienceLevel(), cmd.location());
         offer.update(cmd.title(), cmd.location(), cmd.salaryMin(), cmd.salaryMax(),

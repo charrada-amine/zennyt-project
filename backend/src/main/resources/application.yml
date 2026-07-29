@@ -73,6 +73,16 @@ recruitment:
     semantic-weight: ${RECRUITMENT_RANKING_SEMANTIC_WEIGHT:2.0}
     # Taille du pool d'offres actives re-classées avant pagination (voir CandidateFeedRanker).
     pool-size: ${RECRUITMENT_RANKING_POOL_SIZE:200}
+  fitscore-backfill:
+    # Intervalle entre deux passages du balayage de rattrapage (paires candidat/offre
+    # sans Fit Score). fixedDelay : le passage suivant ne démarre qu'après la fin du
+    # précédent — jamais de chevauchement.
+    interval-ms: ${RECRUITMENT_FITSCORE_BACKFILL_INTERVAL_MS:60000}
+    # Paires traitées par passage. Ce plafond ne borne PAS la capacité de calcul (mesurée
+    # à ~29 ms/paire avant batch-loading, bien plus vite depuis) : il borne la pression
+    # exercée sur la base partagée avec le trafic utilisateur. Le vrai plafond du système
+    # est ce budget BDD, pas le CPU.
+    batch-size: ${RECRUITMENT_FITSCORE_BACKFILL_BATCH_SIZE:200}
 
 server:
   port: 8080

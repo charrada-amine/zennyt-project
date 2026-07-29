@@ -13,21 +13,20 @@ import java.util.concurrent.Executor;
 @Configuration
 @EnableAsync
 public class FitScoreAiConfig {
+    /**
+     * D3 (PLAN_FITSCORE_V3.md) — formule déterministe, désormais <b>seul</b> moteur.
+     *
+     * <p>Le repli sur un moteur IA externe (Groq, ou un stub sans clé) a été supprimé :
+     * il calculait certaines paires selon une logique entièrement différente, sans que
+     * ce soit visible, et ~12× plus lentement. Une offre sans métier approuvé n'a
+     * simplement pas de score tant que l'admin ne l'a pas validé.
+     *
+     * <p>Groq reste utilisé ailleurs dans le contexte (génération de QCM, résumé de CV
+     * candidat) — seul le calcul du Fit Score est concerné.
+     */
     @Bean
-    FitScoreCalculatorPort fitScoreCalculator(
-            ObjectMapper objectMapper,
-            @Value("${groq.api-key:}") String apiKey,
-            @Value("${groq.model:llama-3.3-70b-versatile}") String model,
-            @Value("${groq.connect-timeout-ms:5000}") int connectTimeoutMs,
-            @Value("${groq.read-timeout-ms:20000}") int readTimeoutMs,
-            @Value("${recruitment.fitscore.engine:deterministic}") String engine) {
-        FitScoreCalculatorPort aiCalculator = (apiKey == null || apiKey.isBlank())
-            ? new StubFitScoreCalculator()
-            : new GroqFitScoreCalculator(objectMapper, apiKey, model, connectTimeoutMs, readTimeoutMs);
-        // D3 (PLAN_FITSCORE_V3.md) — formule déterministe par défaut ; l'IA reste
-        // le moteur de repli pour les offres pas encore reliées au référentiel
-        // de métiers, et reste sélectionnable seule via cette propriété.
-        return "groq".equalsIgnoreCase(engine) ? aiCalculator : new DeterministicFitScoreCalculator(aiCalculator);
+    FitScoreCalculatorPort fitScoreCalculator() {
+        return new DeterministicFitScoreCalculator();
     }
 
     @Bean(name = "recruitmentFitScoreExecutor")

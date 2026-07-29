@@ -8,6 +8,8 @@ import java.util.UUID;
 
 public interface RecruitmentActorRepository {
     Optional<RecruitmentActor> findById(UUID publicUserId);
+    /** Variante par lot de {@link #findById} — une seule requête pour tout un lot de recalcul. */
+    List<RecruitmentActor> findByIds(List<UUID> publicUserIds);
     RecruitmentActor save(RecruitmentActor actor);
 
     /** Candidat + indicateur "ce candidat a déjà swipé RIGHT sur cette offre". */

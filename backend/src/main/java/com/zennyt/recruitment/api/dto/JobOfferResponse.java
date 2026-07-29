@@ -28,7 +28,7 @@ public record JobOfferResponse(
     String whatWeOffer, String howToApply,
     UUID assessmentId, UUID jobPositionId, String shareableLink, boolean openToInternational,
     JobOfferStatus status, long applicantCount, Integer fitScore, Boolean goodFit,
-    Integer softSkillScore, Integer cvMatchScore, Integer hardSkillScore, Boolean partialData,
+    Integer softSkillScore, Integer hardSkillScore, Boolean partialData,
     HardSkillsAlertLevel hardSkillsAlert, Instant postedAt, Instant updatedAt
 ) {
     public record RecruiterSummary(UUID id, String companyName, String companyInfo) {}
@@ -56,7 +56,6 @@ public record JobOfferResponse(
             fitScore != null ? fitScore.score() : null,
             fitScore != null ? fitScore.goodFit() : null,
             fitScore != null ? fitScore.softSkillScore() : null,
-            fitScore != null ? fitScore.cvMatchScore() : null,
             fitScore != null ? fitScore.hardSkillScore() : null,
             fitScore != null ? fitScore.partialData() : null,
             hardSkillsAlert,
