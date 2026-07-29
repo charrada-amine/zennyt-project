@@ -233,10 +233,23 @@ public class IdentityService {
             .orElseThrow(() -> new NotFoundException("Onboarding recruteur introuvable"));
     }
 
-    /** Sauvegarde le profil et publie {@link ProfileCvUpdatedEvent} pour la projection CV de Recruitment. */
+    /**
+     * Sauvegarde le profil et publie les deux événements dont Recruitment a besoin :
+     * {@link ProfileCvUpdatedEvent} pour la projection CV, et l'état d'accès pour la
+     * projection {@code RecruitmentActor}.
+     *
+     * <p>Le second est indispensable : les préférences de recherche d'emploi du candidat
+     * (rôle recherché, télétravail, type de contrat, localisation cible, expérience) ne
+     * vivent que dans le profil, et {@code CandidateFeedRanker} les lit depuis la
+     * projection. Sans cette publication, remplir son profil ne changeait rien au
+     * classement « Recommended for you » — la projection ne se mettait à jour qu'au
+     * redémarrage suivant, via {@code IdentityAccessSnapshotPublisher}. C'est aussi ce
+     * qui déclenche le calcul de l'empreinte du texte « rôle recherché ».
+     */
     private Profile saveProfileAndPublish(UUID publicId, Profile profile) {
         Profile saved = profiles.save(profile);
         events.publishEvent(ProfileCvUpdatedEvent.of(publicId, saved));
+        publishAccessState(currentUser(publicId));
         return saved;
     }
 
