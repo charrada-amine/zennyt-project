@@ -22,14 +22,17 @@ const _iconEmotion = 'assets/games icons/Emotional Regulation .png';
 
 // Logos officiels des jeux, repris des premières pages de chaque jeu.
 const _logoMoveFast = 'assets/games icons/Move Fast.png';
-const _logoMemoryQuest = 'assets/games icons/Memory Quest.png';
-const _logoJeDecide = 'assets/games icons/Je Decide.png';
-const _logoOptimalPath = 'assets/games icons/Optimal Path.png';
-const _logoTaskScheduling = 'assets/games icons/Task Scheduling.png';
-const _logoPredictivePuzzle = 'assets/games icons/Predictive Puzzle.png';
+const _logoMemoryQuest = 'assets/games icons/Memory Quest transparent.png';
+const _logoJeDecide = 'assets/games icons/Je Decide transparent.png';
+const _logoOptimalPath = 'assets/games icons/Optimal Path transparent.png';
+const _logoTaskScheduling =
+    'assets/games icons/Task Scheduling transparent.png';
+const _logoPredictivePuzzle =
+    'assets/games icons/Predictive Puzzle transparent.png';
 // Logo Emotional Radar : nom SANS espace avant « .png » (convention des logos
 // de jeu, contrairement aux icônes de catégorie qui en portent une).
 const _logoEmotionalRadar = 'assets/games icons/Emotional Radar.png';
+const _logoReflectivePause = 'assets/games icons/Reflective Pause.png';
 
 /// Hub des jeux sérieux, aligné sur l'écran Progress / Games de la maquette.
 class GamesHubScreen extends ConsumerWidget {
@@ -156,6 +159,13 @@ class GamesHubScreen extends ConsumerWidget {
                         route: AppRoutes.gamesEmotionalRadar,
                         logoAsset: _logoEmotionalRadar,
                         fallbackIcon: Icons.favorite_rounded,
+                      ),
+                      _GameEntry(
+                        label: 'Reflective Pause',
+                        subtitle: 'Impulse control · pressure moments',
+                        route: AppRoutes.gamesReflectivePause,
+                        logoAsset: _logoReflectivePause,
+                        fallbackIcon: Icons.timer_outlined,
                       ),
                     ],
                   ),

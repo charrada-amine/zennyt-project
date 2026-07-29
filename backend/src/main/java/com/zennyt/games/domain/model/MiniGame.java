@@ -40,7 +40,12 @@ public enum MiniGame {
      * {@code scènes jouées × 9}, le {@code Score} le porte lui-même. Les points
      * proviennent des réponses notées serveur scène par scène, jamais du client.
      */
-    EMOTIONAL_RADAR_CORE(GameType.EMOTIONAL_REGULATION, 0, true);
+    EMOTIONAL_RADAR_CORE(GameType.EMOTIONAL_REGULATION, 0, true),
+    /**
+     * « Reflective Pause » — contrôle de l'impulsivité sous pression.
+     * Temps contrôlé /3 + réponses non impulsives /4 + prise de recul /3.
+     */
+    REFLECTIVE_PAUSE_CORE(GameType.EMOTIONAL_REGULATION, 10, true);
 
     private final GameType gameType;
     private final int maxPoints;

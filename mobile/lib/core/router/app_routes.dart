@@ -32,6 +32,7 @@ class AppRoutes {
   static const String gamesInvestigate = '/games/investigate';
   static const String gamesJeDecide = '/games/je-decide';
   static const String gamesEmotionalRadar = '/games/emotional-radar';
+  static const String gamesReflectivePause = '/games/reflective-pause';
 
   static const String profileSettings = '/profile-settings';
   static const String accountCenter = '/profile-settings/account-center';
@@ -70,6 +71,7 @@ class AppRoutes {
   static const String nGamesInvestigate = 'gamesInvestigate';
   static const String nGamesJeDecide = 'gamesJeDecide';
   static const String nGamesEmotionalRadar = 'gamesEmotionalRadar';
+  static const String nGamesReflectivePause = 'gamesReflectivePause';
   static const String nProfileSettings = 'profileSettings';
   static const String nAccountCenter = 'accountCenter';
   static const String nPersonalInformations = 'personalInformations';

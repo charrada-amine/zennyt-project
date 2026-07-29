@@ -2,6 +2,7 @@ import '../domain/config/emotional_radar_config.dart';
 import '../domain/config/emotional_radar_provisional_rules.dart';
 import '../domain/config/memory_quest_config.dart';
 import '../domain/config/move_fast_config.dart';
+import '../domain/config/reflective_pause_config.dart';
 import '../domain/decision_scenario_catalog.dart';
 import '../domain/entities/decision_metrics.dart';
 import '../domain/entities/device_calibration.dart';
@@ -15,6 +16,7 @@ import '../domain/entities/mini_game.dart';
 import '../domain/entities/move_fast_metrics.dart';
 import '../domain/entities/planifik_metrics.dart';
 import '../domain/entities/prevision_puzzle_metrics.dart';
+import '../domain/entities/reflective_pause_metrics.dart';
 import '../domain/entities/score_breakdown.dart';
 import '../domain/entities/task_scheduling_metrics.dart';
 import '../domain/repositories/games_repository.dart';
@@ -41,7 +43,9 @@ class GamesMockRepository implements GamesRepository {
   // Catalogue VIDE tant que le psychologue n'a pas fourni les 30 scénarios : le
   // scoring lève une erreur si `DECISION_CORE` est soumis (parité backend, non
   // jouable). Le câblage UI (`je_decide_*.dart`) est un lot séparé.
-  static const _decisionScoring = DecisionScoring(EmptyDecisionScenarioCatalog());
+  static const _decisionScoring = DecisionScoring(
+    EmptyDecisionScenarioCatalog(),
+  );
 
   // Config « Chemin Optimal » — miroir de OptimalPathConfig (backend).
   static const double _optimalPathTolerance = 0.10; // optimal_path_tolerance
@@ -58,7 +62,7 @@ class GamesMockRepository implements GamesRepository {
       gameType: gameType,
       status: 'IN_PROGRESS',
       compositeRaw: 0,
-      compositeMax: gameType == GameType.moveFast ? 0 : 30,
+      compositeMax: _remainingStaticMax(gameType, const []),
       normalized: 0,
       attempts: const [],
       startedAt: DateTime.now(),
@@ -103,6 +107,9 @@ class GamesMockRepository implements GamesRepository {
       // chaque scène (`_emotionalRadarAnswers`), jamais des métriques reçues —
       // exactement comme le backend. Les métriques n'apportent que les temps.
       MiniGame.emotionalRadarCore => _scoreEmotionalRadar(sessionId),
+      MiniGame.reflectivePauseCore => _scoreReflectivePause(
+        metrics as ReflectivePauseMetrics,
+      ),
     };
     final attempts = [
       ...current.attempts,
@@ -113,11 +120,11 @@ class GamesMockRepository implements GamesRepository {
         miniGame == MiniGame.moveFastCore ||
         miniGame == MiniGame.memoryQuestCore ||
         miniGame == MiniGame.decisionCore ||
-        miniGame == MiniGame.emotionalRadarCore ||
         attempts.length >= _expectedMiniGames(current.gameType);
     final max = complete
         ? attempts.fold<int>(0, (sum, a) => sum + a.score.maxPoints)
-        : current.compositeMax;
+        : attempts.fold<int>(0, (sum, a) => sum + a.score.maxPoints) +
+              _remainingStaticMax(current.gameType, attempts);
 
     final updated = GameSession(
       id: current.id,
@@ -130,6 +137,9 @@ class GamesMockRepository implements GamesRepository {
       startedAt: current.startedAt,
       completedAt: complete ? DateTime.now() : current.completedAt,
       scoreBreakdown: _buildBreakdown(miniGame, metrics, score, sessionId),
+      reflectivePauseIndicators: miniGame == MiniGame.reflectivePauseCore
+          ? _reflectivePauseIndicators(metrics as ReflectivePauseMetrics, score)
+          : current.reflectivePauseIndicators,
     );
     _sessions[sessionId] = updated;
     return updated;
@@ -140,7 +150,10 @@ class GamesMockRepository implements GamesRepository {
   /// Chaque niveau est noté /10 puis agrégé par MOYENNE ARRONDIE (un seul Attempt
   /// par mini-jeu). ⚠️ Agrégation par moyenne à valider avec le psychologue.
   GameScore _scoreOptimalPath(PlanifikMetrics m) {
-    final total = m.levels.fold<int>(0, (sum, l) => sum + _scoreOptimalPathLevel(l));
+    final total = m.levels.fold<int>(
+      0,
+      (sum, l) => sum + _scoreOptimalPathLevel(l),
+    );
     final average = m.levels.isEmpty ? 0.0 : total / m.levels.length;
     final points = average.round().clamp(0, 10).toInt();
 
@@ -180,14 +193,19 @@ class GamesMockRepository implements GamesRepository {
 
   // ── « J'investigue » (MEMORY_QUEST) — miroir de MemoryQuestScoringService ──
 
-  GameScore _scoreMemoryQuest(MemoryQuestMetrics m, double calibrationOffsetMs) {
+  GameScore _scoreMemoryQuest(
+    MemoryQuestMetrics m,
+    double calibrationOffsetMs,
+  ) {
     final tasks = <int>[];
     if (m.tasks.isNotEmpty) {
       // Avec timings : une tâche dépassant le timeout ajusté du calibrage est
       // voidée (note 0) ; le calibrage remonte le seuil (miroir backend).
       for (final t in m.tasks) {
-        final timedOut =
-            MemoryQuestConfig.isTaskTimedOut(t.responseTimeMs, calibrationOffsetMs);
+        final timedOut = MemoryQuestConfig.isTaskTimedOut(
+          t.responseTimeMs,
+          calibrationOffsetMs,
+        );
         tasks.add(timedOut ? 0 : _taskScore(t.accuracy));
       }
     } else {
@@ -195,7 +213,9 @@ class GamesMockRepository implements GamesRepository {
         ..add(_taskScore(m.sameAccuracy))
         ..add(_taskScore(m.reverseAccuracy));
       if (m.missionBPlayed) tasks.add(_taskScore(m.restoreAccuracy));
-      if (m.distractionPlayed) tasks.add(_taskScore(m.afterDistractionAccuracy));
+      if (m.distractionPlayed) {
+        tasks.add(_taskScore(m.afterDistractionAccuracy));
+      }
     }
     final avg = tasks.isEmpty ? 0.0 : tasks.reduce((a, b) => a + b) / tasks.length;
     final composite = (avg / 5 * 100).round();
@@ -207,8 +227,7 @@ class GamesMockRepository implements GamesRepository {
     );
   }
 
-  int _taskScore(double accuracy) =>
-      (accuracy.clamp(0.0, 1.0) * 5).round();
+  int _taskScore(double accuracy) => (accuracy.clamp(0.0, 1.0) * 5).round();
 
   String _interpretMemoryQuest(int composite) {
     if (composite < 40) return 'Très faible';
@@ -303,9 +322,8 @@ class GamesMockRepository implements GamesRepository {
       _replayMoveFast(responses).total;
 
   /// Rejeu de l'escalade + décomposition — miroir de MoveFastConfig.replay.
-  ({int gamePoints, int finalMultiplier, int finalBonus, int total}) _replayMoveFast(
-    Iterable<bool> responses,
-  ) {
+  ({int gamePoints, int finalMultiplier, int finalBonus, int total})
+  _replayMoveFast(Iterable<bool> responses) {
     var points = 0;
     var multiplier = 1;
     var streakCounter = 0;
@@ -345,23 +363,96 @@ class GamesMockRepository implements GamesRepository {
     String sessionId,
   ) {
     return switch (miniGame) {
-      MiniGame.moveFastCore => _breakdownMoveFast(metrics as MoveFastMetrics, score),
-      MiniGame.optimalPath => _breakdownOptimalPath(metrics as PlanifikMetrics, score),
-      MiniGame.taskScheduling =>
-        _breakdownTaskScheduling(metrics as TaskSchedulingMetrics, score),
-      MiniGame.previsionPuzzle =>
-        _breakdownPrevision(metrics as PrevisionPuzzleMetrics, score),
-      MiniGame.memoryQuestCore =>
-        _breakdownMemoryQuest(metrics as MemoryQuestMetrics, score),
-      MiniGame.decisionCore =>
-        _decisionScoring.breakdown(metrics as DecisionMetrics, score),
+      MiniGame.moveFastCore => _breakdownMoveFast(
+        metrics as MoveFastMetrics,
+        score,
+      ),
+      MiniGame.optimalPath => _breakdownOptimalPath(
+        metrics as PlanifikMetrics,
+        score,
+      ),
+      MiniGame.taskScheduling => _breakdownTaskScheduling(
+        metrics as TaskSchedulingMetrics,
+        score,
+      ),
+      MiniGame.previsionPuzzle => _breakdownPrevision(
+        metrics as PrevisionPuzzleMetrics,
+        score,
+      ),
+      MiniGame.memoryQuestCore => _breakdownMemoryQuest(
+        metrics as MemoryQuestMetrics,
+        score,
+      ),
+      MiniGame.decisionCore => _decisionScoring.breakdown(
+        metrics as DecisionMetrics,
+        score,
+      ),
       MiniGame.emotionalRadarCore => _breakdownEmotionalRadar(sessionId, score),
+      MiniGame.reflectivePauseCore => _breakdownReflectivePause(
+        metrics as ReflectivePauseMetrics,
+        score,
+      ),
     };
   }
 
+  List<ScoreBreakdownLine> _breakdownReflectivePause(
+    ReflectivePauseMetrics metrics,
+    GameScore score,
+  ) {
+    final report = _reflectivePauseIndicators(metrics, score);
+    final total = metrics.moments.length;
+    final controlled = metrics.moments
+        .where((m) => m.minimumTimerReached)
+        .length;
+    final nonImpulsive = metrics.moments
+        .where((m) => ReflectivePauseConfig.isNonImpulsive(m.selectedResponse))
+        .length;
+    final stepBack = metrics.moments
+        .where(
+          (m) => ReflectivePauseConfig.isRecommended(
+            m.momentId,
+            m.selectedResponse,
+          ),
+        )
+        .length;
+    return [
+      const ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.note,
+        label:
+            'Temps contrôlé /3 + réponses non impulsives /4 + '
+            'capacité à prendre du recul /3 ; la somme est arrondie une fois.',
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.info,
+        label: 'Controlled reaction time',
+        detail: '$controlled/$total → ${report.controlledReactionTimeScore}/3',
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.info,
+        label: 'Non-impulsive responses',
+        detail: '$nonImpulsive/$total → ${report.nonImpulsiveResponsesScore}/4',
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.info,
+        label: 'Ability to step back',
+        detail: '$stepBack/$total → ${report.abilityToStepBackScore}/3',
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.total,
+        label: 'Total',
+        points: score.rawPoints,
+        maxPoints: score.maxPoints,
+      ),
+    ];
+  }
+
   /// Miroir de `ScoreBreakdownService.emotionalRadar` (backend).
-  List<ScoreBreakdownLine> _breakdownEmotionalRadar(String sessionId, GameScore score) {
-    final answers = _emotionalRadarAnswers[sessionId] ?? const <_MockGradedAnswer>[];
+  List<ScoreBreakdownLine> _breakdownEmotionalRadar(
+    String sessionId,
+    GameScore score,
+  ) {
+    final answers =
+        _emotionalRadarAnswers[sessionId] ?? const <_MockGradedAnswer>[];
     return [
       ScoreBreakdownLine(
         kind: ScoreBreakdownKind.note,
@@ -376,7 +467,8 @@ class GamesMockRepository implements GamesRepository {
         ScoreBreakdownLine(
           kind: ScoreBreakdownKind.criterion,
           label: 'Scène ${a.sceneOrder} — Émotion de base',
-          detail: '${a.selectedEmotion.label} / attendu ${a.expectedEmotion.label}',
+          detail:
+              '${a.selectedEmotion.label} / attendu ${a.expectedEmotion.label}',
           points: a.emotionPoints,
           maxPoints: EmotionalRadarConfig.emotionPoints,
         ),
@@ -390,7 +482,8 @@ class GamesMockRepository implements GamesRepository {
         ScoreBreakdownLine(
           kind: ScoreBreakdownKind.criterion,
           label: 'Scène ${a.sceneOrder} — Intensité',
-          detail: '${a.selectedIntensity} / attendu ${a.expectedIntensity} '
+          detail:
+              '${a.selectedIntensity} / attendu ${a.expectedIntensity} '
               '(écart ${(a.expectedIntensity - a.selectedIntensity).abs()})',
           points: a.intensityPoints,
           maxPoints: EmotionalRadarConfig.intensityPoints,
@@ -487,12 +580,16 @@ class GamesMockRepository implements GamesRepository {
     ];
   }
 
-  List<ScoreBreakdownLine> _breakdownOptimalPath(PlanifikMetrics m, GameScore score) {
+  List<ScoreBreakdownLine> _breakdownOptimalPath(
+    PlanifikMetrics m,
+    GameScore score,
+  ) {
     final lines = <ScoreBreakdownLine>[];
     final n = m.levels.length;
     for (var i = 0; i < n; i++) {
       final l = m.levels[i];
-      final deviation = (l.pathLength - l.optimalLength).abs() / l.optimalLength;
+      final deviation =
+          (l.pathLength - l.optimalLength).abs() / l.optimalLength;
       final optimalPts = deviation <= _optimalPathTolerance ? 4 : 0;
       final attemptsPts = _attemptScore(l.attempts);
       final zonesPts = switch (l.costlyZonesAvoided) {
@@ -594,14 +691,30 @@ class GamesMockRepository implements GamesRepository {
       _ => 'désordonné',
     };
     return [
-      _crit('Dépendances respectées', m.dependenciesRespected ? 'oui' : 'non',
-          m.dependenciesRespected ? 3 : 0, 3),
-      _crit('Contraintes horaires', m.timeConstraintsRespected ? 'oui' : 'non',
-          m.timeConstraintsRespected ? 3 : 0, 3),
-      _crit('Cohérence du planning', coherenceLabel,
-          m.planningCoherence.clamp(0, 2), 2),
-      _crit('Réajustements', '${m.adjustmentCount}',
-          _adjustmentScore(m.adjustmentCount), 2),
+      _crit(
+        'Dépendances respectées',
+        m.dependenciesRespected ? 'oui' : 'non',
+        m.dependenciesRespected ? 3 : 0,
+        3,
+      ),
+      _crit(
+        'Contraintes horaires',
+        m.timeConstraintsRespected ? 'oui' : 'non',
+        m.timeConstraintsRespected ? 3 : 0,
+        3,
+      ),
+      _crit(
+        'Cohérence du planning',
+        coherenceLabel,
+        m.planningCoherence.clamp(0, 2),
+        2,
+      ),
+      _crit(
+        'Réajustements',
+        '${m.adjustmentCount}',
+        _adjustmentScore(m.adjustmentCount),
+        2,
+      ),
       ScoreBreakdownLine(
         kind: ScoreBreakdownKind.total,
         label: 'Total',
@@ -640,10 +753,139 @@ class GamesMockRepository implements GamesRepository {
       // PREVISION_PUZZLE) — miroir du backend (MiniGame.isPlayable()). Profil /30.
       GameType.planifik => 3,
       GameType.moveFast => 1,
-      GameType.memoryQuest => 1, // « J'investigue » = un composite (A+B+distraction)
+      GameType.memoryQuest =>
+        1, // « J'investigue » = un composite (A+B+distraction)
       GameType.decision => 0,
-      GameType.emotionalRegulation => 1, // Emotional Radar = un composite
+      // Emotional Radar (max dynamique /27 actuellement) + Reflective Pause /10.
+      GameType.emotionalRegulation => 2,
     };
+  }
+
+  static int _remainingStaticMax(
+    GameType gameType,
+    List<GameAttempt> attempts,
+  ) {
+    final recorded = attempts.map((attempt) => attempt.miniGame).toSet();
+    return switch (gameType) {
+      GameType.planifik =>
+        (recorded.contains(MiniGame.optimalPath) ? 0 : 10) +
+            (recorded.contains(MiniGame.taskScheduling) ? 0 : 10) +
+            (recorded.contains(MiniGame.previsionPuzzle) ? 0 : 10),
+      // Barèmes dynamiques : le maximum réel vient de l'Attempt une fois joué.
+      GameType.moveFast => 0,
+      GameType.memoryQuest =>
+        recorded.contains(MiniGame.memoryQuestCore) ? 0 : 100,
+      GameType.decision => 0,
+      GameType.emotionalRegulation =>
+        recorded.contains(MiniGame.reflectivePauseCore) ? 0 : 10,
+    };
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // « Reflective Pause » — miroir EXACT de ReflectivePauseScoringService.java
+  // ══════════════════════════════════════════════════════════════════════════
+
+  GameScore _scoreReflectivePause(ReflectivePauseMetrics metrics) {
+    _validateReflectivePause(metrics);
+    final report = _reflectivePauseIndicators(
+      metrics,
+      const GameScore(
+        rawPoints: 0,
+        maxPoints: ReflectivePauseConfig.totalMax,
+        normalized: 0,
+        level: '',
+      ),
+    );
+    final points = ReflectivePauseConfig.totalScore(
+      report.controlledReactionTimeScore,
+      report.nonImpulsiveResponsesScore,
+      report.abilityToStepBackScore,
+    );
+    return GameScore(
+      rawPoints: points,
+      maxPoints: ReflectivePauseConfig.totalMax,
+      normalized: points * 10.0,
+      level: ReflectivePauseConfig.interpret(points),
+    );
+  }
+
+  ReflectivePauseIndicators _reflectivePauseIndicators(
+    ReflectivePauseMetrics metrics,
+    GameScore score,
+  ) {
+    final total = metrics.moments.length;
+    final controlled = metrics.moments
+        .where((m) => m.minimumTimerReached)
+        .length;
+    final nonImpulsive = metrics.moments
+        .where((m) => ReflectivePauseConfig.isNonImpulsive(m.selectedResponse))
+        .length;
+    final stepBack = metrics.moments
+        .where(
+          (m) => ReflectivePauseConfig.isRecommended(
+            m.momentId,
+            m.selectedResponse,
+          ),
+        )
+        .length;
+    final averageMs = total == 0
+        ? 0
+        : (metrics.moments.fold<int>(
+                    0,
+                    (sum, moment) => sum + moment.responseTimeMs,
+                  ) /
+                  total)
+              .round();
+    return ReflectivePauseIndicators(
+      momentsPlayed: total,
+      controlledReactionTimeScore: ReflectivePauseConfig.criterionScore(
+        controlled,
+        total,
+        ReflectivePauseConfig.controlledReactionMax,
+      ),
+      nonImpulsiveResponsesScore: ReflectivePauseConfig.criterionScore(
+        nonImpulsive,
+        total,
+        ReflectivePauseConfig.nonImpulsiveMax,
+      ),
+      abilityToStepBackScore: ReflectivePauseConfig.criterionScore(
+        stepBack,
+        total,
+        ReflectivePauseConfig.stepBackMax,
+      ),
+      impulsiveChoiceCount: total - nonImpulsive,
+      averageResponseTimeMs: averageMs,
+      level: score.level,
+    );
+  }
+
+  void _validateReflectivePause(ReflectivePauseMetrics metrics) {
+    if (metrics.moments.length != ReflectivePauseConfig.totalMoments) {
+      throw ArgumentError(
+        'Reflective Pause exige exactement '
+        '${ReflectivePauseConfig.totalMoments} moments.',
+      );
+    }
+    final ids = <String>{};
+    for (final moment in metrics.moments) {
+      if (!ReflectivePauseConfig.recommended.containsKey(moment.momentId)) {
+        throw ArgumentError(
+          'Moment Reflective Pause inconnu: ${moment.momentId}',
+        );
+      }
+      if (!ids.add(moment.momentId)) {
+        throw ArgumentError(
+          'Moment Reflective Pause dupliqué: ${moment.momentId}',
+        );
+      }
+      final reachedFromTime =
+          moment.responseTimeMs >= ReflectivePauseConfig.minimumPauseMs;
+      if (moment.minimumTimerReached != reachedFromTime) {
+        throw ArgumentError(
+          'minimumTimerReached incohérent avec responseTimeMs',
+        );
+      }
+    }
   }
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -671,7 +913,8 @@ class GamesMockRepository implements GamesRepository {
       order: 1,
       mediaType: SceneMediaType.dialogue,
       prompt: 'Friend: "I am sorry, I have to cancel tonight."',
-      instruction: 'Observe the situation, then identify the emotional pattern.',
+      instruction:
+          'Observe the situation, then identify the emotional pattern.',
       expectedEmotion: BasicEmotion.sadness,
       expectedNuance: 'DISAPPOINTMENT',
       expectedIntensity: 3,
@@ -684,7 +927,8 @@ class GamesMockRepository implements GamesRepository {
       order: 2,
       mediaType: SceneMediaType.text,
       prompt: 'You hear a strange noise at night while alone at home.',
-      instruction: 'Observe the situation, then identify the emotional pattern.',
+      instruction:
+          'Observe the situation, then identify the emotional pattern.',
       expectedEmotion: BasicEmotion.fear,
       expectedNuance: 'ANXIETY',
       expectedIntensity: 4,
@@ -748,7 +992,9 @@ class GamesMockRepository implements GamesRepository {
     var scenePoints = emotionPts + nuancePts + intensityPts;
 
     final perfect =
-        emotionOk && nuanceOk && intensityPts == EmotionalRadarConfig.intensityPoints;
+        emotionOk &&
+        nuanceOk &&
+        intensityPts == EmotionalRadarConfig.intensityPoints;
     if (EmotionalRadarConfig.gradientBonusEnabled && perfect) {
       scenePoints += EmotionalRadarConfig.gradientBonusPoints;
     }

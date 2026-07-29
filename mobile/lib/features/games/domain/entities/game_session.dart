@@ -1,6 +1,7 @@
 import 'game_score.dart';
 import 'game_type.dart';
 import 'mini_game.dart';
+import 'reflective_pause_metrics.dart';
 import 'score_breakdown.dart';
 
 /// Résultat enregistré d'un mini-jeu au sein d'une session.
@@ -29,6 +30,7 @@ class GameSession {
     required this.startedAt,
     this.completedAt,
     this.scoreBreakdown = const [],
+    this.reflectivePauseIndicators,
   });
 
   final String id;
@@ -43,6 +45,9 @@ class GameSession {
 
   /// Détail ligne par ligne du calcul du score (panneau de résultats).
   final List<ScoreBreakdownLine> scoreBreakdown;
+
+  /// Présent après une soumission Reflective Pause.
+  final ReflectivePauseIndicators? reflectivePauseIndicators;
 
   bool get isCompleted => status == 'COMPLETED';
 

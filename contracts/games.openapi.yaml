@@ -149,8 +149,8 @@ components:
       type: string
       description: >
         Type de jeu sérieux (un domaine cognitif = un type). EMOTIONAL_REGULATION
-        (« Je gère ») héberge le mini-jeu Emotional Radar, sur le modèle de PLANIFIK
-        qui héberge ses trois mini-jeux.
+        (« Je gère ») héberge Emotional Radar et Reflective Pause, sur le modèle
+        de PLANIFIK qui héberge ses trois mini-jeux.
       enum: [PLANIFIK, MOVE_FAST, MEMORY_QUEST, DECISION, EMOTIONAL_REGULATION]
 
     MiniGame:
@@ -159,7 +159,7 @@ components:
         Mini-jeu évalué dans une session. DECISION_CORE (« Je Décide ») est déclaré
         mais non jouable tant que le catalogue de scénarios est vide (même patron
         que TASK_SCHEDULING avant implémentation).
-      enum: [OPTIMAL_PATH, TASK_SCHEDULING, PREVISION_PUZZLE, MOVE_FAST_CORE, MEMORY_QUEST_CORE, DECISION_CORE, EMOTIONAL_RADAR_CORE]
+      enum: [OPTIMAL_PATH, TASK_SCHEDULING, PREVISION_PUZZLE, MOVE_FAST_CORE, MEMORY_QUEST_CORE, DECISION_CORE, EMOTIONAL_RADAR_CORE, REFLECTIVE_PAUSE_CORE]
 
     SessionStatus:
       type: string
@@ -818,6 +818,90 @@ components:
               expected: { $ref: '#/components/schemas/BasicEmotion' }
               selected: { $ref: '#/components/schemas/BasicEmotion' }
 
+    ReflectivePauseResponseType:
+      type: string
+      description: >
+        Réponse choisie face à un moment de pression. Le client transmet le type
+        choisi, jamais sa qualité ni des points.
+      enum:
+        - RESPOND_IMPULSIVELY
+        - BREATHE_ANALYZE
+        - WAIT
+        - ASK_FOR_MORE_INFORMATION
+        - REFORMULATE_CALMLY
+
+    ReflectivePauseMomentMetric:
+      type: object
+      description: >
+        Mesures brutes d'un moment de pression. Le serveur vérifie le timer
+        minimum et dérive les trois sous-scores.
+      required: [momentId, selectedResponse, responseTimeMs, minimumTimerReached]
+      properties:
+        momentId:
+          type: string
+          description: Identifiant stable du catalogue de 10 moments.
+          example: PRESSURE_01
+        selectedResponse: { $ref: '#/components/schemas/ReflectivePauseResponseType' }
+        responseTimeMs:
+          type: integer
+          minimum: 0
+          description: Temps entre l'affichage du moment et la validation.
+        minimumTimerReached:
+          type: boolean
+          description: >
+            Doit être cohérent avec responseTimeMs >= 3000 ; le domaine rejette
+            toute incohérence.
+
+    ReflectivePauseMetrics:
+      type: object
+      description: >
+        Métriques objectives de Reflective Pause. Les 10 moments sont obligatoires,
+        uniques et connus du catalogue serveur. Aucun score n'est accepté du client.
+      required: [reflectivePauseMoments]
+      properties:
+        reflectivePauseMoments:
+          type: array
+          minItems: 10
+          maxItems: 10
+          items: { $ref: '#/components/schemas/ReflectivePauseMomentMetric' }
+
+    ReflectivePauseIndicators:
+      type: object
+      description: Indicateurs Reflective Pause dérivés côté serveur.
+      required:
+        - momentsPlayed
+        - controlledReactionTimeScore
+        - nonImpulsiveResponsesScore
+        - abilityToStepBackScore
+        - impulsiveChoiceCount
+        - averageResponseTimeMs
+        - level
+      properties:
+        momentsPlayed: { type: integer, example: 10 }
+        controlledReactionTimeScore:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 3
+          example: 2.4
+        nonImpulsiveResponsesScore:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 4
+          example: 3.6
+        abilityToStepBackScore:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 3
+          example: 2.1
+        impulsiveChoiceCount: { type: integer, example: 1 }
+        averageResponseTimeMs: { type: integer, example: 5400 }
+        level:
+          type: string
+          example: Very good self-control
+
     GameMetrics:
       # NB : membres en $ref nus (source de vérité = SubmitResultRequest.toMetrics côté
       # code, la génération games n'étant pas consommée par les contrôleurs, écrits à la
@@ -833,6 +917,7 @@ components:
         - $ref: '#/components/schemas/MemoryQuestMetrics'
         - $ref: '#/components/schemas/DecisionMetrics'
         - $ref: '#/components/schemas/EmotionalRadarMetrics'
+        - $ref: '#/components/schemas/ReflectivePauseMetrics'
 
     SubmitResultRequest:
       type: object
@@ -895,6 +980,10 @@ components:
           allOf: [ { $ref: '#/components/schemas/EmotionalRadarIndicators' } ]
           nullable: true
           description: "Présent uniquement quand le résultat soumis concerne Emotional Radar."
+        reflectivePauseIndicators:
+          allOf: [ { $ref: '#/components/schemas/ReflectivePauseIndicators' } ]
+          nullable: true
+          description: "Présent uniquement quand le résultat soumis concerne Reflective Pause."
         scoreBreakdown:
           type: array
           nullable: true

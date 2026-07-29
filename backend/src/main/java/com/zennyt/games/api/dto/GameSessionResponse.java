@@ -7,6 +7,7 @@ import com.zennyt.games.domain.vo.EmotionalRadarReport;
 import com.zennyt.games.domain.vo.MemoryQuestReport;
 import com.zennyt.games.domain.vo.MoveFastFlexibilityReport;
 import com.zennyt.games.domain.vo.PrevisionPuzzleReport;
+import com.zennyt.games.domain.vo.ReflectivePauseReport;
 import com.zennyt.games.domain.vo.ScoreBreakdown;
 
 import java.time.Instant;
@@ -30,6 +31,7 @@ public record GameSessionResponse(
     MemoryQuestIndicatorsResponse memoryQuestIndicators,
     DecisionIndicatorsResponse decisionIndicators,
     EmotionalRadarIndicatorsResponse emotionalRadarIndicators,
+    ReflectivePauseIndicatorsResponse reflectivePauseIndicators,
     List<ScoreBreakdownLineResponse> scoreBreakdown
 ) {
     /**
@@ -61,6 +63,28 @@ public record GameSessionResponse(
                     .map(c -> new ConfusionResponse(
                         c.expected().name(), c.selected().name()))
                     .toList());
+        }
+    }
+
+    /** Indicateurs de maîtrise de l'impulsivité (calculés serveur). */
+    public record ReflectivePauseIndicatorsResponse(
+        int momentsPlayed,
+        double controlledReactionTimeScore,
+        double nonImpulsiveResponsesScore,
+        double abilityToStepBackScore,
+        int impulsiveChoiceCount,
+        int averageResponseTimeMs,
+        String level
+    ) {
+        static ReflectivePauseIndicatorsResponse from(ReflectivePauseReport report) {
+            return new ReflectivePauseIndicatorsResponse(
+                report.momentsPlayed(),
+                report.controlledReactionTimeScore(),
+                report.nonImpulsiveResponsesScore(),
+                report.abilityToStepBackScore(),
+                report.impulsiveChoiceCount(),
+                report.averageResponseTimeMs(),
+                report.level());
         }
     }
     /** Résultat d'un mini-jeu au sein de la session. */
@@ -216,7 +240,7 @@ public record GameSessionResponse(
     }
 
     public static GameSessionResponse from(GameSession s) {
-        return from(s, null, null, null, null, null, null);
+        return from(s, null, null, null, null, null, null, null);
     }
 
     public static GameSessionResponse from(GameSession s,
@@ -225,6 +249,7 @@ public record GameSessionResponse(
                                            MemoryQuestReport memoryQuestReport,
                                            DecisionReport decisionReport,
                                            EmotionalRadarReport emotionalRadarReport,
+                                           ReflectivePauseReport reflectivePauseReport,
                                            ScoreBreakdown scoreBreakdown) {
         return new GameSessionResponse(
             s.id(), s.playerId(), s.gameType().name(), s.status().name(),
@@ -239,6 +264,8 @@ public record GameSessionResponse(
             decisionReport == null ? null : DecisionIndicatorsResponse.from(decisionReport),
             emotionalRadarReport == null ? null
                 : EmotionalRadarIndicatorsResponse.from(emotionalRadarReport),
+            reflectivePauseReport == null ? null
+                : ReflectivePauseIndicatorsResponse.from(reflectivePauseReport),
             scoreBreakdown == null ? null
                 : scoreBreakdown.lines().stream().map(ScoreBreakdownLineResponse::from).toList());
     }

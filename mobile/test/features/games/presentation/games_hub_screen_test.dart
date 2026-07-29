@@ -43,7 +43,7 @@ void main() {
     );
     expectAssetLogo(
       'category-game-logo-Memory Quest',
-      'assets/games icons/Memory Quest.png',
+      'assets/games icons/Memory Quest transparent.png',
     );
 
     final decisionCard = find.byKey(
@@ -57,7 +57,7 @@ void main() {
     await tester.pumpAndSettle();
     expectAssetLogo(
       'category-game-logo-Je Décide',
-      'assets/games icons/Je Decide.png',
+      'assets/games icons/Je Decide transparent.png',
     );
 
     final planningCard = find.byKey(
@@ -76,7 +76,7 @@ void main() {
     );
     expectAssetLogo(
       'category-game-logo-Optimal Path',
-      'assets/games icons/Optimal Path.png',
+      'assets/games icons/Optimal Path transparent.png',
     );
     expect(
       find.byKey(const ValueKey('category-game-logo-Task Scheduling')),
@@ -84,7 +84,7 @@ void main() {
     );
     expectAssetLogo(
       'category-game-logo-Task Scheduling',
-      'assets/games icons/Task Scheduling.png',
+      'assets/games icons/Task Scheduling transparent.png',
     );
     expect(
       find.byKey(const ValueKey('category-game-logo-Predictive Puzzle')),
@@ -92,7 +92,25 @@ void main() {
     );
     expectAssetLogo(
       'category-game-logo-Predictive Puzzle',
-      'assets/games icons/Predictive Puzzle.png',
+      'assets/games icons/Predictive Puzzle transparent.png',
+    );
+
+    final emotionCard = find.byKey(
+      const ValueKey('game-category-emotional-regulation'),
+    );
+    await tester.scrollUntilVisible(
+      emotionCard,
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    expectAssetLogo(
+      'category-game-logo-Emotional Radar',
+      'assets/games icons/Emotional Radar.png',
+    );
+    expectAssetLogo(
+      'category-game-logo-Reflective Pause',
+      'assets/games icons/Reflective Pause.png',
     );
 
     await tester.tap(planningCard);
@@ -105,7 +123,7 @@ void main() {
     );
     expectAssetLogo(
       'picker-game-logo-Optimal Path',
-      'assets/games icons/Optimal Path.png',
+      'assets/games icons/Optimal Path transparent.png',
     );
     expect(
       find.byKey(const ValueKey('picker-game-logo-Task Scheduling')),
@@ -113,7 +131,7 @@ void main() {
     );
     expectAssetLogo(
       'picker-game-logo-Task Scheduling',
-      'assets/games icons/Task Scheduling.png',
+      'assets/games icons/Task Scheduling transparent.png',
     );
     expect(
       find.byKey(const ValueKey('picker-game-logo-Predictive Puzzle')),
@@ -121,7 +139,20 @@ void main() {
     );
     expectAssetLogo(
       'picker-game-logo-Predictive Puzzle',
-      'assets/games icons/Predictive Puzzle.png',
+      'assets/games icons/Predictive Puzzle transparent.png',
+    );
+
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+    await tester.tap(emotionCard);
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('picker-game-logo-Emotional Radar')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('picker-game-logo-Reflective Pause')),
+      findsOneWidget,
     );
   });
 }

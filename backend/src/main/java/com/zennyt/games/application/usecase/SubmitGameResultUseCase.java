@@ -12,6 +12,7 @@ import com.zennyt.games.domain.service.DecisionScoringService;
 import com.zennyt.games.domain.service.EmotionalRadarScoringService;
 import com.zennyt.games.domain.service.MemoryQuestScoringService;
 import com.zennyt.games.domain.service.PlanifikScoringService;
+import com.zennyt.games.domain.service.ReflectivePauseScoringService;
 import com.zennyt.games.domain.service.ScoreBreakdownService;
 import com.zennyt.games.domain.vo.DecisionMetrics;
 import com.zennyt.games.domain.vo.DecisionReport;
@@ -27,6 +28,8 @@ import com.zennyt.games.domain.vo.MoveFastMetrics;
 import com.zennyt.games.domain.vo.PlanifikMetrics;
 import com.zennyt.games.domain.vo.PrevisionPuzzleMetrics;
 import com.zennyt.games.domain.vo.PrevisionPuzzleReport;
+import com.zennyt.games.domain.vo.ReflectivePauseMetrics;
+import com.zennyt.games.domain.vo.ReflectivePauseReport;
 import com.zennyt.games.domain.vo.Score;
 import com.zennyt.games.domain.vo.TaskSchedulingMetrics;
 import com.zennyt.shared.application.exception.NotFoundException;
@@ -62,6 +65,8 @@ public class SubmitGameResultUseCase {
     private final ScoreBreakdownService breakdown = new ScoreBreakdownService();
     private final MemoryQuestScoringService memoryQuest = new MemoryQuestScoringService();
     private final EmotionalRadarScoringService emotionalRadar = new EmotionalRadarScoringService();
+    private final ReflectivePauseScoringService reflectivePause =
+        new ReflectivePauseScoringService();
     private final DecisionScoringService decision;
 
     public SubmitGameResultUseCase(GameSessionRepository repository,
@@ -95,6 +100,7 @@ public class SubmitGameResultUseCase {
                           MemoryQuestReport memoryQuestReport,
                           DecisionReport decisionReport,
                           EmotionalRadarReport emotionalRadarReport,
+                          ReflectivePauseReport reflectivePauseReport,
                           ScoreBreakdown scoreBreakdown) {
     }
 
@@ -137,7 +143,17 @@ public class SubmitGameResultUseCase {
 
         return new Outcome(saved, moveFastReport(command, saved),
             previsionPuzzleReport(command), memoryQuestReport(command),
-            decisionReport, emotionalRadarReport(command), scoreBreakdown);
+            decisionReport, emotionalRadarReport(command),
+            reflectivePauseReport(command), scoreBreakdown);
+    }
+
+    /** Dérive les trois indicateurs de maîtrise de l'impulsivité ; null sinon. */
+    private ReflectivePauseReport reflectivePauseReport(SubmitGameResultCommand command) {
+        if (command.miniGame() != MiniGame.REFLECTIVE_PAUSE_CORE
+            || !(command.metrics() instanceof ReflectivePauseMetrics metrics)) {
+            return null;
+        }
+        return reflectivePause.report(metrics);
     }
 
     /** Dérive les indicateurs de reconnaissance émotionnelle ; null sinon. */
@@ -211,6 +227,8 @@ public class SubmitGameResultUseCase {
                 expectMetrics(command, EmotionalRadarMetrics.class);
                 yield emotionalRadar.score(gradedAnswers(command));
             }
+            case REFLECTIVE_PAUSE_CORE -> reflectivePause.score(
+                expectMetrics(command, ReflectivePauseMetrics.class));
         };
     }
 

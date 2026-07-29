@@ -63,6 +63,7 @@ public class GamesController {
             outcome.session(), outcome.moveFastReport(),
             outcome.previsionPuzzleReport(), outcome.memoryQuestReport(),
             outcome.decisionReport(), outcome.emotionalRadarReport(),
+            outcome.reflectivePauseReport(),
             outcome.scoreBreakdown()));
     }
 }

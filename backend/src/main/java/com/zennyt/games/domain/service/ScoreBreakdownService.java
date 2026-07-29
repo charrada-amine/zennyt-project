@@ -5,6 +5,7 @@ import com.zennyt.games.domain.config.MemoryQuestConfig;
 import com.zennyt.games.domain.config.MoveFastConfig;
 import com.zennyt.games.domain.config.OptimalPathConfig;
 import com.zennyt.games.domain.config.PrevisionPuzzleConfig;
+import com.zennyt.games.domain.config.ReflectivePauseConfig;
 import com.zennyt.games.domain.config.TaskSchedulingConfig;
 import com.zennyt.games.domain.vo.DecisionReport;
 import com.zennyt.games.domain.vo.GameMetrics;
@@ -14,6 +15,7 @@ import com.zennyt.games.domain.vo.OptimalPathLevel;
 import com.zennyt.games.domain.vo.PlanifikMetrics;
 import com.zennyt.games.domain.vo.PrevisionPuzzleLevel;
 import com.zennyt.games.domain.vo.PrevisionPuzzleMetrics;
+import com.zennyt.games.domain.vo.ReflectivePauseMetrics;
 import com.zennyt.games.domain.vo.Score;
 import com.zennyt.games.domain.vo.TaskSchedulingMetrics;
 import com.zennyt.games.domain.vo.ScoreBreakdown;
@@ -50,7 +52,32 @@ public class ScoreBreakdownService {
         if (metrics instanceof MemoryQuestMetrics m) {
             return memoryQuest(m, score);
         }
+        if (metrics instanceof ReflectivePauseMetrics m) {
+            return reflectivePause(m, score);
+        }
         return null;
+    }
+
+    /** Reflective Pause — trois indicateurs pondérés 3 + 4 + 3, total /10. */
+    public ScoreBreakdown reflectivePause(ReflectivePauseMetrics m, Score score) {
+        int total = m.moments().size();
+        double controlled = ReflectivePauseConfig.criterionScore(
+            m.controlledReactionCount(), total, ReflectivePauseConfig.CONTROLLED_REACTION_MAX);
+        double nonImpulsive = ReflectivePauseConfig.criterionScore(
+            m.nonImpulsiveCount(), total, ReflectivePauseConfig.NON_IMPULSIVE_MAX);
+        double stepBack = ReflectivePauseConfig.criterionScore(
+            m.stepBackCount(), total, ReflectivePauseConfig.STEP_BACK_MAX);
+        List<Line> lines = new ArrayList<>();
+        lines.add(Line.note("Temps contrôlé /3 + réponses non impulsives /4 + "
+            + "capacité à prendre du recul /3 ; la somme est arrondie une fois."));
+        lines.add(Line.info("Controlled reaction time",
+            m.controlledReactionCount() + "/" + total + " → " + controlled + "/3"));
+        lines.add(Line.info("Non-impulsive responses",
+            m.nonImpulsiveCount() + "/" + total + " → " + nonImpulsive + "/4"));
+        lines.add(Line.info("Ability to step back",
+            m.stepBackCount() + "/" + total + " → " + stepBack + "/3"));
+        lines.add(Line.total("Total", score.rawPoints(), score.maxPoints()));
+        return new ScoreBreakdown(lines);
     }
 
     /**

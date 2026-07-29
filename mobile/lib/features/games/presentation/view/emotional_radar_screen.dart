@@ -6,13 +6,24 @@ import '../../domain/entities/emotional_radar.dart';
 import '../../domain/entities/game_session.dart';
 import '../../domain/entities/game_type.dart';
 import '../../domain/entities/mini_game.dart';
+import '../emotional_regulation_session_provider.dart';
 import '../games_providers.dart';
+import '../widgets/emotional_game_pause_dialog.dart';
 import '../widgets/emotional_radar_components.dart';
 import 'emotional_radar_gameplay.dart';
 
 /// Étapes du parcours, calquées sur « Prototype logic » (Developer handoff) :
 /// Cover → Tutorial → Gameplay → Feedback → Transition → … → Results.
-enum _Stage { cover, tutorial, loading, gameplay, feedback, transition, results, error }
+enum _Stage {
+  cover,
+  tutorial,
+  loading,
+  gameplay,
+  feedback,
+  transition,
+  results,
+  error,
+}
 
 /// Écran complet d'« Emotional Radar » (régulation émotionnelle, « Je gère »).
 ///
@@ -26,7 +37,8 @@ class EmotionalRadarScreen extends ConsumerStatefulWidget {
   const EmotionalRadarScreen({super.key});
 
   @override
-  ConsumerState<EmotionalRadarScreen> createState() => _EmotionalRadarScreenState();
+  ConsumerState<EmotionalRadarScreen> createState() =>
+      _EmotionalRadarScreenState();
 }
 
 class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
@@ -62,9 +74,11 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
     return set.scenes[_sceneIndex];
   }
 
-  int get _totalScenes => _sceneSet?.totalScenes ?? EmotionalRadarConfig.pointsPerScene;
+  int get _totalScenes =>
+      _sceneSet?.totalScenes ?? EmotionalRadarConfig.pointsPerScene;
 
-  bool get _reducedMotion => MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+  bool get _reducedMotion =>
+      MediaQuery.maybeDisableAnimationsOf(context) ?? false;
 
   // ── Cycle de jeu ──────────────────────────────────────────────────────────
 
@@ -76,7 +90,13 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
 
     try {
       final repo = ref.read(gamesRepositoryProvider);
-      final session = await repo.startSession(GameType.emotionalRegulation);
+      final sharedSession = ref
+          .read(emotionalRegulationSessionProvider.notifier)
+          .reusableFor(MiniGame.emotionalRadarCore);
+      final session =
+          sharedSession ??
+          await repo.startSession(GameType.emotionalRegulation);
+      ref.read(emotionalRegulationSessionProvider.notifier).keep(session);
       final sceneSet = await repo.emotionalRadarScenes(session.id);
 
       if (!mounted) return;
@@ -116,8 +136,11 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
     final emotion = _emotion;
     final nuance = _nuance;
     final intensity = _intensity;
-    if (session == null || scene == null ||
-        emotion == null || nuance == null || intensity == null) {
+    if (session == null ||
+        scene == null ||
+        emotion == null ||
+        nuance == null ||
+        intensity == null) {
       return;
     }
 
@@ -126,24 +149,27 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
     try {
       // La correction est faite SERVEUR : l'écran ne connaît la réponse
       // attendue qu'à cet instant, dans la réponse HTTP.
-      final feedback = await ref.read(gamesRepositoryProvider)
+      final feedback = await ref
+          .read(gamesRepositoryProvider)
           .answerEmotionalRadarScene(
-        sessionId: session.id,
-        sceneId: scene.id,
-        emotion: emotion,
-        nuanceKey: nuance.key,
-        intensity: intensity,
-      );
+            sessionId: session.id,
+            sceneId: scene.id,
+            emotion: emotion,
+            nuanceKey: nuance.key,
+            intensity: intensity,
+          );
 
-      _metrics.add(EmotionalRadarSceneMetric(
-        sceneId: scene.id,
-        responseTimeMs: _sceneStartedAt == null
-            ? 0
-            : DateTime.now().difference(_sceneStartedAt!).inMilliseconds,
-        helpOpened: _helpOpenedThisScene,
-        fullscreenOpened: _fullscreenOpenedThisScene,
-        reducedMotion: _reducedMotion,
-      ));
+      _metrics.add(
+        EmotionalRadarSceneMetric(
+          sceneId: scene.id,
+          responseTimeMs: _sceneStartedAt == null
+              ? 0
+              : DateTime.now().difference(_sceneStartedAt!).inMilliseconds,
+          helpOpened: _helpOpenedThisScene,
+          fullscreenOpened: _fullscreenOpenedThisScene,
+          reducedMotion: _reducedMotion,
+        ),
+      );
 
       if (!mounted) return;
       setState(() {
@@ -198,12 +224,15 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
     try {
       // Ne remonte QUE des mesures comportementales : le score est reconstruit
       // serveur depuis les réponses déjà notées (AGENTS.md §7.4).
-      final updated = await ref.read(gamesRepositoryProvider).submitResult(
+      final updated = await ref
+          .read(gamesRepositoryProvider)
+          .submitResult(
             sessionId: session.id,
             miniGame: MiniGame.emotionalRadarCore,
             metrics: EmotionalRadarMetrics(scenes: List.of(_metrics)),
           );
       if (!mounted) return;
+      ref.read(emotionalRegulationSessionProvider.notifier).keep(updated);
       setState(() {
         _session = updated;
         _stage = _Stage.results;
@@ -220,10 +249,10 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
   // ── Overlays ──────────────────────────────────────────────────────────────
 
   Future<void> _openPause() async {
-    final action = await showDialog<String>(
+    final action = await showDialog<EmotionalGamePauseAction>(
       context: context,
       barrierColor: const Color(0xCC1B1B4B),
-      builder: (context) => _PauseDialog(
+      builder: (context) => EmotionalGamePauseDialog(
         soundEffects: _soundEffects,
         music: _music,
         buttonsInput: _buttonsInput,
@@ -232,9 +261,9 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
         onInputMode: (buttons) => setState(() => _buttonsInput = buttons),
       ),
     );
-    if (action == 'help') {
+    if (action == EmotionalGamePauseAction.rules) {
       await _openHelp();
-    } else if (action == 'exit' && mounted) {
+    } else if (action == EmotionalGamePauseAction.exit && mounted) {
       Navigator.of(context).maybePop();
     }
   }
@@ -270,26 +299,23 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
   Widget build(BuildContext context) {
     return switch (_stage) {
       _Stage.cover => _CoverView(
-          onStart: () => setState(() => _stage = _Stage.tutorial),
-          onViewRules: () => setState(() => _stage = _Stage.tutorial),
-        ),
+        onStart: () => setState(() => _stage = _Stage.tutorial),
+        onViewRules: () => setState(() => _stage = _Stage.tutorial),
+      ),
       _Stage.tutorial => _TutorialView(
-          onStart: _startGame,
-          onBack: () => setState(() => _stage = _Stage.cover),
-        ),
+        onStart: _startGame,
+        onBack: () => setState(() => _stage = _Stage.cover),
+      ),
       _Stage.loading => const _GameScaffold(child: _CenteredSpinner()),
       _Stage.transition => _buildShell(child: const _PreparingCard()),
       _Stage.gameplay => _buildGameplay(),
       _Stage.feedback => _buildFeedback(),
       _Stage.results => _ResultsView(
-          session: _session,
-          scenesPlayed: _metrics.length,
-          onReplay: _startGame,
-        ),
-      _Stage.error => _ErrorView(
-          message: _errorMessage,
-          onRetry: _startGame,
-        ),
+        session: _session,
+        scenesPlayed: _metrics.length,
+        onReplay: _startGame,
+      ),
+      _Stage.error => _ErrorView(message: _errorMessage, onRetry: _startGame),
     };
   }
 
@@ -327,7 +353,10 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
               // d'accessibilité interdit un contrôle uniquement iconique.
               IconButton(
                 onPressed: _openPause,
-                icon: const Icon(Icons.pause_circle_outline, color: Colors.white),
+                icon: const Icon(
+                  Icons.pause_circle_outline,
+                  color: Colors.white,
+                ),
                 tooltip: 'Pause',
               ),
             ],
@@ -439,9 +468,8 @@ class _CenteredSpinner extends StatelessWidget {
   const _CenteredSpinner();
 
   @override
-  Widget build(BuildContext context) => const Center(
-        child: CircularProgressIndicator(color: Colors.white),
-      );
+  Widget build(BuildContext context) =>
+      const Center(child: CircularProgressIndicator(color: Colors.white));
 }
 
 class _ProgressBar extends StatelessWidget {
@@ -460,7 +488,9 @@ class _ProgressBar extends StatelessWidget {
           value: value.clamp(0.0, 1.0),
           minHeight: 6,
           backgroundColor: Colors.white24,
-          valueColor: const AlwaysStoppedAnimation(EmotionalRadarPalette.magenta),
+          valueColor: const AlwaysStoppedAnimation(
+            EmotionalRadarPalette.magenta,
+          ),
         ),
       ),
     );
@@ -519,7 +549,9 @@ class _MagentaButton extends StatelessWidget {
           backgroundColor: EmotionalRadarPalette.magenta,
           foregroundColor: Colors.white,
           elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
+          ),
         ),
         child: Text(
           label,
@@ -546,7 +578,9 @@ class _WhiteOutlineButton extends StatelessWidget {
         style: OutlinedButton.styleFrom(
           foregroundColor: EmotionalRadarPalette.ink,
           side: const BorderSide(color: EmotionalRadarPalette.border),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
+          ),
         ),
         child: Text(
           label,
@@ -735,11 +769,8 @@ class _CoverHero extends StatelessWidget {
               width: 108,
               height: 108,
               fit: BoxFit.contain,
-              errorBuilder: (_, _, _) => const Icon(
-                Icons.favorite,
-                size: 72,
-                color: Colors.white,
-              ),
+              errorBuilder: (_, _, _) =>
+                  const Icon(Icons.favorite, size: 72, color: Colors.white),
             ),
           ),
         ],
@@ -877,8 +908,10 @@ class _BackSquareButton extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: EmotionalRadarPalette.border),
             ),
-            child: const Icon(Icons.chevron_left,
-                color: EmotionalRadarPalette.ink),
+            child: const Icon(
+              Icons.chevron_left,
+              color: EmotionalRadarPalette.ink,
+            ),
           ),
         ),
       ),
@@ -889,260 +922,6 @@ class _BackSquareButton extends StatelessWidget {
 // ══════════════════════════════════════════════════════════════════════════
 // Overlays : pause, aide, plein écran
 // ══════════════════════════════════════════════════════════════════════════
-
-/// Menu pause : mode d'entrée, options audio, reprise / règles / sortie.
-class _PauseDialog extends StatefulWidget {
-  const _PauseDialog({
-    required this.soundEffects,
-    required this.music,
-    required this.buttonsInput,
-    required this.onSoundEffects,
-    required this.onMusic,
-    required this.onInputMode,
-  });
-
-  final bool soundEffects;
-  final bool music;
-  final bool buttonsInput;
-  final ValueChanged<bool> onSoundEffects;
-  final ValueChanged<bool> onMusic;
-  final ValueChanged<bool> onInputMode;
-
-  @override
-  State<_PauseDialog> createState() => _PauseDialogState();
-}
-
-class _PauseDialogState extends State<_PauseDialog> {
-  late bool _sound = widget.soundEffects;
-  late bool _music = widget.music;
-  late bool _buttons = widget.buttonsInput;
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: Colors.white,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 26, vertical: 60),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(22, 28, 22, 22),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Pause',
-              style: TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.w800,
-                color: EmotionalRadarPalette.ink,
-              ),
-            ),
-            const SizedBox(height: 26),
-            const Text(
-              'Input mode',
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w700,
-                color: EmotionalRadarPalette.ink,
-              ),
-            ),
-            const SizedBox(height: 12),
-            _InputModeToggle(
-              buttonsSelected: _buttons,
-              onChanged: (v) {
-                setState(() => _buttons = v);
-                widget.onInputMode(v);
-              },
-            ),
-            const SizedBox(height: 22),
-            const Text(
-              'Audio options',
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w700,
-                color: EmotionalRadarPalette.ink,
-              ),
-            ),
-            const SizedBox(height: 12),
-            _AudioRow(
-              label: 'Sound effects',
-              value: _sound,
-              onChanged: (v) {
-                setState(() => _sound = v);
-                widget.onSoundEffects(v);
-              },
-            ),
-            const SizedBox(height: 10),
-            _AudioRow(
-              label: 'Music',
-              value: _music,
-              onChanged: (v) {
-                setState(() => _music = v);
-                widget.onMusic(v);
-              },
-            ),
-            const SizedBox(height: 18),
-            _MagentaButton(
-              label: 'Resume',
-              onPressed: () => Navigator.of(context).pop('resume'),
-            ),
-            const SizedBox(height: 12),
-            _WhiteOutlineButton(
-              label: 'View rules / Help',
-              onPressed: () => Navigator.of(context).pop('help'),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: OutlinedButton(
-                onPressed: () => Navigator.of(context).pop('exit'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: EmotionalRadarPalette.errorFg,
-                  backgroundColor: const Color(0xFFFDF6F6),
-                  side: const BorderSide(color: Color(0xFFF3C9C9)),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-                child: const Text(
-                  'Exit mission',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _InputModeToggle extends StatelessWidget {
-  const _InputModeToggle({required this.buttonsSelected, required this.onChanged});
-
-  final bool buttonsSelected;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(5),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF1F5FC),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: _ToggleHalf(
-              label: 'Buttons',
-              selected: buttonsSelected,
-              onTap: () => onChanged(true),
-            ),
-          ),
-          Expanded(
-            child: _ToggleHalf(
-              label: 'Tactile',
-              selected: !buttonsSelected,
-              onTap: () => onChanged(false),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ToggleHalf extends StatelessWidget {
-  const _ToggleHalf({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      selected: selected,
-      label: '$label input mode',
-      child: InkWell(
-        borderRadius: BorderRadius.circular(10),
-        onTap: onTap,
-        child: Container(
-          height: 44,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: selected ? EmotionalRadarPalette.canvas : Colors.transparent,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: selected ? Colors.white : EmotionalRadarPalette.ink,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _AudioRow extends StatelessWidget {
-  const _AudioRow({
-    required this.label,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final String label;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: EmotionalRadarPalette.border),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: EmotionalRadarPalette.ink,
-              ),
-            ),
-          ),
-          // Le mot « On »/« Off » double l'interrupteur : jamais la couleur seule.
-          Text(
-            value ? 'On' : 'Off',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: value
-                  ? EmotionalRadarPalette.successFg
-                  : EmotionalRadarPalette.muted,
-            ),
-          ),
-          Switch(value: value, onChanged: onChanged),
-        ],
-      ),
-    );
-  }
-}
 
 /// Aide en pause : rappel des cinq étapes, sans pénalité.
 class _HelpDialog extends StatelessWidget {
@@ -1600,7 +1379,10 @@ class _ErrorView extends StatelessWidget {
                 onPressed: () => Navigator.of(context).maybePop(),
                 child: const Text(
                   'Back to games',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ],

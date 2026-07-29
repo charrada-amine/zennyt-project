@@ -23,6 +23,9 @@ import com.zennyt.games.domain.vo.OptimalPathLevel;
 import com.zennyt.games.domain.vo.PlanifikMetrics;
 import com.zennyt.games.domain.vo.PrevisionPuzzleLevel;
 import com.zennyt.games.domain.vo.PrevisionPuzzleMetrics;
+import com.zennyt.games.domain.vo.ReflectivePauseMetrics;
+import com.zennyt.games.domain.vo.ReflectivePauseMomentMetric;
+import com.zennyt.games.domain.vo.ReflectivePauseResponseType;
 import com.zennyt.games.domain.vo.SecondaryObjectivesReached;
 import com.zennyt.games.domain.vo.TaskSchedulingMetrics;
 import jakarta.validation.Valid;
@@ -86,7 +89,10 @@ public record SubmitResultRequest(
         @Min(0) Integer motivation,
         // « Emotional Radar » — mesures COMPORTEMENTALES uniquement. Aucune réponse
         // ni point : le score vient des réponses notées serveur scène par scène.
-        @Size(min = 1) @Valid List<EmotionalRadarScenePayload> emotionalRadarScenes
+        @Size(min = 1) @Valid List<EmotionalRadarScenePayload> emotionalRadarScenes,
+        // « Reflective Pause » — 10 choix + timings bruts, aucun point.
+        @Size(min = 10, max = 10) @Valid
+        List<ReflectivePauseMomentPayload> reflectivePauseMoments
     ) {}
 
     /**
@@ -102,6 +108,14 @@ public record SubmitResultRequest(
         Boolean helpOpened,
         Boolean fullscreenOpened,
         Boolean reducedMotion
+    ) {}
+
+    /** Mesures brutes d'un moment « Reflective Pause ». */
+    public record ReflectivePauseMomentPayload(
+        @NotNull String momentId,
+        @NotNull ReflectivePauseResponseType selectedResponse,
+        @NotNull @Min(0) Integer responseTimeMs,
+        @NotNull Boolean minimumTimerReached
     ) {}
 
     /** Socle de calibrage appareil (optionnel). Le score n'en dépend pas pour Move Fast. */
@@ -249,7 +263,19 @@ public record SubmitResultRequest(
             case EMOTIONAL_RADAR_CORE -> new EmotionalRadarMetrics(
                 required(metrics.emotionalRadarScenes(), "emotionalRadarScenes").stream()
                     .map(SubmitResultRequest::toEmotionalRadarScene).toList());
+            case REFLECTIVE_PAUSE_CORE -> new ReflectivePauseMetrics(
+                required(metrics.reflectivePauseMoments(), "reflectivePauseMoments").stream()
+                    .map(SubmitResultRequest::toReflectivePauseMoment).toList());
         };
+    }
+
+    private static ReflectivePauseMomentMetric toReflectivePauseMoment(
+            ReflectivePauseMomentPayload payload) {
+        return new ReflectivePauseMomentMetric(
+            required(payload.momentId(), "momentId"),
+            required(payload.selectedResponse(), "selectedResponse"),
+            required(payload.responseTimeMs(), "responseTimeMs"),
+            required(payload.minimumTimerReached(), "minimumTimerReached"));
     }
 
     private static EmotionalRadarSceneMetric toEmotionalRadarScene(EmotionalRadarScenePayload p) {
