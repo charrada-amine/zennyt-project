@@ -578,85 +578,113 @@ class _PlanePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
+    final silhouette = Path()
+      ..moveTo(w * 0.03, h * 0.39)
+      ..quadraticBezierTo(w * 0.04, h * 0.35, w * 0.08, h * 0.37)
+      ..lineTo(w * 0.17, h * 0.45)
+      ..lineTo(w * 0.32, h * 0.45)
+      ..lineTo(w * 0.20, h * 0.21)
+      ..quadraticBezierTo(w * 0.18, h * 0.16, w * 0.24, h * 0.18)
+      ..lineTo(w * 0.64, h * 0.40)
+      ..lineTo(w * 0.79, h * 0.42)
+      ..lineTo(w * 0.97, h * 0.49)
+      ..quadraticBezierTo(w, h * 0.50, w * 0.97, h * 0.51)
+      ..lineTo(w * 0.79, h * 0.58)
+      ..lineTo(w * 0.64, h * 0.60)
+      ..lineTo(w * 0.24, h * 0.82)
+      ..quadraticBezierTo(w * 0.18, h * 0.84, w * 0.20, h * 0.79)
+      ..lineTo(w * 0.32, h * 0.55)
+      ..lineTo(w * 0.17, h * 0.55)
+      ..lineTo(w * 0.08, h * 0.63)
+      ..quadraticBezierTo(w * 0.04, h * 0.65, w * 0.03, h * 0.61)
+      ..lineTo(w * 0.08, h * 0.50)
+      ..close();
+    final upperWingPanel = Path()
+      ..moveTo(w * 0.29, h * 0.26)
+      ..lineTo(w * 0.61, h * 0.42)
+      ..lineTo(w * 0.76, h * 0.45)
+      ..lineTo(w * 0.38, h * 0.43)
+      ..close();
+    final lowerWingPanel = Path()
+      ..moveTo(w * 0.38, h * 0.57)
+      ..lineTo(w * 0.76, h * 0.55)
+      ..lineTo(w * 0.61, h * 0.58)
+      ..lineTo(w * 0.29, h * 0.74)
+      ..close();
+    final upperTailPanel = Path()
+      ..moveTo(w * 0.07, h * 0.40)
+      ..lineTo(w * 0.18, h * 0.47)
+      ..lineTo(w * 0.29, h * 0.47)
+      ..lineTo(w * 0.12, h * 0.39)
+      ..close();
+    final lowerTailPanel = Path()
+      ..moveTo(w * 0.12, h * 0.61)
+      ..lineTo(w * 0.29, h * 0.53)
+      ..lineTo(w * 0.18, h * 0.53)
+      ..lineTo(w * 0.07, h * 0.60)
+      ..close();
+
     final shadow = Paint()
-      ..color = ZennytGamePalette.ink.withValues(alpha: 0.12)
-      ..style = PaintingStyle.fill;
+      ..color = const Color(0xFF574BFF).withValues(alpha: 0.28)
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, w * 0.018);
     final outline = Paint()
-      ..color = const Color(0xFFD8D9FF)
+      ..color = const Color(0xFF4C46FF)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = w * 0.065
+      ..strokeWidth = w * 0.018
       ..strokeJoin = StrokeJoin.round
       ..strokeCap = StrokeCap.round;
-    final white = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
-    final accent = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
-    final ink = Paint()
-      ..color = ZennytGamePalette.ink
-      ..strokeWidth = w * 0.045
-      ..strokeCap = StrokeCap.round;
-    final cyan = Paint()
-      ..color = ZennytGamePalette.cyan
-      ..style = PaintingStyle.fill;
-
-    final body = Path()
-      ..moveTo(w * 0.08, h * 0.50)
-      ..quadraticBezierTo(w * 0.50, h * 0.30, w * 0.92, h * 0.50)
-      ..quadraticBezierTo(w * 0.50, h * 0.70, w * 0.08, h * 0.50)
-      ..close();
-    final leftWing = Path()
-      ..moveTo(w * 0.45, h * 0.43)
-      ..lineTo(w * 0.22, h * 0.12)
-      ..lineTo(w * 0.65, h * 0.36)
-      ..close();
-    final rightWing = Path()
-      ..moveTo(w * 0.45, h * 0.57)
-      ..lineTo(w * 0.22, h * 0.88)
-      ..lineTo(w * 0.65, h * 0.64)
-      ..close();
-    final tailTop = Path()
-      ..moveTo(w * 0.22, h * 0.46)
-      ..lineTo(w * 0.02, h * 0.26)
-      ..lineTo(w * 0.32, h * 0.42)
-      ..close();
-    final tailBottom = Path()
-      ..moveTo(w * 0.22, h * 0.54)
-      ..lineTo(w * 0.02, h * 0.74)
-      ..lineTo(w * 0.32, h * 0.58)
-      ..close();
+    final white = Paint()..color = const Color(0xFFFDFDFF);
+    final panel = Paint()..color = const Color(0xFFD9D9EF);
+    final accent = Paint()..color = color;
+    final underBody = Paint()..color = const Color(0xFFD8D9E4);
+    final cockpit = Paint()..color = const Color(0xFF343052);
 
     canvas.save();
-    canvas.translate(w * 0.06, h * 0.08);
-    canvas.drawPath(body, shadow);
-    canvas.drawPath(leftWing, shadow);
-    canvas.drawPath(rightWing, shadow);
-    canvas.drawPath(tailTop, shadow);
-    canvas.drawPath(tailBottom, shadow);
+    canvas.translate(-w * 0.012, h * 0.035);
+    canvas.drawPath(silhouette, shadow);
     canvas.restore();
 
-    for (final path in [leftWing, rightWing, tailTop, tailBottom, body]) {
-      canvas.drawPath(path, outline);
-      canvas.drawPath(path, white);
-    }
-    canvas.drawPath(leftWing, accent);
-    canvas.drawPath(rightWing, accent);
-    canvas.drawPath(tailTop, accent);
-    canvas.drawPath(tailBottom, accent);
-    canvas.drawPath(body, white);
-    canvas.drawLine(
-      Offset(w * 0.16, h * 0.50),
-      Offset(w * 0.78, h * 0.50),
-      ink,
-    );
+    canvas.drawPath(silhouette, white);
+    canvas.drawPath(silhouette, outline);
+    canvas.drawPath(upperTailPanel, panel);
+    canvas.drawPath(lowerTailPanel, panel);
+    canvas.drawPath(upperWingPanel, accent);
+    canvas.drawPath(lowerWingPanel, accent);
 
-    final nose = Path()
-      ..moveTo(w * 0.88, h * 0.50)
-      ..lineTo(w * 0.74, h * 0.42)
-      ..lineTo(w * 0.74, h * 0.58)
+    final fuselage = Path()
+      ..moveTo(w * 0.08, h * 0.43)
+      ..lineTo(w * 0.74, h * 0.43)
+      ..quadraticBezierTo(w * 0.86, h * 0.43, w * 0.97, h * 0.50)
+      ..quadraticBezierTo(w * 0.86, h * 0.57, w * 0.74, h * 0.57)
+      ..lineTo(w * 0.08, h * 0.57)
+      ..lineTo(w * 0.14, h * 0.50)
       ..close();
-    canvas.drawPath(nose, cyan);
+    canvas.drawPath(fuselage, white);
+    final lowerFuselage = Path()
+      ..moveTo(w * 0.11, h * 0.51)
+      ..lineTo(w * 0.77, h * 0.51)
+      ..quadraticBezierTo(w * 0.86, h * 0.51, w * 0.92, h * 0.50)
+      ..quadraticBezierTo(w * 0.84, h * 0.56, w * 0.74, h * 0.56)
+      ..lineTo(w * 0.08, h * 0.56)
+      ..close();
+    canvas.drawPath(lowerFuselage, underBody);
+
+    final centerStripe = Path()
+      ..moveTo(w * 0.15, h * 0.485)
+      ..lineTo(w * 0.80, h * 0.485)
+      ..quadraticBezierTo(w * 0.88, h * 0.485, w * 0.94, h * 0.50)
+      ..quadraticBezierTo(w * 0.88, h * 0.515, w * 0.80, h * 0.515)
+      ..lineTo(w * 0.15, h * 0.515)
+      ..close();
+    canvas.drawPath(centerStripe, accent);
+
+    final canopyPath = Path()
+      ..moveTo(w * 0.69, h * 0.43)
+      ..lineTo(w * 0.82, h * 0.43)
+      ..quadraticBezierTo(w * 0.87, h * 0.44, w * 0.89, h * 0.47)
+      ..lineTo(w * 0.68, h * 0.47)
+      ..close();
+    canvas.drawPath(canopyPath, cockpit);
   }
 
   @override

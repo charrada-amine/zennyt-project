@@ -691,8 +691,10 @@ feedback visuel reste cohérent : **vert = Orientation**, **jaune/orange = Mouve
 
 - `GameDirectionControls` : D-pad **compact centré** (croix de largeur `buttonSize*3 + gap*2`),
   aligné sur la maquette Figma.
-- `MoveFastPlane` / `_PlanePainter` : avion vectoriel. Sur le plateau, `_ScrollingPlane` fait
-  **défiler les avions en continu** (boucle avec wrap) dans la direction du mouvement.
+- `MoveFastPlane` / `_PlanePainter` : avion vectoriel calé sur la référence Figma
+  `04 Move Fast/Move Fast Pro/Plane trail/next.png` (silhouette blanche, panneaux de règle,
+  contour et ombre bleu-violet). Sur le plateau, `_ScrollingPlane` fait **défiler les avions en
+  continu** (boucle avec wrap) dans la direction du mouvement, sans ligne de trajectoire.
 - `_RulesDialog` : aide « Règles » avec deux cartes codées couleur (vert Orientation / orange
   Mouvement) au lieu d'un simple `AlertDialog`.
 
@@ -829,6 +831,12 @@ vous touchez à l'un de ces chemins :
 - [ ] Un barème change → mettre à jour la section **Barème** (backend **et** mock mobile doivent rester identiques).
 - [ ] Un nouveau jeu/mini-jeu devient jouable → mettre à jour le **tableau de statut** et la **roadmap**.
 - [ ] Mettre à jour la ligne ci-dessous.
+
+**Changelog (36) — 2026-07-29** : Move Fast mobile — avion vectoriel réaligné sur la référence
+Figma `04 Move Fast/Move Fast Pro/Plane trail/next.png` (silhouette, ailes, panneaux, contour et
+ombre), en conservant la couleur dynamique de la règle ; suppression des lignes de trajectoire du
+plateau. Aucun asset embarqué, barème, contrat, endpoint ou event modifié. Zones protégées
+inchangées.
 
 **Changelog (35) — 2026-07-29** : harmonisation visuelle du hub Games. Les logos
 **Memory Quest, Je Décide, Optimal Path, Task Scheduling et Predictive Puzzle** utilisent désormais
@@ -973,6 +981,6 @@ Je Décide, Optimal Path, Task Scheduling, Predictive Puzzle), affichés à l'id
 les cartes de catégorie et le sélecteur. Contrôle qualité : fichiers nets et transparents,
 aucune régénération nécessaire. Aucun barème, contrat, endpoint ou event modifié.
 
-**Dernière mise à jour** : 2026-07-29 — **(35)** logos du hub harmonisés avec Emotional
-Regulation : cinq variantes PNG détourées sans fond violet, lisibles sur fond blanc dans les cartes
-et les pickers.
+**Dernière mise à jour** : 2026-07-29 — **(36)** Move Fast mobile : avion vectoriel réaligné sur
+la référence Figma et lignes de trajectoire du plateau supprimées. Aucun asset embarqué, barème,
+contrat, endpoint ou event modifié.
