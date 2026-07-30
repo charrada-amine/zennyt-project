@@ -1,3 +1,4 @@
+import 'continuous_attention_metrics.dart';
 import 'game_score.dart';
 import 'game_type.dart';
 import 'mini_game.dart';
@@ -31,6 +32,7 @@ class GameSession {
     this.completedAt,
     this.scoreBreakdown = const [],
     this.reflectivePauseIndicators,
+    this.continuousAttentionIndicators,
   });
 
   final String id;
@@ -48,6 +50,9 @@ class GameSession {
 
   /// Présent après une soumission Reflective Pause.
   final ReflectivePauseIndicators? reflectivePauseIndicators;
+
+  /// Présent après une soumission « Je continue ».
+  final ContinuousAttentionIndicators? continuousAttentionIndicators;
 
   bool get isCompleted => status == 'COMPLETED';
 

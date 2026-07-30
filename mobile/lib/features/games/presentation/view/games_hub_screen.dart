@@ -22,6 +22,7 @@ const _iconEmotion = 'assets/games icons/Emotional Regulation .png';
 
 // Logos officiels des jeux, repris des premières pages de chaque jeu.
 const _logoMoveFast = 'assets/games icons/Move Fast.png';
+const _logoJeContinue = 'assets/games icons/Je Continue.png';
 const _logoMemoryQuest = 'assets/games icons/Memory Quest transparent.png';
 const _logoJeDecide = 'assets/games icons/Je Decide transparent.png';
 const _logoOptimalPath = 'assets/games icons/Optimal Path transparent.png';
@@ -75,6 +76,8 @@ class GamesHubScreen extends ConsumerWidget {
                     key: const ValueKey('game-category-cognitive-flexibility'),
                     title: 'Cognitive Flexibility',
                     iconAsset: _iconFlexibility,
+                    durationLabel: '2–25 min',
+                    aptitudeLabel: '2 games',
                     games: const [
                       _GameEntry(
                         label: 'Move Fast',
@@ -82,6 +85,13 @@ class GamesHubScreen extends ConsumerWidget {
                         route: AppRoutes.gamesMoveFast,
                         logoAsset: _logoMoveFast,
                         fallbackIcon: Icons.near_me_rounded,
+                      ),
+                      _GameEntry(
+                        label: 'Je continue',
+                        subtitle: 'Sustained attention · 25 min',
+                        route: AppRoutes.gamesJeContinue,
+                        logoAsset: _logoJeContinue,
+                        fallbackIcon: Icons.all_inclusive_rounded,
                       ),
                     ],
                   ),
@@ -186,29 +196,45 @@ class _GamesHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 80,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: _HeaderButton(onTap: onBack),
-          ),
-          Text(
-            'Play & discover\nyour talent',
-            textAlign: TextAlign.center,
-            style: AppTypography.headlineLarge.copyWith(
-              color: _ink,
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-              height: 1.3,
-              letterSpacing: 0,
-            ),
-          ),
-          const Align(alignment: Alignment.centerRight, child: _ProfileBadge()),
-        ],
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    final title = Text(
+      'Play & discover\nyour talent',
+      textAlign: TextAlign.center,
+      style: AppTypography.headlineLarge.copyWith(
+        color: _ink,
+        fontSize: 24,
+        fontWeight: FontWeight.w800,
+        height: 1.3,
+        letterSpacing: 0,
       ),
+    );
+
+    if (textScale > 1.5) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _HeaderButton(onTap: onBack),
+              const _ProfileBadge(),
+            ],
+          ),
+          const SizedBox(height: 12),
+          title,
+        ],
+      );
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        _HeaderButton(onTap: onBack),
+        const SizedBox(width: 12),
+        Expanded(child: title),
+        const SizedBox(width: 12),
+        const _ProfileBadge(),
+      ],
     );
   }
 }
@@ -220,26 +246,35 @@ class _HeaderButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(10),
-      elevation: 6,
-      shadowColor: Colors.black.withValues(alpha: 0.08),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          width: 56,
-          height: 56,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
+    return Semantics(
+      button: true,
+      label: 'Back',
+      child: Tooltip(
+        message: 'Back',
+        excludeFromSemantics: true,
+        child: Material(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          elevation: 6,
+          shadowColor: Colors.black.withValues(alpha: 0.08),
+          child: InkWell(
+            excludeFromSemantics: true,
+            onTap: onTap,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0xFFF0F0F3)),
-          ),
-          child: const Icon(
-            Icons.chevron_left_rounded,
-            color: Colors.black,
-            size: 32,
+            child: Container(
+              width: 56,
+              height: 56,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFF0F0F3)),
+              ),
+              child: const Icon(
+                Icons.chevron_left_rounded,
+                color: Colors.black,
+                size: 32,
+              ),
+            ),
           ),
         ),
       ),
@@ -326,10 +361,14 @@ class _GameCategoryCard extends StatelessWidget {
     required this.title,
     required this.iconAsset,
     this.games = const [],
+    this.durationLabel = '10-13mins',
+    this.aptitudeLabel = 'N° aptitudes',
   });
 
   final String title;
   final String iconAsset;
+  final String durationLabel;
+  final String aptitudeLabel;
 
   /// Jeux de la catégorie. Vide → module non implémenté (carte inactive).
   /// 1 jeu → navigation directe. Plusieurs → petit menu de sélection.
@@ -349,104 +388,68 @@ class _GameCategoryCard extends StatelessWidget {
     // Une carte sans jeu = module non implémenté → visuellement inactive.
     final enabled = games.isNotEmpty;
     final onTap = enabled ? () => _handleTap(context) : null;
+    final largeText = MediaQuery.textScalerOf(context).scale(1) > 1.5;
+    final titleRow = _CategoryTitleRow(title: title, enabled: enabled);
+    final logos = _CategoryGameLogos(games: games);
+    final illustration = _CategoryIllustration(
+      asset: iconAsset,
+      width: largeText ? 76 : 94,
+      height: largeText ? 72 : 88,
+    );
+    final metadata = _CategoryMetadata(
+      durationLabel: durationLabel,
+      aptitudeLabel: aptitudeLabel,
+      stacked: largeText,
+    );
+
     final content = Container(
-      height: 116,
+      constraints: const BoxConstraints(minHeight: 116),
       padding: const EdgeInsets.fromLTRB(24, 12, 10, 10),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: _blue, width: 1.2),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
+      child: largeText
+          ? Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
+                titleRow,
+                const SizedBox(height: 8),
                 Row(
-                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Flexible(
-                      // « Emotional Regulation » est plus long que les autres
-                      // titres : à 20 px il se tronquait en « Emotional R… ».
-                      // On le réduit pour qu'il tienne, au lieu de le couper —
-                      // passer à la ligne ferait déborder la carte (hauteur fixe).
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          title,
-                          maxLines: 1,
-                          style: AppTypography.titleLarge.copyWith(
-                            color: _blue,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    if (enabled)
-                      const Icon(
-                        Icons.keyboard_arrow_down_rounded,
-                        color: _blue,
-                        size: 24,
-                      )
-                    else
-                      const _ComingSoonBadge(),
+                    Expanded(child: logos),
+                    const SizedBox(width: 10),
+                    illustration,
                   ],
                 ),
                 const SizedBox(height: 8),
-                _CategoryGameLogos(games: games),
-                const Spacer(),
-                const FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Row(
-                    children: [
-                      _MetaIcon(icon: Icons.timer_outlined),
-                      SizedBox(width: 6),
-                      Text(
-                        '10-13mins',
-                        style: TextStyle(
-                          color: _muted,
-                          fontFamily: AppTypography.fontFamily,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 0,
-                        ),
+                metadata,
+              ],
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [titleRow, const SizedBox(height: 8), logos],
                       ),
-                      SizedBox(width: 30),
-                      _MetaIcon(icon: Icons.bar_chart_rounded),
-                      SizedBox(width: 6),
-                      Text(
-                        'N° aptitudes',
-                        style: TextStyle(
-                          color: _muted,
-                          fontFamily: AppTypography.fontFamily,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 0,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 10),
+                    illustration,
+                  ],
                 ),
+                const SizedBox(height: 6),
+                metadata,
               ],
             ),
-          ),
-          SizedBox(
-            width: 94,
-            height: 88,
-            child: Image.asset(
-              iconAsset,
-              fit: BoxFit.contain,
-              filterQuality: FilterQuality.medium,
-            ),
-          ),
-        ],
-      ),
     );
 
     return Material(
@@ -461,6 +464,130 @@ class _GameCategoryCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           child: enabled ? content : Opacity(opacity: 0.55, child: content),
         ),
+      ),
+    );
+  }
+}
+
+class _CategoryTitleRow extends StatelessWidget {
+  const _CategoryTitleRow({required this.title, required this.enabled});
+
+  final String title;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Text(
+            title,
+            style: AppTypography.titleLarge.copyWith(
+              color: _blue,
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0,
+            ),
+          ),
+        ),
+        const SizedBox(width: 6),
+        if (enabled)
+          const Icon(Icons.keyboard_arrow_down_rounded, color: _blue, size: 24)
+        else
+          const _ComingSoonBadge(),
+      ],
+    );
+  }
+}
+
+class _CategoryMetadata extends StatelessWidget {
+  const _CategoryMetadata({
+    required this.durationLabel,
+    required this.aptitudeLabel,
+    required this.stacked,
+  });
+
+  final String durationLabel;
+  final String aptitudeLabel;
+  final bool stacked;
+
+  @override
+  Widget build(BuildContext context) {
+    final duration = _CategoryMetadataItem(
+      icon: Icons.timer_outlined,
+      label: durationLabel,
+    );
+    final aptitude = _CategoryMetadataItem(
+      icon: Icons.bar_chart_rounded,
+      label: aptitudeLabel,
+    );
+
+    if (stacked) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [duration, const SizedBox(height: 6), aptitude],
+      );
+    }
+
+    return Wrap(
+      spacing: 20,
+      runSpacing: 6,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [duration, aptitude],
+    );
+  }
+}
+
+class _CategoryMetadataItem extends StatelessWidget {
+  const _CategoryMetadataItem({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _MetaIcon(icon: icon),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: const TextStyle(
+            color: _muted,
+            fontFamily: AppTypography.fontFamily,
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
+            letterSpacing: 0,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CategoryIllustration extends StatelessWidget {
+  const _CategoryIllustration({
+    required this.asset,
+    required this.width,
+    required this.height,
+  });
+
+  final String asset;
+  final double width;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      height: height,
+      child: Image.asset(
+        asset,
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.medium,
       ),
     );
   }

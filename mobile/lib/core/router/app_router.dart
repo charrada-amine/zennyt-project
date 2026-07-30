@@ -25,6 +25,7 @@ import '../../features/profile_settings/presentation/view/personal_informations_
 import '../../features/profile_settings/presentation/view/privacy_policy_screen.dart';
 import '../../features/navigation/presentation/view/main_navigation_screen.dart';
 import '../../features/games/presentation/view/emotional_radar_screen.dart';
+import '../../features/games/presentation/view/continuous_attention_screen.dart';
 import '../../features/games/presentation/view/investigate_screen.dart';
 import '../../features/games/presentation/view/je_decide_screen.dart';
 import '../../features/games/presentation/view/move_fast_screen.dart';
@@ -180,6 +181,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.gamesMoveFast,
         name: AppRoutes.nGamesMoveFast,
         builder: (context, state) => const MoveFastScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.gamesJeContinue,
+        name: AppRoutes.nGamesJeContinue,
+        builder: (context, state) => const ContinuousAttentionScreen(),
       ),
       GoRoute(
         path: AppRoutes.gamesPredictivePuzzle,

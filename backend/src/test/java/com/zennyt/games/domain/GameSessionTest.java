@@ -168,6 +168,24 @@ class GameSessionTest {
     }
 
     @Test
+    void continuousAttention_is_separate_and_completes_on_its_single_core_game() {
+        GameSession session =
+            GameSession.start(UUID.randomUUID(), GameType.CONTINUOUS_ATTENTION);
+        Score score = new Score(84, 100, "Descriptive — provisional");
+
+        session.recordResult(MiniGame.CONTINUOUS_ATTENTION_CORE, score, scoring);
+
+        assertEquals(SessionStatus.COMPLETED, session.status());
+        assertEquals(84, session.compositeRaw());
+        assertEquals(100, session.compositeMax());
+        assertEquals(1, session.domainEvents().size());
+        GameResultRecordedEvent event =
+            assertInstanceOf(GameResultRecordedEvent.class, session.domainEvents().get(0));
+        assertEquals(GameType.CONTINUOUS_ATTENTION, event.gameType());
+        assertEquals("Descriptive — provisional", event.level());
+    }
+
+    @Test
     void recording_a_foreign_minigame_is_rejected() {
         GameSession session = GameSession.start(UUID.randomUUID(), GameType.MEMORY_QUEST);
         Score score = new Score(10, 10, "Bon à excellent");

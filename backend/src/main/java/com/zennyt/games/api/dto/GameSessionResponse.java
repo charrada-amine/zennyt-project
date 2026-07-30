@@ -3,6 +3,9 @@ package com.zennyt.games.api.dto;
 import com.zennyt.games.domain.model.Attempt;
 import com.zennyt.games.domain.model.GameSession;
 import com.zennyt.games.domain.vo.DecisionReport;
+import com.zennyt.games.domain.vo.ContinuousAttentionEpochReport;
+import com.zennyt.games.domain.vo.ContinuousAttentionPhaseReport;
+import com.zennyt.games.domain.vo.ContinuousAttentionReport;
 import com.zennyt.games.domain.vo.EmotionalRadarReport;
 import com.zennyt.games.domain.vo.MemoryQuestReport;
 import com.zennyt.games.domain.vo.MoveFastFlexibilityReport;
@@ -32,8 +35,93 @@ public record GameSessionResponse(
     DecisionIndicatorsResponse decisionIndicators,
     EmotionalRadarIndicatorsResponse emotionalRadarIndicators,
     ReflectivePauseIndicatorsResponse reflectivePauseIndicators,
+    ContinuousAttentionIndicatorsResponse continuousAttentionIndicators,
     List<ScoreBreakdownLineResponse> scoreBreakdown
 ) {
+    /** Rapport descriptif Long Rosvold X/AX, sans norme ni bande clinique. */
+    public record ContinuousAttentionIndicatorsResponse(
+        String protocolVersion,
+        boolean completed,
+        boolean sessionValid,
+        boolean interrupted,
+        int provisionalAccuracyScore,
+        ContinuousAttentionPhaseIndicatorsResponse xPhase,
+        ContinuousAttentionPhaseIndicatorsResponse axPhase,
+        List<ContinuousAttentionEpochIndicatorsResponse> epochs,
+        int axTargetCount,
+        int ayCount,
+        int bxCount,
+        int byCount,
+        int extraResponseCount,
+        int backgroundEventCount,
+        int droppedFrameCount,
+        int timingDeviationCount,
+        List<String> validityIssues
+    ) {
+        static ContinuousAttentionIndicatorsResponse from(ContinuousAttentionReport r) {
+            return new ContinuousAttentionIndicatorsResponse(
+                r.protocolVersion(), r.completed(), r.sessionValid(), r.interrupted(),
+                r.provisionalAccuracyScore(),
+                ContinuousAttentionPhaseIndicatorsResponse.from(r.xPhase()),
+                ContinuousAttentionPhaseIndicatorsResponse.from(r.axPhase()),
+                r.epochs().stream()
+                    .map(ContinuousAttentionEpochIndicatorsResponse::from).toList(),
+                r.axTargetCount(), r.ayCount(), r.bxCount(), r.byCount(),
+                r.extraResponseCount(), r.backgroundEventCount(), r.droppedFrameCount(),
+                r.timingDeviationCount(), r.validityIssues());
+        }
+    }
+
+    public record ContinuousAttentionEpochIndicatorsResponse(
+        String phase,
+        int epochIndex,
+        double hitRatePercent,
+        double falseAlarmRatePercent,
+        Double averageHitReactionTimeMs,
+        Double reactionTimeVariabilityMs,
+        double dPrime
+    ) {
+        static ContinuousAttentionEpochIndicatorsResponse from(
+                ContinuousAttentionEpochReport r) {
+            return new ContinuousAttentionEpochIndicatorsResponse(
+                r.phase().name(), r.epochIndex(), r.hitRatePercent(),
+                r.falseAlarmRatePercent(), r.averageHitReactionTimeMs(),
+                r.reactionTimeVariabilityMs(), r.dPrime());
+        }
+    }
+
+    public record ContinuousAttentionPhaseIndicatorsResponse(
+        String phase,
+        int targetCount,
+        int nonTargetCount,
+        int hitCount,
+        int omissionCount,
+        int commissionCount,
+        int correctRejectionCount,
+        double hitRatePercent,
+        double omissionRatePercent,
+        double falseAlarmRatePercent,
+        double correctRejectionRatePercent,
+        double balancedAccuracyPercent,
+        Double averageHitReactionTimeMs,
+        Double medianHitReactionTimeMs,
+        Double stdDevHitReactionTimeMs,
+        Double reactionTimeCoefficientOfVariation,
+        double dPrime,
+        double responseBiasC
+    ) {
+        static ContinuousAttentionPhaseIndicatorsResponse from(
+                ContinuousAttentionPhaseReport r) {
+            return new ContinuousAttentionPhaseIndicatorsResponse(
+                r.phase().name(), r.targetCount(), r.nonTargetCount(), r.hitCount(),
+                r.omissionCount(), r.commissionCount(), r.correctRejectionCount(),
+                r.hitRatePercent(), r.omissionRatePercent(), r.falseAlarmRatePercent(),
+                r.correctRejectionRatePercent(), r.balancedAccuracyPercent(),
+                r.averageHitReactionTimeMs(), r.medianHitReactionTimeMs(),
+                r.stdDevHitReactionTimeMs(), r.reactionTimeCoefficientOfVariation(),
+                r.dPrime(), r.responseBiasC());
+        }
+    }
     /**
      * Indicateurs de reconnaissance émotionnelle (calculés serveur).
      * Présent uniquement quand le résultat soumis concerne Emotional Radar.
@@ -240,7 +328,7 @@ public record GameSessionResponse(
     }
 
     public static GameSessionResponse from(GameSession s) {
-        return from(s, null, null, null, null, null, null, null);
+        return from(s, null, null, null, null, null, null, null, null);
     }
 
     public static GameSessionResponse from(GameSession s,
@@ -250,6 +338,7 @@ public record GameSessionResponse(
                                            DecisionReport decisionReport,
                                            EmotionalRadarReport emotionalRadarReport,
                                            ReflectivePauseReport reflectivePauseReport,
+                                           ContinuousAttentionReport continuousAttentionReport,
                                            ScoreBreakdown scoreBreakdown) {
         return new GameSessionResponse(
             s.id(), s.playerId(), s.gameType().name(), s.status().name(),
@@ -266,6 +355,8 @@ public record GameSessionResponse(
                 : EmotionalRadarIndicatorsResponse.from(emotionalRadarReport),
             reflectivePauseReport == null ? null
                 : ReflectivePauseIndicatorsResponse.from(reflectivePauseReport),
+            continuousAttentionReport == null ? null
+                : ContinuousAttentionIndicatorsResponse.from(continuousAttentionReport),
             scoreBreakdown == null ? null
                 : scoreBreakdown.lines().stream().map(ScoreBreakdownLineResponse::from).toList());
     }

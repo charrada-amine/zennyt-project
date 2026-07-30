@@ -8,7 +8,8 @@ enum MiniGame {
   memoryQuestCore('MEMORY_QUEST_CORE'),
   decisionCore('DECISION_CORE'),
   emotionalRadarCore('EMOTIONAL_RADAR_CORE'),
-  reflectivePauseCore('REFLECTIVE_PAUSE_CORE');
+  reflectivePauseCore('REFLECTIVE_PAUSE_CORE'),
+  continuousAttentionCore('CONTINUOUS_ATTENTION_CORE');
 
   final String wire;
   const MiniGame(this.wire);

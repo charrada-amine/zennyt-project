@@ -1,3 +1,4 @@
+import '../../domain/entities/continuous_attention_metrics.dart';
 import '../../domain/entities/game_score.dart';
 import '../../domain/entities/game_session.dart';
 import '../../domain/entities/game_type.dart';
@@ -21,6 +22,7 @@ class GameSessionDto {
     this.completedAt,
     this.scoreBreakdown = const [],
     this.reflectivePauseIndicators,
+    this.continuousAttentionIndicators,
   });
 
   final String id;
@@ -34,6 +36,7 @@ class GameSessionDto {
   final DateTime? completedAt;
   final List<ScoreBreakdownLine> scoreBreakdown;
   final ReflectivePauseIndicators? reflectivePauseIndicators;
+  final ContinuousAttentionIndicators? continuousAttentionIndicators;
 
   factory GameSessionDto.fromJson(Map<String, dynamic> json) {
     return GameSessionDto(
@@ -64,6 +67,12 @@ class GameSessionDto {
           : ReflectivePauseIndicators.fromJson(
               json['reflectivePauseIndicators'] as Map<String, dynamic>,
             ),
+      continuousAttentionIndicators:
+          json['continuousAttentionIndicators'] == null
+          ? null
+          : ContinuousAttentionIndicators.fromJson(
+              json['continuousAttentionIndicators'] as Map<String, dynamic>,
+            ),
     );
   }
 
@@ -79,6 +88,7 @@ class GameSessionDto {
     completedAt: completedAt,
     scoreBreakdown: scoreBreakdown,
     reflectivePauseIndicators: reflectivePauseIndicators,
+    continuousAttentionIndicators: continuousAttentionIndicators,
   );
 
   static GameAttempt _attemptFromJson(Map<String, dynamic> json) {

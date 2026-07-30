@@ -5,9 +5,11 @@ import com.zennyt.games.domain.catalog.DecisionScenarioCatalog;
 import com.zennyt.games.domain.model.GameSession;
 import com.zennyt.games.domain.model.MiniGame;
 import com.zennyt.games.domain.repository.DeviceCalibrationRepository;
+import com.zennyt.games.domain.repository.ContinuousAttentionMetricsRepository;
 import com.zennyt.games.domain.repository.EmotionalRadarAnswerRepository;
 import com.zennyt.games.domain.repository.GameSessionRepository;
 import com.zennyt.games.domain.service.CalibrationService;
+import com.zennyt.games.domain.service.ContinuousAttentionScoringService;
 import com.zennyt.games.domain.service.DecisionScoringService;
 import com.zennyt.games.domain.service.EmotionalRadarScoringService;
 import com.zennyt.games.domain.service.MemoryQuestScoringService;
@@ -15,6 +17,8 @@ import com.zennyt.games.domain.service.PlanifikScoringService;
 import com.zennyt.games.domain.service.ReflectivePauseScoringService;
 import com.zennyt.games.domain.service.ScoreBreakdownService;
 import com.zennyt.games.domain.vo.DecisionMetrics;
+import com.zennyt.games.domain.vo.ContinuousAttentionMetrics;
+import com.zennyt.games.domain.vo.ContinuousAttentionReport;
 import com.zennyt.games.domain.vo.DecisionReport;
 import com.zennyt.games.domain.vo.DeviceCalibration;
 import com.zennyt.games.domain.vo.EmotionalRadarAnswer;
@@ -32,6 +36,9 @@ import com.zennyt.games.domain.vo.ReflectivePauseMetrics;
 import com.zennyt.games.domain.vo.ReflectivePauseReport;
 import com.zennyt.games.domain.vo.Score;
 import com.zennyt.games.domain.vo.TaskSchedulingMetrics;
+import com.zennyt.games.domain.vo.GameType;
+import com.zennyt.games.domain.vo.SessionStatus;
+import com.zennyt.shared.application.exception.ForbiddenException;
 import com.zennyt.shared.application.exception.NotFoundException;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -59,6 +66,7 @@ public class SubmitGameResultUseCase {
     private final GameSessionRepository repository;
     private final DeviceCalibrationRepository calibrationRepository;
     private final EmotionalRadarAnswerRepository emotionalRadarAnswers;
+    private final ContinuousAttentionMetricsRepository continuousAttentionMetrics;
     private final ApplicationEventPublisher eventPublisher;
     private final PlanifikScoringService scoring = new PlanifikScoringService();
     private final CalibrationService calibration = new CalibrationService();
@@ -67,16 +75,20 @@ public class SubmitGameResultUseCase {
     private final EmotionalRadarScoringService emotionalRadar = new EmotionalRadarScoringService();
     private final ReflectivePauseScoringService reflectivePause =
         new ReflectivePauseScoringService();
+    private final ContinuousAttentionScoringService continuousAttention =
+        new ContinuousAttentionScoringService();
     private final DecisionScoringService decision;
 
     public SubmitGameResultUseCase(GameSessionRepository repository,
                                    DeviceCalibrationRepository calibrationRepository,
                                    EmotionalRadarAnswerRepository emotionalRadarAnswers,
+                                   ContinuousAttentionMetricsRepository continuousAttentionMetrics,
                                    ApplicationEventPublisher eventPublisher,
                                    DecisionScenarioCatalog decisionCatalog) {
         this.repository = repository;
         this.calibrationRepository = calibrationRepository;
         this.emotionalRadarAnswers = emotionalRadarAnswers;
+        this.continuousAttentionMetrics = continuousAttentionMetrics;
         this.eventPublisher = eventPublisher;
         // « Je Décide » : le catalogue (port) est injecté ; l'impl vivante est vide
         // tant que le psychologue n'a pas fourni les 30 scénarios.
@@ -101,6 +113,7 @@ public class SubmitGameResultUseCase {
                           DecisionReport decisionReport,
                           EmotionalRadarReport emotionalRadarReport,
                           ReflectivePauseReport reflectivePauseReport,
+                          ContinuousAttentionReport continuousAttentionReport,
                           ScoreBreakdown scoreBreakdown) {
     }
 
@@ -109,6 +122,16 @@ public class SubmitGameResultUseCase {
         GameSession session = repository.findById(command.sessionId())
             .orElseThrow(() -> new NotFoundException(
                 "Session introuvable : " + command.sessionId()));
+
+        // L'UUID du JWT est vérifié avant scoring, persistance brute ou mutation.
+        if (!session.playerId().equals(command.playerId())) {
+            throw new ForbiddenException(
+                "Cette session n'appartient pas au joueur authentifié.");
+        }
+
+        if (command.miniGame() == MiniGame.CONTINUOUS_ATTENTION_CORE) {
+            return executeContinuousAttention(command, session);
+        }
 
         Score score = computeScore(command.miniGame(), command);
         session.recordResult(command.miniGame(), score, scoring);
@@ -144,7 +167,74 @@ public class SubmitGameResultUseCase {
         return new Outcome(saved, moveFastReport(command, saved),
             previsionPuzzleReport(command), memoryQuestReport(command),
             decisionReport, emotionalRadarReport(command),
-            reflectivePauseReport(command), scoreBreakdown);
+            reflectivePauseReport(command), null, scoreBreakdown);
+    }
+
+    /**
+     * Voie Long Rosvold : structure et séquence sont rejetées avant écriture.
+     * Une capture techniquement invalide mais structurellement fiable est
+     * conservée audit-only ; elle ne crée jamais d'Attempt ni d'événement.
+     */
+    private Outcome executeContinuousAttention(
+            SubmitGameResultCommand command, GameSession session) {
+        assertContinuousAttentionSubmissionAllowed(session);
+        ContinuousAttentionMetrics metrics =
+            expectMetrics(command, ContinuousAttentionMetrics.class);
+
+        // Reconstruit d'abord la séquence depuis l'UUID. Toute divergence rejette
+        // la soumission avant persistance, Attempt et Domain Event.
+        ContinuousAttentionReport report =
+            continuousAttention.report(command.sessionId(), metrics);
+        Score score = continuousAttention.score(report);
+        ScoreBreakdown scoreBreakdown =
+            breakdown.continuousAttention(report, score);
+
+        if (!report.sessionValid()) {
+            // Retry autorisé : replace ne peut être atteint que tant que la session
+            // reste IN_PROGRESS et sans Attempt CPT.
+            continuousAttentionMetrics.replace(command.sessionId(), metrics, report);
+            if (command.deviceCalibration() != null) {
+                calibrationRepository.save(command.deviceCalibration());
+            }
+            return new Outcome(session, null, null, null, null, null, null,
+                report, scoreBreakdown);
+        }
+
+        // L'invariant d'agrégat est appliqué AVANT les écritures. La transaction
+        // rend raw trials + Attempt + événement atomiques.
+        session.recordResult(command.miniGame(), score, scoring);
+        continuousAttentionMetrics.replace(command.sessionId(), metrics, report);
+        GameSession saved = repository.save(session);
+        if (command.deviceCalibration() != null) {
+            calibrationRepository.save(command.deviceCalibration());
+        }
+        saved.domainEvents().forEach(eventPublisher::publishEvent);
+        saved.clearEvents();
+
+        return new Outcome(saved, null, null, null, null, null, null,
+            report, scoreBreakdown);
+    }
+
+    /**
+     * Empêche notamment qu'un retry écrase l'audit d'un résultat déjà validé.
+     * Cette garde précède reconstruction et persistance brute.
+     */
+    private static void assertContinuousAttentionSubmissionAllowed(GameSession session) {
+        if (session.status() != SessionStatus.IN_PROGRESS) {
+            throw new IllegalStateException("Session non ouverte : " + session.status());
+        }
+        if (session.gameType() != GameType.CONTINUOUS_ATTENTION) {
+            throw new IllegalArgumentException(
+                MiniGame.CONTINUOUS_ATTENTION_CORE
+                    + " n'appartient pas au type " + session.gameType());
+        }
+        boolean alreadyRecorded = session.attempts().stream()
+            .anyMatch(attempt ->
+                attempt.miniGame() == MiniGame.CONTINUOUS_ATTENTION_CORE);
+        if (alreadyRecorded) {
+            throw new IllegalStateException(
+                "Mini-jeu déjà joué : " + MiniGame.CONTINUOUS_ATTENTION_CORE);
+        }
     }
 
     /** Dérive les trois indicateurs de maîtrise de l'impulsivité ; null sinon. */
@@ -229,6 +319,9 @@ public class SubmitGameResultUseCase {
             }
             case REFLECTIVE_PAUSE_CORE -> reflectivePause.score(
                 expectMetrics(command, ReflectivePauseMetrics.class));
+            case CONTINUOUS_ATTENTION_CORE -> continuousAttention.score(
+                continuousAttention.report(command.sessionId(),
+                    expectMetrics(command, ContinuousAttentionMetrics.class)));
         };
     }
 

@@ -52,11 +52,13 @@ public class GamesController {
 
     @PostMapping("/sessions/{sessionId}/results")
     public ResponseEntity<GameSessionResponse> submit(
+            @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID sessionId,
             @Valid @RequestBody SubmitResultRequest request) {
 
+        UUID playerId = UUID.fromString(jwt.getSubject());
         SubmitGameResultUseCase.Outcome outcome = submitResult.execute(
-            new SubmitGameResultCommand(sessionId, request.miniGame(),
+            new SubmitGameResultCommand(sessionId, playerId, request.miniGame(),
                 request.toMetrics(), request.toCalibration(sessionId)));
 
         return ResponseEntity.ok(GameSessionResponse.from(
@@ -64,6 +66,7 @@ public class GamesController {
             outcome.previsionPuzzleReport(), outcome.memoryQuestReport(),
             outcome.decisionReport(), outcome.emotionalRadarReport(),
             outcome.reflectivePauseReport(),
+            outcome.continuousAttentionReport(),
             outcome.scoreBreakdown()));
     }
 }

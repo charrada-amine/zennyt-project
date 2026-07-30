@@ -16,6 +16,11 @@ import com.zennyt.games.domain.vo.MoveFastResponse;
 import com.zennyt.games.domain.vo.MoveFastRule;
 import com.zennyt.games.domain.config.PrevisionPuzzleConfig;
 import com.zennyt.games.domain.vo.CalibrationMethod;
+import com.zennyt.games.domain.vo.ContinuousAttentionBlockMetric;
+import com.zennyt.games.domain.vo.ContinuousAttentionInputSource;
+import com.zennyt.games.domain.vo.ContinuousAttentionMetrics;
+import com.zennyt.games.domain.vo.ContinuousAttentionPhase;
+import com.zennyt.games.domain.vo.ContinuousAttentionTrialMetric;
 import com.zennyt.games.domain.vo.DeviceCalibration;
 import com.zennyt.games.domain.vo.DeviceCategory;
 import com.zennyt.games.domain.vo.InputMode;
@@ -30,6 +35,7 @@ import com.zennyt.games.domain.vo.SecondaryObjectivesReached;
 import com.zennyt.games.domain.vo.TaskSchedulingMetrics;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
@@ -92,7 +98,40 @@ public record SubmitResultRequest(
         @Size(min = 1) @Valid List<EmotionalRadarScenePayload> emotionalRadarScenes,
         // « Reflective Pause » — 10 choix + timings bruts, aucun point.
         @Size(min = 10, max = 10) @Valid
-        List<ReflectivePauseMomentPayload> reflectivePauseMoments
+        List<ReflectivePauseMomentPayload> reflectivePauseMoments,
+        // « Je continue » — protocole Long Rosvold complet, mesures brutes.
+        String protocolVersion,
+        @Size(min = 44, max = 44) @Valid
+        List<ContinuousAttentionBlockPayload> blocks,
+        Boolean interrupted,
+        @Min(0) Integer backgroundEventCount,
+        @Min(0) Integer droppedFrameCount
+    ) {}
+
+    /** Un bloc de 31 essais du protocole Long Rosvold. */
+    public record ContinuousAttentionBlockPayload(
+        @NotNull ContinuousAttentionPhase phase,
+        @NotNull @Min(1) Integer blockIndex,
+        @NotNull @Size(min = 31, max = 31) @Valid
+        List<ContinuousAttentionTrialPayload> trials
+    ) {}
+
+    /** Mesures temporelles et réponse brute d'un essai. */
+    public record ContinuousAttentionTrialPayload(
+        @NotNull @Min(1) @Max(31) Integer trialIndex,
+        String previousLetter,
+        @NotNull String currentLetter,
+        @NotNull Integer responseCode,
+        @NotNull Integer correct,
+        @Min(0) @Max(689) Integer latencyMs,
+        @NotNull @Min(0) Long scheduledOnsetMs,
+        @NotNull @Min(0) Long actualOnsetMs,
+        @Min(0) Long responseTimestampMs,
+        @NotNull @Min(0) Integer actualDisplayDurationMs,
+        @NotNull @Min(0) Integer actualIsiDurationMs,
+        ContinuousAttentionInputSource inputSource,
+        @NotNull @Min(0) Integer extraResponseCount,
+        @NotNull Boolean interrupted
     ) {}
 
     /**
@@ -266,7 +305,44 @@ public record SubmitResultRequest(
             case REFLECTIVE_PAUSE_CORE -> new ReflectivePauseMetrics(
                 required(metrics.reflectivePauseMoments(), "reflectivePauseMoments").stream()
                     .map(SubmitResultRequest::toReflectivePauseMoment).toList());
+            case CONTINUOUS_ATTENTION_CORE -> new ContinuousAttentionMetrics(
+                required(metrics.protocolVersion(), "protocolVersion"),
+                required(metrics.blocks(), "blocks").stream()
+                    .map(SubmitResultRequest::toContinuousAttentionBlock).toList(),
+                required(metrics.sessionCompleted(), "sessionCompleted"),
+                required(metrics.interrupted(), "interrupted"),
+                required(metrics.backgroundEventCount(), "backgroundEventCount"),
+                required(metrics.droppedFrameCount(), "droppedFrameCount"));
         };
+    }
+
+    private static ContinuousAttentionBlockMetric toContinuousAttentionBlock(
+            ContinuousAttentionBlockPayload payload) {
+        return new ContinuousAttentionBlockMetric(
+            required(payload.phase(), "phase"),
+            required(payload.blockIndex(), "blockIndex"),
+            required(payload.trials(), "trials").stream()
+                .map(SubmitResultRequest::toContinuousAttentionTrial)
+                .toList());
+    }
+
+    private static ContinuousAttentionTrialMetric toContinuousAttentionTrial(
+            ContinuousAttentionTrialPayload payload) {
+        return new ContinuousAttentionTrialMetric(
+            required(payload.trialIndex(), "trialIndex"),
+            payload.previousLetter(),
+            required(payload.currentLetter(), "currentLetter"),
+            required(payload.responseCode(), "responseCode"),
+            required(payload.correct(), "correct"),
+            payload.latencyMs(),
+            required(payload.scheduledOnsetMs(), "scheduledOnsetMs"),
+            required(payload.actualOnsetMs(), "actualOnsetMs"),
+            payload.responseTimestampMs(),
+            required(payload.actualDisplayDurationMs(), "actualDisplayDurationMs"),
+            required(payload.actualIsiDurationMs(), "actualIsiDurationMs"),
+            payload.inputSource(),
+            required(payload.extraResponseCount(), "extraResponseCount"),
+            required(payload.interrupted(), "interrupted"));
     }
 
     private static ReflectivePauseMomentMetric toReflectivePauseMoment(

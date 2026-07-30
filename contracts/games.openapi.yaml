@@ -3,12 +3,12 @@ info:
   title: Zennyt — Games API
   description: >
     Bounded context Games : jeux sérieux d'évaluation cognitive (Planifik,
-    Move Fast, Memory Quest, Choix&Cap). Le client démarre une session, joue
-    les mini-jeux et remonte des MÉTRIQUES objectives ; le score déterministe
-    est calculé côté serveur. Ce contexte est indépendant : il n'expose et ne
-    consomme aucun autre contexte, et publie son résultat via l'événement
-    games.result.recorded.
-  version: 1.0.0
+    Move Fast, Memory Quest, Je Décide, Emotional Regulation et Continuous
+    Attention). Le client démarre une session, joue les mini-jeux et remonte
+    des MÉTRIQUES objectives ; le score déterministe est calculé côté serveur.
+    Ce contexte est indépendant : il n'expose et ne consomme aucun autre
+    contexte, et publie son résultat via l'événement games.result.recorded.
+  version: 1.1.0
 
 servers:
   - url: https://api.zennyt.com/api/v1
@@ -52,6 +52,16 @@ paths:
         Le client n'envoie jamais de score, seulement des métriques mesurées.
         Le serveur calcule le score du mini-jeu ; au dernier mini-jeu du type,
         la session passe COMPLETED et l'événement games.result.recorded est émis.
+        La session doit appartenir au joueur authentifié.
+
+        Pour CONTINUOUS_ATTENTION_CORE, une structure, une séquence ou un tuple
+        réponse/temps incohérent produit 400 et ne persiste rien. Une structure
+        valide mais techniquement non comparable (session incomplète,
+        interruption, arrière-plan ou divergence temporelle) produit 200 avec
+        la session toujours IN_PROGRESS et sessionValid=false : le run brut est
+        conservé pour audit, mais aucun Attempt ni événement n'est créé. Une
+        nouvelle soumission du même run remplace atomiquement cet audit. Seule
+        une soumission valide enregistre l'Attempt et complète la session.
       requestBody:
         required: true
         content:
@@ -64,6 +74,8 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/GameSession' }
         '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
+        '401': { $ref: './common.openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: './common.openapi.yaml#/components/responses/Forbidden' }
         '404': { $ref: './common.openapi.yaml#/components/responses/NotFound' }
 
   /games/sessions/{sessionId}/emotional-radar/scenes:
@@ -150,16 +162,20 @@ components:
       description: >
         Type de jeu sérieux (un domaine cognitif = un type). EMOTIONAL_REGULATION
         (« Je gère ») héberge Emotional Radar et Reflective Pause, sur le modèle
-        de PLANIFIK qui héberge ses trois mini-jeux.
-      enum: [PLANIFIK, MOVE_FAST, MEMORY_QUEST, DECISION, EMOTIONAL_REGULATION]
+        de PLANIFIK qui héberge ses trois mini-jeux. CONTINUOUS_ATTENTION reste
+        distinct de MOVE_FAST : « Je continue » apparaît dans la même catégorie
+        mobile sans modifier les sessions ni le barème historique de Move Fast.
+      enum: [PLANIFIK, MOVE_FAST, MEMORY_QUEST, DECISION, EMOTIONAL_REGULATION, CONTINUOUS_ATTENTION]
 
     MiniGame:
       type: string
       description: >
         Mini-jeu évalué dans une session. DECISION_CORE (« Je Décide ») est déclaré
         mais non jouable tant que le catalogue de scénarios est vide (même patron
-        que TASK_SCHEDULING avant implémentation).
-      enum: [OPTIMAL_PATH, TASK_SCHEDULING, PREVISION_PUZZLE, MOVE_FAST_CORE, MEMORY_QUEST_CORE, DECISION_CORE, EMOTIONAL_RADAR_CORE, REFLECTIVE_PAUSE_CORE]
+        que TASK_SCHEDULING avant implémentation). CONTINUOUS_ATTENTION_CORE
+        implémente le protocole Long Rosvold CPT X/AX ; il ne reprend aucune norme
+        ni interprétation du Conners CPT-3.
+      enum: [OPTIMAL_PATH, TASK_SCHEDULING, PREVISION_PUZZLE, MOVE_FAST_CORE, MEMORY_QUEST_CORE, DECISION_CORE, EMOTIONAL_RADAR_CORE, REFLECTIVE_PAUSE_CORE, CONTINUOUS_ATTENTION_CORE]
 
     SessionStatus:
       type: string
@@ -329,6 +345,383 @@ components:
           minItems: 1
           items: { $ref: '#/components/schemas/MoveFastResponseItem' }
           description: "Essais mesurés dans l'ordre de jeu (échauffement inclus)."
+
+    ContinuousAttentionPhase:
+      type: string
+      description: >
+        Phase du protocole Long Rosvold CPT. Les phases PRACTICE sont persistées
+        pour l'audit mais toujours exclues du score et des indicateurs finaux.
+      enum: [X_PRACTICE, X_TEST, AX_PRACTICE, AX_TEST]
+
+    ContinuousAttentionTestPhase:
+      type: string
+      description: Phase de test cotée ; une phase PRACTICE n'apparaît jamais dans les indicateurs.
+      enum: [X_TEST, AX_TEST]
+
+    ContinuousAttentionProtocolVersion:
+      type: string
+      description: Version figée de la génération et de la validation du protocole.
+      enum: [ROSVOLD_LONG_V1]
+
+    ContinuousAttentionInputSource:
+      type: string
+      description: Source sémantique de la première réponse reçue pendant la fenêtre.
+      enum: [TOUCH, KEYBOARD]
+
+    ContinuousAttentionTrialMetric:
+      type: object
+      description: >
+        Mesures brutes d'un essai « Je continue ». `correct` est conservé pour
+        l'audit du client, mais le serveur le recalcule depuis phase,
+        previousLetter/currentLetter et responseCode puis rejette toute divergence.
+        La réponse est acceptée uniquement pendant les 690 ms d'affichage.
+      required:
+        - trialIndex
+        - previousLetter
+        - currentLetter
+        - responseCode
+        - correct
+        - latencyMs
+        - scheduledOnsetMs
+        - actualOnsetMs
+        - responseTimestampMs
+        - actualDisplayDurationMs
+        - actualIsiDurationMs
+        - inputSource
+        - extraResponseCount
+        - interrupted
+      properties:
+        trialIndex:
+          type: integer
+          minimum: 1
+          maximum: 31
+          description: Index 1-based dans le bloc.
+        previousLetter:
+          type: string
+          nullable: true
+          minLength: 1
+          maxLength: 1
+          pattern: '^[A-Z]$'
+          description: >
+            null uniquement au premier essai de la famille X et au premier essai
+            de la famille AX. La lettre précédente reste continue de PRACTICE
+            vers TEST et entre les blocs d'une même famille. Le générateur
+            empêche tout AX non planifié à une frontière.
+        currentLetter:
+          type: string
+          minLength: 1
+          maxLength: 1
+          pattern: '^[A-Z]$'
+        responseCode:
+          type: integer
+          enum: [0, 57]
+          description: "57 = réponse (barre d'espace ou tap sémantique) ; 0 = aucune réponse."
+        correct:
+          type: integer
+          enum: [0, 1]
+          description: Valeur client contrôlée et recalculée serveur.
+        latencyMs:
+          type: integer
+          nullable: true
+          minimum: 0
+          maximum: 689
+          description: >
+            null quand responseCode=0 ; temps depuis l'apparition effective de
+            la lettre. Fenêtre valide [0, 690 ms) : 689 accepté, 690 rejeté.
+        scheduledOnsetMs:
+          type: integer
+          format: int64
+          minimum: 0
+          description: >
+            Début prévu relatif au début de la phase, selon la timeline absolue
+            trialPosition × 920 ms. Même origine monotone que actualOnsetMs et
+            responseTimestampMs.
+        actualOnsetMs:
+          type: integer
+          format: int64
+          minimum: 0
+          description: >
+            Début réellement observé, relatif au même début de phase et mesuré
+            par la même horloge monotone que scheduledOnsetMs.
+        responseTimestampMs:
+          type: integer
+          format: int64
+          nullable: true
+          minimum: 0
+          description: >
+            Timestamp monotone relatif au même début de phase ; null sans
+            réponse. Pour une réponse, responseTimestampMs - actualOnsetMs doit
+            être exactement égal à latencyMs.
+        actualDisplayDurationMs:
+          type: integer
+          minimum: 0
+          description: Durée réelle d'affichage de la lettre, cible nominale 690 ms.
+        actualIsiDurationMs:
+          type: integer
+          minimum: 0
+          description: Durée réelle de l'écran vide, cible nominale 230 ms.
+        inputSource:
+          allOf: [ { $ref: '#/components/schemas/ContinuousAttentionInputSource' } ]
+          nullable: true
+          description: null quand responseCode=0 ; TOUCH ou KEYBOARD quand responseCode=57.
+        extraResponseCount:
+          type: integer
+          minimum: 0
+          description: Réponses supplémentaires pendant le même essai, ignorées pour la cotation.
+        interrupted:
+          type: boolean
+          description: true si l'application a perdu le focus ou si une pause a interrompu l'essai.
+
+    ContinuousAttentionBlockMetric:
+      type: object
+      description: >
+        Un bloc Rosvold de 31 lettres. X_PRACTICE/X_TEST contiennent exactement
+        8 cibles X ; AX_PRACTICE/AX_TEST exactement 6 séquences AX, sans AX accidentel.
+      required: [phase, blockIndex, trials]
+      properties:
+        phase: { $ref: '#/components/schemas/ContinuousAttentionPhase' }
+        blockIndex:
+          type: integer
+          minimum: 1
+          maximum: 20
+          description: Index 1-based dans la phase (1–2 pratique, 1–20 test).
+        trials:
+          type: array
+          minItems: 31
+          maxItems: 31
+          items: { $ref: '#/components/schemas/ContinuousAttentionTrialMetric' }
+
+    ContinuousAttentionMetrics:
+      type: object
+      description: >
+        Protocole Long Rosvold CPT adulte complet : X puis AX, 2 blocs de pratique
+        + 20 blocs de test par phase, 31 essais par bloc, lettre 690 ms et écran
+        vide 230 ms. La séquence est générée de façon déterministe depuis l'id de
+        session et `protocolVersion`, puis reconstruite et validée par le serveur.
+        Ce protocole n'est PAS le Conners CPT-3 et n'utilise aucune de ses normes.
+
+        Génération ROSVOLD_LONG_V1, normative pour Java et Dart :
+        seedMaterial = lower(sessionId) + "|" + protocolVersion ; FNV-1a 32 bits
+        sur UTF-8 ; état zéro remplacé par 0x6D2B79F5 ; xorshift32 unsigned
+        (<<13, >>>17, <<5), réduction par modulo non signé et Fisher-Yates
+        descendant. Un bloc X construit 8 X puis 23 tirages avec remplacement
+        dans ABCDEFGHIJKLMNOPQRSTUVWYZ avant mélange. Un bloc AX mélange 6 tokens
+        AX_PAIR et 19 tokens distracteurs ; AX_PAIR s'étend en A,X, tandis qu'un
+        distracteur est tiré avec remplacement dans A-Z et X est retiré si la
+        lettre émise précédente est A. previousLetter est réinitialisée avant
+        X_PRACTICE puis avant AX_PRACTICE seulement.
+
+        Vecteur canonique pour la session
+        00000000-0000-4000-8000-000000000001 : seed 0xFC0A124C,
+        FNV du flux aplati 0xD9278D75, premier bloc
+        HZNXXAJGQXXYYKEOCXFVXOXLJLNNIXH, premier bloc AX
+        AXHAXDNCNOJAAXVAXAXZUAXAIIPACHW, dernier bloc
+        JYGAXJBYARQQKAXFSPAXXAXFYAXAXDY.
+      required:
+        - protocolVersion
+        - blocks
+        - sessionCompleted
+        - interrupted
+        - backgroundEventCount
+        - droppedFrameCount
+      properties:
+        protocolVersion:
+          $ref: '#/components/schemas/ContinuousAttentionProtocolVersion'
+        blocks:
+          type: array
+          minItems: 44
+          maxItems: 44
+          items: { $ref: '#/components/schemas/ContinuousAttentionBlockMetric' }
+          description: >
+            Ordre obligatoire : 2 X_PRACTICE, 20 X_TEST, 2 AX_PRACTICE,
+            20 AX_TEST. Les 1 364 essais, entraînement compris, sont persistés
+            pour un run structurellement valide, y compris lorsqu'il est
+            conservé audit-only car techniquement non comparable.
+        sessionCompleted:
+          type: boolean
+        interrupted:
+          type: boolean
+          description: >
+            true si une phase de test soumise a été interrompue ou si
+            l'application a perdu le focus pendant un stimulus. Après une
+            reprise locale complète, le client soumet uniquement le run final :
+            il n'agrège pas les essais abandonnés au run recommencé.
+        backgroundEventCount:
+          type: integer
+          minimum: 0
+        droppedFrameCount:
+          type: integer
+          minimum: 0
+          description: Frames manquées observées pendant la timeline de stimuli.
+
+    ContinuousAttentionEpochIndicators:
+      type: object
+      description: Agrégat descriptif d'une époque de 5 blocs de test.
+      required:
+        - phase
+        - epochIndex
+        - hitRatePercent
+        - falseAlarmRatePercent
+        - averageHitReactionTimeMs
+        - reactionTimeVariabilityMs
+        - dPrime
+      properties:
+        phase: { $ref: '#/components/schemas/ContinuousAttentionTestPhase' }
+        epochIndex: { type: integer, minimum: 1, maximum: 4 }
+        hitRatePercent: { type: number, format: double }
+        falseAlarmRatePercent: { type: number, format: double }
+        averageHitReactionTimeMs: { type: number, format: double, nullable: true }
+        reactionTimeVariabilityMs: { type: number, format: double, nullable: true }
+        dPrime:
+          type: number
+          format: double
+          description: Indicateur descriptif avec correction log-linéaire ; jamais intégré au score.
+
+    ContinuousAttentionPhaseIndicators:
+      type: object
+      description: Indicateurs descriptifs calculés côté serveur pour une phase de test.
+      required:
+        - phase
+        - targetCount
+        - nonTargetCount
+        - hitCount
+        - omissionCount
+        - commissionCount
+        - correctRejectionCount
+        - hitRatePercent
+        - omissionRatePercent
+        - falseAlarmRatePercent
+        - correctRejectionRatePercent
+        - balancedAccuracyPercent
+        - averageHitReactionTimeMs
+        - medianHitReactionTimeMs
+        - stdDevHitReactionTimeMs
+        - reactionTimeCoefficientOfVariation
+        - dPrime
+        - responseBiasC
+      properties:
+        phase: { $ref: '#/components/schemas/ContinuousAttentionTestPhase' }
+        targetCount: { type: integer }
+        nonTargetCount: { type: integer }
+        hitCount: { type: integer }
+        omissionCount: { type: integer }
+        commissionCount: { type: integer }
+        correctRejectionCount: { type: integer }
+        hitRatePercent: { type: number, format: double }
+        omissionRatePercent: { type: number, format: double }
+        falseAlarmRatePercent: { type: number, format: double }
+        correctRejectionRatePercent: { type: number, format: double }
+        balancedAccuracyPercent:
+          type: number
+          format: double
+          description: "(hitRate + correctRejectionRate) / 2 ; composante du score provisoire."
+        averageHitReactionTimeMs: { type: number, format: double, nullable: true }
+        medianHitReactionTimeMs: { type: number, format: double, nullable: true }
+        stdDevHitReactionTimeMs: { type: number, format: double, nullable: true }
+        reactionTimeCoefficientOfVariation:
+          type: number
+          format: double
+          nullable: true
+          description: "écart-type / moyenne des latences des hits corrects."
+        dPrime:
+          type: number
+          format: double
+          description: >
+            Descriptif uniquement. H=(hits+0.5)/(targets+1),
+            FA=(commissions+0.5)/(nonTargets+1), dPrime=Z(H)-Z(FA).
+        responseBiasC:
+          type: number
+          format: double
+          description: >
+            Descriptif uniquement ; c=-0.5×(Z(H)+Z(FA)), jamais intégré au score.
+
+    ContinuousAttentionIndicators:
+      type: object
+      description: >
+        Rapport serveur « Je continue ». Le score provisoire /100 est uniquement
+        la moyenne des balanced accuracies X_TEST et AX_TEST. d-prime, biais c et
+        temps de réaction restent descriptifs, sans diagnostic, percentile,
+        classement ni norme Conners. Le niveau du Score associé est la constante
+        neutre "Descriptive — provisional", jamais une bande dérivée du résultat.
+      required:
+        - protocolVersion
+        - completed
+        - sessionValid
+        - interrupted
+        - provisionalAccuracyScore
+        - xPhase
+        - axPhase
+        - epochs
+        - axTargetCount
+        - ayCount
+        - bxCount
+        - byCount
+        - extraResponseCount
+        - backgroundEventCount
+        - droppedFrameCount
+        - timingDeviationCount
+        - validityIssues
+      properties:
+        protocolVersion: { $ref: '#/components/schemas/ContinuousAttentionProtocolVersion' }
+        completed: { type: boolean }
+        sessionValid:
+          type: boolean
+          description: >
+            true uniquement si sessionCompleted=true, aucune interruption,
+            aucun passage arrière-plan et aucun écart >100 ms entre onset prévu
+            et réel, durée d'affichage et 690 ms, ou ISI et 230 ms. Un écart de
+            100 ms est accepté ; cette tolérance est un critère de validité,
+            jamais une composante du score. Une structure invalide est rejetée
+            avant de produire ce rapport.
+        interrupted: { type: boolean }
+        provisionalAccuracyScore:
+          type: integer
+          minimum: 0
+          maximum: 100
+        xPhase:
+          allOf: [ { $ref: '#/components/schemas/ContinuousAttentionPhaseIndicators' } ]
+          description: X_TEST uniquement ; 160 cibles et 460 non-cibles attendues.
+        axPhase:
+          allOf: [ { $ref: '#/components/schemas/ContinuousAttentionPhaseIndicators' } ]
+          description: AX_TEST uniquement ; 120 cibles et 500 non-cibles attendues.
+        epochs:
+          type: array
+          minItems: 8
+          maxItems: 8
+          description: Quatre époques de 5 blocs pour X_TEST puis quatre pour AX_TEST.
+          items: { $ref: '#/components/schemas/ContinuousAttentionEpochIndicators' }
+        axTargetCount:
+          type: integer
+          description: Séquences AX cibles dans AX_TEST uniquement ; attendu 120.
+        ayCount:
+          type: integer
+          description: A suivi d'une lettre non-X dans AX_TEST uniquement.
+        bxCount:
+          type: integer
+          description: X précédé d'une lettre non-A dans AX_TEST uniquement.
+        byCount:
+          type: integer
+          description: Autres paires dans AX_TEST uniquement.
+        extraResponseCount:
+          type: integer
+          description: Somme sur les 44 blocs, pratique comprise ; descriptif hors score.
+        backgroundEventCount:
+          type: integer
+          description: Événements arrière-plan pendant les stimuli du run soumis.
+        droppedFrameCount:
+          type: integer
+          description: >
+            Frames manquées sur les stimuli du run soumis ; descriptif. La
+            validité dépend des timings réellement mesurés, pas directement de
+            ce compteur.
+        timingDeviationCount:
+          type: integer
+          description: >
+            Essais dont l'onset réel, l'affichage ou l'ISI sortent de la
+            tolérance technique provisoire de 100 ms.
+        validityIssues:
+          type: array
+          items: { type: string }
 
     PrevisionPuzzleLevelMetrics:
       type: object
@@ -918,6 +1311,7 @@ components:
         - $ref: '#/components/schemas/DecisionMetrics'
         - $ref: '#/components/schemas/EmotionalRadarMetrics'
         - $ref: '#/components/schemas/ReflectivePauseMetrics'
+        - $ref: '#/components/schemas/ContinuousAttentionMetrics'
 
     SubmitResultRequest:
       type: object
@@ -984,6 +1378,12 @@ components:
           allOf: [ { $ref: '#/components/schemas/ReflectivePauseIndicators' } ]
           nullable: true
           description: "Présent uniquement quand le résultat soumis concerne Reflective Pause."
+        continuousAttentionIndicators:
+          allOf: [ { $ref: '#/components/schemas/ContinuousAttentionIndicators' } ]
+          nullable: true
+          description: >
+            Présent uniquement après « Je continue ». Rapport descriptif Rosvold
+            X/AX ; aucune norme ou interprétation Conners CPT-3.
         scoreBreakdown:
           type: array
           nullable: true

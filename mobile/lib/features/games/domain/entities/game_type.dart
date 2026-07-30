@@ -11,7 +11,10 @@ enum GameType {
   decision('DECISION'),
 
   /// « Je gère » — Emotional Radar + Reflective Pause.
-  emotionalRegulation('EMOTIONAL_REGULATION');
+  emotionalRegulation('EMOTIONAL_REGULATION'),
+
+  /// « Je continue » — Long Rosvold CPT X/AX.
+  continuousAttention('CONTINUOUS_ATTENTION');
 
   /// Valeur transmise à l'API (nom de l'enum côté back).
   final String wire;
