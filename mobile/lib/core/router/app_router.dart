@@ -24,10 +24,13 @@ import '../../features/profile_settings/presentation/view/account_center_screen.
 import '../../features/profile_settings/presentation/view/personal_informations_screen.dart';
 import '../../features/profile_settings/presentation/view/privacy_policy_screen.dart';
 import '../../features/navigation/presentation/view/main_navigation_screen.dart';
+import '../../features/games/presentation/view/emotional_radar_screen.dart';
 import '../../features/games/presentation/view/investigate_screen.dart';
+import '../../features/games/presentation/view/je_decide_screen.dart';
 import '../../features/games/presentation/view/move_fast_screen.dart';
 import '../../features/games/presentation/view/planifik_screen.dart';
 import '../../features/games/presentation/view/predictive_puzzle_screen.dart';
+import '../../features/games/presentation/view/reflective_pause_screen.dart';
 import '../../features/games/presentation/view/task_scheduling_screen.dart';
 import '../../features/splash/presentation/view/splash_screen.dart';
 import '../../features/profile_settings/cv_autofill/presentation/view/cv_camera_capture_screen.dart';
@@ -194,6 +197,21 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const InvestigateScreen(),
       ),
       GoRoute(
+        path: AppRoutes.gamesJeDecide,
+        name: AppRoutes.nGamesJeDecide,
+        builder: (context, state) => const JeDecideScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.gamesEmotionalRadar,
+        name: AppRoutes.nGamesEmotionalRadar,
+        builder: (context, state) => const EmotionalRadarScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.gamesReflectivePause,
+        name: AppRoutes.nGamesReflectivePause,
+        builder: (context, state) => const ReflectivePauseScreen(),
+      ),
+      GoRoute(
         path: AppRoutes.profileSettings,
         name: AppRoutes.nProfileSettings,
         pageBuilder: (context, state) {
@@ -293,7 +311,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           final imagePaths = state.uri.queryParameters['imagePaths'];
           final url = state.uri.queryParameters['url'];
           return CvProcessingScreen(
-            filePath: filePath, 
+            filePath: filePath,
             imagePaths: imagePaths,
             url: url,
           );

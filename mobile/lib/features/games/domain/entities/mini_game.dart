@@ -5,7 +5,10 @@ enum MiniGame {
   taskScheduling('TASK_SCHEDULING'),
   previsionPuzzle('PREVISION_PUZZLE'),
   moveFastCore('MOVE_FAST_CORE'),
-  memoryQuestCore('MEMORY_QUEST_CORE');
+  memoryQuestCore('MEMORY_QUEST_CORE'),
+  decisionCore('DECISION_CORE'),
+  emotionalRadarCore('EMOTIONAL_RADAR_CORE'),
+  reflectivePauseCore('REFLECTIVE_PAUSE_CORE');
 
   final String wire;
   const MiniGame(this.wire);

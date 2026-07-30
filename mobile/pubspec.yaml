@@ -97,6 +97,13 @@ flutter:
   assets:
     - assets/images/
     - assets/04 Predictive Puzzle/
+    - assets/04 Je Décide/02 Mobile/Welcome/
+    - assets/04 Je Décide/03 Mobile/Onboarding 1/
+    - assets/04 Je Décide/04 Mobile/Onboarding 2/
+    - assets/04 Je Décide/05 Mobile/Onboarding 3/
+    - assets/04 Je Décide/07 Mobile/Avatar Selection/
+    - assets/04 Je Décide/07 Mobile/Avatar Selection/Avatar card/
+    - assets/04 Je Décide/08 Mobile/Tutorial Intro/
     - assets/J’investigue/memoryobject/
     - assets/J’investigue/MemoryObject/svg/
     - assets/games icons/

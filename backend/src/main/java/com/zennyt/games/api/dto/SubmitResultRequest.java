@@ -1,7 +1,12 @@
 package com.zennyt.games.api.dto;
 
 import com.zennyt.games.domain.model.MiniGame;
+import com.zennyt.games.domain.vo.AdministrationMode;
 import com.zennyt.games.domain.vo.CostlyZonesAvoided;
+import com.zennyt.games.domain.vo.DecisionItemResponse;
+import com.zennyt.games.domain.vo.DecisionMetrics;
+import com.zennyt.games.domain.vo.EmotionalRadarMetrics;
+import com.zennyt.games.domain.vo.EmotionalRadarSceneMetric;
 import com.zennyt.games.domain.vo.GameMetrics;
 import com.zennyt.games.domain.vo.MemoryQuestMetrics;
 import com.zennyt.games.domain.vo.MemoryTaskKind;
@@ -18,6 +23,9 @@ import com.zennyt.games.domain.vo.OptimalPathLevel;
 import com.zennyt.games.domain.vo.PlanifikMetrics;
 import com.zennyt.games.domain.vo.PrevisionPuzzleLevel;
 import com.zennyt.games.domain.vo.PrevisionPuzzleMetrics;
+import com.zennyt.games.domain.vo.ReflectivePauseMetrics;
+import com.zennyt.games.domain.vo.ReflectivePauseMomentMetric;
+import com.zennyt.games.domain.vo.ReflectivePauseResponseType;
 import com.zennyt.games.domain.vo.SecondaryObjectivesReached;
 import com.zennyt.games.domain.vo.TaskSchedulingMetrics;
 import jakarta.validation.Valid;
@@ -70,7 +78,44 @@ public record SubmitResultRequest(
         Boolean dependenciesRespected,
         Boolean timeConstraintsRespected,
         @Min(0) Integer planningCoherence,
-        @Min(0) Integer adjustmentCount
+        @Min(0) Integer adjustmentCount,
+        // « Je Décide » (DECISION_CORE) — mesures par item + contexte de session.
+        @Size(min = 1) @Valid List<DecisionItemPayload> decisionItems,
+        String sessionLanguage,
+        String administrationMode,
+        @Min(0) Integer age,
+        String educationLevel,
+        @Min(0) Integer fatigue,
+        @Min(0) Integer motivation,
+        // « Emotional Radar » — mesures COMPORTEMENTALES uniquement. Aucune réponse
+        // ni point : le score vient des réponses notées serveur scène par scène.
+        @Size(min = 1) @Valid List<EmotionalRadarScenePayload> emotionalRadarScenes,
+        // « Reflective Pause » — 10 choix + timings bruts, aucun point.
+        @Size(min = 10, max = 10) @Valid
+        List<ReflectivePauseMomentPayload> reflectivePauseMoments
+    ) {}
+
+    /**
+     * Mesures d'une scène « Emotional Radar ».
+     *
+     * <p>Volontairement dépourvu de {@code selectedEmotion}/{@code selectedNuance} :
+     * ces choix ont déjà été envoyés — et notés — à la validation de la scène. Les
+     * réintroduire ici rouvrirait la porte à un score falsifiable.
+     */
+    public record EmotionalRadarScenePayload(
+        @NotNull UUID sceneId,
+        @NotNull @Min(0) Integer responseTimeMs,
+        Boolean helpOpened,
+        Boolean fullscreenOpened,
+        Boolean reducedMotion
+    ) {}
+
+    /** Mesures brutes d'un moment « Reflective Pause ». */
+    public record ReflectivePauseMomentPayload(
+        @NotNull String momentId,
+        @NotNull ReflectivePauseResponseType selectedResponse,
+        @NotNull @Min(0) Integer responseTimeMs,
+        @NotNull Boolean minimumTimerReached
     ) {}
 
     /** Socle de calibrage appareil (optionnel). Le score n'en dépend pas pour Move Fast. */
@@ -123,6 +168,19 @@ public record SubmitResultRequest(
         @Min(1) Integer optimalMoves,
         @NotNull @Min(0) Integer retries,
         @NotNull Boolean completed
+    ) {}
+
+    /**
+     * Réponse mesurée à un item « Je Décide ». Le client envoie l'option choisie
+     * et le temps — jamais de qualité ni de points (décidés serveur via le catalogue).
+     */
+    public record DecisionItemPayload(
+        @NotNull String itemId,
+        @NotNull com.zennyt.games.domain.vo.DecisionDimension dimension,
+        String selectedOptionId,
+        @NotNull @Min(0) Integer responseTimeMs,
+        Boolean answered,
+        @Min(0) Integer decisionChangesCount
     ) {}
 
     /** Une tâche « J'investigue » mesurée (le timeout est décidé serveur). */
@@ -195,7 +253,49 @@ public record SubmitResultRequest(
                 required(metrics.timeConstraintsRespected(), "timeConstraintsRespected"),
                 required(metrics.planningCoherence(), "planningCoherence"),
                 required(metrics.adjustmentCount(), "adjustmentCount"));
+            case DECISION_CORE -> new DecisionMetrics(
+                required(metrics.decisionItems(), "decisionItems").stream()
+                    .map(SubmitResultRequest::toDecisionItem).toList(),
+                metrics.sessionLanguage(),
+                metrics.administrationMode() == null ? AdministrationMode.SUPERVISED
+                    : parseEnum(AdministrationMode.class, metrics.administrationMode()),
+                metrics.age(), metrics.educationLevel(), metrics.fatigue(), metrics.motivation());
+            case EMOTIONAL_RADAR_CORE -> new EmotionalRadarMetrics(
+                required(metrics.emotionalRadarScenes(), "emotionalRadarScenes").stream()
+                    .map(SubmitResultRequest::toEmotionalRadarScene).toList());
+            case REFLECTIVE_PAUSE_CORE -> new ReflectivePauseMetrics(
+                required(metrics.reflectivePauseMoments(), "reflectivePauseMoments").stream()
+                    .map(SubmitResultRequest::toReflectivePauseMoment).toList());
         };
+    }
+
+    private static ReflectivePauseMomentMetric toReflectivePauseMoment(
+            ReflectivePauseMomentPayload payload) {
+        return new ReflectivePauseMomentMetric(
+            required(payload.momentId(), "momentId"),
+            required(payload.selectedResponse(), "selectedResponse"),
+            required(payload.responseTimeMs(), "responseTimeMs"),
+            required(payload.minimumTimerReached(), "minimumTimerReached"));
+    }
+
+    private static EmotionalRadarSceneMetric toEmotionalRadarScene(EmotionalRadarScenePayload p) {
+        return new EmotionalRadarSceneMetric(
+            required(p.sceneId(), "sceneId"),
+            required(p.responseTimeMs(), "responseTimeMs"),
+            Boolean.TRUE.equals(p.helpOpened()),
+            Boolean.TRUE.equals(p.fullscreenOpened()),
+            Boolean.TRUE.equals(p.reducedMotion()));
+    }
+
+    private static DecisionItemResponse toDecisionItem(DecisionItemPayload p) {
+        boolean answered = p.answered() == null || p.answered();
+        return new DecisionItemResponse(
+            required(p.itemId(), "itemId"),
+            required(p.dimension(), "dimension"),
+            p.selectedOptionId(),
+            required(p.responseTimeMs(), "responseTimeMs"),
+            answered,
+            orZero(p.decisionChangesCount()));
     }
 
     private static int orZero(Integer value) {

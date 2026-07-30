@@ -18,10 +18,11 @@ Chaque **jeu** correspond à un `GameType` (un domaine cognitif = une fiche) et 
 | ↳ **Planifik — « Je planifie » (domaine)** | `PLANIFIK` | *(les 3 mini-jeux ci-dessus)* | Planification | 🟢 **Complet** — profil global **/30** | Flame + Flutter |
 | **Move Fast — « Je bouge »** | `MOVE_FAST` | `MOVE_FAST_CORE` | Flexibilité cognitive — switching de règles (niveau unique : Orientation ⇄ Mouvement **aléatoire**) | 🟢 **Complet** — barème d'escalade (50 × mult., streak 4, bonus 250) | Flutter custom |
 | **Memory Quest — « J'investigue »** | `MEMORY_QUEST` | `MEMORY_QUEST_CORE` | Mémoire de travail — Mission A (digit span) + B (objets) + distraction | 🟢 **Complet** — 7 niveaux (3→9), calibrage → timeout (score dépend du temps), `session_valid` ; composite **/100** | Flutter custom |
-| **Choix&Cap — « Je décide »** | `DECISION` | — | Prise de décision | 🔴 **Déclaré, non implémenté** — aucune logique | — |
-| **Gestion émotionnelle — « Je gère »** | *(à créer)* | — | Régulation émotionnelle | 🔴 **Non déclaré** — absent de `GameType`, carte hub inactive | — |
+| **« Je Décide » — Phases 1–4 mobile** | `DECISION` | `DECISION_CORE` | Prise de décision (II, ER, DT, CS, RE — /18 chacune → /90 → SCW /100) | 🟡 **Parcours UI complet** (aperçu maquette) + 🟢 **moteur backend prêt** : agrégation, règle DT, imputation, interprétations, validité, couche provisoire isolée. **Non jouable end-to-end** tant que le catalogue de 30 scénarios est vide (`DECISION_CORE.isPlayable()=false`) | Flutter (UI) / Java (moteur) |
+| **Emotional Radar — « Je gère »** | `EMOTIONAL_REGULATION` | `EMOTIONAL_RADAR_CORE` | Régulation émotionnelle — reconnaissance d'émotion (famille + nuance + intensité) | 🟢 Jouable **9 pts/scène** — 3 scènes rédigées (27), 15 visées (135) ; **contenu servi par le backend** | Flutter custom |
+| **Reflective Pause — « Je gère »** | `EMOTIONAL_REGULATION` | `REFLECTIVE_PAUSE_CORE` | Régulation émotionnelle — contrôle de l'impulsivité sous pression | 🟢 **Complet /10** — 10 moments, pause minimale 3 s, résultats + insights calculés serveur | Flutter custom |
 
-> **Barème par mini-jeu** : Chemin Optimal / Ordonnancement / Tour de Hanoï → **/10** chacun ; leur somme = **profil Planifik /30**. Move Fast → points d'escalade (normalisés /100 pour l'interprétation). Memory Quest → **composite /100**. Score **toujours calculé serveur** (le client n'envoie que des métriques).
+> **Barème par mini-jeu** : Chemin Optimal / Ordonnancement / Tour de Hanoï → **/10** chacun ; leur somme = **profil Planifik /30**. Move Fast → points d'escalade (normalisés /100 pour l'interprétation). Memory Quest → **composite /100**. Emotional Radar /27 actuel + Reflective Pause /10 → composite émotionnel provisoire **/37**. Score **toujours calculé serveur** (le client n'envoie que des métriques).
 
 ---
 
@@ -64,7 +65,7 @@ Contexte **indépendant** : ne dépend que de `shared`, s'intègre au reste **un
 | **api** | `api/GamesController.java` | Contrôleur REST `/api/v1/games`. Traduit HTTP → commande, délègue au use case. Aucune logique métier. |
 | | `api/dto/StartSessionRequest.java` | Body `POST /sessions` — `gameType` (le joueur vient du JWT). |
 | | `api/dto/SubmitResultRequest.java` | Body `POST /sessions/{id}/results` — `miniGame` + payload union `Metrics` → `toMetrics()`. |
-| | `api/dto/GameSessionResponse.java` | Réponse : état complet de la session + score composite + attempts + **`moveFastIndicators`** / **`previsionPuzzleIndicators`** (présents selon le mini-jeu soumis). |
+| | `api/dto/GameSessionResponse.java` | Réponse : état complet de la session + score composite + attempts + indicateurs propres au mini-jeu, dont **`reflectivePauseIndicators`**. |
 | | `api/dto/ScoreResponse.java` | Sérialisation d'un `Score`. |
 | **application** | `application/usecase/StartGameSessionUseCase.java` | Crée l'agrégat `GameSession.start(...)` et le persiste. |
 | | `application/usecase/SubmitGameResultUseCase.java` | Charge la session, calcule le `Score` (domaine), enregistre, persiste, **publie les Domain Events après commit**. Renvoie un `Outcome(session, moveFastReport, previsionPuzzleReport)` — indicateurs dérivés serveur selon le mini-jeu. |
@@ -73,10 +74,10 @@ Contexte **indépendant** : ne dépend que de `shared`, s'intègre au reste **un
 | **domain / model** | `domain/model/GameSession.java` | **Racine d'agrégat**. Invariants : 1 résultat/mini-jeu, refus d'un mini-jeu étranger au type, complétion auto + émission d'event au dernier mini-jeu. Java pur. |
 | | `domain/model/MiniGame.java` | Enum des mini-jeux + `maxPoints` du barème + `belongsTo(gameType)` + `isPlayable()` (exclut les mini-jeux sans barème de la complétion). |
 | | `domain/model/Attempt.java` | Résultat immuable d'un mini-jeu (`miniGame`, `score`, `recordedAt`). |
-| **domain / vo** | `domain/vo/GameType.java` | `PLANIFIK`, `MOVE_FAST`, `MEMORY_QUEST`, `DECISION`. |
+| **domain / vo** | `domain/vo/GameType.java` | `PLANIFIK`, `MOVE_FAST`, `MEMORY_QUEST`, `DECISION`, `EMOTIONAL_REGULATION`. |
 | | `domain/vo/SessionStatus.java` | `IN_PROGRESS`, `COMPLETED`, `ABANDONED`. |
 | | `domain/vo/Score.java` | VO auto-validant (`rawPoints`, `maxPoints`, `level`) + `normalized()`. |
-| | `domain/vo/GameMetrics.java` | `sealed interface` → `PlanifikMetrics` \| `MoveFastMetrics` \| `PrevisionPuzzleMetrics`. |
+| | `domain/vo/GameMetrics.java` | `sealed interface` des métriques objectives de tous les mini-jeux, dont `ReflectivePauseMetrics`. |
 | | `domain/vo/PlanifikMetrics.java` | Métriques « Chemin Optimal » : liste `levels` (multi-niveaux) + fabrique mono-niveau de compat. |
 | | `domain/vo/TaskSchedulingMetrics.java` | Métriques « Ordonnancement de tâches » : `dependenciesRespected`, `timeConstraintsRespected`, `planningCoherence` (0–2), `adjustmentCount`. |
 | | `domain/vo/OptimalPathLevel.java` | Métriques d'UN niveau (`levelIndex`, `attempts`, longueurs, enums) + `deviationFromOptimal()`. |
@@ -103,6 +104,29 @@ Contexte **indépendant** : ne dépend que de `shared`, s'intègre au reste **un
 | | `domain/service/CalibrationService.java` | **Service transversal** : `offsetMs` + `adjust` (temps brut − offset). Réutilisable dès qu'un score dépendra du temps (Decision, Memory Quest). |
 | | `domain/service/ScoreBreakdownService.java` | **Détail du score** (panneau) : lignes « comme des logs » à partir des mêmes métriques + même barème. Miroir mock exact. |
 | | `domain/vo/ScoreBreakdown.java` | Lignes du détail (`NOTE`/`INFO`/`CRITERION`/`SUBTOTAL`/`TOTAL`). |
+| **Emotional Radar** | `api/EmotionalRadarController.java` | 3 routes : scènes, validation d'une scène, téléversement média. Couche fine. |
+| | `api/dto/EmotionalRadarDtos.java` | **Point de filtrage unique de la clé de correction** : `SceneResponse.from` omet `expected*` + `explanation`. Ne jamais y ajouter de champ `expected*`. |
+| | `application/usecase/GetEmotionalRadarScenesUseCase.java` | Scènes de la session + taxonomie (le contrôleur les expurge). |
+| | `application/usecase/AnswerEmotionalRadarSceneUseCase.java` | Note UNE scène, **persiste** la réponse, renvoie le feedback + cumul. |
+| | `application/usecase/UploadEmotionalRadarMediaUseCase.java` | Téléverse un média et le rattache à sa scène (ports uniquement — ArchUnit). |
+| | `application/port/GamesMediaStoragePort.java` | Port média **propre au contexte** `games` (patron identity/engagement). |
+| | `domain/config/EmotionalRadarConfig.java` | **Barème définitif** : 3/4/2, dégradé d'intensité, `GRADIENT_BONUS_ENABLED`, `TOTAL_SCENES`. Java pur. |
+| | `domain/config/EmotionalRadarProvisionalRules.java` | **Couche PROVISOIRE isolée** : taxonomie des nuances (`FIGMA` vs `PROVISIONAL`) + bandes d'interprétation. Patron `DecisionProvisionalRules`. |
+| | `domain/service/EmotionalRadarScoringService.java` | `grade` (corrige une scène) + `score` (agrège les réponses persistées) + `report`. Java pur. |
+| | `domain/vo/EmotionalRadarScene.java` | Scène **avec** clé de correction — auto-validante (alt text / transcript obligatoires). Jamais sérialisée telle quelle. |
+| | `domain/vo/EmotionalRadarAnswer.java` | Réponse **déjà notée** — source de vérité du score. |
+| | `domain/vo/EmotionalRadarMetrics.java` · `EmotionalRadarSceneMetric.java` | Mesures **comportementales seules** (temps, aide, plein écran) — aucune réponse, aucun point. |
+| | `domain/vo/EmotionalRadarReport.java` | Indicateurs : justesse émotion/nuance, calibrage d'intensité, confusions. |
+| | `domain/vo/BasicEmotion.java` · `SceneMediaType.java` | 6 familles ; DIALOGUE/TEXT/IMAGE/VIDEO (+ exigences d'accessibilité). |
+| | `domain/catalog/EmotionalRadarSceneCatalog.java` | Port du catalogue (patron `DecisionScenarioCatalog`). |
+| | `domain/repository/EmotionalRadarAnswerRepository.java` · `EmotionalRadarSceneRepository.java` | Ports : réponses notées (upsert par session+scène) ; écriture de scène (média). |
+| | `infrastructure/catalog/DatabaseEmotionalRadarSceneCatalog.java` | Catalogue en base — **non vide** (3 scènes). |
+| | `infrastructure/persistence/EmotionalRadarScene{Entity,RepositoryAdapter}.java` · `EmotionalRadarAnswer{Entity,RepositoryAdapter}.java` · `Jpa*` | Persistance ; l'état « scène média incomplète » reste confiné à l'infrastructure. |
+| | `infrastructure/storage/CloudinaryGamesMediaStorageAdapter.java` | Adaptateur média dédié `games` (dossier `zennyt/games/emotional-radar`). |
+| **Reflective Pause** | `domain/config/ReflectivePauseConfig.java` | Catalogue des 10 moments, pause minimale 3 s, réponses recommandées et poids **3 + 4 + 3 = 10**. Java pur ; miroir Dart obligatoire. |
+| | `domain/vo/ReflectivePause{Metrics,MomentMetric,Report,ResponseType}.java` | Mesures brutes auto-validantes (10 IDs uniques, timer cohérent), types de réponse et indicateurs serveur. |
+| | `domain/service/ReflectivePauseScoringService.java` | Calcule temps contrôlé /3 + non-impulsivité /4 + prise de recul /3 ; arrondit les sous-scores à 0,1 puis la somme une seule fois. |
+| | `resources/db/migration/V26__games_reflective_pause_minigame.sql` | Étend le CHECK `game_attempts.mini_game` avec `REFLECTIVE_PAUSE_CORE`, sans nouvelle table. |
 | **domain / event** | `domain/event/GameResultRecordedEvent.java` | `games.result.recorded` — **seul** point d'intégration inter-contextes. |
 | **domain / repo** | `domain/repository/GameSessionRepository.java` | Port (interface) — le domaine ne connaît jamais JPA. |
 | | `domain/repository/DeviceCalibrationRepository.java` | Port du calibrage (upsert par `sessionId`). |
@@ -119,6 +143,7 @@ Contexte **indépendant** : ne dépend que de `shared`, s'intègre au reste **un
 | | `test/java/com/zennyt/games/domain/TaskSchedulingScoringTest.java` | Barème Ordonnancement : parfait 10/10, dépendances non respectées, `adjustment_count`=2 → 1 pt, =5 → 0 pt. |
 | | `test/java/com/zennyt/games/domain/PrevisionPuzzleScoringTest.java` | Barème catégoriel « Predictive Puzzle » : parfait 10/10, 0+2+2=4, niveau échoué, moyenne 3 niveaux, `globalPlanSuccess`. |
 | | `test/java/com/zennyt/games/domain/CalibrationTest.java` | Socle calibrage : offset/display latency, fallback, `adjust`, indicateurs Move Fast `*Adjusted`. |
+| | `test/java/com/zennyt/games/domain/EmotionalRadarScoringTest.java` | Barème 3/4/2, dégradé d'intensité, 27/27 sur 3 scènes, bonus neutralisé, nuance étrangère à la famille rejetée, **anti-triche** (le score ignore les métriques client), alt text/transcript obligatoires, `FIGMA` vs `PROVISIONAL`. |
 | | `test/java/com/zennyt/games/domain/ScoreBreakdownServiceTest.java` | Détail du score : split Move Fast, somme des critères Optimal Path, barème catégoriel Predictive Puzzle. |
 
 ### API REST (`/api/v1/games`)
@@ -127,6 +152,9 @@ Contexte **indépendant** : ne dépend que de `shared`, s'intègre au reste **un
 |---------|-------|------|---------|---------|
 | `POST` | `/sessions` | `StartSessionRequest { gameType }` | `201` `GameSession` (IN_PROGRESS) | 400, 401 |
 | `POST` | `/sessions/{sessionId}/results` | `SubmitResultRequest { miniGame, metrics, deviceCalibration? }` | `200` `GameSession` (+ indicateurs selon le jeu) | 400, 404 |
+| `GET` | `/sessions/{sessionId}/emotional-radar/scenes` | — | `200` `EmotionalRadarSceneList` — scènes + taxonomie, **sans réponse attendue** | 401, 404 |
+| `POST` | `/sessions/{sessionId}/emotional-radar/scenes/{sceneId}/answers` | `{ selectedEmotion, selectedNuance, selectedIntensity }` | `200` `EmotionalRadarFeedback` — correction notée et persistée serveur | 400, 404 |
+| `POST` | `/emotional-radar/scenes/{sceneId}/media` | `multipart/form-data { file, altText?, transcript? }` | `201` `EmotionalRadarScene` | 400, 404 |
 
 Authentification : `bearerAuth` (JWT) — `playerId = jwt.getSubject()`.
 
@@ -214,6 +242,154 @@ Le client envoie `practiceTrialExcludedCount` + `responses[]`, un objet par essa
 
 - Interprétation mini-jeu (provisoire, partagée, `OptimalPathConfig.MINI_GAME_INTERPRETATION_BANDS`) : 0–3 *Très faible* · 4–6 *Moyen* · 7–10 *Bon à excellent*
 
+### ❤️ « Emotional Radar » (`EMOTIONAL_RADAR_CORE`) — reconnaissance émotionnelle
+
+Cinquième domaine cognitif (« Je gère »). Le candidat observe une scène, identifie la **famille
+d'émotion**, précise la **nuance**, puis évalue l'**intensité** sur 5 niveaux.
+
+**Première singularité du module : le contenu vit dans le backend.** Texte, image et vidéo des
+scènes sont servis par l'API — aucun autre jeu n'a son matériel hors de l'application.
+
+**Barème par scène — /9** (constantes dans `EmotionalRadarConfig`, carte *Scoring* du handoff)
+- **Émotion de base** : famille exacte → **3 pts**, sinon 0 (tout ou rien)
+- **Nuance** : nuance exacte → **4 pts**, sinon 0 (tout ou rien)
+- **Intensité** : écart 0 → **2 pts** · écart 1 → **1 pt** · écart ≥ 2 → **0**
+- **Gradient bonus `+1`** : implémenté mais **désactivé** (`GRADIENT_BONUS_ENABLED = false`)
+- Score du mini-jeu = **somme des scènes** ; `maxPoints = scènes jouées × 9` (barème **dynamique**,
+  `MiniGame.maxPoints = 0` comme `MOVE_FAST_CORE`)
+
+> **⚠️ Pourquoi le bonus est neutralisé.** L'activer porterait une scène à 10 points et
+> contredirait les **deux** totaux affichés par la maquette : 27 (3 scènes) et 135 (15 scènes).
+> Le VO `Score` refuse par ailleurs `rawPoints > maxPoints`. Une seule constante (+ son miroir
+> mobile) suffit à le réactiver si le psychologue le valide.
+
+#### 🔒 La clé de correction ne quitte jamais le serveur
+
+Les maquettes exigent un feedback **après chaque scène** (émotion attendue, nuance attendue,
+intensité suggérée, explication) — ce qui, naïvement, imposerait d'envoyer la réponse au client.
+Résolution : **notation par scène côté serveur**.
+
+```
+GET  /sessions/{id}/emotional-radar/scenes   → énoncés + médias, AUCUNE réponse
+POST /sessions/{id}/emotional-radar/scenes/{sceneId}/answers
+                                              → note, PERSISTE, puis renvoie la correction
+POST /sessions/{id}/results                   → EmotionalRadarMetrics = temps uniquement
+```
+
+`EmotionalRadarMetrics` ne transporte **ni réponse ni point** — seulement ce que le serveur ne peut
+pas observer (`responseTimeMs`, `helpOpened`, `fullscreenOpened`, `reducedMotion`). Le score est
+reconstruit depuis les `EmotionalRadarAnswer` que le serveur a lui-même notées : **un payload final
+falsifié ne peut pas modifier le score** — il n'existe même pas de champ à falsifier.
+
+`EmotionalRadarDtos.SceneResponse.from` est le **point de filtrage unique** : c'est la seule
+projection d'une scène vers le client, et elle omet délibérément les quatre champs `expected*` +
+`explanation`. Ne jamais y ajouter de champ `expected*`.
+
+#### 📚 Catalogue de scènes & taxonomie
+
+- Port `EmotionalRadarSceneCatalog` (patron `DecisionScenarioCatalog`), impl
+  `DatabaseEmotionalRadarSceneCatalog` — contrairement à « Je Décide », elle **n'est pas vide**.
+- **3 scènes rédigées** livrées par `V25` (les seules dont le handoff fournit le contenu) :
+  1. *Dialogue* — « Friend: I am sorry, I have to cancel tonight. » → **Sadness / Disappointment / 3**
+  2. *Text* — « You hear a strange noise at night while alone at home. » → **Fear / Anxiety / 4**
+  3. *Image* — « A child cries alone in a quiet courtyard. » → **Sadness / Empathic pain / 3**
+     (scène `active = false` tant que son média n'est pas téléversé)
+- `TOTAL_SCENES` = **3** aujourd'hui, 15 visées. **Les 12 scènes manquantes ne sont pas inventées.**
+
+> **⚠️ Contradiction Figma tranchée (scène 3).** La table *Phase 2 scene answer data* indique
+> `Joy → Triumph → 4` ; les planches *Dark Mode Support*, *Responsive* tablette **et** desktop
+> indiquent `Sadness → Empathic pain → 3`, cette dernière précisant « The scene is interpersonal and
+> silent. The answer should capture sadness observed in someone else. » **Trois planches
+> concordantes + justification textuelle** l'emportent sur la ligne isolée du tableau.
+
+**Taxonomie émotion → nuances** (`EmotionalRadarProvisionalRules`, table `emotional_radar_nuances`) :
+chaque nuance porte sa **source**. `FIGMA` = lisible sur une planche, fait autorité —
+**SADNESS** en entier (Disappointment, Nostalgia, Empathic pain, Sympathy, Guilt), plus
+`FEAR → Anxiety` et `JOY → Excitement/Triumph`. `PROVISIONAL` = sous-catégories d'Ekman ajoutées
+faute de taxonomie fournie (ANGER, DISGUST, SURPRISE n'apparaissent sur **aucune** planche alors que
+les six familles sont sélectionnables dès l'étape 1). Le moteur ne code jamais ces valeurs en dur.
+
+#### 🖼️ Médias
+
+`GamesMediaStoragePort` + `CloudinaryGamesMediaStorageAdapter` — même patron qu'`identity`
+(`FileStoragePort`) et `engagement` (`EngagementMediaStoragePort`), chacun possédant le sien
+au-dessus du bean partagé `CloudinaryConfig`. **Aucune dépendance ajoutée, aucun code d'un autre
+module appelé.** Dossier distant dédié `zennyt/games/emotional-radar`.
+
+Accessibilité portée par le **domaine**, pas seulement par la DB : `EmotionalRadarScene` refuse une
+scène IMAGE/VIDEO sans `mediaUrl` ni `altText`, et une scène VIDEO sans `transcript` (planche
+*Accessibility Compliance* : « Scene media needs alt text or text equivalent; future video needs
+subtitles/transcript »). Une scène média incomplète reste `active = false` et n'est jamais servie.
+
+#### 🎨 Imperfections de maquette corrigées
+
+| # | Constat | Correction |
+|---|---------|------------|
+| 1 | Scène 3 : réponse contradictoire entre 4 planches | `Sadness / Empathic pain / 3` |
+| 2 | Carte d'échec : « Your answer » affiche `Joy / Excitement / 2` mais « Best answer » omet l'intensité | les deux lignes en `famille / nuance / niveau` |
+| 3 | Carte de succès : copie différente en clair (« You identified… ») et en sombre (« The emotional pattern was… ») | voix active du mode clair partout |
+| 4 | Le score reste à `Score 0` sur la carte de feedback (il ne passe à 9 qu'à la scène suivante) alors que la planche sombre l'incrémente sur la carte (9 → 18) | mise à jour **dès la validation** |
+| 5 | CTA de feedback : « Next scene » en clair, « Continue » en sombre | « Next scene » partout |
+| 6 | Hub : le titre « Emotional Regulation » se tronquait en « Emotional R… » | titre réduit pour tenir (`FittedBox`) — passer à la ligne ferait déborder la carte |
+
+### ⏱️ « Reflective Pause » (`REFLECTIVE_PAUSE_CORE`) — contrôle de l'impulsivité
+
+Deuxième mini-jeu du domaine `EMOTIONAL_REGULATION`. Le joueur traverse **10 moments de
+pression**, attend un minimum de **3 secondes**, puis choisit naturellement une réponse parmi :
+répondre immédiatement, respirer/analyser, attendre, demander plus d'informations ou reformuler
+calmement. Aucune correction « bon/mauvais » n'est révélée pendant le parcours.
+
+**Données envoyées par moment** : `momentId`, `selectedResponse`, `responseTimeMs`,
+`minimumTimerReached`. Le domaine impose exactement les 10 IDs `PRESSURE_01..10`, sans doublon,
+et vérifie `minimumTimerReached == (responseTimeMs >= 3000)`. Le client n'envoie **ni score ni
+sous-score**.
+
+**Barème serveur /10** (`ReflectivePauseConfig` + `ReflectivePauseScoringService`) :
+
+- temps de réaction contrôlé = taux de pauses minimales atteint × **3** ;
+- réponses non impulsives = taux de réponses autres que `RESPOND_IMPULSIVELY` × **4** ;
+- capacité à prendre du recul = taux de réponses recommandées par le content map × **3** ;
+- chaque sous-score est arrondi à **0,1**, puis la somme est arrondie **une seule fois** ;
+- interprétation : **0–4** Strong impulsivity · **5–7** Good stress management ·
+  **8–10** Very good self-control.
+
+Le content map indique pour `PRESSURE_03` « Wait, then reformulate calmly » : `WAIT` et
+`REFORMULATE_CALMLY` sont donc toutes deux acceptées comme prise de recul. Ce choix, ainsi que les
+poids 3/4/3 et le composite émotionnel provisoire, restent à valider avec le psychologue.
+
+**Session émotionnelle partagée** : le mobile conserve en mémoire la session
+`EMOTIONAL_REGULATION` incomplète et la réutilise entre Emotional Radar et Reflective Pause. La
+session se complète après les deux tentatives ; avec les 3 scènes Radar actuelles, le composite
+est provisoirement **/37** (27 + 10). Le futur mini-jeu Strategic Choices et une normalisation
+globale /30 restent différés.
+
+### 🧭 « Je Décide » (`DECISION_CORE`) — moteur définitif + couche provisoire isolée
+
+Prise de décision (fiche « JE DÉCIDE »). Architecture **imposée : deux couches strictement séparées**. Le moteur ne code jamais une valeur provisoire — il la lit dans le seul fichier `DecisionProvisionalRules`. Remplacer le provisoire ne demande **aucune** modification du moteur.
+
+**Couche MOTEUR (définitive — `DecisionConfig` + `DecisionScoringService`)**
+- **Structure** : 5 dimensions (`II, ER, DT, CS, RE`), **6 items/dimension**, 30 items notés, item /3, 3 items d'entraînement, ordre des blocs randomisé, mode évaluation, score **jamais** montré au joueur.
+- **Agrégation** : dimension = somme des 6 items → **/18** ; brut = somme des 5 dimensions → **/90** ; score agrégé du mini-jeu = **SCW /100** (un seul `Attempt`, `rawPoints=SCW`, `maxPoints=100` ; détail par dimension dans la réponse API).
+- **Règle DT** (seule dimension dont le score dépend du temps) : temps imparti effectif = `7 s × multiplicateur_langue + calibration_offset_ms` (**double ajustement** langue puis calibrage, socle `CalibrationService` réutilisé, non modifié). Correct (option OPTIMALE) et latence **< 75 %** → **3** ; correct mais **≥ 75 %** → **2** ; incorrect → **score de qualité de l'option**. Multiplicateurs **fournis** : `en 1.00 · fr 1.20 · de 1.25`.
+- **Imputation** : ≤ 2 items manquants dans un bloc → chaque manquant imputé par la **moyenne du bloc** (⇔ moyenne des présents × 6) ; **> 2 → bloc non exploitable** (exclu du SCW, `exploitable=false`).
+- **Interprétations automatiques** (textes de la fiche) : SCW ≥ 75 → *fonction décisionnelle élevée* · II bas + CS bas → *difficulté d'analyse et incohérence* · ER élevé + RE bas → *prise de risque sous émotion* · DT élevé → *bonne performance sous pression*.
+- **Qualité de session** : `avgTimePlausible`, `impulsiveRateOk`, `randomResponseRateOk`, `deviceLatencyWithinNorm` → `sessionUsable` ; contrôles **renforcés** en mode non supervisé.
+- **Indicateurs** : RT moyen/médian/écart-type, `impulsiveResponsePercent`, `slowResponsePercent`, `intraSessionVariability`, `decisionChangesCount`, `averageResponseTimeAdjustedMs`, `dtScoreCalibrationAdjusted` — exposés dans `GameSessionResponse.decisionIndicators`.
+
+**Couche PROVISOIRE (un seul fichier — `DecisionProvisionalRules`, chaque constante `// PROVISOIRE`)**
+- **a — mapping option → score par QUALITÉ** (pas par scénario) : enum `OptionQuality` avec les libellés exacts de la fiche — `OPTIMAL→3` (optimal/cohérent) · `SATISFACTORY→2` (satisfaisant/suboptimal) · `PARTIAL→1` (partiel/incohérent) · `DEFICIENT→0` (déficitaire/non pertinent). Le catalogue étiquette **chaque option** d'une qualité, jamais d'un score brut.
+- **b — poids SCW = 1.0** pour les 5 dimensions (la fiche dit « pondéré » sans donner les poids) : `scw = (Σ dim×poids)/(18×Σ poids)×100`. Vérifié sur l'exemple validé de la fiche (II=12, ER=9, DT=15, CS=14, RE=10 → raw=60 → **SCW ≈ 66,7**).
+- **c — bornes de niveau** (seul ≥ 75 vient de la fiche) : **Élevé ≥ 75** · Normal 60–74 · Borderline 45–59 · Fragile < 45.
+- **d — règle CS** (paire liée) : la note dérive de la cohérence entre les deux réponses — cohérentes → OPTIMAL · partielles → SATISFACTORY · contradictoires → DEFICIENT (`coherenceQuality`).
+- **e — multiplicateurs es/it/pt** (estimations sectorielles : 1.22 / 1.18 / 1.22) + **fallback `ar`** documenté (1.20, tracé) plutôt qu'un échec.
+- Seuils « bas/élevé » par dimension (déclencheurs des interprétations) et seuils de qualité de session : provisoires, isolés ici.
+
+**Catalogue — port injectable** : `DecisionScenarioCatalog` (dimension + format + `OptionQuality` par option). Implémentation vivante **vide** `EmptyDecisionScenarioCatalog` (`// EN ATTENTE DU PSYCHOLOGUE — 30 scénarios + étiquetage`). **Aucun contenu de scénario n'est inventé.** `MiniGame.DECISION_CORE.isPlayable()=false` tant que le catalogue est vide (même patron que `TASK_SCHEDULING` avant implémentation).
+
+**À demander au psychologue pour remplacer le provisoire** : (bloquant) **catalogue des 30 scénarios + étiquetage `OptionQuality` des options** ; poids SCW réels ; bornes de niveau hors ≥ 75 ; multiplicateurs es/it/pt/ar ; échelles post-test fatigue/motivation (et age/educationLevel).
+
+**Détail du score** (`ScoreBreakdownService.decision`) : une ligne par dimension `/18`, puis brut `/90`, puis `SCW /100`. **Parité mock** à répliquer dans `games_mock_repository.dart` (câblage UI → backend = lot séparé ; les écrans `je_decide_*.dart` ne sont pas modifiés).
+
 ### 🎯 Socle de calibrage appareil (transversal — Tâche 4)
 
 Méthode **« technique » pure** (fiche « JE BOUGE » Tableau 2 révisé + guide Calibrage_Appareil) : sépare la **latence machine** du **temps de réaction cognitif**. La méthode « hybrid » des autres fiches est **écartée** (mélange latence matérielle et cognition → invalidée).
@@ -233,13 +409,16 @@ Méthode **« technique » pure** (fiche « JE BOUGE » Tableau 2 révisé + gui
 - **Move Fast** — escalade : `Bonnes réponses`, `Multiplicateur atteint (×n)`, `Points de jeu`, `Bonus de fin (×n × 250)`, `Total`. Note : « chaque bonne réponse = 50 × multiplicateur ; +1 au multiplicateur toutes les 4 bonnes réponses d'affilée ».
 - **Optimal Path** — par niveau puis moyenne : `Chemin optimal (±10 %)` /4 · `Essais` /3 · `Zones coûteuses évitées` /2 · `Objectif secondaire` /1 · `Niveau = X/10` → `Moyenne des N niveaux : X/10`.
 - **Predictive Puzzle** — par niveau puis moyenne : `Réussi du 1er coup` /4 · `Erreurs de séquence` /3 · `Coups superflus` /3 · `Niveau = X/10` → `Moyenne des N niveaux : X/10`.
+- **Reflective Pause** — `Controlled reaction time` /3 · `Non-impulsive responses` /4 · `Ability to step back` /3 → `Total /10`.
 
 Chaque critère affiche la **valeur mesurée entre parenthèses** et les **points/max**. Libellés fidèles aux barèmes ci-dessus. La décomposition Move Fast (points de jeu vs bonus) provient de `MoveFastConfig.replay` — même source que le score.
 
-### Schéma DB (`V9__games_schema.sql`, `V11__games_device_calibrations.sql`, `V12__games_memory_quest_minigame.sql`)
+### Schéma DB (`V9__games_schema.sql`, `V11__games_device_calibrations.sql`, `V12__games_memory_quest_minigame.sql`, `V24__games_decision_minigame.sql`, `V26__games_reflective_pause_minigame.sql`)
 
 - `games.game_sessions` : `id`, `player_id`, `game_type`, `status`, `started_at`, `completed_at` + `CHECK` sur type/status, index `(player_id)` et `(game_type, status)`.
 - **V12** (« J'investigue ») : la contrainte `ck_game_attempts_mini_game` autorise désormais `MEMORY_QUEST_CORE` (aucune nouvelle table — le composite est un `Attempt` /100).
+- **V24** (« Je Décide ») : la contrainte `ck_game_attempts_mini_game` autorise désormais `DECISION_CORE` (aucune nouvelle table — le SCW est un `Attempt` /100 ; `DECISION` était déjà autorisé au niveau session par V9).
+- **V26** (« Reflective Pause ») : la contrainte `ck_game_attempts_mini_game` autorise désormais `REFLECTIVE_PAUSE_CORE` (aucune nouvelle table — score agrégé /10).
 - `games.device_calibrations` (**V11**, Tâche 4) : PK/FK `session_id` (au plus un calibrage/session), `calibration_method`, `input_mode`, `device_category`, `refresh_rate_hz`, `hardware_concurrency?`, `device_memory_gb?`, `input_processing_latency_ms?`, `display_latency_ms`, `calibration_offset_ms`, `reduced_reliability` + `CHECK` sur méthode/mode/catégorie. **Les temps bruts ne sont pas modifiés** : la table conserve le profil + l'offset pour audit.
 - `games.game_attempts` : `session_id` (FK CASCADE), `mini_game`, `raw_points`, `max_points`, `level`, `recorded_at` + `CHECK` mini_game/points, index `(session_id)`.
 
@@ -249,7 +428,8 @@ Chaque critère affiche la **valeur mesurée entre parenthèses** et les **point
 
 Racine : `mobile/lib/features/games/` — **Clean Architecture** (domain / data / presentation).
 Routage : `mobile/lib/core/router/app_router.dart` (`/games`, `/games/planifik`, `/games/move-fast`,
-`/games/predictive-puzzle`).
+`/games/predictive-puzzle`, `/games/je-decide`, `/games/emotional-radar`,
+`/games/reflective-pause`).
 `/games` ouvre le shell `MainNavigationScreen(initialTab: 2)` afin de conserver la bottom nav
 sur l'onglet Careers/Progress ; les routes de jeu restent plein écran.
 
@@ -263,15 +443,30 @@ sur l'onglet Careers/Progress ; les routes de jeu restent plein écran.
 | | `domain/entities/planifik_metrics.dart` | Métriques « Chemin Optimal ». |
 | | `domain/entities/move_fast_metrics.dart` | Métriques « Je bouge ». |
 | | `domain/entities/prevision_puzzle_metrics.dart` | Métriques « Predictive Puzzle » envoyées au backend/mock. |
+| | `domain/entities/reflective_pause_metrics.dart` | Réponses/timings bruts Reflective Pause + indicateurs serveur ; sérialise `reflectivePauseMoments`. |
+| | `domain/config/reflective_pause_config.dart` | Miroir exact de `ReflectivePauseConfig.java` pour le mode mock (3/4/3, content map, bandes). |
 | | `domain/entities/game_score.dart` | Score noté (immuable). |
 | | `domain/entities/game_session.dart` | `GameSession` + `GameAttempt` (miroir de l'agrégat backend). |
 | **domain / repo** | `domain/repositories/games_repository.dart` | Port : `startSession`, `submitResult`. |
-| **data** | `data/dtos/game_session_dto.dart` | Parse la réponse API → entité domaine. |
+| **data** | `data/decision_progress_store.dart` | Checkpoint local « Je Décide » : conserve uniquement le point de reprise ; les choix individuels ne sont pas persistés. |
+| | `data/dtos/game_session_dto.dart` | Parse la réponse API → entité domaine. |
 | | `data/games_repository_impl.dart` | Impl **Dio** → `/api/v1/games`. Convertit erreurs en `ApiException`. |
 | | `data/games_mock_repository.dart` | Impl **MOCK** en mémoire : reproduit le barème serveur → jouable **sans backend**. |
+| **Emotional Radar** | `domain/entities/emotional_radar.dart` | Entités : `BasicEmotion`, `SceneMediaType`, `EmotionalNuance` (+ `NuanceSource`), `EmotionalRadarScene` (**sans** réponse attendue), `SceneSet`, `Feedback`, `Metrics`. |
+| | `domain/config/emotional_radar_config.dart` | **Miroir Dart du barème** (3/4/2, dégradé, bonus off, libellés d'intensité, bandes). Parité backend. |
+| | `domain/config/emotional_radar_provisional_rules.dart` | **Miroir de la taxonomie** — `FIGMA` vs `PROVISIONAL`. |
+| | `presentation/view/emotional_radar_screen.dart` | Machine d'états `cover → tutorial → gameplay → feedback → transition → results` + pause / aide / plein écran / erreur. |
+| | `presentation/view/emotional_radar_gameplay.dart` | `SceneCard` (média + équivalent textuel voisin), `AnswerPanel` (révélation progressive), `FeedbackCard`. |
+| | `presentation/widgets/emotional_radar_components.dart` | Boutons d'émotion, chips de nuance, sélecteur d'intensité, étapes verrouillées/validées, palette — cibles ≥ 48 px, jamais de sens porté par la couleur seule. |
+| **Reflective Pause** | `presentation/view/reflective_pause_screen.dart` | Flow complet `cover → intro → tutorial → 10 moments → saved → results → insights`, timer 3 s, métriques brutes seulement. |
+| | `presentation/emotional_regulation_session_provider.dart` | Réutilise la même session `EMOTIONAL_REGULATION` entre Radar et Reflective, sans permettre deux tentatives identiques. |
+| | `presentation/widgets/emotional_game_pause_dialog.dart` | Menu pause commun Radar/Reflective : reprise, règles/aide, sortie, mode d'entrée et audio. |
 | **presentation** | `presentation/games_providers.dart` | Bascule mock/backend via `--dart-define=GAMES_MOCK` (défaut `true`). |
 | | `presentation/games_controller.dart` | `AsyncNotifier<GameSession?>` : `start()` / `submit()`. |
-| | `presentation/view/games_hub_screen.dart` | Hub jeux style maquette Progress : header « Play & discover your talent », couverture, 5 cartes de domaines cognitifs (logos `assets/games icons/` via `Image.asset`), bottom nav via `ProgressScreen`. |
+| | `presentation/view/games_hub_screen.dart` | Hub jeux style maquette Progress : header « Play & discover your talent », 5 cartes de domaines cognitifs, illustration de catégorie + logos PNG officiels des jeux (`assets/games icons/`) ; le picker multi-jeux réutilise les mêmes images. Emotional Regulation propose Radar + Reflective Pause. |
+| | `presentation/view/je_decide_screen.dart` | **« Je Décide » Phases 1–4** : machine d'états du welcome au profil final, restauration automatique d'un checkpoint local. UI uniquement, sans session backend. |
+| | `presentation/view/je_decide_gameplay.dart` | Gameplay **Phases 2–3** : scénarios représentatifs, timer DT 7 s, paire CS, feedback XP, encouragement, badge/dimension, checkpoint, pause/règles et sauvegarde/reprise. XP visuel uniquement ; aucun score calculé. |
+| | `presentation/view/je_decide_results.dart` | Résultats **Phase 4** : fin de parcours, préparation, radar accessible, score-ring/forces/axe de progression/détails et export-partage placeholder. Valeurs strictement issues de la maquette et marquées `DecisionProfilePreview`, jamais calculées depuis les choix. |
 | | `presentation/view/planifik_screen.dart` | Flow complet **Optimal Path** (intro Path Mind, How To Play, gameplay **multi-niveaux**, score, comparaison) + HUD stations, **menu pause** (`_PauseDialog`), légende, contrôles + bouton « Continue to scheduling » (→ Planifik #2). Voir [Flow Optimal Path](#-flow-optimal-path-mobile). |
 | | `presentation/view/task_scheduling_screen.dart` | **Planifik #2 « Ordonnancement de tâches »** : tap-to-place d'un lot de tâches (dépendances + échéances affichées), mesure (deps/horaires/cohérence/réajustements), soumet via le repo, `ScoreDetailPanel`, enchaîne vers #3. |
 | | `presentation/view/move_fast_screen.dart` | Écran complet « Je bouge » (intro, tutoriels, gameplay **niveau unique à règle aléatoire**, résultats). Voir [Niveau Move Fast](#-niveau-move-fast-mobile). |
@@ -301,15 +496,22 @@ Le hub n'est plus une liste `ListTile` générique. Il suit la maquette fournie 
 - Indicateur **Coverage 0%** en magenta.
 - 5 cartes bordées bleu : Cognitive Flexibility, Working Memory, Decision-Making,
   Executive Planning, Emotional Regulation.
-- Chaque carte affiche : titre + chevron, swatches couleur, durée `10-13mins`,
-  `N° aptitudes`, illustration PNG.
+- Chaque carte affiche : titre + chevron, **logos PNG officiels des jeux réellement disponibles**
+  (un logo pour Move Fast/Memory Quest/Je Décide, trois pour Planifik), durée `10-13mins`,
+  `N° aptitudes`, illustration PNG. Les anciennes swatches décoratives ont été supprimées.
+- Le bottom sheet d'une catégorie multi-jeux reprend le **même fichier image** pour chaque entrée
+  (`Optimal Path`, `Task Scheduling`, `Predictive Puzzle`) afin de conserver l'identité visuelle
+  entre le hub et le sélecteur. Les six logos proviennent des couvertures officielles fournies :
+  `Move Fast.png`, `Memory Quest.png`, `Je Decide.png`, `Optimal Path.png`,
+  `Task Scheduling.png`, `Predictive Puzzle.png`.
 - Assets déclarés dans `mobile/pubspec.yaml` :
   `assets/04 Optimal Path/` (`image 120.png`, `image 120-1.png`, `image 121.png`,
   `image 121-1.png`, `image 121-2.png`) **et** `assets/04 Predictive Puzzle/`
-  (`discs.png` = disques de la carte intro, `golden_rule.png` = illustration règle d'or How-To-Play).
-- Routes actives : Cognitive Flexibility → `/games/move-fast`, Executive Planning →
-  `/games/planifik`, Decision-Making → `/games/predictive-puzzle`. Les autres domaines sont
-  visuels pour l'instant.
+  (`discs.png` = disques de la carte intro, `golden_rule.png` = illustration règle d'or How-To-Play),
+  ainsi que les sous-dossiers utilisés de `assets/04 Je Décide/`.
+- Routes actives : Cognitive Flexibility → `/games/move-fast`, Working Memory →
+  `/games/investigate`, Decision-Making → `/games/je-decide`, Executive Planning →
+  menu de sélection des 3 mini-jeux Planifik. Emotional Regulation reste visuel.
 
 Navigation : `ProgressScreen` héberge `GamesHubScreen`. La route `/games` rend
 `MainNavigationScreen(initialTab: 2)`, et `AppBottomNav` accepte un `selectedTab` local afin
@@ -397,6 +599,53 @@ Le mobile accumule un `PrevisionPuzzleLevelMetrics` **par niveau** (`_levelMetri
 (barème catégoriel de la fiche) puis font la **moyenne arrondie** via `scorePrevisionPuzzle` — un seul
 `Attempt` enregistré. `globalPlanSuccess` est exposé dans la réponse mais reste **hors du score**.
 
+### 🧭 Flow « Je Décide » — Phases 1–4 (mobile)
+
+`je_decide_screen.dart` orchestre les écrans fournis dans les trois dossiers de handoff, dans une
+machine d'états locale :
+
+`welcome → onboarding (3 pages) → playerCard → avatar → practiceIntro → practiceScenario`
+
+`→ analytical → riskBalance → quickChoice → xpFeedback → checkpoint → encouragement`
+
+`→ badge → dimensionComplete → stabilityFirst → stabilitySecond → selfControl`
+
+`→ journeyComplete → preparing → profile → strengths → details → export → hub`.
+
+- **Welcome** : hero violet, objectif/durée/format, étapes et confidentialité.
+- **Onboarding** : carousel « Every choice tells a story », « No pressure » et
+  « Your decision profile ».
+- **Player card** : nickname facultatif, preview et 4 thèmes couleur.
+- **Avatar** : 6 guides (`Navigator`, `Analyst`, `Explorer`, `Strategist`, `Pathfinder`, `Observer`)
+  à partir des PNG fournis.
+- **Practice** : tutoriel puis seul scénario fourni, `Practice 1/2 — Choosing a route`.
+  Le choix reste neutre : aucun état « correct/incorrect ».
+- **Gameplay Phase 2** : les cinq formats livrés sont représentés sans afficher leurs codes
+  internes : choix à 3 cartes, risque à 2 options, choix rapide, scénario lié en deux parties
+  consécutives et préférence immédiate/différée.
+- **Choix rapide** : timer visuel + numérique de 7 s, état critique orange à 2 s, timeout calme
+  puis passage automatique au scénario suivant. Aucune notion de réussite/échec.
+- **Feedback** : écran `+12 XP` et badge `Steady Explorer`. Ces valeurs reproduisent seulement les
+  états visuels des maquettes ; elles ne constituent pas un barème.
+- **Checkpoint/reprise** : à mi-parcours, pause optionnelle, écran de progression sauvegardée et
+  restauration automatique. `DecisionProgressStore` conserve uniquement le nom de l'étape de
+  reprise dans `SharedPreferences`, jamais les réponses.
+- **Menu pause** : la croix gameplay ouvre un dialogue avec reprise, son/musique, règles et
+  sauvegarde/sortie. Le timer DT est réellement suspendu puis reprend au même nombre de secondes.
+- **Résultats Phase 4** : fin 30/30, préparation, radar avec équivalent textuel accessible, profil,
+  forces, axe de progression, cinq dimensions détaillées et écran export/partage placeholder.
+  Le profil `82/100 — Analytical Decision-Maker` et ses cinq valeurs sont un **aperçu exact de la
+  maquette**, isolé dans `DecisionProfilePreview` ; il n'est pas dérivé des choix.
+- La bottom nav partagée reste visible pendant l'introduction et disparaît pendant la pratique et
+  tout le gameplay/résultat.
+- Restent à fournir avant l'intégration backend : `Practice 2/2`, catalogue des 30 scénarios,
+  mapping option→dimension (0–3), seuils de profil, règles XP/badges et règles de randomisation.
+  Tant qu'ils manquent, aucun `MiniGame.DECISION_CORE`, métrique, score, appel backend ni profil
+  psychométrique réel n'est créé côté client.
+
+La carte `Decision-Making` du hub pointe exclusivement vers `/games/je-decide`. Predictive Puzzle
+reste dans `Executive Planning`.
+
 ### Gestion d'état & bascule mock/backend
 
 ```dart
@@ -442,8 +691,10 @@ feedback visuel reste cohérent : **vert = Orientation**, **jaune/orange = Mouve
 
 - `GameDirectionControls` : D-pad **compact centré** (croix de largeur `buttonSize*3 + gap*2`),
   aligné sur la maquette Figma.
-- `MoveFastPlane` / `_PlanePainter` : avion vectoriel. Sur le plateau, `_ScrollingPlane` fait
-  **défiler les avions en continu** (boucle avec wrap) dans la direction du mouvement.
+- `MoveFastPlane` / `_PlanePainter` : avion vectoriel calé sur la référence Figma
+  `04 Move Fast/Move Fast Pro/Plane trail/next.png` (silhouette blanche, panneaux de règle,
+  contour et ombre bleu-violet). Sur le plateau, `_ScrollingPlane` fait **défiler les avions en
+  continu** (boucle avec wrap) dans la direction du mouvement, sans ligne de trajectoire.
 - `_RulesDialog` : aide « Règles » avec deux cartes codées couleur (vert Orientation / orange
   Mouvement) au lieu d'un simple `AlertDialog`.
 
@@ -491,7 +742,7 @@ Schémas : `GameType`, `MiniGame`, `SessionStatus`, `StartSessionRequest`, `Opti
 | Move Fast — essais d'échauffement (warm-up) exclus du scoring/stats | 🟢 Fait |
 | Move Fast — condition de fin (`SessionEndMode`) | 🟠 **Configurable** : défaut `FIXED_BUDGET` (12/18/84 s, DIVERGE de la fiche) / `REACH_MAX_MULTIPLIER` (fiche) — bascule = 1 constante, à valider par le psychologue |
 | Move Fast — bandes d'interprétation (/100) | 🟠 Provisoires, **non validées** par le psychologue |
-| Hub Games / Progress — maquette 5 domaines cognitifs + assets `04 Optimal Path` + bottom nav conservée | 🟢 Fait |
+| Hub Games / Progress — maquette 5 domaines cognitifs, mini-logos des jeux dans les cartes + picker, bottom nav conservée | 🟢 Fait |
 | Planifik #3 `PREVISION_PUZZLE` — Predictive Puzzle | 🟢 Fait |
 | Predictive Puzzle — **3 niveaux (3 → 4 → 5 disques, optimal `2^n − 1`)** + disques responsive | 🟢 Fait |
 | Predictive Puzzle — **barème catégoriel de la fiche** (1er essai/erreurs/coups superflus), remplace l'ancienne formule inventée | 🟢 Fait |
@@ -505,8 +756,16 @@ Schémas : `GameType`, `MiniGame`, `SessionStatus`, `StartSessionRequest`, `Opti
 | **« J'investigue » — backend (Phase 4)** : mini-jeu `MEMORY_QUEST_CORE`, `MemoryQuestMetrics` (mesures par tâche), `MemoryQuestScoringService` (tâches 0–5 → **composite /100**), indicateurs + détail du score exposés, migration **V12** (CHECK), parité mock ; mobile soumet via le repository (score serveur autoritatif) | 🟢 Fait |
 | **« J'investigue » — système de niveaux** (7 niveaux, longueur 3→9, +1 après 3 tâches réussies ; objets 4→12 ; distraction gatée niveau ≥ 3 ; arrêt à `max_sequence_length`/`max_session_duration_min`) | 🟢 Fait (backend + mobile + parité mock) |
 | **« J'investigue » — calibrage appareil → timeout** (1er module dont le **score dépend du temps**) : `max_task_time_ms + offset` ; tâche dépassant le seuil ajusté = échec voidé ; `session_valid` | 🟢 Fait — socle `DeviceCalibration`/`CalibrationService` **réutilisé** (non modifié) |
-| **Choix&Cap — « Je décide » (`DECISION`)** | 🔴 **À faire** — déclaré au contrat, aucune logique |
-| **Gestion émotionnelle — « Je gère »** (régulation émotionnelle, 5ᵉ domaine) | 🔴 **À faire** — **non déclaré** dans `GameType`, carte hub inactive |
+| **« Je Décide » (`DECISION`) — Phases 1–4 mobile** | 🟡 Fait côté UI — parcours complet jusqu'au profil, timer/timeout, transitions, pause/règles, checkpoint/reprise, radar/insights/export placeholder ; **profil maquette uniquement**. Catalogue complet/backend/scoring réel en attente des règles |
+| **« Emotional Radar » (`EMOTIONAL_REGULATION`) — 5ᵉ domaine** : `GameType` + `EMOTIONAL_RADAR_CORE`, barème 9 pts/scène, écran Flutter complet (cover, tutoriel, gameplay à révélation progressive, feedback, transition, résultats, pause/aide/plein écran), parité mock | 🟢 **Fait** — jouable sur les 3 scènes rédigées (27 pts) |
+| Emotional Radar — **contenu servi par le backend** (texte/image/vidéo) : catalogue en base, `GamesMediaStoragePort` + adaptateur Cloudinary dédié, endpoint de téléversement | 🟢 Fait — 1ᵉʳ jeu du module dont le matériel n'est pas embarqué |
+| Emotional Radar — **notation par scène côté serveur** (clé de correction jamais envoyée au client ; score reconstruit depuis les réponses persistées) | 🟢 Fait — migration **V25**, table `emotional_radar_answers` |
+| Emotional Radar — taxonomie ANGER/DISGUST/SURPRISE (Ekman) | 🟠 **PROVISOIRE** — absente des maquettes, à valider par le psychologue |
+| Emotional Radar — 12 scènes manquantes (15 visées) | 🔴 En attente du psychologue — aucune scène inventée |
+| **« Reflective Pause » (`REFLECTIVE_PAUSE_CORE`)** : contrat, domaine pur, barème serveur 3/4/3, V26, API, breakdown et parité mock | 🟢 **Fait — /10**, 10 moments obligatoires |
+| Reflective Pause — mobile complet : cover, intro, tutoriel, timer 3 s, réponses, transition sauvegardée, résultats, insights, pause/règles, route et picker Emotional Regulation | 🟢 Fait — logo officiel net réutilisé |
+| Domaine Emotional Regulation — session partagée Radar + Reflective, complétion + event | 🟢 Fait — composite provisoire **/37** (27 + 10) |
+| Profil global émotionnel /30 avec Strategic Choices | 🔴 Différé — aucune règle/maquette de scoring fournie |
 | Bascule mock ⇄ backend | 🟢 `--dart-define=GAMES_MOCK` |
 | Socle de calibrage appareil (méthode « technique », transversal) | 🟢 Fait — appliqué à Move Fast (indicateurs `*Adjusted`), réutilisable Decision/Memory Quest |
 | Calibrage — table `games.device_calibrations` (V11) + fallback fiabilité réduite | 🟢 Fait |
@@ -539,6 +798,18 @@ Schémas : `GameType`, `MiniGame`, `SessionStatus`, `StartSessionRequest`, `Opti
 | 16 | **« J'investigue » — `max_task_time_ms`** | **6000 ms PROVISOIRE** (délai max d'une tâche avant échec par dépassement) | Fiche : aucune valeur scientifique ; recommande le 95ᵉ percentile pilote | `MemoryQuestConfig.MAX_TASK_TIME_MS` |
 | 17 | **« J'investigue » — seuil critique d'offset de calibrage** | **100 ms PROVISOIRE** (au-delà → session invalide) | Non chiffré par la fiche | `MemoryQuestConfig.CRITICAL_CALIBRATION_OFFSET_MS` |
 | 18 | **« J'investigue » — seuil « trop de timeouts » (critère validité 3)** | **> 3 tâches PROVISOIRE** (au-delà → session invalide) | Non chiffré par la fiche | `MemoryQuestConfig.MAX_TIMEOUT_TASKS` |
+| 20 | **Emotional Radar — barème d'intensité** | écart 0 → 2 pts · 1 → 1 pt · ≥ 2 → 0 | Maquette : seulement « Intensity 2 pts ». Le dégradé traduit la tuile « 81% Intensity — Calibration quality » | `EmotionalRadarConfig.intensityScore` |
+| 21 | **Emotional Radar — gradient bonus** | **désactivé** (`GRADIENT_BONUS_ENABLED=false`) : l'activer donnerait 10 pts/scène, incompatible avec les totaux 27 et 135 de la maquette | Maquette : « Gradient bonus +1 optional » | `EmotionalRadarConfig.GRADIENT_BONUS_ENABLED` |
+| 22 | **Emotional Radar — nuance tout-ou-rien** | 4 pts si exacte, 0 sinon (pas de crédit partiel pour « bonne famille, mauvaise nuance ») | Non spécifié | `EmotionalRadarScoringService.grade` |
+| 23 | **Emotional Radar — réponse de la scène 3** | `Sadness / Empathic pain / 3` | **Contradiction Figma** : 3 planches contre la ligne du tableau (`Joy → Triumph → 4`) | `V25__games_emotional_radar.sql` |
+| 24 | **Emotional Radar — nuances ANGER / DISGUST / SURPRISE** | sous-catégories **d'Ekman**, marquées `PROVISIONAL`, isolées dans la couche provisoire | **Absentes de toutes les planches** alors que les 6 familles sont sélectionnables | `EmotionalRadarProvisionalRules` + colonne `source` |
+| 25 | **Emotional Radar — `total_scenes` = 3** | 3 scènes rédigées ; l'UI annonce « / 15 » | Planche « Phase 2 QA notes » : les 15 scènes sont en Phase 3 | `EmotionalRadarConfig.TOTAL_SCENES` |
+| 26 | **Emotional Radar — bandes d'interprétation** (/100) | <40/<60/<75/<90 — alignées sur les autres jeux | Aucune fiche | `EmotionalRadarProvisionalRules.interpret` |
+| 27 | **Emotional Radar — autorisation de l'upload média** | endpoint **authentifié seulement** — aucun rôle admin n'existe dans `games` | Non spécifié — **arbitrage produit attendu** | `EmotionalRadarController.uploadMedia` |
+| 28 | **Reflective Pause — barème 3/4/3** | temps contrôlé /3 + non-impulsivité /4 + prise de recul /3 ; sous-scores à 0,1, somme arrondie une fois | Le handoff nomme les dimensions et le score /10 mais ne fixe pas explicitement les poids | `ReflectivePauseConfig` / miroir Dart |
+| 29 | **Reflective Pause — moment 3** | `WAIT` **ou** `REFORMULATE_CALMLY` comptent comme prise de recul | Content map : « Wait, then reformulate calmly » sans préférence entre les deux choix UI | `ReflectivePauseConfig.RECOMMENDED` |
+| 30 | **Profil émotionnel provisoire /37** | session complétée avec Radar actuel /27 + Reflective /10 | La planche globale prévoit 3 jeux ×10 = /30, mais Strategic Choices et la normalisation Radar /10 ne sont pas fournis | `MiniGame.EMOTIONAL_RADAR_CORE` + `REFLECTIVE_PAUSE_CORE` |
+| 19 | **« Je Décide » — frontière mobile/backend** | Le parcours UI Phases 1–4 est navigable. Le profil final est l'aperçu statique de la maquette (`DecisionProfilePreview`) et ne dépend jamais des choix ; XP purement visuel | `Practice 2/2`, catalogue 30 scénarios, mapping option→dimension, seuils de profil, XP/badges et randomisation non fournis | `je_decide_screen.dart`, `je_decide_gameplay.dart`, `je_decide_results.dart` |
 
 **Conforme à la fiche, NE PAS toucher** : profil global Planifik /30 (`interpretGlobal`), cœur du barème Move Fast (50 × multiplicateur, streak 4, bonus 250), barème catégoriel « Predictive Puzzle » (seule fiche validée), architecture par Domain Events.
 
@@ -561,7 +832,118 @@ vous touchez à l'un de ces chemins :
 - [ ] Un nouveau jeu/mini-jeu devient jouable → mettre à jour le **tableau de statut** et la **roadmap**.
 - [ ] Mettre à jour la ligne ci-dessous.
 
-**Dernière mise à jour** : 2026-07-12 — **(25)** Working Memory — objets en **vrais SVG multicolores** (`flutter_svg`) : 21 SVG plats à **fond transparent** recréés dans `assets/J’investigue/MemoryObject/svg/` (répliquent les visuels d'origine **sans** le fond blanc ni le libellé gravé des PNG) ; `_ObjectTile` rend `SvgPicture.asset(memoryObjectSvg(id))` (44 px). **Suppression** des maps Material `memoryObjectIcon`/`_kMemoryObjectIcons` + `memoryObjectColor`/`_kMemoryObjectColors` (remplacées). ⚠️ **Dépendance `flutter_svg: ^2.0.10` ajoutée au `pubspec`** (AGENTS.md §3) + déclaration du dossier SVG — **sur ta demande explicite** de générer des SVG (`flutter_svg 2.3.0` résolu). Les PNG `assets/J’investigue/memoryobject/*.png` restent inutilisés. `flutter analyze` clean, 21 SVG XML-valides. Aucun barème/scoring/contrat/event touché. **(24)** Working Memory — icônes objets **colorées** (une couleur d'accent par objet, `memoryObjectColor` ; **décorative** — le sens reste porté par forme+libellé, accessibilité) + correctif **overflow 1 px** des tuiles de slots (`_ObjectTile` : padding vertical 10→8, icône 48→44 → budget ≈104/112 px). `flutter analyze` clean, aucun barème/contrat touché. **(23)** Working Memory (« J'investigue ») — **objets en icônes vectorielles** : les tuiles (`_ObjectTile`, phases Observation + Restauration) affichaient de petits PNG (label anglais gravé) rendus à 34 px → remplacés par des **icônes Material vectorielles** (nettes/scalables, équivalent SVG, **sans dépendance** — pas d'ajout de `flutter_svg`, AGENTS.md §3), mappées par `MemoryObject.id` (`memoryObjectIcon`, 21 formes distinctes), rendues **48 px** sur tuile agrandie (92×112). `MemoryObject` nettoyé : champ `asset` (chemin PNG) **retiré** → domaine mobile sans dépendance Flutter. Les PNG `assets/J'investigue/memoryobject/*.png` deviennent **inutilisés** (déclaration `pubspec` laissée telle quelle, §3). Aucun barème/scoring/contrat/event touché ; `flutter analyze` clean. **(22)** Move Fast — **niveau unique à règle aléatoire** (mobile-only, **barème inchangé**) : suppression de la progression 3 niveaux (Orientation → Mouvement → aléatoire) et des 2 écrans de transition (`_RuleSwitchView`/`_RandomLevelView` + stages `ruleSwitch`/`randomRule` retirés) ; le gameplay démarre directement en mode aléatoire (`_randomRule=true`, `_rule=_nextRandomRule()`), la règle et sa **couleur (vert=Orientation ⇄ jaune/orange=Mouvement)** basculent imprévisiblement à chaque avion. **Fin de session inchangée** (12 bonnes / 18 essais / 84 s) → score serveur identique (max ×10, streak 4, bonus 250 **intacts**, zone protégée non touchée). Tutoriels conservés. `flutter analyze` clean ; aucun test impacté (`move_fast_config_test` = barème, non modifié). **(21)** Hub Games — **logos par catégorie** : les 5 cartes du menu jeux (`games_hub_screen.dart`) utilisent désormais les PNG fournis dans `assets/games icons/` (`Cognitive Flexibility` → Move Fast, `Working Memory` → Memory Quest, `Decision-Making` inactive, `Executive Planning` → Planifik, `Emotional Regulation` inactive) rendus via `Image.asset` (94×88, `BoxFit.contain`) ; chemins centralisés en constantes (espace avant `.png` respecté). Suppression du code d'illustration dessiné à la main devenu mort (`_GameIllustration` + widgets `*Art`/`_ArtIconBubble`/`_BrainLine*`). Logo `Emotional Intelligence .png` **non utilisé** (aucune catégorie correspondante sur le hub). ⚠️ Déclaration d'asset dans `pubspec.yaml` faite **sans autorisation préalable** (AGENTS.md §3/§4.6) — à valider. Aucun barème/scoring/event touché ; `flutter analyze` clean. **(20)** Doc — tableau des jeux détaillé par **mini-jeu** : les 3 mini-jeux Planifik (`OPTIMAL_PATH` /10, `TASK_SCHEDULING` /10, `PREVISION_PUZZLE` /10 → profil /30) explicités avec colonnes `GameType`/`MiniGame`/catégorie évaluée/état/rendu ; Move Fast (`MOVE_FAST_CORE`) et Memory Quest (`MEMORY_QUEST_CORE`) idem ; Decision + Gestion émotionnelle en 🔴. Rendu corrigé (Flame uniquement pour Chemin Optimal ; les autres écrans en Flutter pur). **(19)** Fixes cohérence (aucun barème/scoring touché) : **Javadoc resynchronisés** (`GameType.java` backend + `game_type.dart` mobile — Move Fast / Planifik (3 mini-jeux, /30) / Memory Quest implémentés, Decision déclaré sans logique, régulation émotionnelle sans `GameType`) ; **carte hub « Decision-Making » désactivée** — elle pointait à tort sur Predictive Puzzle (jeu Planifik) ; désormais inactive avec badge « Bientôt » (comme « Emotional Regulation »). Audit des 5 cartes : chaque carte active lance **son propre** jeu (Cognitive Flexibility→Move Fast, Working Memory→Memory Quest, Executive Planning→Planifik) ; Decision-Making + Emotional Regulation inactives. **(18)** Doc — resynchronisation du tableau des jeux : Planifik marqué **complet /30** (3 mini-jeux), ajout de la ligne **Gestion émotionnelle** (non déclarée) pour refléter les **5 domaines**. **(17)** **« J'investigue » complété** (système de niveaux + calibrage). **Niveaux** (`MemoryQuestConfig`, fiche Tableau 1) : 7 niveaux, longueur 3→9 (`initial_sequence_length=3`, `sequence_increment=+1`, `max_sequence_length=9`), montée après **3 tâches réussies** (`correct_tasks_for_level_up`), objets **4→12**, **distraction gatée niveau ≥ 3** (`distractionActiveAtLevel`), arrêt à `max_sequence_length`/`max_session_duration_min`, `hints_enabled=false`, `partial_credit_enabled=true`. **Calibrage → timeout** (Tableau 2) : Memory Quest est le **premier module dont le score dépend du temps** — le socle `DeviceCalibration`/`CalibrationService` (réutilisé, **non modifié**) est enfin exploité pour un SCORE : `adjustedTaskTimeoutMs = MAX_TASK_TIME_MS + offset` ; une tâche dépassant le seuil ajusté est un **échec voidé** (`isTaskTimedOut`), l'offset remonte le seuil pour un appareil lent (`apply_calibration_to_task_timeout=true`). La justesse du rappel reste inchangée. **`session_valid`** (Tableau 3) : false si offset critique / abandon / trop de timeouts. **VO** : `MemoryTaskResult`/`MemoryTaskKind` (par tâche, avec timing) ; `MemoryQuestMetrics` += `finalLevel`/`sessionCompleted`/`tasks` (+ constructeur de compat pour la **non-régression**) ; `MemoryQuestReport` += `finalLevel`/`sessionValid`/`timeoutTaskCount`. **Contrat-first** : `MemoryTaskResult`/`MemoryTaskKind`, `tasks`/`finalLevel`/`sessionCompleted` sur `MemoryQuestMetrics`, `sessionValid`/`finalLevel`/`timeoutTaskCount` sur `MemoryQuestIndicators`. **Scoring** : composite = moyenne des tâches jouées × 20 **inchangé** ; avec `tasks`, tâches en timeout voidées ; sans `tasks`, agrégat plat (composite historique identique). **Mobile** : `memory_quest_config.dart` (miroir), `InvestigateScreen` gère la montée de niveau (chip « Level N »), la distraction gatée, le **timing par tâche** + envoie `deviceCalibration` ; parité mock (`_scoreMemoryQuest` timeout-aware). **Tests** : backend `MemoryQuestScoringTest` (montée niveau, timeout voidé sauf offset, `session_valid` sur abandon/offset/timeouts, **non-régression composite**) ; mobile `memory_quest_config_test` + `memory_quest_mock_test` (parité timeout) + `investigate_screen_test` (3 réussites niveau 1 → niveau 2 longueur 4, distraction absente niveau 1). ⚠️ 3 seuils PROVISOIRES tracés (`max_task_time_ms`, seuil critique d'offset, seuil « trop de timeouts »). ArchUnit vert. Zones protégées inchangées (composite Memory Quest, events, socle calibrage, barèmes autres jeux). — **(16)** Move Fast : divergences fiche rendues **explicites, configurables et testées** sans changer le défaut. **Condition de fin** = énum `MoveFastConfig.SessionEndMode` (**`FIXED_BUDGET`** défaut, diverge de la fiche / **`REACH_MAX_MULTIPLIER`** fiche) ; bascule = **1 constante** (`SESSION_END_MODE` + miroir mobile `sessionEndMode`), aucun refactor. Anti-triche mode-paramétré (`plausibilityViolation(mode,…)` : plafonds en FIXED_BUDGET, **aucun plafond** en REACH_MAX_MULTIPLIER). Mobile : nouvel `move_fast_config.dart` lu par l'écran (`_reachedEndCondition`/`_sessionProgress`, plus rien codé en dur) et le mock. **Bandes d'interprétation** (<40/<60/<75/<90) centralisées : backend `MoveFastConfig.INTERPRETATION_BANDS` (`// AJOUT NON VALIDÉ PAR LE PSYCHOLOGUE`), mobile `MoveFastConfig.interpretMoveFast` (dé-dupliquées du mock). Cœur du barème (50 × multiplicateur, streak 4, bonus 250) **inchangé**. Tests : backend `MoveFastMetricsTest` (défaut FIXED_BUDGET, plausibilité par mode, bandes 39→Très faible / 90→Excellent) + `GameSessionTest.moveFast_score_is_independent_of_session_end_mode` (**score identique dans les 2 modes** — le barème ne consulte jamais `SessionEndMode`) + mobile `move_fast_config_test.dart`. **Audit indicateurs de flexibilité (Tableau 3)** : `precisionRatio`, `switchCostMs`, `perseverativeErrorsCount`, `fast/slowResponsesPercent`, précision par règle (`correctResponsesRule{Orientation,Movement}`), + RT avg/median/stdDev, switch/nonSwitch avg, durée/statut — **tous présents**, calculés serveur (`MoveFastFlexibilityReport`) et exposés (`moveFastIndicators`) ; rien à ajouter. — **(1)** Fix complétion Planifik : `MiniGame.isPlayable()` introduit ; `TASK_SCHEDULING` exclu de la complétion (session Planifik = `OPTIMAL_PATH` + `PREVISION_PUZZLE`), émet bien `GameResultRecordedEvent`. **(2)** Move Fast : barème figé dans `MoveFastConfig`, métriques de flexibilité enrichies (`responses` + `ruleActive`/`isSwitchTrial`/`appliedOldRule`), indicateurs dérivés serveur (`switchCostMs`, erreurs persévératives…) exposés dans la réponse, essais d'échauffement exclus, anti-triche léger (400). ⚠️ Divergences tracées à valider par le psychologue : condition de fin (12/18/84 s vs `reach_max_multiplier`) et bandes d'interprétation. **(3)** Optimal Path : barème figé dans `OptimalPathConfig` (tolérance ±10 %, `max_attempts`, poids), `total_levels`=4 tracé comme décision produit ; mock mobile aligné. **(4)** Optimal Path multi-niveaux : `PlanifikMetrics.levels[]` (+ enums `costlyZonesAvoided`/`secondaryObjectivesReached`), score = **moyenne arrondie /10** des niveaux (1 seul `Attempt`, pas de migration Flyway), bandes /10 par mini-jeu isolées en config ; mobile cumule les niveaux et soumet une seule fois ; mock répliqué. ⚠️ À valider par le psychologue : agrégation par moyenne, raffinements PARTIAL, bandes /10. **(5)** Predictive Puzzle : **barème catégoriel de la fiche** (1er essai 4/0 · erreurs 3/2/1 · coups superflus 3/2/1) remplaçant l'ancienne formule inventée (base 10/4 − pénalités) ; métriques `levels[]` (Tour de Hanoï 3/4/5), score = **moyenne arrondie /10** (1 `Attempt`, pas de Flyway), `globalPlanSuccess` exposé **hors score** ; mobile cumule par niveau, mock répliqué. ⚠️ Décisions produit à valider : `puzzle_levels` [3,4,5] et `max_sequence_errors` [3,2,1] (fiche : 3 constant). **(6)** Socle de **calibrage appareil** (méthode « technique » pure) : VO `DeviceCalibration` + `CalibrationService` réutilisable, `deviceCalibration` optionnel au contrat, table `games.device_calibrations` (V11), fallback `hardware_profile_fallback` (fiabilité réduite). Move Fast expose des indicateurs `*Adjusted` (temps corrigés) — le **score** reste inchangé (indépendant du temps). Essais d'échauffement exclus du calibrage. Mobile : `DeviceCalibrationProbe`. **(7)** Hygiène finale : schémas OpenAPI renommés (`MoveFastResponseItem`, `OptimalPathLevelMetrics`, `PrevisionPuzzleLevelMetrics`, `DeviceCalibration`), **commentaires croisés de parité mock ⇄ backend** dans les deux fichiers de barème, section consolidée **« Décisions à valider avec le psychologue »**. Zones protégées inchangées (Planifik /30, cœur Move Fast, events). ArchUnit vert (domaine pur). **(8)** **Panneau « détail du score »** à la fin des 3 jeux : `ScoreBreakdownService` (serveur) produit des lignes « logs » (mêmes métriques + même barème, aucun recalcul client), exposées dans `GameSessionResponse.scoreBreakdown` ; UI `ScoreDetailPanel` (style console) ; mock répliqué pour l'hors-ligne (`_buildBreakdown`). Décomposition Move Fast via `MoveFastConfig.replay` (barème 50/4/250 inchangé). **(9)** Garde-fous compteur d'essais Optimal Path (Cas 1 confirmé, non-bug) : suppression du `canValidate` inutilisé + commentaire anti-refactor au-dessus du bouton Valider + test `planifik_attempts_test.dart` (valider un chemin incomplet reste possible) + note § « Décisions à valider » (ligne 10). Aucun barème modifié. **(10)** Optimal Path — **limite dure d'essais** : 3 validations ratées → niveau scellé (feedback « Niveau échoué — 3 essais »), **passage auto** au niveau suivant, niveau échoué scoré **1/10** via métriques d'échec (`buildFailedLevelMetrics`, parité mock⇄backend), tracé réinitialisé après un échec ; HUD « Tries » plafonné à 3. Tests : `planifik_attempts_test.dart` (widget : 3 échecs → scellé + avance) + `GameSessionTest.optimalPath_failed_level_scores_one_over_ten`. Robustesse : `_refresh()` diffère la notif. `revision` hors frame de build. **(11)** Nouveau jeu **« J'investigue » (`MEMORY_QUEST`, mémoire de travail)** — **Phase 0 + Mission A (Digit Span)**, mobile, score **mock** (0–5/tâche → composite /100, indicatif). `InvestigateScreen` (Flutter custom, réutilise `game_system_components`) : machine à états intro → tutoriel → observe (encodage séquentiel 900 ms / ISI 250 ms, saisie verrouillée) → rappel même ordre → rappel inverse → feedback → résultats ; clavier accessible (cibles ≥48 px, icône+texte, pas de couleur seule), pause, reduced-motion. Catalogue `MemoryObject` (21 objets forme+libellé FR/EN) pour la Mission B. Câblé : tuile hub « Working Memory » → route `/games/investigate` ; assets déclarés. Test widget déterministe (graine) : observe → rappels → composite 90 %. **(12)** « J'investigue » **Mission B (manipulation d'objets)** enchaînée après la Mission A : `observeObjects` (ordre initial visible 5 s, verrouillé) → `manipulateObjects` (échanges automatiques, watch-only) → `restoreOrder` (**tap-to-place** : reconstruire l'**ordre INITIAL**, pas l'état final) ; objets du catalogue (icône + libellé FR/EN, `errorBuilder` de repli → accessibilité préservée), score restauration 0–5 intégré au composite. Chemin d'assets unicode `assets/J’investigue/memoryobject/` vérifié (chargement OK). Test widget étendu (graine + hook `onMissionBReady`) : flux complet A+B. **(13)** « J'investigue » **phase de distraction (Phase 3)** enchaînée après la Mission B : `distractionEncode` (courte séquence à protéger, verrouillé) → `distraction` (**question rapide** additions, 5–10 s, fond **calme** assombri, **rappel mémoire visible**, pas de rouge urgent ni flash, choix seuls actifs) → `recallAfterDistraction` (rappel de la séquence protégée). La **note** = survie de la mémoire (rappel après interférence) intégrée au composite ; la justesse de la question est un **indicateur affiché à part** (« Quick check »). Matrice input-lock respectée (encode verrouillé, distraction/rappel déverrouillés). Test étendu (hook `onDistractionReady`) : flux **A+B+distraction** → **composite 95 %** (same 5/5, reverse 4/5, restore 5/5, after-distraction 5/5, quick check Correct). **Reste : backend/contrat + niveaux (4→12 objets, distraction gatée niveau ≥3).** **(14)** « J'investigue » **backend (Phase 4)** : mini-jeu `MEMORY_QUEST_CORE` (composite /100, un `Attempt`), `MemoryQuestMetrics` (mesures par tâche) → `MemoryQuestScoringService` (chaque tâche 0–5 via `MemoryQuestConfig.taskScore`, composite = moyenne des tâches jouées × 20), `MemoryQuestReport` (notes par tâche) + détail du score exposés dans la réponse (`memoryQuestIndicators`), contrat OpenAPI (`MemoryQuestMetrics`/`MemoryQuestIndicators`), migration **V12** (CHECK `game_attempts`). **Parité mock** (`_scoreMemoryQuest` + breakdown). Le **mobile soumet via le repository** (`InvestigateScreen` → `ConsumerStatefulWidget` : `startSession(MEMORY_QUEST)` puis `submitResult(memoryQuestCore)`) — le **composite serveur fait autorité** (repli local hors-ligne). Bandes d'interprétation ⚠️ non validées par le psychologue. Test backend `MemoryQuestScoringTest` (composite 95 %, Mission A seule, report) + test mobile flux complet (composite 95 % via mock). ArchUnit vert (domaine pur). **(15)** **Planifik #2 « Ordonnancement de tâches » (`TASK_SCHEDULING`) implémenté** → Planifik complet **/30** sur ses 3 mini-jeux. Barème /10 (`TaskSchedulingConfig` + `PlanifikScoringService.scoreTaskScheduling`) : dépendances tout-ou-rien 3/0 + horaires 3/0 + cohérence 0–2 + réajustements dérivés (<2→2 · **2-4→1** · >4→0). `TASK_SCHEDULING.isPlayable()`=true → `expectedMiniGames(PLANIFIK)`=3, profil global de nouveau **/30** (note transitoire /20 retirée). Contrat `TaskSchedulingMetrics`, DTO/use case câblés, breakdown ajouté ; **aucune migration** (TASK_SCHEDULING déjà autorisé par le CHECK V9/V12). **Parité mock** (`_scoreTaskScheduling` + breakdown). Mobile : écran `task_scheduling_screen.dart` (tap-to-place, mesure seulement) + route `/games/task-scheduling`, enchaîné **#1 → #2 → #3** (boutons « Continue »). Tests : `TaskSchedulingScoringTest` (dont piège `adjustment_count`=2 → 1 pt) + `GameSessionTest` (session Planifik → COMPLETED /30 + event) + mock parité (`task_scheduling_mock_test.dart`). ⚠️ Décisions produit tracées : `total_tasks` 10–12, `time_constraints_mode` strict, mesure de cohérence. Zones protégées inchangées (barèmes Optimal Path/Hanoï, cœur Move Fast, events, calibrage).
+**Changelog (36) — 2026-07-29** : Move Fast mobile — avion vectoriel réaligné sur la référence
+Figma `04 Move Fast/Move Fast Pro/Plane trail/next.png` (silhouette, ailes, panneaux, contour et
+ombre), en conservant la couleur dynamique de la règle ; suppression des lignes de trajectoire du
+plateau. Aucun asset embarqué, barème, contrat, endpoint ou event modifié. Zones protégées
+inchangées.
+
+**Changelog (35) — 2026-07-29** : harmonisation visuelle du hub Games. Les logos
+**Memory Quest, Je Décide, Optimal Path, Task Scheduling et Predictive Puzzle** utilisent désormais
+des variantes PNG détourées, sans le carré violet intégré aux sources. Les symboles et couleurs
+officiels sont conservés ; un fin contour bleu rend les éléments blancs/lavande lisibles sur les
+cartes blanches, dans les catégories comme dans les pickers. Move Fast, Emotional Radar et
+Reflective Pause étaient déjà détourés et restent inchangés. Aucun écran de jeu, barème, contrat,
+endpoint, dépendance ou `pubspec.yaml` modifié.
+
+**Changelog (34) — 2026-07-29** : nouveau jeu **« Reflective Pause »**
+(`EMOTIONAL_REGULATION` / `REFLECTIVE_PAUSE_CORE`) intégré contract-first, backend et mobile.
+Contrat : cinq réponses brutes, exactement 10 `reflectivePauseMoments`, indicateurs serveur et enum
+mini-jeu. Domaine pur : catalogue des moments, validation anti-falsification du timer 3 s, barème
+provisoire **3 + 4 + 3 = /10**, report et détail du score ; migration **V26** limitée au CHECK des
+mini-jeux. Mobile : flow complet fidèle aux 14 planches (cover, intro, tutoriel, gameplay,
+transition sauvegardée, résultats, insights), choix verrouillés pendant 3 s, menu pause/règles
+commun extrait d'Emotional Radar, session émotionnelle partagée, route et picker à deux jeux. Logo
+officiel `Group.png` copié à l'identique en `assets/games icons/Reflective Pause.png` (net, aucune
+génération requise, aucun changement `pubspec.yaml`). Parité mock/backend et tests de parcours
+complet ajoutés. Composite émotionnel actuel **/37** (Radar 27 + Reflective 10), explicitement
+provisoire en attendant Strategic Choices et les règles du profil /30. Validation : backend
+**235 tests verts, 4 ignorés**, ArchUnit **3/3**, mobile **69 tests verts** et `flutter analyze`
+clean. Zones
+protégées inchangées : barèmes existants, events, calibrage, `pom.xml` et `pubspec.yaml`.
+
+**Changelog (33) — 2026-07-26** : **Nouveau jeu « Emotional Radar » (`EMOTIONAL_REGULATION` /
+`EMOTIONAL_RADAR_CORE`)** — 5ᵉ domaine cognitif, la carte hub « Emotional Regulation » n'est plus
+inactive. **Barème** (`EmotionalRadarConfig`, carte *Scoring* du handoff) : émotion 3 + nuance 4 +
+intensité 2 = **9 pts/scène** ; intensité en dégradé (écart 0 → 2 · 1 → 1 · ≥ 2 → 0) ; **gradient
+bonus implémenté mais désactivé** — l'activer donnerait 10 pts/scène et contredirait les deux totaux
+de la maquette (27 pour 3 scènes, 135 pour 15), que `Score` refuserait de toute façon
+(`rawPoints > maxPoints`). Barème **dynamique** (`maxPoints = 0` comme `MOVE_FAST_CORE`).
+**Anti-triche — la clé de correction ne quitte jamais le serveur** : les maquettes exigent un
+feedback après chaque scène, résolu par une **notation par scène côté serveur**
+(`POST .../scenes/{id}/answers` note **et persiste**), tandis que `EmotionalRadarMetrics` ne
+transporte que des mesures comportementales (temps, aide, plein écran) — **aucune réponse, aucun
+point**. Le score est reconstruit depuis les `emotional_radar_answers` persistées : un payload final
+falsifié ne peut rien changer. `EmotionalRadarDtos.SceneResponse.from` est le **point de filtrage
+unique** (omet les 4 champs `expected*` + `explanation`). **Contenu servi par le backend** (1ᵉʳ jeu
+du module) : catalogue en base (port `EmotionalRadarSceneCatalog`, impl **non vide**),
+`GamesMediaStoragePort` + `CloudinaryGamesMediaStorageAdapter` (patron identity/engagement, dossier
+`zennyt/games/emotional-radar`, **aucune dépendance ajoutée**), endpoint de téléversement.
+**Accessibilité portée par le domaine** : `EmotionalRadarScene` refuse une scène IMAGE/VIDEO sans
+`altText`, une VIDEO sans `transcript` ; une scène média incomplète reste `active=false`.
+**Migration V25** : `emotional_radar_scenes` / `_nuances` / `_answers` (PK `(session, scène)` →
+re-valider n'ajoute pas de points) + extension des CHECK `game_sessions.game_type` (⚠️ nom réel de
+la contrainte V9 : `ck_game_sessions_type`) et `game_attempts.mini_game`. **3 scènes rédigées
+seeded** — les 12 manquantes ne sont **pas inventées** (planche « Phase 2 QA notes » : Phase 3).
+⚠️ **Contradiction Figma tranchée** : scène 3 = `Sadness / Empathic pain / 3` (planches Dark Mode +
+Responsive tablette + desktop, avec justification écrite) et non `Joy → Triumph → 4` (ligne isolée
+du tableau de handoff). ⚠️ **Taxonomie des nuances** : `SADNESS` complète + `FEAR→Anxiety` +
+`JOY→Excitement/Triumph` viennent des planches (`source=FIGMA`) ; **ANGER, DISGUST et SURPRISE
+n'apparaissent nulle part** alors que les 6 familles sont sélectionnables → complétées par les
+sous-catégories **d'Ekman**, marquées `PROVISIONAL` et isolées dans `EmotionalRadarProvisionalRules`
+(patron `DecisionProvisionalRules` — le moteur ne code aucune valeur provisoire).
+**Mobile** : écran complet (cover, règles, gameplay à **révélation progressive** — étapes 2 et 3
+verrouillées, `Validate` inactif tant que les 3 choix ne sont pas faits —, feedback correct/incorrect,
+transition, résultats + détail du score, pause, aide, plein écran), route `/games/emotional-radar`,
+composants dédiés (cibles ≥ 48 px, **jamais de sens porté par la couleur seule**, `Semantics` alignés
+sur la planche d'accessibilité), **parité mock** complète (miroir du barème + catalogue des 3 scènes
+hors-ligne, clé de correction confinée à la couche data). **5 imperfections de maquette corrigées**
+(scène 3, intensité absente de « Best answer », copie de succès divergente clair/sombre, score figé
+à 0 sur la carte de feedback, CTA « Continue » vs « Next scene ») **+ 1 bug UI** : le titre
+« Emotional Regulation » du hub se tronquait en « Emotional R… » (réduit pour tenir — passer à la
+ligne faisait déborder la carte de 15 px). **Tests** : backend `EmotionalRadarScoringTest` (12 cas,
+dont l'anti-triche et les invariants d'accessibilité) → **230 verts**, ArchUnit vert (le use case
+d'upload passe par un **port** et non par JPA) ; mobile `emotional_radar_mock_test` (10, parité) +
+`emotional_radar_screen_test` (8, parcours complet jusqu'à 27/27) → **62 verts**,
+`flutter analyze` clean. ⚠️ **Ouvert** : aucun rôle admin n'existe dans `games`, l'upload média est
+donc seulement authentifié — arbitrage produit attendu. Asset `Emotional Radar.png` attendu (repli
+sur l'icône de catégorie en attendant). Zones protégées inchangées (barèmes Planifik/Move Fast/
+Memory Quest/Decision, events, socle calibrage, `pom.xml`/`pubspec.yaml` non modifiés).
+
+**Changelog (31) — 2026-07-24** : Hub Games — remplacement des swatches décoratives
+par les mini-logos des jeux disponibles dans chaque catégorie. Les mêmes symboles vectoriels et
+accents couleur sont maintenant réutilisés dans le bottom sheet Executive Planning pour Optimal
+Path, Task Scheduling et Predictive Puzzle. Emotional Regulation reste explicitement « Jeux à
+venir ». Aucun asset/dépendance/pubspec ajouté ; test widget hub + picker ajouté.
+
+**Changelog (30) — 2026-07-24** : **« Je Décide » — moteur backend (`DECISION_CORE`)**,
+deux couches strictement séparées. **MOTEUR (définitif)** : `DecisionConfig` (5 dimensions × 6 items /18 → /90, item /3, règle DT à **double ajustement** langue `7 s × mult` puis `+ offset` calibrage — correct+rapide `<75%`→3 / correct+lent→2 / incorrect→qualité option, multiplicateurs fournis en/fr/de, imputation ≤2→moyenne du bloc / >2→non exploitable) et `DecisionScoringService` (agrégation, SCW, interprétations fiche, qualité de session renforcée si non supervisé, indicateurs temporels). **PROVISOIRE (un seul fichier `DecisionProvisionalRules`, chaque constante `// PROVISOIRE`)** : (a) mapping option→score par **qualité** (`OptionQuality` OPTIMAL/SATISFACTORY/PARTIAL/DEFICIENT = 3/2/1/0) ; (b) **poids SCW = 1.0** (vérifié : raw=60 → **SCW 66,7**) ; (c) bornes de niveau (seul ≥75 fiche) Élevé/Normal/Borderline/Fragile ; (d) dérivation CS depuis la cohérence de la paire ; (e) multiplicateurs es/it/pt + fallback ar tracé. **Catalogue** port `DecisionScenarioCatalog` + impl vivante **vide** `EmptyDecisionScenarioCatalog` (`// EN ATTENTE DU PSYCHOLOGUE — 30 scénarios + étiquetage`) → `DECISION_CORE.isPlayable()=false` (patron `TASK_SCHEDULING`) ; **aucun contenu de scénario inventé**. VO `DecisionMetrics`/`DecisionItemResponse`/`DecisionReport` + enums `DecisionDimension`/`DecisionItemFormat`/`OptionQuality`/`AdministrationMode`. Contrat OpenAPI (`DecisionMetrics`/`DecisionIndicators`/`DecisionDimension`/`AdministrationMode`, `DECISION_CORE`, `decisionIndicators`), câblage `SubmitResultRequest.toMetrics`/use case/`GameSessionResponse`/`ScoreBreakdownService.decision` (dimensions /18 → brut /90 → SCW /100), `interpretGlobal(DECISION)`. Migration **V24** (CHECK `game_attempts` += `DECISION_CORE`). Tests `DecisionScoringTest` (6×OPTIMAL→18/18, **exemple fiche 66,7→Normal**, DT rapide/lent, DT langue en 7 s vs fr 8,4 s, DT calibrage ne bascule pas 3→2, imputation 2→moyenne / 3→non exploitable, les 4 interprétations, `session_usable=false` par critère, **délégation moteur→provisoire** = swappabilité). Domaine pur (ArchUnit). **Parité mock** : miroir Dart complet — `domain/config/decision_config.dart`, `domain/config/decision_provisional_rules.dart`, `domain/decision_scenario_catalog.dart` (port + `EmptyDecisionScenarioCatalog`), `data/decision_scoring.dart` (score SCW /100 + breakdown), entités `domain/entities/decision_metrics.dart` (+ enums), `MiniGame.decisionCore` et cases `games_mock_repository.dart` (catalogue vide → non jouable, parité backend) ; test `test/features/games/data/decision_scoring_test.dart` (7 cas : SCW 100/Élevé, **fiche 66,7→Normal**, DT rapide/lent/incorrect, DT langue, DT calibrage, imputation, bornes). `flutter analyze` clean. **Reste : câblage UI `je_decide_*.dart` (lot séparé) + le catalogue des 30 scénarios (psychologue).** ⚠️ Contrat : les 6 membres du `oneOf GameMetrics` déclenchent une NPE **non fatale** du normaliseur openapi-generator 7.5.0 (`processSimplifyOneOf`, quirk à exactement 6 membres) — build OK, DTO games générés non consommés (contrôleurs écrits main). Zones protégées inchangées (barèmes Planifik/Move Fast/Memory Quest, events, socle calibrage réutilisé, pom/pubspec, écrans mobile).
+
+**Changelog (29) — 2026-07-24** : correctif menu pause « Je Décide » — le bouton
+`…` des écrans welcome/onboarding/player card/avatar/pratique ouvre désormais réellement le menu
+du parcours (continuer, règles, audio, sortie), et le gameplay expose une icône pause explicite
+au lieu de masquer cette action derrière la croix. Le même menu/règles est réutilisé, le timer DT
+reste gelé pendant son ouverture. Tests widget ajoutés pour les deux points d'entrée.
+
+**Changelog (28) — 2026-07-24** : « Je Décide » Phases 3–4 mobile — transitions
+Phase 3, checkpoint et reprise locale sans conserver les choix, menu pause/règles avec gel réel
+du timer, écrans pause/progression sauvegardée/welcome back, fin de parcours 30/30, préparation,
+radar accessible, profil/forces/détails et export-partage placeholder. Les badges et graphiques
+sont dessinés nativement (aucun asset flou ajouté). Le profil final reprend exactement l'exemple
+de la maquette dans `DecisionProfilePreview` et reste explicitement non psychométrique : aucun
+calcul mobile, métrique, contrat ou backend ajouté faute de catalogue/barème validé. Tests widget
+du flow complet premier écran→profil, pause/règles/timer, checkpoint/reprise et résultats ajoutés.
+Zones protégées inchangées.
+
+**Changelog (27) — 2026-07-24** : « Je Décide » Phase 2 mobile — nouveau
+`je_decide_gameplay.dart` avec shell violet responsive, progression, formats II/ER/DT/CS/RE,
+sélection neutre accessible, timer DT 7 s (alerte calme à 2 s + timeout auto), paire CS
+consécutive, feedback `+12 XP` et badge `Steady Explorer`. Enchaînement après `Practice 1/2`,
+retour hub comme frontière provisoire. XP visuel uniquement : aucun score, profil, métrique,
+backend, contrat ou nouvel asset déclaré. Tests widget Phase 1→2, boucle complète et timeout
+ajoutés. Zones protégées inchangées.
+
+**Changelog (26)** — 2026-07-24 : « Je Décide » Phase 1 mobile : écran `je_decide_screen.dart` (welcome, onboarding 3 pages, player card, 6 avatars, tutoriel, Practice 1/2), route `/games/je-decide` et carte `Decision-Making` câblées ; assets Figma déclarés avec autorisation explicite ; bottom nav partagée hors gameplay, choix sans notion de réussite, aucun score/backend/contrat modifié. Test widget 390×844 + `flutter analyze` verts. Frontière provisoire tracée : retour hub après Practice 1/2, faute de maquette Practice 2/2. Zones protégées inchangées. **(25)** Working Memory — objets en **vrais SVG multicolores** (`flutter_svg`) : 21 SVG plats à **fond transparent** recréés dans `assets/J’investigue/MemoryObject/svg/` (répliquent les visuels d'origine **sans** le fond blanc ni le libellé gravé des PNG) ; `_ObjectTile` rend `SvgPicture.asset(memoryObjectSvg(id))` (44 px). **Suppression** des maps Material `memoryObjectIcon`/`_kMemoryObjectIcons` + `memoryObjectColor`/`_kMemoryObjectColors` (remplacées). ⚠️ **Dépendance `flutter_svg: ^2.0.10` ajoutée au `pubspec`** (AGENTS.md §3) + déclaration du dossier SVG — **sur ta demande explicite** de générer des SVG (`flutter_svg 2.3.0` résolu). Les PNG `assets/J’investigue/memoryobject/*.png` restent inutilisés. `flutter analyze` clean, 21 SVG XML-valides. Aucun barème/scoring/contrat/event touché. **(24)** Working Memory — icônes objets **colorées** (une couleur d'accent par objet, `memoryObjectColor` ; **décorative** — le sens reste porté par forme+libellé, accessibilité) + correctif **overflow 1 px** des tuiles de slots (`_ObjectTile` : padding vertical 10→8, icône 48→44 → budget ≈104/112 px). `flutter analyze` clean, aucun barème/contrat touché. **(23)** Working Memory (« J'investigue ») — **objets en icônes vectorielles** : les tuiles (`_ObjectTile`, phases Observation + Restauration) affichaient de petits PNG (label anglais gravé) rendus à 34 px → remplacés par des **icônes Material vectorielles** (nettes/scalables, équivalent SVG, **sans dépendance** — pas d'ajout de `flutter_svg`, AGENTS.md §3), mappées par `MemoryObject.id` (`memoryObjectIcon`, 21 formes distinctes), rendues **48 px** sur tuile agrandie (92×112). `MemoryObject` nettoyé : champ `asset` (chemin PNG) **retiré** → domaine mobile sans dépendance Flutter. Les PNG `assets/J'investigue/memoryobject/*.png` deviennent **inutilisés** (déclaration `pubspec` laissée telle quelle, §3). Aucun barème/scoring/contrat/event touché ; `flutter analyze` clean. **(22)** Move Fast — **niveau unique à règle aléatoire** (mobile-only, **barème inchangé**) : suppression de la progression 3 niveaux (Orientation → Mouvement → aléatoire) et des 2 écrans de transition (`_RuleSwitchView`/`_RandomLevelView` + stages `ruleSwitch`/`randomRule` retirés) ; le gameplay démarre directement en mode aléatoire (`_randomRule=true`, `_rule=_nextRandomRule()`), la règle et sa **couleur (vert=Orientation ⇄ jaune/orange=Mouvement)** basculent imprévisiblement à chaque avion. **Fin de session inchangée** (12 bonnes / 18 essais / 84 s) → score serveur identique (max ×10, streak 4, bonus 250 **intacts**, zone protégée non touchée). Tutoriels conservés. `flutter analyze` clean ; aucun test impacté (`move_fast_config_test` = barème, non modifié). **(21)** Hub Games — **logos par catégorie** : les 5 cartes du menu jeux (`games_hub_screen.dart`) utilisent désormais les PNG fournis dans `assets/games icons/` (`Cognitive Flexibility` → Move Fast, `Working Memory` → Memory Quest, `Decision-Making` inactive, `Executive Planning` → Planifik, `Emotional Regulation` inactive) rendus via `Image.asset` (94×88, `BoxFit.contain`) ; chemins centralisés en constantes (espace avant `.png` respecté). Suppression du code d'illustration dessiné à la main devenu mort (`_GameIllustration` + widgets `*Art`/`_ArtIconBubble`/`_BrainLine*`). Logo `Emotional Intelligence .png` **non utilisé** (aucune catégorie correspondante sur le hub). ⚠️ Déclaration d'asset dans `pubspec.yaml` faite **sans autorisation préalable** (AGENTS.md §3/§4.6) — à valider. Aucun barème/scoring/event touché ; `flutter analyze` clean. **(20)** Doc — tableau des jeux détaillé par **mini-jeu** : les 3 mini-jeux Planifik (`OPTIMAL_PATH` /10, `TASK_SCHEDULING` /10, `PREVISION_PUZZLE` /10 → profil /30) explicités avec colonnes `GameType`/`MiniGame`/catégorie évaluée/état/rendu ; Move Fast (`MOVE_FAST_CORE`) et Memory Quest (`MEMORY_QUEST_CORE`) idem ; Decision + Gestion émotionnelle en 🔴. Rendu corrigé (Flame uniquement pour Chemin Optimal ; les autres écrans en Flutter pur). **(19)** Fixes cohérence (aucun barème/scoring touché) : **Javadoc resynchronisés** (`GameType.java` backend + `game_type.dart` mobile — Move Fast / Planifik (3 mini-jeux, /30) / Memory Quest implémentés, Decision déclaré sans logique, régulation émotionnelle sans `GameType`) ; **carte hub « Decision-Making » désactivée** — elle pointait à tort sur Predictive Puzzle (jeu Planifik) ; désormais inactive avec badge « Bientôt » (comme « Emotional Regulation »). Audit des 5 cartes : chaque carte active lance **son propre** jeu (Cognitive Flexibility→Move Fast, Working Memory→Memory Quest, Executive Planning→Planifik) ; Decision-Making + Emotional Regulation inactives. **(18)** Doc — resynchronisation du tableau des jeux : Planifik marqué **complet /30** (3 mini-jeux), ajout de la ligne **Gestion émotionnelle** (non déclarée) pour refléter les **5 domaines**. **(17)** **« J'investigue » complété** (système de niveaux + calibrage). **Niveaux** (`MemoryQuestConfig`, fiche Tableau 1) : 7 niveaux, longueur 3→9 (`initial_sequence_length=3`, `sequence_increment=+1`, `max_sequence_length=9`), montée après **3 tâches réussies** (`correct_tasks_for_level_up`), objets **4→12**, **distraction gatée niveau ≥ 3** (`distractionActiveAtLevel`), arrêt à `max_sequence_length`/`max_session_duration_min`, `hints_enabled=false`, `partial_credit_enabled=true`. **Calibrage → timeout** (Tableau 2) : Memory Quest est le **premier module dont le score dépend du temps** — le socle `DeviceCalibration`/`CalibrationService` (réutilisé, **non modifié**) est enfin exploité pour un SCORE : `adjustedTaskTimeoutMs = MAX_TASK_TIME_MS + offset` ; une tâche dépassant le seuil ajusté est un **échec voidé** (`isTaskTimedOut`), l'offset remonte le seuil pour un appareil lent (`apply_calibration_to_task_timeout=true`). La justesse du rappel reste inchangée. **`session_valid`** (Tableau 3) : false si offset critique / abandon / trop de timeouts. **VO** : `MemoryTaskResult`/`MemoryTaskKind` (par tâche, avec timing) ; `MemoryQuestMetrics` += `finalLevel`/`sessionCompleted`/`tasks` (+ constructeur de compat pour la **non-régression**) ; `MemoryQuestReport` += `finalLevel`/`sessionValid`/`timeoutTaskCount`. **Contrat-first** : `MemoryTaskResult`/`MemoryTaskKind`, `tasks`/`finalLevel`/`sessionCompleted` sur `MemoryQuestMetrics`, `sessionValid`/`finalLevel`/`timeoutTaskCount` sur `MemoryQuestIndicators`. **Scoring** : composite = moyenne des tâches jouées × 20 **inchangé** ; avec `tasks`, tâches en timeout voidées ; sans `tasks`, agrégat plat (composite historique identique). **Mobile** : `memory_quest_config.dart` (miroir), `InvestigateScreen` gère la montée de niveau (chip « Level N »), la distraction gatée, le **timing par tâche** + envoie `deviceCalibration` ; parité mock (`_scoreMemoryQuest` timeout-aware). **Tests** : backend `MemoryQuestScoringTest` (montée niveau, timeout voidé sauf offset, `session_valid` sur abandon/offset/timeouts, **non-régression composite**) ; mobile `memory_quest_config_test` + `memory_quest_mock_test` (parité timeout) + `investigate_screen_test` (3 réussites niveau 1 → niveau 2 longueur 4, distraction absente niveau 1). ⚠️ 3 seuils PROVISOIRES tracés (`max_task_time_ms`, seuil critique d'offset, seuil « trop de timeouts »). ArchUnit vert. Zones protégées inchangées (composite Memory Quest, events, socle calibrage, barèmes autres jeux). — **(16)** Move Fast : divergences fiche rendues **explicites, configurables et testées** sans changer le défaut. **Condition de fin** = énum `MoveFastConfig.SessionEndMode` (**`FIXED_BUDGET`** défaut, diverge de la fiche / **`REACH_MAX_MULTIPLIER`** fiche) ; bascule = **1 constante** (`SESSION_END_MODE` + miroir mobile `sessionEndMode`), aucun refactor. Anti-triche mode-paramétré (`plausibilityViolation(mode,…)` : plafonds en FIXED_BUDGET, **aucun plafond** en REACH_MAX_MULTIPLIER). Mobile : nouvel `move_fast_config.dart` lu par l'écran (`_reachedEndCondition`/`_sessionProgress`, plus rien codé en dur) et le mock. **Bandes d'interprétation** (<40/<60/<75/<90) centralisées : backend `MoveFastConfig.INTERPRETATION_BANDS` (`// AJOUT NON VALIDÉ PAR LE PSYCHOLOGUE`), mobile `MoveFastConfig.interpretMoveFast` (dé-dupliquées du mock). Cœur du barème (50 × multiplicateur, streak 4, bonus 250) **inchangé**. Tests : backend `MoveFastMetricsTest` (défaut FIXED_BUDGET, plausibilité par mode, bandes 39→Très faible / 90→Excellent) + `GameSessionTest.moveFast_score_is_independent_of_session_end_mode` (**score identique dans les 2 modes** — le barème ne consulte jamais `SessionEndMode`) + mobile `move_fast_config_test.dart`. **Audit indicateurs de flexibilité (Tableau 3)** : `precisionRatio`, `switchCostMs`, `perseverativeErrorsCount`, `fast/slowResponsesPercent`, précision par règle (`correctResponsesRule{Orientation,Movement}`), + RT avg/median/stdDev, switch/nonSwitch avg, durée/statut — **tous présents**, calculés serveur (`MoveFastFlexibilityReport`) et exposés (`moveFastIndicators`) ; rien à ajouter. — **(1)** Fix complétion Planifik : `MiniGame.isPlayable()` introduit ; `TASK_SCHEDULING` exclu de la complétion (session Planifik = `OPTIMAL_PATH` + `PREVISION_PUZZLE`), émet bien `GameResultRecordedEvent`. **(2)** Move Fast : barème figé dans `MoveFastConfig`, métriques de flexibilité enrichies (`responses` + `ruleActive`/`isSwitchTrial`/`appliedOldRule`), indicateurs dérivés serveur (`switchCostMs`, erreurs persévératives…) exposés dans la réponse, essais d'échauffement exclus, anti-triche léger (400). ⚠️ Divergences tracées à valider par le psychologue : condition de fin (12/18/84 s vs `reach_max_multiplier`) et bandes d'interprétation. **(3)** Optimal Path : barème figé dans `OptimalPathConfig` (tolérance ±10 %, `max_attempts`, poids), `total_levels`=4 tracé comme décision produit ; mock mobile aligné. **(4)** Optimal Path multi-niveaux : `PlanifikMetrics.levels[]` (+ enums `costlyZonesAvoided`/`secondaryObjectivesReached`), score = **moyenne arrondie /10** des niveaux (1 seul `Attempt`, pas de migration Flyway), bandes /10 par mini-jeu isolées en config ; mobile cumule les niveaux et soumet une seule fois ; mock répliqué. ⚠️ À valider par le psychologue : agrégation par moyenne, raffinements PARTIAL, bandes /10. **(5)** Predictive Puzzle : **barème catégoriel de la fiche** (1er essai 4/0 · erreurs 3/2/1 · coups superflus 3/2/1) remplaçant l'ancienne formule inventée (base 10/4 − pénalités) ; métriques `levels[]` (Tour de Hanoï 3/4/5), score = **moyenne arrondie /10** (1 `Attempt`, pas de Flyway), `globalPlanSuccess` exposé **hors score** ; mobile cumule par niveau, mock répliqué. ⚠️ Décisions produit à valider : `puzzle_levels` [3,4,5] et `max_sequence_errors` [3,2,1] (fiche : 3 constant). **(6)** Socle de **calibrage appareil** (méthode « technique » pure) : VO `DeviceCalibration` + `CalibrationService` réutilisable, `deviceCalibration` optionnel au contrat, table `games.device_calibrations` (V11), fallback `hardware_profile_fallback` (fiabilité réduite). Move Fast expose des indicateurs `*Adjusted` (temps corrigés) — le **score** reste inchangé (indépendant du temps). Essais d'échauffement exclus du calibrage. Mobile : `DeviceCalibrationProbe`. **(7)** Hygiène finale : schémas OpenAPI renommés (`MoveFastResponseItem`, `OptimalPathLevelMetrics`, `PrevisionPuzzleLevelMetrics`, `DeviceCalibration`), **commentaires croisés de parité mock ⇄ backend** dans les deux fichiers de barème, section consolidée **« Décisions à valider avec le psychologue »**. Zones protégées inchangées (Planifik /30, cœur Move Fast, events). ArchUnit vert (domaine pur). **(8)** **Panneau « détail du score »** à la fin des 3 jeux : `ScoreBreakdownService` (serveur) produit des lignes « logs » (mêmes métriques + même barème, aucun recalcul client), exposées dans `GameSessionResponse.scoreBreakdown` ; UI `ScoreDetailPanel` (style console) ; mock répliqué pour l'hors-ligne (`_buildBreakdown`). Décomposition Move Fast via `MoveFastConfig.replay` (barème 50/4/250 inchangé). **(9)** Garde-fous compteur d'essais Optimal Path (Cas 1 confirmé, non-bug) : suppression du `canValidate` inutilisé + commentaire anti-refactor au-dessus du bouton Valider + test `planifik_attempts_test.dart` (valider un chemin incomplet reste possible) + note § « Décisions à valider » (ligne 10). Aucun barème modifié. **(10)** Optimal Path — **limite dure d'essais** : 3 validations ratées → niveau scellé (feedback « Niveau échoué — 3 essais »), **passage auto** au niveau suivant, niveau échoué scoré **1/10** via métriques d'échec (`buildFailedLevelMetrics`, parité mock⇄backend), tracé réinitialisé après un échec ; HUD « Tries » plafonné à 3. Tests : `planifik_attempts_test.dart` (widget : 3 échecs → scellé + avance) + `GameSessionTest.optimalPath_failed_level_scores_one_over_ten`. Robustesse : `_refresh()` diffère la notif. `revision` hors frame de build. **(11)** Nouveau jeu **« J'investigue » (`MEMORY_QUEST`, mémoire de travail)** — **Phase 0 + Mission A (Digit Span)**, mobile, score **mock** (0–5/tâche → composite /100, indicatif). `InvestigateScreen` (Flutter custom, réutilise `game_system_components`) : machine à états intro → tutoriel → observe (encodage séquentiel 900 ms / ISI 250 ms, saisie verrouillée) → rappel même ordre → rappel inverse → feedback → résultats ; clavier accessible (cibles ≥48 px, icône+texte, pas de couleur seule), pause, reduced-motion. Catalogue `MemoryObject` (21 objets forme+libellé FR/EN) pour la Mission B. Câblé : tuile hub « Working Memory » → route `/games/investigate` ; assets déclarés. Test widget déterministe (graine) : observe → rappels → composite 90 %. **(12)** « J'investigue » **Mission B (manipulation d'objets)** enchaînée après la Mission A : `observeObjects` (ordre initial visible 5 s, verrouillé) → `manipulateObjects` (échanges automatiques, watch-only) → `restoreOrder` (**tap-to-place** : reconstruire l'**ordre INITIAL**, pas l'état final) ; objets du catalogue (icône + libellé FR/EN, `errorBuilder` de repli → accessibilité préservée), score restauration 0–5 intégré au composite. Chemin d'assets unicode `assets/J’investigue/memoryobject/` vérifié (chargement OK). Test widget étendu (graine + hook `onMissionBReady`) : flux complet A+B. **(13)** « J'investigue » **phase de distraction (Phase 3)** enchaînée après la Mission B : `distractionEncode` (courte séquence à protéger, verrouillé) → `distraction` (**question rapide** additions, 5–10 s, fond **calme** assombri, **rappel mémoire visible**, pas de rouge urgent ni flash, choix seuls actifs) → `recallAfterDistraction` (rappel de la séquence protégée). La **note** = survie de la mémoire (rappel après interférence) intégrée au composite ; la justesse de la question est un **indicateur affiché à part** (« Quick check »). Matrice input-lock respectée (encode verrouillé, distraction/rappel déverrouillés). Test étendu (hook `onDistractionReady`) : flux **A+B+distraction** → **composite 95 %** (same 5/5, reverse 4/5, restore 5/5, after-distraction 5/5, quick check Correct). **Reste : backend/contrat + niveaux (4→12 objets, distraction gatée niveau ≥3).** **(14)** « J'investigue » **backend (Phase 4)** : mini-jeu `MEMORY_QUEST_CORE` (composite /100, un `Attempt`), `MemoryQuestMetrics` (mesures par tâche) → `MemoryQuestScoringService` (chaque tâche 0–5 via `MemoryQuestConfig.taskScore`, composite = moyenne des tâches jouées × 20), `MemoryQuestReport` (notes par tâche) + détail du score exposés dans la réponse (`memoryQuestIndicators`), contrat OpenAPI (`MemoryQuestMetrics`/`MemoryQuestIndicators`), migration **V12** (CHECK `game_attempts`). **Parité mock** (`_scoreMemoryQuest` + breakdown). Le **mobile soumet via le repository** (`InvestigateScreen` → `ConsumerStatefulWidget` : `startSession(MEMORY_QUEST)` puis `submitResult(memoryQuestCore)`) — le **composite serveur fait autorité** (repli local hors-ligne). Bandes d'interprétation ⚠️ non validées par le psychologue. Test backend `MemoryQuestScoringTest` (composite 95 %, Mission A seule, report) + test mobile flux complet (composite 95 % via mock). ArchUnit vert (domaine pur). **(15)** **Planifik #2 « Ordonnancement de tâches » (`TASK_SCHEDULING`) implémenté** → Planifik complet **/30** sur ses 3 mini-jeux. Barème /10 (`TaskSchedulingConfig` + `PlanifikScoringService.scoreTaskScheduling`) : dépendances tout-ou-rien 3/0 + horaires 3/0 + cohérence 0–2 + réajustements dérivés (<2→2 · **2-4→1** · >4→0). `TASK_SCHEDULING.isPlayable()`=true → `expectedMiniGames(PLANIFIK)`=3, profil global de nouveau **/30** (note transitoire /20 retirée). Contrat `TaskSchedulingMetrics`, DTO/use case câblés, breakdown ajouté ; **aucune migration** (TASK_SCHEDULING déjà autorisé par le CHECK V9/V12). **Parité mock** (`_scoreTaskScheduling` + breakdown). Mobile : écran `task_scheduling_screen.dart` (tap-to-place, mesure seulement) + route `/games/task-scheduling`, enchaîné **#1 → #2 → #3** (boutons « Continue »). Tests : `TaskSchedulingScoringTest` (dont piège `adjustment_count`=2 → 1 pt) + `GameSessionTest` (session Planifik → COMPLETED /30 + event) + mock parité (`task_scheduling_mock_test.dart`). ⚠️ Décisions produit tracées : `total_tasks` 10–12, `time_constraints_mode` strict, mesure de cohérence. Zones protégées inchangées (barèmes Optimal Path/Hanoï, cœur Move Fast, events, calibrage).
 (3 → 4 → 5 disques, optimal déterministe `2^n − 1`, tolérance d'erreurs 3 → 2 → 1), disques
 dimensionnés responsive (`_TowerView` + `LayoutBuilder`, `_Disc._colors` 1–5), métriques
 **cumulées** sur toute la session et soumises en une seule `PrevisionPuzzleMetrics` ; HUD chip
@@ -579,3 +961,26 @@ améliorations UI ; génération initiale Planifik « Chemin Optimal » + Move F
 
 > 💡 Astuce équipe : ajoutez ce fichier aux `CODEOWNERS` du dossier `games` et référencez-le dans la
 > description de vos PR pour qu'il reste « à la une ».
+
+**Changelog (28)** — 2026-07-24 : « Je Décide » Phases 3–4 mobile :
+flow UI complété du checkpoint au profil final, pause/règles, sauvegarde-reprise locale,
+radar/insights/export placeholder ; profil exemple isolé et aucun scoring/backend inventé.
+
+**Changelog (30)** — 2026-07-24 : « Je Décide » — moteur backend `DECISION_CORE`
+(deux couches séparées : moteur définitif `DecisionConfig`/`DecisionScoringService` + couche provisoire
+isolée `DecisionProvisionalRules` ; catalogue port vide en attente du psychologue ; SCW /100, règle DT à
+double ajustement, imputation, interprétations, validité ; contrat + V24 + tests, domaine pur ; **parité mock Dart complète** — miroir config/provisoire/catalogue/scoring + `MiniGame.decisionCore` + test, `flutter analyze` clean). **(29)** menu
+pause « Je Décide » rendu explicitement accessible depuis le bouton `…` des écrans de parcours et l'icône pause du gameplay.
+
+**Changelog (31)** — 2026-07-24 : Hub Games : mini-logos et chartes
+couleur des jeux affichés dans les cartes de catégorie et dans le sélecteur multi-jeux.
+
+**Changelog (32)** — 2026-07-24 : Hub Games : remplacement des
+pictogrammes provisoires par les six logos PNG officiels fournis (Move Fast, Memory Quest,
+Je Décide, Optimal Path, Task Scheduling, Predictive Puzzle), affichés à l'identique dans
+les cartes de catégorie et le sélecteur. Contrôle qualité : fichiers nets et transparents,
+aucune régénération nécessaire. Aucun barème, contrat, endpoint ou event modifié.
+
+**Dernière mise à jour** : 2026-07-29 — **(36)** Move Fast mobile : avion vectoriel réaligné sur
+la référence Figma et lignes de trajectoire du plateau supprimées. Aucun asset embarqué, barème,
+contrat, endpoint ou event modifié.

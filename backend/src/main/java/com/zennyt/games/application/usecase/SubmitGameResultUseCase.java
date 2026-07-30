@@ -1,15 +1,25 @@
 package com.zennyt.games.application.usecase;
 
 import com.zennyt.games.application.command.SubmitGameResultCommand;
+import com.zennyt.games.domain.catalog.DecisionScenarioCatalog;
 import com.zennyt.games.domain.model.GameSession;
 import com.zennyt.games.domain.model.MiniGame;
 import com.zennyt.games.domain.repository.DeviceCalibrationRepository;
+import com.zennyt.games.domain.repository.EmotionalRadarAnswerRepository;
 import com.zennyt.games.domain.repository.GameSessionRepository;
 import com.zennyt.games.domain.service.CalibrationService;
+import com.zennyt.games.domain.service.DecisionScoringService;
+import com.zennyt.games.domain.service.EmotionalRadarScoringService;
 import com.zennyt.games.domain.service.MemoryQuestScoringService;
 import com.zennyt.games.domain.service.PlanifikScoringService;
+import com.zennyt.games.domain.service.ReflectivePauseScoringService;
 import com.zennyt.games.domain.service.ScoreBreakdownService;
+import com.zennyt.games.domain.vo.DecisionMetrics;
+import com.zennyt.games.domain.vo.DecisionReport;
 import com.zennyt.games.domain.vo.DeviceCalibration;
+import com.zennyt.games.domain.vo.EmotionalRadarAnswer;
+import com.zennyt.games.domain.vo.EmotionalRadarMetrics;
+import com.zennyt.games.domain.vo.EmotionalRadarReport;
 import com.zennyt.games.domain.vo.MemoryQuestMetrics;
 import com.zennyt.games.domain.vo.MemoryQuestReport;
 import com.zennyt.games.domain.vo.MoveFastFlexibilityReport;
@@ -18,6 +28,8 @@ import com.zennyt.games.domain.vo.MoveFastMetrics;
 import com.zennyt.games.domain.vo.PlanifikMetrics;
 import com.zennyt.games.domain.vo.PrevisionPuzzleMetrics;
 import com.zennyt.games.domain.vo.PrevisionPuzzleReport;
+import com.zennyt.games.domain.vo.ReflectivePauseMetrics;
+import com.zennyt.games.domain.vo.ReflectivePauseReport;
 import com.zennyt.games.domain.vo.Score;
 import com.zennyt.games.domain.vo.TaskSchedulingMetrics;
 import com.zennyt.shared.application.exception.NotFoundException;
@@ -27,6 +39,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 
 /**
  * Use case : soumettre le résultat d'un mini-jeu.
@@ -45,18 +58,29 @@ public class SubmitGameResultUseCase {
 
     private final GameSessionRepository repository;
     private final DeviceCalibrationRepository calibrationRepository;
+    private final EmotionalRadarAnswerRepository emotionalRadarAnswers;
     private final ApplicationEventPublisher eventPublisher;
     private final PlanifikScoringService scoring = new PlanifikScoringService();
     private final CalibrationService calibration = new CalibrationService();
     private final ScoreBreakdownService breakdown = new ScoreBreakdownService();
     private final MemoryQuestScoringService memoryQuest = new MemoryQuestScoringService();
+    private final EmotionalRadarScoringService emotionalRadar = new EmotionalRadarScoringService();
+    private final ReflectivePauseScoringService reflectivePause =
+        new ReflectivePauseScoringService();
+    private final DecisionScoringService decision;
 
     public SubmitGameResultUseCase(GameSessionRepository repository,
                                    DeviceCalibrationRepository calibrationRepository,
-                                   ApplicationEventPublisher eventPublisher) {
+                                   EmotionalRadarAnswerRepository emotionalRadarAnswers,
+                                   ApplicationEventPublisher eventPublisher,
+                                   DecisionScenarioCatalog decisionCatalog) {
         this.repository = repository;
         this.calibrationRepository = calibrationRepository;
+        this.emotionalRadarAnswers = emotionalRadarAnswers;
         this.eventPublisher = eventPublisher;
+        // « Je Décide » : le catalogue (port) est injecté ; l'impl vivante est vide
+        // tant que le psychologue n'a pas fourni les 30 scénarios.
+        this.decision = new DecisionScoringService(decisionCatalog);
     }
 
     /**
@@ -67,12 +91,16 @@ public class SubmitGameResultUseCase {
      * @param moveFastReport         indicateurs Move Fast (null pour les autres jeux)
      * @param previsionPuzzleReport  indicateurs Predictive Puzzle (null sinon)
      * @param memoryQuestReport      indicateurs « J'investigue » (null sinon)
+     * @param emotionalRadarReport   indicateurs « Emotional Radar » (null sinon)
      * @param scoreBreakdown         détail du calcul du score (panneau), null si non supporté
      */
     public record Outcome(GameSession session,
                           MoveFastFlexibilityReport moveFastReport,
                           PrevisionPuzzleReport previsionPuzzleReport,
                           MemoryQuestReport memoryQuestReport,
+                          DecisionReport decisionReport,
+                          EmotionalRadarReport emotionalRadarReport,
+                          ReflectivePauseReport reflectivePauseReport,
                           ScoreBreakdown scoreBreakdown) {
     }
 
@@ -97,11 +125,56 @@ public class SubmitGameResultUseCase {
         saved.domainEvents().forEach(eventPublisher::publishEvent);
         saved.clearEvents();
 
-        // Détail du score (panneau) : mêmes métriques + même barème que le score.
-        ScoreBreakdown scoreBreakdown = breakdown.build(command.metrics(), score);
+        // « Je Décide » : le détail par dimension vient du report (catalogue), pas
+        // des seules métriques — on le calcule une fois et le réutilise.
+        DecisionReport decisionReport = decisionReport(command);
+
+        // Détail du score (panneau) : mêmes données + même barème que le score.
+        // Emotional Radar et « Je Décide » ont une signature dédiée car leur détail
+        // ne dérive pas des métriques reçues.
+        ScoreBreakdown scoreBreakdown;
+        if (decisionReport != null) {
+            scoreBreakdown = breakdown.decision(decisionReport, score);
+        } else if (command.miniGame() == MiniGame.EMOTIONAL_RADAR_CORE) {
+            scoreBreakdown = breakdown.emotionalRadar(gradedAnswers(command), score);
+        } else {
+            scoreBreakdown = breakdown.build(command.metrics(), score);
+        }
 
         return new Outcome(saved, moveFastReport(command, saved),
-            previsionPuzzleReport(command), memoryQuestReport(command), scoreBreakdown);
+            previsionPuzzleReport(command), memoryQuestReport(command),
+            decisionReport, emotionalRadarReport(command),
+            reflectivePauseReport(command), scoreBreakdown);
+    }
+
+    /** Dérive les trois indicateurs de maîtrise de l'impulsivité ; null sinon. */
+    private ReflectivePauseReport reflectivePauseReport(SubmitGameResultCommand command) {
+        if (command.miniGame() != MiniGame.REFLECTIVE_PAUSE_CORE
+            || !(command.metrics() instanceof ReflectivePauseMetrics metrics)) {
+            return null;
+        }
+        return reflectivePause.report(metrics);
+    }
+
+    /** Dérive les indicateurs de reconnaissance émotionnelle ; null sinon. */
+    private EmotionalRadarReport emotionalRadarReport(SubmitGameResultCommand command) {
+        if (command.miniGame() != MiniGame.EMOTIONAL_RADAR_CORE
+            || !(command.metrics() instanceof EmotionalRadarMetrics metrics)) {
+            return null;
+        }
+        // Croise les réponses notées serveur (justesse) avec les temps mesurés client.
+        return emotionalRadar.report(
+            emotionalRadarAnswers.findBySessionId(command.sessionId()), metrics);
+    }
+
+    /** Dérive les indicateurs pour « Je Décide » (dimensions, SCW, validité) ; null sinon. */
+    private DecisionReport decisionReport(SubmitGameResultCommand command) {
+        if (command.miniGame() != MiniGame.DECISION_CORE
+            || !(command.metrics() instanceof DecisionMetrics metrics)) {
+            return null;
+        }
+        // Le calibrage appareil ajuste le temps imparti DT (double ajustement langue + calibrage).
+        return decision.report(metrics, calibration.offsetMs(command.deviceCalibration()));
     }
 
     /** Dérive les indicateurs qualitatifs pour « Predictive Puzzle » ; null sinon. */
@@ -144,7 +217,30 @@ public class SubmitGameResultUseCase {
             case MEMORY_QUEST_CORE -> memoryQuest.score(
                 expectMetrics(command, MemoryQuestMetrics.class),
                 calibration.offsetMs(command.deviceCalibration()));
+            case DECISION_CORE -> decision.score(
+                expectMetrics(command, DecisionMetrics.class),
+                calibration.offsetMs(command.deviceCalibration()));
+            // ⚠️ Seul mini-jeu dont le score NE dérive PAS des métriques reçues : il
+            // est reconstruit depuis les réponses que le serveur a notées scène par
+            // scène. Les métriques ne servent qu'aux indicateurs comportementaux.
+            case EMOTIONAL_RADAR_CORE -> {
+                expectMetrics(command, EmotionalRadarMetrics.class);
+                yield emotionalRadar.score(gradedAnswers(command));
+            }
+            case REFLECTIVE_PAUSE_CORE -> reflectivePause.score(
+                expectMetrics(command, ReflectivePauseMetrics.class));
         };
+    }
+
+    /** Réponses notées et persistées par le serveur — source de vérité du score. */
+    private List<EmotionalRadarAnswer> gradedAnswers(SubmitGameResultCommand command) {
+        List<EmotionalRadarAnswer> answers =
+            emotionalRadarAnswers.findBySessionId(command.sessionId());
+        if (answers.isEmpty()) {
+            throw new IllegalArgumentException(
+                "Aucune scène validée pour cette session : soumission refusée.");
+        }
+        return answers;
     }
 
     /** Dérive les indicateurs pour « J'investigue » ; null sinon. */

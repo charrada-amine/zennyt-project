@@ -2,6 +2,7 @@ import '../../domain/entities/game_score.dart';
 import '../../domain/entities/game_session.dart';
 import '../../domain/entities/game_type.dart';
 import '../../domain/entities/mini_game.dart';
+import '../../domain/entities/reflective_pause_metrics.dart';
 import '../../domain/entities/score_breakdown.dart';
 
 /// DTO de la couche data : parse la réponse GameSession du contrat
@@ -19,6 +20,7 @@ class GameSessionDto {
     required this.startedAt,
     this.completedAt,
     this.scoreBreakdown = const [],
+    this.reflectivePauseIndicators,
   });
 
   final String id;
@@ -31,6 +33,7 @@ class GameSessionDto {
   final DateTime startedAt;
   final DateTime? completedAt;
   final List<ScoreBreakdownLine> scoreBreakdown;
+  final ReflectivePauseIndicators? reflectivePauseIndicators;
 
   factory GameSessionDto.fromJson(Map<String, dynamic> json) {
     return GameSessionDto(
@@ -40,7 +43,8 @@ class GameSessionDto {
       compositeRaw: (json['compositeRaw'] as num?)?.toInt() ?? 0,
       compositeMax: (json['compositeMax'] as num?)?.toInt() ?? 0,
       normalized: (json['normalized'] as num?)?.toDouble() ?? 0.0,
-      attempts: (json['attempts'] as List<dynamic>?)
+      attempts:
+          (json['attempts'] as List<dynamic>?)
               ?.map((e) => _attemptFromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
@@ -48,10 +52,18 @@ class GameSessionDto {
       completedAt: json['completedAt'] == null
           ? null
           : DateTime.parse(json['completedAt'] as String),
-      scoreBreakdown: (json['scoreBreakdown'] as List<dynamic>?)
-              ?.map((e) => ScoreBreakdownLine.fromJson(e as Map<String, dynamic>))
+      scoreBreakdown:
+          (json['scoreBreakdown'] as List<dynamic>?)
+              ?.map(
+                (e) => ScoreBreakdownLine.fromJson(e as Map<String, dynamic>),
+              )
               .toList() ??
           const [],
+      reflectivePauseIndicators: json['reflectivePauseIndicators'] == null
+          ? null
+          : ReflectivePauseIndicators.fromJson(
+              json['reflectivePauseIndicators'] as Map<String, dynamic>,
+            ),
     );
   }
 
@@ -66,6 +78,7 @@ class GameSessionDto {
     startedAt: startedAt,
     completedAt: completedAt,
     scoreBreakdown: scoreBreakdown,
+    reflectivePauseIndicators: reflectivePauseIndicators,
   );
 
   static GameAttempt _attemptFromJson(Map<String, dynamic> json) {

@@ -26,7 +26,26 @@ public enum MiniGame {
     /** Move Fast #1 — « Je bouge ». Barème dynamique selon le nombre de réponses. */
     MOVE_FAST_CORE(GameType.MOVE_FAST, 0, true),
     /** Memory Quest — « J'investigue ». Composite /100 (A + B + distraction). */
-    MEMORY_QUEST_CORE(GameType.MEMORY_QUEST, 100, true);
+    MEMORY_QUEST_CORE(GameType.MEMORY_QUEST, 100, true),
+    /**
+     * « Je Décide » — prise de décision. Score agrégé = SCW /100.
+     * Non jouable tant que le {@code DecisionScenarioCatalog} est vide (30 scénarios
+     * + étiquetage des options à fournir) — même patron que TASK_SCHEDULING avant
+     * implémentation. Repasser à {@code true} une fois le catalogue rempli.
+     */
+    DECISION_CORE(GameType.DECISION, 100, false),
+    /**
+     * « Emotional Radar » — reconnaissance émotionnelle. Barème <b>dynamique</b>
+     * (comme {@code MOVE_FAST_CORE}, d'où {@code maxPoints = 0}) : le maximum vaut
+     * {@code scènes jouées × 9}, le {@code Score} le porte lui-même. Les points
+     * proviennent des réponses notées serveur scène par scène, jamais du client.
+     */
+    EMOTIONAL_RADAR_CORE(GameType.EMOTIONAL_REGULATION, 0, true),
+    /**
+     * « Reflective Pause » — contrôle de l'impulsivité sous pression.
+     * Temps contrôlé /3 + réponses non impulsives /4 + prise de recul /3.
+     */
+    REFLECTIVE_PAUSE_CORE(GameType.EMOTIONAL_REGULATION, 10, true);
 
     private final GameType gameType;
     private final int maxPoints;

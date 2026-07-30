@@ -121,7 +121,19 @@ public class GameSession extends AggregateRoot {
         if (status == SessionStatus.COMPLETED && attempts.size() == expectedMiniGames().size()) {
             return attempts.stream().mapToInt(a -> a.score().maxPoints()).sum();
         }
-        return expectedMiniGames().stream().mapToInt(MiniGame::maxPoints).sum();
+        // Pour un barème dynamique déjà joué (Move Fast / Emotional Radar), le
+        // maximum réel de l'Attempt remplace le 0 déclaratif de MiniGame. Les
+        // mini-jeux restants conservent leur maximum statique. Sans ce calcul,
+        // Emotional Radar (27 pts) suivi de Reflective Pause (/10) produirait
+        // temporairement un normalized > 100 avant le second mini-jeu.
+        int recordedMax = attempts.stream()
+            .mapToInt(a -> a.score().maxPoints())
+            .sum();
+        int remainingMax = expectedMiniGames().stream()
+            .filter(expected -> !isRecorded(expected))
+            .mapToInt(MiniGame::maxPoints)
+            .sum();
+        return recordedMax + remainingMax;
     }
 
     public double normalizedScore() {

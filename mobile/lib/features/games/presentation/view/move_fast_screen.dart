@@ -1091,9 +1091,6 @@ class _GameplayBoard extends StatelessWidget {
             ),
             child: Stack(
               children: [
-                Positioned.fill(
-                  child: CustomPaint(painter: _BoardLinePainter()),
-                ),
                 Positioned(
                   top: 10,
                   left: 34,
@@ -1267,9 +1264,7 @@ class _ScrollingPlaneState extends State<_ScrollingPlane>
         final u = _isForward ? t : (1 - t);
         final alongPx = -s + u * travel;
         // Fondu léger aux extrémités pour lisser l'apparition/disparition.
-        final edge = (u < 0.08)
-            ? u / 0.08
-            : (u > 0.92 ? (1 - u) / 0.08 : 1.0);
+        final edge = (u < 0.08) ? u / 0.08 : (u > 0.92 ? (1 - u) / 0.08 : 1.0);
         return Positioned(
           left: _isVertical ? crossPx : alongPx,
           top: _isVertical ? alongPx : crossPx,
@@ -1283,22 +1278,6 @@ class _ScrollingPlaneState extends State<_ScrollingPlane>
       ),
     );
   }
-}
-
-class _BoardLinePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.09)
-      ..strokeWidth = 1;
-    for (var i = 1; i < 5; i++) {
-      final y = size.height * i / 5;
-      canvas.drawLine(Offset(20, y), Offset(size.width - 20, y), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _TactileOverlay extends StatelessWidget {

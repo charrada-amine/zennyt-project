@@ -1,5 +1,6 @@
 package com.zennyt.games.domain.service;
 
+import com.zennyt.games.domain.config.DecisionProvisionalRules;
 import com.zennyt.games.domain.config.MoveFastConfig;
 import com.zennyt.games.domain.config.OptimalPathConfig;
 import com.zennyt.games.domain.config.PrevisionPuzzleConfig;
@@ -195,7 +196,14 @@ public class PlanifikScoringService {
         return switch (gameType) {
             case PLANIFIK -> interpretGlobal(totalRaw);
             case MOVE_FAST -> interpretMoveFast(normalized);
-            case MEMORY_QUEST, DECISION -> "Non interprété";
+            // « Je Décide » : le score agrégé = SCW /100 (normalized), interprété via
+            // les bornes de niveau PROVISOIRES (seul ≥ 75 vient de la fiche).
+            case DECISION -> DecisionProvisionalRules.levelForScw(normalized);
+            case MEMORY_QUEST -> "Non interprété";
+            // « Emotional Radar » : bandes PROVISOIRES alignées sur les autres jeux,
+            // isolées dans EmotionalRadarProvisionalRules (aucune fiche ne les fixe).
+            case EMOTIONAL_REGULATION ->
+                com.zennyt.games.domain.config.EmotionalRadarProvisionalRules.interpret(normalized);
         };
     }
 

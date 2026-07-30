@@ -1,10 +1,13 @@
 package com.zennyt.games.domain.service;
 
+import com.zennyt.games.domain.config.EmotionalRadarConfig;
 import com.zennyt.games.domain.config.MemoryQuestConfig;
 import com.zennyt.games.domain.config.MoveFastConfig;
 import com.zennyt.games.domain.config.OptimalPathConfig;
 import com.zennyt.games.domain.config.PrevisionPuzzleConfig;
+import com.zennyt.games.domain.config.ReflectivePauseConfig;
 import com.zennyt.games.domain.config.TaskSchedulingConfig;
+import com.zennyt.games.domain.vo.DecisionReport;
 import com.zennyt.games.domain.vo.GameMetrics;
 import com.zennyt.games.domain.vo.MemoryQuestMetrics;
 import com.zennyt.games.domain.vo.MoveFastMetrics;
@@ -12,6 +15,7 @@ import com.zennyt.games.domain.vo.OptimalPathLevel;
 import com.zennyt.games.domain.vo.PlanifikMetrics;
 import com.zennyt.games.domain.vo.PrevisionPuzzleLevel;
 import com.zennyt.games.domain.vo.PrevisionPuzzleMetrics;
+import com.zennyt.games.domain.vo.ReflectivePauseMetrics;
 import com.zennyt.games.domain.vo.Score;
 import com.zennyt.games.domain.vo.TaskSchedulingMetrics;
 import com.zennyt.games.domain.vo.ScoreBreakdown;
@@ -48,7 +52,86 @@ public class ScoreBreakdownService {
         if (metrics instanceof MemoryQuestMetrics m) {
             return memoryQuest(m, score);
         }
+        if (metrics instanceof ReflectivePauseMetrics m) {
+            return reflectivePause(m, score);
+        }
         return null;
+    }
+
+    /** Reflective Pause — trois indicateurs pondérés 3 + 4 + 3, total /10. */
+    public ScoreBreakdown reflectivePause(ReflectivePauseMetrics m, Score score) {
+        int total = m.moments().size();
+        double controlled = ReflectivePauseConfig.criterionScore(
+            m.controlledReactionCount(), total, ReflectivePauseConfig.CONTROLLED_REACTION_MAX);
+        double nonImpulsive = ReflectivePauseConfig.criterionScore(
+            m.nonImpulsiveCount(), total, ReflectivePauseConfig.NON_IMPULSIVE_MAX);
+        double stepBack = ReflectivePauseConfig.criterionScore(
+            m.stepBackCount(), total, ReflectivePauseConfig.STEP_BACK_MAX);
+        List<Line> lines = new ArrayList<>();
+        lines.add(Line.note("Temps contrôlé /3 + réponses non impulsives /4 + "
+            + "capacité à prendre du recul /3 ; la somme est arrondie une fois."));
+        lines.add(Line.info("Controlled reaction time",
+            m.controlledReactionCount() + "/" + total + " → " + controlled + "/3"));
+        lines.add(Line.info("Non-impulsive responses",
+            m.nonImpulsiveCount() + "/" + total + " → " + nonImpulsive + "/4"));
+        lines.add(Line.info("Ability to step back",
+            m.stepBackCount() + "/" + total + " → " + stepBack + "/3"));
+        lines.add(Line.total("Total", score.rawPoints(), score.maxPoints()));
+        return new ScoreBreakdown(lines);
+    }
+
+    /**
+     * « Je Décide » — une ligne par dimension /18, puis brut /90, puis SCW /100.
+     * Le détail par dimension vient du {@link DecisionReport} (catalogue serveur),
+     * pas des seules métriques : d'où une signature dédiée.
+     */
+    public ScoreBreakdown decision(DecisionReport report, Score score) {
+        List<Line> lines = new ArrayList<>();
+        lines.add(Line.note("Chaque dimension est notée /18 (6 items × 3) ; brut = somme /90 ; "
+            + "SCW = score composite standardisé pondéré /100 (poids provisoires)."));
+        for (DecisionReport.DimensionScore d : report.dimensions()) {
+            if (d.exploitable() && d.score() != null) {
+                lines.add(Line.criterion(d.dimension().name(),
+                    d.answeredItems() + " items", d.score(), d.maxScore()));
+            } else {
+                lines.add(Line.info(d.dimension().name(), "bloc non exploitable (> 2 items manquants)"));
+            }
+        }
+        lines.add(Line.subtotal("Brut", report.rawScore(), report.rawMax()));
+        lines.add(Line.total("SCW", score.rawPoints(), score.maxPoints()));
+        return new ScoreBreakdown(lines);
+    }
+
+    /**
+     * « Emotional Radar » — une ligne par critère et par scène, puis le total.
+     *
+     * <p>Signature dédiée (comme {@link #decision}) : le détail provient des
+     * réponses <b>notées serveur</b>, jamais des métriques reçues du client — ces
+     * dernières ne portent aucune réponse.
+     */
+    public ScoreBreakdown emotionalRadar(
+            List<com.zennyt.games.domain.vo.EmotionalRadarAnswer> answers, Score score) {
+        List<Line> lines = new ArrayList<>();
+        lines.add(Line.note("Chaque scène vaut 9 points : émotion de base 3, nuance 4, "
+            + "intensité 2 (écart 0 → 2 pts · écart 1 → 1 pt · écart ≥ 2 → 0)."));
+        for (com.zennyt.games.domain.vo.EmotionalRadarAnswer a : answers) {
+            int sceneNumber = a.sceneOrder();
+            lines.add(Line.criterion("Scène " + sceneNumber + " — Émotion de base",
+                a.selectedEmotion() + " / attendu " + a.expectedEmotion(),
+                a.emotionPoints(), EmotionalRadarConfig.EMOTION_POINTS));
+            lines.add(Line.criterion("Scène " + sceneNumber + " — Nuance",
+                a.selectedNuance() + " / attendu " + a.expectedNuance(),
+                a.nuancePoints(), EmotionalRadarConfig.NUANCE_POINTS));
+            lines.add(Line.criterion("Scène " + sceneNumber + " — Intensité",
+                a.selectedIntensity() + " / attendu " + a.expectedIntensity()
+                    + " (écart " + a.intensityGap() + ")",
+                a.intensityPoints(), EmotionalRadarConfig.INTENSITY_POINTS));
+            lines.add(Line.subtotal("Scène " + sceneNumber,
+                a.scenePoints(), EmotionalRadarConfig.POINTS_PER_SCENE));
+        }
+        lines.add(Line.total("Total (" + answers.size() + " scènes)",
+            score.rawPoints(), score.maxPoints()));
+        return new ScoreBreakdown(lines);
     }
 
     /** « J'investigue » — notes par tâche (0–5) puis composite /100. */
