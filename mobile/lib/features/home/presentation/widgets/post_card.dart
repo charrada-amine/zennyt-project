@@ -10,6 +10,7 @@ import 'package:zennyt/core/constants.dart';
 import 'package:zennyt/l10n/gen/app_localizations.dart';
 import 'package:zennyt/core/utils/link_extractor.dart';
 import 'package:zennyt/features/home/presentation/widgets/CommentsBottomSheet.dart';
+import 'package:zennyt/features/auth/presentation/auth_controller.dart';
 import 'package:zennyt/shared/providers/internet_provider.dart';
 import 'package:zennyt/shared/widgets/no_connection_overlay.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -309,6 +310,24 @@ class _PostCardState extends ConsumerState<PostCard> with SingleTickerProviderSt
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final colors = context.colors;
+    final authUser = ref.watch(authControllerProvider).value;
+    final currentUser = ref.watch(currentUserProvider).value;
+
+    final isMyPost = (authUser != null &&
+            (widget.post.authorId == authUser.id ||
+                widget.post.authorName.trim().toLowerCase() ==
+                    authUser.fullName.trim().toLowerCase())) ||
+        (currentUser != null &&
+            (widget.post.authorId == currentUser.id ||
+                widget.post.authorName.trim().toLowerCase() ==
+                    currentUser.name.trim().toLowerCase()));
+
+    final avatarUrl = widget.post.authorAvatarUrl.isNotEmpty
+        ? widget.post.authorAvatarUrl
+        : (isMyPost
+            ? (authUser?.effectiveAvatarUrl ??
+                const AvatarService().defaultFor(widget.post.authorName))
+            : const AvatarService().defaultFor(widget.post.authorName));
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -329,9 +348,7 @@ class _PostCardState extends ConsumerState<PostCard> with SingleTickerProviderSt
           Row(
             children: [
               InitialsAvatar(
-                url: widget.post.authorAvatarUrl.isNotEmpty
-                    ? widget.post.authorAvatarUrl
-                    : const AvatarService().defaultFor(widget.post.authorName),
+                url: avatarUrl,
                 size: 48,
               ),
               const SizedBox(width: 12),

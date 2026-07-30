@@ -65,10 +65,7 @@ Future<void> initDependencies({required String apiBaseUrl}) async {
     NotificationRemoteDataSourceImpl(sl()),
   );
   sl.registerSingleton<NotificationRepository>(
-    NotificationRepositoryImpl(
-      remoteDataSource: sl(),
-      networkInfo: sl(),
-    ),
+    NotificationRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()),
   );
   sl.registerSingleton(GetNotifications(sl()));
   sl.registerSingleton(MarkNotificationRead(sl()));
@@ -77,10 +74,7 @@ Future<void> initDependencies({required String apiBaseUrl}) async {
 
   sl.registerSingleton<CallRemoteDataSource>(CallRemoteDataSourceImpl(sl()));
   sl.registerSingleton<CallRepository>(
-    CallRepositoryImpl(
-      remoteDataSource: sl(),
-      networkInfo: sl(),
-    ),
+    CallRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()),
   );
   sl.registerSingleton(GetCall(sl()));
   sl.registerSingleton(StartCall(sl()));
@@ -93,16 +87,10 @@ Future<void> initDependencies({required String apiBaseUrl}) async {
     MessageRemoteDataSourceImpl(sl()),
   );
   sl.registerSingleton<ConversationRepository>(
-    ConversationRepositoryImpl(
-      remoteDataSource: sl(),
-      networkInfo: sl(),
-    ),
+    ConversationRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()),
   );
   sl.registerSingleton<MessageRepository>(
-    MessageRepositoryImpl(
-      remoteDataSource: sl(),
-      networkInfo: sl(),
-    ),
+    MessageRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()),
   );
   sl.registerSingleton(GetConversations(sl()));
   sl.registerSingleton(GetMessages(sl()));
@@ -136,9 +124,7 @@ Future<void> initDependencies({required String apiBaseUrl}) async {
     ),
   );
 
-  sl.registerSingleton<PostsSyncService>(
-    PostsSyncService(repository: sl()),
-  );
+  sl.registerSingleton<PostsSyncService>(PostsSyncService(repository: sl()));
   sl.registerSingleton(GetPosts(sl()));
   sl.registerSingleton(CreatePost(sl()));
   sl.registerSingleton(GetCurrentUser(sl()));
@@ -155,10 +141,7 @@ Future<void> initDependencies({required String apiBaseUrl}) async {
     HelpChatRemoteDataSourceImpl(sl()),
   );
   sl.registerSingleton<HelpChatRepository>(
-    HelpChatRepositoryImpl(
-      remoteDataSource: sl(),
-      networkInfo: sl(),
-    ),
+    HelpChatRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()),
   );
   sl.registerSingleton(GetHelpChats(sl()));
   sl.registerSingleton(GetHelpMessages(sl()));
