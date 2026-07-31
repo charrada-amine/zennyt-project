@@ -69,7 +69,8 @@ class RecomputeFitScoresUseCaseBatchTest {
      * changerait et le test échouerait.
      */
     private static final FitScoreCalculatorPort CALCULATOR = inputs -> {
-        int soft = (int) Math.round(inputs.softSkills().getOrDefault("games", 0.0));
+        int soft = (int) Math.round(inputs.softSkills().values().stream()
+            .mapToDouble(Double::doubleValue).average().orElse(0));
         int hard = inputs.hardSkillScore() == null ? 0 : inputs.hardSkillScore();
         int profil = inputs.roleProfile() == null ? 0 : 7;
         int societe = inputs.companyDescription() == null ? 0 : 3;
