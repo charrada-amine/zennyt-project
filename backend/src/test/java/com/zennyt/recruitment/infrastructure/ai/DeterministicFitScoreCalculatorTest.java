@@ -109,6 +109,25 @@ class DeterministicFitScoreCalculatorTest {
         assertThat(surTechnique.softSkillScore()).isNotEqualTo(surRelationnel.softSkillScore());
     }
 
+    /**
+     * Games a livré « Je gère » (régulation émotionnelle) après ce correctif — vérifie
+     * que le module est bien reconnu et pondéré, pas silencieusement ignoré comme le
+     * serait une clé inconnue (voir {@code ignoreUneCleDeModuleNonReconnueSansEchouer}).
+     */
+    @Test
+    void reconnaitLeModuleRegulationEmotionnelleDesormaisLivreParGames() {
+        var calculator = new DeterministicFitScoreCalculator();
+        var inputs = new FitScoreInputs(
+            Map.of("MOVE_FAST", 80.0, "EMOTIONAL_REGULATION", 20.0),
+            "desc", null, TECHNIQUE_SENIOR, null, 100);
+
+        FitScoreResult result = calculator.calculate(inputs);
+
+        // Technique : cognitif=30, régulation=5 -> (80*30+20*5)/35 = 71.
+        // Ignoré, ce serait 80*30/30 = 80 : la différence prouve que le module compte.
+        assertThat(result.softSkillScore()).isEqualTo(71);
+    }
+
     @Test
     void renormaliseSurLesSeulsModulesJoues() {
         // Le candidat n'a joué qu'un seul mini-jeu sur les 3 mesurables aujourd'hui :

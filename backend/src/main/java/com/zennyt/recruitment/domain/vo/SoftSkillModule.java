@@ -7,12 +7,13 @@ package com.zennyt.recruitment.domain.vo;
  * même correspondance à des fins d'affichage.
  *
  * <p>État réel côté Games (vérifié dans {@code MiniGame}, {@code GameType}) :
- * seuls {@link #COGNITIVE_FLEXIBILITY}, {@link #WORKING_MEMORY} et
- * {@link #EXECUTIVE_PLANNING} sont mesurables aujourd'hui. {@code DECISION} est
- * déclaré côté Games mais sans aucun mini-jeu ; la régulation émotionnelle n'a
- * même pas de {@code GameType}. Leur poids ne s'applique donc jamais en
- * pratique tant que Games ne les implémente pas — un état permanent, pas un
- * cas limite rare.
+ * {@link #COGNITIVE_FLEXIBILITY}, {@link #WORKING_MEMORY},
+ * {@link #EXECUTIVE_PLANNING} et {@link #EMOTIONAL_REGULATION} sont mesurables.
+ * {@code DECISION} reste déclaré côté Games mais sans mini-jeu jouable
+ * ({@code MiniGame.DECISION_CORE.playable() == false}, catalogue de scénarios
+ * vide) : sa pondération ne s'applique donc jamais en pratique tant que ce
+ * catalogue n'est pas rempli — pas un cas limite rare, l'état permanent
+ * jusque-là.
  */
 public enum SoftSkillModule {
     COGNITIVE_FLEXIBILITY, WORKING_MEMORY, DECISION_MAKING, EXECUTIVE_PLANNING, EMOTIONAL_REGULATION;
@@ -24,6 +25,7 @@ public enum SoftSkillModule {
             case "MEMORY_QUEST" -> WORKING_MEMORY;
             case "PLANIFIK" -> EXECUTIVE_PLANNING;
             case "DECISION" -> DECISION_MAKING;
+            case "EMOTIONAL_REGULATION" -> EMOTIONAL_REGULATION;
             default -> null;
         };
     }

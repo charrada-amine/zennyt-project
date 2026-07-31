@@ -39,10 +39,10 @@ import java.util.Map;
  * module pondéré par métier, indépendamment de la présence d'un QCM (D2 ne
  * met à 0 que le poids du hard, jamais celui des modules soft).
  *
- * <p>Au mieux 3 des 5 poids contribuent aujourd'hui : voir
+ * <p>Au mieux 4 des 5 poids contribuent aujourd'hui : voir
  * {@link SoftSkillModule} pour l'état réel de ce que Games mesure. Ce n'est
  * pas un cas limite, c'est la situation permanente tant que Games n'expose pas
- * Prise de décision ni Régulation émotionnelle.
+ * Prise de décision (mini-jeu non jouable, catalogue de scénarios vide).
  *
  * <p>Le CV n'intervient pas dans la formule (décision D1 enfin tranchée) : le CdC
  * v3 ne le mentionne nulle part, et {@code cvMatchScore} a été supprimé plutôt
