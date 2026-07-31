@@ -75,7 +75,7 @@ public class RecomputeFitScoresUseCase {
      * tout le lot d'un coup — voir {@code RecomputeFitScoresUseCaseBatchTest}.
      */
     public FitScore recompute(UUID candidateId, JobOffer offer) {
-        int softScore = averageSoftScore(softSkills.findByCandidateId(candidateId));
+        Map<String, Double> softScores = softScoresByModule(softSkills.findByCandidateId(candidateId));
         String companyInfo = actors.findById(offer.recruiterId())
             .map(actor -> actor.companyInfo()).orElse(null);
         JobRoleProfile roleProfile = roleProfileResolver.resolve(offer);
@@ -84,7 +84,7 @@ public class RecomputeFitScoresUseCase {
         UUID existingId = fitScores.findByCandidateIdAndJobOfferId(candidateId, offer.id())
             .map(FitScore::id).orElse(null);
         FitScore computed =
-            score(candidateId, offer, softScore, companyInfo, roleProfile, hardSkillScore, existingId);
+            score(candidateId, offer, softScores, companyInfo, roleProfile, hardSkillScore, existingId);
         return computed == null ? null : fitScores.save(computed);
     }
 
@@ -103,10 +103,10 @@ public class RecomputeFitScoresUseCase {
             .values().stream().toList();
         List<UUID> offerIds = offers.stream().map(JobOffer::id).toList();
 
-        Map<UUID, Integer> softScoreByCandidate = softSkills.findByCandidateIds(candidateIds).stream()
+        Map<UUID, Map<String, Double>> softScoresByCandidate = softSkills.findByCandidateIds(candidateIds).stream()
             .collect(Collectors.groupingBy(SoftSkillsProjection::candidateId,
                 Collectors.collectingAndThen(Collectors.toList(),
-                    RecomputeFitScoresUseCase::averageSoftScore)));
+                    RecomputeFitScoresUseCase::softScoresByModule)));
         Map<UUID, String> companyInfoByRecruiter = actors.findByIds(
                 offers.stream().map(JobOffer::recruiterId).distinct().toList()).stream()
             .filter(actor -> actor.companyInfo() != null)
@@ -127,7 +127,7 @@ public class RecomputeFitScoresUseCase {
         for (Pair pair : pairs) {
             String key = pairKey(pair.candidateId(), pair.offer().id());
             FitScore result = score(pair.candidateId(), pair.offer(),
-                softScoreByCandidate.getOrDefault(pair.candidateId(), 0),
+                softScoresByCandidate.getOrDefault(pair.candidateId(), Map.of()),
                 companyInfoByRecruiter.get(pair.offer().recruiterId()),
                 roleProfileByOffer.get(pair.offer().id()),
                 hardScoreByPair.get(key),
@@ -145,10 +145,11 @@ public class RecomputeFitScoresUseCase {
      * chemin unitaire et le chemin par lot : c'est ce qui garantit qu'ils ne peuvent
      * pas diverger.
      */
-    private FitScore score(UUID candidateId, JobOffer offer, int softScore, String companyInfo,
-                           JobRoleProfile roleProfile, Integer hardSkillScore, UUID existingId) {
+    private FitScore score(UUID candidateId, JobOffer offer, Map<String, Double> softScores,
+                           String companyInfo, JobRoleProfile roleProfile, Integer hardSkillScore,
+                           UUID existingId) {
         var inputs = new FitScoreCalculatorPort.FitScoreInputs(
-            Map.of("games", (double) softScore),
+            softScores,
             offer.description(), companyInfo, roleProfile, hardSkillScore, DEFAULT_COVERAGE_RATIO);
         var result = calculator.calculate(inputs);
         if (result == null) return null; // offre sans métier approuvé : incalculable
@@ -157,9 +158,16 @@ public class RecomputeFitScoresUseCase {
             hardSkillScore, DEFAULT_COVERAGE_RATIO, Instant.now());
     }
 
-    private static int averageSoftScore(List<SoftSkillsProjection> modules) {
-        return modules.isEmpty() ? 0
-            : (int) Math.round(modules.stream().mapToInt(SoftSkillsProjection::score).average().orElse(0));
+    /**
+     * Un score par module CdC déjà mesuré (clé = nom du module Games, ex.
+     * "MOVE_FAST") — transporté tel quel jusqu'au calculateur, qui seul connaît
+     * la pondération de l'offre et peut donc pondérer par module (CdC §3.2).
+     * Aplatir ici en une moyenne unique, comme avant, rendait cette pondération
+     * mathématiquement sans effet : voir DeterministicFitScoreCalculator.
+     */
+    private static Map<String, Double> softScoresByModule(List<SoftSkillsProjection> modules) {
+        return modules.stream().collect(Collectors.toMap(
+            SoftSkillsProjection::module, m -> (double) m.score(), (a, b) -> b));
     }
 
     private static String pairKey(UUID candidateId, UUID jobOfferId) {
