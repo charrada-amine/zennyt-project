@@ -14,7 +14,10 @@ enum GameType {
   emotionalRegulation('EMOTIONAL_REGULATION'),
 
   /// « Je continue » — Long Rosvold CPT X/AX.
-  continuousAttention('CONTINUOUS_ATTENTION');
+  continuousAttention('CONTINUOUS_ATTENTION'),
+
+  /// « Je coordonne » — fixed-square visuomotor tracking.
+  visuomotorCoordination('VISUOMOTOR_COORDINATION');
 
   /// Valeur transmise à l'API (nom de l'enum côté back).
   final String wire;

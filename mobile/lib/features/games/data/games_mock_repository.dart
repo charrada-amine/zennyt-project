@@ -5,6 +5,7 @@ import '../domain/config/move_fast_config.dart';
 import '../domain/config/reflective_pause_config.dart';
 import '../domain/decision_scenario_catalog.dart';
 import '../domain/entities/continuous_attention_metrics.dart';
+import '../domain/entities/coordination_tracking_metrics.dart';
 import '../domain/entities/decision_metrics.dart';
 import '../domain/entities/device_calibration.dart';
 import '../domain/entities/emotional_radar.dart';
@@ -22,6 +23,7 @@ import '../domain/entities/score_breakdown.dart';
 import '../domain/entities/task_scheduling_metrics.dart';
 import '../domain/repositories/games_repository.dart';
 import 'continuous_attention_scoring.dart';
+import 'coordination_tracking_scoring.dart';
 import 'decision_scoring.dart';
 
 /// [GamesRepository] MOCK — permet de jouer en totale autonomie, sans backend.
@@ -49,6 +51,7 @@ class GamesMockRepository implements GamesRepository {
     EmptyDecisionScenarioCatalog(),
   );
   static const _continuousAttentionScoring = ContinuousAttentionScoring();
+  static const _coordinationTrackingScoring = CoordinationTrackingScoring();
 
   // Config « Chemin Optimal » — miroir de OptimalPathConfig (backend).
   static const double _optimalPathTolerance = 0.10; // optimal_path_tolerance
@@ -105,12 +108,34 @@ class GamesMockRepository implements GamesRepository {
         );
       }
     }
+    if (miniGame == MiniGame.coordinationTrackingCore) {
+      if (current.gameType != GameType.visuomotorCoordination) {
+        throw StateError(
+          '${MiniGame.coordinationTrackingCore.wire} does not belong to '
+          '${current.gameType.wire}',
+        );
+      }
+      if (current.status != 'IN_PROGRESS' ||
+          current.attempts.any(
+            (attempt) => attempt.miniGame == MiniGame.coordinationTrackingCore,
+          )) {
+        throw StateError(
+          'Coordination-tracking result already recorded for $sessionId',
+        );
+      }
+    }
 
     final continuousAttentionResult =
         miniGame == MiniGame.continuousAttentionCore
         ? _continuousAttentionScoring.score(
             sessionId: sessionId,
             metrics: metrics as ContinuousAttentionMetrics,
+          )
+        : null;
+    final coordinationTrackingResult =
+        miniGame == MiniGame.coordinationTrackingCore
+        ? _coordinationTrackingScoring.score(
+            metrics as CoordinationTrackingMetrics,
           )
         : null;
     if (continuousAttentionResult != null &&
@@ -131,6 +156,30 @@ class GamesMockRepository implements GamesRepository {
         ),
         reflectivePauseIndicators: current.reflectivePauseIndicators,
         continuousAttentionIndicators: continuousAttentionResult.indicators,
+        coordinationIndicators: current.coordinationIndicators,
+      );
+      _sessions[sessionId] = audited;
+      return audited;
+    }
+    if (coordinationTrackingResult != null &&
+        !coordinationTrackingResult.indicators.sessionValid) {
+      final audited = GameSession(
+        id: current.id,
+        gameType: current.gameType,
+        status: current.status,
+        compositeRaw: current.compositeRaw,
+        compositeMax: current.compositeMax,
+        normalized: current.normalized,
+        attempts: current.attempts,
+        startedAt: current.startedAt,
+        completedAt: current.completedAt,
+        scoreBreakdown: _coordinationTrackingBreakdown(
+          coordinationTrackingResult.indicators,
+          coordinationTrackingResult.score,
+        ),
+        reflectivePauseIndicators: current.reflectivePauseIndicators,
+        continuousAttentionIndicators: current.continuousAttentionIndicators,
+        coordinationIndicators: coordinationTrackingResult.indicators,
       );
       _sessions[sessionId] = audited;
       return audited;
@@ -160,6 +209,7 @@ class GamesMockRepository implements GamesRepository {
         metrics as ReflectivePauseMetrics,
       ),
       MiniGame.continuousAttentionCore => continuousAttentionResult!.score,
+      MiniGame.coordinationTrackingCore => coordinationTrackingResult!.score,
     };
     final attempts = [
       ...current.attempts,
@@ -171,6 +221,7 @@ class GamesMockRepository implements GamesRepository {
         miniGame == MiniGame.memoryQuestCore ||
         miniGame == MiniGame.decisionCore ||
         miniGame == MiniGame.continuousAttentionCore ||
+        miniGame == MiniGame.coordinationTrackingCore ||
         attempts.length >= _expectedMiniGames(current.gameType);
     final max = complete
         ? attempts.fold<int>(0, (sum, a) => sum + a.score.maxPoints)
@@ -195,6 +246,9 @@ class GamesMockRepository implements GamesRepository {
           miniGame == MiniGame.continuousAttentionCore
           ? continuousAttentionResult!.indicators
           : current.continuousAttentionIndicators,
+      coordinationIndicators: miniGame == MiniGame.coordinationTrackingCore
+          ? coordinationTrackingResult!.indicators
+          : current.coordinationIndicators,
     );
     _sessions[sessionId] = updated;
     return updated;
@@ -454,7 +508,72 @@ class GamesMockRepository implements GamesRepository {
         score,
         sessionId,
       ),
+      MiniGame.coordinationTrackingCore => _breakdownCoordinationTracking(
+        metrics as CoordinationTrackingMetrics,
+        score,
+      ),
     };
+  }
+
+  List<ScoreBreakdownLine> _breakdownCoordinationTracking(
+    CoordinationTrackingMetrics metrics,
+    GameScore score,
+  ) {
+    final report = _coordinationTrackingScoring.score(metrics).indicators;
+    return _coordinationTrackingBreakdown(report, score);
+  }
+
+  List<ScoreBreakdownLine> _coordinationTrackingBreakdown(
+    CoordinationTrackingIndicators report,
+    GameScore score,
+  ) {
+    String percent(double value) => '${value.toStringAsFixed(1)} %';
+    return [
+      const ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.note,
+        label:
+            'Score provisoire = précision globale mesurée, arrondie une fois '
+            'au demi-point supérieur. Les sous-précisions et la distance '
+            'restent descriptives.',
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.info,
+        label: 'Précision globale',
+        detail: percent(report.overallAccuracyPercent),
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.info,
+        label: 'Vitesse lente / rapide',
+        detail:
+            '${percent(report.slowAccuracyPercent)} / '
+            '${percent(report.fastAccuracyPercent)}',
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.info,
+        label: 'Segments longs / courts',
+        detail:
+            '${percent(report.longSegmentAccuracyPercent)} / '
+            '${percent(report.shortSegmentAccuracyPercent)}',
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.info,
+        label: 'Distance moyenne au centre',
+        detail: report.averageCenterDistance.toStringAsFixed(1),
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.info,
+        label: 'Validité technique',
+        detail: report.sessionValid
+            ? 'valide'
+            : report.validityIssues.join(', '),
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.total,
+        label: 'Score descriptif',
+        points: score.rawPoints,
+        maxPoints: score.maxPoints,
+      ),
+    ];
   }
 
   List<ScoreBreakdownLine> _breakdownContinuousAttention(
@@ -932,6 +1051,7 @@ class GamesMockRepository implements GamesRepository {
       // Emotional Radar (max dynamique /27 actuellement) + Reflective Pause /10.
       GameType.emotionalRegulation => 2,
       GameType.continuousAttention => 1,
+      GameType.visuomotorCoordination => 1,
     };
   }
 
@@ -954,6 +1074,8 @@ class GamesMockRepository implements GamesRepository {
         recorded.contains(MiniGame.reflectivePauseCore) ? 0 : 10,
       GameType.continuousAttention =>
         recorded.contains(MiniGame.continuousAttentionCore) ? 0 : 100,
+      GameType.visuomotorCoordination =>
+        recorded.contains(MiniGame.coordinationTrackingCore) ? 0 : 100,
     };
   }
 

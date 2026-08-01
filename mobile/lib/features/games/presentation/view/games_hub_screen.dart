@@ -23,6 +23,7 @@ const _iconEmotion = 'assets/games icons/Emotional Regulation .png';
 // Logos officiels des jeux, repris des premières pages de chaque jeu.
 const _logoMoveFast = 'assets/games icons/Move Fast.png';
 const _logoJeContinue = 'assets/games icons/Je Continue.png';
+const _logoJeCoordonne = 'assets/games icons/Je Coordonne.png';
 const _logoMemoryQuest = 'assets/games icons/Memory Quest transparent.png';
 const _logoJeDecide = 'assets/games icons/Je Decide transparent.png';
 const _logoOptimalPath = 'assets/games icons/Optimal Path transparent.png';
@@ -77,7 +78,7 @@ class GamesHubScreen extends ConsumerWidget {
                     title: 'Cognitive Flexibility',
                     iconAsset: _iconFlexibility,
                     durationLabel: '2–25 min',
-                    aptitudeLabel: '2 games',
+                    aptitudeLabel: '3 games',
                     games: const [
                       _GameEntry(
                         label: 'Move Fast',
@@ -92,6 +93,13 @@ class GamesHubScreen extends ConsumerWidget {
                         route: AppRoutes.gamesJeContinue,
                         logoAsset: _logoJeContinue,
                         fallbackIcon: Icons.all_inclusive_rounded,
+                      ),
+                      _GameEntry(
+                        label: 'Je coordonne',
+                        subtitle: 'Eye-hand tracking · 3 min',
+                        route: AppRoutes.gamesJeCoordonne,
+                        logoAsset: _logoJeCoordonne,
+                        fallbackIcon: Icons.track_changes_rounded,
                       ),
                     ],
                   ),
@@ -610,55 +618,64 @@ void _showGamePicker(
     builder: (sheetContext) {
       return SafeArea(
         top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 42,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: _softGray,
-                    borderRadius: BorderRadius.circular(999),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.88,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 42,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: _softGray,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                title,
-                style: AppTypography.titleLarge.copyWith(
-                  color: _ink,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0,
+                const SizedBox(height: 16),
+                Text(
+                  title,
+                  style: AppTypography.titleLarge.copyWith(
+                    color: _ink,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                'Choose a game to play',
-                style: TextStyle(
-                  color: _muted,
-                  fontFamily: AppTypography.fontFamily,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: 0,
+                const SizedBox(height: 2),
+                Text(
+                  'Choose a game to play',
+                  style: TextStyle(
+                    color: _muted,
+                    fontFamily: AppTypography.fontFamily,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              for (final game in games) ...[
-                _GamePickerTile(
-                  game: game,
-                  onTap: () {
-                    Navigator.of(sheetContext).pop();
-                    context.push(game.route);
-                  },
+                const SizedBox(height: 16),
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: games.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 10),
+                    itemBuilder: (_, index) => _GamePickerTile(
+                      game: games[index],
+                      onTap: () {
+                        Navigator.of(sheetContext).pop();
+                        context.push(games[index].route);
+                      },
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 10),
               ],
-            ],
+            ),
           ),
         ),
       );

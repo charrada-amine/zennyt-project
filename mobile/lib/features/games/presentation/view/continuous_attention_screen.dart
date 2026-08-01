@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../navigation/presentation/viewmodel/nav_tab_provider.dart';
 import '../../../navigation/presentation/widgets/app_bottom_nav.dart';
+import '../../data/continuous_attention_scoring.dart';
 import '../../domain/config/continuous_attention_config.dart';
 import '../../domain/entities/continuous_attention_metrics.dart';
 import '../../domain/entities/game_session.dart';
@@ -444,19 +445,44 @@ class _ContinuousAttentionScreenState
     }
   }
 
-  /// Termine un run de test rapide sans soumission : la séquence tronquée
-  /// n'est pas structurellement valide pour le dépôt.
+  /// Termine un run de test rapide : la séquence tronquée n'est jamais soumise
+  /// au dépôt, mais on la score localement (structure relâchée) pour afficher
+  /// le vrai écran de résultats, comme les autres jeux.
   void _finishQuickRun() {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Quick dev run finished — nothing was submitted.'),
+    final session = _session;
+    if (!mounted || session == null) return;
+    final orderedBlocks = [
+      for (final phase in ContinuousAttentionPhase.values)
+        ..._completedBlocks.where((block) => block.phase == phase).toList()
+          ..sort((a, b) => a.blockIndex.compareTo(b.blockIndex)),
+    ];
+    final result = const ContinuousAttentionScoring().score(
+      sessionId: session.id,
+      metrics: ContinuousAttentionMetrics(
+        blocks: List.unmodifiable(orderedBlocks),
+        sessionCompleted: true,
+        interrupted: false,
+        backgroundEventCount: 0,
+        droppedFrameCount: _droppedFrameCount,
       ),
+      enforceStructure: false,
     );
-    _completedBlocks.clear();
     setState(() {
-      _quickRun = false;
-      _stage = _AttentionStage.cover;
+      _session = GameSession(
+        id: session.id,
+        gameType: session.gameType,
+        status: 'COMPLETED',
+        compositeRaw: session.compositeRaw,
+        compositeMax: session.compositeMax,
+        normalized: session.normalized,
+        attempts: session.attempts,
+        startedAt: session.startedAt,
+        completedAt: DateTime.now(),
+        scoreBreakdown: session.scoreBreakdown,
+        reflectivePauseIndicators: session.reflectivePauseIndicators,
+        continuousAttentionIndicators: result.indicators,
+      );
+      _stage = _AttentionStage.results;
     });
   }
 
@@ -730,9 +756,11 @@ class _ContinuousAttentionScreenState
               label: 'Preparing your focus stream…',
             ),
             _AttentionStage.playing => Focus(
-              key: ValueKey(
-                'continuous-playing-${_activePhase?.wire}-$_trialCursor',
-              ),
+              // La clé reste stable pendant toute la phase : seul le stimulus
+              // au centre apparaît/disparaît. Inclure le curseur d'essai
+              // relançait la transition de l'AnimatedSwitcher à chaque lettre,
+              // faisant clignoter tout l'écran.
+              key: ValueKey('continuous-playing-${_activePhase?.wire}'),
               autofocus: true,
               onKeyEvent: _handleKeyEvent,
               child: _GameplayView(
@@ -1457,29 +1485,14 @@ class _StreamIllustration extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Container(
-        width: 176,
-        height: 126,
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: _border),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x12071333),
-              blurRadius: 18,
-              offset: Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Image.asset(
-          _logoAsset,
-          fit: BoxFit.contain,
-          filterQuality: FilterQuality.high,
-          errorBuilder: (_, _, _) =>
-              const Icon(Icons.all_inclusive_rounded, color: _indigo, size: 72),
-        ),
+      child: Image.asset(
+        _logoAsset,
+        width: 168,
+        height: 168,
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.high,
+        errorBuilder: (_, _, _) =>
+            const Icon(Icons.all_inclusive_rounded, color: _indigo, size: 96),
       ),
     );
   }

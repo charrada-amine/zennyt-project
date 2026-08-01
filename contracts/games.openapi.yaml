@@ -4,11 +4,12 @@ info:
   description: >
     Bounded context Games : jeux sérieux d'évaluation cognitive (Planifik,
     Move Fast, Memory Quest, Je Décide, Emotional Regulation et Continuous
-    Attention). Le client démarre une session, joue les mini-jeux et remonte
+    Attention et Visuomotor Coordination). Le client démarre une session, joue
+    les mini-jeux et remonte
     des MÉTRIQUES objectives ; le score déterministe est calculé côté serveur.
     Ce contexte est indépendant : il n'expose et ne consomme aucun autre
     contexte, et publie son résultat via l'événement games.result.recorded.
-  version: 1.1.0
+  version: 1.2.0
 
 servers:
   - url: https://api.zennyt.com/api/v1
@@ -62,6 +63,13 @@ paths:
         conservé pour audit, mais aucun Attempt ni événement n'est créé. Une
         nouvelle soumission du même run remplace atomiquement cet audit. Seule
         une soumission valide enregistre l'Attempt et complète la session.
+
+        COORDINATION_TRACKING_CORE suit le même principe : la position de la
+        balle, la distance et toutes les précisions sont recalculées par le
+        serveur depuis les timestamps et coordonnées pointeur fixed-point. Une
+        trace structurellement incohérente produit 400. Une trace dont
+        technicalValid ou taskValid est faux reste audit-only, sans Attempt ni
+        événement.
       requestBody:
         required: true
         content:
@@ -165,7 +173,9 @@ components:
         de PLANIFIK qui héberge ses trois mini-jeux. CONTINUOUS_ATTENTION reste
         distinct de MOVE_FAST : « Je continue » apparaît dans la même catégorie
         mobile sans modifier les sessions ni le barème historique de Move Fast.
-      enum: [PLANIFIK, MOVE_FAST, MEMORY_QUEST, DECISION, EMOTIONAL_REGULATION, CONTINUOUS_ATTENTION]
+        VISUOMOTOR_COORDINATION (« Je coordonne ») est lui aussi indépendant :
+        son ajout à la même catégorie mobile ne modifie aucun GameType existant.
+      enum: [PLANIFIK, MOVE_FAST, MEMORY_QUEST, DECISION, EMOTIONAL_REGULATION, CONTINUOUS_ATTENTION, VISUOMOTOR_COORDINATION]
 
     MiniGame:
       type: string
@@ -174,8 +184,10 @@ components:
         mais non jouable tant que le catalogue de scénarios est vide (même patron
         que TASK_SCHEDULING avant implémentation). CONTINUOUS_ATTENTION_CORE
         implémente le protocole Long Rosvold CPT X/AX ; il ne reprend aucune norme
-        ni interprétation du Conners CPT-3.
-      enum: [OPTIMAL_PATH, TASK_SCHEDULING, PREVISION_PUZZLE, MOVE_FAST_CORE, MEMORY_QUEST_CORE, DECISION_CORE, EMOTIONAL_RADAR_CORE, REFLECTIVE_PAUSE_CORE, CONTINUOUS_ATTENTION_CORE]
+        ni interprétation du Conners CPT-3. COORDINATION_TRACKING_CORE implémente
+        une trajectoire carrée fixe, horaire et prédictible ; aucun score,
+        inside/outside ni distance calculée par le client n'est accepté.
+      enum: [OPTIMAL_PATH, TASK_SCHEDULING, PREVISION_PUZZLE, MOVE_FAST_CORE, MEMORY_QUEST_CORE, DECISION_CORE, EMOTIONAL_RADAR_CORE, REFLECTIVE_PAUSE_CORE, CONTINUOUS_ATTENTION_CORE, COORDINATION_TRACKING_CORE]
 
     SessionStatus:
       type: string
@@ -719,6 +731,226 @@ components:
           description: >
             Essais dont l'onset réel, l'affichage ou l'ISI sortent de la
             tolérance technique provisoire de 100 ms.
+        validityIssues:
+          type: array
+          items: { type: string }
+
+    CoordinationProtocolVersion:
+      type: string
+      description: >
+        Version figée de « Je coordonne ». PROVISOIRE — géométrie et vitesses
+        non validées par le psychologue. La balle suit le carré normalisé [0,1]
+        avec un inset 0.16, démarre au coin supérieur gauche et avance
+        continûment dans le sens horaire. Un tour lent dure 7000 ms et un tour
+        rapide 3500 ms.
+      enum: [FIXED_SQUARE_CW_V1]
+
+    CoordinationPhase:
+      type: string
+      description: PRACTICE est persistée pour audit mais exclue de toute cotation.
+      enum: [PRACTICE, TEST]
+
+    CoordinationSpeed:
+      type: string
+      enum: [SLOW, FAST]
+
+    CoordinationInputSource:
+      type: string
+      description: Modalité de pointage auditée pour l'ensemble du run.
+      enum: [MOUSE, TOUCH, STYLUS]
+
+    CoordinationPointerSample:
+      type: object
+      description: >
+        Position brute du pointeur sur une frame. Les coordonnées sont des
+        fixed-point normalisés dans [0, 1_000_000] relativement au plateau
+        carré. La position de la balle, la distance et l'état visuel ne sont
+        jamais transmis : le serveur les reconstruit depuis timestampMs.
+      required: [sampleIndex, timestampMs, pointerPresent, pointerX, pointerY]
+      properties:
+        sampleIndex:
+          type: integer
+          minimum: 1
+          description: Index 1-based dans le segment.
+        timestampMs:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Temps monotone relatif au déclenchement initial du mouvement.
+        pointerPresent:
+          type: boolean
+          description: false lorsque le doigt/curseur ne fournit aucune position exploitable.
+        pointerX:
+          type: integer
+          nullable: true
+          minimum: 0
+          maximum: 1000000
+          description: Requis lorsque pointerPresent=true, null sinon.
+        pointerY:
+          type: integer
+          nullable: true
+          minimum: 0
+          maximum: 1000000
+          description: Requis lorsque pointerPresent=true, null sinon.
+
+    CoordinationSegmentMetric:
+      type: object
+      description: >
+        Segment contigu de la trajectoire. phase, speed et nominalDurationMs
+        sont contrôlés contre la séquence FIXED_SQUARE_CW_V1 ; le client ne
+        peut pas choisir l'ordre ni la vitesse.
+      required:
+        - phase
+        - segmentIndex
+        - speed
+        - nominalDurationMs
+        - actualStartMs
+        - actualEndMs
+        - samples
+      properties:
+        phase: { $ref: '#/components/schemas/CoordinationPhase' }
+        segmentIndex:
+          type: integer
+          minimum: 1
+          maximum: 14
+          description: Index global 1-based ; 1–2 pratique, 3–14 test.
+        speed: { $ref: '#/components/schemas/CoordinationSpeed' }
+        nominalDurationMs:
+          type: integer
+          enum: [2333, 7000]
+        actualStartMs:
+          type: integer
+          format: int64
+          minimum: 0
+        actualEndMs:
+          type: integer
+          format: int64
+          minimum: 1
+        samples:
+          type: array
+          minItems: 2
+          maxItems: 2000
+          items: { $ref: '#/components/schemas/CoordinationPointerSample' }
+
+    CoordinationMetrics:
+      type: object
+      description: >
+        Trace brute complète de « Je coordonne » : deux segments de pratique
+        de 7000 ms (lent, rapide), puis douze segments test dans l'ordre
+        7000 lent, 7000 rapide, 2333 lent, 2333 rapide, répété trois fois.
+        La pratique est exclue. Le serveur reconstruit une trajectoire carrée
+        horaire continue et calcule une précision pondérée par le temps. La
+        distance est normalisée par la diagonale du plateau vers [0,1200] ;
+        un pointeur absent vaut 1200. Le client n'envoie aucun agrégat ni score.
+      required:
+        - protocolVersion
+        - inputSource
+        - coordinationSegments
+        - sessionCompleted
+        - interrupted
+        - backgroundEventCount
+        - droppedFrameCount
+      properties:
+        protocolVersion: { $ref: '#/components/schemas/CoordinationProtocolVersion' }
+        inputSource: { $ref: '#/components/schemas/CoordinationInputSource' }
+        coordinationSegments:
+          type: array
+          minItems: 14
+          maxItems: 14
+          items: { $ref: '#/components/schemas/CoordinationSegmentMetric' }
+        sessionCompleted: { type: boolean }
+        interrupted:
+          type: boolean
+          description: >
+            Toute pause ou perte de focus pendant la mesure rend le run
+            audit-only : aucun Attempt/event/Fit Score n'est créé.
+        backgroundEventCount: { type: integer, minimum: 0 }
+        droppedFrameCount:
+          type: integer
+          minimum: 0
+          description: Descriptif uniquement ; jamais intégré au score ni à taskValid.
+
+    CoordinationIndicators:
+      type: object
+      description: >
+        Rapport calculé côté serveur. Le score /100 provisoire est uniquement
+        roundHalfUp(overallAccuracyPercent). Les sous-précisions et la distance
+        sont descriptives, sans diagnostic, percentile ni classement.
+      required:
+        - protocolVersion
+        - inputSource
+        - completed
+        - sessionValid
+        - interrupted
+        - provisionalAccuracyScore
+        - overallAccuracyPercent
+        - fastAccuracyPercent
+        - slowAccuracyPercent
+        - longSegmentAccuracyPercent
+        - shortSegmentAccuracyPercent
+        - averageCenterDistance
+        - testExecutionTimeMs
+        - accuracyValid
+        - executionTimeValid
+        - taskValid
+        - technicalValid
+        - sampleCount
+        - absentSampleCount
+        - backgroundEventCount
+        - droppedFrameCount
+        - timingDeviationCount
+        - samplingGapCount
+        - validityIssues
+      properties:
+        protocolVersion: { $ref: '#/components/schemas/CoordinationProtocolVersion' }
+        inputSource: { $ref: '#/components/schemas/CoordinationInputSource' }
+        completed: { type: boolean }
+        sessionValid:
+          type: boolean
+          description: >
+            true si taskValid est vrai, la session est complète et aucune
+            interruption/perte de focus n'a eu lieu.
+        interrupted: { type: boolean }
+        provisionalAccuracyScore: { type: integer, minimum: 0, maximum: 100 }
+        overallAccuracyPercent: { type: number, format: double, minimum: 0, maximum: 100 }
+        fastAccuracyPercent: { type: number, format: double, minimum: 0, maximum: 100 }
+        slowAccuracyPercent: { type: number, format: double, minimum: 0, maximum: 100 }
+        longSegmentAccuracyPercent: { type: number, format: double, minimum: 0, maximum: 100 }
+        shortSegmentAccuracyPercent: { type: number, format: double, minimum: 0, maximum: 100 }
+        averageCenterDistance:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1200
+          description: Distance moyenne pondérée, diagonale normalisée vers [0,1200].
+        testExecutionTimeMs:
+          type: integer
+          format: int64
+          description: Durée réelle des douze segments test ; valide entre 54000 et 58000 inclus.
+        accuracyValid: { type: boolean, description: "Précision serveur finie dans [0,100]." }
+        executionTimeValid: { type: boolean, description: "testExecutionTimeMs dans [54000,58000]." }
+        taskValid: { type: boolean, description: accuracyValid AND executionTimeValid. }
+        technicalValid:
+          type: boolean
+          description: >
+            completed AND NOT interrupted AND backgroundEventCount = 0 AND
+            timingDeviationCount = 0. Les gaps d'échantillonnage et frames
+            perdues restent descriptifs ; le score est toutefois réintégré
+            serveur sur une grille canonique de 1 ms.
+        sampleCount: { type: integer, minimum: 0 }
+        absentSampleCount: { type: integer, minimum: 0 }
+        backgroundEventCount: { type: integer, minimum: 0 }
+        droppedFrameCount: { type: integer, minimum: 0 }
+        timingDeviationCount:
+          type: integer
+          minimum: 0
+          description: >
+            Nombre de segments test hors tolérance. N'entre pas dans le score
+            ni taskValid, mais rend technicalValid faux.
+        samplingGapCount:
+          type: integer
+          minimum: 0
+          description: Descriptif uniquement ; jamais intégré au score ni à taskValid.
         validityIssues:
           type: array
           items: { type: string }
@@ -1312,6 +1544,7 @@ components:
         - $ref: '#/components/schemas/EmotionalRadarMetrics'
         - $ref: '#/components/schemas/ReflectivePauseMetrics'
         - $ref: '#/components/schemas/ContinuousAttentionMetrics'
+        - $ref: '#/components/schemas/CoordinationMetrics'
 
     SubmitResultRequest:
       type: object
@@ -1384,6 +1617,12 @@ components:
           description: >
             Présent uniquement après « Je continue ». Rapport descriptif Rosvold
             X/AX ; aucune norme ou interprétation Conners CPT-3.
+        coordinationIndicators:
+          allOf: [ { $ref: '#/components/schemas/CoordinationIndicators' } ]
+          nullable: true
+          description: >
+            Présent uniquement après « Je coordonne ». Toutes les précisions et
+            distances sont reconstruites côté serveur depuis la trace brute.
         scoreBreakdown:
           type: array
           nullable: true

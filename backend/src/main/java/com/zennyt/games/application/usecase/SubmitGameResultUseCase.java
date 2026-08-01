@@ -6,10 +6,12 @@ import com.zennyt.games.domain.model.GameSession;
 import com.zennyt.games.domain.model.MiniGame;
 import com.zennyt.games.domain.repository.DeviceCalibrationRepository;
 import com.zennyt.games.domain.repository.ContinuousAttentionMetricsRepository;
+import com.zennyt.games.domain.repository.CoordinationMetricsRepository;
 import com.zennyt.games.domain.repository.EmotionalRadarAnswerRepository;
 import com.zennyt.games.domain.repository.GameSessionRepository;
 import com.zennyt.games.domain.service.CalibrationService;
 import com.zennyt.games.domain.service.ContinuousAttentionScoringService;
+import com.zennyt.games.domain.service.CoordinationScoringService;
 import com.zennyt.games.domain.service.DecisionScoringService;
 import com.zennyt.games.domain.service.EmotionalRadarScoringService;
 import com.zennyt.games.domain.service.MemoryQuestScoringService;
@@ -19,6 +21,8 @@ import com.zennyt.games.domain.service.ScoreBreakdownService;
 import com.zennyt.games.domain.vo.DecisionMetrics;
 import com.zennyt.games.domain.vo.ContinuousAttentionMetrics;
 import com.zennyt.games.domain.vo.ContinuousAttentionReport;
+import com.zennyt.games.domain.vo.CoordinationMetrics;
+import com.zennyt.games.domain.vo.CoordinationReport;
 import com.zennyt.games.domain.vo.DecisionReport;
 import com.zennyt.games.domain.vo.DeviceCalibration;
 import com.zennyt.games.domain.vo.EmotionalRadarAnswer;
@@ -67,6 +71,7 @@ public class SubmitGameResultUseCase {
     private final DeviceCalibrationRepository calibrationRepository;
     private final EmotionalRadarAnswerRepository emotionalRadarAnswers;
     private final ContinuousAttentionMetricsRepository continuousAttentionMetrics;
+    private final CoordinationMetricsRepository coordinationMetrics;
     private final ApplicationEventPublisher eventPublisher;
     private final PlanifikScoringService scoring = new PlanifikScoringService();
     private final CalibrationService calibration = new CalibrationService();
@@ -77,18 +82,22 @@ public class SubmitGameResultUseCase {
         new ReflectivePauseScoringService();
     private final ContinuousAttentionScoringService continuousAttention =
         new ContinuousAttentionScoringService();
+    private final CoordinationScoringService coordination =
+        new CoordinationScoringService();
     private final DecisionScoringService decision;
 
     public SubmitGameResultUseCase(GameSessionRepository repository,
                                    DeviceCalibrationRepository calibrationRepository,
                                    EmotionalRadarAnswerRepository emotionalRadarAnswers,
                                    ContinuousAttentionMetricsRepository continuousAttentionMetrics,
+                                   CoordinationMetricsRepository coordinationMetrics,
                                    ApplicationEventPublisher eventPublisher,
                                    DecisionScenarioCatalog decisionCatalog) {
         this.repository = repository;
         this.calibrationRepository = calibrationRepository;
         this.emotionalRadarAnswers = emotionalRadarAnswers;
         this.continuousAttentionMetrics = continuousAttentionMetrics;
+        this.coordinationMetrics = coordinationMetrics;
         this.eventPublisher = eventPublisher;
         // « Je Décide » : le catalogue (port) est injecté ; l'impl vivante est vide
         // tant que le psychologue n'a pas fourni les 30 scénarios.
@@ -114,12 +123,16 @@ public class SubmitGameResultUseCase {
                           EmotionalRadarReport emotionalRadarReport,
                           ReflectivePauseReport reflectivePauseReport,
                           ContinuousAttentionReport continuousAttentionReport,
+                          CoordinationReport coordinationReport,
                           ScoreBreakdown scoreBreakdown) {
     }
 
     @Transactional
     public Outcome execute(SubmitGameResultCommand command) {
-        GameSession session = repository.findById(command.sessionId())
+        // Sérialise toutes les soumissions d'une même session. Sans ce verrou,
+        // un retry invalide concurrent pouvait remplacer l'audit brut d'un
+        // résultat déjà validé.
+        GameSession session = repository.findByIdForUpdate(command.sessionId())
             .orElseThrow(() -> new NotFoundException(
                 "Session introuvable : " + command.sessionId()));
 
@@ -131,6 +144,9 @@ public class SubmitGameResultUseCase {
 
         if (command.miniGame() == MiniGame.CONTINUOUS_ATTENTION_CORE) {
             return executeContinuousAttention(command, session);
+        }
+        if (command.miniGame() == MiniGame.COORDINATION_TRACKING_CORE) {
+            return executeCoordination(command, session);
         }
 
         Score score = computeScore(command.miniGame(), command);
@@ -145,8 +161,7 @@ public class SubmitGameResultUseCase {
         }
 
         // Publication des Domain Events après persistance réussie
-        saved.domainEvents().forEach(eventPublisher::publishEvent);
-        saved.clearEvents();
+        publishAndClear(session);
 
         // « Je Décide » : le détail par dimension vient du report (catalogue), pas
         // des seules métriques — on le calcule une fois et le réutilise.
@@ -167,7 +182,7 @@ public class SubmitGameResultUseCase {
         return new Outcome(saved, moveFastReport(command, saved),
             previsionPuzzleReport(command), memoryQuestReport(command),
             decisionReport, emotionalRadarReport(command),
-            reflectivePauseReport(command), null, scoreBreakdown);
+            reflectivePauseReport(command), null, null, scoreBreakdown);
     }
 
     /**
@@ -197,7 +212,7 @@ public class SubmitGameResultUseCase {
                 calibrationRepository.save(command.deviceCalibration());
             }
             return new Outcome(session, null, null, null, null, null, null,
-                report, scoreBreakdown);
+                report, null, scoreBreakdown);
         }
 
         // L'invariant d'agrégat est appliqué AVANT les écritures. La transaction
@@ -208,11 +223,70 @@ public class SubmitGameResultUseCase {
         if (command.deviceCalibration() != null) {
             calibrationRepository.save(command.deviceCalibration());
         }
-        saved.domainEvents().forEach(eventPublisher::publishEvent);
-        saved.clearEvents();
+        publishAndClear(session);
 
         return new Outcome(saved, null, null, null, null, null, null,
-            report, scoreBreakdown);
+            report, null, scoreBreakdown);
+    }
+
+    /**
+     * Voie « Je coordonne » : la trace brute est notée uniquement côté serveur.
+     * Un run interrompu/incomplet, en arrière-plan ou hors durée valide reste
+     * audit-only et peut être remplacé par un retry sur la même session.
+     */
+    private Outcome executeCoordination(
+            SubmitGameResultCommand command, GameSession session) {
+        assertCoordinationSubmissionAllowed(session);
+        CoordinationMetrics metrics = expectMetrics(command, CoordinationMetrics.class);
+        CoordinationReport report = coordination.report(metrics);
+        Score score = coordination.score(report);
+        ScoreBreakdown scoreBreakdown = breakdown.coordination(report, score);
+
+        if (!report.sessionValid()) {
+            coordinationMetrics.replace(command.sessionId(), metrics, report);
+            if (command.deviceCalibration() != null) {
+                calibrationRepository.save(command.deviceCalibration());
+            }
+            return new Outcome(session, null, null, null, null, null, null,
+                null, report, scoreBreakdown);
+        }
+
+        session.recordResult(command.miniGame(), score, scoring);
+        coordinationMetrics.replace(command.sessionId(), metrics, report);
+        GameSession saved = repository.save(session);
+        if (command.deviceCalibration() != null) {
+            calibrationRepository.save(command.deviceCalibration());
+        }
+        publishAndClear(session);
+        return new Outcome(saved, null, null, null, null, null, null,
+            null, report, scoreBreakdown);
+    }
+
+    private static void assertCoordinationSubmissionAllowed(GameSession session) {
+        if (session.status() != SessionStatus.IN_PROGRESS) {
+            throw new IllegalStateException("Session non ouverte : " + session.status());
+        }
+        if (session.gameType() != GameType.VISUOMOTOR_COORDINATION) {
+            throw new IllegalArgumentException(
+                MiniGame.COORDINATION_TRACKING_CORE
+                    + " n'appartient pas au type " + session.gameType());
+        }
+        boolean alreadyRecorded = session.attempts().stream()
+            .anyMatch(attempt ->
+                attempt.miniGame() == MiniGame.COORDINATION_TRACKING_CORE);
+        if (alreadyRecorded) {
+            throw new IllegalStateException(
+                "Mini-jeu déjà joué : " + MiniGame.COORDINATION_TRACKING_CORE);
+        }
+    }
+
+    /**
+     * Le repository renvoie une copie réhydratée, volontairement sans événements.
+     * Les événements appartiennent donc à l'agrégat muté, pas à la copie sauvée.
+     */
+    private void publishAndClear(GameSession aggregate) {
+        aggregate.domainEvents().forEach(eventPublisher::publishEvent);
+        aggregate.clearEvents();
     }
 
     /**
@@ -322,6 +396,8 @@ public class SubmitGameResultUseCase {
             case CONTINUOUS_ATTENTION_CORE -> continuousAttention.score(
                 continuousAttention.report(command.sessionId(),
                     expectMetrics(command, ContinuousAttentionMetrics.class)));
+            case COORDINATION_TRACKING_CORE -> coordination.score(
+                coordination.report(expectMetrics(command, CoordinationMetrics.class)));
         };
     }
 

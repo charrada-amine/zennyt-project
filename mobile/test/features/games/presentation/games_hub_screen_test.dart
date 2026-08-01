@@ -55,8 +55,12 @@ void main() {
       'category-game-logo-Je continue',
       'assets/games icons/Je Continue.png',
     );
+    expectAssetLogo(
+      'category-game-logo-Je coordonne',
+      'assets/games icons/Je Coordonne.png',
+    );
     expect(find.text('2–25 min'), findsOneWidget);
-    expect(find.text('2 games'), findsOneWidget);
+    expect(find.text('3 games'), findsOneWidget);
 
     final flexibilityCard = find.byKey(
       const ValueKey('game-category-cognitive-flexibility'),
@@ -69,6 +73,10 @@ void main() {
     );
     expect(
       find.byKey(const ValueKey('picker-game-logo-Je continue')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('picker-game-logo-Je coordonne')),
       findsOneWidget,
     );
     await tester.tapAt(const Offset(10, 10));
@@ -210,6 +218,10 @@ void main() {
           find.byKey(const ValueKey('category-game-logo-Je continue')),
           findsOneWidget,
         );
+        expect(
+          find.byKey(const ValueKey('category-game-logo-Je coordonne')),
+          findsOneWidget,
+        );
 
         await tester.tap(
           find.byKey(const ValueKey('game-category-cognitive-flexibility')),
@@ -225,6 +237,15 @@ void main() {
           find.byKey(const ValueKey('picker-game-logo-Je continue')),
           findsOneWidget,
         );
+        final coordinationPickerLogo = find.byKey(
+          const ValueKey('picker-game-logo-Je coordonne'),
+        );
+        await tester.scrollUntilVisible(
+          coordinationPickerLogo,
+          120,
+          scrollable: find.byType(Scrollable).last,
+        );
+        expect(coordinationPickerLogo, findsOneWidget);
       },
     );
   }

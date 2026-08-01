@@ -208,6 +208,10 @@ public class PlanifikScoringService {
             case CONTINUOUS_ATTENTION ->
                 com.zennyt.games.domain.config.ContinuousAttentionProvisionalRules
                     .DESCRIPTIVE_LEVEL;
+            // Score visuomoteur provisoire, sans bande clinique.
+            case VISUOMOTOR_COORDINATION ->
+                com.zennyt.games.domain.config.CoordinationProvisionalRules
+                    .DESCRIPTIVE_LEVEL;
         };
     }
 

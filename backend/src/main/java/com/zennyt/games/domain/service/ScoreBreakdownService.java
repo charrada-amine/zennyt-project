@@ -8,6 +8,7 @@ import com.zennyt.games.domain.config.PrevisionPuzzleConfig;
 import com.zennyt.games.domain.config.ReflectivePauseConfig;
 import com.zennyt.games.domain.config.TaskSchedulingConfig;
 import com.zennyt.games.domain.vo.DecisionReport;
+import com.zennyt.games.domain.vo.CoordinationReport;
 import com.zennyt.games.domain.vo.ContinuousAttentionReport;
 import com.zennyt.games.domain.vo.GameMetrics;
 import com.zennyt.games.domain.vo.MemoryQuestMetrics;
@@ -35,6 +36,32 @@ import java.util.List;
  * {@code _buildBreakdown}) reproduit ces lignes à l'identique.
  */
 public class ScoreBreakdownService {
+
+    /**
+     * « Je coordonne » — seule la précision globale entre dans le /100.
+     * Les découpes vitesse/durée et la distance restent descriptives.
+     */
+    public ScoreBreakdown coordination(CoordinationReport report, Score score) {
+        List<Line> lines = new ArrayList<>();
+        lines.add(Line.note("Score provisoire = précision globale pondérée par le temps, "
+            + "arrondie half-up une seule fois. Pratique, vitesse, durée et distance "
+            + "moyenne sont hors score."));
+        lines.add(Line.info("Précision globale", report.overallAccuracyPercent() + " %"));
+        lines.add(Line.info("Vitesse lente / rapide",
+            report.slowAccuracyPercent() + " % / "
+                + report.fastAccuracyPercent() + " %"));
+        lines.add(Line.info("Segments longs / courts",
+            report.longSegmentAccuracyPercent() + " % / "
+                + report.shortSegmentAccuracyPercent() + " %"));
+        lines.add(Line.info("Distance moyenne normalisée",
+            report.averageCenterDistance() + " / 1200"));
+        lines.add(Line.info("Validité de la tâche",
+            report.taskValid() ? "valide" : String.join(", ", report.validityIssues())));
+        lines.add(Line.info("Validité technique",
+            report.technicalValid() ? "valide" : String.join(", ", report.validityIssues())));
+        lines.add(Line.total("Score descriptif", score.rawPoints(), score.maxPoints()));
+        return new ScoreBreakdown(lines);
+    }
 
     /**
      * Long Rosvold — le /100 est la moyenne unique des deux balanced

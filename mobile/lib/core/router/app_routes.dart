@@ -28,6 +28,7 @@ class AppRoutes {
   static const String gamesPlanifik = '/games/planifik';
   static const String gamesMoveFast = '/games/move-fast';
   static const String gamesJeContinue = '/games/je-continue';
+  static const String gamesJeCoordonne = '/games/je-coordonne';
   static const String gamesPredictivePuzzle = '/games/predictive-puzzle';
   static const String gamesTaskScheduling = '/games/task-scheduling';
   static const String gamesInvestigate = '/games/investigate';
@@ -68,6 +69,7 @@ class AppRoutes {
   static const String nGamesPlanifik = 'gamesPlanifik';
   static const String nGamesMoveFast = 'gamesMoveFast';
   static const String nGamesJeContinue = 'gamesJeContinue';
+  static const String nGamesJeCoordonne = 'gamesJeCoordonne';
   static const String nGamesPredictivePuzzle = 'gamesPredictivePuzzle';
   static const String nGamesTaskScheduling = 'gamesTaskScheduling';
   static const String nGamesInvestigate = 'gamesInvestigate';

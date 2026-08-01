@@ -11,13 +11,10 @@ import com.zennyt.games.domain.repository.CoordinationMetricsRepository;
 import com.zennyt.games.domain.repository.DeviceCalibrationRepository;
 import com.zennyt.games.domain.repository.EmotionalRadarAnswerRepository;
 import com.zennyt.games.domain.repository.GameSessionRepository;
-import com.zennyt.games.domain.service.PlanifikScoringService;
-import com.zennyt.games.domain.vo.ContinuousAttentionMetrics;
-import com.zennyt.games.domain.vo.ContinuousAttentionTrialMetric;
+import com.zennyt.games.domain.vo.CoordinationMetrics;
 import com.zennyt.games.domain.vo.GameType;
-import com.zennyt.games.domain.vo.Score;
 import com.zennyt.games.domain.vo.SessionStatus;
-import com.zennyt.games.support.ContinuousAttentionTestFixtures;
+import com.zennyt.games.support.CoordinationTestFixtures;
 import com.zennyt.shared.application.exception.ForbiddenException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,24 +33,24 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-class SubmitContinuousAttentionResultUseCaseTest {
+class SubmitCoordinationResultUseCaseTest {
 
     private GameSessionRepository sessions;
-    private ContinuousAttentionMetricsRepository rawMetrics;
+    private CoordinationMetricsRepository rawMetrics;
     private ApplicationEventPublisher events;
     private SubmitGameResultUseCase useCase;
 
     @BeforeEach
     void setUp() {
         sessions = mock(GameSessionRepository.class);
-        rawMetrics = mock(ContinuousAttentionMetricsRepository.class);
+        rawMetrics = mock(CoordinationMetricsRepository.class);
         events = mock(ApplicationEventPublisher.class);
         useCase = new SubmitGameResultUseCase(
             sessions,
             mock(DeviceCalibrationRepository.class),
             mock(EmotionalRadarAnswerRepository.class),
+            mock(ContinuousAttentionMetricsRepository.class),
             rawMetrics,
-            mock(CoordinationMetricsRepository.class),
             events,
             mock(DecisionScenarioCatalog.class));
         when(sessions.save(any(GameSession.class)))
@@ -61,13 +58,14 @@ class SubmitContinuousAttentionResultUseCaseTest {
     }
 
     @Test
-    void validOwnerSubmissionPersistsRawAndAttemptAtomicallyThenPublishes() {
+    void validOwnerSubmissionPersistsRawAttemptAndPublishesServerScore() {
         UUID ownerId = UUID.randomUUID();
         GameSession session =
-            GameSession.start(ownerId, GameType.CONTINUOUS_ATTENTION);
-        ContinuousAttentionMetrics metrics =
-            ContinuousAttentionTestFixtures.perfect(session.id());
+            GameSession.start(ownerId, GameType.VISUOMOTOR_COORDINATION);
+        CoordinationMetrics metrics = CoordinationTestFixtures.perfect();
         when(sessions.findByIdForUpdate(session.id())).thenReturn(Optional.of(session));
+        // L'adaptateur de production renvoie une copie réhydratée sans événements.
+        when(sessions.save(session)).thenAnswer(invocation -> rehydrated(session));
 
         SubmitGameResultUseCase.Outcome outcome = useCase.execute(
             command(session, ownerId, metrics));
@@ -75,53 +73,44 @@ class SubmitContinuousAttentionResultUseCaseTest {
         assertEquals(SessionStatus.COMPLETED, outcome.session().status());
         assertEquals(1, outcome.session().attempts().size());
         assertEquals(100, outcome.session().compositeRaw());
-        assertTrue(outcome.continuousAttentionReport().sessionValid());
+        assertTrue(outcome.coordinationReport().sessionValid());
         verify(rawMetrics).replace(
-            session.id(), metrics, outcome.continuousAttentionReport());
+            session.id(), metrics, outcome.coordinationReport());
         verify(sessions).save(session);
         verify(events).publishEvent(any(GameResultRecordedEvent.class));
     }
 
     @Test
-    void technicallyInvalidSubmissionIsAuditOnlyWithoutAttemptSaveOrEvent() {
+    void technicallyInvalidSubmissionIsAuditOnlyAndRetryable() {
         UUID ownerId = UUID.randomUUID();
         GameSession session =
-            GameSession.start(ownerId, GameType.CONTINUOUS_ATTENTION);
-        ContinuousAttentionMetrics valid =
-            ContinuousAttentionTestFixtures.perfect(session.id());
-        ContinuousAttentionTrialMetric first =
-            valid.blocks().get(0).trials().get(0);
-        ContinuousAttentionMetrics timingInvalid =
-            ContinuousAttentionTestFixtures.replaceTrial(
-                valid, 0, 0, withDisplayDuration(first, 791));
+            GameSession.start(ownerId, GameType.VISUOMOTOR_COORDINATION);
+        CoordinationMetrics metrics =
+            CoordinationTestFixtures.withTechnicalState(true, false, 1, 0);
         when(sessions.findByIdForUpdate(session.id())).thenReturn(Optional.of(session));
 
         SubmitGameResultUseCase.Outcome outcome = useCase.execute(
-            command(session, ownerId, timingInvalid));
+            command(session, ownerId, metrics));
 
-        assertFalse(outcome.continuousAttentionReport().sessionValid());
-        assertEquals("TIMING_DEVIATION",
-            outcome.continuousAttentionReport().validityIssues().get(0));
-        assertFalse(outcome.scoreBreakdown().lines().isEmpty(),
-            "l'audit-only renvoie tout de même le breakdown descriptif");
+        assertFalse(outcome.coordinationReport().technicalValid());
+        assertFalse(outcome.coordinationReport().sessionValid());
         assertEquals(SessionStatus.IN_PROGRESS, outcome.session().status());
         assertTrue(outcome.session().attempts().isEmpty());
         verify(rawMetrics).replace(
-            session.id(), timingInvalid, outcome.continuousAttentionReport());
+            session.id(), metrics, outcome.coordinationReport());
         verify(sessions, never()).save(any());
         verify(events, never()).publishEvent(any());
     }
 
     @Test
-    void foreignPlayerIsRejectedBeforeValidationOrAnyPersistence() {
+    void foreignPlayerIsRejectedBeforeRawPersistenceOrScoringSideEffects() {
         UUID ownerId = UUID.randomUUID();
         GameSession session =
-            GameSession.start(ownerId, GameType.CONTINUOUS_ATTENTION);
+            GameSession.start(ownerId, GameType.VISUOMOTOR_COORDINATION);
         when(sessions.findByIdForUpdate(session.id())).thenReturn(Optional.of(session));
 
         assertThrows(ForbiddenException.class, () -> useCase.execute(
-            command(session, UUID.randomUUID(),
-                ContinuousAttentionTestFixtures.perfect(session.id()))));
+            command(session, UUID.randomUUID(), CoordinationTestFixtures.perfect())));
 
         verify(rawMetrics, never()).replace(any(), any(), any());
         verify(sessions, never()).save(any());
@@ -129,59 +118,29 @@ class SubmitContinuousAttentionResultUseCaseTest {
     }
 
     @Test
-    void deterministicMismatchIsRejectedBeforeRawPersistence() {
+    void coordinationPayloadCannotBeSubmittedToAnotherGameType() {
         UUID ownerId = UUID.randomUUID();
-        GameSession session =
-            GameSession.start(ownerId, GameType.CONTINUOUS_ATTENTION);
+        GameSession session = GameSession.start(ownerId, GameType.MOVE_FAST);
         when(sessions.findByIdForUpdate(session.id())).thenReturn(Optional.of(session));
-        ContinuousAttentionMetrics metricsForAnotherSession =
-            ContinuousAttentionTestFixtures.perfect(UUID.randomUUID());
 
         assertThrows(IllegalArgumentException.class, () -> useCase.execute(
-            command(session, ownerId, metricsForAnotherSession)));
+            command(session, ownerId, CoordinationTestFixtures.perfect())));
 
         verify(rawMetrics, never()).replace(any(), any(), any());
         verify(sessions, never()).save(any());
-        verify(events, never()).publishEvent(any());
     }
 
-    @Test
-    void duplicateAfterValidatedAttemptCannotOverwriteRawOrRepublish() {
-        UUID ownerId = UUID.randomUUID();
-        GameSession session =
-            GameSession.start(ownerId, GameType.CONTINUOUS_ATTENTION);
-        session.recordResult(
-            MiniGame.CONTINUOUS_ATTENTION_CORE,
-            new Score(100, 100, "Descriptive — provisional"),
-            new PlanifikScoringService());
-        session.clearEvents();
-        when(sessions.findByIdForUpdate(session.id())).thenReturn(Optional.of(session));
-
-        assertThrows(IllegalStateException.class, () -> useCase.execute(
-            command(session, ownerId,
-                ContinuousAttentionTestFixtures.perfect(session.id()))));
-
-        verify(rawMetrics, never()).replace(any(), any(), any());
-        verify(sessions, never()).save(any());
-        verify(events, never()).publishEvent(any());
-    }
-
-    private static SubmitGameResultCommand command(
-            GameSession session,
-            UUID playerId,
-            ContinuousAttentionMetrics metrics) {
+    private static SubmitGameResultCommand command(GameSession session,
+                                                   UUID playerId,
+                                                   CoordinationMetrics metrics) {
         return new SubmitGameResultCommand(
-            session.id(), playerId, MiniGame.CONTINUOUS_ATTENTION_CORE,
+            session.id(), playerId, MiniGame.COORDINATION_TRACKING_CORE,
             metrics, null);
     }
 
-    private static ContinuousAttentionTrialMetric withDisplayDuration(
-            ContinuousAttentionTrialMetric t, int duration) {
-        return new ContinuousAttentionTrialMetric(
-            t.trialIndex(), t.previousLetter(), t.currentLetter(),
-            t.responseCode(), t.correct(), t.latencyMs(),
-            t.scheduledOnsetMs(), t.actualOnsetMs(), t.responseTimestampMs(),
-            duration, t.actualIsiDurationMs(), t.inputSource(),
-            t.extraResponseCount(), t.interrupted());
+    private static GameSession rehydrated(GameSession session) {
+        return GameSession.rehydrate(
+            session.id(), session.playerId(), session.gameType(), session.status(),
+            session.attempts(), session.startedAt(), session.completedAt());
     }
 }

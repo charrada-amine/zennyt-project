@@ -21,6 +21,12 @@ import com.zennyt.games.domain.vo.ContinuousAttentionInputSource;
 import com.zennyt.games.domain.vo.ContinuousAttentionMetrics;
 import com.zennyt.games.domain.vo.ContinuousAttentionPhase;
 import com.zennyt.games.domain.vo.ContinuousAttentionTrialMetric;
+import com.zennyt.games.domain.vo.CoordinationInputSource;
+import com.zennyt.games.domain.vo.CoordinationMetrics;
+import com.zennyt.games.domain.vo.CoordinationPhase;
+import com.zennyt.games.domain.vo.CoordinationPointerSample;
+import com.zennyt.games.domain.vo.CoordinationSegmentMetric;
+import com.zennyt.games.domain.vo.CoordinationSpeed;
 import com.zennyt.games.domain.vo.DeviceCalibration;
 import com.zennyt.games.domain.vo.DeviceCategory;
 import com.zennyt.games.domain.vo.InputMode;
@@ -105,7 +111,32 @@ public record SubmitResultRequest(
         List<ContinuousAttentionBlockPayload> blocks,
         Boolean interrupted,
         @Min(0) Integer backgroundEventCount,
-        @Min(0) Integer droppedFrameCount
+        @Min(0) Integer droppedFrameCount,
+        // « Je coordonne » — modalité + 14 segments de positions fixed-point.
+        CoordinationInputSource inputSource,
+        @Size(min = 14, max = 14) @Valid
+        List<CoordinationSegmentPayload> coordinationSegments
+    ) {}
+
+    /** Un segment contigu du protocole visuomoteur. */
+    public record CoordinationSegmentPayload(
+        @NotNull CoordinationPhase phase,
+        @NotNull @Min(1) @Max(14) Integer segmentIndex,
+        @NotNull CoordinationSpeed speed,
+        @NotNull @Min(1) Integer nominalDurationMs,
+        @NotNull @Min(0) Long actualStartMs,
+        @NotNull @Min(1) Long actualEndMs,
+        @NotNull @Size(min = 2, max = 2000) @Valid
+        List<CoordinationPointerSamplePayload> samples
+    ) {}
+
+    /** Position pointeur brute ; aucune position de balle ni distance client. */
+    public record CoordinationPointerSamplePayload(
+        @NotNull @Min(1) @Max(2000) Integer sampleIndex,
+        @NotNull @Min(0) Long timestampMs,
+        @NotNull Boolean pointerPresent,
+        @Min(0) @Max(1_000_000) Integer pointerX,
+        @Min(0) @Max(1_000_000) Integer pointerY
     ) {}
 
     /** Un bloc de 31 essais du protocole Long Rosvold. */
@@ -313,7 +344,38 @@ public record SubmitResultRequest(
                 required(metrics.interrupted(), "interrupted"),
                 required(metrics.backgroundEventCount(), "backgroundEventCount"),
                 required(metrics.droppedFrameCount(), "droppedFrameCount"));
+            case COORDINATION_TRACKING_CORE -> new CoordinationMetrics(
+                required(metrics.protocolVersion(), "protocolVersion"),
+                required(metrics.inputSource(), "inputSource"),
+                required(metrics.coordinationSegments(), "coordinationSegments").stream()
+                    .map(SubmitResultRequest::toCoordinationSegment).toList(),
+                required(metrics.sessionCompleted(), "sessionCompleted"),
+                required(metrics.interrupted(), "interrupted"),
+                required(metrics.backgroundEventCount(), "backgroundEventCount"),
+                required(metrics.droppedFrameCount(), "droppedFrameCount"));
         };
+    }
+
+    private static CoordinationSegmentMetric toCoordinationSegment(
+            CoordinationSegmentPayload payload) {
+        return new CoordinationSegmentMetric(
+            required(payload.phase(), "phase"),
+            required(payload.segmentIndex(), "segmentIndex"),
+            required(payload.speed(), "speed"),
+            required(payload.nominalDurationMs(), "nominalDurationMs"),
+            required(payload.actualStartMs(), "actualStartMs"),
+            required(payload.actualEndMs(), "actualEndMs"),
+            required(payload.samples(), "samples").stream()
+                .map(SubmitResultRequest::toCoordinationSample).toList());
+    }
+
+    private static CoordinationPointerSample toCoordinationSample(
+            CoordinationPointerSamplePayload payload) {
+        return new CoordinationPointerSample(
+            required(payload.sampleIndex(), "sampleIndex"),
+            required(payload.timestampMs(), "timestampMs"),
+            required(payload.pointerPresent(), "pointerPresent"),
+            payload.pointerX(), payload.pointerY());
     }
 
     private static ContinuousAttentionBlockMetric toContinuousAttentionBlock(

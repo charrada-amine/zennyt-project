@@ -6,6 +6,7 @@ import com.zennyt.games.domain.vo.DecisionReport;
 import com.zennyt.games.domain.vo.ContinuousAttentionEpochReport;
 import com.zennyt.games.domain.vo.ContinuousAttentionPhaseReport;
 import com.zennyt.games.domain.vo.ContinuousAttentionReport;
+import com.zennyt.games.domain.vo.CoordinationReport;
 import com.zennyt.games.domain.vo.EmotionalRadarReport;
 import com.zennyt.games.domain.vo.MemoryQuestReport;
 import com.zennyt.games.domain.vo.MoveFastFlexibilityReport;
@@ -36,8 +37,51 @@ public record GameSessionResponse(
     EmotionalRadarIndicatorsResponse emotionalRadarIndicators,
     ReflectivePauseIndicatorsResponse reflectivePauseIndicators,
     ContinuousAttentionIndicatorsResponse continuousAttentionIndicators,
+    CoordinationIndicatorsResponse coordinationIndicators,
     List<ScoreBreakdownLineResponse> scoreBreakdown
 ) {
+    /** Rapport visuomoteur calculé depuis les positions pointeur brutes. */
+    public record CoordinationIndicatorsResponse(
+        String protocolVersion,
+        String inputSource,
+        boolean completed,
+        boolean sessionValid,
+        boolean interrupted,
+        int provisionalAccuracyScore,
+        double overallAccuracyPercent,
+        double fastAccuracyPercent,
+        double slowAccuracyPercent,
+        double longSegmentAccuracyPercent,
+        double shortSegmentAccuracyPercent,
+        double averageCenterDistance,
+        long testExecutionTimeMs,
+        boolean accuracyValid,
+        boolean executionTimeValid,
+        boolean taskValid,
+        boolean technicalValid,
+        int sampleCount,
+        int absentSampleCount,
+        int backgroundEventCount,
+        int droppedFrameCount,
+        int timingDeviationCount,
+        int samplingGapCount,
+        List<String> validityIssues
+    ) {
+        static CoordinationIndicatorsResponse from(CoordinationReport r) {
+            return new CoordinationIndicatorsResponse(
+                r.protocolVersion(), r.inputSource().name(), r.completed(),
+                r.sessionValid(), r.interrupted(), r.provisionalAccuracyScore(),
+                r.overallAccuracyPercent(), r.fastAccuracyPercent(),
+                r.slowAccuracyPercent(), r.longSegmentAccuracyPercent(),
+                r.shortSegmentAccuracyPercent(), r.averageCenterDistance(),
+                r.testExecutionTimeMs(), r.accuracyValid(),
+                r.executionTimeValid(), r.taskValid(), r.technicalValid(), r.sampleCount(),
+                r.absentSampleCount(), r.backgroundEventCount(),
+                r.droppedFrameCount(), r.timingDeviationCount(),
+                r.samplingGapCount(), r.validityIssues());
+        }
+    }
+
     /** Rapport descriptif Long Rosvold X/AX, sans norme ni bande clinique. */
     public record ContinuousAttentionIndicatorsResponse(
         String protocolVersion,
@@ -328,7 +372,7 @@ public record GameSessionResponse(
     }
 
     public static GameSessionResponse from(GameSession s) {
-        return from(s, null, null, null, null, null, null, null, null);
+        return from(s, null, null, null, null, null, null, null, null, null);
     }
 
     public static GameSessionResponse from(GameSession s,
@@ -339,6 +383,7 @@ public record GameSessionResponse(
                                            EmotionalRadarReport emotionalRadarReport,
                                            ReflectivePauseReport reflectivePauseReport,
                                            ContinuousAttentionReport continuousAttentionReport,
+                                           CoordinationReport coordinationReport,
                                            ScoreBreakdown scoreBreakdown) {
         return new GameSessionResponse(
             s.id(), s.playerId(), s.gameType().name(), s.status().name(),
@@ -357,6 +402,8 @@ public record GameSessionResponse(
                 : ReflectivePauseIndicatorsResponse.from(reflectivePauseReport),
             continuousAttentionReport == null ? null
                 : ContinuousAttentionIndicatorsResponse.from(continuousAttentionReport),
+            coordinationReport == null ? null
+                : CoordinationIndicatorsResponse.from(coordinationReport),
             scoreBreakdown == null ? null
                 : scoreBreakdown.lines().stream().map(ScoreBreakdownLineResponse::from).toList());
     }

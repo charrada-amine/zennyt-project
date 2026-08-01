@@ -186,6 +186,26 @@ class GameSessionTest {
     }
 
     @Test
+    void visuomotorCoordination_isSeparateAndDoesNotChangeMoveFastComposition() {
+        GameSession coordination = GameSession.start(
+            UUID.randomUUID(), GameType.VISUOMOTOR_COORDINATION);
+        assertEquals(List.of(MiniGame.COORDINATION_TRACKING_CORE),
+            coordination.expectedMiniGames());
+
+        coordination.recordResult(
+            MiniGame.COORDINATION_TRACKING_CORE,
+            new Score(73, 100, "Descriptive — provisional"),
+            scoring);
+
+        assertEquals(SessionStatus.COMPLETED, coordination.status());
+        assertEquals(73, coordination.compositeRaw());
+        assertEquals(100, coordination.compositeMax());
+        assertEquals(List.of(MiniGame.MOVE_FAST_CORE),
+            GameSession.start(UUID.randomUUID(), GameType.MOVE_FAST)
+                .expectedMiniGames());
+    }
+
+    @Test
     void recording_a_foreign_minigame_is_rejected() {
         GameSession session = GameSession.start(UUID.randomUUID(), GameType.MEMORY_QUEST);
         Score score = new Score(10, 10, "Bon à excellent");

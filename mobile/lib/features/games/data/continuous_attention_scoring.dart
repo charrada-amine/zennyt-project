@@ -28,8 +28,14 @@ class ContinuousAttentionScoring {
   ContinuousAttentionScoreResult score({
     required String sessionId,
     required ContinuousAttentionMetrics metrics,
+    // Le dépôt réel exige la structure complète du protocole. Le raccourci de
+    // test manuel (séquence tronquée) la relâche pour afficher un écran de
+    // résultats descriptif, jamais soumis au backend.
+    bool enforceStructure = true,
   }) {
-    _validateStructure(sessionId, metrics);
+    if (enforceStructure) {
+      _validateStructure(sessionId, metrics);
+    }
 
     final xTrials = _testTrials(metrics, ContinuousAttentionPhase.xTest);
     final axTrials = _testTrials(metrics, ContinuousAttentionPhase.axTest);

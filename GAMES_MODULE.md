@@ -18,12 +18,13 @@ Chaque **jeu** correspond à un `GameType` (un domaine cognitif = une fiche) et 
 | ↳ **Planifik — « Je planifie » (domaine)** | `PLANIFIK` | *(les 3 mini-jeux ci-dessus)* | Planification | 🟢 **Complet** — profil global **/30** | Flame + Flutter |
 | **Move Fast — « Je bouge »** | `MOVE_FAST` | `MOVE_FAST_CORE` | Flexibilité cognitive — switching de règles (niveau unique : Orientation ⇄ Mouvement **aléatoire**) | 🟢 **Complet** — barème d'escalade (50 × mult., streak 4, bonus 250) | Flutter custom |
 | **« Je continue » — Focus Stream** | `CONTINUOUS_ATTENTION` | `CONTINUOUS_ATTENTION_CORE` | Attention soutenue et sélective — protocole Long Rosvold CPT X/AX | 🟢 **Complet /100 PROVISOIRE** — 44 blocs, 1 364 essais, score de balanced accuracy isolé ; d′/c/RT descriptifs | Flutter custom |
+| **« Je coordonne » — Sync Square** | `VISUOMOTOR_COORDINATION` | `COORDINATION_TRACKING_CORE` | Coordination visuo-motrice — suivi continu d'une cible sur trajectoire carrée fixe horaire | 🟢 **Complet /100 PROVISOIRE** — 2 segments de pratique + 12 tests ; précision globale seule dans le score, autres indicateurs descriptifs | Flutter custom |
 | **Memory Quest — « J'investigue »** | `MEMORY_QUEST` | `MEMORY_QUEST_CORE` | Mémoire de travail — Mission A (digit span) + B (objets) + distraction | 🟢 **Complet** — 7 niveaux (3→9), calibrage → timeout (score dépend du temps), `session_valid` ; composite **/100** | Flutter custom |
 | **« Je Décide » — Phases 1–4 mobile** | `DECISION` | `DECISION_CORE` | Prise de décision (II, ER, DT, CS, RE — /18 chacune → /90 → SCW /100) | 🟡 **Parcours UI complet** (aperçu maquette) + 🟢 **moteur backend prêt** : agrégation, règle DT, imputation, interprétations, validité, couche provisoire isolée. **Non jouable end-to-end** tant que le catalogue de 30 scénarios est vide (`DECISION_CORE.isPlayable()=false`) | Flutter (UI) / Java (moteur) |
 | **Emotional Radar — « Je gère »** | `EMOTIONAL_REGULATION` | `EMOTIONAL_RADAR_CORE` | Régulation émotionnelle — reconnaissance d'émotion (famille + nuance + intensité) | 🟢 Jouable **9 pts/scène** — 3 scènes rédigées (27), 15 visées (135) ; **contenu servi par le backend** | Flutter custom |
 | **Reflective Pause — « Je gère »** | `EMOTIONAL_REGULATION` | `REFLECTIVE_PAUSE_CORE` | Régulation émotionnelle — contrôle de l'impulsivité sous pression | 🟢 **Complet /10** — 10 moments, pause minimale 3 s, résultats + insights calculés serveur | Flutter custom |
 
-> **Barème par mini-jeu** : Chemin Optimal / Ordonnancement / Tour de Hanoï → **/10** chacun ; leur somme = **profil Planifik /30**. Move Fast → points d'escalade (normalisés /100 pour l'interprétation). « Je continue » → balanced accuracy X/AX **/100 PROVISOIRE**, sans temps, d′ ni biais c dans le score. Memory Quest → **composite /100**. Emotional Radar /27 actuel + Reflective Pause /10 → composite émotionnel provisoire **/37**. Score **toujours calculé serveur** (le client n'envoie que des métriques).
+> **Barème par mini-jeu** : Chemin Optimal / Ordonnancement / Tour de Hanoï → **/10** chacun ; leur somme = **profil Planifik /30**. Move Fast → points d'escalade (normalisés /100 pour l'interprétation). « Je continue » → balanced accuracy X/AX **/100 PROVISOIRE**, sans temps, d′ ni biais c dans le score. « Je coordonne » → précision globale pondérée par le temps, arrondie **/100 PROVISOIRE** ; précisions par vitesse/durée et distance moyenne restent descriptives. Memory Quest → **composite /100**. Emotional Radar /27 actuel + Reflective Pause /10 → composite émotionnel provisoire **/37**. Score **toujours calculé serveur** (le client n'envoie que des métriques brutes).
 
 ---
 
@@ -64,21 +65,22 @@ Contexte **indépendant** : ne dépend que de `shared`, s'intègre au reste **un
 | Couche | Fichier | Rôle |
 |--------|---------|------|
 | **api** | `api/GamesController.java` | Contrôleur REST `/api/v1/games`. Traduit HTTP → commande, délègue au use case. Aucune logique métier. |
+| | `api/GamesExceptionHandler.java` | Traduit localement payload/état invalide, propriété étrangère et ressource absente vers le format d'erreur commun en **400/403/404**, sans modifier `shared`. |
 | | `api/dto/StartSessionRequest.java` | Body `POST /sessions` — `gameType` (le joueur vient du JWT). |
 | | `api/dto/SubmitResultRequest.java` | Body `POST /sessions/{id}/results` — `miniGame` + payload union `Metrics` → `toMetrics()`. |
-| | `api/dto/GameSessionResponse.java` | Réponse : état complet de la session + score composite + attempts + indicateurs propres au mini-jeu, dont **`reflectivePauseIndicators`** et le rapport descriptif **`continuousAttentionIndicators`**. |
+| | `api/dto/GameSessionResponse.java` | Réponse : état complet de la session + score composite + attempts + indicateurs propres au mini-jeu, dont **`reflectivePauseIndicators`**, **`continuousAttentionIndicators`** et **`coordinationIndicators`**. |
 | | `api/dto/ScoreResponse.java` | Sérialisation d'un `Score`. |
 | **application** | `application/usecase/StartGameSessionUseCase.java` | Crée l'agrégat `GameSession.start(...)` et le persiste. |
-| | `application/usecase/SubmitGameResultUseCase.java` | Charge la session, vérifie le propriétaire JWT, calcule le `Score` (domaine), enregistre, persiste, **publie les Domain Events après commit**. Pour « Je continue », une capture techniquement invalide reste audit-only (`IN_PROGRESS`, aucun `Attempt`/event) ; une structure ou séquence invalide est refusée sans écriture. |
+| | `application/usecase/SubmitGameResultUseCase.java` | Charge la session avec verrou d'écriture, vérifie le propriétaire JWT, calcule le `Score` (domaine), enregistre et persiste. Il publie les Domain Events depuis **l'agrégat muté** (la copie réhydratée n'en contient pas), puis les listeners transactionnels agissent après commit. Pour « Je continue » et « Je coordonne », une capture techniquement invalide reste audit-only (`IN_PROGRESS`, aucun `Attempt`/event) ; une structure ou séquence invalide est refusée sans écriture. |
 | | `application/command/StartGameSessionCommand.java` | `(playerId, gameType)`. |
 | | `application/command/SubmitGameResultCommand.java` | `(sessionId, playerId issu du JWT, miniGame, GameMetrics, deviceCalibration?)`. |
 | **domain / model** | `domain/model/GameSession.java` | **Racine d'agrégat**. Invariants : 1 résultat/mini-jeu, refus d'un mini-jeu étranger au type, complétion auto + émission d'event au dernier mini-jeu. Java pur. |
 | | `domain/model/MiniGame.java` | Enum des mini-jeux + `maxPoints` du barème + `belongsTo(gameType)` + `isPlayable()` (exclut les mini-jeux sans barème de la complétion). |
 | | `domain/model/Attempt.java` | Résultat immuable d'un mini-jeu (`miniGame`, `score`, `recordedAt`). |
-| **domain / vo** | `domain/vo/GameType.java` | `PLANIFIK`, `MOVE_FAST`, `MEMORY_QUEST`, `DECISION`, `EMOTIONAL_REGULATION`, `CONTINUOUS_ATTENTION`. |
+| **domain / vo** | `domain/vo/GameType.java` | `PLANIFIK`, `MOVE_FAST`, `MEMORY_QUEST`, `DECISION`, `EMOTIONAL_REGULATION`, `CONTINUOUS_ATTENTION`, `VISUOMOTOR_COORDINATION`. |
 | | `domain/vo/SessionStatus.java` | `IN_PROGRESS`, `COMPLETED`, `ABANDONED`. |
 | | `domain/vo/Score.java` | VO auto-validant (`rawPoints`, `maxPoints`, `level`) + `normalized()`. |
-| | `domain/vo/GameMetrics.java` | `sealed interface` des métriques objectives de tous les mini-jeux, dont `ReflectivePauseMetrics` et `ContinuousAttentionMetrics`. |
+| | `domain/vo/GameMetrics.java` | `sealed interface` des métriques objectives de tous les mini-jeux, dont `ReflectivePauseMetrics`, `ContinuousAttentionMetrics` et `CoordinationMetrics`. |
 | | `domain/vo/PlanifikMetrics.java` | Métriques « Chemin Optimal » : liste `levels` (multi-niveaux) + fabrique mono-niveau de compat. |
 | | `domain/vo/TaskSchedulingMetrics.java` | Métriques « Ordonnancement de tâches » : `dependenciesRespected`, `timeConstraintsRespected`, `planningCoherence` (0–2), `adjustmentCount`. |
 | | `domain/vo/OptimalPathLevel.java` | Métriques d'UN niveau (`levelIndex`, `attempts`, longueurs, enums) + `deviationFromOptimal()`. |
@@ -136,13 +138,21 @@ Contexte **indépendant** : ne dépend que de `shared`, s'intègre au reste **un
 | | `domain/repository/ContinuousAttentionMetricsRepository.java` | Port de remplacement transactionnel des données brutes d'une session, y compris l'audit-only invalide. |
 | | `infrastructure/persistence/ContinuousAttentionMetricsRepositoryAdapter.java` | Persistance JDBC batch des 1 364 essais après validation du domaine. |
 | | `resources/db/migration/V27__games_continuous_attention.sql` | Ajoute le type/mini-jeu, `continuous_attention_runs`, `continuous_attention_trials` et l'index unique partiel empêchant deux Attempts valides. |
+| **Je coordonne** | `domain/config/CoordinationConfig.java` | Source de vérité de `FIXED_SQUARE_CW_V1` : carré fixed-point, 2 segments de pratique + 12 tests, durées 7000/2333 ms, tours lent/rapide, géométrie et fenêtres de validité. Java pur ; miroir Dart obligatoire. |
+| | `domain/config/CoordinationProvisionalRules.java` | **Score /100 PROVISOIRE** isolé et remplaçable : précision globale pondérée par le temps, unique arrondi half-up ; aucune sous-précision ni distance dans le score. |
+| | `domain/service/CoordinationTrajectoryService.java` | Reconstruit de manière déterministe la position de la cible sur le carré fixe horaire, sans easing ni saut aux changements de segment/vitesse. |
+| | `domain/service/CoordinationScoringService.java` | Rejoue la trajectoire sur la timeline canonique serveur et réintègre cible mobile + pointeur maintenu sur une grille de **1 ms** : une trace clairsemée ne peut pas fabriquer un suivi parfait. Calcule précision, distance et validité ; une frontière test hors tolérance rend `technicalValid=false`. |
+| | `domain/vo/Coordination{Metrics,InputSource,Phase,PointerSample,Report,SegmentMetric,Speed}.java` | Trace brute auto-validante (14 segments contigus, positions fixed-point, source d'entrée, interruptions) et rapport descriptif serveur. Le client ne transmet ni cible, ni distance, ni score. |
+| | `domain/repository/CoordinationMetricsRepository.java` | Port de remplacement transactionnel du run et de ses échantillons bruts, y compris l'audit-only invalide. |
+| | `infrastructure/persistence/CoordinationMetricsRepositoryAdapter.java` | Persistance batch V28 de la trace après validation du domaine. |
+| | `resources/db/migration/V28__games_visuomotor_coordination.sql` | Autorise `VISUOMOTOR_COORDINATION` / `COORDINATION_TRACKING_CORE` et persiste le run, les segments/échantillons et leur audit de validité. |
 | **domain / event** | `domain/event/GameResultRecordedEvent.java` | `games.result.recorded` — **seul** point d'intégration inter-contextes. |
-| **domain / repo** | `domain/repository/GameSessionRepository.java` | Port (interface) — le domaine ne connaît jamais JPA. |
+| **domain / repo** | `domain/repository/GameSessionRepository.java` | Port (interface) — le domaine ne connaît jamais JPA ; expose un chargement sérialisé pour empêcher deux soumissions concurrentes d'écraser un audit validé. |
 | | `domain/repository/DeviceCalibrationRepository.java` | Port du calibrage (upsert par `sessionId`). |
 | **infrastructure** | `infrastructure/persistence/GameSessionEntity.java` | Entité JPA (table `games.game_sessions`). |
 | | `infrastructure/persistence/AttemptEmbeddable.java` | `@Embeddable` (table fille `games.game_attempts`). |
-| | `infrastructure/persistence/GameSessionRepositoryAdapter.java` | Implémente le port. **Mappe** agrégat ⇄ entité. |
-| | `infrastructure/persistence/JpaGameSessionRepository.java` | Spring Data JPA technique. |
+| | `infrastructure/persistence/GameSessionRepositoryAdapter.java` | Implémente le port, **mappe** agrégat ⇄ entité et conserve la séparation entre copie sauvée et événements de l'agrégat original. |
+| | `infrastructure/persistence/JpaGameSessionRepository.java` | Spring Data JPA technique ; `findByIdForUpdate` applique un verrou pessimiste pendant la soumission. |
 | | `infrastructure/persistence/DeviceCalibrationEntity.java` + `JpaDeviceCalibrationRepository` + `DeviceCalibrationRepositoryAdapter` | Persistance du calibrage (table `games.device_calibrations`). |
 | **intégration** | `../analytics/application/listener/GameResultRecordedListener.java` | Consomme l'event via `@TransactionalEventListener` (Analytics). |
 | **DB** | `resources/db/migration/V9__games_schema.sql` | Schéma `games` : tables `game_sessions`, `game_attempts`, index, contraintes `CHECK`. |
@@ -157,6 +167,11 @@ Contexte **indépendant** : ne dépend que de `shared`, s'intègre au reste **un
 | | `test/java/com/zennyt/games/domain/ContinuousAttentionScoringTest.java` | Vecteurs déterministes cross-platform, protocole, fenêtre temporelle, score 84, d′/c descriptifs, stratégies dégénérées, arrondi rationnel, validité et exclusion de la pratique. |
 | | `test/java/com/zennyt/games/application/SubmitContinuousAttentionResultUseCaseTest.java` | Propriété JWT, soumission valide atomique, audit-only invalide, rejet déterministe et absence d'Attempt/event indus. |
 | | `test/java/com/zennyt/games/infrastructure/persistence/ContinuousAttentionMetricsRepositoryAdapterTest.java` | Vérifie le remplacement transactionnel et le batch exact de 1 364 essais. |
+| | `test/java/com/zennyt/games/domain/CoordinationScoringTest.java` | Verrouille trajectoire, ordre/durées, grille serveur 1 ms, résistance aux samples clairsemés, précision/distance, score half-up et validité temporelle. |
+| | `test/java/com/zennyt/games/application/SubmitCoordinationResultUseCaseTest.java` | Vérifie propriété JWT, soumission valide, audit-only invalide, verrou de chargement et publication d'event même si le repository renvoie une copie réhydratée. |
+| | `test/java/com/zennyt/games/api/GamesExceptionHandlerTest.java` | Vérifie les réponses contractuelles 400/403/404 du bounded context. |
+| | `test/java/com/zennyt/games/infrastructure/persistence/CoordinationMetricsRepositoryAdapterTest.java` | Vérifie le remplacement transactionnel du run V28 et la persistance de la trace brute. |
+| | `test/java/com/zennyt/games/support/CoordinationTestFixtures.java` | Fabrique déterministe de traces de coordination pour les tests domaine/application/infrastructure. |
 
 ### API REST (`/api/v1/games`)
 
@@ -327,6 +342,101 @@ et la barre d'espace produisent la même réponse sémantique. Une pause ou un p
 pendant le test marque le run local interrompu et impose la reprise de la phase ; les essais
 abandonnés ne sont pas fusionnés avec le run recommencé. Le menu Pause/Règles/Exit reste complet ;
 pendant un bloc actif, ouvrir Pause explique explicitement que la phase redémarrera.
+
+### 🎯 « Je coordonne » (`COORDINATION_TRACKING_CORE`) — suivi visuo-moteur continu
+
+`VISUOMOTOR_COORDINATION` est un `GameType` autonome : il ne modifie ni `MOVE_FAST`, ni
+`CONTINUOUS_ATTENTION`, ni leurs barèmes. Le hub l'affiche comme troisième jeu de la carte
+existante **Cognitive Flexibility** ; le nom de cette catégorie reste inchangé en attendant un
+arbitrage taxonomique avec le psychologue et la matrice Fit Score.
+
+#### Protocole `FIXED_SQUARE_CW_V1`
+
+La cible démarre au **coin supérieur gauche** d'un carré normalisé, puis suit sa bordure dans le
+sens horaire, à vitesse linéaire et sans easing. La trajectoire reste continue aux changements de
+segment et de vitesse. Avant le départ, la balle orange reste immobile ; le premier échantillon
+doit placer le pointeur dans la moitié intérieure de son rayon pour déclencher l'horloge globale.
+
+| Phase | Segments | Ordre | Durée active |
+|-------|----------|-------|--------------|
+| Pratique | 2 | 7000 ms lent → 7000 ms rapide | **14 000 ms** — auditée, hors score |
+| Test | 12 | `(7000 lent → 7000 rapide → 2333 lent → 2333 rapide) × 3` | **55 998 ms** — seule phase cotée |
+| Total protocole | 14 | pratique puis test, segments contigus | **69 998 ms** |
+
+La durée catalogue **3 min** couvre l'expérience complète (consignes, tutoriels, préparation et
+résultats) ; la fenêtre mesurée de validité porte uniquement sur les **55 998 ms de test**. Les
+paramètres géométriques et cinématiques ci-dessous ont été autorisés par le demandeur pour rendre
+le protocole exécutable, mais restent **PROVISOIRES — non validés par le psychologue** :
+
+- coordonnées fixed-point `[0, 1_000_000]`, inset du tracé `160_000` (**0,16**), rayon cible
+  `75_000` (**0,075**) et rayon d'activation `37_500` ;
+- un tour lent = **7000 ms**, un tour rapide = **3500 ms** ;
+- départ au coin supérieur gauche, progression strictement horaire et continue ;
+- sources d'entrée déclarées : `MOUSE`, `TOUCH`, `STYLUS`.
+
+La fiche fournie rapproche le jeu de la page publique CogniFit **UPDA-SHIF / Synchronization**,
+alors que le paramétrage de suivi continu et les bornes de validité sont rattachés au manuel
+**FT&PD / Vienna Test System**. Cette filiation scientifique divergente est documentée sans
+revendiquer de norme CogniFit/VTS : le psychologue doit confirmer la référence finale avant toute
+interprétation psychométrique. La capacité d'**auto-évaluation** annoncée par la fiche n'est pas
+opérationnalisée par le protocole actuel ; seule la coordination visuo-motrice est effectivement
+mesurée.
+
+#### Trace brute, recalcul serveur et validité
+
+Le client envoie exactement 14 segments contigus avec phase, vitesse, durée nominale/réelle et
+échantillons `(sampleIndex, timestampMs, pointerPresent, pointerX, pointerY)`, plus la source
+d'entrée, les drapeaux de complétion/interruption et les compteurs d'arrière-plan/frames perdues.
+Il n'envoie **jamais** la position de la balle, l'état vert/orange/rouge, une distance, une précision
+agrégée ou un score. Le serveur reconstruit la cible depuis `FIXED_SQUARE_CW_V1`, puis rejoue la
+timeline canonique sur une grille de **1 ms** : le pointeur est maintenu entre deux échantillons,
+mais la cible continue de se déplacer. Deux positions aux extrémités d'un segment ne peuvent donc
+pas simuler un suivi continu :
+
+- pointeur à une distance ≤ rayon de la balle → temps « à l'intérieur » ;
+- pointeur absent → temps hors cible et distance canonique **1200** ;
+- distance euclidienne / diagonale du plateau, ramenée dans `[0,1200]` ;
+- pratique exclue ; précision globale, rapide, lente, segments longs/courts et distance moyenne
+  calculées uniquement sur les 12 tests.
+
+`accuracyValid` exige une précision dans `[0,100]` et `executionTimeValid` une durée test dans
+`[54 000,58 000]` ms ; `taskValid` est leur conjonction. `technicalValid` exige une session
+complète, non interrompue, sans passage en arrière-plan et sans frontière de segment test hors de la
+tolérance provisoire de **100 ms** ; `sessionValid` est la conjonction de `taskValid` et
+`technicalValid`. Les trous d'échantillonnage et frames perdues restent tracés comme indicateurs
+techniques descriptifs, sans figer artificiellement la cible grâce à la grille serveur. Un
+run structurellement valide mais non valide pour la mesure reste **audit-only** : aucun `Attempt`,
+aucun `GameResultRecordedEvent`, aucun Fit Score ; une structure incompatible avec le protocole est
+refusée.
+
+#### Score provisoire et expérience mobile
+
+Le barème remplaçable est isolé dans `CoordinationProvisionalRules` :
+
+```text
+overallAccuracyPercent = insideTestDurationMs / totalTestDurationMs × 100
+score /100 = roundHalfUp(overallAccuracyPercent)
+```
+
+Ce choix a été autorisé par le demandeur, mais reste
+`// PROVISOIRE — non validé par le psychologue`. La précision rapide/lente, la précision des
+segments longs/courts, la distance moyenne, la durée, les compteurs techniques et la validité sont
+**strictement descriptifs**. Aucun temps de réaction, percentile, diagnostic, norme ou classement
+n'entre dans le score. Le niveau renvoyé reste neutre : `Descriptive — provisional`.
+
+Le parcours mobile suit la charte existante : cover **Je coordonne**, présentation du format,
+tutoriels cible/curseur et trajectoire, pratique lente puis rapide, état Ready, 12 segments mesurés,
+sauvegarde puis résultats descriptifs. Le logo PNG transparent **Sync Square** représente les deux
+rails carrés, une cible en mouvement, le réticule du pointeur et le sens horaire ; la cover l'affiche
+agrandi et sans tuile/cadre intermédiaire, tandis que le hub et le picker réutilisent le même PNG.
+Pendant le jeu, la balle traduit seulement la position du
+pointeur : blanc + coche verte dans la moitié intérieure, orange dans le reste du rayon, rouge +
+croix blanche hors cible. Aucun score live n'est affiché. Une pause/perte de focus pendant un test
+actif interrompt localement la mesure et impose de recommencer la phase test : le menu remplace alors
+**Reprendre** par **Redémarrer**, tout en conservant Voir les règles et Quitter. Avant activation et
+en pratique, Reprendre reste permis. Une interruption locale incomplète n'est pas envoyée comme un
+faux payload de 14 segments ; l'audit-only serveur concerne les traces complètes mais techniquement
+invalides reçues par l'API.
 
 **Planifik #3 « Predictive Puzzle » — /10 par niveau** (barème CATÉGORIEL de la fiche — **seule fiche validée « conforme au script »** ; constantes dans `PrevisionPuzzleConfig`)
 
@@ -516,16 +626,18 @@ Méthode **« technique » pure** (fiche « JE BOUGE » Tableau 2 révisé + gui
 - **Predictive Puzzle** — par niveau puis moyenne : `Réussi du 1er coup` /4 · `Erreurs de séquence` /3 · `Coups superflus` /3 · `Niveau = X/10` → `Moyenne des N niveaux : X/10`.
 - **Reflective Pause** — `Controlled reaction time` /3 · `Non-impulsive responses` /4 · `Ability to step back` /3 → `Total /10`.
 - **Je continue** — note explicative · `X_TEST — balanced accuracy` · `AX_TEST — balanced accuracy` · `Validité technique` · `Score descriptif /100`. Le mock mobile reproduit exactement ces cinq lignes, y compris pour un run audit-only invalide.
+- **Je coordonne** — note provisoire · `Précision globale` · précisions `Lente`/`Rapide` et `Segments longs`/`Segments courts` marquées descriptives · `Distance moyenne` · `Validité de la tâche` · `Score descriptif /100`. Seule la précision globale arrondie produit des points ; le mock reproduit le même rapport.
 
 Chaque critère affiche la **valeur mesurée entre parenthèses** et les **points/max**. Libellés fidèles aux barèmes ci-dessus. La décomposition Move Fast (points de jeu vs bonus) provient de `MoveFastConfig.replay` — même source que le score.
 
-### Schéma DB (`V9__games_schema.sql`, `V11__games_device_calibrations.sql`, `V12__games_memory_quest_minigame.sql`, `V24__games_decision_minigame.sql`, `V26__games_reflective_pause_minigame.sql`, `V27__games_continuous_attention.sql`)
+### Schéma DB (`V9__games_schema.sql`, `V11__games_device_calibrations.sql`, `V12__games_memory_quest_minigame.sql`, `V24__games_decision_minigame.sql`, `V26__games_reflective_pause_minigame.sql`, `V27__games_continuous_attention.sql`, `V28__games_visuomotor_coordination.sql`)
 
 - `games.game_sessions` : `id`, `player_id`, `game_type`, `status`, `started_at`, `completed_at` + `CHECK` sur type/status, index `(player_id)` et `(game_type, status)`.
 - **V12** (« J'investigue ») : la contrainte `ck_game_attempts_mini_game` autorise désormais `MEMORY_QUEST_CORE` (aucune nouvelle table — le composite est un `Attempt` /100).
 - **V24** (« Je Décide ») : la contrainte `ck_game_attempts_mini_game` autorise désormais `DECISION_CORE` (aucune nouvelle table — le SCW est un `Attempt` /100 ; `DECISION` était déjà autorisé au niveau session par V9).
 - **V26** (« Reflective Pause ») : la contrainte `ck_game_attempts_mini_game` autorise désormais `REFLECTIVE_PAUSE_CORE` (aucune nouvelle table — score agrégé /10).
 - **V27** (« Je continue ») : autorise `CONTINUOUS_ATTENTION` / `CONTINUOUS_ATTENTION_CORE`, crée une ligne `continuous_attention_runs` par session et 1 364 lignes `continuous_attention_trials` pour l'audit. Une capture techniquement invalide peut être remplacée par un retry ; seul un run valide crée un `Attempt`. L'index partiel `ux_ca_single_valid_attempt` protège la soumission valide concurrente.
+- **V28** (« Je coordonne ») : autorise `VISUOMOTOR_COORDINATION` / `COORDINATION_TRACKING_CORE`, puis crée `coordination_tracking_runs`, `coordination_tracking_segments` et `coordination_tracking_samples` pour conserver la trace brute et les indicateurs serveur. Un run audit-only peut être remplacé ; l'index partiel `ux_coord_single_valid_attempt` interdit deux soumissions valides pour la même session.
 - `games.device_calibrations` (**V11**, Tâche 4) : PK/FK `session_id` (au plus un calibrage/session), `calibration_method`, `input_mode`, `device_category`, `refresh_rate_hz`, `hardware_concurrency?`, `device_memory_gb?`, `input_processing_latency_ms?`, `display_latency_ms`, `calibration_offset_ms`, `reduced_reliability` + `CHECK` sur méthode/mode/catégorie. **Les temps bruts ne sont pas modifiés** : la table conserve le profil + l'offset pour audit.
 - `games.game_attempts` : `session_id` (FK CASCADE), `mini_game`, `raw_points`, `max_points`, `level`, `recorded_at` + `CHECK` mini_game/points, index `(session_id)`.
 
@@ -536,7 +648,7 @@ Chaque critère affiche la **valeur mesurée entre parenthèses** et les **point
 Racine : `mobile/lib/features/games/` — **Clean Architecture** (domain / data / presentation).
 Routage : `mobile/lib/core/router/app_router.dart` (`/games`, `/games/planifik`, `/games/move-fast`,
 `/games/predictive-puzzle`, `/games/je-decide`, `/games/emotional-radar`,
-`/games/reflective-pause`, `/games/je-continue`).
+`/games/reflective-pause`, `/games/je-continue`, `/games/je-coordonne`).
 `/games` ouvre le shell `MainNavigationScreen(initialTab: 2)` afin de conserver la bottom nav
 sur l'onglet Careers/Progress ; les routes de jeu restent plein écran.
 
@@ -555,6 +667,8 @@ sur l'onglet Careers/Progress ; les routes de jeu restent plein écran.
 | | `domain/entities/continuous_attention_metrics.dart` | Blocs/essais bruts « Je continue », enums de phase/input et indicateurs descriptifs serveur ; listes immuables et sérialisation conforme au contrat. |
 | | `domain/config/continuous_attention_config.dart` | Miroir exact de `ContinuousAttentionConfig.java` : génération déterministe, timings, compteurs et golden vector cross-platform. |
 | | `domain/config/continuous_attention_provisional_rules.dart` | Miroir du score provisoire ; même calcul rationnel entier et même arrondi que Java. |
+| | `domain/entities/coordination_tracking_metrics.dart` | Trace brute « Je coordonne » : échantillons normalisés, 14 segments, source d'entrée et indicateurs descriptifs serveur ; sérialisation conforme au contrat. |
+| | `domain/config/coordination_tracking_config.dart` | Miroir pur Dart de `FIXED_SQUARE_CW_V1` : même timeline, même géométrie, même reconstruction de trajectoire et même distance canonique que Java. |
 | | `domain/entities/game_score.dart` | Score noté (immuable). |
 | | `domain/entities/game_session.dart` | `GameSession` + `GameAttempt` (miroir de l'agrégat backend). |
 | **domain / repo** | `domain/repositories/games_repository.dart` | Port : `startSession`, `submitResult`. |
@@ -563,6 +677,7 @@ sur l'onglet Careers/Progress ; les routes de jeu restent plein écran.
 | | `data/games_repository_impl.dart` | Impl **Dio** → `/api/v1/games`. Convertit erreurs en `ApiException`. |
 | | `data/games_mock_repository.dart` | Impl **MOCK** en mémoire : reproduit le barème serveur → jouable **sans backend**. |
 | | `data/continuous_attention_scoring.dart` | Miroir offline du validateur/scorer serveur : séquence, correction, indicateurs, audit-only et breakdown canonique. Le backend reste autoritatif en mode API. |
+| | `data/coordination_tracking_scoring.dart` | Miroir offline de la reconstruction/notation serveur « Je coordonne » ; parité des précisions, distance, validité, score half-up et breakdown. Le backend reste autoritatif en mode API. |
 | **Emotional Radar** | `domain/entities/emotional_radar.dart` | Entités : `BasicEmotion`, `SceneMediaType`, `EmotionalNuance` (+ `NuanceSource`), `EmotionalRadarScene` (**sans** réponse attendue), `SceneSet`, `Feedback`, `Metrics`. |
 | | `domain/config/emotional_radar_config.dart` | **Miroir Dart du barème** (3/4/2, dégradé, bonus off, libellés d'intensité, bandes). Parité backend. |
 | | `domain/config/emotional_radar_provisional_rules.dart` | **Miroir de la taxonomie** — `FIGMA` vs `PROVISIONAL`. |
@@ -575,9 +690,13 @@ sur l'onglet Careers/Progress ; les routes de jeu restent plein écran.
 | **Je continue** | `presentation/view/continuous_attention_screen.dart` | Parcours complet `cover → règles → tutoriels X/AX → pratiques → 20 blocs X → repos 2 min → 20 blocs AX → envoi → résultats/insights`. Tempo absolu 690/230 ms, clavier/espace + tactile, aucune correction pendant les tests. |
 | | `presentation/widgets/continuous_attention_pause_dialog.dart` | Pause/règles/sortie ; une interruption pendant une phase test impose le redémarrage de cette phase afin de ne pas fausser la vigilance mesurée. |
 | | `test/features/games/presentation/continuous_attention_screen_test.dart` | Parcours 44 blocs/1 364 essais, pause/règles/restart, retour système, audit invalide puis retry sur le même `sessionId`, résultats et accessibilité 390×844 jusqu'à 200 %. |
+| **Je coordonne** | `presentation/view/coordination_tracking_screen.dart` | Parcours complet `cover → onboarding 3 pages → pratique lente/rapide → ready → 12 segments test → sauvegarde → résultat/retry`. Ticker absolu, plateau custom, pointeur souris/touch/stylus, aucun score live ; réutilise le menu de pause mesurée et son dialogue de règles dédié. |
+| | `test/features/games/domain/coordination_tracking_config_test.dart` | Vecteurs de trajectoire/timeline Dart et constantes de parité `FIXED_SQUARE_CW_V1`. |
+| | `test/features/games/data/coordination_tracking_scoring_test.dart` | Score half-up, précisions/distance, validité et parité du mock avec le backend. |
+| | `test/features/games/presentation/coordination_tracking_screen_test.dart` | Flow cover→résultat, activation, pratique/test, pause/règles/restart, payload 14 segments et copie non diagnostique. |
 | **presentation** | `presentation/games_providers.dart` | Bascule mock/backend via `--dart-define=GAMES_MOCK` (défaut `true`). |
 | | `presentation/games_controller.dart` | `AsyncNotifier<GameSession?>` : `start()` / `submit()`. |
-| | `presentation/view/games_hub_screen.dart` | Hub jeux style maquette Progress : header « Play & discover your talent », 5 cartes de domaines cognitifs, illustration de catégorie + logos PNG officiels des jeux (`assets/games icons/`) ; le picker multi-jeux réutilise les mêmes images. `Cognitive Flexibility` propose Move Fast + Je continue, sans renommer la catégorie. |
+| | `presentation/view/games_hub_screen.dart` | Hub jeux style maquette Progress : header « Play & discover your talent », 5 cartes de domaines cognitifs, illustration de catégorie + logos PNG officiels des jeux (`assets/games icons/`) ; le picker multi-jeux réutilise les mêmes images. `Cognitive Flexibility` propose Move Fast + Je continue + Je coordonne, sans renommer la catégorie. |
 | | `presentation/view/je_decide_screen.dart` | **« Je Décide » Phases 1–4** : machine d'états du welcome au profil final, restauration automatique d'un checkpoint local. UI uniquement, sans session backend. |
 | | `presentation/view/je_decide_gameplay.dart` | Gameplay **Phases 2–3** : scénarios représentatifs, timer DT 7 s, paire CS, feedback XP, encouragement, badge/dimension, checkpoint, pause/règles et sauvegarde/reprise. XP visuel uniquement ; aucun score calculé. |
 | | `presentation/view/je_decide_results.dart` | Résultats **Phase 4** : fin de parcours, préparation, radar accessible, score-ring/forces/axe de progression/détails et export-partage placeholder. Valeurs strictement issues de la maquette et marquées `DecisionProfilePreview`, jamais calculées depuis les choix. |
@@ -611,28 +730,67 @@ Le hub n'est plus une liste `ListTile` générique. Il suit la maquette fournie 
 - 5 cartes bordées bleu : Cognitive Flexibility, Working Memory, Decision-Making,
   Executive Planning, Emotional Regulation.
 - Chaque carte affiche : titre + chevron, **logos PNG officiels des jeux réellement disponibles**
-  (Move Fast + Je continue pour Cognitive Flexibility, un pour Memory Quest/Je Décide,
+  (Move Fast + Je continue + Je coordonne pour Cognitive Flexibility, un pour Memory Quest/Je Décide,
   trois pour Planifik), durée du domaine,
   `N° aptitudes`, illustration PNG. Les anciennes swatches décoratives ont été supprimées.
 - Le bottom sheet d'une catégorie multi-jeux reprend le **même fichier image** pour chaque entrée
   afin de conserver l'identité visuelle entre le hub et le sélecteur. Les logos historiques
   proviennent des couvertures officielles fournies :
   `Move Fast.png`, `Memory Quest.png`, `Je Decide.png`, `Optimal Path.png`,
-  `Task Scheduling.png`, `Predictive Puzzle.png`. Le nouveau `Je Continue.png` est une illustration
-  nette à fond transparent, générée dans la même charte à partir du concept A→X/focus.
+  `Task Scheduling.png`, `Predictive Puzzle.png`. `Je Continue.png` est une illustration nette à
+  fond transparent fondée sur le concept A→X/focus ; `Je Coordonne.png` reprend le concept original
+  **Sync Square** (rails carrés, cible, réticule et sens horaire), net et sans carré violet.
 - Assets déclarés dans `mobile/pubspec.yaml` :
   `assets/04 Optimal Path/` (`image 120.png`, `image 120-1.png`, `image 121.png`,
   `image 121-1.png`, `image 121-2.png`) **et** `assets/04 Predictive Puzzle/`
   (`discs.png` = disques de la carte intro, `golden_rule.png` = illustration règle d'or How-To-Play),
   ainsi que les sous-dossiers utilisés de `assets/04 Je Décide/`.
-- Routes actives : Cognitive Flexibility → sélecteur Move Fast (`/games/move-fast`) ou
-  Je continue (`/games/je-continue`), Working Memory →
+- Routes actives : Cognitive Flexibility → sélecteur Move Fast (`/games/move-fast`),
+  Je continue (`/games/je-continue`) ou Je coordonne (`/games/je-coordonne`), Working Memory →
   `/games/investigate`, Decision-Making → `/games/je-decide`, Executive Planning →
   menu de sélection des 3 mini-jeux Planifik, Emotional Regulation → sélecteur Radar/Reflective.
 
 Navigation : `ProgressScreen` héberge `GamesHubScreen`. La route `/games` rend
 `MainNavigationScreen(initialTab: 2)`, et `AppBottomNav` accepte un `selectedTab` local afin
 d'afficher l'onglet Careers/Progress sans modifier `navTabProvider` pendant `initState`.
+
+### 🎯 Flow « Je coordonne » (mobile)
+
+`coordination_tracking_screen.dart` est un écran Flutter custom autonome, sans dépendance Flame.
+Sa machine d'états est :
+
+`cover → starting → tutorial ×3 → practice → ready → test → submitting → results`
+
+avec branches `invalid → restart test` et `error → retry submission/journey`. Le cover présente
+le PNG **Sync Square** agrandi sans cadre, l'objectif, la durée catalogue et le format ; les trois
+tutoriels utilisent des démonstrations mauves dédiées pour le déclenchement, les trois états du
+cercle et l'alternance de vitesse. La pratique enchaîne
+les deux segments de 7 s, puis l'écran Ready annonce les 12 segments et l'absence de score live.
+
+- **Plateau** : fond gameplay partagé `ZennytGamePalette.gameBlue` (`#4E46E8`) et surface mauve
+  `gamePanel` (`#675DE6`), comme Move Fast et Je continue ; double rail carré blanc, cible
+  orange/blanche/rouge avec halo/contour et réticule à quatre lignes + point central. Les objets
+  restent dessinés avec `CustomPainter` pour être nets à toute densité ; aucun raster flou dans le
+  gameplay.
+- **Tempo** : `Ticker` basé sur un timestamp absolu ; le rendu ne somme jamais les deltas de frame.
+  La vitesse peut changer sans saut de position ni easing. Le HUD affiche seulement segment,
+  allure, temps restant et progression — jamais précision ni points.
+- **Entrée** : `Listener` + `MouseRegion` unifient souris/trackpad, touch et stylus ; les coordonnées
+  sont normalisées puis converties en fixed-point contractuel. La modalité n'est verrouillée
+  qu'après une activation réussie dans le demi-rayon, puis ne peut plus changer au milieu du run ;
+  le test d'activation utilise la même distance entière au carré que le recalcul serveur.
+- **Pause/retour système** : la pratique peut être suspendue ; pendant le test, pause, perte de
+  focus ou changement de zone de jeu interrompt la mesure et conduit à `invalid`, avec redémarrage
+  depuis le segment test 1 dans la même session. La reprise réactive bien le ticker d'une pratique
+  gelée ; elle ne peut jamais relancer un ticker de test interrompu. Un changement de métriques
+  n'invalide la mesure que si la taille physique de la vue change. Le menu propose reprise lorsque
+  permise, règles, redémarrage et sortie.
+- **Résultats** : cadran explicitement **PROVISIONAL /100**, précision globale, lente/rapide,
+  longue/courte et distance moyenne ; copie « descriptive, not a diagnosis or ranking », puis retour
+  au hub ou nouvelle partie.
+- **Accessibilité** : statut doublé par icône + texte, légende non portée par la couleur seule,
+  sémantique du plateau calme (pas d'annonce à chaque frame), texte adaptable et animation des
+  dots neutralisée en reduced motion.
 
 ### 🗺️ Flow Optimal Path (mobile)
 
@@ -821,8 +979,16 @@ feedback visuel reste cohérent : **vert = Orientation**, **jaune/orange = Mouve
 
 `contracts/games.openapi.yaml` — **source de vérité** de l'API entre backend et mobile.
 Schémas : `GameType`, `MiniGame`, `SessionStatus`, `StartSessionRequest`, `OptimalPathMetrics`,
-`MoveFastMetrics`, `PrevisionPuzzleMetrics`, `GameMetrics` (oneOf), `SubmitResultRequest`, `Score`,
-`Attempt`, `GameSession`.
+`MoveFastMetrics`, `PrevisionPuzzleMetrics`, `ContinuousAttentionMetrics`,
+`CoordinationProtocolVersion`, `CoordinationPhase`, `CoordinationSpeed`,
+`CoordinationInputSource`, `CoordinationPointerSample`, `CoordinationSegmentMetric`,
+`CoordinationMetrics`, `CoordinationIndicators`, `GameMetrics` (oneOf), `SubmitResultRequest`,
+`Score`, `Attempt`, `GameSession`.
+
+Pour `COORDINATION_TRACKING_CORE`, le contrat transporte uniquement la trace brute normalisée et
+les états techniques du run ; `GameSession.coordinationIndicators` expose ensuite le rapport
+recalculé côté serveur. Le client ne peut choisir ni la trajectoire, ni l'ordre des segments, ni
+les agrégats utilisés au résultat.
 
 > ⚠️ Toute évolution de l'API doit modifier **ce contrat en premier**, puis backend et mobile.
 
@@ -863,6 +1029,11 @@ Schémas : `GameType`, `MiniGame`, `SessionStatus`, `StartSessionRequest`, `Opti
 | **« Je continue » — score /100** : balanced accuracy X_TEST/AX_TEST uniquement, arrondi rationnel unique ; d′, biais c et RT descriptifs hors score | 🟠 Implémenté en config **PROVISOIRE — non validé par le psychologue** |
 | **« Je continue » — mobile complet** : onboarding/règles, pratiques X/AX, 40 blocs test au tempo 690/230 ms, repos 2 min, pause/reprise sécurisée, résultats et insights, logo, hub/picker et route `/games/je-continue` | 🟢 Fait |
 | Référence de la fiche « Conners CPT-3 » → correction **Long Rosvold CPT** | 🟠 Documentée et à signaler/faire corriger par le psychologue ; aucune norme Conners utilisée |
+| **« Je coordonne » (`VISUOMOTOR_COORDINATION`) — contrat + domaine + V28** : `FIXED_SQUARE_CW_V1`, 2 pratiques + 12 tests, trace fixed-point persistée, trajectoire/précision/validité recalculées serveur, audit-only sans Attempt/event | 🟢 Implémenté |
+| **« Je coordonne » — score /100** : `roundHalfUp(overallAccuracyPercent)` uniquement ; vitesse/durée/distance et validité descriptives | 🟠 Implémenté en config **PROVISOIRE — autorisé par le demandeur, non validé par le psychologue** |
+| **« Je coordonne » — mobile complet** : cover au logo PNG agrandi, onboarding illustré, pratique, ready, test 55 998 ms, ticker absolu, plateau mauve partagé Sync Square, feedback non porté par la couleur seule, pause/règles/restart, résultat descriptif, hub/picker et route `/games/je-coordonne` | 🟢 Implémenté |
+| Références « Je coordonne » UPDA-SHIF / FT&PD-VTS + capacité d'auto-évaluation | 🟠 Divergences documentées ; filiation scientifique et mesure d'auto-évaluation à confirmer avec le psychologue |
+| Catégorie mobile de « Je coordonne » | 🟠 Affiché dans **Cognitive Flexibility** sans renommage ; placement taxonomique à valider avec le psychologue et la matrice Fit Score |
 | Renommer `Cognitive Flexibility` en « Attention & Flexibility » | 🔴 Non appliqué — décision taxonomique à valider avec le psychologue et la matrice Fit Score |
 | Hub Games / Progress — maquette 5 domaines cognitifs, mini-logos des jeux dans les cartes + picker, bottom nav conservée | 🟢 Fait |
 | Planifik #3 `PREVISION_PUZZLE` — Predictive Puzzle | 🟢 Fait |
@@ -891,14 +1062,14 @@ Schémas : `GameType`, `MiniGame`, `SessionStatus`, `StartSessionRequest`, `Opti
 | Bascule mock ⇄ backend | 🟢 `--dart-define=GAMES_MOCK` |
 | Socle de calibrage appareil (méthode « technique », transversal) | 🟢 Fait — appliqué à Move Fast (indicateurs `*Adjusted`), réutilisable Decision/Memory Quest |
 | Calibrage — table `games.device_calibrations` (V11) + fallback fiabilité réduite | 🟢 Fait |
-| **Panneau « détail du score »** (Move Fast, Optimal Path, Predictive Puzzle) | 🟢 Fait — calculé serveur (`ScoreBreakdownService`), affiché en logs (`ScoreDetailPanel`), mock répliqué (hors-ligne) |
+| **Panneau « détail du score »** (dont Move Fast, Planifik, Reflective Pause, Je continue et Je coordonne) | 🟢 Fait côté serveur/mock (`ScoreBreakdownService`) ; affichage `ScoreDetailPanel` sur les écrans qui l'exposent |
 | Intégration Analytics (event) | 🟢 Listener en place (log ; à brancher au vrai dashboard) |
 
 ---
 
 ## 🧠 Décisions à valider avec le psychologue référent
 
-Écarts **assumés et tracés** entre l'implémentation et les fiches — **ne pas les supprimer sans arbitrage**. Chacun est isolé en config/commenté dans le code.
+Écarts **assumés et tracés** entre l'implémentation et les fiches — **ne pas les supprimer sans arbitrage**. Chacun est isolé en config/commenté dans le code. Pour « Je coordonne », les choix 37 à 45 ont été **autorisés par le demandeur pour l'intégration**, mais restent **PROVISOIRES — non validés par le psychologue**. Le seuil technique 46 est en plus à valider sur le parc réel.
 
 | # | Point | Choix implémenté | Fiche / référence | Localisation |
 |---|-------|------------------|-------------------|--------------|
@@ -937,6 +1108,16 @@ Schémas : `GameType`, `MiniGame`, `SessionStatus`, `StartSessionRequest`, `Opti
 | 34 | **Pause/interruption Rosvold** | repos programmé 2 min entre X/AX ; interruption pendant un test ⇒ reprise de phase ; run invalide éventuellement conservé audit-only mais **aucun Attempt/event/Fit Score** | Une pause libre modifie la vigilance mesurée ; règle de reprise définitive à confirmer | `ContinuousAttentionConfig` + écran mobile + use case |
 | 35 | **Tolérance technique des durées réelles** | `TIMING_TOLERANCE_MS = 100` sur onset réel/prévu, affichage 690 et ISI 230 ; 100 accepté, 101 invalide ; jamais dans le score | **PROVISOIRE — à valider sur appareils réels** (690/230 ms non alignés exactement sur les frames) | `ContinuousAttentionConfig` + miroir Dart |
 | 36 | **Adaptation audio de « Je continue »** | le stimulus visuel rapide n'est pas annoncé automatiquement par VoiceOver ; les contrôles, consignes et états restent sémantiques | Une annonce vocale à chaque lettre altérerait le protocole et produirait 1 364 annonces. Toute modalité audio équivalente doit faire l'objet d'une validation accessibilité/psychométrique séparée | `continuous_attention_screen.dart` |
+| 37 | **« Je coordonne » — vitesses** | tour lent **7000 ms**, tour rapide **3500 ms**, mouvement linéaire continu | La fiche distingue lent/rapide sans définir les vitesses de parcours | `CoordinationConfig.SLOW_LAP_MS/FAST_LAP_MS` + miroir Dart |
+| 38 | **« Je coordonne » — géométrie/départ** | inset **0,16**, rayon cible **0,075**, activation à demi-rayon, départ au coin supérieur gauche et sens horaire | Dimensions, point initial et règle de continuité non chiffrés | `CoordinationConfig` · `CoordinationTrajectoryService` + miroir Dart |
+| 39 | **« Je coordonne » — distance/pointeur absent** | distance normalisée par la diagonale du plateau vers `[0,1200]` ; pointeur absent = hors cible + distance **1200** | La fiche donne 0–1200 sans conversion ni traitement d'une absence de pointage | `CoordinationScoringService` · `CoordinationTrackingConfig.canonicalDistanceUnits` |
+| 40 | **« Je coordonne » — score /100** | `roundHalfUp(overallAccuracyPercent)` uniquement ; vitesse, durée et distance descriptives ; niveau neutre constant | La fiche fournit les variables mais aucun barème composite | `CoordinationProvisionalRules` + miroir Dart |
+| 41 | **Catégorie mobile de « Je coordonne »** | troisième jeu de la carte existante **Cognitive Flexibility**, sans renommer la catégorie ; `VISUOMOTOR_COORDINATION` reste séparé côté domaine | Coordination visuo-motrice et flexibilité cognitive sont distinctes ; déplacer/renommer touche la taxonomie et la matrice Fit Score | `games_hub_screen.dart` |
+| 42 | **Pause/interruption « Je coordonne »** | pratique interruptible ; pause/perte de focus pendant un test ⇒ run interrompu/audit-only et **redémarrage du test**, sans `Attempt`/event/Fit Score | Une pause libre altère la continuité du suivi et la fatigue mesurée | config + écran mobile + `SubmitGameResultUseCase` |
+| 43 | **Adaptation touch/stylus** | le protocole accepte `MOUSE`, `TOUCH`, `STYLUS` avec coordonnées normalisées ; même cible/rayon et même score | La fiche décrit un curseur souris ; l'occlusion du doigt et l'ergonomie tactile peuvent modifier la mesure | `CoordinationInputSource` + écran mobile |
+| 44 | **« Je coordonne » — filiation scientifique** | implémentation nommée par son protocole produit `FIXED_SQUARE_CW_V1`, sans revendiquer de normes CogniFit/VTS | La fiche mélange la page publique **UPDA-SHIF / Synchronization** et le manuel **FT&PD / Vienna Test System** ; référence finale à confirmer | contrat + `CoordinationConfig` + copie UI |
+| 45 | **Capacité d'auto-évaluation** | non calculée et non affichée ; le jeu mesure actuellement la coordination visuo-motrice objective | La fiche annonce aussi une capacité d'auto-évaluation sans questionnaire, variable ou règle de cotation correspondante | contrat `CoordinationMetrics`/`Indicators` · résultats mobile |
+| 46 | **Tolérance temporelle « Je coordonne »** | frontière/durée de segment test tolérée à **±100 ms** ; au-delà `technicalValid=false`. Le score rejoue toujours la cible sur la grille canonique serveur de 1 ms ; gaps/frames restent descriptifs | La fiche fixe les durées mais ne donne ni tolérance appareil ni règle sur les frames perdues | `CoordinationConfig.TIMING_TOLERANCE_MS` + miroir Dart · scorer Java/Dart |
 | 19 | **« Je Décide » — frontière mobile/backend** | Le parcours UI Phases 1–4 est navigable. Le profil final est l'aperçu statique de la maquette (`DecisionProfilePreview`) et ne dépend jamais des choix ; XP purement visuel | `Practice 2/2`, catalogue 30 scénarios, mapping option→dimension, seuils de profil, XP/badges et randomisation non fournis | `je_decide_screen.dart`, `je_decide_gameplay.dart`, `je_decide_results.dart` |
 
 **Conforme à la fiche, NE PAS toucher** : profil global Planifik /30 (`interpretGlobal`), cœur du barème Move Fast (50 × multiplicateur, streak 4, bonus 250), barème catégoriel « Predictive Puzzle » (seule fiche validée), architecture par Domain Events.
@@ -959,6 +1140,42 @@ vous touchez à l'un de ces chemins :
 - [ ] Un barème change → mettre à jour la section **Barème** (backend **et** mock mobile doivent rester identiques).
 - [ ] Un nouveau jeu/mini-jeu devient jouable → mettre à jour le **tableau de statut** et la **roadmap**.
 - [ ] Mettre à jour la ligne ci-dessous.
+
+**Changelog (39) — 2026-08-01** : harmonisation UI mobile de **« Je coordonne »**, sans changement
+du protocole ni du score. Cover : suppression de la tuile translucide autour du logo et
+agrandissement du PNG RGBA `Je Coordonne.png` avec rendu haute qualité. Onboarding : les trois
+pages utilisent désormais des démonstrations mauves dédiées (activation au centre, états
+Centered/Inside/Outside, même trajectoire à deux allures) à la place des pictogrammes génériques.
+Gameplay : fond global `ZennytGamePalette.gameBlue`, plateau `gamePanel`, header/HUD adaptés au
+fond sombre, rails blancs renforcés et cible avec halo/contour cohérent ; palette locale remplacée
+par les constantes du design system Games. Test widget ajouté pour verrouiller le PNG, les trois
+tutoriels et les couleurs partagées. Validation : **123 tests Flutter** verts et `flutter analyze`
+sans erreur. Pause/interruption, timings, métriques, contrat, backend, barèmes, `pubspec.yaml` et
+`pom.xml` inchangés.
+
+**Changelog (38) — 2026-08-01** : nouveau jeu complet **« Je coordonne »**
+(`VISUOMOTOR_COORDINATION` / `COORDINATION_TRACKING_CORE`) ajouté comme troisième jeu de la
+catégorie mobile existante **Cognitive Flexibility**, sans renommer la taxonomie ni modifier les
+GameTypes/barèmes historiques. Contrat-first : protocole `FIXED_SQUARE_CW_V1`, 2 segments de
+pratique + 12 tests (**55 998 ms** mesurés, **69 998 ms** actifs au total), positions fixed-point
+brutes et rapport descriptif ; trajectoire, précision, distance et validité recalculées côté
+serveur. Domaine Java pur, score **/100 PROVISOIRE** isolé
+(`roundHalfUp(overallAccuracyPercent)` seulement), autres indicateurs hors score, persistance
+audit V28 (`coordination_tracking_runs` / `_segments` / `_samples`) et soumission invalide sans
+`Attempt`/event/Fit Score. Mobile : flow cover→tutoriels→pratique→ready→test→résultat/retry,
+plateau custom au tempo absolu, souris/touch/stylus, menu pause/règles avec redémarrage du test,
+route `/games/je-coordonne`, hub/picker et logo transparent original **Sync Square** ; parité
+mock/backend implémentée dans les mêmes fichiers de config/scoring. Les vitesses 7000/3500 ms, la géométrie
+0,16/0,075, la conversion diagonale→1200, le score, le placement de catégorie, la règle de pause et
+l'adaptation touch/stylus ont été autorisés par le demandeur mais restent **non validés par le
+psychologue**. Divergence UPDA-SHIF ↔ FT&PD/VTS et absence de mesure d'auto-évaluation tracées.
+Durcissements issus des revues : grille canonique serveur/mock de **1 ms** contre les traces
+clairsemées, tolérance de durée ±100 ms, verrou pessimiste de session, publication des events depuis
+l'agrégat muté, erreurs HTTP 400/403/404 contractuelles, temps final réellement observé et reprise
+lifecycle de la pratique. Validation finale : **274 tests Java** verts (4 ignorés), **ArchUnit 3/3**,
+**122 tests Flutter** verts, `flutter analyze` sans erreur et revue Claude ciblée effectuée.
+Son verdict final est : **aucun défaut bloquant ou actionnable restant**.
+`pom.xml` et `pubspec.yaml` inchangés.
 
 **Changelog (37) — 2026-07-30** : nouveau jeu complet **« Je continue »**
 (`CONTINUOUS_ATTENTION` / `CONTINUOUS_ATTENTION_CORE`) dans la catégorie mobile existante
@@ -1129,7 +1346,7 @@ Je Décide, Optimal Path, Task Scheduling, Predictive Puzzle), affichés à l'id
 les cartes de catégorie et le sélecteur. Contrôle qualité : fichiers nets et transparents,
 aucune régénération nécessaire. Aucun barème, contrat, endpoint ou event modifié.
 
-**Dernière mise à jour** : 2026-07-30 — **(37)** « Je continue » intégré contract-first,
-backend et mobile ; protocole Long Rosvold documenté, score /100 provisoire isolé, V27, auth,
-parité mock et parcours complet. Validation finale : backend 255/255 hors 4 tests PostgreSQL
-conditionnels, ArchUnit 3/3, mobile 103/103 et `flutter analyze` sans erreur.
+**Dernière mise à jour** : 2026-08-01 — **(39)** UI « Je coordonne » réalignée sur la charte Games :
+logo PNG agrandi sans cadre, trois tutoriels mauves représentatifs et plateau partagé
+`gameBlue/gamePanel`. Validation : 123 tests Flutter verts et analyse statique sans erreur ; aucun
+protocole, score, contrat, backend ni comportement de pause modifié.
