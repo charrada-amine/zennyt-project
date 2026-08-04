@@ -21,25 +21,57 @@ import java.util.Map;
 @Component
 public class JobProfileTypeClassifier {
 
+    /**
+     * F09 (FITSCORE_REMEDIATION.md §3 index F09) — descriptions réécrites depuis
+     * le CdC §4.3 (nature dominante de chaque profil) et la matrice réellement
+     * seedée (V26), qu'elles contredisaient auparavant : par ex. « développement
+     * logiciel » était rattaché à ANALYTIQUE alors que les 9 métiers IT/dev
+     * (Développeur, DevOps, IA, Data Engineer…) sont seedés en TECHNIQUE, et
+     * « vente » était rattachée à MANAGERIAL alors que Commercial/BD et
+     * Conseiller de vente sont seedés en RELATIONNEL. Chaque description
+     * mentionne désormais des métiers réels de V26 pour ancrer le classifieur
+     * sur le vocabulaire effectivement utilisé par la plateforme.
+     */
     private static final Map<JobProfileType, String> DESCRIPTIONS = new EnumMap<>(Map.of(
         JobProfileType.TECHNIQUE,
-        "Métiers techniques et manuels, ancrés dans le concret : construction, mécanique, "
-            + "production, maintenance, logistique, travail de terrain.",
+        "Résolution concrète de problèmes techniques : construire, développer, réparer. Couvre "
+            + "aussi bien le développement logiciel et l'ingénierie IT/IA/DevOps que la médecine, "
+            + "l'industrie, le BTP ou l'artisanat qualifié — ex. Développeur, Ingénieur DevOps / "
+            + "Cloud, Ingénieur IA / Machine Learning, Médecin, Pharmacien, Ingénieur BTP, "
+            + "Architecte, Technicien de maintenance, Ouvrier / Compagnon qualifié.",
         JobProfileType.ANALYTIQUE,
-        "Métiers d'analyse et de résolution de problèmes complexes : recherche, ingénierie, "
-            + "data, sciences, développement logiciel, expertise technique poussée.",
+        "Analyse ouverte de données ou de situations complexes, recherche de sens dans "
+            + "l'ambigu, hors résolution technique directe : audit, conseil, finance, contrôle "
+            + "de gestion, data, études, veille — ex. Auditeur, Business Analyst, Analyste "
+            + "financier, Contrôleur de gestion, Data Analyst / Data Scientist, Growth hacker, "
+            + "Journaliste.",
         JobProfileType.RELATIONNEL,
-        "Métiers centrés sur l'aide, l'accompagnement et la relation humaine : santé, "
-            + "éducation, service client, ressources humaines, travail social.",
+        "Interaction humaine, écoute, persuasion, accompagnement — inclut la vente et le "
+            + "développement commercial individuels : santé et soin, ressources humaines, "
+            + "service client, accueil et restauration en contact clientèle — ex. Commercial / "
+            + "Business Developer, Conseiller de vente, RH / Talent Acquisition, Support client "
+            + "/ Service client, Infirmier, Kinésithérapeute, Réceptionniste, Serveur / Maître "
+            + "d'hôtel.",
         JobProfileType.MANAGERIAL,
-        "Métiers de direction, de persuasion et de prise de décision : management, vente, "
-            + "entrepreneuriat, développement commercial, animation d'équipe.",
+        "Coordination d'équipe, leadership, arbitrage — pilotage d'équipe plutôt que vente "
+            + "individuelle (qui relève du profil Relationnel) : direction générale, gestion de "
+            + "projet ou de produit, encadrement d'atelier ou de magasin — ex. Management "
+            + "général / Direction, Chef de projet / Product Manager, Product Owner, Scrum "
+            + "Master / Agile Coach, Responsable d'atelier / production, Responsable de "
+            + "magasin, Directeur d'hôtel, Conducteur de travaux.",
         JobProfileType.CONVENTIONNEL,
-        "Métiers structurés, organisés, basés sur des règles précises : comptabilité, "
-            + "administration, gestion de données, conformité, opérations back-office.",
+        "Application de règles et de procédures documentées, précision d'exécution, expertise "
+            + "qui se stabilise tôt plutôt que de se complexifier indéfiniment avec l'expérience "
+            + ": comptabilité, conformité, gestion de stock, contrôle qualité, opérations "
+            + "back-office — ex. Comptable, Chargé de conformité / Compliance officer, "
+            + "Gestionnaire de stock, Technicien qualité, Opérateur de production, Métreur.",
         JobProfileType.ARTISTIQUE,
-        "Métiers créatifs et d'expression : design, communication, contenu, arts, mode, "
-            + "médias, création visuelle ou narrative."));
+        "Création : génération d'idées, sens esthétique, expression visuelle ou narrative, "
+            + "pensée divergente dominante à tous les niveaux d'ancienneté : design, "
+            + "illustration, photographie, réalisation audiovisuelle, composition — ex. UX/UI "
+            + "Designer, Graphiste / Designer, Motion designer, Styliste / Designer produit, "
+            + "Illustrateur / Concept artist, Photographe, Compositeur / Sound designer, "
+            + "Scénariste, Directeur artistique."));
 
     private final EmbeddingPort embeddings;
     private volatile Map<JobProfileType, float[]> profileEmbeddings;
