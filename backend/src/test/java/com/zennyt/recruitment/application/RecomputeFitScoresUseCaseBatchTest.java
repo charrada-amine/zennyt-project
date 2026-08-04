@@ -73,9 +73,8 @@ class RecomputeFitScoresUseCaseBatchTest {
             .mapToDouble(Double::doubleValue).average().orElse(0));
         int hard = inputs.hardSkillScore() == null ? 0 : inputs.hardSkillScore();
         int profil = inputs.roleProfile() == null ? 0 : 7;
-        int societe = inputs.companyDescription() == null ? 0 : 3;
         return new FitScoreCalculatorPort.FitScoreResult(
-            Math.min(100, soft / 2 + hard / 4 + profil + societe), Math.min(100, soft));
+            Math.min(100, soft / 2 + hard / 4 + profil), Math.min(100, soft));
     };
 
     @BeforeEach
@@ -117,7 +116,7 @@ class RecomputeFitScoresUseCaseBatchTest {
         when(fitScores.saveAll(any())).thenAnswer(invocation ->
             ((List<?>) invocation.getArgument(0)).size());
 
-        useCase = new RecomputeFitScoresUseCase(CALCULATOR, fitScores, offers, softSkills, actors,
+        useCase = new RecomputeFitScoresUseCase(CALCULATOR, fitScores, offers, softSkills,
             roleProfileResolver, testResults);
     }
 
@@ -168,7 +167,6 @@ class RecomputeFitScoresUseCaseBatchTest {
         useCase.recomputeBatch(toutesLesPaires());
 
         verify(softSkills, times(1)).findByCandidateIds(any());
-        verify(actors, times(1)).findByIds(any());
         verify(roleProfileResolver, times(1)).resolveAll(any());
         verify(testResults, times(1)).findByCandidateIdsAndJobOfferIds(any(), any());
         verify(fitScores, times(1)).findByCandidateIdsAndJobOfferIds(any(), any());
@@ -176,8 +174,11 @@ class RecomputeFitScoresUseCaseBatchTest {
 
         // Aucun retour au chargement paire par paire, sinon le gain disparaît.
         verify(softSkills, never()).findByCandidateId(any());
-        verify(actors, never()).findById(any());
         verify(roleProfileResolver, never()).resolve(any());
+        // F22 : le référentiel acteurs n'est plus lu du tout — companyDescription était
+        // transporté jusqu'au calculateur sans jamais y être utilisé, au prix d'une
+        // requête par paire sur le chemin unitaire.
+        verifyNoInteractions(actors);
         verify(testResults, never()).findByCandidateIdAndJobOfferId(any(), any());
         verify(fitScores, never()).findByCandidateIdAndJobOfferId(any(), any());
         verify(fitScores, never()).save(any());
@@ -192,7 +193,7 @@ class RecomputeFitScoresUseCaseBatchTest {
         FitScoreCalculatorPort sansPonderation = inputs ->
             inputs.roleProfile() == null ? null : new FitScoreCalculatorPort.FitScoreResult(50, 50);
         var useCaseSansRepli = new RecomputeFitScoresUseCase(sansPonderation, fitScores,
-            mock(JobOfferRepository.class), softSkills, actors, roleProfileResolver, testResults);
+            mock(JobOfferRepository.class), softSkills, roleProfileResolver, testResults);
 
         assertThat(useCaseSansRepli.recompute(CANDIDATE_VIERGE, offreNonResolue)).isNull();
         verify(fitScores, never()).save(any());

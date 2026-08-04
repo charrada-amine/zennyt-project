@@ -5,12 +5,10 @@ import com.zennyt.recruitment.application.port.FitScoreCalculatorPort;
 import com.zennyt.recruitment.domain.model.FitScore;
 import com.zennyt.recruitment.domain.model.JobOffer;
 import com.zennyt.recruitment.domain.model.JobRoleProfile;
-import com.zennyt.recruitment.domain.model.RecruitmentActor;
 import com.zennyt.recruitment.domain.model.SoftSkillsProjection;
 import com.zennyt.recruitment.domain.model.TestResult;
 import com.zennyt.recruitment.domain.repository.FitScoreRepository;
 import com.zennyt.recruitment.domain.repository.JobOfferRepository;
-import com.zennyt.recruitment.domain.repository.RecruitmentActorRepository;
 import com.zennyt.recruitment.domain.repository.SoftSkillsProjectionRepository;
 import com.zennyt.recruitment.domain.repository.TestResultRepository;
 import org.slf4j.Logger;
@@ -45,7 +43,6 @@ public class RecomputeFitScoresUseCase {
     private final FitScoreRepository fitScores;
     private final JobOfferRepository offers;
     private final SoftSkillsProjectionRepository softSkills;
-    private final RecruitmentActorRepository actors;
     private final JobRoleProfileResolver roleProfileResolver;
     private final TestResultRepository testResults;
 
@@ -53,14 +50,12 @@ public class RecomputeFitScoresUseCase {
                                      FitScoreRepository fitScores,
                                      JobOfferRepository offers,
                                      SoftSkillsProjectionRepository softSkills,
-                                     RecruitmentActorRepository actors,
                                      JobRoleProfileResolver roleProfileResolver,
                                      TestResultRepository testResults) {
         this.calculator = calculator;
         this.fitScores = fitScores;
         this.offers = offers;
         this.softSkills = softSkills;
-        this.actors = actors;
         this.roleProfileResolver = roleProfileResolver;
         this.testResults = testResults;
     }
@@ -76,15 +71,13 @@ public class RecomputeFitScoresUseCase {
      */
     public FitScore recompute(UUID candidateId, JobOffer offer) {
         Map<String, Double> softScores = softScoresByModule(softSkills.findByCandidateId(candidateId));
-        String companyInfo = actors.findById(offer.recruiterId())
-            .map(actor -> actor.companyInfo()).orElse(null);
         JobRoleProfile roleProfile = roleProfileResolver.resolve(offer);
         Integer hardSkillScore = testResults.findByCandidateIdAndJobOfferId(candidateId, offer.id())
             .map(TestResult::percentage).orElse(null);
         UUID existingId = fitScores.findByCandidateIdAndJobOfferId(candidateId, offer.id())
             .map(FitScore::id).orElse(null);
         FitScore computed =
-            score(candidateId, offer, softScores, companyInfo, roleProfile, hardSkillScore, existingId);
+            score(candidateId, offer, softScores, roleProfile, hardSkillScore, existingId);
         return computed == null ? null : fitScores.save(computed);
     }
 
@@ -107,10 +100,6 @@ public class RecomputeFitScoresUseCase {
             .collect(Collectors.groupingBy(SoftSkillsProjection::candidateId,
                 Collectors.collectingAndThen(Collectors.toList(),
                     RecomputeFitScoresUseCase::softScoresByModule)));
-        Map<UUID, String> companyInfoByRecruiter = actors.findByIds(
-                offers.stream().map(JobOffer::recruiterId).distinct().toList()).stream()
-            .filter(actor -> actor.companyInfo() != null)
-            .collect(Collectors.toMap(RecruitmentActor::publicUserId, RecruitmentActor::companyInfo));
         Map<UUID, JobRoleProfile> roleProfileByOffer = roleProfileResolver.resolveAll(offers);
         Map<String, Integer> hardScoreByPair = testResults
                 .findByCandidateIdsAndJobOfferIds(candidateIds, offerIds).stream()
@@ -128,7 +117,6 @@ public class RecomputeFitScoresUseCase {
             String key = pairKey(pair.candidateId(), pair.offer().id());
             FitScore result = score(pair.candidateId(), pair.offer(),
                 softScoresByCandidate.getOrDefault(pair.candidateId(), Map.of()),
-                companyInfoByRecruiter.get(pair.offer().recruiterId()),
                 roleProfileByOffer.get(pair.offer().id()),
                 hardScoreByPair.get(key),
                 existingIdByPair.get(key));
@@ -146,11 +134,11 @@ public class RecomputeFitScoresUseCase {
      * pas diverger.
      */
     private FitScore score(UUID candidateId, JobOffer offer, Map<String, Double> softScores,
-                           String companyInfo, JobRoleProfile roleProfile, Integer hardSkillScore,
+                           JobRoleProfile roleProfile, Integer hardSkillScore,
                            UUID existingId) {
         var inputs = new FitScoreCalculatorPort.FitScoreInputs(
             softScores,
-            offer.description(), companyInfo, roleProfile, hardSkillScore, DEFAULT_COVERAGE_RATIO);
+            roleProfile, hardSkillScore, DEFAULT_COVERAGE_RATIO);
         var result = calculator.calculate(inputs);
         if (result == null) return null; // offre sans métier approuvé : incalculable
         return FitScore.calculated(existingId, candidateId, offer.id(),

@@ -51,7 +51,7 @@ class RecomputeFitScoresUseCaseTest {
         JobRoleProfileResolver roleProfileResolver = mock(JobRoleProfileResolver.class);
         TestResultRepository testResults = mock(TestResultRepository.class);
 
-        FitScore result = new RecomputeFitScoresUseCase(calculator, scores, offers, soft, actors,
+        FitScore result = new RecomputeFitScoresUseCase(calculator, scores, offers, soft,
                 roleProfileResolver, testResults)
             .recompute(candidateId, offer);
 
@@ -74,7 +74,7 @@ class RecomputeFitScoresUseCaseTest {
         JobRoleProfileResolver roleProfileResolver = mock(JobRoleProfileResolver.class);
         TestResultRepository testResults = mock(TestResultRepository.class);
 
-        var pairs = new RecomputeFitScoresUseCase(calculator, scores, offers, soft, actors,
+        var pairs = new RecomputeFitScoresUseCase(calculator, scores, offers, soft,
                 roleProfileResolver, testResults)
             .pairsForOffer(offerId);
 

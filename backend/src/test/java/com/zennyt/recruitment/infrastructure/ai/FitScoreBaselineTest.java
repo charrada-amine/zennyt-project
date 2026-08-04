@@ -62,7 +62,7 @@ class FitScoreBaselineTest {
     }
 
     private FitScoreResult score(Map<String, Double> modules, JobRoleProfile roleProfile, Integer hardScore) {
-        return calculator.calculate(new FitScoreInputs(modules, "desc", "companyInfo", roleProfile, hardScore, 100));
+        return calculator.calculate(new FitScoreInputs(modules, roleProfile, hardScore, 100));
     }
 
     @Test
@@ -92,7 +92,8 @@ class FitScoreBaselineTest {
             profile(JobProfileType.CONVENTIONNEL, ExperienceLevel.MANAGER), 61);
 
         assertThat(result.softSkillScore()).isEqualTo(75);
-        assertThat(result.score()).isEqualTo(72);
+        // F21 : soft exact 75,47 (et non 75 arrondi) -> 75,47×80 % + 61×20 % = 72,58 -> 73.
+        assertThat(result.score()).isEqualTo(73);
     }
 
     @Test
@@ -167,12 +168,20 @@ class FitScoreBaselineTest {
      * devient alors la totalité du score soft, sans aucune pondération métier.
      */
     @Test
-    @DisplayName("F01 (bug connu) : une clé de module inconnue devient tout le score soft")
-    void cleDeModuleInconnueDevientToutLeScore() {
+    @DisplayName("F01 ✅ corrigé : une clé de module inconnue n'entre plus dans le score")
+    void cleDeModuleInconnueNEntrePlusDansLeScore() {
         JobRoleProfile technique = profile(JobProfileType.TECHNIQUE, ExperienceLevel.SENIOR);
 
-        assertThat(score(Map.of("JEU_PAS_ENCORE_CABLE", 90.0), technique, null).softSkillScore()).isEqualTo(90);
-        assertThat(score(Map.of("JEU_PAS_ENCORE_CABLE", 10.0), technique, null).softSkillScore()).isEqualTo(10);
+        // Avant : le repli moyennait la map entière, clés rejetées comprises, et la
+        // valeur inconnue devenait la totalité du Score_Soft (90 -> 90, 10 -> 10).
+        assertThat(score(Map.of("JEU_PAS_ENCORE_CABLE", 90.0), technique, null)).isNull();
+        assertThat(score(Map.of("JEU_PAS_ENCORE_CABLE", 10.0), technique, null)).isNull();
+
+        // Mélangée à un module connu, elle reste ignorée : seul MOVE_FAST compte.
+        Map<String, Double> melange = new LinkedHashMap<>();
+        melange.put("MOVE_FAST", 40.0);
+        melange.put("JEU_PAS_ENCORE_CABLE", 90.0);
+        assertThat(score(melange, technique, null).softSkillScore()).isEqualTo(40);
     }
 
     /**
@@ -182,15 +191,14 @@ class FitScoreBaselineTest {
      * pour une offre sans métier approuvé.
      */
     @Test
-    @DisplayName("F02 (bug connu) : aucune donnée soft est traitée comme un score de 0")
-    void aucuneDonneeSoftEstTraiteeCommeUnZero() {
+    @DisplayName("F02 ✅ corrigé : aucune donnée soft n'est plus un score de 0")
+    void aucuneDonneeSoftNEstPlusUnZero() {
         JobRoleProfile technique = profile(JobProfileType.TECHNIQUE, ExperienceLevel.SENIOR);
 
-        FitScoreResult result = score(Map.of(), technique, 70);
-
-        assertThat(result).isNotNull();
-        assertThat(result.softSkillScore()).isZero();
-        assertThat(result.score()).isEqualTo(46);   // 0 × 35 % + 70 × 65 %
+        // Avant : softSkillScore=0 persisté comme une mesure, fit=46 (0×35 % + 70×65 %),
+        // servi au recruteur comme si le candidat avait été évalué et avait échoué.
+        assertThat(score(Map.of(), technique, 70)).isNull();
+        assertThat(score(Map.of(), technique, null)).isNull();
     }
 
     @Test

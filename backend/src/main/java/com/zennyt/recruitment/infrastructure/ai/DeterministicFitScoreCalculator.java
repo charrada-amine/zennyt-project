@@ -51,23 +51,32 @@ import java.util.Map;
  */
 public class DeterministicFitScoreCalculator implements FitScoreCalculatorPort {
 
-    /** @return {@code null} si l'offre n'a pas de pondération résolue — rien à écrire. */
+    /**
+     * @return {@code null} si la paire est incalculable — pas de pondération résolue,
+     *         ou aucun module pesant pour ce métier n'a été mesuré (F02). Dans les deux
+     *         cas rien n'est écrit : une absence de donnée n'est pas un score de 0.
+     */
     @Override
     public FitScoreResult calculate(FitScoreInputs inputs) {
         JobRoleProfile roleProfile = inputs.roleProfile();
         if (roleProfile == null) return null;
 
-        int rawSoftScore = bounded(weightedSoftScore(inputs.softSkills(), roleProfile));
+        Double rawSoftScore = weightedSoftScore(inputs.softSkills(), roleProfile);
+        if (rawSoftScore == null) return null;
+
         // Mécanisme 1 (CdC §3.3) : scoreAjusté = score × couverture. Ex. 90×1.0=90, 90×0.4=36.
-        int softScore = bounded(Math.round(rawSoftScore * inputs.coverageRatio() / 100f));
+        // F21 : le soft reste en double jusqu'au blend final. L'arrondir avant faisait
+        // dériver le Fit Score de jusqu'à 0,67 point et le rendait non reproductible
+        // à partir des sous-scores affichés.
+        double softScore = bounded(rawSoftScore * inputs.coverageRatio() / 100d);
 
         boolean hasHardScore = inputs.hardSkillScore() != null;
         int hardWeight = hasHardScore ? roleProfile.hardWeight() : 0;
         int softWeight = 100 - hardWeight;
         int hardScore = hasHardScore ? inputs.hardSkillScore() : 0;
 
-        int score = bounded(Math.round((softScore * softWeight + hardScore * hardWeight) / 100f));
-        return new FitScoreResult(score, softScore);
+        int score = boundedInt(Math.round((softScore * softWeight + hardScore * hardWeight) / 100d));
+        return new FitScoreResult(score, boundedInt(Math.round(softScore)));
     }
 
     /**
@@ -79,7 +88,7 @@ public class DeterministicFitScoreCalculator implements FitScoreCalculatorPort {
      * plutôt que de faire échouer le calcul — même principe défensif que
      * {@code GenerateSoftSkillsSummaryUseCase.MODULE_LABELS.getOrDefault(...)}.
      */
-    private static int weightedSoftScore(Map<String, Double> softSkills, JobRoleProfile profile) {
+    private static Double weightedSoftScore(Map<String, Double> softSkills, JobRoleProfile profile) {
         double weightedSum = 0;
         int weightTotal = 0;
         for (Map.Entry<String, Double> entry : softSkills.entrySet()) {
@@ -89,13 +98,14 @@ public class DeterministicFitScoreCalculator implements FitScoreCalculatorPort {
             weightedSum += entry.getValue() * weight;
             weightTotal += weight;
         }
-        if (weightTotal == 0) {
-            // Aucun module reconnu n'a de poids > 0 dans ce profil (ou aucune donnée
-            // reconnue) : repli sur la moyenne brute plutôt qu'un 0 artificiel.
-            return (int) Math.round(softSkills.values().stream()
-                .mapToDouble(Double::doubleValue).average().orElse(0));
-        }
-        return Math.round((float) (weightedSum / weightTotal));
+        // F01/F02 : aucun module pesant pour ce métier n'a été mesuré. L'ancien repli
+        // moyennait `softSkills.values()` — c'est-à-dire la map ENTIÈRE, y compris les
+        // clés que la boucle venait d'écarter. Une clé inconnue devenait ainsi la
+        // totalité du Score_Soft, sans aucune pondération métier ({FUTUR_JEU: 90} -> 90),
+        // et une map vide produisait un 0 persisté comme une mesure réelle.
+        // Une absence de donnée n'est pas un score : rien n'est calculé ni écrit.
+        if (weightTotal == 0) return null;
+        return weightedSum / weightTotal;
     }
 
     private static int moduleWeight(SoftSkillModule module, JobRoleProfile profile) {
@@ -108,5 +118,7 @@ public class DeterministicFitScoreCalculator implements FitScoreCalculatorPort {
         };
     }
 
-    private int bounded(int value) { return Math.max(0, Math.min(100, value)); }
+    private static double bounded(double value) { return Math.max(0d, Math.min(100d, value)); }
+
+    private static int boundedInt(long value) { return (int) Math.max(0L, Math.min(100L, value)); }
 }

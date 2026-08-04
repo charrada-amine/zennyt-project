@@ -10,6 +10,12 @@ public interface FitScoreCalculatorPort {
     FitScoreResult calculate(FitScoreInputs inputs);
 
     /**
+     * <p>F22 — {@code jobDescription} et {@code companyDescription} ont été retirés.
+     * Vestiges du moteur Groq supprimé, ils n'étaient plus lus par personne mais
+     * coûtaient une lecture BDD par paire côté appelant. Surtout, les garder invitait
+     * à s'en servir : le CdC §2 interdit explicitement que la description textuelle
+     * libre pilote la pondération.
+     *
      * @param roleProfile pondération résolue (profil métier × niveau) — {@code null} si
      *                    l'offre n'est reliée à aucun métier approuvé, auquel cas la paire
      *                    est incalculable (plus de repli IA, voir {@code FitScoreAiConfig})
@@ -17,7 +23,6 @@ public interface FitScoreCalculatorPort {
      * @param coverageRatio taux de couverture des jeux psychométriques (0-100, mécanisme 1 du CdC §3.3)
      */
     record FitScoreInputs(Map<String, Double> softSkills,
-                          String jobDescription, String companyDescription,
                           JobRoleProfile roleProfile, Integer hardSkillScore, int coverageRatio) {
         public FitScoreInputs {
             softSkills = softSkills == null ? Map.of() : Map.copyOf(softSkills);
