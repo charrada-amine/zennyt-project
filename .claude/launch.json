@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "zennyt-mobile-web",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "cd mobile\\zennyt && flutter run -d web-server --web-port=5001"],
+      "port": 5001
+    }
+  ]
+}

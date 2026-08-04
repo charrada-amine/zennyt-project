@@ -60,6 +60,7 @@ dependencies:
   syncfusion_flutter_pdf: ^34.1.30
   pdfrx: ^2.4.7
   flutter_animate: ^4.5.2
+  equatable: ^2.0.5
 dev_dependencies:
   flutter_test:
     sdk: flutter

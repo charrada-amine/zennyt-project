@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/constants/app_strings.dart';
+import '../../../../core/enums/user_role.dart';
 import '../../../../core/theme/theme.dart';
 import '../../../../core/theme/theme_provider.dart';
+import '../../../auth/presentation/current_user_provider.dart';
 import '../viewmodel/nav_tab_provider.dart';
 import 'app_nav_item.dart';
 
@@ -20,6 +22,8 @@ class AppBottomNav extends ConsumerWidget {
     final tab = selectedTab ?? ref.watch(navTabProvider);
     final isDark = ref.watch(themeProvider) == ThemeMode.dark;
     final colors = context.colors;
+    final isRecruiter = ref.watch(currentUserProvider)?.role == UserRole.recruiter;
+    final thirdTabLabel = isRecruiter ? AppStrings.tabCareers : AppStrings.tabProgress;
 
     void select(int i) {
       final overrideSelect = onSelect;
@@ -68,7 +72,7 @@ class AppBottomNav extends ConsumerWidget {
                 ),
               ),
               AppNavItem(
-                label: AppStrings.tabProgress,
+                label: thirdTabLabel,
                 selected: tab == 2,
                 onTap: () => select(2),
                 iconBuilder: (sel) => Image.asset(

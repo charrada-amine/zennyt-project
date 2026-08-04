@@ -1,0 +1,49 @@
+name: progress_careers
+description: Application mobile Progress Careers — Flutter, Clean Architecture (preview Home).
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+  flutter: ">=3.32.0"
+
+# Preview Home : on ne garde que les dépendances réellement utilisées à l'exécution.
+# La chaîne de génération de code (freezed / injectable_generator / json_serializable)
+# et les libs de test (bloc_test / mocktail) de la maquette d'origine entraient en
+# conflit avec le SDK Flutter récent — et ne sont pas nécessaires pour lancer l'app.
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State management
+  flutter_bloc: ^8.1.6
+  bloc: ^8.1.4
+  bloc_concurrency: ^0.2.5
+  equatable: ^2.0.5
+
+  # Injection de dépendances
+  get_it: ^7.7.0
+
+  # Réseau
+  dio: ^5.5.0
+
+  # Programmation fonctionnelle (Either<Failure, T>)
+  dartz: ^0.10.1
+
+  # Navigation
+  go_router: ^14.2.0
+
+  # Cache local (offline-first)
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+
+  # Stockage sécurisé (tokens)
+  flutter_secure_storage: ^9.2.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
