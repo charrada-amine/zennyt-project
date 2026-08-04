@@ -47,6 +47,18 @@ class AppRoutes {
   static const String cvProcessing = '/cv-processing';
   static const String cvReview = '/cv-review';
 
+  static const String searchFilter = '/search-filter';
+
+  // Careers (recruiter job/assessment management)
+  static const String createJob = '/jobs/create';
+  static const String jobDetail = '/jobs/:jobId';
+  static const String editJob = '/jobs/:jobId/edit';
+  static const String jobResults = '/jobs/:jobId/results';
+  static const String createAssessment = '/assessments/create';
+  static const String assessmentDetail = '/assessments/:assessmentId';
+  static const String editAssessment = '/assessments/:assessmentId/edit';
+  static const String selectAssessment = '/assessments/pick';
+
   // Route names (used with context.goNamed / pushNamed).
   static const String nSplash = 'splash';
   static const String nOnboarding = 'onboarding';
@@ -79,4 +91,13 @@ class AppRoutes {
   static const String nCvCameraCapture = 'cvCameraCapture';
   static const String nCvProcessing = 'cvProcessing';
   static const String nCvReview = 'cvReview';
+  static const String nSearchFilter = 'searchFilter';
+  static const String nCreateJob = 'createJob';
+  static const String nJobDetail = 'jobDetail';
+  static const String nEditJob = 'editJob';
+  static const String nJobResults = 'jobResults';
+  static const String nCreateAssessment = 'createAssessment';
+  static const String nAssessmentDetail = 'assessmentDetail';
+  static const String nEditAssessment = 'editAssessment';
+  static const String nSelectAssessment = 'selectAssessment';
 }

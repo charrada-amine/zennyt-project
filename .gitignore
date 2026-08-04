@@ -31,6 +31,12 @@ mobile/**/*.g.dart
 mobile/**/*.freezed.dart
 mobile/coverage/
 
+# Dossiers 100 % generes par la compilation — jamais versionnes.
+# mobile/zennyt/ : 2,6 Go, aucun code source (ni lib/ ni pubspec.yaml).
+# mobile_preview/build/ : 148 Mo. Le code reel de mobile_preview/lib reste suivi.
+mobile/zennyt/
+mobile_preview/build/
+
 # ───────────── IDE ─────────────
 .idea/
 *.iml

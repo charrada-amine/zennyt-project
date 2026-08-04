@@ -33,6 +33,13 @@ import '../../features/splash/presentation/view/splash_screen.dart';
 import '../../features/profile_settings/cv_autofill/presentation/view/cv_camera_capture_screen.dart';
 import '../../features/profile_settings/cv_autofill/presentation/view/cv_processing_screen.dart';
 import '../../features/profile_settings/cv_autofill/presentation/view/cv_review_screen.dart';
+import '../../features/search/presentation/pages/candidate_filter_page.dart';
+import '../../features/jobs/domain/entities/assessment.dart';
+import '../../features/jobs/domain/entities/job.dart';
+import '../../features/jobs/presentation/pages/recruiter/assessments/assessment_detail_page.dart';
+import '../../features/jobs/presentation/pages/recruiter/assessments/create_assessment_page.dart';
+import '../../features/jobs/presentation/pages/recruiter/jobs/create/create_job_offer_page.dart';
+import '../../features/jobs/presentation/pages/recruiter/jobs/create/select_assessment_page.dart';
 import 'app_routes.dart';
 
 /// Routes the user can reach while signed out (onboarding + the whole sign-up
@@ -305,6 +312,63 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const CvReviewScreen(),
       ),
       GoRoute(
+        path: AppRoutes.searchFilter,
+        name: AppRoutes.nSearchFilter,
+        builder: (context, state) => const CandidateFilterPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.createJob,
+        name: AppRoutes.nCreateJob,
+        builder: (context, state) => const CreateJobOfferPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.jobDetail,
+        name: AppRoutes.nJobDetail,
+        builder: (context, state) => _NotYetPortedPage(
+          title: 'Job offer',
+          message: 'The job offer detail page (description, company, assessment tabs) '
+              "hasn't been ported from REC-04 yet.",
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.editJob,
+        name: AppRoutes.nEditJob,
+        builder: (context, state) => CreateJobOfferPage(existingJob: state.extra as JobOffer?),
+      ),
+      GoRoute(
+        path: AppRoutes.jobResults,
+        name: AppRoutes.nJobResults,
+        builder: (context, state) => _NotYetPortedPage(
+          title: 'Results',
+          message: "The hard-skills results page hasn't been ported from REC-04 yet.",
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.createAssessment,
+        name: AppRoutes.nCreateAssessment,
+        builder: (context, state) => const CreateAssessmentPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.assessmentDetail,
+        name: AppRoutes.nAssessmentDetail,
+        builder: (context, state) => AssessmentDetailPage(
+          assessmentId: state.pathParameters['assessmentId']!,
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.editAssessment,
+        name: AppRoutes.nEditAssessment,
+        builder: (context, state) =>
+            CreateAssessmentPage(existingAssessment: state.extra as Assessment?),
+      ),
+      GoRoute(
+        path: AppRoutes.selectAssessment,
+        name: AppRoutes.nSelectAssessment,
+        builder: (context, state) => SelectAssessmentPage(
+          currentSelectedId: state.extra as String?,
+        ),
+      ),
+      GoRoute(
         path: AppRoutes.editProfile,
         name: AppRoutes.nEditProfile,
         pageBuilder: (context, state) {
@@ -461,3 +525,24 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
+/// Placeholder for Careers screens not yet ported from REC-04.
+class _NotYetPortedPage extends StatelessWidget {
+  const _NotYetPortedPage({required this.title, required this.message});
+
+  final String title;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(title)),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Text(message, textAlign: TextAlign.center),
+        ),
+      ),
+    );
+  }
+}

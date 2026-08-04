@@ -100,7 +100,10 @@ class AppStrings {
   // --- Home feed / bottom navigation ---
   static const String tabHome = 'Home';
   static const String tabFits = 'Fits';
-  static const String tabProgress = 'Careers';
+  // 3rd tab label depends on role: candidate/student see their cognitive-games
+  // progress; recruiter sees their job/assessment management hub ("Careers").
+  static const String tabProgress = 'Progress';
+  static const String tabCareers = 'Careers';
   static const String tabSearch = 'Search';
   static const String tabNotifications = 'Notifications';
   static const String newProject = 'New Project';
