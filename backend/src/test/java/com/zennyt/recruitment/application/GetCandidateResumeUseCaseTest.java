@@ -3,11 +3,15 @@ package com.zennyt.recruitment.application;
 import com.zennyt.recruitment.application.usecase.GetCandidateResumeUseCase;
 import com.zennyt.recruitment.domain.model.HardSkillsSummary;
 import com.zennyt.recruitment.domain.model.JobOffer;
+import com.zennyt.recruitment.domain.model.JobRoleProfile;
 import com.zennyt.recruitment.domain.model.SoftSkillsSummary;
 import com.zennyt.recruitment.domain.repository.HardSkillsSummaryRepository;
 import com.zennyt.recruitment.domain.repository.JobOfferRepository;
 import com.zennyt.recruitment.domain.repository.SoftSkillsSummaryRepository;
 import com.zennyt.recruitment.domain.repository.TestResultRepository;
+import com.zennyt.recruitment.domain.vo.ExperienceLevel;
+import com.zennyt.recruitment.domain.vo.JobProfileType;
+import com.zennyt.recruitment.domain.vo.TypeEvaluationHard;
 import com.zennyt.shared.application.exception.ForbiddenException;
 import com.zennyt.shared.application.exception.NotFoundException;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,6 +36,8 @@ class GetCandidateResumeUseCaseTest {
     private TestResultRepository testResults;
     private SoftSkillsSummaryRepository softSkillsSummaries;
     private HardSkillsSummaryRepository hardSkillsSummaries;
+    private JobRoleProfileResolver roleProfileResolver;
+    private JobOffer offer;
     private GetCandidateResumeUseCase useCase;
 
     @BeforeEach
@@ -40,14 +46,18 @@ class GetCandidateResumeUseCaseTest {
         testResults = mock(TestResultRepository.class);
         softSkillsSummaries = mock(SoftSkillsSummaryRepository.class);
         hardSkillsSummaries = mock(HardSkillsSummaryRepository.class);
-        useCase = new GetCandidateResumeUseCase(jobOffers, testResults, softSkillsSummaries, hardSkillsSummaries);
+        roleProfileResolver = mock(JobRoleProfileResolver.class);
+        useCase = new GetCandidateResumeUseCase(jobOffers, testResults, softSkillsSummaries,
+            hardSkillsSummaries, roleProfileResolver);
 
-        JobOffer offer = mock(JobOffer.class);
+        offer = mock(JobOffer.class);
         when(offer.recruiterId()).thenReturn(RECRUITER);
         when(jobOffers.findById(OFFER_ID)).thenReturn(Optional.of(offer));
         when(testResults.existsByCandidateIdAndJobOfferId(CANDIDATE, OFFER_ID)).thenReturn(false);
         when(softSkillsSummaries.findByCandidateId(CANDIDATE)).thenReturn(Optional.empty());
         when(hardSkillsSummaries.findByCandidateIdAndJobOfferId(CANDIDATE, OFFER_ID)).thenReturn(Optional.empty());
+        // roleProfileResolver.resolve(offer) defaults to null (unstubbed mock) — same as
+        // today's "no role profile resolved" case, preserving the existing fallbacks below.
     }
 
     @Test
@@ -97,6 +107,28 @@ class GetCandidateResumeUseCaseTest {
         assertThat(result.hardSkills().available()).isFalse();
         assertThat(result.hardSkills().textEn())
             .isEqualTo(GetCandidateResumeUseCase.HARD_SKILLS_PENDING_EN);
+    }
+
+    /**
+     * F18 (FITSCORE_REMEDIATION.md §3 index F18, décision D-F) — pour un métier
+     * ARTISTIQUE évalué uniquement par Portfolio, le recruteur ne doit jamais
+     * voir "un test doit être passé" (faux — aucun QCM n'est prévu pour ce
+     * profil) : le message explicite l'emporte sur les replis "not tested"/
+     * "pending", même si aucun test n'a jamais été tenté.
+     */
+    @Test
+    void artistiquePortfolioOnlyProfileYieldsExplicitDisclaimerInsteadOfNotTested() {
+        JobRoleProfile portfolioProfile = new JobRoleProfile(JobProfileType.ARTISTIQUE, ExperienceLevel.SENIOR,
+            45, 55, 55, 40, 15, 15, 15, 15, TypeEvaluationHard.PORTFOLIO, false, Instant.now());
+        when(roleProfileResolver.resolve(offer)).thenReturn(portfolioProfile);
+
+        var result = useCase.execute(CANDIDATE, OFFER_ID, RECRUITER);
+
+        assertThat(result.hardSkills().available()).isFalse();
+        assertThat(result.hardSkills().textFr())
+            .isEqualTo(GetCandidateResumeUseCase.HARD_SKILLS_PORTFOLIO_ONLY_FR);
+        assertThat(result.hardSkills().textEn())
+            .isEqualTo(GetCandidateResumeUseCase.HARD_SKILLS_PORTFOLIO_ONLY_EN);
     }
 
     @Test
