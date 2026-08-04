@@ -29,6 +29,21 @@ fichiers, et Flyway refuse de démarrer sur un doublon de version. Personne ne s
 parce que les deux branches fonctionnaient séparément. Les migrations des jeux sont désormais
 en **V49, V50, V51** (commit `608187e`).
 
+> ### ⚠️ Piège au premier démarrage après un `git pull`
+>
+> Maven **copie** les fichiers de migration vers `backend/target/classes/db/migration/` mais ne
+> supprime jamais ceux qui ont disparu des sources. Après avoir récupéré la renumérotation,
+> votre `target/` contient encore les anciens `V24/V25/V26__games_*.sql` **à côté** des nouveaux
+> `V49/V50/V51` — et Flyway lit `target/`, pas les sources. Vous obtenez donc
+> `Found more than one migration with version 24` alors que le dépôt est correct.
+>
+> **La commande à lancer une fois, après le pull :**
+> ```
+> cd backend && mvnw.cmd clean && mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=dev
+> ```
+> Le profil `dev` est obligatoire (c'est lui qui porte l'URL de la base). Il faut aussi une base
+> `zennyt` sur `localhost:5432` : `CREATE DATABASE zennyt;` si elle n'existe pas.
+
 ### 2. F03 est FAITE — le plus gros constat de l'audit tombe
 
 `GameType.EMOTIONAL_REGULATION` existe, avec deux mini-jeux jouables
