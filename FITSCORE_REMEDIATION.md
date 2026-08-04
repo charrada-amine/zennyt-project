@@ -1,11 +1,70 @@
 # Fit Score v3 — Plan de remédiation à deux
 
 Audit complet du CdC `fit_score/Zennyt_Cahier_des_charges_FitScore_v3.md` (§1 à §10) et de la
-matrice `fit_score/00-README.md` … `16-prochaines-etapes.md` contre le code au
-**2026-08-03**, branche `integration-with-engagement`.
+matrice `fit_score/00-README.md` … `16-prochaines-etapes.md`.
 
 Chaque constat a été vérifié dans le code. Les calculs ont été rejoués en exécutant le vrai
 `DeterministicFitScoreCalculator` compilé depuis les sources (voir §7 Vérification).
+
+---
+
+## 🔄 Mise à jour du 2026-08-04 — après la fusion du travail Games
+
+**L'audit initial (2026-08-03) a été mené sur `integration-with-engagement`, qui ne contenait
+pas le travail de l'équipe Games.** La branche `main` (commit `608187e`) réunit désormais tout.
+Trois conséquences :
+
+### 1. Un blocage majeur a été trouvé et réparé
+
+`amine/main` **ne démarrait pas**. Trois migrations Flyway portaient un numéro déjà pris :
+
+| Numéro | Référentiel métiers | Jeux |
+|---|---|---|
+| V24 | `experience_level_bands` | `games_decision_minigame` |
+| V25 | `job_positions_table` | `games_emotional_radar` |
+| V26 | `job_positions_seed` | `games_reflective_pause_minigame` |
+
+Chaque équipe avait pris la même plage de son côté ; la fusion a gardé les deux jeux de
+fichiers, et Flyway refuse de démarrer sur un doublon de version. Personne ne s'en était aperçu
+parce que les deux branches fonctionnaient séparément. Les migrations des jeux sont désormais
+en **V49, V50, V51** (commit `608187e`).
+
+### 2. F03 est FAITE — le plus gros constat de l'audit tombe
+
+`GameType.EMOTIONAL_REGULATION` existe, avec deux mini-jeux jouables
+(`EMOTIONAL_RADAR_CORE`, `REFLECTIVE_PAUSE_CORE`). La chaîne est complète de bout en bout :
+Games émet → `GameSoftSkillsListener` → `SoftSkillModule.fromGamesModule` → pondération.
+
+**Effet mesuré** (candidat identique, niveau MID, régulation émotionnelle faible) :
+
+| Profil | 5 modules (cible) | Avant fusion (3 mod.) | Après fusion (4 mod.) |
+|---|---|---|---|
+| RELATIONNEL | 38 | 61 (**+23**) | **38 (+0)** ✅ |
+| MANAGERIAL | 45 | 62 (+17) | 46 (+1) |
+| ANALYTIQUE | 50 | 60 (+10) | 54 (+4) |
+| ARTISTIQUE | 51 | 60 (+9) | 53 (+2) |
+| TECHNIQUE | 52 | 60 (+8) | 57 (+5) |
+| CONVENTIONNEL | 53 | 60 (+7) | 55 (+2) |
+
+Les deux infirmières qui obtenaient **le même 61** obtiennent maintenant **80** et **38**. La
+dimension qui définit leur métier est enfin mesurée.
+
+**Il reste un seul module inatteignable : `DECISION`** (`DECISION_CORE.playable() == false`,
+catalogue de scénarios vide — `EmptyDecisionScenarioCatalog`). L'erreur résiduelle maximale
+tombe de **+23 à +5 points**.
+
+### 3. Deux corrections au tableau des constats
+
+| ID | Nouveau statut |
+|---|---|
+| **F03** | ✅ **FAITE** côté Games. Ne reste qu'à vérifier en bout de chaîne qu'un score de régulation remonte bien jusqu'au Fit Score |
+| **F27** | ❌ **N'est pas un bug** sur `main` : `MiniGame.DECISION_CORE` existe bien, le javadoc de `SoftSkillModule` est exact |
+
+**Plages de migration mises à jour** (V49-V51 sont prises par les jeux) :
+Phase 0 = **V52-V54** · Track A = **V55-V58** · Track B = **V59-V62**.
+
+**Baseline §7 à rejouer.** Les chiffres du §7 datent d'avant la fusion. Relancez le harnais sur
+`main` avant de commencer : ils vont bouger, surtout sur les profils RELATIONNEL.
 
 ---
 
@@ -96,7 +155,7 @@ Sévérité = impact sur la justesse d'un score affiché à un recruteur, pas di
 |---|---|---|---|---|---|
 | **F01** | Une clé de module inconnue devient **tout** le score soft, sans pondération | §1 | `DeterministicFitScoreCalculator.java:92-97` | A | S |
 | **F02** | Aucune donnée soft ⇒ `softSkillScore = 0` persisté comme une mesure | §1 | `DeterministicFitScoreCalculator.java:95` | A | S |
-| **F03** | `EMOTIONAL_REGULATION` inatteignable : aucun `GameType` ne l'émet | §2 | `games/domain/vo/GameType.java` | A | M |
+| ~~**F03**~~ | ~~`EMOTIONAL_REGULATION` inatteignable~~ → ✅ **FAITE**, livrée par Games, présente sur `main` depuis `608187e` | §2 | — | — | ✅ |
 | **F04** | Seuil `partialData` piloté par « le candidat a passé le test » au lieu de « l'offre a un QCM » | §1 §2 | `FitScore.java:87` | P0→A | S |
 | **F05** | Niveaux d'alerte faux sur **12 lignes / 24** ; tous les `EXECUTIVE` en INFO ; TECHNIQUE/JUNIOR en MODERATE (bord `< 35`) | §6 | `JobRoleProfile.java:44-50` | B | M |
 | **F06** | Le client mobile n'envoie pas `jobPositionId` ⇒ **création d'offre impossible** | §9 | `mobile/…/jobs_repository_impl.dart:36` | B | S |
@@ -137,7 +196,7 @@ Sévérité = impact sur la justesse d'un score affiché à un recruteur, pas di
 | **F24** | Mobile envoie `assessmentId` au POST — silencieusement ignoré | §9 | `mobile/…/jobs_repository_impl.dart` | B | S |
 | **F25** | `uq_job_positions_name_sector` : `NULL` distincts en Postgres ⇒ les 9 métiers transverses ne sont pas protégés des doublons | §3 | `V25__job_positions_table.sql` | B | S |
 | **F26** | Fichier mort `FitScoreEntity.java.tmp.30472.…` dans les sources (un `git add .` committerait une `@Entity` dupliquée) | §8 | `infrastructure/persistence/` | P0 | XS |
-| **F27** | Javadoc `SoftSkillModule:13` cite `MiniGame.DECISION_CORE` — **cette constante n'existe pas** | §2 | `SoftSkillModule.java` | A | XS |
+| ~~**F27**~~ | ~~Javadoc cite une constante inexistante~~ → ❌ **pas un bug** sur `main` : `DECISION_CORE` existe bien | §2 | — | — | ✅ |
 | **F28** | Aucun test n'assure la forme de la courbe (pic au niveau du hard max, décroissance, 24 lignes présentes) | §4 | `JobRoleProfileTest.java` | B | S |
 | **F29** | « Le mode soft-only est un mode standard, pas dégradé » (§10 #8) : aucun texte nulle part | §10 | contrat + `mobile/**` | B | S |
 | **F30** | `GET /job-role-profiles` construit pour le préremplissage des curseurs — **zéro consommateur** | §9 | `mobile/**` | B | M |
