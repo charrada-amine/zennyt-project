@@ -106,9 +106,23 @@ Nouveau paquet `recruitment/domain` :
 ## Hors périmètre v1 (différé, à re-planifier après l'atelier RH)
 
 - `company_profile` (niveau 2 d'héritage) — D6.
+- **`offer.overrides` (niveau 3 d'héritage) — décision D-E du 2026-08-04.**
+  Ajouté rétroactivement : ce niveau ne figurait **dans aucune décision écrite**.
+  Il n'avait pas été différé, il avait été oublié — l'audit
+  (`FITSCORE_REMEDIATION.md` §5) l'a relevé. Le CdC §8.3 le prévoit explicitement
+  (« offer — porte un champ optionnel overrides »), et §9 en fait un geste
+  recruteur (« ajuster manuellement les curseurs de pondération avant
+  publication »). Reporté au même titre que le niveau 2, et pour la même raison :
+  le niveau 1 seul produit déjà un score cohérent.
+  Point non tranché par le CdC lui-même, à régler avant de le planifier : quand un
+  override ajoute « +5 % sur la Régulation émotionnelle », **d'où viennent ces 5
+  points ?** Les deux sommes doivent rester à 100 % (contraintes `CHECK` en base) ;
+  aucune règle de renormalisation n'est donnée.
 - Évaluation Portfolio/Mixte du profil Artistique + grille structurée.
-- Versioning/audit des profils de pondération (CdC §10) — prévoir simplement
-  `updated_at` + `calibrated` dès la V20 pour ne pas se fermer la porte.
+- ~~Versioning/audit des profils de pondération (CdC §10) — prévoir simplement
+  `updated_at` + `calibrated` dès la V20~~ → **`updated_at` livré le 2026-08-04**
+  (migration V52, tâche F11). L'engagement pris ici n'avait été tenu qu'à moitié :
+  seul `calibrated` existait. C'est le prérequis du balayage de péremption (F12).
 - QCM décliné par niveau (CdC §10, point ouvert).
 
 ## Ordre d'exécution & estimation

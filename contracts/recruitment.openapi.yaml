@@ -1227,7 +1227,14 @@ components:
 
     ExperienceLevel:
       type: string
-      enum: [JUNIOR, MID, SENIOR, EXECUTIVE]
+      description: >
+        Les 4 bandes de la matrice de pondération Fit Score (CdC v3 §4.1).
+        CHANGEMENT CASSANT du 2026-08-04 (décision D-A, tâche F31) : retour à
+        l'échelle du CdC. Anciennes valeurs -> nouvelles : MID -> SENIOR,
+        SENIOR -> LEAD, EXECUTIVE -> MANAGER, JUNIOR inchangé. Le pic du poids
+        hard skills est désormais bien porté par SENIOR, conforme au §4.1
+        (« Senior / Expert : hard skills dominant »).
+      enum: [JUNIOR, SENIOR, LEAD, MANAGER]
 
     JobProfileType:
       type: string
@@ -1249,9 +1256,9 @@ components:
         status: { $ref: '#/components/schemas/JobPositionStatus' }
         levelLabels:
           type: object
-          description: Libellé affiché par niveau (défauts Junior/Mid/Senior/Executive sauf métiers avec intitulé usuel)
+          description: Libellé affiché par niveau (défauts Junior/Senior/Lead/Manager sauf métiers avec intitulé usuel)
           additionalProperties: { type: string }
-          example: { JUNIOR: "Apprenti / Ouvrier débutant", MID: "Compagnon confirmé", SENIOR: "Chef d'équipe", EXECUTIVE: "Chef de chantier" }
+          example: { JUNIOR: "Apprenti / Ouvrier débutant", SENIOR: "Compagnon confirmé", LEAD: "Chef d'équipe", MANAGER: "Chef de chantier" }
         createdAt: { type: string, format: date-time }
         suggestedProfileType:
           allOf: [{ $ref: '#/components/schemas/JobProfileType' }]

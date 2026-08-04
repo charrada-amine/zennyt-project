@@ -52,7 +52,7 @@ class CreateJobOfferUseCaseTest {
 
     private CreateJobOfferUseCase.Command command(UUID jobPositionId) {
         return new CreateJobOfferUseCase.Command("Développeur", new Location("Tunis", "TN"),
-            40000.0, 70000.0, ContractType.FULL_TIME, WorkplaceType.REMOTE, ExperienceLevel.MID,
+            40000.0, 70000.0, ContractType.FULL_TIME, WorkplaceType.REMOTE, ExperienceLevel.SENIOR,
             "desc", "resp", "min", "pref", "offer", "apply", null, jobPositionId, false);
     }
 

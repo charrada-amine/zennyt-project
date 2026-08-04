@@ -128,7 +128,7 @@ class CandidateFeedRankerTest {
     private JobOffer offer(UUID id, ContractType contractType, WorkplaceType workplaceType) {
         Instant now = Instant.now();
         return JobOffer.rehydrate(id, RECRUITER, null, "Développeur", new Location("Tunis", "TN"),
-            40000.0, 70000.0, contractType, workplaceType, ExperienceLevel.MID,
+            40000.0, 70000.0, contractType, workplaceType, ExperienceLevel.SENIOR,
             "desc", "resp", "min", "pref", "offer", "apply",
             null, null, false, JobOfferStatus.ACTIVE, now, now);
     }
@@ -136,7 +136,7 @@ class CandidateFeedRankerTest {
     private JobOffer offerWithPosition(UUID id, UUID jobPositionId) {
         Instant now = Instant.now();
         return JobOffer.rehydrate(id, RECRUITER, null, "Développeur", new Location("Tunis", "TN"),
-            40000.0, 70000.0, ContractType.FULL_TIME, WorkplaceType.REMOTE, ExperienceLevel.MID,
+            40000.0, 70000.0, ContractType.FULL_TIME, WorkplaceType.REMOTE, ExperienceLevel.SENIOR,
             "desc", "resp", "min", "pref", "offer", "apply",
             null, jobPositionId, false, JobOfferStatus.ACTIVE, now, now);
     }

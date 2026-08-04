@@ -136,6 +136,10 @@ public class JobOfferController {
             Principal principal) {
         var result = swipeDeck.recruiterCandidates(
             UUID.fromString(principal.getName()), jobOfferId, page, size);
+        // F04 : le seuil de couverture dépend de la présence d'un QCM sur l'OFFRE,
+        // pas de la tentative du candidat. Lu une seule fois pour tout le lot.
+        boolean offerHasAssessment = jobOfferRepository.findById(jobOfferId)
+            .map(o -> o.assessmentId() != null).orElse(false);
         var items = result.content().stream().map(score -> {
             var actor = actors.findById(score.candidateId());
             return new CandidateFeedItemResponse(score.candidateId(),
@@ -144,7 +148,7 @@ public class JobOfferController {
                 actor.map(a -> a.city()).orElse(null),
                 actor.map(a -> a.country()).orElse(null),
                 score.score(), score.goodFit(), score.softSkillScore(),
-                score.hardSkillScore(), score.partialData());
+                score.hardSkillScore(), score.partialData(offerHasAssessment));
         }).toList();
         return ResponseEntity.ok(PageResponse.of(items, page, size, result.totalElements()));
     }

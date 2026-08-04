@@ -17,7 +17,8 @@ public record JobRoleProfile(JobProfileType profileType, ExperienceLevel level,
                              int cognitiveFlexibilityWeight, int workingMemoryWeight,
                              int decisionMakingWeight, int executivePlanningWeight,
                              int emotionalRegulationWeight,
-                             TypeEvaluationHard typeEvaluationHard, boolean calibrated) {
+                             TypeEvaluationHard typeEvaluationHard, boolean calibrated,
+                             java.time.Instant updatedAt) {
     public JobRoleProfile {
         if (profileType == null) throw new IllegalArgumentException("Le profil métier est obligatoire");
         if (level == null) throw new IllegalArgumentException("Le niveau est obligatoire");

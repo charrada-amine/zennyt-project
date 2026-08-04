@@ -57,7 +57,7 @@ public record JobOfferResponse(
             fitScore != null ? fitScore.goodFit() : null,
             fitScore != null ? fitScore.softSkillScore() : null,
             fitScore != null ? fitScore.hardSkillScore() : null,
-            fitScore != null ? fitScore.partialData() : null,
+            fitScore != null ? fitScore.partialData(o.assessmentId() != null) : null,
             hardSkillsAlert,
             o.postedAt(), o.updatedAt()
         );

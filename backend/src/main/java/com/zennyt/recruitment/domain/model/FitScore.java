@@ -82,9 +82,20 @@ public class FitScore {
      * n'ajuste pas le score, déclenche seulement une décision d'affichage
      * (badge côté client). Seuil renforcé à 70 % sans QCM hard skills (pas de
      * dimension hard pour compenser l'incertitude), 60 % avec QCM.
+     *
+     * <p><b>Correctif F04 (2026-08-04)</b> — le seuil se choisissait auparavant
+     * sur {@code hardSkillScore != null}, c'est-à-dire « <i>ce candidat</i> a
+     * terminé le test ». Le CdC §3.3 distingue pourtant « offre <b>avec</b> QCM »
+     * de « offre <b>sans</b> QCM » : un candidat qui n'a pas encore passé un QCM
+     * pourtant attaché à l'offre était jugé au seuil renforcé de 70 %, alors que
+     * l'offre porte bien une dimension hard capable de compenser l'incertitude.
+     *
+     * @param offerHasAssessment {@code true} si l'offre porte un QCM
+     *                           ({@code JobOffer.assessmentId() != null}) —
+     *                           propriété de l'offre, jamais de la tentative
      */
-    public boolean partialData() {
-        int threshold = hardSkillScore != null
+    public boolean partialData(boolean offerHasAssessment) {
+        int threshold = offerHasAssessment
             ? FitScorePolicy.COVERAGE_THRESHOLD_WITH_HARD_SKILLS
             : FitScorePolicy.COVERAGE_THRESHOLD_SOFT_ONLY;
         return coverageRatio < threshold;

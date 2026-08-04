@@ -65,6 +65,8 @@ class JobPositionTest {
 
         assertThat(position.levelLabel(ExperienceLevel.JUNIOR)).isEqualTo("Junior");
         assertThat(position.levelLabel(ExperienceLevel.SENIOR)).isEqualTo("Senior");
+        assertThat(position.levelLabel(ExperienceLevel.LEAD)).isEqualTo("Lead");
+        assertThat(position.levelLabel(ExperienceLevel.MANAGER)).isEqualTo("Manager");
     }
 
     @Test
@@ -75,6 +77,6 @@ class JobPositionTest {
             null, null);
 
         assertThat(position.levelLabel(ExperienceLevel.JUNIOR)).isEqualTo("Apprenti / Ouvrier débutant");
-        assertThat(position.levelLabel(ExperienceLevel.EXECUTIVE)).isEqualTo("Chef de chantier");
+        assertThat(position.levelLabel(ExperienceLevel.MANAGER)).isEqualTo("Chef de chantier");
     }
 }

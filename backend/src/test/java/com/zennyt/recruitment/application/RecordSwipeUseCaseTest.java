@@ -178,7 +178,7 @@ class RecordSwipeUseCaseTest {
         Instant now = Instant.now();
         JobOffer draftOffer = JobOffer.rehydrate(OFFER, RECRUITER, null, "Senior Backend Engineer",
             new Location("Tunis", "TN"), 40000.0, 70000.0,
-            ContractType.FULL_TIME, WorkplaceType.REMOTE, ExperienceLevel.MID,
+            ContractType.FULL_TIME, WorkplaceType.REMOTE, ExperienceLevel.SENIOR,
             "desc", "resp", "min", "pref", "offer", "apply",
             null, null, false, JobOfferStatus.DRAFT, now, now);
         when(jobOfferRepository.findById(OFFER)).thenReturn(Optional.of(draftOffer));
@@ -191,7 +191,7 @@ class RecordSwipeUseCaseTest {
         Instant now = Instant.now();
         return JobOffer.rehydrate(id, RECRUITER, null, "Senior Backend Engineer",
             new Location("Tunis", "TN"), 40000.0, 70000.0,
-            ContractType.FULL_TIME, WorkplaceType.REMOTE, ExperienceLevel.MID,
+            ContractType.FULL_TIME, WorkplaceType.REMOTE, ExperienceLevel.SENIOR,
             "desc", "resp", "min", "pref", "offer", "apply",
             null, null, false, JobOfferStatus.ACTIVE, now, now);
     }

@@ -101,7 +101,7 @@ public class DevDataSeeder implements CommandLineRunner {
         // L'offre 1 est liée à l'évaluation de démo (assessmentId non null).
         JobOffer offer1 = activeOffer(OFFER_1, "Senior Backend Engineer",
             "Conception et développement de microservices Java/Spring.",
-            ContractType.FULL_TIME, WorkplaceType.REMOTE, ExperienceLevel.MID, "Tunis",
+            ContractType.FULL_TIME, WorkplaceType.REMOTE, ExperienceLevel.SENIOR, "Tunis",
             positionOf(JobProfileType.TECHNIQUE));
         offer1.assignAssessment(ASSESSMENT_1);
         jobOfferRepository.save(offer1);
@@ -113,7 +113,7 @@ public class DevDataSeeder implements CommandLineRunner {
         // Bruno 51/54 (offre étrangère → 403), comme le seed REC-04 d'origine.
         jobOfferRepository.save(activeOffer(OFFER_3, RECRUITER_2, "Engineering Manager",
             "Encadrement d'une squad produit de 6 personnes.",
-            ContractType.FULL_TIME, WorkplaceType.ON_SITE, ExperienceLevel.EXECUTIVE, "Lyon",
+            ContractType.FULL_TIME, WorkplaceType.ON_SITE, ExperienceLevel.MANAGER, "Lyon",
             positionOf(JobProfileType.MANAGERIAL)));
 
         assessmentRepository.save(Assessment.rehydrate(ASSESSMENT_1, RECRUITER,

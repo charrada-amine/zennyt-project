@@ -49,8 +49,8 @@ class RecomputeFitScoresUseCaseBatchTest {
     private final JobOffer offreNonResolue = offer(UUID.randomUUID(), RECRUTEUR_SANS_INFO, null);
 
     private static final JobRoleProfile PONDERATION = new JobRoleProfile(
-        JobProfileType.TECHNIQUE, ExperienceLevel.MID, 35, 65, 65, 30, 20, 30, 15, 5,
-        TypeEvaluationHard.QCM, false);
+        JobProfileType.TECHNIQUE, ExperienceLevel.SENIOR, 35, 65, 65, 30, 20, 30, 15, 5,
+        TypeEvaluationHard.QCM, false, java.time.Instant.now());
 
     private final List<SoftSkillsProjection> modules = List.of(
         SoftSkillsProjection.create(CANDIDATE_COMPLET, "MOVE_FAST", 80, Instant.now()),
@@ -214,7 +214,7 @@ class RecomputeFitScoresUseCaseBatchTest {
         Instant now = Instant.now();
         return JobOffer.rehydrate(id, recruiterId, null, "Développeur",
             new Location("Tunis", "TN"), 40000.0, 70000.0,
-            ContractType.FULL_TIME, WorkplaceType.REMOTE, ExperienceLevel.MID,
+            ContractType.FULL_TIME, WorkplaceType.REMOTE, ExperienceLevel.SENIOR,
             "desc", "resp", "min", "pref", "offer", "apply",
             null, jobPositionId, false, JobOfferStatus.ACTIVE, now, now);
     }

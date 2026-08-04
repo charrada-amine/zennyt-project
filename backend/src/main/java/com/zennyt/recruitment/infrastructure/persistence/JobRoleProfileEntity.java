@@ -10,6 +10,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @Entity
@@ -29,6 +30,8 @@ public class JobRoleProfileEntity {
     @Enumerated(EnumType.STRING) @Column(name = "type_evaluation_hard", nullable = false)
     private TypeEvaluationHard typeEvaluationHard;
     @Column(nullable = false) private boolean calibrated;
+    /** F11 — horodatage du referentiel, prerequis du balayage de peremption (F12). */
+    @Column(name = "updated_at", nullable = false) private Instant updatedAt;
 
     protected JobRoleProfileEntity() {}
 
@@ -37,7 +40,7 @@ public class JobRoleProfileEntity {
                                 int cognitiveFlexibilityWeight, int workingMemoryWeight,
                                 int decisionMakingWeight, int executivePlanningWeight,
                                 int emotionalRegulationWeight, TypeEvaluationHard typeEvaluationHard,
-                                boolean calibrated) {
+                                boolean calibrated, Instant updatedAt) {
         this.id = id;
         this.profileType = profileType;
         this.level = level;
@@ -51,6 +54,7 @@ public class JobRoleProfileEntity {
         this.emotionalRegulationWeight = emotionalRegulationWeight;
         this.typeEvaluationHard = typeEvaluationHard;
         this.calibrated = calibrated;
+        this.updatedAt = updatedAt;
     }
 
     public UUID getId() { return id; }
@@ -66,4 +70,5 @@ public class JobRoleProfileEntity {
     public int getEmotionalRegulationWeight() { return emotionalRegulationWeight; }
     public TypeEvaluationHard getTypeEvaluationHard() { return typeEvaluationHard; }
     public boolean isCalibrated() { return calibrated; }
+    public Instant getUpdatedAt() { return updatedAt; }
 }

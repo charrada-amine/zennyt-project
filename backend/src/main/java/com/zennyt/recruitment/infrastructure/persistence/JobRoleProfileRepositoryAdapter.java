@@ -31,6 +31,6 @@ public class JobRoleProfileRepositoryAdapter implements JobRoleProfileRepository
         return new JobRoleProfile(e.getProfileType(), e.getLevel(), e.getSoftWeight(), e.getHardWeight(),
             e.getExpectedHardWeight(), e.getCognitiveFlexibilityWeight(), e.getWorkingMemoryWeight(),
             e.getDecisionMakingWeight(), e.getExecutivePlanningWeight(), e.getEmotionalRegulationWeight(),
-            e.getTypeEvaluationHard(), e.isCalibrated());
+            e.getTypeEvaluationHard(), e.isCalibrated(), e.getUpdatedAt());
     }
 }

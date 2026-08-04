@@ -46,11 +46,17 @@ enum WorkplaceType {
   }
 }
 
+/// Les 4 bandes de la matrice de pondération Fit Score (CdC v3 §4.1).
+///
+/// Changement cassant du 2026-08-04 (décision D-A, tâche F31) : retour à
+/// l'échelle du cahier des charges. MID -> SENIOR, SENIOR -> LEAD,
+/// EXECUTIVE -> MANAGER. Le pic du poids hard skills est désormais porté par
+/// SENIOR, comme le prévoit le CdC.
 enum ExperienceLevel {
   junior('JUNIOR'),
-  mid('MID'),
   senior('SENIOR'),
-  executive('EXECUTIVE');
+  lead('LEAD'),
+  manager('MANAGER');
 
   final String value;
   const ExperienceLevel(this.value);
@@ -61,9 +67,9 @@ enum ExperienceLevel {
   String get label {
     switch (this) {
       case ExperienceLevel.junior: return 'Junior';
-      case ExperienceLevel.mid: return 'Mid';
       case ExperienceLevel.senior: return 'Senior';
-      case ExperienceLevel.executive: return 'Executive';
+      case ExperienceLevel.lead: return 'Lead';
+      case ExperienceLevel.manager: return 'Manager';
     }
   }
 }

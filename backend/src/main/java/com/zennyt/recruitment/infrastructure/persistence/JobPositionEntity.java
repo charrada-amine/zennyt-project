@@ -23,9 +23,9 @@ public class JobPositionEntity {
     @Enumerated(EnumType.STRING) @Column(nullable = false) private JobPositionStatus status;
     private UUID proposedByRecruiterId;
     private String juniorLabel;
-    private String midLabel;
     private String seniorLabel;
-    private String executiveLabel;
+    private String leadLabel;
+    private String managerLabel;
     @Column(nullable = false) private Instant createdAt;
     @Column(columnDefinition = "TEXT") private String embedding;
     @Enumerated(EnumType.STRING) private JobProfileType suggestedProfileType;
@@ -34,7 +34,7 @@ public class JobPositionEntity {
 
     JobPositionEntity(UUID id, String name, String sector, JobProfileType profileType,
                       boolean calibrated, JobPositionStatus status, UUID proposedByRecruiterId,
-                      String juniorLabel, String midLabel, String seniorLabel, String executiveLabel,
+                      String juniorLabel, String seniorLabel, String leadLabel, String managerLabel,
                       Instant createdAt, String embedding, JobProfileType suggestedProfileType) {
         this.id = id;
         this.name = name;
@@ -44,9 +44,9 @@ public class JobPositionEntity {
         this.status = status;
         this.proposedByRecruiterId = proposedByRecruiterId;
         this.juniorLabel = juniorLabel;
-        this.midLabel = midLabel;
         this.seniorLabel = seniorLabel;
-        this.executiveLabel = executiveLabel;
+        this.leadLabel = leadLabel;
+        this.managerLabel = managerLabel;
         this.createdAt = createdAt;
         this.embedding = embedding;
         this.suggestedProfileType = suggestedProfileType;
@@ -60,9 +60,9 @@ public class JobPositionEntity {
     public JobPositionStatus getStatus() { return status; }
     public UUID getProposedByRecruiterId() { return proposedByRecruiterId; }
     public String getJuniorLabel() { return juniorLabel; }
-    public String getMidLabel() { return midLabel; }
     public String getSeniorLabel() { return seniorLabel; }
-    public String getExecutiveLabel() { return executiveLabel; }
+    public String getLeadLabel() { return leadLabel; }
+    public String getManagerLabel() { return managerLabel; }
     public Instant getCreatedAt() { return createdAt; }
     public String getEmbedding() { return embedding; }
     public JobProfileType getSuggestedProfileType() { return suggestedProfileType; }

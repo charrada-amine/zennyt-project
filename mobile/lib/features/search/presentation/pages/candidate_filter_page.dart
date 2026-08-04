@@ -24,7 +24,7 @@ class _CandidateFilterPageState extends ConsumerState<CandidateFilterPage> {
     'On-site': 'ON_SITE', 'Hybrid': 'HYBRID', 'Remote': 'REMOTE', 'Flexible': 'FLEXIBLE',
   };
   static const _levelWire = {
-    'Junior': 'JUNIOR', 'Mid': 'MID', 'Senior': 'SENIOR', 'Executive': 'EXECUTIVE',
+    'Junior': 'JUNIOR', 'Senior': 'SENIOR', 'Lead': 'LEAD', 'Manager': 'MANAGER',
   };
   static const _jobTypeWire = {
     'Full-time': 'FULL_TIME', 'Part-time': 'PART_TIME', 'Contract': 'CONTRACT',
