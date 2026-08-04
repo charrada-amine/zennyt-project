@@ -61,41 +61,50 @@ public class DeterministicFitScoreCalculator implements FitScoreCalculatorPort {
         JobRoleProfile roleProfile = inputs.roleProfile();
         if (roleProfile == null) return null;
 
-        Double rawSoftScore = weightedSoftScore(inputs.softSkills(), roleProfile);
-        if (rawSoftScore == null) return null;
-
-        // Mécanisme 1 (CdC §3.3) : scoreAjusté = score × couverture. Ex. 90×1.0=90, 90×0.4=36.
-        // F21 : le soft reste en double jusqu'au blend final. L'arrondir avant faisait
-        // dériver le Fit Score de jusqu'à 0,67 point et le rendait non reproductible
-        // à partir des sous-scores affichés.
-        double softScore = bounded(rawSoftScore * inputs.coverageRatio() / 100d);
+        SoftAggregate soft = weightedSoftScore(inputs.softSkills(), roleProfile);
+        if (soft == null) return null;
 
         boolean hasHardScore = inputs.hardSkillScore() != null;
         int hardWeight = hasHardScore ? roleProfile.hardWeight() : 0;
         int softWeight = 100 - hardWeight;
         int hardScore = hasHardScore ? inputs.hardSkillScore() : 0;
 
-        int score = boundedInt(Math.round((softScore * softWeight + hardScore * hardWeight) / 100d));
-        return new FitScoreResult(score, boundedInt(Math.round(softScore)));
+        // F21 : le soft reste en double jusqu'au blend final. L'arrondir avant faisait
+        // dériver le Fit Score de jusqu'à 0,67 point et le rendait non reproductible
+        // à partir des sous-scores affichés.
+        int score = boundedInt(Math.round((soft.score() * softWeight + hardScore * hardWeight) / 100d));
+        return new FitScoreResult(score, boundedInt(Math.round(soft.score())), soft.coverage());
     }
+
+    /** Score soft agrégé et couverture agrégée, tous deux pondérés par le métier. */
+    private record SoftAggregate(double score, int coverage) {}
 
     /**
      * CdC §3.2 : Score_Soft = Σ(Score_module_i × Poids_module_i), renormalisé sur les
      * seuls modules dont un score existe — un candidat n'a pas forcément joué les 5
-     * mini-jeux, et 2 des 5 modules CdC n'ont aujourd'hui aucun moyen d'être mesurés
-     * (voir {@link SoftSkillModule}). Une entrée dont la clé ne correspond à aucun
-     * module CdC connu ({@code fromGamesModule} renvoie {@code null}) est ignorée
-     * plutôt que de faire échouer le calcul — même principe défensif que
-     * {@code GenerateSoftSkillsSummaryUseCase.MODULE_LABELS.getOrDefault(...)}.
+     * mini-jeux, et {@code DECISION} n'a toujours aucun moyen d'être mesuré (voir
+     * {@link SoftSkillModule}). Une entrée dont la clé ne correspond à aucun module
+     * CdC connu ({@code fromGamesModule} renvoie {@code null}) est ignorée.
+     *
+     * <p>F13/F15 — le mécanisme 1 du CdC §3.3 est désormais appliqué <b>par module et
+     * avant l'agrégation</b> (`Score_module_i × Couverture_i`), et non plus globalement
+     * sur le score déjà agrégé. Les deux ne coïncident que si tous les modules
+     * partagent la même couverture ; c'est précisément l'hypothèse que le CdC ne fait
+     * pas. La couverture agrégée renvoyée est la moyenne des couvertures pondérée par
+     * le poids métier des modules — c'est elle qui alimente les seuils du mécanisme 2.
      */
-    private static Double weightedSoftScore(Map<String, Double> softSkills, JobRoleProfile profile) {
+    private static SoftAggregate weightedSoftScore(Map<String, ModuleScore> softSkills,
+                                                   JobRoleProfile profile) {
         double weightedSum = 0;
+        double weightedCoverage = 0;
         int weightTotal = 0;
-        for (Map.Entry<String, Double> entry : softSkills.entrySet()) {
+        for (Map.Entry<String, ModuleScore> entry : softSkills.entrySet()) {
             SoftSkillModule module = SoftSkillModule.fromGamesModule(entry.getKey());
             if (module == null) continue;
             int weight = moduleWeight(module, profile);
-            weightedSum += entry.getValue() * weight;
+            ModuleScore measured = entry.getValue();
+            weightedSum += measured.score() * measured.coverageRatio() / 100d * weight;
+            weightedCoverage += measured.coverageRatio() * weight;
             weightTotal += weight;
         }
         // F01/F02 : aucun module pesant pour ce métier n'a été mesuré. L'ancien repli
@@ -105,7 +114,9 @@ public class DeterministicFitScoreCalculator implements FitScoreCalculatorPort {
         // et une map vide produisait un 0 persisté comme une mesure réelle.
         // Une absence de donnée n'est pas un score : rien n'est calculé ni écrit.
         if (weightTotal == 0) return null;
-        return weightedSum / weightTotal;
+        return new SoftAggregate(
+            bounded(weightedSum / weightTotal),
+            boundedInt(Math.round(weightedCoverage / weightTotal)));
     }
 
     private static int moduleWeight(SoftSkillModule module, JobRoleProfile profile) {

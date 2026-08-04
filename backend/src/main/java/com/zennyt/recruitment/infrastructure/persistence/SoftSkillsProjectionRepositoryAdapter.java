@@ -21,7 +21,7 @@ public class SoftSkillsProjectionRepositoryAdapter implements SoftSkillsProjecti
     public SoftSkillsProjection save(SoftSkillsProjection projection) {
         return toDomain(jpa.save(new SoftSkillsProjectionEntity(
             projection.id(), projection.candidateId(), projection.module(),
-            projection.score(), projection.updatedAt())));
+            projection.score(), projection.coverageRatio(), projection.updatedAt())));
     }
 
     @Override
@@ -47,6 +47,6 @@ public class SoftSkillsProjectionRepositoryAdapter implements SoftSkillsProjecti
 
     private SoftSkillsProjection toDomain(SoftSkillsProjectionEntity entity) {
         return new SoftSkillsProjection(entity.getId(), entity.getCandidateId(),
-            entity.getModule(), entity.getScore(), entity.getUpdatedAt());
+            entity.getModule(), entity.getScore(), entity.getCoverageRatio(), entity.getUpdatedAt());
     }
 }

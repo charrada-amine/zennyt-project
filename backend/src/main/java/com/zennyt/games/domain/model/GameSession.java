@@ -91,8 +91,19 @@ public class GameSession extends AggregateRoot {
         this.completedAt = Instant.now();
         registerEvent(GameResultRecordedEvent.of(
             id, playerId, gameType,
-            compositeRaw(), compositeMax(), normalizedScore(),
+            compositeRaw(), compositeMax(), normalizedScore(), coverageRatio(),
             scoring.interpretGlobal(gameType, compositeRaw(), normalizedScore())));
+    }
+
+    /**
+     * Part des mini-jeux jouables du module effectivement jouée (0-100) — la
+     * couverture au sens du CdC Fit Score v3 §3.3. Distincte du score : elle dit
+     * combien du module a été mesuré, pas à quel point il a été réussi.
+     */
+    public int coverageRatio() {
+        int expected = expectedMiniGames().size();
+        if (expected == 0) return 0;
+        return Math.min(100, Math.round(attempts.size() * 100f / expected));
     }
 
     private boolean isRecorded(MiniGame miniGame) {

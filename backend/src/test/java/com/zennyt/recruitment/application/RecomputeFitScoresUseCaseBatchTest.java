@@ -53,8 +53,8 @@ class RecomputeFitScoresUseCaseBatchTest {
         TypeEvaluationHard.QCM, false, java.time.Instant.now());
 
     private final List<SoftSkillsProjection> modules = List.of(
-        SoftSkillsProjection.create(CANDIDATE_COMPLET, "MOVE_FAST", 80, Instant.now()),
-        SoftSkillsProjection.create(CANDIDATE_COMPLET, "PLANIFIK", 60, Instant.now()));
+        SoftSkillsProjection.create(CANDIDATE_COMPLET, "MOVE_FAST", 80, 100, Instant.now()),
+        SoftSkillsProjection.create(CANDIDATE_COMPLET, "PLANIFIK", 60, 100, Instant.now()));
 
     private FitScoreRepository fitScores;
     private SoftSkillsProjectionRepository softSkills;
@@ -70,11 +70,13 @@ class RecomputeFitScoresUseCaseBatchTest {
      */
     private static final FitScoreCalculatorPort CALCULATOR = inputs -> {
         int soft = (int) Math.round(inputs.softSkills().values().stream()
-            .mapToDouble(Double::doubleValue).average().orElse(0));
+            .mapToDouble(FitScoreCalculatorPort.ModuleScore::score).average().orElse(0));
+        int couverture = (int) Math.round(inputs.softSkills().values().stream()
+            .mapToInt(FitScoreCalculatorPort.ModuleScore::coverageRatio).average().orElse(100));
         int hard = inputs.hardSkillScore() == null ? 0 : inputs.hardSkillScore();
         int profil = inputs.roleProfile() == null ? 0 : 7;
         return new FitScoreCalculatorPort.FitScoreResult(
-            Math.min(100, soft / 2 + hard / 4 + profil), Math.min(100, soft));
+            Math.min(100, soft / 2 + hard / 4 + profil), Math.min(100, soft), couverture);
     };
 
     @BeforeEach
@@ -191,7 +193,7 @@ class RecomputeFitScoresUseCaseBatchTest {
         // des deux qui écrirait recréerait l'incohérence que la suppression du repli
         // Groq visait à supprimer.
         FitScoreCalculatorPort sansPonderation = inputs ->
-            inputs.roleProfile() == null ? null : new FitScoreCalculatorPort.FitScoreResult(50, 50);
+            inputs.roleProfile() == null ? null : new FitScoreCalculatorPort.FitScoreResult(50, 50, 100);
         var useCaseSansRepli = new RecomputeFitScoresUseCase(sansPonderation, fitScores,
             mock(JobOfferRepository.class), softSkills, roleProfileResolver, testResults);
 

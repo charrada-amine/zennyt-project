@@ -17,14 +17,18 @@ public class SoftSkillsProjectionEntity {
     @Column(name = "candidate_id", nullable = false) private UUID candidateId;
     @Column(nullable = false) private String module;
     @Column(nullable = false) private int score;
+    /** F13/F15 — couverture du module (0-100, CdC §3.3 mécanisme 1). */
+    @Column(name = "coverage_ratio", nullable = false) private int coverageRatio;
     @Column(nullable = false) private Instant updatedAt;
 
     protected SoftSkillsProjectionEntity() {}
-    SoftSkillsProjectionEntity(UUID id, UUID candidateId, String module, int score, Instant updatedAt) {
+    SoftSkillsProjectionEntity(UUID id, UUID candidateId, String module, int score,
+                              int coverageRatio, Instant updatedAt) {
         this.id = id;
         this.candidateId = candidateId;
         this.module = module;
         this.score = score;
+        this.coverageRatio = coverageRatio;
         this.updatedAt = updatedAt;
     }
 
@@ -32,5 +36,6 @@ public class SoftSkillsProjectionEntity {
     public UUID getCandidateId() { return candidateId; }
     public String getModule() { return module; }
     public int getScore() { return score; }
+    public int getCoverageRatio() { return coverageRatio; }
     public Instant getUpdatedAt() { return updatedAt; }
 }

@@ -11,7 +11,8 @@ import java.util.UUID;
  * <p>Une ligne par (candidat, module) — jouer MOVE_FAST puis PLANIFIK conserve
  * les deux scores au lieu d'écraser l'un par l'autre.
  */
-public record SoftSkillsProjection(UUID id, UUID candidateId, String module, int score, Instant updatedAt) {
+public record SoftSkillsProjection(UUID id, UUID candidateId, String module, int score,
+                                   int coverageRatio, Instant updatedAt) {
     public SoftSkillsProjection {
         if (module == null || module.isBlank()) {
             throw new IllegalArgumentException("Le module est obligatoire");
@@ -19,9 +20,14 @@ public record SoftSkillsProjection(UUID id, UUID candidateId, String module, int
         if (score < 0 || score > 100) {
             throw new IllegalArgumentException("Le score soft skills doit être entre 0 et 100");
         }
+        if (coverageRatio < 0 || coverageRatio > 100) {
+            throw new IllegalArgumentException("Le taux de couverture doit être entre 0 et 100");
+        }
     }
 
-    public static SoftSkillsProjection create(UUID candidateId, String module, int score, Instant updatedAt) {
-        return new SoftSkillsProjection(UUID.randomUUID(), candidateId, module, score, updatedAt);
+    public static SoftSkillsProjection create(UUID candidateId, String module, int score,
+                                             int coverageRatio, Instant updatedAt) {
+        return new SoftSkillsProjection(UUID.randomUUID(), candidateId, module, score,
+            coverageRatio, updatedAt);
     }
 }

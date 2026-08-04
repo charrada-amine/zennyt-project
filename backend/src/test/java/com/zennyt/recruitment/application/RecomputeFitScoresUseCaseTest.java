@@ -29,7 +29,7 @@ class RecomputeFitScoresUseCaseTest {
         UUID offerId = UUID.randomUUID();
         UUID existingId = UUID.randomUUID();
         FitScoreCalculatorPort calculator = inputs ->
-            new FitScoreCalculatorPort.FitScoreResult(84, 77);
+            new FitScoreCalculatorPort.FitScoreResult(84, 77, 100);
         FitScoreRepository scores = mock(FitScoreRepository.class);
         JobOfferRepository offers = mock(JobOfferRepository.class);
         SoftSkillsProjectionRepository soft = mock(SoftSkillsProjectionRepository.class);
@@ -44,7 +44,7 @@ class RecomputeFitScoresUseCaseTest {
                 "Zennyt Inc.", "Entreprise produit", null, null, null, null, null, null, null,
                 Instant.now(), UUID.randomUUID())));
         when(soft.findByCandidateId(candidateId)).thenReturn(List.of(
-            SoftSkillsProjection.create(candidateId, "MOVE_FAST", 77, Instant.now())));
+            SoftSkillsProjection.create(candidateId, "MOVE_FAST", 77, 100, Instant.now())));
         when(scores.findByCandidateIdAndJobOfferId(candidateId, offerId)).thenReturn(Optional.of(
             FitScore.calculated(existingId, candidateId, offerId, 10, 10, null, 100, Instant.now())));
         when(scores.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
@@ -63,7 +63,7 @@ class RecomputeFitScoresUseCaseTest {
     @Test
     void publicationBatchIsBounded() {
         FitScoreCalculatorPort calculator = inputs ->
-            new FitScoreCalculatorPort.FitScoreResult(50, 50);
+            new FitScoreCalculatorPort.FitScoreResult(50, 50, 100);
         FitScoreRepository scores = mock(FitScoreRepository.class);
         JobOfferRepository offers = mock(JobOfferRepository.class);
         SoftSkillsProjectionRepository soft = mock(SoftSkillsProjectionRepository.class);

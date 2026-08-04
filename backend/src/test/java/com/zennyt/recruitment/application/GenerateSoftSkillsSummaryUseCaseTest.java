@@ -48,8 +48,8 @@ class GenerateSoftSkillsSummaryUseCaseTest {
     @Test
     void generatesAndPersistsFromPlayedModules() {
         when(projections.findByCandidateId(CANDIDATE)).thenReturn(List.of(
-            SoftSkillsProjection.create(CANDIDATE, "MOVE_FAST", 82, Instant.now()),
-            SoftSkillsProjection.create(CANDIDATE, "MEMORY_QUEST", 74, Instant.now())));
+            SoftSkillsProjection.create(CANDIDATE, "MOVE_FAST", 82, 100, Instant.now()),
+            SoftSkillsProjection.create(CANDIDATE, "MEMORY_QUEST", 74, 100, Instant.now())));
         when(generator.generateSoftSkillsSummary(any()))
             .thenReturn(new ResumeSummaryGeneratorPort.BilingualText("texte fr", "text en"));
 

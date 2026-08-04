@@ -2,6 +2,7 @@ package com.zennyt.recruitment.infrastructure.ai;
 
 import com.zennyt.recruitment.application.port.FitScoreCalculatorPort;
 import com.zennyt.recruitment.application.port.FitScoreCalculatorPort.FitScoreInputs;
+import com.zennyt.recruitment.application.port.FitScoreCalculatorPort.ModuleScore;
 import com.zennyt.recruitment.application.port.FitScoreCalculatorPort.FitScoreResult;
 import com.zennyt.recruitment.domain.model.JobRoleProfile;
 import com.zennyt.recruitment.domain.vo.ExperienceLevel;
@@ -31,8 +32,7 @@ class DeterministicFitScoreCalculatorTest {
         // Un seul module : la pondération est mathématiquement un no-op (90*w/w = 90),
         // donc ce test isole bien le mécanisme de couverture, pas la pondération.
         var calculator = new DeterministicFitScoreCalculator();
-        var inputs = new FitScoreInputs(Map.of("MOVE_FAST", 90.0),
-            TECHNIQUE_SENIOR, null, 100);
+        var inputs = new FitScoreInputs(Map.of("MOVE_FAST", ModuleScore.fullyCovered(90.0)), TECHNIQUE_SENIOR, null);
 
         FitScoreResult result = calculator.calculate(inputs);
 
@@ -44,21 +44,43 @@ class DeterministicFitScoreCalculatorTest {
     @Test
     void partialCoverageReducesSoftScoreProportionally() {
         // CdC §3.3 : score brut 90, couverture 40% -> score ajusté 36.
+        // F13 : la couverture est désormais portée par le module lui-même.
         var calculator = new DeterministicFitScoreCalculator();
-        var inputs = new FitScoreInputs(Map.of("MOVE_FAST", 90.0),
-            TECHNIQUE_SENIOR, null, 40);
+        var inputs = new FitScoreInputs(
+            Map.of("MOVE_FAST", new ModuleScore(90.0, 40)), TECHNIQUE_SENIOR, null);
 
         FitScoreResult result = calculator.calculate(inputs);
 
         assertThat(result.softSkillScore()).isEqualTo(36);
         assertThat(result.score()).isEqualTo(36);
+        assertThat(result.coverageRatio()).isEqualTo(40);
+    }
+
+    /**
+     * F13/F15 — deux modules aux couvertures différentes : le CdC applique la
+     * décote module par module AVANT l'agrégation. L'ancienne implémentation, qui
+     * ne connaissait qu'un ratio global, ne pouvait pas produire ce résultat.
+     */
+    @Test
+    void couverturesDifferentesParModuleSontAppliqueesAvantAgregation() {
+        var calculator = new DeterministicFitScoreCalculator();
+        var inputs = new FitScoreInputs(Map.of(
+            "MOVE_FAST", new ModuleScore(80.0, 100),      // poids 30, pleinement couvert
+            "MEMORY_QUEST", new ModuleScore(80.0, 50)),   // poids 20, à moitié couvert
+            TECHNIQUE_SENIOR, null);
+
+        FitScoreResult result = calculator.calculate(inputs);
+
+        // (80×1,00×30 + 80×0,50×20) / 50 = (2400 + 800) / 50 = 64
+        assertThat(result.softSkillScore()).isEqualTo(64);
+        // Couverture agrégée pondérée : (100×30 + 50×20) / 50 = 80
+        assertThat(result.coverageRatio()).isEqualTo(80);
     }
 
     @Test
     void hardWeightAppliesOnlyWhenAttemptCompleted() {
         var calculator = new DeterministicFitScoreCalculator();
-        var inputs = new FitScoreInputs(Map.of("MOVE_FAST", 80.0),
-            TECHNIQUE_SENIOR, 60, 100);
+        var inputs = new FitScoreInputs(Map.of("MOVE_FAST", ModuleScore.fullyCovered(80.0)), TECHNIQUE_SENIOR, 60);
 
         FitScoreResult result = calculator.calculate(inputs);
 
@@ -72,8 +94,7 @@ class DeterministicFitScoreCalculatorTest {
         // supprimé. Sans pondération résolue (offre sans métier, ou métier pas encore
         // approuvé), il n'y a pas de score à inventer — rien n'est calculé ni écrit.
         var calculator = new DeterministicFitScoreCalculator();
-        var inputs = new FitScoreInputs(Map.of("MOVE_FAST", 90.0),
-            null, null, 100);
+        var inputs = new FitScoreInputs(Map.of("MOVE_FAST", ModuleScore.fullyCovered(90.0)), null, null);
 
         assertThat(calculator.calculate(inputs)).isNull();
     }
@@ -92,15 +113,15 @@ class DeterministicFitScoreCalculatorTest {
     @Test
     void memeCandidatObtientDesScoreSoftDifferentsSurDeuxMetiersSansAucunTest() {
         var calculator = new DeterministicFitScoreCalculator();
-        Map<String, Double> modulesCandidat = Map.of(
-            "MOVE_FAST", 50.0,      // Flexibilité cognitive
-            "MEMORY_QUEST", 55.0,   // Mémoire de travail
-            "PLANIFIK", 70.0);      // Planification exécutive
+        Map<String, ModuleScore> modulesCandidat = Map.of(
+            "MOVE_FAST", ModuleScore.fullyCovered(50.0),      // Flexibilité cognitive
+            "MEMORY_QUEST", ModuleScore.fullyCovered(55.0),   // Mémoire de travail
+            "PLANIFIK", ModuleScore.fullyCovered(70.0));  // Planification exécutive
 
         FitScoreResult surTechnique = calculator.calculate(new FitScoreInputs(
-            modulesCandidat, TECHNIQUE_SENIOR, null, 100));
+            modulesCandidat, TECHNIQUE_SENIOR, null));
         FitScoreResult surRelationnel = calculator.calculate(new FitScoreInputs(
-            modulesCandidat, RELATIONNEL_MID, null, 100));
+            modulesCandidat, RELATIONNEL_MID, null));
 
         // Technique (30/20/15 sur ces 3 modules, renormalisé) : (50*30+55*20+70*15)/65 = 56.
         assertThat(surTechnique.softSkillScore()).isEqualTo(56);
@@ -118,8 +139,7 @@ class DeterministicFitScoreCalculatorTest {
     void reconnaitLeModuleRegulationEmotionnelleDesormaisLivreParGames() {
         var calculator = new DeterministicFitScoreCalculator();
         var inputs = new FitScoreInputs(
-            Map.of("MOVE_FAST", 80.0, "EMOTIONAL_REGULATION", 20.0),
-            TECHNIQUE_SENIOR, null, 100);
+            Map.of("MOVE_FAST", ModuleScore.fullyCovered(80.0), "EMOTIONAL_REGULATION", ModuleScore.fullyCovered(20.0)), TECHNIQUE_SENIOR, null);
 
         FitScoreResult result = calculator.calculate(inputs);
 
@@ -133,8 +153,7 @@ class DeterministicFitScoreCalculatorTest {
         // Le candidat n'a joué qu'un seul mini-jeu sur les 3 mesurables aujourd'hui :
         // la pondération doit se renormaliser sur ce seul module, pas retomber à 0.
         var calculator = new DeterministicFitScoreCalculator();
-        var inputs = new FitScoreInputs(Map.of("MEMORY_QUEST", 80.0),
-            TECHNIQUE_SENIOR, null, 100);
+        var inputs = new FitScoreInputs(Map.of("MEMORY_QUEST", ModuleScore.fullyCovered(80.0)), TECHNIQUE_SENIOR, null);
 
         FitScoreResult result = calculator.calculate(inputs);
 
@@ -146,8 +165,7 @@ class DeterministicFitScoreCalculatorTest {
         // Un module Games qui ne correspond à aucun module CdC (ex. futur module non
         // encore câblé dans SoftSkillModule) est ignoré, pas fatal au calcul.
         var calculator = new DeterministicFitScoreCalculator();
-        var inputs = new FitScoreInputs(Map.of("MOVE_FAST", 80.0, "MODULE_INCONNU", 10.0),
-            TECHNIQUE_SENIOR, null, 100);
+        var inputs = new FitScoreInputs(Map.of("MOVE_FAST", ModuleScore.fullyCovered(80.0), "MODULE_INCONNU", ModuleScore.fullyCovered(10.0)), TECHNIQUE_SENIOR, null);
 
         FitScoreResult result = calculator.calculate(inputs);
 

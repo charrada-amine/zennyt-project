@@ -35,12 +35,16 @@ public class GameSoftSkillsListener {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     public void on(GameResultRecordedEvent event) {
         int score = Math.max(0, Math.min(100, (int) Math.round(event.normalizedScore())));
+        // F13 : la couverture voyage désormais avec le score. Games la calcule
+        // (mini-jeux joués / mini-jeux jouables du module) ; elle était jusqu'ici
+        // jetée par ce listener, et le calcul du Fit Score utilisait un 100 figé.
+        int coverage = Math.max(0, Math.min(100, event.coverageRatio()));
         String module = event.gameType().name();
         var existingId = projections.findByCandidateIdAndModule(event.playerId(), module)
             .map(SoftSkillsProjection::id).orElse(null);
         projections.save(existingId != null
-            ? new SoftSkillsProjection(existingId, event.playerId(), module, score, event.occurredAt())
-            : SoftSkillsProjection.create(event.playerId(), module, score, event.occurredAt()));
+            ? new SoftSkillsProjection(existingId, event.playerId(), module, score, coverage, event.occurredAt())
+            : SoftSkillsProjection.create(event.playerId(), module, score, coverage, event.occurredAt()));
         recompute.pairsForCandidate(event.playerId()).forEach(worker::submit);
         generateSummary.execute(event.playerId());
     }

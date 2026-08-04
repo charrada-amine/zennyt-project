@@ -1,6 +1,7 @@
 package com.zennyt.recruitment.infrastructure.ai;
 
 import com.zennyt.recruitment.application.port.FitScoreCalculatorPort.FitScoreInputs;
+import com.zennyt.recruitment.application.port.FitScoreCalculatorPort.ModuleScore;
 import com.zennyt.recruitment.application.port.FitScoreCalculatorPort.FitScoreResult;
 import com.zennyt.recruitment.domain.model.JobRoleProfile;
 import com.zennyt.recruitment.domain.vo.ExperienceLevel;
@@ -52,17 +53,18 @@ class FitScoreBaselineTest {
     }
 
     /** Les 4 modules réellement produits par Games depuis la livraison de « Je gère ». */
-    private static Map<String, Double> measuredModules(double flex, double memory, double planning, double regulation) {
-        Map<String, Double> scores = new LinkedHashMap<>();
-        scores.put("MOVE_FAST", flex);
-        scores.put("MEMORY_QUEST", memory);
-        scores.put("PLANIFIK", planning);
-        scores.put("EMOTIONAL_REGULATION", regulation);
+    private static Map<String, ModuleScore> measuredModules(double flex, double memory,
+                                                            double planning, double regulation) {
+        Map<String, ModuleScore> scores = new LinkedHashMap<>();
+        scores.put("MOVE_FAST", ModuleScore.fullyCovered(flex));
+        scores.put("MEMORY_QUEST", ModuleScore.fullyCovered(memory));
+        scores.put("PLANIFIK", ModuleScore.fullyCovered(planning));
+        scores.put("EMOTIONAL_REGULATION", ModuleScore.fullyCovered(regulation));
         return scores;   // DECISION reste inatteignable : DECISION_CORE.playable() == false
     }
 
-    private FitScoreResult score(Map<String, Double> modules, JobRoleProfile roleProfile, Integer hardScore) {
-        return calculator.calculate(new FitScoreInputs(modules, roleProfile, hardScore, 100));
+    private FitScoreResult score(Map<String, ModuleScore> modules, JobRoleProfile roleProfile, Integer hardScore) {
+        return calculator.calculate(new FitScoreInputs(modules, roleProfile, hardScore));
     }
 
     @Test
@@ -125,7 +127,7 @@ class FitScoreBaselineTest {
     @Test
     @DisplayName("D-A : le pic de pondération hard tombe bien sur SENIOR, pas ailleurs")
     void picHardSurSenior() {
-        Map<String, Double> softFaible = measuredModules(45, 45, 45, 45);
+        Map<String, ModuleScore> softFaible = measuredModules(45, 45, 45, 45);
 
         int junior  = score(softFaible, profile(JobProfileType.TECHNIQUE, ExperienceLevel.JUNIOR),  90).score();
         int senior  = score(softFaible, profile(JobProfileType.TECHNIQUE, ExperienceLevel.SENIOR),  90).score();
@@ -147,11 +149,11 @@ class FitScoreBaselineTest {
     @DisplayName("F08 (bug connu) : sauter un mini-jeu raté fait AUGMENTER le score")
     void sauterUnMiniJeuRateAugmenteLeScore() {
         JobRoleProfile technique = profile(JobProfileType.TECHNIQUE, ExperienceLevel.SENIOR);
-        Map<String, Double> joue = new LinkedHashMap<>();
-        joue.put("MOVE_FAST", 80.0);
-        joue.put("MEMORY_QUEST", 75.0);
-        joue.put("PLANIFIK", 30.0);          // mini-jeu raté
-        Map<String, Double> saute = new LinkedHashMap<>(joue);
+        Map<String, ModuleScore> joue = new LinkedHashMap<>();
+        joue.put("MOVE_FAST", ModuleScore.fullyCovered(80));
+        joue.put("MEMORY_QUEST", ModuleScore.fullyCovered(75));
+        joue.put("PLANIFIK", ModuleScore.fullyCovered(30));   // mini-jeu raté
+        Map<String, ModuleScore> saute = new LinkedHashMap<>(joue);
         saute.remove("PLANIFIK");
 
         int avecLeJeuRate = score(joue, technique, null).softSkillScore();
@@ -174,13 +176,13 @@ class FitScoreBaselineTest {
 
         // Avant : le repli moyennait la map entière, clés rejetées comprises, et la
         // valeur inconnue devenait la totalité du Score_Soft (90 -> 90, 10 -> 10).
-        assertThat(score(Map.of("JEU_PAS_ENCORE_CABLE", 90.0), technique, null)).isNull();
-        assertThat(score(Map.of("JEU_PAS_ENCORE_CABLE", 10.0), technique, null)).isNull();
+        assertThat(score(Map.of("JEU_PAS_ENCORE_CABLE", ModuleScore.fullyCovered(90)), technique, null)).isNull();
+        assertThat(score(Map.of("JEU_PAS_ENCORE_CABLE", ModuleScore.fullyCovered(10)), technique, null)).isNull();
 
         // Mélangée à un module connu, elle reste ignorée : seul MOVE_FAST compte.
-        Map<String, Double> melange = new LinkedHashMap<>();
-        melange.put("MOVE_FAST", 40.0);
-        melange.put("JEU_PAS_ENCORE_CABLE", 90.0);
+        Map<String, ModuleScore> melange = new LinkedHashMap<>();
+        melange.put("MOVE_FAST", ModuleScore.fullyCovered(40));
+        melange.put("JEU_PAS_ENCORE_CABLE", ModuleScore.fullyCovered(90));
         assertThat(score(melange, technique, null).softSkillScore()).isEqualTo(40);
     }
 

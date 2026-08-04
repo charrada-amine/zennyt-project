@@ -29,14 +29,6 @@ public class RecomputeFitScoresUseCase {
     private static final Logger log = LoggerFactory.getLogger(RecomputeFitScoresUseCase.class);
     public static final int MAX_BATCH_SIZE = 20;
 
-    /**
-     * D5 (PLAN_FITSCORE_V3.md) — pas de suivi de couverture par module côté
-     * Games aujourd'hui ; fixé à 100% jusqu'à ce que le référentiel de jeux
-     * l'expose réellement. Câblé dans la formule (voir DeterministicFitScoreCalculator)
-     * pour s'activer automatiquement sans nouvelle migration le jour venu.
-     */
-    private static final int DEFAULT_COVERAGE_RATIO = 100;
-
     public record Pair(UUID candidateId, JobOffer offer) {}
 
     private final FitScoreCalculatorPort calculator;
@@ -70,7 +62,7 @@ public class RecomputeFitScoresUseCase {
      * tout le lot d'un coup — voir {@code RecomputeFitScoresUseCaseBatchTest}.
      */
     public FitScore recompute(UUID candidateId, JobOffer offer) {
-        Map<String, Double> softScores = softScoresByModule(softSkills.findByCandidateId(candidateId));
+        Map<String, FitScoreCalculatorPort.ModuleScore> softScores = softScoresByModule(softSkills.findByCandidateId(candidateId));
         JobRoleProfile roleProfile = roleProfileResolver.resolve(offer);
         Integer hardSkillScore = testResults.findByCandidateIdAndJobOfferId(candidateId, offer.id())
             .map(TestResult::percentage).orElse(null);
@@ -96,7 +88,7 @@ public class RecomputeFitScoresUseCase {
             .values().stream().toList();
         List<UUID> offerIds = offers.stream().map(JobOffer::id).toList();
 
-        Map<UUID, Map<String, Double>> softScoresByCandidate = softSkills.findByCandidateIds(candidateIds).stream()
+        Map<UUID, Map<String, FitScoreCalculatorPort.ModuleScore>> softScoresByCandidate = softSkills.findByCandidateIds(candidateIds).stream()
             .collect(Collectors.groupingBy(SoftSkillsProjection::candidateId,
                 Collectors.collectingAndThen(Collectors.toList(),
                     RecomputeFitScoresUseCase::softScoresByModule)));
@@ -133,29 +125,34 @@ public class RecomputeFitScoresUseCase {
      * chemin unitaire et le chemin par lot : c'est ce qui garantit qu'ils ne peuvent
      * pas diverger.
      */
-    private FitScore score(UUID candidateId, JobOffer offer, Map<String, Double> softScores,
+    private FitScore score(UUID candidateId, JobOffer offer,
+                           Map<String, FitScoreCalculatorPort.ModuleScore> softScores,
                            JobRoleProfile roleProfile, Integer hardSkillScore,
                            UUID existingId) {
-        var inputs = new FitScoreCalculatorPort.FitScoreInputs(
-            softScores,
-            roleProfile, hardSkillScore, DEFAULT_COVERAGE_RATIO);
+        var inputs = new FitScoreCalculatorPort.FitScoreInputs(softScores, roleProfile, hardSkillScore);
         var result = calculator.calculate(inputs);
-        if (result == null) return null; // offre sans métier approuvé : incalculable
+        // null = offre sans métier approuvé, ou aucun module pesant mesuré (F02) :
+        // incalculable, rien n'est écrit plutôt que d'inventer un score.
+        if (result == null) return null;
         return FitScore.calculated(existingId, candidateId, offer.id(),
             result.score(), result.softSkillScore(),
-            hardSkillScore, DEFAULT_COVERAGE_RATIO, Instant.now());
+            hardSkillScore, result.coverageRatio(), Instant.now());
     }
 
     /**
-     * Un score par module CdC déjà mesuré (clé = nom du module Games, ex.
-     * "MOVE_FAST") — transporté tel quel jusqu'au calculateur, qui seul connaît
-     * la pondération de l'offre et peut donc pondérer par module (CdC §3.2).
+     * Score <b>et couverture</b> par module CdC déjà mesuré (clé = nom du module
+     * Games, ex. "MOVE_FAST") — transportés tels quels jusqu'au calculateur, qui
+     * seul connaît la pondération de l'offre et peut donc pondérer par module
+     * (CdC §3.2) et appliquer la couverture avant agrégation (§3.3 mécanisme 1).
      * Aplatir ici en une moyenne unique, comme avant, rendait cette pondération
      * mathématiquement sans effet : voir DeterministicFitScoreCalculator.
      */
-    private static Map<String, Double> softScoresByModule(List<SoftSkillsProjection> modules) {
+    private static Map<String, FitScoreCalculatorPort.ModuleScore> softScoresByModule(
+            List<SoftSkillsProjection> modules) {
         return modules.stream().collect(Collectors.toMap(
-            SoftSkillsProjection::module, m -> (double) m.score(), (a, b) -> b));
+            SoftSkillsProjection::module,
+            m -> new FitScoreCalculatorPort.ModuleScore(m.score(), m.coverageRatio()),
+            (a, b) -> b));
     }
 
     private static String pairKey(UUID candidateId, UUID jobOfferId) {
