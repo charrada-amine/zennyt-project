@@ -52,11 +52,17 @@ public class FitScoreHarness {
         return m;
     }
 
-    /** Uniquement les 3 modules réellement produits par Games aujourd'hui. */
+    /**
+     * Uniquement les modules réellement produits par Games aujourd'hui.
+     *
+     * <p>Depuis la fusion du 04/08 (commit 608187e), EMOTIONAL_REGULATION est livré
+     * (GameType.EMOTIONAL_REGULATION + EMOTIONAL_RADAR_CORE/REFLECTIVE_PAUSE_CORE) :
+     * 4 modules sur 5 sont mesurables. Seul DECISION reste inatteignable
+     * (DECISION_CORE.playable() == false, EmptyDecisionScenarioCatalog).
+     */
     public static Map<String, Double> reachable(Map<String, Double> all) {
         Map<String, Double> m = new LinkedHashMap<>(all);
         m.remove("DECISION");
-        m.remove("EMOTIONAL_REGULATION");
         return m;
     }
 
@@ -111,7 +117,7 @@ public class FitScoreHarness {
 
         System.out.println();
         System.out.printf("%-52s | %-13s | %-13s | %-13s | %-13s%n",
-            "CAS", "A spec-emule", "B brut cov100", "C 3 modules", "main a la main");
+            "CAS", "A spec-emule", "B brut cov100", "C Games reel", "main a la main");
         System.out.println("-".repeat(52) + "-+-" + "-".repeat(13) + "-+-" + "-".repeat(13)
             + "-+-" + "-".repeat(13) + "-+-" + "-".repeat(13));
 
@@ -140,7 +146,7 @@ public class FitScoreHarness {
 
             A = 5 modules, couverture appliquee par module a la main (au plus pres du CdC)
             B = 5 modules, scores bruts, coverageRatio=100 (aucune couverture)
-            C = 3 modules reellement produits par Games (MOVE_FAST/MEMORY_QUEST/PLANIFIK)
+            C = les 4 modules produits par Games depuis la fusion du 04/08 (seul DECISION manque)
             main = mes chiffres calcules a la main avec la formule du CdC (Sigma poids = 100)
             """);
 

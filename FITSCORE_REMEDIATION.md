@@ -616,15 +616,27 @@ javac -d /tmp/fs -encoding UTF-8 -sourcepath backend/src/main/java backend/src/m
 **P0.5 : transformez-le en test JUnit committé.** C'est votre filet de non-régression commun :
 chaque track doit pouvoir prouver qu'il n'a pas déplacé les scores de l'autre.
 
-### Résultats de référence (état actuel du code, à conserver comme baseline)
+### Résultats de référence — **rejoués sur `main` le 2026-08-04**, à conserver comme baseline
+
+Colonne « Games réel » = les **4 modules** effectivement produits depuis la fusion (seul
+`DECISION` manque). C'est la colonne qui compte : c'est ce que le système calcule vraiment.
 
 | Exemple | Profil / niveau | Soft | Fit |
 |---|---|---|---|
-| Développeur Senior | TECHNIQUE / MID, QCM 78 | 72 | 76 |
-| Commercial Junior | RELATIONNEL / JUNIOR, sans QCM | 73 | 73 |
-| Comptable Manager | CONVENTIONNEL / EXECUTIVE, QCM 61 | 69 | 67 |
-| UX/UI Designer Senior | ARTISTIQUE / MID, hard 79 | 78 | 79 |
-| Chef de projet Lead | MANAGERIAL / SENIOR, QCM 80 | 66 | 71 |
+| Ex1 Développeur Senior | TECHNIQUE / MID, QCM 78 | 80 | **79** |
+| Ex2 Commercial Junior | RELATIONNEL / JUNIOR, sans QCM | 76 | **76** |
+| Ex3 Comptable Manager | CONVENTIONNEL / EXECUTIVE, QCM 61 | 75 | **72** |
+| Ex4 UX/UI Designer Senior | ARTISTIQUE / MID, hard 79 | 79 | **79** |
+| Ex5 Chef de projet Lead | MANAGERIAL / SENIOR, QCM 80 | 72 | **75** |
+| S1 Infirmier Senior | RELATIONNEL / MID, QCM 64 | 75 | **72** |
+| S2 Analyste financier Lead | ANALYTIQUE / SENIOR, QCM 55 | 73 | **64** |
+| S3 Technicien maintenance Junior | TECHNIQUE / JUNIOR, sans QCM | 69 | **69** |
+| S4 Gestionnaire de stock Senior | CONVENTIONNEL / MID, QCM 73 | 77 | **75** |
+| S5 Directeur d'hôtel Manager | MANAGERIAL / EXECUTIVE, sans QCM | 80 | **80** |
+| S6 Photographe Senior | ARTISTIQUE / SENIOR, portfolio seul | 78 | **78** |
+
+> Les chiffres de l'audit initial (colonne « A spec-émulé » du harnais) sont plus bas de 3 à 8
+> points : ils avaient été mesurés sans le module Régulation émotionnelle.
 
 **Ce qui est confirmé correct** : la formule, la pondération par module, le blend hard/soft, la
 courbe de niveau (pic sur le niveau au hard max pour un candidat fort au QCM, inversion pour un
