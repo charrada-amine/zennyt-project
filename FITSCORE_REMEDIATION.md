@@ -1,0 +1,676 @@
+# Fit Score v3 — Plan de remédiation à deux
+
+Audit complet du CdC `fit_score/Zennyt_Cahier_des_charges_FitScore_v3.md` (§1 à §10) et de la
+matrice `fit_score/00-README.md` … `16-prochaines-etapes.md` contre le code au
+**2026-08-03**, branche `integration-with-engagement`.
+
+Chaque constat a été vérifié dans le code. Les calculs ont été rejoués en exécutant le vrai
+`DeterministicFitScoreCalculator` compilé depuis les sources (voir §7 Vérification).
+
+---
+
+## Sommaire
+
+1. [Comment utiliser ce document](#1-comment-utiliser-ce-document)
+2. [Décisions — TRANCHÉES le 2026-08-03](#2-décisions--tranchées-le-2026-08-03)
+3. [Index des constats par sévérité](#3-index-des-constats-par-sévérité)
+4. [Phase 0 — à faire ensemble, en premier](#4-phase-0--à-faire-ensemble-en-premier)
+5. [Track A — moteur de calcul & chaîne de mesure](#5-track-a--moteur-de-calcul--chaîne-de-mesure)
+6. [Track B — référentiel, alertes, API & client](#6-track-b--référentiel-alertes-api--client)
+7. [Vérification](#7-vérification)
+8. [Protocole de fusion](#8-protocole-de-fusion)
+9. [Definition of Done](#9-definition-of-done)
+
+---
+
+## 1. Comment utiliser ce document
+
+**Pourquoi ce découpage et pas « toi les premiers fichiers, moi les derniers ».**
+Les 30 constats ne se répartissent pas par fichier : ils se regroupent en **6 causes racines**
+qui traversent chacune plusieurs couches. Un découpage par ordre de fichier vous mettrait tous
+les deux dans `DeterministicFitScoreCalculator.java`, `recruitment.openapi.yaml` et le dossier
+`db/migration/` en même temps — trois zones à conflit garanti (les migrations Flyway se
+conflictent même sans se chevaucher : deux `V49__` = build cassé).
+
+Le découpage retenu donne à chaque track un **ensemble de fichiers strictement disjoint**.
+Aucun fichier n'apparaît dans les deux tracks. Les rares points de contact sont isolés dans une
+Phase 0 faite ensemble.
+
+**Convention de référence.** Chaque tâche a un identifiant `F01`…`F30`. Utilisez-le dans les
+messages de commit (`fix(fitscore): F01 …`) et les PR — ça rend la revue croisée triviale.
+
+**Ordre de travail.** Décisions (§2) → Phase 0 ensemble (§4) → Tracks A et B en parallèle
+(§5, §6) → intégration (§8).
+
+---
+
+## 2. Décisions — TRANCHÉES le 2026-08-03
+
+Les six points sont arbitrés. Plus aucune tâche n'est bloquée.
+
+| # | Décision retenue | Conséquence |
+|---|---|---|
+| **D-A** | **Les 4 niveaux reprennent l'échelle du CdC : `JUNIOR` / `SENIOR` / `LEAD` / `MANAGER`.** On annule le renommage positionnel de V29. Le pic hard (65 %) revient donc sur **`SENIOR`**, conforme au CdC §4.1 (« Senior / Expert : hard skills dominant »). | Nouvelle tâche **F31**, en Phase 0. ⚠️ *changement cassant d'API* — voir l'alerte ci-dessous |
+| **D-B** | **On garde la logique du code** (alerte dérivée de l'importance réelle du test technique pour le métier), on corrige les 2 bugs avérés, et on **corrige le CdC §6**. | **F05** débloqué : correctif de bornes, pas de réécriture. **F19** débloqué |
+| **D-C** | **Le mode d'évaluation passe par métier** (`job_positions`), pas par famille. Un UX/UI Designer pourra être en Mixte pendant qu'un Photographe reste en Portfolio. | Nouvelle tâche **F32** (Track B). Corriger le CdC §8.1 |
+| **D-D** | **On applique la formule du CdC : diviser par 100, un module non joué compte pour 0 via une couverture à 0 %** — et on s'appuie sur les seuils 60 %/70 % existants pour masquer un score bâti sur trop peu de données. Les 5 mini-jeux **seront créés**, donc la renormalisation n'a plus de raison d'être. | **F07/F08** débloqués. **F03, F13, F15 deviennent des prérequis**, pas des options |
+| **D-E** | **Niveaux 2 (entreprise) et 3 (offre) reportés tous les deux**, et **écrits comme tels**. | §5 et §9 restent en l'état. À consigner dans `PLAN_FITSCORE_V3.md` (le niveau 3 n'y figure nulle part) |
+| **D-F** | **Grille portfolio reportée.** Au lancement, les métiers créatifs sont notés **sur les soft skills seuls**, avec un **message explicite** au recruteur. | **F18 débloqué et devient obligatoire** — c'est lui, le « message explicite ». Le mode `MIXTE` reste non implémenté |
+
+### ⚠️ D-A — un point à vérifier avant de lancer F31
+
+Le renommage de V29 ne venait pas de nulle part : son commentaire dit qu'il provient du
+**« contrat squad web, §3 »**. Revenir à `JUNIOR/SENIOR/LEAD/MANAGER` est donc un **changement
+cassant pour l'équipe web**, pas seulement pour nous : la valeur `experienceLevel` change dans
+toutes les réponses et requêtes de l'API.
+
+**Action avant de coder F31** : prévenir la squad web et convenir d'une date de bascule
+commune. Techniquement le changement est simple ; c'est la coordination qui coûte.
+Si la squad web refuse, l'alternative est de garder `MID`/`EXECUTIVE` dans l'API mais
+d'**échanger les pondérations** des deux bandes du milieu sur les 24 lignes — même résultat de
+scoring, libellés incohérents. À arbitrer avec eux, pas entre vous.
+
+### Ce que D-D implique concrètement
+
+C'est la décision qui change le plus de comportement. Trois conséquences à assumer :
+
+1. **Tant que les 5 jeux n'existent pas, beaucoup de candidats passeront sous le seuil de
+   couverture** et n'auront pas de score affiché. C'est voulu : mieux vaut pas de score qu'un
+   score faux. Mesuré aujourd'hui : deux infirmières aux régulations émotionnelles opposées
+   (95 vs 20) obtiennent **le même 61**.
+2. **F03 (créer le module Régulation émotionnelle) devient urgent**, plus « souhaitable ». Sans
+   lui, tous les profils RELATIONNEL — infirmier, commercial, conseiller de vente, support
+   client — perdent 45 % de leur pondération.
+3. **Le vecteur de triche disparaît** : sauter un mini-jeu raté rapportait +11 points, ça
+   tombera à 0.
+
+---
+
+## 3. Index des constats par sévérité
+
+Sévérité = impact sur la justesse d'un score affiché à un recruteur, pas difficulté technique.
+
+### 🔴 Critique — fausse un score ou casse une fonctionnalité
+
+| ID | Constat | § | Fichier principal | Track | Taille |
+|---|---|---|---|---|---|
+| **F01** | Une clé de module inconnue devient **tout** le score soft, sans pondération | §1 | `DeterministicFitScoreCalculator.java:92-97` | A | S |
+| **F02** | Aucune donnée soft ⇒ `softSkillScore = 0` persisté comme une mesure | §1 | `DeterministicFitScoreCalculator.java:95` | A | S |
+| **F03** | `EMOTIONAL_REGULATION` inatteignable : aucun `GameType` ne l'émet | §2 | `games/domain/vo/GameType.java` | A | M |
+| **F04** | Seuil `partialData` piloté par « le candidat a passé le test » au lieu de « l'offre a un QCM » | §1 §2 | `FitScore.java:87` | P0→A | S |
+| **F05** | Niveaux d'alerte faux sur **12 lignes / 24** ; tous les `EXECUTIVE` en INFO ; TECHNIQUE/JUNIOR en MODERATE (bord `< 35`) | §6 | `JobRoleProfile.java:44-50` | B | M |
+| **F06** | Le client mobile n'envoie pas `jobPositionId` ⇒ **création d'offre impossible** | §9 | `mobile/…/jobs_repository_impl.dart:36` | B | S |
+| **F31** | **[D-A]** Rétablir l'échelle CdC `JUNIOR/SENIOR/LEAD/MANAGER` (annule V29). Changement cassant d'API — coordonner avec la squad web | §3 | `ExperienceLevel.java` + migration + contrat + mobile | **P0** | M |
+
+### 🟠 Élevé — intégrité des données ou du classement
+
+| ID | Constat | § | Fichier principal | Track | Taille |
+|---|---|---|---|---|---|
+| **F07** | Renormalisation : écart mesuré −11 / +23 pts ; sur RELATIONNEL elle **efface** la dimension discriminante | §1 | `DeterministicFitScoreCalculator.java:82-99` | A | M |
+| **F08** | Sauter un mini-jeu raté rapporte **+11 pts** (vecteur de triche) | §1 | idem F07 | A | — |
+| **F32** | **[D-C]** Déplacer `type_evaluation_hard` de `job_role_profiles` vers `job_positions` (mode par métier) | §4 §8 | `JobPosition.java` + migration + contrat | B | M |
+| **F09** | Les descriptions du classifieur (RIASEC pur) **contredisent** la matrice seedée : « développement logiciel » sous ANALYTIQUE alors que les 9 métiers IT sont TECHNIQUE ; « vente » sous MANAGERIAL alors que Commercial est RELATIONNEL | §4 | `JobProfileTypeClassifier.java:25-42` | B | S |
+| **F10** | La carte candidat affiche **3 modules identiques** dérivés d'une seule valeur agrégée — donnée fabriquée | §7 | `mobile/…/fits_repository_impl.dart:183-185` | B | M |
+| **F11** | Pas d'`updated_at` ni de versioning sur `job_role_profiles` — engagement pris dans `PLAN_FITSCORE_V3.md`, non tenu | §10 | `V42__job_role_profiles.sql` | P0 | S |
+| **F12** | Aucun recalcul quand la pondération change ; `recomputeAllActive()` plafonné à **20 offres** | §8 | `RecomputeFitScoresUseCase.java:191` | A | M |
+
+### 🟡 Moyen — écart au CdC, pas de score faux
+
+| ID | Constat | § | Fichier principal | Track | Taille |
+|---|---|---|---|---|---|
+| **F13** | Aucune source de couverture : `DEFAULT_COVERAGE_RATIO = 100` en dur ⇒ mécanisme 1 inerte | §2 | `RecomputeFitScoresUseCase.java:40` | A | M |
+| **F14** | Games n'émet qu'à **100 % de complétion** : une session partielle ne produit rien du tout | §2 | `games/…/GameSession.java:84` | A | M |
+| **F15** | Pas de colonne couverture par module ; `coverage_ratio` est global sur `fit_scores` | §2 §8 | `soft_skills_projection` | A | M |
+| **F16** | Les 3 signaux de confiance (`calibrated`, `partialData`, `hardSkillsAlert`) sont calculés, contractualisés, et **ignorés par tous les clients** | §2 §6 §10 | `mobile/**` | B | M |
+| **F17** | Les 3 contextes d'affichage §7 absents ; aucun branchement sur la présence d'un QCM | §7 | `mobile/…/fit_card_data.dart` | B | L |
+| **F18** | Phrase « métier créatif / consultez le portfolio » absente du résumé IA — **obligatoire** depuis D-F | §7 | `GetCandidateResumeUseCase.java` | B | M |
+| **F19** | Aucun texte d'alerte ; `INFO` ne distingue pas « ajoutez un QCM » de « métier évalué par portfolio » | §6 | `HardSkillsAlertLevel.java` | B | S |
+| **F20** | N+1 : `toSummaries` fait 3 requêtes par offre (~60 sur une page de 20) alors que `resolveAll` / `findByIds` existent | §6 | `JobOfferController.java:271` | B | S |
+| **F21** | Arrondi intermédiaire : `Score_Soft` arrondi avant le blend ⇒ jusqu'à +0,67 d'écart | §1 | `DeterministicFitScoreCalculator.java:60-69` | A | S |
+
+### 🟢 Faible — nettoyage, cohérence, dette
+
+| ID | Constat | § | Fichier | Track | Taille |
+|---|---|---|---|---|---|
+| **F22** | `jobDescription` / `companyDescription` morts dans `FitScoreInputs` (coûtent une requête, invitent à violer §2) | §5 | `FitScoreCalculatorPort.java` | A | S |
+| **F23** | `assessmentId` figé à `null` à la création ⇒ branche de validation d'appartenance **inatteignable** | §9 | `JobOfferController.java:81` | B | S |
+| **F24** | Mobile envoie `assessmentId` au POST — silencieusement ignoré | §9 | `mobile/…/jobs_repository_impl.dart` | B | S |
+| **F25** | `uq_job_positions_name_sector` : `NULL` distincts en Postgres ⇒ les 9 métiers transverses ne sont pas protégés des doublons | §3 | `V25__job_positions_table.sql` | B | S |
+| **F26** | Fichier mort `FitScoreEntity.java.tmp.30472.…` dans les sources (un `git add .` committerait une `@Entity` dupliquée) | §8 | `infrastructure/persistence/` | P0 | XS |
+| **F27** | Javadoc `SoftSkillModule:13` cite `MiniGame.DECISION_CORE` — **cette constante n'existe pas** | §2 | `SoftSkillModule.java` | A | XS |
+| **F28** | Aucun test n'assure la forme de la courbe (pic au niveau du hard max, décroissance, 24 lignes présentes) | §4 | `JobRoleProfileTest.java` | B | S |
+| **F29** | « Le mode soft-only est un mode standard, pas dégradé » (§10 #8) : aucun texte nulle part | §10 | contrat + `mobile/**` | B | S |
+| **F30** | `GET /job-role-profiles` construit pour le préremplissage des curseurs — **zéro consommateur** | §9 | `mobile/**` | B | M |
+
+**Total : 30 constats.** 6 critiques, 6 élevés, 9 moyens, 9 faibles.
+
+---
+
+## 4. Phase 0 — à faire ensemble, en premier
+
+Une seule séance, un seul commit, en pair. Tout ce qui touche les deux tracks est ici, pour que
+A et B soient ensuite **totalement disjoints**.
+
+- [ ] **P0.1 — Allouer les numéros de migration.** Réservez les plages maintenant, même si
+      certaines restent inutilisées :
+      | Plage | Propriétaire |
+      |---|---|
+      | `V49` → `V51` | **Phase 0** (P0.2 = `V49`, P0.6 = `V51`) |
+      | `V52` → `V55` | **Track A** |
+      | `V56` → `V59` | **Track B** |
+      Une migration hors de votre plage = à négocier. C'est la source #1 de conflit Flyway.
+
+- [ ] **P0.2 — F11 : `updated_at` sur `job_role_profiles`.** `V49` (A l'écrit, B relit) :
+      ajouter `updated_at TIMESTAMPTZ NOT NULL DEFAULT now()`, l'ajouter au record
+      `JobRoleProfile`, à `JobRoleProfileEntity` et à l'adapter.
+      *C'est le prérequis de F12* — sans horodatage sur le référentiel, aucun balayage de
+      péremption ne peut détecter un changement de pondération.
+
+- [ ] **P0.3 — F04 : figer la signature.** Le correctif exige de savoir si **l'offre** porte un
+      QCM, information que `FitScore` n'a pas. Décidez ensemble entre :
+      - (a) ajouter `boolean offerHasAssessment` à `FitScore.calculated(...)` + colonne
+        `offer_has_assessment` sur `fit_scores` (migration A) ;
+      - (b) passer `JobOffer.assessmentId() != null` à `partialData(boolean)` au moment de
+        l'appel, sans persistance.
+      **Recommandé : (b)** — pas de migration, pas de donnée dénormalisée à maintenir
+      cohérente. Une fois la signature actée, F04 part entièrement en Track A.
+
+- [ ] **P0.4 — F26 : supprimer le fichier mort.**
+      `git rm --cached` inutile (non suivi) — simple `rm` de
+      `backend/src/main/java/com/zennyt/recruitment/infrastructure/persistence/FitScoreEntity.java.tmp.30472.8c41d02a216c`.
+
+- [ ] **P0.5 — Committer le harnais de vérification** (voir §7) comme test réel, dans
+      `backend/src/test/java/com/zennyt/recruitment/infrastructure/ai/`. Les deux tracks s'en
+      serviront pour prouver la non-régression.
+
+- [ ] **P0.6 — F31 [D-A] : rétablir l'échelle `JUNIOR/SENIOR/LEAD/MANAGER`.**
+      **Pourquoi en Phase 0** : c'est un renommage mécanique, sans jugement, mais qui touche
+      l'enum, une migration, les 24 lignes seedées, le contrat, le mobile et les tests **en même
+      temps**. Le faire avant de brancher supprime le plus gros risque de conflit du projet.
+      Fait à deux, en une passe :
+      1. **prévenir la squad web** et convenir de la date de bascule (voir l'alerte §2) ;
+      2. `ExperienceLevel.java` : `JUNIOR, SENIOR, LEAD, MANAGER` ;
+      3. migration `V51` — inverse de V29, **ordre important** pour ne pas écraser une valeur
+         par l'autre : `EXECUTIVE→MANAGER`, puis `SENIOR→LEAD`, puis `MID→SENIOR` ;
+         renommer aussi les colonnes de libellés de `job_positions`
+         (`mid_label→senior_label`, `senior_label→lead_label`, `executive_label→manager_label`) ;
+      4. mettre à jour les valeurs `level` des 24 lignes de `job_role_profiles` ;
+      5. contrat + mobile + collection Bruno + tous les tests qui citent `MID`/`EXECUTIVE`.
+      *Vérification* : après cette étape, `TECHNIQUE/SENIOR` doit porter **hard = 65 %**
+      (aujourd'hui c'est `TECHNIQUE/MID`). Le harnais §7 le montre directement.
+
+- [ ] **P0.7 — Consigner D-E par écrit.** Ajouter dans `PLAN_FITSCORE_V3.md`, à côté de D6, une
+      ligne explicite pour le **niveau 3 (overrides d'offre)** : reporté, décidé le 2026-08-03.
+      Aujourd'hui il n'est mentionné nulle part — il n'a jamais été différé, il a été oublié.
+      Une ligne suffit, mais elle évite qu'on redécouvre le trou dans six mois.
+
+- [ ] **P0.8 — Créer les branches** depuis le commit Phase 0 :
+      `fix/fitscore-track-a-moteur` et `fix/fitscore-track-b-client`.
+
+---
+
+## 5. Track A — moteur de calcul & chaîne de mesure
+
+**Périmètre** : la formule, les modules, la couverture, le contexte Games, le recalcul.
+**Fichiers possédés** (personne d'autre n'y touche) :
+
+```
+backend/src/main/java/com/zennyt/recruitment/
+    infrastructure/ai/DeterministicFitScoreCalculator.java
+    application/port/FitScoreCalculatorPort.java
+    application/usecase/RecomputeFitScoresUseCase.java
+    application/GameSoftSkillsListener.java
+    application/FitScoreBackfillWorker.java
+    domain/vo/SoftSkillModule.java
+    domain/vo/FitScorePolicy.java
+    domain/model/FitScore.java
+    domain/model/SoftSkillsProjection.java
+    infrastructure/persistence/FitScore*.java
+    infrastructure/persistence/SoftSkillsProjection*.java
+backend/src/main/java/com/zennyt/games/**
+backend/src/main/resources/db/migration/V52..V55
+backend/src/test/java/com/zennyt/recruitment/infrastructure/ai/**
+backend/src/test/java/com/zennyt/recruitment/application/RecomputeFitScores*
+backend/src/test/java/com/zennyt/games/**
+```
+
+### A1 — Corrections immédiates, sans décision préalable
+
+- [ ] **F01 🔴 — Le repli avale les clés inconnues.**
+      `DeterministicFitScoreCalculator.java:92-97`. Le garde de boucle exclut les clés
+      inconnues (`if (module == null) continue`), puis le repli `weightTotal == 0` moyenne
+      **`softSkills.values()`** — la map complète, clés rejetées incluses.
+      Prouvé : `{FUTUR_JEU: 90}` → `soft = 90` ; `{FUTUR_JEU: 10}` → `soft = 10`.
+      → Le repli ne doit moyenner **que les entrées dont la clé résout** via
+      `SoftSkillModule.fromGamesModule`.
+      *Test* : `{JEU_INCONNU: 90}` ne doit pas produire 90.
+
+- [ ] **F02 🔴 — Absence de donnée ≠ score de 0.**
+      Même méthode, `average().orElse(0)`. Une map vide donne `softSkillScore = 0`, persisté et
+      servi comme une mesure. Incohérent avec la philosophie de renormalisation (sauter
+      *certains* modules les exclut ; sauter *tous* les modules donne 0).
+      → Renvoyer `null` depuis `calculate()` quand aucun module reconnu n'existe (même
+      sémantique que « profil non résolu » : rien n'est écrit).
+      *Test* : map vide ⇒ `calculate(...) == null`.
+
+- [ ] **F21 🟡 — Arrondi intermédiaire.** Ligne 60-69 : `Score_Soft` est arrondi à l'entier
+      avant le blend. Mesuré : 77,50 → 78 → fit 79 au lieu de 78,33.
+      → Garder le soft en `double` jusqu'au blend final ; n'arrondir que le résultat.
+      *Attention* : ça déplace des scores existants de ±1 — à faire avec F12 (recalcul global).
+
+- [ ] **F22 🟢 — Champs morts.** Retirer `jobDescription` et `companyDescription` de
+      `FitScoreInputs`, et la lecture `actors.findById(...).companyInfo()` de
+      `RecomputeFitScoresUseCase:79` (une requête par paire, jamais utilisée). CdC §2 interdit
+      explicitement que le texte libre pilote la pondération — les garder invite la violation.
+
+- [ ] **F27 🟢 — Javadoc fausse.** `SoftSkillModule.java:13` cite `MiniGame.DECISION_CORE` :
+      la constante n'existe pas (`MiniGame` en a 5, pas celle-là). La conclusion tient mais par
+      un autre mécanisme — `expectedMiniGames()` renvoie vide pour `GameType.DECISION`, donc une
+      session ne peut jamais se terminer ni émettre. Corriger le texte.
+
+### A2 — La chaîne de mesure Games
+
+> **Ordre imposé par D-D.** La décision « module non joué = 0 via une couverture à 0 % » ne peut
+> pas s'implémenter avant que la couverture existe réellement. L'ordre est donc :
+> **F03 → F13/F15 → F14 → F07/F08**. Ne commencez pas par F07 : sans couverture, mettre les
+> modules manquants à 0 punirait tous les candidats pour des jeux qu'on n'a pas encore livrés.
+
+- [ ] **F03 🔴 — Ajouter `EMOTIONAL_REGULATION` à `GameType`.**
+      C'est **la plus grosse source d'erreur de score du système**. Le mapping côté recruitment
+      existe déjà (`SoftSkillModule.fromGamesModule`, commit `7caec44`) mais aucun producteur
+      n'émet cette chaîne : `GameSoftSkillsListener:38` fait `event.gameType().name()`, et
+      `GameType` ne contient que `PLANIFIK, MOVE_FAST, MEMORY_QUEST, DECISION`.
+      Mesuré (§7) : sur un profil RELATIONNEL, où la régulation pèse **45 %**, deux candidats
+      opposés (régulation 95 vs 20) obtiennent **tous les deux 61**. Le système ne peut pas les
+      distinguer sur la dimension qui *est* le métier.
+      → Ajouter la valeur d'enum + le(s) `MiniGame` correspondant(s) + le barème.
+      → Corriger le javadoc de `GameType` (« n'a pas encore de GameType »).
+
+- [ ] **F13 + F15 🟡 — Couverture réelle par module.** *(prérequis de F07, décision D-D)*
+      `V52` : `ALTER TABLE recruitment.soft_skills_projection ADD COLUMN coverage_ratio INT NOT NULL DEFAULT 100;`
+      Le signal existe déjà et est **jeté** : `GameResultRecordedEvent` porte `compositeRaw` et
+      `compositeMax`, et `GameSession.expectedMiniGames()` donne le dénominateur.
+      `GameSoftSkillsListener` ne garde que `normalizedScore` et `gameType`.
+      → Propager la couverture jusqu'à `FitScoreInputs`, et appliquer le mécanisme 1
+      **par module avant agrégation** (CdC §3.3), pas globalement après.
+      → Supprimer `DEFAULT_COVERAGE_RATIO`.
+
+- [ ] **F14 🟡 — Émettre sur session partielle.** *(D-D)*
+      `GameSession.java:84` : `if (attempts.size() == expectedMiniGames().size()) complete(...)`.
+      Une session partielle n'émet **rien** — donc pas de projection, pas de score. Le CdC
+      prévoit l'inverse : la donnée partielle arrive avec une décote, elle ne disparaît pas.
+      → Émettre à chaque mini-jeu avec le ratio de complétion (`attempts.size() /
+      expectedMiniGames().size()`), ou émettre à l'abandon de session.
+
+### A3 — Appliquer D-D, puis le recalibrage
+
+- [ ] **F07 + F08 🟠 — Supprimer la renormalisation.** *(D-D — à faire **après** F03/F13/F15)*
+      `weightedSoftScore` divise par `weightTotal` (somme des poids des modules *joués*) au lieu
+      de 100. Impact mesuré, candidat identique, niveau MID, sans QCM :
+      | Profil | 5 modules | 3 modules (réel) | Écart |
+      |---|---|---|---|
+      | RELATIONNEL (régul. 95) | 72 | 61 | **−11** |
+      | RELATIONNEL (régul. 20) | 38 | 61 | **+23** |
+      | MANAGERIAL (régul. 20) | 45 | 62 | +17 |
+      | ANALYTIQUE (régul. 20) | 50 | 60 | +10 |
+      Et sauter un mini-jeu raté rapporte **+11 pts** (Planifik à 30 : joué 67, sauté 78).
+      **Ce qu'il faut faire, décision D-D :**
+      1. diviser par **100**, plus par `weightTotal` ;
+      2. un module jamais joué entre dans la somme avec une **couverture à 0 %**, donc une
+         contribution nulle — il n'est plus exclu du dénominateur ;
+      3. laisser les seuils 60 %/70 % existants (`FitScore.partialData`) masquer les scores
+         bâtis sur trop peu de données, au lieu d'afficher un chiffre trompeur.
+      **Ne livrez pas ceci avant F03.** Sans le module Régulation émotionnelle, le passer à 0
+      ferait chuter tous les profils RELATIONNEL de ~45 % de leur pondération d'un coup.
+      *Test* : le vecteur de triche doit disparaître — jouer un mini-jeu raté doit donner un
+      score **supérieur ou égal** à ne pas le jouer, jamais inférieur.
+
+- [ ] **F12 🟠 — Chemin de recalibrage.**
+      Aucun déclencheur ne réagit à un changement de pondération, et `findStalePairs` ne compare
+      que les timestamps côté candidat. Or **l'atelier RH — prérequis déclaré de la mise en
+      production — ne produit que des pondérations nouvelles.** Le jour où elles arrivent,
+      toutes les lignes `fit_scores` sont périmées et rien ne le détecte.
+      `recomputeAllActive()` est plafonné à `MAX_BATCH_SIZE = 20` offres : ce n'est pas une
+      issue de secours.
+      → Étendre `findStalePairs` pour comparer `fit_scores.computed_at` à
+      `job_role_profiles.updated_at` (P0.2), et laisser le balayage borné existant absorber le
+      rattrapage. Pas de nouveau mécanisme.
+
+---
+
+## 6. Track B — référentiel, alertes, API & client
+
+**Périmètre** : profils métier, alertes, surface HTTP, contrat, mobile.
+**Fichiers possédés** (personne d'autre n'y touche) :
+
+```
+backend/src/main/java/com/zennyt/recruitment/
+    domain/model/JobRoleProfile.java
+    domain/model/JobPosition.java
+    domain/vo/HardSkillsAlertLevel.java
+    domain/vo/JobProfileType.java
+    domain/vo/TypeEvaluationHard.java
+    domain/vo/ExperienceLevel.java      (après P0.6 — plus personne n'y touche)
+    application/JobProfileTypeClassifier.java
+    application/JobRoleProfileResolver.java
+    application/usecase/GetCandidateResumeUseCase.java
+    application/usecase/CreateJobOfferUseCase.java
+    api/**            (contrôleurs + DTO)
+backend/src/main/resources/db/migration/V56..V59
+backend/src/test/java/com/zennyt/recruitment/domain/**
+backend/src/test/java/com/zennyt/recruitment/application/JobProfileTypeClassifierTest.java
+contracts/recruitment.openapi.yaml          <-- B en est SEUL propriétaire
+mobile/**                                    <-- B en est SEUL propriétaire
+tooling/bruno/**
+```
+
+### B1 — Correctifs backend
+
+- [ ] **F05 🔴 — Niveaux d'alerte.** *(D-B : on garde la logique du code, on corrige les bornes)*
+      `JobRoleProfile.hardSkillsAlert()`. Résultat des 24 lignes seedées vs table §6 :
+      **12 conformes sur 24**. Deux cas faux quelle que soit la lecture retenue :
+      - **tous les `EXECUTIVE`** (5 profils non-artistiques) renvoient `INFO`/`NONE` là où §6
+        dit explicitement « Alerte modérée » ;
+      - **TECHNIQUE/JUNIOR** (`expectedHardWeight = 35`) tombe en `MODERATE` par le bord
+        `< 35`, là où §6 dit « pas d'alerte ou alerte discrète » — les offres de dev junior,
+        probablement le plus gros volume de la plateforme.
+      Les autres écarts (RELATIONNEL / MANAGERIAL / CONVENTIONNEL en MID/SENIOR) sont
+      défendables : le code est *plus juste* que le CdC. Dire à un recruteur qu'un Conseiller de
+      vente Senior « repose normalement à ~50 % sur le hard skills » serait faux (25 % réel).
+      **D-B a tranché : on garde la dérivation par le poids.** Donc :
+      1. corriger la borne haute du bucket INFO pour que TECHNIQUE/JUNIOR (35) n'y échappe plus
+         (`<= 35` au lieu de `< 35`, ou remonter la borne à 36) ;
+      2. traiter le cas MANAGER : aujourd'hui les 5 profils non-artistiques renvoient
+         `INFO`/`NONE` là où le CdC exige « modérée ». Comme la dérivation reste par le poids,
+         il faut un plancher explicite pour le dernier niveau ;
+      3. **mettre à jour le CdC §6** — sa table est non monotone (Junior ~30 % → aucune alerte,
+         Manager ~25 % → alerte modérée) et ne peut pas être reproduite par une fonction de
+         seuil. C'est le document qui doit s'aligner sur le code, pas l'inverse.
+      *Test* : rejouer les 24 lignes seedées et figer le résultat attendu dans un test
+      paramétré — c'est le seul moyen d'éviter que ça redérive.
+
+- [ ] **F09 🟠 — Descriptions du classifieur contre matrice seedée.**
+      `JobProfileTypeClassifier.DESCRIPTIONS` sont du **RIASEC canonique**, alors que les 6
+      profils Zennyt sont une *adaptation* aux frontières différentes. Contradictions vérifiées :
+      | Le classifieur dit | La matrice dit |
+      |---|---|
+      | ANALYTIQUE = « …**développement logiciel**, expertise technique poussée » | Développeur, DevOps, IA, Data Eng, Architecte… = **TECHNIQUE** (9 métiers) |
+      | TECHNIQUE = « techniques et **manuels**, mécanique, production, terrain » | CdC §4.3 : TECHNIQUE = « construire, **développer**, réparer » |
+      | MANAGERIAL = « **vente**, entrepreneuriat, développement commercial » | Commercial / BD, Conseiller de vente = **RELATIONNEL** |
+      → Réécrire les 6 descriptions depuis la table CdC §4.3 **et** les listes de métiers
+      réellement seedées dans `V26`.
+      → Ajouter un test : une dizaine de métiers seedés doivent se reclasser sur leur propre
+      profil. `JobProfileTypeClassifierTest` n'utilise aujourd'hui que des vecteurs one-hot
+      synthétiques — il valide l'argmax, jamais la sémantique.
+
+- [ ] **F20 🟡 — N+1.** `JobOfferController.toSummaries()` appelle par offre
+      `actors.findById(...)` (1 req) et `hardSkillsAlert(offer)` → `resolve(offer)` (2 req) =
+      **3 requêtes/offre**, ~60 sur une page de 20. Les primitives de lot existent et sont déjà
+      utilisées deux lignes plus haut : `resolveAll(offers)` et `actors.findByIds(...)`.
+
+- [ ] **F23 🟢 — `assessmentId` à la création.** `JobOfferController:81` passe `null` en dur ;
+      `CreateJobOfferRequest` n'a pas le champ. Conséquence : la validation d'appartenance dans
+      `CreateJobOfferUseCase` (lignes 47-54) est **inatteignable**, et le CdC §1/§9 présente
+      pourtant le QCM comme un choix *au moment de la publication*.
+      → Soit ajouter le champ au DTO + contrat, soit supprimer la branche morte. Ne pas laisser
+      un code qui suggère une capacité non câblée.
+
+- [ ] **F25 🟢 — Contrainte d'unicité.** `uq_job_positions_name_sector UNIQUE (name, sector)` :
+      Postgres considère les `NULL` comme distincts, donc les **9 métiers transverses**
+      (`sector = NULL`) ne sont pas protégés des doublons via `ProposeJobPositionUseCase`.
+      → `V57` : index unique partiel `ON job_positions (name) WHERE sector IS NULL`
+      (ou `NULLS NOT DISTINCT` si PG ≥ 15).
+
+- [ ] **F28 🟢 — Test d'invariant sur la courbe.** `JobRoleProfileTest` ne couvre que les deux
+      sommes et le bucketing d'alerte. Rien n'assure que la courbe garde sa forme. Les 24
+      valeurs ne vivent que dans une migration : un chiffre transposé dans un futur `V…` — ou
+      dans la recalibration RH à venir — passerait silencieusement.
+      → Test paramétré sur `roleProfiles.findAll()` : 24 lignes présentes, pic au niveau du hard
+      maximal, décroissance jusqu'au dernier niveau, `JUNIOR < ` le pic.
+      *~15 lignes, le meilleur rapport valeur/effort de tout l'audit.*
+
+- [ ] **F32 🟠 — [D-C] Mode d'évaluation par métier.**
+      Aujourd'hui `type_evaluation_hard` est sur `job_role_profiles` (profil × niveau), donc
+      **tous** les métiers ARTISTIQUE partagent le même mode. D-C a tranché : le mode appartient
+      au métier.
+      → `V56` : ajouter `type_evaluation_hard` sur `job_positions`, reprendre la valeur du
+      profil pour les 142 lignes existantes, puis retirer la colonne de `job_role_profiles`.
+      → Adapter `JobPosition`, son entity/adapter, `JobRoleProfileResolver`, le contrat.
+      → Seeder les métiers hybrides en `MIXTE` (UX/UI Designer, Motion designer) et les autres
+      créatifs en `PORTFOLIO`, conformément au CdC §4.3.
+      → **Corriger le CdC §8.1**, qui place encore ce champ sur `job_role_profile`.
+      *Note* : le mode `MIXTE` reste **non implémenté** dans le calcul (ni `poids_qcm` ni
+      `poids_portfolio` n'existent, et le calculateur ne lit jamais ce champ). F32 rend le
+      réglage *exprimable* ; le rendre *effectif* dépend de D-F, reportée.
+
+- [ ] **F18 🟠 — Phrase Artistique dans le résumé IA.** *(D-F : c'est LE « message explicite »)*
+      §7 exige, pour un `job_role_profile` ARTISTIQUE en Portfolio seul, une phrase explicite :
+      « …le Fit Score reflète uniquement les soft skills — la qualité technique et créative
+      n'est pas mesurée automatiquement… examinez le portfolio. »
+      `GetCandidateResumeUseCase` et `GenerateSoftSkillsSummaryUseCase` ne contiennent aucune
+      référence à `ARTISTIQUE` ni à portfolio.
+      **Bonne nouvelle** : `Profile.portfolioUrl` existe déjà côté Identity — la destination
+      vers laquelle pointer est stockée. Il ne manque que le test sur `typeEvaluationHard` et le
+      paragraphe conditionnel.
+      **D-F a reporté la grille portfolio.** Conséquence directe : au lancement, les métiers
+      créatifs sont notés **sur les soft skills seuls**. F18 n'est donc plus une amélioration,
+      c'est la **contrepartie obligatoire** de ce report — c'est la phrase qui prévient le
+      recruteur que rien du métier n'a été mesuré.
+      *Sans elle, le score d'un designer se lit comme une évaluation complète alors qu'il ne
+      mesure rien de son métier. Si une seule chose du track B devait être livrée, ce serait
+      celle-là.*
+
+### B2 — Client mobile & contrat
+
+- [ ] **F06 🔴 — Création d'offre cassée.** `mobile/…/jobs_repository_impl.dart:36` poste 21
+      champs, **sans `jobPositionId`**, obligatoire côté serveur depuis la suppression du repli
+      IA. Chaque appel échoue.
+      *Contexte* : `mobile/lib/features/jobs/` est **non suivi par git** — c'est le portage en
+      cours, pas du code livré. À attraper avant le commit. Le contrat backend est correct :
+      `tooling/bruno/Demo/02a Create job offer (REC).bru` envoie bien le champ.
+      → Ajouter `jobPositionId` au payload + un sélecteur de métier dans le formulaire.
+
+- [ ] **F24 🟢 — `assessmentId` envoyé et jeté.** Même payload : le mobile envoie
+      `assessmentId`, que `CreateJobOfferRequest` n'a pas → silencieusement supprimé par Jackson.
+      À traiter avec F23 (le client est codé selon le CdC, c'est le serveur qui ne suit pas).
+
+- [ ] **F10 🟠 — Trois lignes identiques fabriquées.**
+      `fits_repository_impl.dart:183-185` :
+      ```dart
+      decisionMaking:       _qualitative(softSkills),
+      cognitiveFlexibility: _qualitative(softSkills),
+      emotionalRegulation:  _qualitative(softSkills),
+      ```
+      Une seule valeur agrégée, rendue trois fois sous trois noms de module. §7 interdit
+      explicitement le « doublon d'une valeur identique » — ici c'est pire qu'un doublon : ça
+      **affirme au recruteur une granularité par module qui n'existe pas**, sur des dimensions
+      dont deux ne sont même pas mesurables.
+      C'est le seul constat de l'audit qui n'omet pas une information mais en **invente** une.
+      → Supprimer les 3 champs, ou consommer de vrais scores par module quand l'API les exposera.
+      `hardSkills: const {}` (ligne 186) rend aussi une section « Hard Skills » toujours vide.
+
+- [ ] **F16 🟠 — Consommer les 3 signaux de confiance.** Le backend calcule, contractualise et
+      transmet trois avertissements ; **aucun client n'en lit un seul** :
+      | Signal | Calculé | Au contrat | Consommé |
+      |---|---|---|---|
+      | `calibrated` (pondération non validée RH) | ✅ | ✅ | ❌ |
+      | `partialData` (couverture sous le seuil) | ✅ | ✅ | ❌ |
+      | `hardSkillsAlert` (pas de QCM sur un poste hard) | ✅ | ✅ | ❌ |
+      Un recruteur voit un pourcentage nu, sans aucune des trois réserves conçues autour de lui.
+      *Meilleur rapport intégrité/effort du track B.*
+
+- [ ] **F17 🟡 — Les 3 contextes d'affichage §7.**
+      | Contexte | Attendu | Aujourd'hui |
+      |---|---|---|
+      | Page de matching (avant QCM) | une seule étiquette Fit Score % | le candidat ne voit **aucun** Fit Score sur une offre (`JobOffer` mobile n'a pas le champ ; `fromJobOffer` met `badgeText: null`) |
+      | Liste candidats, **sans** QCM | Fit Score % + « basé sur les soft skills » | mention absente |
+      | Liste candidats, **avec** QCM | Fit Score % + sous-ligne `Soft % · hard %` | pas de sous-ligne |
+      Point décisif : **le client ne branche jamais sur la présence d'un QCM**. Un seul rendu
+      sert les deux cas.
+      À noter : le backend envoie déjà `fitScore`, `goodFit`, `softSkillScore`, `hardSkillScore`,
+      `partialData` sur ce même payload — le mobile parse ~20 champs et saute ceux-là.
+
+- [ ] **F19 🟡 — Message d'alerte.** *(D-B)* Seul l'enum à 4 valeurs traverse le réseau. Or §6
+      insiste : le cas Artistique « n'est pas une anomalie à signaler comme un oubli ». Mais
+      `ARTISTIQUE/MID → INFO` et `MANAGERIAL/JUNIOR → INFO` sont le **même jeton** : un client
+      ne peut pas distinguer « pensez à ajouter un QCM » de « métier évalué par portfolio, c'est
+      normal ».
+      → Ajouter une valeur dédiée (ex. `PORTFOLIO_BASED`) ou un champ message/raison.
+
+- [ ] **F29 🟢 — « Soft-only = mode standard ».** §10 #8 demande de documenter explicitement,
+      **dans l'interface recruteur**, que le mode soft seul est normal et non dégradé. Aucun
+      texte nulle part. Aujourd'hui le seul signal reçu est `hardSkillsAlert`, dont tout le
+      cadrage est « il manque quelque chose » : l'alarme est là, la réassurance non.
+
+- [ ] **F30 🟡 — Préremplissage des curseurs.** `GET /api/v1/job-role-profiles` existe, est au
+      contrat, et son javadoc dit son usage — « pour pré-remplir les curseurs de pondération du
+      formulaire de création d'offre ». Recherche `job-role-profiles` sur tout le dépôt
+      (`.dart`, `.ts`, `.js`, `.bru`) : **un seul résultat, le contrat lui-même**.
+      → Le consommer à la création d'offre (affichage lecture seule tant que D-E n'a pas
+      tranché les overrides).
+
+---
+
+## 7. Vérification
+
+### Le harnais
+
+Les vraies classes du moteur ont été compilées (aucune dépendance Spring dans ce chemin) et les
+exemples rejoués. Sources versionnées dans **`docs/fitscore-harness/`** :
+
+```
+FitScoreHarness.java   les 5 exemples du CdC + 6 cas synthétiques (Health, Finance,
+                       Industry, Retail, Hotel, Media) sur les 6 profils.
+                       Le référentiel V42 y est recopié à l'identique (méthode `p(...)`).
+FitScoreProbe.java     courbe de niveau, coût des modules manquants, vecteur de triche,
+                       arrondi intermédiaire, cas limites
+Bug.java               isole F01 et F02
+```
+
+Compilation et exécution — aucun outil de build nécessaire, JDK 21, **commande vérifiée depuis
+la racine du dépôt** :
+
+```bash
+javac -d /tmp/fs -encoding UTF-8 -sourcepath backend/src/main/java backend/src/main/java/com/zennyt/recruitment/infrastructure/ai/DeterministicFitScoreCalculator.java docs/fitscore-harness/*.java && java -cp /tmp/fs FitScoreHarness && java -cp /tmp/fs FitScoreProbe && java -cp /tmp/fs Bug
+```
+
+**P0.5 : transformez-le en test JUnit committé.** C'est votre filet de non-régression commun :
+chaque track doit pouvoir prouver qu'il n'a pas déplacé les scores de l'autre.
+
+### Résultats de référence (état actuel du code, à conserver comme baseline)
+
+| Exemple | Profil / niveau | Soft | Fit |
+|---|---|---|---|
+| Développeur Senior | TECHNIQUE / MID, QCM 78 | 72 | 76 |
+| Commercial Junior | RELATIONNEL / JUNIOR, sans QCM | 73 | 73 |
+| Comptable Manager | CONVENTIONNEL / EXECUTIVE, QCM 61 | 69 | 67 |
+| UX/UI Designer Senior | ARTISTIQUE / MID, hard 79 | 78 | 79 |
+| Chef de projet Lead | MANAGERIAL / SENIOR, QCM 80 | 66 | 71 |
+
+**Ce qui est confirmé correct** : la formule, la pondération par module, le blend hard/soft, la
+courbe de niveau (pic sur le niveau au hard max pour un candidat fort au QCM, inversion pour un
+candidat fort en soft), les bornes 0-100, le `null` sur profil non résolu.
+
+**Ce qui est confirmé faux** : F01, F02, F07, F08, F21 — avec les chiffres ci-dessus.
+
+---
+
+## 8. Protocole de fusion
+
+### Règles
+
+1. **Un fichier n'a qu'un propriétaire.** Les listes §5 et §6 sont exhaustives et disjointes.
+   Besoin d'un fichier de l'autre : demandez, ne le prenez pas.
+2. **`contracts/recruitment.openapi.yaml` appartient à Track B seul.** Track A a besoin d'un
+   changement de contrat (F13 expose la couverture ?) → ouvrir une issue, B l'applique.
+3. **Migrations : restez dans votre plage** (P0.1). `V49`–`V51` = Phase 0, `V52`–`V55` = A,
+   `V56`–`V59` = B.
+4. **Rebaser sur `main` tous les jours**, pas fusionner. Historique linéaire, conflits attrapés
+   tôt.
+5. **Un commit par `Fxx`.** Format : `fix(fitscore): F01 le repli avale les clés de module inconnues`.
+   Pas de commits fourre-tout — la revue croisée devient impossible.
+
+### Ordre d'intégration
+
+```
+Phase 0 (ensemble)  ──┬──> Track A ──┐
+                      └──> Track B ──┴──> rebase B sur A ──> intégration
+```
+
+**Track A fusionne en premier.** Deux raisons : F03 (module régulation émotionnelle) déplace
+tous les scores, et Track B doit afficher les scores corrigés, pas les anciens. Track B rebase
+ensuite sur A et revalide son affichage contre la nouvelle baseline.
+
+### Dépendances inter-tracks
+
+| Dépendance | Sens | Comment gérer |
+|---|---|---|
+| F12 a besoin de `updated_at` (F11) | P0 → A | Fait en Phase 0 |
+| F04 a besoin de la présence du QCM sur l'offre | P0 → A | Signature figée en P0.3 |
+| Tout dépend du renommage des niveaux (F31) | P0 → A + B | Fait en Phase 0, avant de brancher |
+| **F07 exige F03 + F13/F15 livrés avant** | interne A | Ordre imposé par D-D — voir §A2 |
+| F16/F17 affichent des scores modifiés par F03/F07 | A → B | B rebase après la fusion de A |
+| F19 dépend de la forme finale de l'alerte (F05) | interne B | Même track, pas de coordination |
+| F23 et F24 sont les deux moitiés du même sujet | interne B | Même commit |
+| F32 touche `JobRoleProfileResolver`, lu par A | B → A | A ne modifie pas ce fichier ; B prévient à la fusion |
+
+### Revue croisée
+
+Chacun relit les PR de l'autre. Points d'attention spécifiques :
+- **A relit B** sur : F05 (les 24 lignes donnent-elles bien le niveau attendu ?), F28.
+- **B relit A** sur : F07 (les scores de la baseline §7 ont-ils bougé comme prévu ?), F03.
+
+---
+
+## 9. Definition of Done
+
+Un `Fxx` est terminé quand :
+
+- [ ] le comportement est corrigé **et** couvert par un test qui échouait avant ;
+- [ ] si le contrat change, `contracts/recruitment.openapi.yaml` est à jour (via B) ;
+- [ ] si une route change, la collection Bruno `tooling/bruno/Demo/` est à jour ;
+- [ ] le harnais §7 tourne et l'écart avec la baseline est **expliqué**, pas seulement constaté ;
+- [ ] le commit référence l'identifiant.
+
+### Ne pas oublier avant « production »
+
+Le CdC pose deux prérequis explicites, aucun n'est tenu, et **rien dans le code ne les fait
+respecter** :
+
+1. **§10 #1 — validation RH du référentiel.** `calibrated = false` sur les 24 lignes et les 142
+   métiers l'enregistre honnêtement… et personne ne le lit (F16). Un score issu de pondérations
+   admises comme non calibrées s'affiche exactement comme un score validé.
+2. **§10 #3 — grille d'évaluation portfolio** avant mise en production. N'existe pas ; le mode
+   `MIXTE` est inimplémentable en l'état (ni `poids_qcm` ni `poids_portfolio`), et
+   `typeEvaluationHard` n'est **jamais lu** par le calculateur.
+
+Ces deux points ne se corrigent pas en code seul — mais F16 et F28 les rendent au moins visibles
+et non régressables.
+
+---
+
+## Annexe — Répartition en un coup d'œil
+
+| | Track A | Track B |
+|---|---|---|
+| **Thème** | moteur de calcul & mesure | référentiel, alertes, API, client |
+| **Constats** | F01 F02 F03 F04 F07 F08 F12 F13 F14 F15 F21 F22 F27 | F05 F06 F09 F10 F16 F17 F18 F19 F20 F23 F24 F25 F28 F29 F30 **F32** |
+| **Critiques** | F01 F02 F03 F04 | F05 F06 |
+| **Langages** | Java (recruitment + games), SQL | Java (api + domain), SQL, Dart, YAML |
+| **Migrations** | V52–V55 | V56–V59 |
+| **Ordre interne imposé** | F03 → F13/F15 → F14 → F07/F08 | F05 avant F19 ; F23+F24 ensemble |
+| **Fusionne** | en premier | après rebase sur A |
+
+**Phase 0 (ensemble)** : F11, F26, **F31** (renommage des niveaux), allocation des migrations
+`V49`–`V51`, signature F04, consignation de D-E, harnais committé.
+
+### Documents à corriger (hors code)
+
+Trois décisions imposent de modifier les documents sources, sinon le prochain audit reproduira
+les mêmes constats :
+
+| Document | Correction | Décision |
+|---|---|---|
+| CdC **§6** (table d'alerte) | table non monotone, irréalisable par seuil — s'aligner sur la dérivation par le poids | D-B |
+| CdC **§8.1** | `type_evaluation_hard` passe sur le métier, pas sur `job_role_profile` | D-C |
+| `PLAN_FITSCORE_V3.md` | ajouter le report explicite du **niveau 3** (overrides d'offre), à côté de D6 | D-E |
