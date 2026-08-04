@@ -272,16 +272,31 @@ public class JobOfferController {
             .orElse(null);
     }
 
+    /**
+     * F20 (FITSCORE_REMEDIATION.md §3 index F20) — auparavant 3 requêtes par offre
+     * (~60 sur une page de 20) : {@code actors.findById} et {@code hardSkillsAlert}
+     * → {@code roleProfileResolver.resolve} appelaient chacun leur variante
+     * unitaire par offre, alors que les variantes par lot ({@code findByIds},
+     * {@code resolveAll}) existent déjà et sont utilisées deux lignes plus haut
+     * pour les candidatures et les scores.
+     */
     private List<JobOfferSummaryResponse> toSummaries(List<JobOffer> offers, Authentication authentication) {
         if (offers.isEmpty()) return List.of();
         List<UUID> offerIds = offers.stream().map(JobOffer::id).toList();
         Map<UUID, Long> applicantCounts = swipeRepository.countRightByJobOfferIds(offerIds);
         Map<UUID, com.zennyt.recruitment.domain.model.FitScore> scoresByOffer = fitScoresByOffer(offerIds, authentication);
+        List<UUID> recruiterIds = offers.stream().map(JobOffer::recruiterId).distinct().toList();
+        Map<UUID, String> companyNamesByRecruiter = actors.findByIds(recruiterIds).stream()
+            .collect(Collectors.toMap(com.zennyt.recruitment.domain.model.RecruitmentActor::publicUserId,
+                a -> a.companyName(), (left, right) -> left));
+        Map<UUID, JobRoleProfile> roleProfilesByOffer = roleProfileResolver.resolveAll(offers);
         return offers.stream().map(offer -> {
-            String companyName = actors.findById(offer.recruiterId()).map(a -> a.companyName()).orElse(null);
+            String companyName = companyNamesByRecruiter.get(offer.recruiterId());
+            HardSkillsAlertLevel alert = offer.assessmentId() != null ? HardSkillsAlertLevel.NONE
+                : Optional.ofNullable(roleProfilesByOffer.get(offer.id()))
+                    .map(JobRoleProfile::hardSkillsAlert).orElse(HardSkillsAlertLevel.NONE);
             return JobOfferSummaryResponse.from(offer, companyName,
-                applicantCounts.getOrDefault(offer.id(), 0L), scoresByOffer.get(offer.id()),
-                hardSkillsAlert(offer));
+                applicantCounts.getOrDefault(offer.id(), 0L), scoresByOffer.get(offer.id()), alert);
         }).toList();
     }
 
