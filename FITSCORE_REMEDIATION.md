@@ -131,6 +131,46 @@ Les six points sont arbitrés. Plus aucune tâche n'est bloquée.
 | **D-E** | **Niveaux 2 (entreprise) et 3 (offre) reportés tous les deux**, et **écrits comme tels**. | §5 et §9 restent en l'état. À consigner dans `PLAN_FITSCORE_V3.md` (le niveau 3 n'y figure nulle part) |
 | **D-F** | **Grille portfolio reportée.** Au lancement, les métiers créatifs sont notés **sur les soft skills seuls**, avec un **message explicite** au recruteur. | **F18 débloqué et devient obligatoire** — c'est lui, le « message explicite ». Le mode `MIXTE` reste non implémenté |
 
+### 📌 D-E en détail — l'héritage à 3 niveaux, dont **1 seul sur 3 existe**
+
+Le CdC (§5) prévoit que la pondération d'une offre se construise en **trois couches
+successives**, chacune pouvant ajuster la précédente :
+
+```
+1. job_role_profile (métier × niveau)   →  poids par défaut, communs à tout Zennyt
+        ↓ hérite, puis peut surcharger
+2. company_profile (société)            →  ajustements propres à la culture d'une entreprise
+        ↓ hérite, puis peut surcharger
+3. offer (offre individuelle)           →  ajustements ponctuels saisis par le recruteur
+```
+
+| Niveau | À quoi ça sert | État |
+|---|---|---|
+| **1. Métier × niveau** | « Un Développeur Senior, c'est 65 % de hard skills. » Valable pour toute la plateforme. | ✅ **existe**, 24 lignes seedées, exactes |
+| **2. Société** | « Chez nous, la culture est collaborative → +5 % sur la Régulation émotionnelle, sur **toutes** nos offres. » Évite que chaque recruteur d'une même entreprise ressaisisse le même réglage à chaque publication. | ❌ **n'existe pas** — aucune table, aucun champ, aucune route |
+| **3. Offre** | « Ce poste précis exige une expertise réglementaire renforcée → j'ajuste juste pour cette offre. » | ❌ **n'existe pas** |
+
+**Ce que ça veut dire concrètement aujourd'hui :** deux entreprises très différentes — une
+start-up et une banque — qui publient la même offre « Développeur Senior » obtiennent
+exactement la même pondération. Aucune des deux ne peut exprimer sa spécificité.
+
+**Pourquoi on reporte quand même :**
+- Le niveau 2 avait déjà été différé consciemment (décision D6 du plan initial).
+- Le niveau 3, lui, **n'avait jamais été décidé** — il a simplement été oublié. C'est pour ça
+  que P0.7 demande de l'écrire noir sur blanc.
+- Ce n'est pas nécessaire pour lancer : le niveau 1 seul produit déjà un score cohérent.
+- C'est plusieurs semaines de travail, et il y a un point non tranché par le CdC lui-même :
+  quand une société ajoute « +5 % sur la Régulation émotionnelle », **d'où viennent ces 5 points ?**
+  Les deux totaux doivent rester à 100 % (contrainte vérifiée en base). Le CdC ne donne aucune
+  règle de renormalisation.
+
+**Attention technique le jour où on le fera** — ce n'est pas qu'ajouter des tables.
+`JobRoleProfileResolver.resolveAll()` charge aujourd'hui les 24 lignes une fois pour toutes et
+les garde en mémoire, en supposant qu'il n'existe que 24 pondérations possibles. Avec des
+réglages par société ou par offre, cette optimisation tombe — et c'est elle qui rend le
+balayage de rattrapage viable (2 requêtes quel que soit le nombre d'offres). À chiffrer avant
+de planifier.
+
 ### ⚠️ D-A — un point à vérifier avant de lancer F31
 
 Le renommage de V29 ne venait pas de nulle part : son commentaire dit qu'il provient du
