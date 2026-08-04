@@ -61,6 +61,12 @@ class JobsRepositoryImpl implements JobsRepository {
         'howToApply': p.howToApply,
         'companyInfo': p.companyInfo,
         'openToInternational': p.openToInternational,
+        // F06 (FITSCORE_REMEDIATION.md §3 index F06): required server-side
+        // since the AI-fallback path was removed — every create call failed
+        // without it. No picker sets p.jobPositionId yet (see
+        // RECRUITMENT_MODULE.md "Décisions à valider"); sending null here
+        // still surfaces the real 422 instead of masking it.
+        'jobPositionId': p.jobPositionId,
       });
       return _jobFromJson(res.data!);
     });

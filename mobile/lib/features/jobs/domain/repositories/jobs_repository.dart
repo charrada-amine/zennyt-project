@@ -46,6 +46,13 @@ class CreateJobOfferParams {
   final String? assessmentId;
   final bool openToInternational;
 
+  /// F06 (FITSCORE_REMEDIATION.md §3 index F06) — mandatory server-side since
+  /// the AI-fallback path was removed (CreateJobOfferUseCase throws without
+  /// it). Nullable here because no picker UI sets it yet (see
+  /// RECRUITMENT_MODULE.md "Décisions à valider") — wiring the field is not
+  /// the same as the form being able to fill it in.
+  final String? jobPositionId;
+
   const CreateJobOfferParams({
     required this.title,
     required this.companyName,
@@ -68,6 +75,7 @@ class CreateJobOfferParams {
     required this.companyInfo,
     this.assessmentId,
     required this.openToInternational,
+    this.jobPositionId,
   });
 }
 
