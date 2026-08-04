@@ -147,6 +147,12 @@ class ReflectivePauseScoringTest {
         assertThat(session.status()).isEqualTo(SessionStatus.COMPLETED);
         assertThat(session.compositeRaw()).isEqualTo(35);
         assertThat(session.compositeMax()).isEqualTo(37);
-        assertThat(session.domainEvents()).hasSize(1);
+        // F14 — un événement par mini-jeu : le premier portait une couverture de 50 %
+        // (1 des 2 mini-jeux du module), le second la porte à 100 %.
+        assertThat(session.domainEvents()).hasSize(2);
+        var premier = (com.zennyt.games.domain.event.GameResultRecordedEvent) session.domainEvents().get(0);
+        var second = (com.zennyt.games.domain.event.GameResultRecordedEvent) session.domainEvents().get(1);
+        assertThat(premier.coverageRatio()).isEqualTo(50);
+        assertThat(second.coverageRatio()).isEqualTo(100);
     }
 }
