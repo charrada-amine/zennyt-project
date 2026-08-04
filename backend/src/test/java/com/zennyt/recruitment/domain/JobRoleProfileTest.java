@@ -11,6 +11,8 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.time.Instant;
+import java.util.EnumMap;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -105,6 +107,44 @@ class JobRoleProfileTest {
             Arguments.of(JobProfileType.ARTISTIQUE, ExperienceLevel.LEAD, 45, HardSkillsAlertLevel.INFO),
             Arguments.of(JobProfileType.ARTISTIQUE, ExperienceLevel.MANAGER, 25, HardSkillsAlertLevel.INFO)
         );
+    }
+
+    /**
+     * F28 (FITSCORE_REMEDIATION.md §3 index F28) — {@code JobRoleProfileTest} ne
+     * couvrait auparavant que les deux sommes de poids et le bucketing d'alerte ;
+     * rien n'assurait que la courbe hard skills garde sa forme (pic au niveau
+     * SENIOR, décroissance jusqu'à MANAGER, JUNIOR sous le pic). Un chiffre
+     * transposé dans une future migration — ou dans la recalibration RH à venir
+     * — passerait silencieusement sans ce test. Réutilise {@link
+     * #seededRoleProfiles()}, seule source de vérité de la matrice V42+V53
+     * partagée avec F05, pour ne pas dupliquer les 24 poids.
+     */
+    @org.junit.jupiter.api.Test
+    void seededMatrixHas24RowsWithHardWeightPeakingAtSeniorThenDecreasing() {
+        Map<JobProfileType, Map<ExperienceLevel, Integer>> hardWeightByProfile =
+            new EnumMap<>(JobProfileType.class);
+        seededRoleProfiles().forEach(args -> {
+            Object[] a = args.get();
+            hardWeightByProfile
+                .computeIfAbsent((JobProfileType) a[0], t -> new EnumMap<>(ExperienceLevel.class))
+                .put((ExperienceLevel) a[1], (Integer) a[2]);
+        });
+
+        assertThat(hardWeightByProfile).hasSize(JobProfileType.values().length);
+        for (JobProfileType profileType : JobProfileType.values()) {
+            Map<ExperienceLevel, Integer> curve = hardWeightByProfile.get(profileType);
+            assertThat(curve).as("%s : les 4 niveaux doivent être seedés", profileType)
+                .containsOnlyKeys(ExperienceLevel.values());
+            int junior = curve.get(ExperienceLevel.JUNIOR);
+            int senior = curve.get(ExperienceLevel.SENIOR);
+            int lead = curve.get(ExperienceLevel.LEAD);
+            int manager = curve.get(ExperienceLevel.MANAGER);
+
+            assertThat(senior).as("%s : le pic hard est au niveau SENIOR (CdC §4.1)", profileType)
+                .isGreaterThan(junior).isGreaterThan(lead).isGreaterThan(manager);
+            assertThat(lead).as("%s : décroissance après le pic, SENIOR > LEAD > MANAGER", profileType)
+                .isGreaterThan(manager);
+        }
     }
 
     /** Poids de module par profil (V42) — non pertinents pour l'alerte, juste requis par l'invariant du record. */
