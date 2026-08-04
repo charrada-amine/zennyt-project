@@ -21,10 +21,16 @@ class JobOffersNotifier extends AsyncNotifier<List<JobOffer>> {
     state = await AsyncValue.guard(() => ref.read(jobsRepositoryProvider).getJobOffers());
   }
 
-  Future<void> createJob(CreateJobOfferParams params) async {
+  /// F24 (FITSCORE_REMEDIATION.md §3 index F24): `assessmentId` isn't part of
+  /// the create payload (backend-enforced, see [JobsRepositoryImpl.createJobOffer])
+  /// — returns the created job so callers that captured an assessment
+  /// selection in the same form can immediately follow up with
+  /// [assignAssessment].
+  Future<JobOffer> createJob(CreateJobOfferParams params) async {
     final newJob = await ref.read(jobsRepositoryProvider).createJobOffer(params);
     final current = state.value ?? [];
     state = AsyncData([newJob, ...current]);
+    return newJob;
   }
 
   Future<void> updateJob(UpdateJobOfferParams params) async {

@@ -80,7 +80,7 @@ public class JobOfferController {
             req.description(), req.responsibilities(),
             req.minimumQualifications(), req.preferredQualifications(),
             req.whatWeOffer(), req.howToApply(),
-            null, req.jobPositionId(),
+            req.jobPositionId(),
             Boolean.TRUE.equals(req.openToInternational())));
         return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(offer, null));
     }

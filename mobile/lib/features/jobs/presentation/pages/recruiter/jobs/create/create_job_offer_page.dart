@@ -243,7 +243,11 @@ class _CreateJobOfferPageState extends ConsumerState<CreateJobOfferPage> {
             );
         ref.invalidate(jobOfferDetailProvider(jobId));
       } else {
-        await ref.read(jobOffersProvider.notifier).createJob(
+        // F23/F24 (FITSCORE_REMEDIATION.md §3): assessmentId isn't part of the
+        // create payload (backend-enforced — see JobsRepositoryImpl.createJobOffer).
+        // Assignment is a separate PATCH, chained here so picking an assessment
+        // during creation still works from the user's point of view.
+        final newJob = await ref.read(jobOffersProvider.notifier).createJob(
               CreateJobOfferParams(
                 title: _titleCtrl.text.trim(),
                 companyName: _companyCtrl.text.trim(),
@@ -268,6 +272,14 @@ class _CreateJobOfferPageState extends ConsumerState<CreateJobOfferPage> {
                 openToInternational: _openToInternational,
               ),
             );
+        if (_selectedAssessmentId != null) {
+          await ref.read(jobOffersProvider.notifier).assignAssessment(
+                AssignAssessmentParams(
+                  jobId: newJob.id,
+                  assessmentId: _selectedAssessmentId,
+                ),
+              );
+        }
       }
 
       if (mounted) {

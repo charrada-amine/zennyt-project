@@ -33,6 +33,13 @@ class JobsRepositoryImpl implements JobsRepository {
   @override
   Future<JobOffer> createJobOffer(CreateJobOfferParams p) {
     return _guard(() async {
+      // F24 (FITSCORE_REMEDIATION.md §3 index F24): `CreateJobOfferRequest` has
+      // no assessmentId field by design (contract squad web §3.3 reserves
+      // assignment for PATCH) and the backend runs Jackson with
+      // fail-on-unknown-properties: true — sending it here doesn't get
+      // silently dropped, it 400s the whole request. Callers that want to
+      // attach an assessment at creation time call assignAssessmentToJob
+      // right after this returns (see JobOffersNotifier.createJob).
       final res = await _dio.post<Map<String, dynamic>>('/job-offers', data: {
         'title': p.title,
         'companyName': p.companyName,
@@ -53,7 +60,6 @@ class JobsRepositoryImpl implements JobsRepository {
         'whatWeOffer': p.whatWeOffer,
         'howToApply': p.howToApply,
         'companyInfo': p.companyInfo,
-        'assessmentId': p.assessmentId,
         'openToInternational': p.openToInternational,
       });
       return _jobFromJson(res.data!);
