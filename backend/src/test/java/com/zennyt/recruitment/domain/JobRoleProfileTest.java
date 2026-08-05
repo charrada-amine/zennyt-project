@@ -34,12 +34,17 @@ class JobRoleProfileTest {
             .isInstanceOf(IllegalArgumentException.class);
     }
 
+    /**
+     * F19 (FITSCORE_REMEDIATION.md §3 index F19) — ARTISTIQUE porte un jeton
+     * dédié PORTFOLIO_BASED, distinct d'INFO, pour que le client ne le
+     * confonde plus avec « pensez à ajouter un QCM » (voir hardSkillsAlert()).
+     */
     @Test
-    void artistiqueProfileAlwaysHasInfoAlertRegardlessOfExpectedHardWeight() {
+    void artistiqueProfileAlwaysHasPortfolioBasedAlertRegardlessOfExpectedHardWeight() {
         JobRoleProfile profile = new JobRoleProfile(JobProfileType.ARTISTIQUE, ExperienceLevel.SENIOR,
             45, 55, 55, 40, 15, 15, 15, 15, TypeEvaluationHard.PORTFOLIO, false, java.time.Instant.now());
 
-        assertThat(profile.hardSkillsAlert()).isEqualTo(HardSkillsAlertLevel.INFO);
+        assertThat(profile.hardSkillsAlert()).isEqualTo(HardSkillsAlertLevel.PORTFOLIO_BASED);
     }
 
     @Test
@@ -101,11 +106,11 @@ class JobRoleProfileTest {
             Arguments.of(JobProfileType.CONVENTIONNEL, ExperienceLevel.SENIOR, 40, HardSkillsAlertLevel.MODERATE),
             Arguments.of(JobProfileType.CONVENTIONNEL, ExperienceLevel.LEAD, 35, HardSkillsAlertLevel.INFO),
             Arguments.of(JobProfileType.CONVENTIONNEL, ExperienceLevel.MANAGER, 20, HardSkillsAlertLevel.MODERATE),
-            // ARTISTIQUE — toujours INFO (évaluation Portfolio), courbe hard 30/55/45/25
-            Arguments.of(JobProfileType.ARTISTIQUE, ExperienceLevel.JUNIOR, 30, HardSkillsAlertLevel.INFO),
-            Arguments.of(JobProfileType.ARTISTIQUE, ExperienceLevel.SENIOR, 55, HardSkillsAlertLevel.INFO),
-            Arguments.of(JobProfileType.ARTISTIQUE, ExperienceLevel.LEAD, 45, HardSkillsAlertLevel.INFO),
-            Arguments.of(JobProfileType.ARTISTIQUE, ExperienceLevel.MANAGER, 25, HardSkillsAlertLevel.INFO)
+            // ARTISTIQUE — toujours PORTFOLIO_BASED (F19), courbe hard 30/55/45/25
+            Arguments.of(JobProfileType.ARTISTIQUE, ExperienceLevel.JUNIOR, 30, HardSkillsAlertLevel.PORTFOLIO_BASED),
+            Arguments.of(JobProfileType.ARTISTIQUE, ExperienceLevel.SENIOR, 55, HardSkillsAlertLevel.PORTFOLIO_BASED),
+            Arguments.of(JobProfileType.ARTISTIQUE, ExperienceLevel.LEAD, 45, HardSkillsAlertLevel.PORTFOLIO_BASED),
+            Arguments.of(JobProfileType.ARTISTIQUE, ExperienceLevel.MANAGER, 25, HardSkillsAlertLevel.PORTFOLIO_BASED)
         );
     }
 

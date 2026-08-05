@@ -1421,9 +1421,10 @@ components:
       description: >
         Alerte "hard skills manquant" (CdC Fit Score v3 §6) quand aucun QCM
         n'est attaché à l'offre — purement informationnel, jamais utilisé
-        dans le calcul du Fit Score. ARTISTIQUE reste toujours à INFO
-        (évaluation par portfolio, fonctionnement normal, pas une anomalie).
-      enum: [NONE, INFO, MODERATE, STRONG]
+        dans le calcul du Fit Score. ARTISTIQUE reste toujours à
+        PORTFOLIO_BASED (F19, distinct d'INFO) : évaluation par portfolio,
+        fonctionnement normal, pas une anomalie à signaler comme un oubli.
+      enum: [NONE, INFO, MODERATE, STRONG, PORTFOLIO_BASED]
 
     RecruiterSummary:
       type: object
