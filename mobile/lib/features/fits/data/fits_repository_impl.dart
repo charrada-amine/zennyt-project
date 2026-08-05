@@ -151,6 +151,11 @@ class FitsRepositoryImpl implements FitsRepository {
         postedAt: json['postedAt'] != null
             ? DateTime.tryParse(json['postedAt'] as String) ?? DateTime.now()
             : DateTime.now(),
+        // F17 (FITSCORE_REMEDIATION.md §3 index F17): the candidate's Fit Score
+        // for this offer — this mapper only ever backs candidate-facing calls
+        // (getCandidateDeck/getMyActiveOffers), so it's populated when present.
+        fitScore: (json['fitScore'] as num?)?.toInt(),
+        hardSkillsAlert: HardSkillsAlertLevel.fromString(json['hardSkillsAlert'] as String?),
       );
 
   /// The merged backend's candidate feed (`CandidateFeedItem`, contract §…)
@@ -186,6 +191,7 @@ class FitsRepositoryImpl implements FitsRepository {
       location: location,
       softSkillsLevel: _qualitative(softSkills),
       hardSkills: hardSkillScore != null ? {'Hard Skills': hardSkillScore} : const {},
+      partialData: json['partialData'] as bool? ?? false,
       contractTypes: [if (json['goodFit'] as bool? ?? false) 'Good fit'],
       isImmediate: false,
     );

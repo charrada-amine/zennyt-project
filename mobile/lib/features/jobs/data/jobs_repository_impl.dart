@@ -226,6 +226,11 @@ class JobsRepositoryImpl implements JobsRepository {
         postedAt: json['postedAt'] != null
             ? DateTime.tryParse(json['postedAt'] as String) ?? DateTime.now()
             : DateTime.now(),
+        // F16/F17/F19 (FITSCORE_REMEDIATION.md §3): null on the recruiter's own
+        // offer list (no candidate context — "absent si non connecté" per the
+        // contract), populated on the candidate-facing deck/search response.
+        fitScore: (json['fitScore'] as num?)?.toInt(),
+        hardSkillsAlert: HardSkillsAlertLevel.fromString(json['hardSkillsAlert'] as String?),
       );
 
   static Assessment _assessmentFromJson(Map<String, dynamic> json) {

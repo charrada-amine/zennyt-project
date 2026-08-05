@@ -86,6 +86,24 @@ enum JobStatus {
       JobStatus.values.firstWhere((e) => e.value == v, orElse: () => JobStatus.active);
 }
 
+/// F19 (FITSCORE_REMEDIATION.md §3 index F19) — informational only, never
+/// used in the Fit Score calculation. PORTFOLIO_BASED is distinct from INFO:
+/// it means "no QCM is expected for this creative role, that's normal," not
+/// "consider adding one."
+enum HardSkillsAlertLevel {
+  none('NONE'),
+  info('INFO'),
+  moderate('MODERATE'),
+  strong('STRONG'),
+  portfolioBased('PORTFOLIO_BASED');
+
+  final String value;
+  const HardSkillsAlertLevel(this.value);
+
+  static HardSkillsAlertLevel fromString(String? v) => HardSkillsAlertLevel.values
+      .firstWhere((e) => e.value == v, orElse: () => HardSkillsAlertLevel.none);
+}
+
 class JobOffer extends Equatable {
   final String id;
   final String recruiterId;
@@ -113,6 +131,17 @@ class JobOffer extends Equatable {
   final JobStatus status;
   final DateTime postedAt;
 
+  /// F17 (FITSCORE_REMEDIATION.md §3 index F17) — the candidate's Fit Score for
+  /// this offer. "Absent si non connecté" per the contract: null on the
+  /// recruiter's own offer list (no candidate context), populated on the
+  /// candidate-facing deck/search results.
+  final int? fitScore;
+
+  /// F16/F19/F29 (FITSCORE_REMEDIATION.md §3) — recruiter-facing signal: is a
+  /// hard-skills QCM missing where this offer's métier/level would expect
+  /// one. Defaults to `none` when absent from the response.
+  final HardSkillsAlertLevel hardSkillsAlert;
+
   const JobOffer({
     required this.id,
     required this.recruiterId,
@@ -139,6 +168,8 @@ class JobOffer extends Equatable {
     required this.openToInternational,
     required this.status,
     required this.postedAt,
+    this.fitScore,
+    this.hardSkillsAlert = HardSkillsAlertLevel.none,
   });
 
   JobOffer copyWith({
@@ -167,6 +198,8 @@ class JobOffer extends Equatable {
     bool? openToInternational,
     JobStatus? status,
     DateTime? postedAt,
+    int? fitScore,
+    HardSkillsAlertLevel? hardSkillsAlert,
   }) {
     return JobOffer(
       id: id ?? this.id,
@@ -194,6 +227,8 @@ class JobOffer extends Equatable {
       openToInternational: openToInternational ?? this.openToInternational,
       status: status ?? this.status,
       postedAt: postedAt ?? this.postedAt,
+      fitScore: fitScore ?? this.fitScore,
+      hardSkillsAlert: hardSkillsAlert ?? this.hardSkillsAlert,
     );
   }
 
@@ -211,6 +246,6 @@ class JobOffer extends Equatable {
     experienceLevel, fieldOfWork, description, responsibilities,
     minimumQualifications, preferredQualifications, whatWeOffer,
     howToApply, companyInfo, assessmentId, openToInternational,
-    status, postedAt,
+    status, postedAt, fitScore, hardSkillsAlert,
   ];
 }

@@ -60,12 +60,21 @@ class FitCardData {
         section1Stats: [
           FitCardStat('Overall', c.softSkillsLevel),
         ],
+        // F17 (FITSCORE_REMEDIATION.md §3 index F17) contexts 2/3 — "Liste de
+        // candidats" — and F29 (§10 #8): when there's no hard-skill score
+        // (no QCM on this offer), say so explicitly and frame it as the
+        // standard mode, not a degraded one — not just an empty section.
         section2Title: 'Hard Skills',
-        section2Stats: c.hardSkills.entries
-            .take(2)
-            .map((e) => FitCardStat(e.key, '${e.value}%'))
-            .toList(),
-        tags: [...c.contractTypes, if (c.isImmediate) 'Immediately'],
+        section2Stats: c.hardSkills.isNotEmpty
+            ? c.hardSkills.entries.take(2).map((e) => FitCardStat(e.key, '${e.value}%')).toList()
+            : const [FitCardStat('Based on', 'Soft skills only (standard)')],
+        tags: [
+          ...c.contractTypes,
+          if (c.isImmediate) 'Immediately',
+          // F16 (FITSCORE_REMEDIATION.md §3 index F16): partialData is
+          // computed and contracted but was never surfaced by any client.
+          if (c.partialData) 'Partial data',
+        ],
         badgeText: '${c.fitScore}% Fit score',
       );
 
@@ -94,6 +103,11 @@ class FitCardData {
           j.contractType.label,
           if (j.openToInternational) 'International',
         ],
-        badgeText: null,
+        // F17 (FITSCORE_REMEDIATION.md §3 index F17) context 1 — "Page de
+        // matching (avant QCM)": a single Fit Score % label, no sub-line
+        // (candidate hasn't necessarily taken a hard-skills test at this
+        // stage). Was hardcoded null even though the backend already sends
+        // fitScore on this response.
+        badgeText: j.fitScore != null ? '${j.fitScore}% Fit score' : null,
       );
 }
