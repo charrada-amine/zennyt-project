@@ -32,6 +32,7 @@ class AppRoutes {
   static const String gamesPredictivePuzzle = '/games/predictive-puzzle';
   static const String gamesTaskScheduling = '/games/task-scheduling';
   static const String gamesInvestigate = '/games/investigate';
+  static const String gamesJePlace = '/games/je-place';
   static const String gamesJeDecide = '/games/je-decide';
   static const String gamesEmotionalRadar = '/games/emotional-radar';
   static const String gamesReflectivePause = '/games/reflective-pause';
@@ -73,6 +74,7 @@ class AppRoutes {
   static const String nGamesPredictivePuzzle = 'gamesPredictivePuzzle';
   static const String nGamesTaskScheduling = 'gamesTaskScheduling';
   static const String nGamesInvestigate = 'gamesInvestigate';
+  static const String nGamesJePlace = 'gamesJePlace';
   static const String nGamesJeDecide = 'gamesJeDecide';
   static const String nGamesEmotionalRadar = 'gamesEmotionalRadar';
   static const String nGamesReflectivePause = 'gamesReflectivePause';

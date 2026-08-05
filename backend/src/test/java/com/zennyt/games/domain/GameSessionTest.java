@@ -206,6 +206,19 @@ class GameSessionTest {
     }
 
     @Test
+    void visuospatialMemory_isSeparateAndDoesNotChangeMemoryQuestComposition() {
+        GameSession objectLocation = GameSession.start(
+            UUID.randomUUID(), GameType.VISUOSPATIAL_MEMORY);
+        assertEquals(List.of(MiniGame.OBJECT_LOCATION_BINDING_CORE),
+            objectLocation.expectedMiniGames());
+        assertEquals(List.of(MiniGame.MEMORY_QUEST_CORE),
+            GameSession.start(UUID.randomUUID(), GameType.MEMORY_QUEST)
+                .expectedMiniGames());
+        assertEquals("Descriptive — provisional",
+            scoring.interpretGlobal(GameType.VISUOSPATIAL_MEMORY, 72, 72.0));
+    }
+
+    @Test
     void recording_a_foreign_minigame_is_rejected() {
         GameSession session = GameSession.start(UUID.randomUUID(), GameType.MEMORY_QUEST);
         Score score = new Score(10, 10, "Bon à excellent");

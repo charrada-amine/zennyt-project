@@ -31,6 +31,12 @@ import com.zennyt.games.domain.vo.DeviceCalibration;
 import com.zennyt.games.domain.vo.DeviceCategory;
 import com.zennyt.games.domain.vo.InputMode;
 import com.zennyt.games.domain.vo.OptimalPathLevel;
+import com.zennyt.games.domain.vo.ObjectLocationActionType;
+import com.zennyt.games.domain.vo.ObjectLocationCompletionReason;
+import com.zennyt.games.domain.vo.ObjectLocationLevelMetric;
+import com.zennyt.games.domain.vo.ObjectLocationMetrics;
+import com.zennyt.games.domain.vo.ObjectLocationPhase;
+import com.zennyt.games.domain.vo.ObjectLocationPlacementAction;
 import com.zennyt.games.domain.vo.PlanifikMetrics;
 import com.zennyt.games.domain.vo.PrevisionPuzzleLevel;
 import com.zennyt.games.domain.vo.PrevisionPuzzleMetrics;
@@ -115,7 +121,36 @@ public record SubmitResultRequest(
         // « Je coordonne » — modalité + 14 segments de positions fixed-point.
         CoordinationInputSource inputSource,
         @Size(min = 14, max = 14) @Valid
-        List<CoordinationSegmentPayload> coordinationSegments
+        List<CoordinationSegmentPayload> coordinationSegments,
+        // « Je place » — actions brutes uniquement, layout reconstruit serveur.
+        ObjectLocationCompletionReason completionReason,
+        @Size(min = 1, max = 7) @Valid
+        List<ObjectLocationLevelPayload> objectLocationLevels,
+        @Min(0) Integer focusLossCount,
+        @Min(0) Integer orientationChangeCount
+    ) {}
+
+    /** Timings et actions brutes d'un niveau « Je place ». */
+    public record ObjectLocationLevelPayload(
+        @NotNull ObjectLocationPhase phase,
+        @NotNull @Min(0) @Max(6) Integer levelIndex,
+        @NotNull @Min(2) @Max(8) Integer objectCount,
+        @NotNull @Min(0) @Max(12_250) Integer actualEncodingDurationMs,
+        @NotNull @Min(0) @Max(2_250) Integer actualRetentionDurationMs,
+        @NotNull @Min(0) @Max(32_250) Integer actualRecallDurationMs,
+        @NotNull Boolean timedOut,
+        @NotNull Boolean completed,
+        @NotNull @Size(max = 256) @Valid
+        List<ObjectLocationPlacementActionPayload> actions
+    ) {}
+
+    /** Une pose, un déplacement ou un retour à la réserve. */
+    public record ObjectLocationPlacementActionPayload(
+        @NotNull @Min(1) @Max(256) Integer actionIndex,
+        @NotNull ObjectLocationActionType actionType,
+        @NotNull @Size(min = 1, max = 48) String objectId,
+        @Min(0) @Max(15) Integer targetCellIndex,
+        @NotNull @Min(0) Long timestampMs
     ) {}
 
     /** Un segment contigu du protocole visuomoteur. */
@@ -353,7 +388,43 @@ public record SubmitResultRequest(
                 required(metrics.interrupted(), "interrupted"),
                 required(metrics.backgroundEventCount(), "backgroundEventCount"),
                 required(metrics.droppedFrameCount(), "droppedFrameCount"));
+            case OBJECT_LOCATION_BINDING_CORE -> new ObjectLocationMetrics(
+                required(metrics.protocolVersion(), "protocolVersion"),
+                required(metrics.completionReason(), "completionReason"),
+                required(metrics.objectLocationLevels(), "objectLocationLevels").stream()
+                    .map(SubmitResultRequest::toObjectLocationLevel).toList(),
+                required(metrics.sessionCompleted(), "sessionCompleted"),
+                required(metrics.interrupted(), "interrupted"),
+                required(metrics.backgroundEventCount(), "backgroundEventCount"),
+                required(metrics.focusLossCount(), "focusLossCount"),
+                required(metrics.orientationChangeCount(), "orientationChangeCount"),
+                required(metrics.droppedFrameCount(), "droppedFrameCount"));
         };
+    }
+
+    private static ObjectLocationLevelMetric toObjectLocationLevel(
+            ObjectLocationLevelPayload payload) {
+        return new ObjectLocationLevelMetric(
+            required(payload.phase(), "phase"),
+            required(payload.levelIndex(), "levelIndex"),
+            required(payload.objectCount(), "objectCount"),
+            required(payload.actualEncodingDurationMs(), "actualEncodingDurationMs"),
+            required(payload.actualRetentionDurationMs(), "actualRetentionDurationMs"),
+            required(payload.actualRecallDurationMs(), "actualRecallDurationMs"),
+            required(payload.timedOut(), "timedOut"),
+            required(payload.completed(), "completed"),
+            required(payload.actions(), "actions").stream()
+                .map(SubmitResultRequest::toObjectLocationAction).toList());
+    }
+
+    private static ObjectLocationPlacementAction toObjectLocationAction(
+            ObjectLocationPlacementActionPayload payload) {
+        return new ObjectLocationPlacementAction(
+            required(payload.actionIndex(), "actionIndex"),
+            required(payload.actionType(), "actionType"),
+            required(payload.objectId(), "objectId"),
+            payload.targetCellIndex(),
+            required(payload.timestampMs(), "timestampMs"));
     }
 
     private static CoordinationSegmentMetric toCoordinationSegment(

@@ -15,6 +15,7 @@ import '../domain/entities/game_type.dart';
 import '../domain/entities/game_metrics.dart';
 import '../domain/entities/memory_quest_metrics.dart';
 import '../domain/entities/mini_game.dart';
+import '../domain/entities/object_location_metrics.dart';
 import '../domain/entities/move_fast_metrics.dart';
 import '../domain/entities/planifik_metrics.dart';
 import '../domain/entities/prevision_puzzle_metrics.dart';
@@ -25,6 +26,7 @@ import '../domain/repositories/games_repository.dart';
 import 'continuous_attention_scoring.dart';
 import 'coordination_tracking_scoring.dart';
 import 'decision_scoring.dart';
+import 'object_location_scoring.dart';
 
 /// [GamesRepository] MOCK — permet de jouer en totale autonomie, sans backend.
 ///
@@ -52,6 +54,7 @@ class GamesMockRepository implements GamesRepository {
   );
   static const _continuousAttentionScoring = ContinuousAttentionScoring();
   static const _coordinationTrackingScoring = CoordinationTrackingScoring();
+  static const _objectLocationScoring = ObjectLocationScoring();
 
   // Config « Chemin Optimal » — miroir de OptimalPathConfig (backend).
   static const double _optimalPathTolerance = 0.10; // optimal_path_tolerance
@@ -124,6 +127,22 @@ class GamesMockRepository implements GamesRepository {
         );
       }
     }
+    if (miniGame == MiniGame.objectLocationBindingCore) {
+      if (current.gameType != GameType.visuospatialMemory) {
+        throw StateError(
+          '${MiniGame.objectLocationBindingCore.wire} does not belong to '
+          '${current.gameType.wire}',
+        );
+      }
+      if (current.status != 'IN_PROGRESS' ||
+          current.attempts.any(
+            (attempt) => attempt.miniGame == MiniGame.objectLocationBindingCore,
+          )) {
+        throw StateError(
+          'Object-location result already recorded for $sessionId',
+        );
+      }
+    }
 
     final continuousAttentionResult =
         miniGame == MiniGame.continuousAttentionCore
@@ -136,6 +155,12 @@ class GamesMockRepository implements GamesRepository {
         miniGame == MiniGame.coordinationTrackingCore
         ? _coordinationTrackingScoring.score(
             metrics as CoordinationTrackingMetrics,
+          )
+        : null;
+    final objectLocationResult = miniGame == MiniGame.objectLocationBindingCore
+        ? _objectLocationScoring.score(
+            sessionId: sessionId,
+            metrics: metrics as ObjectLocationMetrics,
           )
         : null;
     if (continuousAttentionResult != null &&
@@ -180,6 +205,31 @@ class GamesMockRepository implements GamesRepository {
         reflectivePauseIndicators: current.reflectivePauseIndicators,
         continuousAttentionIndicators: current.continuousAttentionIndicators,
         coordinationIndicators: coordinationTrackingResult.indicators,
+        objectLocationIndicators: current.objectLocationIndicators,
+      );
+      _sessions[sessionId] = audited;
+      return audited;
+    }
+    if (objectLocationResult != null &&
+        !objectLocationResult.indicators.sessionValid) {
+      final audited = GameSession(
+        id: current.id,
+        gameType: current.gameType,
+        status: current.status,
+        compositeRaw: current.compositeRaw,
+        compositeMax: current.compositeMax,
+        normalized: current.normalized,
+        attempts: current.attempts,
+        startedAt: current.startedAt,
+        completedAt: current.completedAt,
+        scoreBreakdown: _objectLocationBreakdown(
+          objectLocationResult.indicators,
+          objectLocationResult.score,
+        ),
+        reflectivePauseIndicators: current.reflectivePauseIndicators,
+        continuousAttentionIndicators: current.continuousAttentionIndicators,
+        coordinationIndicators: current.coordinationIndicators,
+        objectLocationIndicators: objectLocationResult.indicators,
       );
       _sessions[sessionId] = audited;
       return audited;
@@ -210,6 +260,7 @@ class GamesMockRepository implements GamesRepository {
       ),
       MiniGame.continuousAttentionCore => continuousAttentionResult!.score,
       MiniGame.coordinationTrackingCore => coordinationTrackingResult!.score,
+      MiniGame.objectLocationBindingCore => objectLocationResult!.score,
     };
     final attempts = [
       ...current.attempts,
@@ -222,6 +273,7 @@ class GamesMockRepository implements GamesRepository {
         miniGame == MiniGame.decisionCore ||
         miniGame == MiniGame.continuousAttentionCore ||
         miniGame == MiniGame.coordinationTrackingCore ||
+        miniGame == MiniGame.objectLocationBindingCore ||
         attempts.length >= _expectedMiniGames(current.gameType);
     final max = complete
         ? attempts.fold<int>(0, (sum, a) => sum + a.score.maxPoints)
@@ -249,6 +301,9 @@ class GamesMockRepository implements GamesRepository {
       coordinationIndicators: miniGame == MiniGame.coordinationTrackingCore
           ? coordinationTrackingResult!.indicators
           : current.coordinationIndicators,
+      objectLocationIndicators: miniGame == MiniGame.objectLocationBindingCore
+          ? objectLocationResult!.indicators
+          : current.objectLocationIndicators,
     );
     _sessions[sessionId] = updated;
     return updated;
@@ -512,7 +567,77 @@ class GamesMockRepository implements GamesRepository {
         metrics as CoordinationTrackingMetrics,
         score,
       ),
+      MiniGame.objectLocationBindingCore => _breakdownObjectLocation(
+        metrics as ObjectLocationMetrics,
+        score,
+        sessionId,
+      ),
     };
+  }
+
+  List<ScoreBreakdownLine> _breakdownObjectLocation(
+    ObjectLocationMetrics metrics,
+    GameScore score,
+    String sessionId,
+  ) {
+    final report = _objectLocationScoring
+        .score(sessionId: sessionId, metrics: metrics)
+        .indicators;
+    return _objectLocationBreakdown(report, score);
+  }
+
+  List<ScoreBreakdownLine> _objectLocationBreakdown(
+    ObjectLocationIndicators report,
+    GameScore score,
+  ) {
+    String percent(double value) => '${value.toStringAsFixed(1)} %';
+    return [
+      const ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.note,
+        label:
+            'Score provisoire = placements exacts / objets administrés, '
+            'avec un seul arrondi. Permutations, distance et temps restent '
+            'descriptifs.',
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.info,
+        label: 'Placements exacts',
+        detail:
+            '${report.exactPlacementCount}/${report.administeredObjectCount} '
+            '(${percent(report.exactAccuracyPercent)})',
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.info,
+        label: 'Empan atteint',
+        detail: '${report.span} objets',
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.info,
+        label: 'Permutations / erreurs proches / éloignées',
+        detail:
+            '${report.swapCount} / ${report.localErrorCount} / '
+            '${report.globalErrorCount}',
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.info,
+        label: 'Distance moyenne',
+        detail:
+            '${report.averageDisplacementCells.toStringAsFixed(2)} cellules',
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.info,
+        label: 'Validité technique',
+        detail: report.sessionValid
+            ? 'valide'
+            : report.validityIssues.join(', '),
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.total,
+        label: 'Score descriptif',
+        points: score.rawPoints,
+        maxPoints: score.maxPoints,
+      ),
+    ];
   }
 
   List<ScoreBreakdownLine> _breakdownCoordinationTracking(
@@ -1052,6 +1177,7 @@ class GamesMockRepository implements GamesRepository {
       GameType.emotionalRegulation => 2,
       GameType.continuousAttention => 1,
       GameType.visuomotorCoordination => 1,
+      GameType.visuospatialMemory => 1,
     };
   }
 
@@ -1076,6 +1202,8 @@ class GamesMockRepository implements GamesRepository {
         recorded.contains(MiniGame.continuousAttentionCore) ? 0 : 100,
       GameType.visuomotorCoordination =>
         recorded.contains(MiniGame.coordinationTrackingCore) ? 0 : 100,
+      GameType.visuospatialMemory =>
+        recorded.contains(MiniGame.objectLocationBindingCore) ? 0 : 100,
     };
   }
 

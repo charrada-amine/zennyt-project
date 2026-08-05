@@ -6,7 +6,8 @@ package com.zennyt.games.domain.vo;
  * <p>Chaque type correspond à une fiche d'évaluation cognitive. État actuel :
  * {@link #MOVE_FAST}, {@link #PLANIFIK} (3 mini-jeux jouables, profil global /30),
  * {@link #MEMORY_QUEST}, {@link #EMOTIONAL_REGULATION} et
- * {@link #CONTINUOUS_ATTENTION} et {@link #VISUOMOTOR_COORDINATION} sont implémentés ;
+ * {@link #CONTINUOUS_ATTENTION}, {@link #VISUOMOTOR_COORDINATION} et
+ * {@link #VISUOSPATIAL_MEMORY} sont implémentés ;
  * {@link #DECISION} est déclaré mais sans logique (figé au contrat pour une
  * extension non cassante).
  */
@@ -35,5 +36,10 @@ public enum GameType {
      * « Je coordonne » — coordination visuomotrice sur une trajectoire carrée
      * fixe. Type indépendant afin de préserver les sessions Move Fast.
      */
-    VISUOMOTOR_COORDINATION
+    VISUOMOTOR_COORDINATION,
+    /**
+     * « Je place » — liaison objet-position et mémoire de travail
+     * visuospatiale. Type indépendant afin de préserver Memory Quest.
+     */
+    VISUOSPATIAL_MEMORY
 }

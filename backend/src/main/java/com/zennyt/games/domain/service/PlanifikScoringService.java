@@ -212,6 +212,10 @@ public class PlanifikScoringService {
             case VISUOMOTOR_COORDINATION ->
                 com.zennyt.games.domain.config.CoordinationProvisionalRules
                     .DESCRIPTIVE_LEVEL;
+            // Score objet-position provisoire, sans bande clinique.
+            case VISUOSPATIAL_MEMORY ->
+                com.zennyt.games.domain.config.ObjectLocationProvisionalRules
+                    .DESCRIPTIVE_LEVEL;
         };
     }
 

@@ -3,12 +3,14 @@ package com.zennyt.games.domain;
 import com.zennyt.games.domain.service.PlanifikScoringService;
 import com.zennyt.games.domain.service.ContinuousAttentionScoringService;
 import com.zennyt.games.domain.service.ScoreBreakdownService;
+import com.zennyt.games.domain.service.ObjectLocationScoringService;
 import com.zennyt.games.domain.vo.CostlyZonesAvoided;
 import com.zennyt.games.domain.vo.ContinuousAttentionReport;
 import com.zennyt.games.domain.vo.MoveFastMetrics;
 import com.zennyt.games.domain.vo.MoveFastResponse;
 import com.zennyt.games.domain.vo.MoveFastRule;
 import com.zennyt.games.domain.vo.OptimalPathLevel;
+import com.zennyt.games.domain.vo.ObjectLocationReport;
 import com.zennyt.games.domain.vo.PlanifikMetrics;
 import com.zennyt.games.domain.vo.PrevisionPuzzleLevel;
 import com.zennyt.games.domain.vo.PrevisionPuzzleMetrics;
@@ -16,6 +18,7 @@ import com.zennyt.games.domain.vo.Score;
 import com.zennyt.games.domain.vo.ScoreBreakdown;
 import com.zennyt.games.domain.vo.SecondaryObjectivesReached;
 import com.zennyt.games.support.ContinuousAttentionTestFixtures;
+import com.zennyt.games.support.ObjectLocationTestFixtures;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -120,5 +123,25 @@ class ScoreBreakdownServiceTest {
         assertEquals("Score descriptif", result.lines().get(4).label());
         assertEquals(100, result.lines().get(4).points());
         assertEquals(100, result.lines().get(4).maxPoints());
+    }
+
+    @Test
+    void object_location_breakdown_keeps_descriptive_metrics_outside_score() {
+        ObjectLocationScoringService service = new ObjectLocationScoringService();
+        ObjectLocationReport report = service.report(
+            ObjectLocationTestFixtures.SESSION_ID,
+            ObjectLocationTestFixtures.validStopRule(ObjectLocationTestFixtures.SESSION_ID));
+        Score score = service.score(report);
+
+        ScoreBreakdown result = breakdown.objectLocation(report, score);
+
+        assertTrue(result.lines().get(0).detail() == null);
+        assertTrue(result.lines().get(0).label().contains("hors score"));
+        assertTrue(result.lines().stream().anyMatch(line ->
+            "Swaps / erreurs locales / globales / omissions".equals(line.label())
+                && line.points() == null));
+        ScoreBreakdown.Line total = result.lines().get(result.lines().size() - 1);
+        assertEquals(25, total.points());
+        assertEquals(100, total.maxPoints());
     }
 }

@@ -14,6 +14,7 @@ import com.zennyt.games.domain.vo.GameMetrics;
 import com.zennyt.games.domain.vo.MemoryQuestMetrics;
 import com.zennyt.games.domain.vo.MoveFastMetrics;
 import com.zennyt.games.domain.vo.OptimalPathLevel;
+import com.zennyt.games.domain.vo.ObjectLocationReport;
 import com.zennyt.games.domain.vo.PlanifikMetrics;
 import com.zennyt.games.domain.vo.PrevisionPuzzleLevel;
 import com.zennyt.games.domain.vo.PrevisionPuzzleMetrics;
@@ -36,6 +37,27 @@ import java.util.List;
  * {@code _buildBreakdown}) reproduit ces lignes à l'identique.
  */
 public class ScoreBreakdownService {
+
+    /** « Je place » — seule l'exactitude objet-position entre dans le /100. */
+    public ScoreBreakdown objectLocation(ObjectLocationReport report, Score score) {
+        List<Line> lines = new ArrayList<>();
+        lines.add(Line.note("Score provisoire = placements exacts / objets administrés, "
+            + "arrondi half-up une seule fois. Pratique, swaps, distances, "
+            + "pente et temps sont hors score."));
+        lines.add(Line.info("Placements exacts",
+            report.exactPlacementCount() + "/" + report.administeredObjectCount()
+                + " (" + report.exactAccuracyPercent() + " %)"));
+        lines.add(Line.info("Swaps / erreurs locales / globales / omissions",
+            report.swapCount() + " / " + report.localErrorCount() + " / "
+                + report.globalErrorCount() + " / " + report.unplacedCount()));
+        lines.add(Line.info("Distance moyenne",
+            report.averageDisplacementCells() + " cellules"));
+        lines.add(Line.info("Empan atteint", String.valueOf(report.span())));
+        lines.add(Line.info("Validité technique",
+            report.sessionValid() ? "valide" : String.join(", ", report.validityIssues())));
+        lines.add(Line.total("Score descriptif", score.rawPoints(), score.maxPoints()));
+        return new ScoreBreakdown(lines);
+    }
 
     /**
      * « Je coordonne » — seule la précision globale entre dans le /100.

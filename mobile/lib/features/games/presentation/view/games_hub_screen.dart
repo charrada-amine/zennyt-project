@@ -25,6 +25,7 @@ const _logoMoveFast = 'assets/games icons/Move Fast.png';
 const _logoJeContinue = 'assets/games icons/Je Continue.png';
 const _logoJeCoordonne = 'assets/games icons/Je Coordonne.png';
 const _logoMemoryQuest = 'assets/games icons/Memory Quest transparent.png';
+const _logoJePlace = 'assets/games icons/Je Place.png';
 const _logoJeDecide = 'assets/games icons/Je Decide transparent.png';
 const _logoOptimalPath = 'assets/games icons/Optimal Path transparent.png';
 const _logoTaskScheduling =
@@ -108,6 +109,8 @@ class GamesHubScreen extends ConsumerWidget {
                     key: const ValueKey('game-category-working-memory'),
                     title: 'Working Memory',
                     iconAsset: _iconMemory,
+                    durationLabel: '5–13 min',
+                    aptitudeLabel: '2 games',
                     games: const [
                       _GameEntry(
                         label: 'Memory Quest',
@@ -115,6 +118,13 @@ class GamesHubScreen extends ConsumerWidget {
                         route: AppRoutes.gamesInvestigate,
                         logoAsset: _logoMemoryQuest,
                         fallbackIcon: Icons.apps_rounded,
+                      ),
+                      _GameEntry(
+                        label: 'Je place',
+                        subtitle: 'Object-location memory · 5 min',
+                        route: AppRoutes.gamesJePlace,
+                        logoAsset: _logoJePlace,
+                        fallbackIcon: Icons.grid_view_rounded,
                       ),
                     ],
                   ),

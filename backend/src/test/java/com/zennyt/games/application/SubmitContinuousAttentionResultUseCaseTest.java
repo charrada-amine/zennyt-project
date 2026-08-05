@@ -11,6 +11,7 @@ import com.zennyt.games.domain.repository.CoordinationMetricsRepository;
 import com.zennyt.games.domain.repository.DeviceCalibrationRepository;
 import com.zennyt.games.domain.repository.EmotionalRadarAnswerRepository;
 import com.zennyt.games.domain.repository.GameSessionRepository;
+import com.zennyt.games.domain.repository.ObjectLocationMetricsRepository;
 import com.zennyt.games.domain.service.PlanifikScoringService;
 import com.zennyt.games.domain.vo.ContinuousAttentionMetrics;
 import com.zennyt.games.domain.vo.ContinuousAttentionTrialMetric;
@@ -54,6 +55,7 @@ class SubmitContinuousAttentionResultUseCaseTest {
             mock(EmotionalRadarAnswerRepository.class),
             rawMetrics,
             mock(CoordinationMetricsRepository.class),
+            mock(ObjectLocationMetricsRepository.class),
             events,
             mock(DecisionScenarioCatalog.class));
         when(sessions.save(any(GameSession.class)))

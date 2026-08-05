@@ -68,6 +68,7 @@ public class GamesController {
             outcome.reflectivePauseReport(),
             outcome.continuousAttentionReport(),
             outcome.coordinationReport(),
+            outcome.objectLocationReport(),
             outcome.scoreBreakdown()));
     }
 }

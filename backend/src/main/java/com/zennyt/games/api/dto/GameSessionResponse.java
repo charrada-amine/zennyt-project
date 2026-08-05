@@ -10,6 +10,8 @@ import com.zennyt.games.domain.vo.CoordinationReport;
 import com.zennyt.games.domain.vo.EmotionalRadarReport;
 import com.zennyt.games.domain.vo.MemoryQuestReport;
 import com.zennyt.games.domain.vo.MoveFastFlexibilityReport;
+import com.zennyt.games.domain.vo.ObjectLocationLevelReport;
+import com.zennyt.games.domain.vo.ObjectLocationReport;
 import com.zennyt.games.domain.vo.PrevisionPuzzleReport;
 import com.zennyt.games.domain.vo.ReflectivePauseReport;
 import com.zennyt.games.domain.vo.ScoreBreakdown;
@@ -38,8 +40,98 @@ public record GameSessionResponse(
     ReflectivePauseIndicatorsResponse reflectivePauseIndicators,
     ContinuousAttentionIndicatorsResponse continuousAttentionIndicators,
     CoordinationIndicatorsResponse coordinationIndicators,
+    ObjectLocationIndicatorsResponse objectLocationIndicators,
     List<ScoreBreakdownLineResponse> scoreBreakdown
 ) {
+    /** Rapport descriptif de liaison objet-position, sans norme clinique. */
+    public record ObjectLocationIndicatorsResponse(
+        String protocolVersion,
+        String completionReason,
+        boolean completed,
+        boolean sessionValid,
+        boolean technicalValid,
+        boolean minimumLevelsValid,
+        boolean progressionValid,
+        boolean timingValid,
+        int provisionalAccuracyScore,
+        int completedLevelCount,
+        int passedLevelCount,
+        int administeredObjectCount,
+        int exactPlacementCount,
+        int swapCount,
+        int localErrorCount,
+        int globalErrorCount,
+        int unplacedCount,
+        double exactAccuracyPercent,
+        double swapRatePercent,
+        double localErrorRatePercent,
+        double globalErrorRatePercent,
+        double averageDisplacementCells,
+        int span,
+        Double loadSlope,
+        Double averageFirstPlacementIntervalMs,
+        int repositionCount,
+        int backgroundEventCount,
+        int focusLossCount,
+        int orientationChangeCount,
+        int droppedFrameCount,
+        int timingDeviationCount,
+        List<ObjectLocationLevelIndicatorsResponse> levels,
+        List<String> validityIssues
+    ) {
+        static ObjectLocationIndicatorsResponse from(ObjectLocationReport r) {
+            return new ObjectLocationIndicatorsResponse(
+                r.protocolVersion(), r.completionReason().name(), r.completed(),
+                r.sessionValid(), r.technicalValid(), r.minimumLevelsValid(),
+                r.progressionValid(), r.timingValid(), r.provisionalAccuracyScore(),
+                r.completedLevelCount(), r.passedLevelCount(),
+                r.administeredObjectCount(), r.exactPlacementCount(), r.swapCount(),
+                r.localErrorCount(), r.globalErrorCount(), r.unplacedCount(),
+                r.exactAccuracyPercent(), r.swapRatePercent(),
+                r.localErrorRatePercent(), r.globalErrorRatePercent(),
+                r.averageDisplacementCells(), r.span(), r.loadSlope(),
+                r.averageFirstPlacementIntervalMs(), r.repositionCount(),
+                r.backgroundEventCount(), r.focusLossCount(),
+                r.orientationChangeCount(), r.droppedFrameCount(),
+                r.timingDeviationCount(),
+                r.levels().stream()
+                    .map(ObjectLocationLevelIndicatorsResponse::from).toList(),
+                r.validityIssues());
+        }
+    }
+
+    /** Détail descriptif d'un niveau, pratique comprise. */
+    public record ObjectLocationLevelIndicatorsResponse(
+        String phase,
+        int levelIndex,
+        int objectCount,
+        boolean completed,
+        boolean timedOut,
+        boolean passed,
+        int exactCount,
+        int swapCount,
+        int localErrorCount,
+        int globalErrorCount,
+        int unplacedCount,
+        double exactAccuracyPercent,
+        double averageDisplacementCells,
+        int recallDurationMs,
+        int actionCount,
+        int repositionCount,
+        Double averageFirstPlacementIntervalMs
+    ) {
+        static ObjectLocationLevelIndicatorsResponse from(
+                ObjectLocationLevelReport r) {
+            return new ObjectLocationLevelIndicatorsResponse(
+                r.phase().name(), r.levelIndex(), r.objectCount(), r.completed(),
+                r.timedOut(), r.passed(), r.exactCount(), r.swapCount(),
+                r.localErrorCount(), r.globalErrorCount(), r.unplacedCount(),
+                r.exactAccuracyPercent(), r.averageDisplacementCells(),
+                r.recallDurationMs(), r.actionCount(), r.repositionCount(),
+                r.averageFirstPlacementIntervalMs());
+        }
+    }
+
     /** Rapport visuomoteur calculé depuis les positions pointeur brutes. */
     public record CoordinationIndicatorsResponse(
         String protocolVersion,
@@ -372,7 +464,7 @@ public record GameSessionResponse(
     }
 
     public static GameSessionResponse from(GameSession s) {
-        return from(s, null, null, null, null, null, null, null, null, null);
+        return from(s, null, null, null, null, null, null, null, null, null, null);
     }
 
     public static GameSessionResponse from(GameSession s,
@@ -384,6 +476,7 @@ public record GameSessionResponse(
                                            ReflectivePauseReport reflectivePauseReport,
                                            ContinuousAttentionReport continuousAttentionReport,
                                            CoordinationReport coordinationReport,
+                                           ObjectLocationReport objectLocationReport,
                                            ScoreBreakdown scoreBreakdown) {
         return new GameSessionResponse(
             s.id(), s.playerId(), s.gameType().name(), s.status().name(),
@@ -404,6 +497,8 @@ public record GameSessionResponse(
                 : ContinuousAttentionIndicatorsResponse.from(continuousAttentionReport),
             coordinationReport == null ? null
                 : CoordinationIndicatorsResponse.from(coordinationReport),
+            objectLocationReport == null ? null
+                : ObjectLocationIndicatorsResponse.from(objectLocationReport),
             scoreBreakdown == null ? null
                 : scoreBreakdown.lines().stream().map(ScoreBreakdownLineResponse::from).toList());
     }

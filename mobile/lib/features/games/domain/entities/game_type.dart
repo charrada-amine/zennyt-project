@@ -17,7 +17,10 @@ enum GameType {
   continuousAttention('CONTINUOUS_ATTENTION'),
 
   /// « Je coordonne » — fixed-square visuomotor tracking.
-  visuomotorCoordination('VISUOMOTOR_COORDINATION');
+  visuomotorCoordination('VISUOMOTOR_COORDINATION'),
+
+  /// « Je place » — object/location binding in visuospatial working memory.
+  visuospatialMemory('VISUOSPATIAL_MEMORY');
 
   /// Valeur transmise à l'API (nom de l'enum côté back).
   final String wire;

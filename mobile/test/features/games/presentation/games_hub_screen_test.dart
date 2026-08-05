@@ -90,6 +90,26 @@ void main() {
       'category-game-logo-Memory Quest',
       'assets/games icons/Memory Quest transparent.png',
     );
+    expectAssetLogo(
+      'category-game-logo-Je place',
+      'assets/games icons/Je Place.png',
+    );
+
+    final memoryCard = find.byKey(
+      const ValueKey('game-category-working-memory'),
+    );
+    await tester.tap(memoryCard);
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('picker-game-logo-Memory Quest')),
+      findsOneWidget,
+    );
+    expectAssetLogo(
+      'picker-game-logo-Je place',
+      'assets/games icons/Je Place.png',
+    );
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
 
     final decisionCard = find.byKey(
       const ValueKey('game-category-decision-making'),

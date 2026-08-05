@@ -4,12 +4,12 @@ info:
   description: >
     Bounded context Games : jeux sérieux d'évaluation cognitive (Planifik,
     Move Fast, Memory Quest, Je Décide, Emotional Regulation et Continuous
-    Attention et Visuomotor Coordination). Le client démarre une session, joue
+    Attention, Visuomotor Coordination et Visuospatial Memory). Le client démarre une session, joue
     les mini-jeux et remonte
     des MÉTRIQUES objectives ; le score déterministe est calculé côté serveur.
     Ce contexte est indépendant : il n'expose et ne consomme aucun autre
     contexte, et publie son résultat via l'événement games.result.recorded.
-  version: 1.2.0
+  version: 1.3.0
 
 servers:
   - url: https://api.zennyt.com/api/v1
@@ -70,6 +70,16 @@ paths:
         trace structurellement incohérente produit 400. Une trace dont
         technicalValid ou taskValid est faux reste audit-only, sans Attempt ni
         événement.
+
+        OBJECT_LOCATION_BINDING_CORE applique le même modèle audit-only. Le
+        serveur reconstruit le catalogue, les objets, leurs cellules d'origine
+        et leur réserve depuis l'UUID de session. Le client ne transmet que les
+        actions brutes. Une interruption, perte de focus, rotation, mise en
+        arrière-plan ou divergence temporelle conserve le run sans créer
+        d'Attempt ni d'événement. Même valide, son score reste provisoire : la
+        session et l'Attempt sont enregistrés mais games.result.recorded n'est
+        pas publié tant que le barème et l'intégration Fit Score ne sont pas
+        validés par le psychologue.
       requestBody:
         required: true
         content:
@@ -173,9 +183,10 @@ components:
         de PLANIFIK qui héberge ses trois mini-jeux. CONTINUOUS_ATTENTION reste
         distinct de MOVE_FAST : « Je continue » apparaît dans la même catégorie
         mobile sans modifier les sessions ni le barème historique de Move Fast.
-        VISUOMOTOR_COORDINATION (« Je coordonne ») est lui aussi indépendant :
-        son ajout à la même catégorie mobile ne modifie aucun GameType existant.
-      enum: [PLANIFIK, MOVE_FAST, MEMORY_QUEST, DECISION, EMOTIONAL_REGULATION, CONTINUOUS_ATTENTION, VISUOMOTOR_COORDINATION]
+        VISUOMOTOR_COORDINATION (« Je coordonne ») est lui aussi indépendant.
+        VISUOSPATIAL_MEMORY (« Je place ») apparaît à côté de Memory Quest sans
+        modifier son agrégat ni son barème historique.
+      enum: [PLANIFIK, MOVE_FAST, MEMORY_QUEST, DECISION, EMOTIONAL_REGULATION, CONTINUOUS_ATTENTION, VISUOMOTOR_COORDINATION, VISUOSPATIAL_MEMORY]
 
     MiniGame:
       type: string
@@ -187,7 +198,9 @@ components:
         ni interprétation du Conners CPT-3. COORDINATION_TRACKING_CORE implémente
         une trajectoire carrée fixe, horaire et prédictible ; aucun score,
         inside/outside ni distance calculée par le client n'est accepté.
-      enum: [OPTIMAL_PATH, TASK_SCHEDULING, PREVISION_PUZZLE, MOVE_FAST_CORE, MEMORY_QUEST_CORE, DECISION_CORE, EMOTIONAL_RADAR_CORE, REFLECTIVE_PAUSE_CORE, CONTINUOUS_ATTENTION_CORE, COORDINATION_TRACKING_CORE]
+        OBJECT_LOCATION_BINDING_CORE ne reçoit ni grille attendue, ni position
+        d'origine, ni score : le serveur les reconstruit.
+      enum: [OPTIMAL_PATH, TASK_SCHEDULING, PREVISION_PUZZLE, MOVE_FAST_CORE, MEMORY_QUEST_CORE, DECISION_CORE, EMOTIONAL_RADAR_CORE, REFLECTIVE_PAUSE_CORE, CONTINUOUS_ATTENTION_CORE, COORDINATION_TRACKING_CORE, OBJECT_LOCATION_BINDING_CORE]
 
     SessionStatus:
       type: string
@@ -955,6 +968,265 @@ components:
           type: array
           items: { type: string }
 
+    ObjectLocationProtocolVersion:
+      type: string
+      description: >
+        Version figée du protocole provisoire de « Je place ». La progression,
+        la grille et les timings peuvent être remplacés dans la configuration
+        serveur sans modifier le moteur ni les métriques brutes.
+      enum: [OBJECT_LOCATION_FINE_V1]
+
+    ObjectLocationPhase:
+      type: string
+      description: PRACTICE est persistée pour audit mais exclue de toute cotation.
+      enum: [PRACTICE, TEST]
+
+    ObjectLocationCompletionReason:
+      type: string
+      description: >
+        MAX_LEVELS après les six niveaux ; STOP_RULE après deux échecs
+        consécutifs (jamais avant trois niveaux) ; TECHNICAL_INTERRUPTION pour
+        un run incomplet conservé audit-only.
+      enum: [MAX_LEVELS, STOP_RULE, TECHNICAL_INTERRUPTION]
+
+    ObjectLocationActionType:
+      type: string
+      enum: [PLACE, RETURN_TO_RESERVE]
+
+    ObjectLocationPlacementAction:
+      type: object
+      description: >
+        Action brute pendant la restitution. objectId doit appartenir au niveau
+        déterministe reconstruit par le serveur. PLACE exige targetCellIndex ;
+        RETURN_TO_RESERVE exige null. Une cellule occupée éjecte son objet vers
+        la réserve. Aucun état correct/incorrect n'est transmis.
+      required: [actionIndex, actionType, objectId, timestampMs]
+      properties:
+        actionIndex: { type: integer, minimum: 1, maximum: 256 }
+        actionType: { $ref: '#/components/schemas/ObjectLocationActionType' }
+        objectId:
+          type: string
+          minLength: 1
+          maxLength: 48
+        targetCellIndex:
+          type: integer
+          nullable: true
+          minimum: 0
+          maximum: 15
+        timestampMs:
+          type: integer
+          format: int64
+          minimum: 0
+
+    ObjectLocationLevelMetric:
+      type: object
+      description: >
+        Mesure brute d'un niveau. La pratique est l'index 0 avec 2 objets ; les
+        tests 1–6 utilisent respectivement 3–8 objets. Les objets et cellules
+        d'origine ne figurent jamais dans le payload.
+      required:
+        - phase
+        - levelIndex
+        - objectCount
+        - actualEncodingDurationMs
+        - actualRetentionDurationMs
+        - actualRecallDurationMs
+        - timedOut
+        - completed
+        - actions
+      properties:
+        phase: { $ref: '#/components/schemas/ObjectLocationPhase' }
+        levelIndex: { type: integer, minimum: 0, maximum: 6 }
+        objectCount: { type: integer, minimum: 2, maximum: 8 }
+        actualEncodingDurationMs: { type: integer, minimum: 0, maximum: 12250 }
+        actualRetentionDurationMs: { type: integer, minimum: 0, maximum: 2250 }
+        actualRecallDurationMs:
+          type: integer
+          minimum: 0
+          maximum: 32250
+        timedOut: { type: boolean }
+        completed: { type: boolean }
+        actions:
+          type: array
+          maxItems: 256
+          items: { $ref: '#/components/schemas/ObjectLocationPlacementAction' }
+
+    ObjectLocationMetrics:
+      type: object
+      description: >
+        Trace brute de « Je place ». Le serveur dérive la graine de
+        sessionId|OBJECT_LOCATION_FINE_V1 avec FNV-1a 32 bits puis xorshift32,
+        reconstruit les layouts et rejoue les actions. Le score, les positions
+        d'origine et les catégories d'erreur ne sont jamais acceptés du client.
+      required:
+        - protocolVersion
+        - completionReason
+        - objectLocationLevels
+        - sessionCompleted
+        - interrupted
+        - backgroundEventCount
+        - focusLossCount
+        - orientationChangeCount
+        - droppedFrameCount
+      properties:
+        protocolVersion: { $ref: '#/components/schemas/ObjectLocationProtocolVersion' }
+        completionReason: { $ref: '#/components/schemas/ObjectLocationCompletionReason' }
+        objectLocationLevels:
+          type: array
+          minItems: 1
+          maxItems: 7
+          items: { $ref: '#/components/schemas/ObjectLocationLevelMetric' }
+        sessionCompleted: { type: boolean }
+        interrupted: { type: boolean }
+        backgroundEventCount: { type: integer, minimum: 0 }
+        focusLossCount: { type: integer, minimum: 0 }
+        orientationChangeCount: { type: integer, minimum: 0 }
+        droppedFrameCount:
+          type: integer
+          minimum: 0
+          description: Descriptif uniquement ; n'entre jamais dans le score.
+
+    ObjectLocationLevelIndicators:
+      type: object
+      required:
+        - phase
+        - levelIndex
+        - objectCount
+        - completed
+        - timedOut
+        - passed
+        - exactCount
+        - swapCount
+        - localErrorCount
+        - globalErrorCount
+        - unplacedCount
+        - exactAccuracyPercent
+        - averageDisplacementCells
+        - recallDurationMs
+        - actionCount
+        - repositionCount
+      properties:
+        phase: { $ref: '#/components/schemas/ObjectLocationPhase' }
+        levelIndex: { type: integer, minimum: 0, maximum: 6 }
+        objectCount: { type: integer, minimum: 2, maximum: 8 }
+        completed: { type: boolean }
+        timedOut: { type: boolean }
+        passed: { type: boolean }
+        exactCount: { type: integer, minimum: 0 }
+        swapCount: { type: integer, minimum: 0 }
+        localErrorCount: { type: integer, minimum: 0 }
+        globalErrorCount: { type: integer, minimum: 0 }
+        unplacedCount: { type: integer, minimum: 0 }
+        exactAccuracyPercent: { type: number, format: double, minimum: 0, maximum: 100 }
+        averageDisplacementCells: { type: number, format: double, minimum: 0 }
+        recallDurationMs: { type: integer, minimum: 0 }
+        actionCount: { type: integer, minimum: 0, maximum: 256 }
+        repositionCount: { type: integer, minimum: 0 }
+        averageFirstPlacementIntervalMs:
+          type: number
+          format: double
+          nullable: true
+          description: Intervalle moyen entre premières poses sur ce niveau.
+
+    ObjectLocationIndicators:
+      type: object
+      description: >
+        Rapport descriptif calculé côté serveur. PROVISOIRE — le score /100 est
+        uniquement l'exactitude globale sur les objets des niveaux TEST
+        terminés, avec un seul arrondi half-up. Swaps, distances, erreurs,
+        pente et temps restent hors score. Aucun diagnostic, percentile ou
+        classement. EXACT, SWAP, LOCAL, GLOBAL et omission sont des catégories
+        exclusives ; une omission reçoit la distance diagonale maximale mais
+        n'est pas comptée comme erreur GLOBAL.
+      required:
+        - protocolVersion
+        - completionReason
+        - completed
+        - sessionValid
+        - technicalValid
+        - minimumLevelsValid
+        - progressionValid
+        - timingValid
+        - provisionalAccuracyScore
+        - completedLevelCount
+        - passedLevelCount
+        - administeredObjectCount
+        - exactPlacementCount
+        - swapCount
+        - localErrorCount
+        - globalErrorCount
+        - unplacedCount
+        - exactAccuracyPercent
+        - swapRatePercent
+        - localErrorRatePercent
+        - globalErrorRatePercent
+        - averageDisplacementCells
+        - span
+        - repositionCount
+        - backgroundEventCount
+        - focusLossCount
+        - orientationChangeCount
+        - droppedFrameCount
+        - timingDeviationCount
+        - levels
+        - validityIssues
+      properties:
+        protocolVersion: { $ref: '#/components/schemas/ObjectLocationProtocolVersion' }
+        completionReason: { $ref: '#/components/schemas/ObjectLocationCompletionReason' }
+        completed: { type: boolean }
+        sessionValid: { type: boolean }
+        technicalValid: { type: boolean }
+        minimumLevelsValid: { type: boolean }
+        progressionValid: { type: boolean }
+        timingValid: { type: boolean }
+        provisionalAccuracyScore: { type: integer, minimum: 0, maximum: 100 }
+        completedLevelCount: { type: integer, minimum: 0, maximum: 6 }
+        passedLevelCount: { type: integer, minimum: 0, maximum: 6 }
+        administeredObjectCount: { type: integer, minimum: 0, maximum: 33 }
+        exactPlacementCount: { type: integer, minimum: 0, maximum: 33 }
+        swapCount: { type: integer, minimum: 0, maximum: 33 }
+        localErrorCount: { type: integer, minimum: 0, maximum: 33 }
+        globalErrorCount:
+          type: integer
+          minimum: 0
+          maximum: 33
+          description: Objet placé à plus d'une cellule, hors origine d'un autre objet.
+        unplacedCount:
+          type: integer
+          minimum: 0
+          maximum: 33
+          description: Omission au timeout ; catégorie séparée de GLOBAL.
+        exactAccuracyPercent: { type: number, format: double, minimum: 0, maximum: 100 }
+        swapRatePercent: { type: number, format: double, minimum: 0, maximum: 100 }
+        localErrorRatePercent: { type: number, format: double, minimum: 0, maximum: 100 }
+        globalErrorRatePercent: { type: number, format: double, minimum: 0, maximum: 100 }
+        averageDisplacementCells: { type: number, format: double, minimum: 0 }
+        span: { type: integer, minimum: 0, maximum: 8 }
+        loadSlope:
+          type: number
+          format: double
+          nullable: true
+          description: Pente OLS exactitude (%) selon la charge ; descriptive.
+        averageFirstPlacementIntervalMs:
+          type: number
+          format: double
+          nullable: true
+          description: Moyenne des intervalles entre premières poses, hors score.
+        repositionCount: { type: integer, minimum: 0 }
+        backgroundEventCount: { type: integer, minimum: 0 }
+        focusLossCount: { type: integer, minimum: 0 }
+        orientationChangeCount: { type: integer, minimum: 0 }
+        droppedFrameCount: { type: integer, minimum: 0 }
+        timingDeviationCount: { type: integer, minimum: 0 }
+        levels:
+          type: array
+          minItems: 1
+          maxItems: 7
+          items: { $ref: '#/components/schemas/ObjectLocationLevelIndicators' }
+        validityIssues:
+          type: array
+          items: { type: string }
+
     PrevisionPuzzleLevelMetrics:
       type: object
       description: >
@@ -1545,6 +1817,7 @@ components:
         - $ref: '#/components/schemas/ReflectivePauseMetrics'
         - $ref: '#/components/schemas/ContinuousAttentionMetrics'
         - $ref: '#/components/schemas/CoordinationMetrics'
+        - $ref: '#/components/schemas/ObjectLocationMetrics'
 
     SubmitResultRequest:
       type: object
@@ -1623,6 +1896,12 @@ components:
           description: >
             Présent uniquement après « Je coordonne ». Toutes les précisions et
             distances sont reconstruites côté serveur depuis la trace brute.
+        objectLocationIndicators:
+          allOf: [ { $ref: '#/components/schemas/ObjectLocationIndicators' } ]
+          nullable: true
+          description: >
+            Présent uniquement après « Je place ». Layout, score et catégories
+            d'erreur sont reconstruits côté serveur depuis les actions brutes.
         scoreBreakdown:
           type: array
           nullable: true

@@ -11,6 +11,7 @@ import com.zennyt.games.domain.repository.CoordinationMetricsRepository;
 import com.zennyt.games.domain.repository.DeviceCalibrationRepository;
 import com.zennyt.games.domain.repository.EmotionalRadarAnswerRepository;
 import com.zennyt.games.domain.repository.GameSessionRepository;
+import com.zennyt.games.domain.repository.ObjectLocationMetricsRepository;
 import com.zennyt.games.domain.vo.CoordinationMetrics;
 import com.zennyt.games.domain.vo.GameType;
 import com.zennyt.games.domain.vo.SessionStatus;
@@ -51,6 +52,7 @@ class SubmitCoordinationResultUseCaseTest {
             mock(EmotionalRadarAnswerRepository.class),
             mock(ContinuousAttentionMetricsRepository.class),
             rawMetrics,
+            mock(ObjectLocationMetricsRepository.class),
             events,
             mock(DecisionScenarioCatalog.class));
         when(sessions.save(any(GameSession.class)))
