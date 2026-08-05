@@ -53,11 +53,12 @@ class FitCardData {
         subtitle: c.location,
         primaryLabel: 'Target role',
         primaryValue: '${c.targetRole} | ${c.seniority}',
+        // F10 (FITSCORE_REMEDIATION.md §3 index F10): one honest row from the
+        // real aggregate score, not three fabricated per-module rows the
+        // backend doesn't provide (see CandidateProfile.softSkillsLevel).
         section1Title: 'Soft Skills',
         section1Stats: [
-          FitCardStat('Decision Making', c.decisionMaking),
-          FitCardStat('Cognitive Flexibility', c.cognitiveFlexibility),
-          FitCardStat('Emotional Regulation', c.emotionalRegulation),
+          FitCardStat('Overall', c.softSkillsLevel),
         ],
         section2Title: 'Hard Skills',
         section2Stats: c.hardSkills.entries
