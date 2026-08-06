@@ -31,7 +31,7 @@ class CallRepositoryImpl implements CallRepository {
   }
 
   @override
-  Future<Either<Failure, void>> startCall(Call call) async {
+  Future<Either<Failure, String>> startCall(Call call) async {
     if (await networkInfo.isConnected) {
       try {
         final model = CallModel(
@@ -42,8 +42,8 @@ class CallRepositoryImpl implements CallRepository {
           startTime: call.startTime,
           duration: call.duration,
         );
-        await remoteDataSource.startCall(model);
-        return const Right(null);
+        final callId = await remoteDataSource.startCall(model);
+        return Right(callId);
       } on ServerException catch (e) {
         return Left(mapStatusCodeToFailure(e.statusCode, e.message));
       }
@@ -57,6 +57,20 @@ class CallRepositoryImpl implements CallRepository {
     if (await networkInfo.isConnected) {
       try {
         await remoteDataSource.endCall(id);
+        return const Right(null);
+      } on ServerException catch (e) {
+        return Left(mapStatusCodeToFailure(e.statusCode, e.message));
+      }
+    } else {
+      return const Left(NetworkFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> joinCall(String callId) async {
+    if (await networkInfo.isConnected) {
+      try {
+        await remoteDataSource.joinCall(callId);
         return const Right(null);
       } on ServerException catch (e) {
         return Left(mapStatusCodeToFailure(e.statusCode, e.message));

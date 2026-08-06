@@ -5,8 +5,9 @@ import '../models/call_model.dart';
 
 abstract class CallRemoteDataSource {
   Future<CallModel> getCall(String id);
-  Future<void> startCall(CallModel call);
+  Future<String> startCall(CallModel call);
   Future<void> endCall(String id);
+  Future<void> joinCall(String callId);
 }
 
 class CallRemoteDataSourceImpl implements CallRemoteDataSource {
@@ -23,16 +24,18 @@ class CallRemoteDataSourceImpl implements CallRemoteDataSource {
   }
 
   @override
-  Future<void> startCall(CallModel call) async {
+  Future<String> startCall(CallModel call) async {
     try {
-      await dio.post(
-        'calls/start',
+      final res = await dio.post(
+        '/calls/start',
         data: {
           'conversationId': call.id,
           'type': call.type == CallType.audio ? 'AUDIO' : 'VIDEO',
-          'webrtcOffer': '',
+          'webrtcOffer': 'dummy_offer',
         },
       );
+      final data = res.data as Map<String, dynamic>;
+      return data['id'] as String;
     } on DioException catch (e) {
       throw handleDioException(e);
     }
@@ -41,7 +44,21 @@ class CallRemoteDataSourceImpl implements CallRemoteDataSource {
   @override
   Future<void> endCall(String id) async {
     try {
-      await dio.post('/api/v1/calls/$id/end');
+      await dio.post('/calls/$id/end');
+    } on DioException catch (e) {
+      throw handleDioException(e);
+    }
+  }
+
+  @override
+  Future<void> joinCall(String callId) async {
+    try {
+      await dio.post(
+        '/calls/$callId/join',
+        data: {
+          'webrtcAnswer': 'dummy_answer',
+        },
+      );
     } on DioException catch (e) {
       throw handleDioException(e);
     }

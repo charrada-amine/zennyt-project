@@ -5,12 +5,12 @@ import '../../../../core/usecase/usecase.dart';
 import '../entities/call.dart';
 import '../repositories/call_repository.dart';
 
-class StartCall implements UseCase<void, StartCallParams> {
+class StartCall implements UseCase<String, StartCallParams> {
   final CallRepository repository;
   StartCall(this.repository);
 
   @override
-  Future<Either<Failure, void>> call(StartCallParams params) =>
+  Future<Either<Failure, String>> call(StartCallParams params) =>
       repository.startCall(params.call);
 }
 

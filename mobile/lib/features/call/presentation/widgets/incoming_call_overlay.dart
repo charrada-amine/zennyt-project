@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:go_router/go_router.dart';
 import 'package:zennyt/core/network/websocket_service.dart';
+import 'package:zennyt/core/router/app_router.dart';
 import 'package:zennyt/features/call/data/repositories/call_signaling_repository_impl.dart';
 import 'package:zennyt/features/call/domain/repositories/call_signaling_repository.dart';
 import 'package:zennyt/features/call/presentation/providers/call_provider.dart';
@@ -16,6 +18,7 @@ class IncomingCallState {
   final String? senderName;
   final String? channelName;
   final bool isVideoCall;
+  final String? callId;
 
   const IncomingCallState({
     this.isActive = false,
@@ -24,6 +27,7 @@ class IncomingCallState {
     this.senderName,
     this.channelName,
     this.isVideoCall = false,
+    this.callId,
   });
 
   IncomingCallState copyWith({
@@ -33,6 +37,7 @@ class IncomingCallState {
     String? senderName,
     String? channelName,
     bool? isVideoCall,
+    String? callId,
   }) {
     return IncomingCallState(
       isActive: isActive ?? this.isActive,
@@ -41,6 +46,7 @@ class IncomingCallState {
       senderName: senderName ?? this.senderName,
       channelName: channelName ?? this.channelName,
       isVideoCall: isVideoCall ?? this.isVideoCall,
+      callId: callId ?? this.callId,
     );
   }
 }
@@ -48,7 +54,10 @@ class IncomingCallState {
 class IncomingCallNotifier extends StateNotifier<IncomingCallState> {
   final CallSignalingRepository _signaling;
   final WebSocketService _webSocketService;
-  IncomingCallNotifier(this._signaling, this._webSocketService)
+  final Ref _ref;
+  Timer? _timeoutTimer;
+
+  IncomingCallNotifier(this._signaling, this._webSocketService, this._ref)
     : super(const IncomingCallState()) {
        debugPrint('🎯 IncomingCallNotifier created, listening for invites');
     _listenForInvites();
@@ -60,6 +69,8 @@ class IncomingCallNotifier extends StateNotifier<IncomingCallState> {
       final initiatorId = data['initiatorId'] as String?;
       if (initiatorId == null) return;
 
+      final callId = data['callId'] as String?;
+
       state = IncomingCallState(
         isActive: true,
         conversationId: data['conversationId'] as String?,
@@ -69,12 +80,49 @@ class IncomingCallNotifier extends StateNotifier<IncomingCallState> {
             data['conversationId']
                 as String?, // no channelName field from backend, conversationId doubles as channel
         isVideoCall: (data['type'] as String?)?.toUpperCase() == 'VIDEO',
+        callId: callId,
       );
+
+      // Start 1-minute timeout timer
+      _timeoutTimer?.cancel();
+      _timeoutTimer = Timer(const Duration(minutes: 1), () {
+        if (state.isActive) {
+          debugPrint('⏳ Incoming call timed out after 1 minute without answer');
+          final myUserId = _ref.read(currentUserProvider).value?.id ?? '';
+          _signaling.sendReject(
+            conversationId: state.conversationId ?? '',
+            senderId: myUserId,
+            counterpartId: state.senderId,
+          );
+          if (state.callId != null) {
+            _ref.read(callNotifierProvider.notifier).endCall(state.callId!);
+          }
+          dismiss();
+        }
+      });
+    });
+
+    _signaling.onEndCall((data) {
+      debugPrint('📞 onEndCall fired on incoming call overlay: $data');
+      dismiss();
+    });
+
+    _signaling.onReject((data) {
+      debugPrint('📞 onReject fired on incoming call overlay: $data');
+      dismiss();
     });
   }
 
   void dismiss() {
+    _timeoutTimer?.cancel();
+    _timeoutTimer = null;
     state = const IncomingCallState();
+  }
+
+  @override
+  void dispose() {
+    _timeoutTimer?.cancel();
+    super.dispose();
   }
 }
 
@@ -83,6 +131,7 @@ final incomingCallProvider =
       return IncomingCallNotifier(
         ref.read(callSignalingRepositoryProvider),
         ref.read(webSocketServiceProvider),
+        ref,
       );
     });
 
@@ -166,6 +215,11 @@ class IncomingCallOverlay extends ConsumerWidget {
                                   senderId: myUserId,
                                   counterpartId: incomingCall.senderId,
                                 );
+                            if (incomingCall.callId != null) {
+                              ref
+                                  .read(callNotifierProvider.notifier)
+                                  .endCall(incomingCall.callId!);
+                            }
                             ref.read(incomingCallProvider.notifier).dismiss();
                           },
                         ),
@@ -174,25 +228,55 @@ class IncomingCallOverlay extends ConsumerWidget {
                           icon: Icons.call,
                           color: Colors.green,
                           label: 'Accepter',
-                          onTap: () {
+                          onTap: () async {
+                            debugPrint('📞 Accept button pressed');
+                            debugPrint('📞 Incoming call data: conversationId=${incomingCall.conversationId}, senderId=${incomingCall.senderId}, callId=${incomingCall.callId}, isVideoCall=${incomingCall.isVideoCall}');
+                            
+                            // Check WebSocket connection
+                            final ws = ref.read(webSocketServiceProvider);
+                            if (!ws.isConnected) {
+                              debugPrint('❌ WebSocket not connected! Cannot accept call.');
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Connexion perdue. Réessayez.')),
+                              );
+                              return;
+                            }
+                            
                             ref.read(incomingCallProvider.notifier).dismiss();
-                            context.push(
-                              '/call',
-                              extra: {
-                                'contactName':
-                                    incomingCall.senderName ?? 'Appelant',
-                                'conversationId': incomingCall.conversationId,
-                                'counterpartId': incomingCall.senderId,
-                                'myUserId': ref
-                                    .read(currentUserProvider)
-                                    .value
-                                    ?.id,
-                                'incomingOffer': {
-                                  'isVideoCall': incomingCall.isVideoCall,
-                                  'channelName': incomingCall.channelName,
+                            
+                            try {
+                              final myUserId = ref.read(currentUserProvider).value?.id;
+                              debugPrint('📞 My user ID: $myUserId');
+                              
+                              if (myUserId == null || myUserId.isEmpty) {
+                                debugPrint('❌ No user ID available');
+                                return;
+                              }
+                              
+                              // Use router from provider instead of context.push()
+                              final router = ref.read(goRouterProvider);
+                              router.push(
+                                '/call',
+                                extra: {
+                                  'contactName': incomingCall.senderName ?? 'Appelant',
+                                  'conversationId': incomingCall.conversationId,
+                                  'counterpartId': incomingCall.senderId,
+                                  'myUserId': myUserId,
+                                  'incomingOffer': {
+                                    'isVideoCall': incomingCall.isVideoCall,
+                                    'channelName': incomingCall.channelName,
+                                    'callId': incomingCall.callId,
+                                  },
                                 },
-                              },
-                            );
+                              );
+                              debugPrint('✅ Navigation to call page completed');
+                            } catch (e, stack) {
+                              debugPrint('❌ Error navigating to call page: $e');
+                              debugPrint('Stack: $stack');
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Erreur: $e')),
+                              );
+                            }
                           },
                         ),
                       ],

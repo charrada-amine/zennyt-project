@@ -27,12 +27,15 @@ final webSocketConnectionProvider = Provider<void>((ref) {
     data: (user) async {
       if (user != null) {
         final token = await tokenStorage.readAccessToken();
+        // Map user IDs to backend engagement.actors UUIDs
+        // Add your user ID here with the correct UUID from engagement.actors table
         const testUuidMap = {
           '2': '05e4fcc0-e555-4016-bc2d-9af4ee1cf38f',
           '4': '1b9a9ff0-13d6-40dc-bf04-222e93708c3e',
         };
         final testUuid = testUuidMap[user.id] ?? user.id;
 
+        debugPrint('🔌 Connecting WebSocket with userId=$testUuid (original: ${user.id})');
         ws.connect(userId: testUuid, authToken: token);
         debugPrint('🔍 user.id = ${user.id} (type: ${user.id.runtimeType})');
         debugPrint('🔍 full user object = ${user.toString()}');

@@ -6,6 +6,7 @@ import 'package:zennyt/features/call/data/datasources/recording_local_datasource
 import 'package:zennyt/features/call/data/datasources/recording_remote_datasource.dart';
 import 'package:zennyt/features/call/data/repositories/call_recording_repository_impl.dart';
 import 'package:zennyt/features/call/domain/usecases/sync_pending_chunks.dart';
+import 'package:zennyt/features/call/presentation/services/call_recording_service.dart';
 
 final recordingLocalDataSourceProvider = Provider<RecordingLocalDataSource>((ref) {
   return sl<RecordingLocalDataSource>();
@@ -26,6 +27,12 @@ final callRecordingRepositoryProvider = Provider<CallRecordingRepositoryImpl>((r
 
 final syncPendingChunksProvider = Provider<SyncPendingChunks>((ref) {
   return SyncPendingChunks(ref.read(callRecordingRepositoryProvider));
+});
+
+final callRecordingServiceProvider = Provider<CallRecordingService>((ref) {
+  return CallRecordingService(
+    repository: ref.watch(callRecordingRepositoryProvider),
+  );
 });
 
 /// Tracks whether recording is currently active (for UI indicators).

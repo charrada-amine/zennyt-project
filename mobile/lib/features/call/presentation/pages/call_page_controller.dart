@@ -14,7 +14,6 @@ import 'package:zennyt/features/call/domain/repositories/call_signaling_reposito
 import 'package:zennyt/features/call/presentation/providers/call_provider.dart';
 import 'package:zennyt/features/call/presentation/providers/call_recording_provider.dart';
 import 'package:zennyt/features/call/presentation/services/call_recording_service.dart';
-import 'package:zennyt/features/call/data/repositories/call_recording_repository_impl.dart';
 
 import '../providers/call_ui_providers.dart';
 
@@ -178,18 +177,10 @@ class CallPageController {
   /// Call after channel join (from onJoinChannelSuccess or onUserJoined) to
   /// start recording the call.
   void _startRecordingIfNeeded() {
-    if (!isVideoCall || _recordingService != null) return;
+    if (_recordingService != null) return;
     if (_engine == null || channelName.isEmpty) return;
 
-    final repository = CallRecordingRepositoryImpl(
-      local: ref.read(recordingLocalDataSourceProvider),
-      remote: ref.read(recordingRemoteDataSourceProvider),
-    );
-
-    final service = CallRecordingService(
-      repository: repository,
-      engine: _engine!,
-    );
+    final service = ref.read(callRecordingServiceProvider);
 
     // Update UI state when recording starts/stops
     service.onRecordingStateChanged = (isRecording) {
@@ -443,10 +434,6 @@ class CallPageController {
   }
 
   void disposeRenderers() {
-    _recordingService?.stopRecording();
-    _recordingService?.stopRetryService();
-    _recordingService?.dispose();
-    _recordingService = null;
     _engine?.release();
     _engine = null;
   }

@@ -12,11 +12,13 @@ import '../../features/notifications/domain/usecases/mark_notification_read.dart
 import '../../features/notifications/domain/usecases/mark_all_notifications_read.dart';
 import '../../features/notifications/domain/usecases/create_notification.dart';
 import '../../features/call/data/datasources/call_remote_datasource.dart';
+import '../../features/call/data/datasources/recording_local_datasource.dart';
 import '../../features/call/data/repositories/call_repository_impl.dart';
 import '../../features/call/domain/repositories/call_repository.dart';
 import '../../features/call/domain/usecases/get_call.dart';
 import '../../features/call/domain/usecases/start_call.dart';
 import '../../features/call/domain/usecases/end_call.dart';
+import '../../features/call/domain/usecases/join_call.dart';
 import '../../features/chat/data/datasources/chat_remote_datasource.dart';
 import '../../features/chat/data/datasources/message_remote_datasource.dart';
 import '../../features/chat/data/repositories/chat_repository_impl.dart';
@@ -61,6 +63,9 @@ Future<void> initDependencies({required String apiBaseUrl}) async {
   final jobsBox = await Hive.openBox('jobs_cache');
   sl.registerSingleton<Box>(jobsBox, instanceName: 'jobsBox');
 
+  final chunksBox = await RecordingLocalDataSource.openBox();
+  sl.registerSingleton<RecordingLocalDataSource>(RecordingLocalDataSource(chunksBox));
+
   sl.registerSingleton<NotificationRemoteDataSource>(
     NotificationRemoteDataSourceImpl(sl()),
   );
@@ -79,6 +84,7 @@ Future<void> initDependencies({required String apiBaseUrl}) async {
   sl.registerSingleton(GetCall(sl()));
   sl.registerSingleton(StartCall(sl()));
   sl.registerSingleton(EndCall(sl()));
+  sl.registerSingleton(JoinCall(sl()));
 
   sl.registerSingleton<ConversationRemoteDataSource>(
     ConversationRemoteDataSourceImpl(sl()),

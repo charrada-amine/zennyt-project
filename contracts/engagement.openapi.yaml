@@ -415,6 +415,37 @@ paths:
       responses:
         '204': { description: Appel terminé }
 
+  /calls/recording/chunks:
+    post:
+      tags: [Calls]
+      operationId: uploadCallRecordingChunk
+      summary: Upload a call recording chunk
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [sessionId, sequenceNumber, file]
+              properties:
+                sessionId:
+                  type: string
+                  format: uuid
+                  description: Call session identifier
+                sequenceNumber:
+                  type: integer
+                  description: Chunk sequence number
+                file:
+                  type: string
+                  format: binary
+                  description: Video chunk file (MP4)
+      responses:
+        '201':
+          description: Chunk uploaded
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CallRecordingChunk' }
+
   # ───────────── HELP CENTER ─────────────
   /help-chats:
     get:
@@ -652,6 +683,14 @@ components:
         startedAt: { type: string, format: date-time }
         endedAt: { type: string, format: date-time, nullable: true }
         durationSeconds: { type: integer, nullable: true }
+
+    CallRecordingChunk:
+      type: object
+      properties:
+        chunkId: { type: string, format: uuid }
+        url: { type: string, format: uri }
+        sessionId: { type: string, format: uuid }
+        sequenceNumber: { type: integer }
 
     HelpChat:
       type: object
