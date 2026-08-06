@@ -113,13 +113,13 @@ class RecomputeFitScoresUseCaseBatchTest {
         when(softSkills.findByCandidateIds(any())).thenReturn(modules);
         when(actors.findByIds(any())).thenReturn(List.of(avecInfo, sansInfo));
         when(roleProfileResolver.resolveAll(any())).thenReturn(Map.of(offreResolue.id(), PONDERATION));
-        when(testResults.findByCandidateIdsAndJobOfferIds(any(), any())).thenReturn(List.of(resultat));
-        when(fitScores.findByCandidateIdsAndJobOfferIds(any(), any())).thenReturn(List.of(existant));
+        when(testResults.findByPairs(any())).thenReturn(List.of(resultat));
+        when(fitScores.findByPairs(any())).thenReturn(List.of(existant));
         when(fitScores.saveAll(any())).thenAnswer(invocation ->
             ((List<?>) invocation.getArgument(0)).size());
 
         useCase = new RecomputeFitScoresUseCase(CALCULATOR, fitScores, offers, softSkills,
-            roleProfileResolver, testResults);
+            roleProfileResolver, testResults, 5000);
     }
 
     private List<Pair> toutesLesPaires() {
@@ -170,8 +170,8 @@ class RecomputeFitScoresUseCaseBatchTest {
 
         verify(softSkills, times(1)).findByCandidateIds(any());
         verify(roleProfileResolver, times(1)).resolveAll(any());
-        verify(testResults, times(1)).findByCandidateIdsAndJobOfferIds(any(), any());
-        verify(fitScores, times(1)).findByCandidateIdsAndJobOfferIds(any(), any());
+        verify(testResults, times(1)).findByPairs(any());
+        verify(fitScores, times(1)).findByPairs(any());
         verify(fitScores, times(1)).saveAll(any());
 
         // Aucun retour au chargement paire par paire, sinon le gain disparaît.
@@ -195,7 +195,7 @@ class RecomputeFitScoresUseCaseBatchTest {
         FitScoreCalculatorPort sansPonderation = inputs ->
             inputs.roleProfile() == null ? null : new FitScoreCalculatorPort.FitScoreResult(50, 50, 100);
         var useCaseSansRepli = new RecomputeFitScoresUseCase(sansPonderation, fitScores,
-            mock(JobOfferRepository.class), softSkills, roleProfileResolver, testResults);
+            mock(JobOfferRepository.class), softSkills, roleProfileResolver, testResults, 5000);
 
         assertThat(useCaseSansRepli.recompute(CANDIDATE_VIERGE, offreNonResolue)).isNull();
         verify(fitScores, never()).save(any());

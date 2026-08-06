@@ -2,6 +2,7 @@ package com.zennyt.recruitment.infrastructure.persistence;
 
 import com.zennyt.recruitment.domain.model.FitScore;
 import com.zennyt.recruitment.domain.repository.FitScoreRepository;
+import com.zennyt.recruitment.domain.vo.CandidateOfferPair;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.Optional;
@@ -34,10 +35,9 @@ public class FitScoreRepositoryAdapter implements FitScoreRepository {
             .map(this::toDomain).toList();
     }
 
-    @Override public List<FitScore> findByCandidateIdsAndJobOfferIds(List<UUID> candidateIds,
-                                                                    List<UUID> jobOfferIds) {
-        if (candidateIds.isEmpty() || jobOfferIds.isEmpty()) return List.of();
-        return jpa.findByCandidateIdInAndJobOfferIdIn(candidateIds, jobOfferIds).stream()
+    @Override public List<FitScore> findByPairs(List<CandidateOfferPair> pairs) {
+        if (pairs.isEmpty()) return List.of();
+        return jpa.findByPairs(PairArrays.candidateIds(pairs), PairArrays.jobOfferIds(pairs)).stream()
             .map(this::toDomain).toList();
     }
 

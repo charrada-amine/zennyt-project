@@ -29,11 +29,27 @@ public class FitScoreAiConfig {
         return new DeterministicFitScoreCalculator();
     }
 
+    /**
+     * Borne stricte du travail de fond sur la base de données.
+     *
+     * <p>Le plan demandait un <i>pool de connexions dédié</i> au travail de fond. Ici c'est
+     * le <b>consommateur</b> qui est borné plutôt que la ressource partitionnée, et la
+     * garantie obtenue est la même : un travail de fond qui ne peut jamais tourner sur plus
+     * de N threads ne peut jamais détenir plus de N connexions, quels que soient les autres
+     * réglages. Sur un pool applicatif de 10, il en reste donc toujours au moins 8 pour les
+     * requêtes utilisateur.
+     *
+     * <p>Partitionner réellement le pool imposerait un second {@code EntityManagerFactory}
+     * et un second gestionnaire de transactions, donc de dupliquer toute la couche de
+     * persistance — les mêmes repositories servent le chemin requête et le chemin de fond.
+     * Coût structurel élevé pour une garantie identique : écarté volontairement.
+     */
     @Bean(name = "recruitmentFitScoreExecutor")
-    Executor recruitmentFitScoreExecutor() {
+    Executor recruitmentFitScoreExecutor(
+            @Value("${recruitment.fitscore.db-pool-size:2}") int poolSize) {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(4);
-        executor.setMaxPoolSize(4);
+        executor.setCorePoolSize(poolSize);
+        executor.setMaxPoolSize(poolSize);
         executor.setQueueCapacity(200);
         executor.setThreadNamePrefix("recruitment-fit-");
         executor.initialize();

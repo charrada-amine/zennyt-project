@@ -1,6 +1,7 @@
 package com.zennyt.recruitment.application.usecase;
 
 import com.zennyt.recruitment.application.CandidateFeedRanker;
+import com.zennyt.recruitment.application.InlineFitScoreComputer;
 import com.zennyt.recruitment.domain.model.FitScore;
 import com.zennyt.recruitment.domain.model.JobOffer;
 import com.zennyt.recruitment.domain.repository.FitScoreDismissalRepository;
@@ -25,15 +26,18 @@ public class GetSwipeDeckUseCase {
     private final FitScoreRepository fitScores;
     private final FitScoreDismissalRepository dismissals;
     private final CandidateFeedRanker ranker;
+    private final InlineFitScoreComputer inlineComputer;
     private final int rankingPoolSize;
 
     public GetSwipeDeckUseCase(JobOfferRepository offers, FitScoreRepository fitScores,
                                FitScoreDismissalRepository dismissals, CandidateFeedRanker ranker,
+                               InlineFitScoreComputer inlineComputer,
                                @Value("${recruitment.ranking.pool-size:200}") int rankingPoolSize) {
         this.offers = offers;
         this.fitScores = fitScores;
         this.dismissals = dismissals;
         this.ranker = ranker;
+        this.inlineComputer = inlineComputer;
         this.rankingPoolSize = rankingPoolSize;
     }
 
@@ -48,6 +52,10 @@ public class GetSwipeDeckUseCase {
         int safeSize = Math.max(1, size);
         int poolSize = Math.max(rankingPoolSize, (safePage + 1) * safeSize);
         List<JobOffer> pool = offers.findFeedForCandidate(candidateId, 0, poolSize);
+        // Calcule les notes manquantes avant le classement, pour qu'aucune offre affichée
+        // ne soit reléguée en fin de liste faute de note. Sans effet si la fonctionnalité
+        // est désactivée, et sans jamais faire échouer la requête (voir le composant).
+        inlineComputer.ensureScored(candidateId, pool);
         List<JobOffer> ranked = ranker.rank(candidateId, pool);
         int from = Math.min(ranked.size(), safePage * safeSize);
         int to = Math.min(ranked.size(), from + safeSize);

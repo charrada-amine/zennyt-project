@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zennyt.recruitment.domain.model.TestAnswer;
 import com.zennyt.recruitment.domain.model.TestResult;
 import com.zennyt.recruitment.domain.repository.TestResultRepository;
+import com.zennyt.recruitment.domain.vo.CandidateOfferPair;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
@@ -32,10 +33,9 @@ public class TestResultRepositoryAdapter implements TestResultRepository {
         return jpa.findFirstByCandidateIdAndJobOfferId(candidateId, jobOfferId).map(this::toDomain);
     }
 
-    @Override public List<TestResult> findByCandidateIdsAndJobOfferIds(List<UUID> candidateIds,
-                                                                      List<UUID> jobOfferIds) {
-        if (candidateIds.isEmpty() || jobOfferIds.isEmpty()) return List.of();
-        return jpa.findByCandidateIdInAndJobOfferIdIn(candidateIds, jobOfferIds).stream()
+    @Override public List<TestResult> findByPairs(List<CandidateOfferPair> pairs) {
+        if (pairs.isEmpty()) return List.of();
+        return jpa.findByPairs(PairArrays.candidateIds(pairs), PairArrays.jobOfferIds(pairs)).stream()
             .map(this::toDomain).toList();
     }
 

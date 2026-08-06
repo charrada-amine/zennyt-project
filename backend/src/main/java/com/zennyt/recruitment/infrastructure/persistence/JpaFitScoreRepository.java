@@ -42,7 +42,19 @@ public interface JpaFitScoreRepository extends JpaRepository<FitScoreEntity, UUI
 
     List<FitScoreEntity> findByCandidateIdAndJobOfferIdIn(UUID candidateId, List<UUID> jobOfferIds);
 
-    List<FitScoreEntity> findByCandidateIdInAndJobOfferIdIn(List<UUID> candidateIds, List<UUID> jobOfferIds);
+    /**
+     * Scores des paires exactes fournies — jamais leur produit croisé. Même mécanique et
+     * mêmes raisons que {@code JpaTestResultRepository.findByPairs}.
+     */
+    @Query(value = """
+        SELECT f.* FROM recruitment.fit_scores f
+        JOIN unnest(
+                 string_to_array(:candidateIds, ',')::uuid[],
+                 string_to_array(:jobOfferIds, ',')::uuid[]
+             ) AS p(candidate_id, job_offer_id)
+          ON f.candidate_id = p.candidate_id AND f.job_offer_id = p.job_offer_id
+        """, nativeQuery = true)
+    List<FitScoreEntity> findByPairs(String candidateIds, String jobOfferIds);
 
     /**
      * Paires (candidat actif, offre ACTIVE) sans score — backlog du balayage de rattrapage.

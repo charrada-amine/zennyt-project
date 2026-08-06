@@ -1,9 +1,7 @@
 package com.zennyt.recruitment.application;
 
-import com.zennyt.recruitment.application.usecase.RecomputeFitScoresUseCase;
-import com.zennyt.recruitment.domain.model.JobOffer;
 import com.zennyt.recruitment.domain.repository.FitScoreRepository;
-import com.zennyt.recruitment.domain.repository.JobOfferRepository;
+import com.zennyt.recruitment.domain.vo.CandidateOfferPair;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -15,54 +13,56 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
- * Rattrape les paires (candidat, offre) qui n'ont jamais reçu de Fit Score.
+ * Pré-remplissage : détecte les paires (candidat, offre) sans Fit Score, ou dont le score
+ * est périmé, et les <b>enfile</b> pour traitement.
  *
- * <p>Les 3 déclencheurs existants (partie jouée, offre publiée, test soumis) sont
- * volontairement bornés à 20 paires : ce sont des « aperçus rapides », pas une garantie
- * de couverture. Au-delà d'une vingtaine d'offres ou de candidats, certaines paires ne
- * rentraient dans aucun de ces lots et restaient <b>définitivement</b> sans score. Ce
- * balayage est ce qui garantit qu'aucune paire n'est oubliée pour de bon : il ne
- * s'arrête pas tant qu'il reste une paire en attente.
+ * <h2>Ce composant n'est plus la garantie de correction</h2>
+ * Il l'était : les 3 déclencheurs étaient bornés à 20 paires, et ce balayage était le seul
+ * mécanisme qui rattrapait le reste. Ce n'est plus le cas — le calcul à l'affichage
+ * ({@link InlineFitScoreComputer}) garantit désormais qu'aucune offre montrée n'est sans
+ * note. Le balayage est devenu une <b>optimisation</b> : il évite que ce calcul ait à
+ * s'exécuter, et sert de <b>détecteur</b>.
  *
- * <p>Reprend la forme de {@code ApplicationEventRetryWorker} (contexte Engagement) :
- * intervalle fixe, lot borné, tolérance aux échecs. Le lot est borné pour ne pas
- * monopoliser la base partagée avec le trafic utilisateur, pas parce que le calcul
- * serait lent.
+ * <p>Conséquence directe : en régime normal, ce balayage ne doit <b>rien trouver</b>. S'il
+ * trouve quelque chose, c'est que les déclencheurs ont laissé passer une paire — donc un
+ * bug ailleurs. D'où la métrique {@code backfill.found}, à surveiller pour ce qu'elle
+ * signale, pas pour le travail qu'elle représente.
+ *
+ * <h2>Deadline plutôt que compteur</h2>
+ * Le passage boucle par tranches jusqu'à épuisement ou jusqu'à sa deadline. La taille de
+ * tranche redevient ce qu'elle aurait toujours dû être — une granularité de transaction,
+ * pas un plafond de débit. Un budget de temps reste valable quand le matériel change ; un
+ * compteur de paires, non.
  */
 @Component
 public class FitScoreBackfillWorker {
     private static final Logger log = LoggerFactory.getLogger(FitScoreBackfillWorker.class);
 
     private final FitScoreRepository fitScores;
-    private final JobOfferRepository offers;
-    private final RecomputeFitScoresUseCase recompute;
+    private final FitScoreEnqueuer enqueuer;
     private final int batchSize;
-    private final Counter pairsRecomputed;
+    private final long deadlineMs;
+    private final Counter pairsFound;
     private final Timer passDuration;
 
     public FitScoreBackfillWorker(FitScoreRepository fitScores,
-                                  JobOfferRepository offers,
-                                  RecomputeFitScoresUseCase recompute,
+                                  FitScoreEnqueuer enqueuer,
                                   MeterRegistry registry,
-                                  @Value("${recruitment.fitscore-backfill.batch-size:200}") int batchSize) {
+                                  @Value("${recruitment.fitscore-backfill.batch-size:200}") int batchSize,
+                                  @Value("${recruitment.fitscore-backfill.deadline-ms:5000}") long deadlineMs) {
         this.fitScores = fitScores;
-        this.offers = offers;
-        this.recompute = recompute;
+        this.enqueuer = enqueuer;
         this.batchSize = batchSize;
-        this.pairsRecomputed = Counter.builder("recruitment.fitscore.backfill.pairs")
-            .description("Paires (candidat, offre) rattrapées par le balayage de fond")
+        this.deadlineMs = deadlineMs;
+        // Doit valoir 0 en régime établi : toute valeur non nulle signale que les
+        // déclencheurs ont laissé passer quelque chose.
+        this.pairsFound = Counter.builder("recruitment.fitscore.backfill.found")
+            .description("Trous détectés par le pré-remplissage — doit être 0 en régime normal")
             .register(registry);
-        // Un passage qui approche l'intervalle de planification signale que le lot est
-        // trop gros pour le budget BDD disponible — signal d'alerte avant dégradation.
         this.passDuration = Timer.builder("recruitment.fitscore.backfill.pass")
-            .description("Durée d'un passage du balayage de rattrapage")
+            .description("Durée d'un passage de pré-remplissage")
             .register(registry);
     }
 
@@ -79,40 +79,39 @@ public class FitScoreBackfillWorker {
         passDuration.record(this::runOnePass);
     }
 
+    /**
+     * Boucle par tranches jusqu'à épuisement ou deadline. La deadline s'évalue entre deux
+     * tranches, jamais au milieu : un passage s'arrête proprement après la tranche en
+     * cours, sans jamais annuler du travail déjà fait.
+     */
     private void runOnePass() {
+        long fin = System.nanoTime() + deadlineMs * 1_000_000L;
+        int total = 0;
+        while (System.nanoTime() < fin) {
+            int traites = uneTranche();
+            total += traites;
+            if (traites < batchSize) break;   // plus rien à trouver
+        }
+        if (total > 0) {
+            pairsFound.increment(total);
+            log.info("[FitScore pré-remplissage] {} trou(s) détecté(s) et enfilé(s) — "
+                + "en régime établi ce nombre doit être 0", total);
+        }
+    }
+
+    private int uneTranche() {
         List<FitScoreRepository.PairNeedingScore> pending =
             new ArrayList<>(fitScores.findPairsNeedingScore(batchSize));
         int remaining = batchSize - pending.size();
         if (remaining > 0) pending.addAll(fitScores.findStalePairs(remaining));
-        if (pending.isEmpty()) return;
+        if (pending.isEmpty()) return 0;
 
-        Map<UUID, JobOffer> offersById = offers.findByIds(
-                pending.stream().map(FitScoreRepository.PairNeedingScore::jobOfferId).distinct().toList())
-            .stream().collect(Collectors.toMap(JobOffer::id, Function.identity()));
-
-        List<RecomputeFitScoresUseCase.Pair> pairs = pending.stream()
-            .map(pair -> {
-                JobOffer offer = offersById.get(pair.jobOfferId());
-                if (offer == null) {
-                    // Offre supprimée entre la sélection et le chargement — le passage
-                    // suivant ne la reverra pas, rien à rattraper.
-                    log.warn("[FitScore backfill] Offre {} introuvable, paire ignorée", pair.jobOfferId());
-                    return null;
-                }
-                return new RecomputeFitScoresUseCase.Pair(pair.candidateId(), offer);
-            })
-            .filter(Objects::nonNull)
-            .toList();
-        if (pairs.isEmpty()) return;
-
-        try {
-            int written = recompute.recomputeBatch(pairs).size();
-            pairsRecomputed.increment(written);
-            log.info("[FitScore backfill] {} paire(s) (re)calculée(s)", written);
-        } catch (RuntimeException failure) {
-            // Un lot en échec ne doit pas tuer le planificateur : les paires restent
-            // sans score et seront resélectionnées au passage suivant.
-            log.warn("[FitScore backfill] Lot en échec, nouvel essai au prochain passage", failure);
-        }
+        // Enfile plutôt que calculer : un seul chemin d'exécution à maintenir et à tester,
+        // et le worker de la file applique les mêmes garanties (priorités, backoff, reprise
+        // après redémarrage) à tout le travail, d'où qu'il vienne.
+        enqueuer.enqueueNormal(pending.stream()
+            .map(p -> new CandidateOfferPair(p.candidateId(), p.jobOfferId()))
+            .toList());
+        return pending.size();
     }
 }

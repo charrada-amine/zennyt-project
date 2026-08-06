@@ -4,6 +4,7 @@ import com.zennyt.games.domain.event.GameResultRecordedEvent;
 import com.zennyt.recruitment.application.usecase.GenerateSoftSkillsSummaryUseCase;
 import com.zennyt.recruitment.application.usecase.RecomputeFitScoresUseCase;
 import com.zennyt.recruitment.domain.model.SoftSkillsProjection;
+import com.zennyt.recruitment.domain.vo.CandidateOfferPair;
 import com.zennyt.recruitment.domain.repository.SoftSkillsProjectionRepository;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
@@ -18,16 +19,16 @@ import org.springframework.transaction.event.TransactionalEventListener;
 public class GameSoftSkillsListener {
     private final SoftSkillsProjectionRepository projections;
     private final RecomputeFitScoresUseCase recompute;
-    private final FitScoreRecomputeWorker worker;
+    private final FitScoreEnqueuer enqueuer;
     private final GenerateSoftSkillsSummaryUseCase generateSummary;
 
     public GameSoftSkillsListener(SoftSkillsProjectionRepository projections,
                                   RecomputeFitScoresUseCase recompute,
-                                  FitScoreRecomputeWorker worker,
+                                  FitScoreEnqueuer enqueuer,
                                   GenerateSoftSkillsSummaryUseCase generateSummary) {
         this.projections = projections;
         this.recompute = recompute;
-        this.worker = worker;
+        this.enqueuer = enqueuer;
         this.generateSummary = generateSummary;
     }
 
@@ -45,7 +46,10 @@ public class GameSoftSkillsListener {
         projections.save(existingId != null
             ? new SoftSkillsProjection(existingId, event.playerId(), module, score, coverage, event.occurredAt())
             : SoftSkillsProjection.create(event.playerId(), module, score, coverage, event.occurredAt()));
-        recompute.pairsForCandidate(event.playerId()).forEach(worker::submit);
+        // Enfilé : plus de plafond de 20, et le travail survit à un redémarrage.
+        enqueuer.enqueueUrgent(recompute.pairsForCandidate(event.playerId()).stream()
+            .map(pair -> new CandidateOfferPair(pair.candidateId(), pair.offer().id()))
+            .toList());
         generateSummary.execute(event.playerId());
     }
 }

@@ -52,7 +52,7 @@ class RecomputeFitScoresUseCaseTest {
         TestResultRepository testResults = mock(TestResultRepository.class);
 
         FitScore result = new RecomputeFitScoresUseCase(calculator, scores, offers, soft,
-                roleProfileResolver, testResults)
+                roleProfileResolver, testResults, 5000)
             .recompute(candidateId, offer);
 
         assertThat(result.id()).isEqualTo(existingId);
@@ -60,25 +60,32 @@ class RecomputeFitScoresUseCaseTest {
         assertThat(result.softSkillScore()).isEqualTo(77);
     }
 
+    /**
+     * Remplace l'ancien {@code publicationBatchIsBounded}, qui verrouillait le plafond de
+     * 20 par déclencheur — c'est-à-dire exactement la cause du trou de couverture
+     * permanent. Le déclencheur n'est plus borné à 20 mais à {@code triggerLimit}, un
+     * garde-fou volontairement large : ce test échouerait si quelqu'un réintroduisait un
+     * petit plafond en pensant « borner par prudence ».
+     */
     @Test
-    void publicationBatchIsBounded() {
+    void leDeclencheurNestPlusBorneA20MaisAuGardeFouLarge() {
         FitScoreCalculatorPort calculator = inputs ->
             new FitScoreCalculatorPort.FitScoreResult(50, 50, 100);
         FitScoreRepository scores = mock(FitScoreRepository.class);
         JobOfferRepository offers = mock(JobOfferRepository.class);
         SoftSkillsProjectionRepository soft = mock(SoftSkillsProjectionRepository.class);
-        RecruitmentActorRepository actors = mock(RecruitmentActorRepository.class);
         UUID offerId = UUID.randomUUID();
         when(offers.findById(offerId)).thenReturn(Optional.of(mock(JobOffer.class)));
-        when(soft.findCandidateIds(RecomputeFitScoresUseCase.MAX_BATCH_SIZE)).thenReturn(List.of());
+        when(soft.findCandidateIds(anyInt())).thenReturn(List.of());
         JobRoleProfileResolver roleProfileResolver = mock(JobRoleProfileResolver.class);
         TestResultRepository testResults = mock(TestResultRepository.class);
 
         var pairs = new RecomputeFitScoresUseCase(calculator, scores, offers, soft,
-                roleProfileResolver, testResults)
+                roleProfileResolver, testResults, 5000)
             .pairsForOffer(offerId);
 
-        verify(soft).findCandidateIds(RecomputeFitScoresUseCase.MAX_BATCH_SIZE);
+        verify(soft).findCandidateIds(5000);
+        verify(soft, never()).findCandidateIds(RecomputeFitScoresUseCase.MAX_BATCH_SIZE);
         assertThat(pairs).isEmpty();
     }
 }

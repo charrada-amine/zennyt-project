@@ -1,6 +1,7 @@
 package com.zennyt.recruitment.domain.repository;
 
 import com.zennyt.recruitment.domain.model.FitScore;
+import com.zennyt.recruitment.domain.vo.CandidateOfferPair;
 
 import java.util.Optional;
 import java.util.List;
@@ -23,10 +24,10 @@ public interface FitScoreRepository {
     /**
      * Variante multi-candidats — une seule requête pour tout un lot de recalcul.
      *
-     * <p>Sur-lecture assumée : renvoie le produit des deux listes, pas seulement les paires
-     * demandées. L'appelant filtre par paire en mémoire. Borné par la taille du lot.
+     * <p>Cible <b>exactement</b> les paires demandées : ni sur-lecture, ni filtrage en
+     * mémoire côté appelant. Voir {@link CandidateOfferPair}.
      */
-    List<FitScore> findByCandidateIdsAndJobOfferIds(List<UUID> candidateIds, List<UUID> jobOfferIds);
+    List<FitScore> findByPairs(List<CandidateOfferPair> pairs);
 
     /** Paire (candidat, offre) en attente de calcul — backlog du balayage de rattrapage. */
     record PairNeedingScore(UUID candidateId, UUID jobOfferId) {}

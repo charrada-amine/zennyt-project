@@ -11,8 +11,10 @@ import com.zennyt.recruitment.domain.repository.FitScoreRepository;
 import com.zennyt.recruitment.domain.repository.JobOfferRepository;
 import com.zennyt.recruitment.domain.repository.SoftSkillsProjectionRepository;
 import com.zennyt.recruitment.domain.repository.TestResultRepository;
+import com.zennyt.recruitment.domain.vo.CandidateOfferPair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -27,6 +29,13 @@ import java.util.stream.Collectors;
 @Service
 public class RecomputeFitScoresUseCase {
     private static final Logger log = LoggerFactory.getLogger(RecomputeFitScoresUseCase.class);
+
+    /**
+     * Ancien plafond des déclencheurs, conservé uniquement pour les leviers de démo
+     * synchrones. <b>Ne borne plus les déclencheurs</b> : c'est ce 20 qui créait le trou
+     * de couverture permanent (au-delà de 20 offres ou candidats, certaines paires
+     * n'étaient jamais calculées).
+     */
     public static final int MAX_BATCH_SIZE = 20;
 
     public record Pair(UUID candidateId, JobOffer offer) {}
@@ -37,19 +46,22 @@ public class RecomputeFitScoresUseCase {
     private final SoftSkillsProjectionRepository softSkills;
     private final JobRoleProfileResolver roleProfileResolver;
     private final TestResultRepository testResults;
+    private final int triggerLimit;
 
     public RecomputeFitScoresUseCase(FitScoreCalculatorPort calculator,
                                      FitScoreRepository fitScores,
                                      JobOfferRepository offers,
                                      SoftSkillsProjectionRepository softSkills,
                                      JobRoleProfileResolver roleProfileResolver,
-                                     TestResultRepository testResults) {
+                                     TestResultRepository testResults,
+                                     @Value("${recruitment.fitscore.trigger-limit:5000}") int triggerLimit) {
         this.calculator = calculator;
         this.fitScores = fitScores;
         this.offers = offers;
         this.softSkills = softSkills;
         this.roleProfileResolver = roleProfileResolver;
         this.testResults = testResults;
+        this.triggerLimit = triggerLimit;
     }
 
     /**
@@ -86,20 +98,22 @@ public class RecomputeFitScoresUseCase {
         List<JobOffer> offers = pairs.stream().map(Pair::offer)
             .collect(Collectors.toMap(JobOffer::id, Function.identity(), (a, b) -> a))
             .values().stream().toList();
-        List<UUID> offerIds = offers.stream().map(JobOffer::id).toList();
+        // Paires exactes, pas le produit croisé des candidats et des offres : c'est ce qui
+        // rend le coût des lectures linéaire avec la taille du lot au lieu de quadratique.
+        List<CandidateOfferPair> lookupPairs = pairs.stream()
+            .map(pair -> new CandidateOfferPair(pair.candidateId(), pair.offer().id()))
+            .distinct().toList();
 
         Map<UUID, Map<String, FitScoreCalculatorPort.ModuleScore>> softScoresByCandidate = softSkills.findByCandidateIds(candidateIds).stream()
             .collect(Collectors.groupingBy(SoftSkillsProjection::candidateId,
                 Collectors.collectingAndThen(Collectors.toList(),
                     RecomputeFitScoresUseCase::softScoresByModule)));
         Map<UUID, JobRoleProfile> roleProfileByOffer = roleProfileResolver.resolveAll(offers);
-        Map<String, Integer> hardScoreByPair = testResults
-                .findByCandidateIdsAndJobOfferIds(candidateIds, offerIds).stream()
+        Map<String, Integer> hardScoreByPair = testResults.findByPairs(lookupPairs).stream()
             .collect(Collectors.toMap(
                 result -> pairKey(result.candidateId(), result.jobOfferId()),
                 TestResult::percentage, (a, b) -> a));
-        Map<String, UUID> existingIdByPair = fitScores
-                .findByCandidateIdsAndJobOfferIds(candidateIds, offerIds).stream()
+        Map<String, UUID> existingIdByPair = fitScores.findByPairs(lookupPairs).stream()
             .collect(Collectors.toMap(
                 existing -> pairKey(existing.candidateId(), existing.jobOfferId()),
                 FitScore::id, (a, b) -> a));
@@ -195,14 +209,24 @@ public class RecomputeFitScoresUseCase {
         }
     }
 
+    /**
+     * Toutes les paires concernées par un événement candidat.
+     *
+     * <p>Le plafond de 20 qui bornait ces deux méthodes a été retiré : c'était lui qui
+     * créait le trou de couverture permanent — au-delà de 20 offres, les suivantes ne
+     * recevaient jamais de score. La borne restante ({@code triggerLimit}, large) n'est
+     * qu'un garde-fou contre une requête pathologique, pas un plafond de fonctionnement :
+     * le surplus éventuel est enfilé, et le calcul à l'affichage reste le filet final.
+     */
     public java.util.List<Pair> pairsForCandidate(UUID candidateId) {
-        return offers.findFeedForCandidate(candidateId, 0, MAX_BATCH_SIZE).stream()
+        return offers.findFeedForCandidate(candidateId, 0, triggerLimit).stream()
             .map(offer -> new Pair(candidateId, offer)).toList();
     }
 
+    /** Toutes les paires concernées par un événement offre. Même raisonnement. */
     public java.util.List<Pair> pairsForOffer(UUID jobOfferId) {
         return offers.findById(jobOfferId)
-            .map(offer -> softSkills.findCandidateIds(MAX_BATCH_SIZE).stream()
+            .map(offer -> softSkills.findCandidateIds(triggerLimit).stream()
                 .map(candidateId -> new Pair(candidateId, offer)).toList())
             .orElseGet(java.util.List::of);
     }
