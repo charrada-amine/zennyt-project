@@ -89,10 +89,20 @@ public interface JpaFitScoreRepository extends JpaRepository<FitScoreEntity, UUI
      * (un déclencheur ne rafraîchit que 20 paires : les autres gardent l'ancien profil).
      *
      * <p>Un score est périmé s'il a été calculé avant la dernière évolution d'une de ses
-     * trois sources : l'offre, les soft skills du candidat, ou son résultat de test pour
-     * cette offre. On compare des horodatages <b>déjà maintenus</b> par le code existant
-     * plutôt que d'ajouter des colonnes de version à incrémenter : oublier un seul site
-     * d'incrément recréerait le bug d'origine, en silence.
+     * <b>quatre</b> sources : l'offre, les soft skills du candidat, son résultat de test
+     * pour cette offre, et <b>la pondération métier × niveau qui a servi au calcul</b>.
+     * On compare des horodatages <b>déjà maintenus</b> par le code existant plutôt que
+     * d'ajouter des colonnes de version à incrémenter : oublier un seul site d'incrément
+     * recréerait le bug d'origine, en silence.
+     *
+     * <p><b>F12 — la 4e source.</b> Jusqu'ici aucun déclencheur ne réagissait à un
+     * changement de pondération : le jour où l'atelier RH livre ses valeurs calibrées,
+     * <i>tous</i> les scores en cache deviennent faux et rien ne le détectait. Or c'est
+     * le scénario le plus certain du projet — l'atelier est le prérequis déclaré de la
+     * mise en production, et son unique livrable est un nouveau jeu de pondérations.
+     * La seule issue manuelle, {@code recomputeAllActive()}, est plafonnée à 20 offres.
+     * La sous-requête s'appuie sur l'index unique {@code (profile_type, level)} et sur
+     * la colonne {@code updated_at} ajoutée par la migration V52.
      *
      * <p>Contrairement à {@link #findPairsNeedingScore}, cette requête ne parcourt que les
      * scores existants (pas de produit croisé). Les deux sous-requêtes corrélées sont
@@ -101,7 +111,7 @@ public interface JpaFitScoreRepository extends JpaRepository<FitScoreEntity, UUI
      * {@code test_results (candidate_id, job_offer_id)}.
      *
      * <p>Converge : un recalcul porte {@code computed_at} à maintenant, donc au-dessus des
-     * trois sources — la paire cesse d'être sélectionnée.
+     * quatre sources — la paire cesse d'être sélectionnée.
      */
     @Query(value = """
         SELECT f.candidate_id, f.job_offer_id
@@ -122,6 +132,10 @@ public interface JpaFitScoreRepository extends JpaRepository<FitScoreEntity, UUI
                                 FROM recruitment.test_results t
                                 WHERE t.candidate_id = f.candidate_id
                                   AND t.job_offer_id = f.job_offer_id)
+            OR f.computed_at < (SELECT r.updated_at
+                                FROM recruitment.job_role_profiles r
+                                WHERE r.profile_type = p.profile_type
+                                  AND r.level = j.experience_level)
           )
         ORDER BY f.computed_at ASC
         LIMIT :limit
@@ -165,6 +179,10 @@ public interface JpaFitScoreRepository extends JpaRepository<FitScoreEntity, UUI
                                    FROM recruitment.test_results t
                                    WHERE t.candidate_id = f.candidate_id
                                      AND t.job_offer_id = f.job_offer_id)
+               OR f.computed_at < (SELECT r.updated_at
+                                   FROM recruitment.job_role_profiles r
+                                   WHERE r.profile_type = p.profile_type
+                                     AND r.level = j.experience_level)
              ))
         """, nativeQuery = true)
     long countPairsNeedingScore();
