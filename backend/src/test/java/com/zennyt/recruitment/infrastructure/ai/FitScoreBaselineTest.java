@@ -139,15 +139,15 @@ class FitScoreBaselineTest {
     }
 
     /**
-     * Documente le bug F08 tel qu'il existe aujourd'hui : la renormalisation sur
-     * les seuls modules joués fait qu'un candidat gagne des points en <b>ne jouant
-     * pas</b> un mini-jeu qu'il raterait. Quand la décision D-D sera appliquée
-     * (diviser par 100, module absent = 0), ce test doit être inversé :
-     * jouer ne doit jamais être pénalisant.
+     * F08 ✅ corrigé — la renormalisation sur les seuls modules joués est supprimée.
+     * Avant, un candidat <b>gagnait 11 points</b> en ne jouant pas un mini-jeu qu'il
+     * aurait raté : le poids du module manquant était redistribué sur les autres.
+     * Un module disponible mais non joué reste désormais au dénominateur avec une
+     * contribution nulle — jouer n'est jamais pénalisant.
      */
     @Test
-    @DisplayName("F08 (bug connu) : sauter un mini-jeu raté fait AUGMENTER le score")
-    void sauterUnMiniJeuRateAugmenteLeScore() {
+    @DisplayName("F08 ✅ corrigé : sauter un mini-jeu raté fait BAISSER le score")
+    void sauterUnMiniJeuRateFaitBaisserLeScore() {
         JobRoleProfile technique = profile(JobProfileType.TECHNIQUE, ExperienceLevel.SENIOR);
         Map<String, ModuleScore> joue = new LinkedHashMap<>();
         joue.put("MOVE_FAST", ModuleScore.fullyCovered(80));
@@ -159,15 +159,15 @@ class FitScoreBaselineTest {
         int avecLeJeuRate = score(joue, technique, null).softSkillScore();
         int sansLeJeuRate = score(saute, technique, null).softSkillScore();
 
-        assertThat(sansLeJeuRate).isGreaterThan(avecLeJeuRate);
-        assertThat(sansLeJeuRate - avecLeJeuRate).isEqualTo(11);
+        assertThat(sansLeJeuRate).isLessThan(avecLeJeuRate);
+        assertThat(avecLeJeuRate - sansLeJeuRate).isEqualTo(6);
     }
 
     /**
-     * Documente le bug F01. Une clé de module que {@code SoftSkillModule} ne
-     * connaît pas est écartée de la boucle de pondération, puis <b>réintroduite</b>
-     * par le repli {@code weightTotal == 0}, qui moyenne la map complète. Elle
-     * devient alors la totalité du score soft, sans aucune pondération métier.
+     * F01 ✅ corrigé. Une clé de module que {@code SoftSkillModule} ne connaît pas
+     * était écartée de la boucle de pondération, puis <b>réintroduite</b> par le repli
+     * {@code weightTotal == 0}, qui moyennait la map complète : elle devenait la
+     * totalité du score soft, sans aucune pondération métier.
      */
     @Test
     @DisplayName("F01 ✅ corrigé : une clé de module inconnue n'entre plus dans le score")
@@ -180,10 +180,13 @@ class FitScoreBaselineTest {
         assertThat(score(Map.of("JEU_PAS_ENCORE_CABLE", ModuleScore.fullyCovered(10)), technique, null)).isNull();
 
         // Mélangée à un module connu, elle reste ignorée : seul MOVE_FAST compte.
+        // 40 × 30 / 70 = 17 — la valeur inconnue (90) n'y contribue en rien.
         Map<String, ModuleScore> melange = new LinkedHashMap<>();
         melange.put("MOVE_FAST", ModuleScore.fullyCovered(40));
         melange.put("JEU_PAS_ENCORE_CABLE", ModuleScore.fullyCovered(90));
-        assertThat(score(melange, technique, null).softSkillScore()).isEqualTo(40);
+        assertThat(score(melange, technique, null).softSkillScore()).isEqualTo(17);
+        assertThat(score(Map.of("MOVE_FAST", ModuleScore.fullyCovered(40)), technique, null)
+            .softSkillScore()).isEqualTo(17);
     }
 
     /**

@@ -1,174 +1,200 @@
 package com.zennyt.recruitment.infrastructure.ai;
 
-import com.zennyt.recruitment.application.port.FitScoreCalculatorPort;
 import com.zennyt.recruitment.application.port.FitScoreCalculatorPort.FitScoreInputs;
-import com.zennyt.recruitment.application.port.FitScoreCalculatorPort.ModuleScore;
 import com.zennyt.recruitment.application.port.FitScoreCalculatorPort.FitScoreResult;
+import com.zennyt.recruitment.application.port.FitScoreCalculatorPort.ModuleScore;
 import com.zennyt.recruitment.domain.model.JobRoleProfile;
 import com.zennyt.recruitment.domain.vo.ExperienceLevel;
 import com.zennyt.recruitment.domain.vo.JobProfileType;
+import com.zennyt.recruitment.domain.vo.SoftSkillModule;
 import com.zennyt.recruitment.domain.vo.TypeEvaluationHard;
+import org.assertj.core.data.Offset;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * Comportement du calculateur, module par module.
+ *
+ * <p>Repère utile pour lire les valeurs attendues : sur un profil <b>Technique</b>,
+ * les poids sont 30/20/30/15/5 (flexibilité, mémoire, décision, planification,
+ * régulation). La <b>Prise de décision sort du dénominateur</b> tant que « Je Décide »
+ * n'a pas ses 30 scénarios — le dénominateur vaut donc 30+20+15+5 = <b>70</b>, et non
+ * 100. Un candidat qui n'a joué qu'un seul jeu obtient logiquement un score bas
+ * <i>et</i> une couverture basse : c'est le signal attendu, pas un bug.
+ */
 class DeterministicFitScoreCalculatorTest {
 
-    /** Technique/Mid — hard 65, soft 35, modules 30/20/30/15/5 (matrice v4.1). */
+    /** Technique/Senior — hard 65, soft 35, modules 30/20/30/15/5 (matrice v4.1). */
     private static final JobRoleProfile TECHNIQUE_SENIOR = new JobRoleProfile(
         JobProfileType.TECHNIQUE, ExperienceLevel.SENIOR, 35, 65, 65, 30, 20, 30, 15, 5,
-        TypeEvaluationHard.QCM, false, java.time.Instant.now());
+        TypeEvaluationHard.QCM, false, Instant.now());
 
-    /** Relationnel/Mid — hard 25, soft 75, modules 10/10/20/15/45 (matrice v4.1). */
-    private static final JobRoleProfile RELATIONNEL_MID = new JobRoleProfile(
-        JobProfileType.RELATIONNEL, ExperienceLevel.SENIOR, 75, 25, 25, 10, 10, 20, 15, 45,
-        TypeEvaluationHard.QCM, false, java.time.Instant.now());
+    /** Relationnel/Senior — hard 20, soft 80, modules 10/10/20/15/45 (matrice v4.1). */
+    private static final JobRoleProfile RELATIONNEL_SENIOR = new JobRoleProfile(
+        JobProfileType.RELATIONNEL, ExperienceLevel.SENIOR, 80, 20, 20, 10, 10, 20, 15, 45,
+        TypeEvaluationHard.QCM, false, Instant.now());
 
-    @Test
-    void fullCoverageLeavesSoftScoreUnchanged() {
-        // CdC §3.3 : score brut 90, couverture 100% -> score ajusté 90 (inchangé).
-        // Un seul module : la pondération est mathématiquement un no-op (90*w/w = 90),
-        // donc ce test isole bien le mécanisme de couverture, pas la pondération.
-        var calculator = new DeterministicFitScoreCalculator();
-        var inputs = new FitScoreInputs(Map.of("MOVE_FAST", ModuleScore.fullyCovered(90.0)), TECHNIQUE_SENIOR, null);
+    private final DeterministicFitScoreCalculator calculator = new DeterministicFitScoreCalculator();
 
-        FitScoreResult result = calculator.calculate(inputs);
-
-        // Pas de QCM (hardSkillScore null) -> poidsHard=0, le score = le soft ajusté seul.
-        assertThat(result.softSkillScore()).isEqualTo(90);
-        assertThat(result.score()).isEqualTo(90);
+    private FitScoreResult score(Map<String, ModuleScore> modules, JobRoleProfile profile, Integer hard) {
+        return calculator.calculate(new FitScoreInputs(modules, profile, hard));
     }
 
     @Test
-    void partialCoverageReducesSoftScoreProportionally() {
-        // CdC §3.3 : score brut 90, couverture 40% -> score ajusté 36.
-        // F13 : la couverture est désormais portée par le module lui-même.
-        var calculator = new DeterministicFitScoreCalculator();
-        var inputs = new FitScoreInputs(
-            Map.of("MOVE_FAST", new ModuleScore(90.0, 40)), TECHNIQUE_SENIOR, null);
+    @DisplayName("Un seul jeu joué : le module est couvert, la couverture globale reste basse")
+    void unSeulJeuJoueDonneUneCouvertureGlobaleBasse() {
+        FitScoreResult result = score(
+            Map.of("MOVE_FAST", ModuleScore.fullyCovered(90)), TECHNIQUE_SENIOR, null);
 
-        FitScoreResult result = calculator.calculate(inputs);
+        assertThat(result.softSkillScore()).isEqualTo(39);   // 90 × 30 / 70
+        // La flexibilité (30) est couverte, les 3 autres modules mesurables ne le sont
+        // pas : 100 × 30 / 70 = 43 %. En dessous des deux seuils du mécanisme 2.
+        assertThat(result.coverageRatio()).isEqualTo(43);
+    }
 
-        assertThat(result.softSkillScore()).isEqualTo(36);
-        assertThat(result.score()).isEqualTo(36);
-        assertThat(result.coverageRatio()).isEqualTo(40);
+    @Test
+    @DisplayName("CdC §3.3 — une couverture partielle réduit le score proportionnellement")
+    void couverturePartielleReduitLeScore() {
+        FitScoreResult result = score(
+            Map.of("MOVE_FAST", new ModuleScore(90, 40)), TECHNIQUE_SENIOR, null);
+
+        assertThat(result.softSkillScore()).isEqualTo(15);   // 90 × 0,40 × 30 / 70
+        assertThat(result.coverageRatio()).isEqualTo(17);    // 40 × 30 / 70
     }
 
     /**
-     * F13/F15 — deux modules aux couvertures différentes : le CdC applique la
-     * décote module par module AVANT l'agrégation. L'ancienne implémentation, qui
-     * ne connaissait qu'un ratio global, ne pouvait pas produire ce résultat.
+     * F13/F15 — deux modules aux couvertures différentes. Le CdC applique la décote
+     * module par module AVANT l'agrégation ; l'ancienne implémentation, qui ne
+     * connaissait qu'un ratio global unique, ne pouvait pas produire ce résultat.
      */
     @Test
-    void couverturesDifferentesParModuleSontAppliqueesAvantAgregation() {
-        var calculator = new DeterministicFitScoreCalculator();
-        var inputs = new FitScoreInputs(Map.of(
-            "MOVE_FAST", new ModuleScore(80.0, 100),      // poids 30, pleinement couvert
-            "MEMORY_QUEST", new ModuleScore(80.0, 50)),   // poids 20, à moitié couvert
+    @DisplayName("Deux couvertures différentes sont appliquées avant l'agrégation")
+    void couverturesDifferentesAppliqueesAvantAgregation() {
+        FitScoreResult result = score(Map.of(
+            "MOVE_FAST", new ModuleScore(80, 100),      // poids 30, pleinement couvert
+            "MEMORY_QUEST", new ModuleScore(80, 50)),   // poids 20, à moitié couvert
             TECHNIQUE_SENIOR, null);
 
-        FitScoreResult result = calculator.calculate(inputs);
-
-        // (80×1,00×30 + 80×0,50×20) / 50 = (2400 + 800) / 50 = 64
-        assertThat(result.softSkillScore()).isEqualTo(64);
-        // Couverture agrégée pondérée : (100×30 + 50×20) / 50 = 80
-        assertThat(result.coverageRatio()).isEqualTo(80);
+        assertThat(result.softSkillScore()).isEqualTo(46);   // (80×1,00×30 + 80×0,50×20) / 70
+        assertThat(result.coverageRatio()).isEqualTo(57);    // (100×30 + 50×20) / 70
     }
 
     @Test
-    void hardWeightAppliesOnlyWhenAttemptCompleted() {
-        var calculator = new DeterministicFitScoreCalculator();
-        var inputs = new FitScoreInputs(Map.of("MOVE_FAST", ModuleScore.fullyCovered(80.0)), TECHNIQUE_SENIOR, 60);
+    @DisplayName("Le poids hard ne s'applique qu'une fois le QCM passé")
+    void poidsHardSeulementApresLeQcm() {
+        Map<String, ModuleScore> joue = Map.of("MOVE_FAST", ModuleScore.fullyCovered(80));
 
-        FitScoreResult result = calculator.calculate(inputs);
+        // soft = 80 × 30 / 70 = 34,3 ; fit = 34,3 × 35 % + 60 × 65 % = 51,0
+        assertThat(score(joue, TECHNIQUE_SENIOR, 60).score()).isEqualTo(51);
 
-        // 80*35 + 60*65 = 6700 -> /100 = 67.
-        assertThat(result.score()).isEqualTo(67);
+        FitScoreResult sansQcm = score(joue, TECHNIQUE_SENIOR, null);
+        assertThat(sansQcm.score()).isEqualTo(sansQcm.softSkillScore());
     }
 
     @Test
-    void computesNothingWhenOfferHasNoResolvedRoleProfile() {
-        // Remplace l'ancien test de repli sur un moteur IA externe : ce repli est
-        // supprimé. Sans pondération résolue (offre sans métier, ou métier pas encore
-        // approuvé), il n'y a pas de score à inventer — rien n'est calculé ni écrit.
-        var calculator = new DeterministicFitScoreCalculator();
-        var inputs = new FitScoreInputs(Map.of("MOVE_FAST", ModuleScore.fullyCovered(90.0)), null, null);
-
-        assertThat(calculator.calculate(inputs)).isNull();
+    @DisplayName("Sans pondération résolue, rien n'est calculé ni écrit")
+    void offreSansMetierApprouve() {
+        assertThat(score(Map.of("MOVE_FAST", ModuleScore.fullyCovered(90)), null, null)).isNull();
     }
 
     /**
-     * Garde-fou central du correctif demandé par le superviseur (2026-07-30) : avant ce
-     * correctif, RecomputeFitScoresUseCase aplatissait tous les modules du candidat en
-     * une moyenne unique avant que la pondération métier ne puisse s'exercer, rendant le
-     * Score_Soft strictement identique quel que soit le métier de l'offre. Le CdC §3.2
-     * prévoit l'inverse : un score par module pondéré par métier, dès le Score_Soft,
-     * indépendamment de la présence d'un QCM (D2 ne met à 0 que le poids du hard).
-     *
-     * <p>Même candidat, mêmes 3 scores de modules mesurables, sans aucun TestResult
-     * (poidsHard=0 dans les deux cas) — seul le profil métier de l'offre change.
+     * Garde-fou du correctif du 2026-07-30 : avant, tous les modules du candidat
+     * étaient aplatis en une moyenne unique avant que la pondération métier ne puisse
+     * s'exercer, rendant le Score_Soft identique quel que soit le métier de l'offre.
+     * Le CdC §3.2 prévoit l'inverse.
      */
     @Test
-    void memeCandidatObtientDesScoreSoftDifferentsSurDeuxMetiersSansAucunTest() {
-        var calculator = new DeterministicFitScoreCalculator();
-        Map<String, ModuleScore> modulesCandidat = Map.of(
-            "MOVE_FAST", ModuleScore.fullyCovered(50.0),      // Flexibilité cognitive
-            "MEMORY_QUEST", ModuleScore.fullyCovered(55.0),   // Mémoire de travail
-            "PLANIFIK", ModuleScore.fullyCovered(70.0));  // Planification exécutive
+    @DisplayName("Le même candidat n'obtient pas le même score sur deux métiers différents")
+    void memeCandidatScoresDifferentsSelonLeMetier() {
+        Map<String, ModuleScore> candidat = new LinkedHashMap<>();
+        candidat.put("MOVE_FAST", ModuleScore.fullyCovered(50));       // flexibilité
+        candidat.put("MEMORY_QUEST", ModuleScore.fullyCovered(55));    // mémoire
+        candidat.put("PLANIFIK", ModuleScore.fullyCovered(70));        // planification
 
-        FitScoreResult surTechnique = calculator.calculate(new FitScoreInputs(
-            modulesCandidat, TECHNIQUE_SENIOR, null));
-        FitScoreResult surRelationnel = calculator.calculate(new FitScoreInputs(
-            modulesCandidat, RELATIONNEL_MID, null));
+        // Technique, dénominateur 70 : (50×30 + 55×20 + 70×15) / 70 = 52
+        assertThat(score(candidat, TECHNIQUE_SENIOR, null).softSkillScore()).isEqualTo(52);
+        // Relationnel, dénominateur 80 : (50×10 + 55×10 + 70×15) / 80 = 26
+        assertThat(score(candidat, RELATIONNEL_SENIOR, null).softSkillScore()).isEqualTo(26);
+    }
 
-        // Technique (30/20/15 sur ces 3 modules, renormalisé) : (50*30+55*20+70*15)/65 = 56.
-        assertThat(surTechnique.softSkillScore()).isEqualTo(56);
-        // Relationnel (10/10/15 sur ces 3 modules, renormalisé) : (50*10+55*10+70*15)/35 = 60.
-        assertThat(surRelationnel.softSkillScore()).isEqualTo(60);
-        assertThat(surTechnique.softSkillScore()).isNotEqualTo(surRelationnel.softSkillScore());
+    @Test
+    @DisplayName("La régulation émotionnelle livrée par Games est bien pondérée")
+    void regulationEmotionnellePonderee() {
+        FitScoreResult result = score(Map.of(
+            "MOVE_FAST", ModuleScore.fullyCovered(80),
+            "EMOTIONAL_REGULATION", ModuleScore.fullyCovered(20)),
+            TECHNIQUE_SENIOR, null);
+
+        // (80×30 + 20×5) / 70 = 35,7. Ignorée, ce serait 34 : l'écart prouve que le
+        // module compte bien.
+        assertThat(result.softSkillScore()).isEqualTo(36);
+    }
+
+    @Test
+    @DisplayName("Une clé de module inconnue est ignorée, jamais promue en score")
+    void cleDeModuleInconnueIgnoree() {
+        FitScoreResult result = score(Map.of(
+            "MOVE_FAST", ModuleScore.fullyCovered(80),
+            "JEU_PAS_ENCORE_CABLE", ModuleScore.fullyCovered(10)),
+            TECHNIQUE_SENIOR, null);
+
+        assertThat(result.softSkillScore()).isEqualTo(34);   // identique à MOVE_FAST seul
+        // Seule, une clé inconnue ne produit aucun score du tout.
+        assertThat(score(Map.of("JEU_PAS_ENCORE_CABLE", ModuleScore.fullyCovered(90)),
+            TECHNIQUE_SENIOR, null)).isNull();
     }
 
     /**
-     * Games a livré « Je gère » (régulation émotionnelle) après ce correctif — vérifie
-     * que le module est bien reconnu et pondéré, pas silencieusement ignoré comme le
-     * serait une clé inconnue (voir {@code ignoreUneCleDeModuleNonReconnueSansEchouer}).
+     * Décision D-D ajustée le 2026-08-05 — « Je Décide » a son moteur et ses écrans,
+     * mais son catalogue de 30 scénarios est vide. Le module sort donc du calcul :
+     * sans ça, un candidat parfait plafonnerait à 70/100 sur un profil Technique,
+     * soit exactement le seuil « bon profil ».
      */
     @Test
-    void reconnaitLeModuleRegulationEmotionnelleDesormaisLivreParGames() {
-        var calculator = new DeterministicFitScoreCalculator();
-        var inputs = new FitScoreInputs(
-            Map.of("MOVE_FAST", ModuleScore.fullyCovered(80.0), "EMOTIONAL_REGULATION", ModuleScore.fullyCovered(20.0)), TECHNIQUE_SENIOR, null);
+    @DisplayName("Un module dont aucun jeu n'existe ne plafonne pas les candidats")
+    void moduleSansJeuDisponibleNePlafonnePas() {
+        assertThat(SoftSkillModule.DECISION_MAKING.unmeasurable()).isTrue();
 
-        FitScoreResult result = calculator.calculate(inputs);
+        Map<String, ModuleScore> parfait = new LinkedHashMap<>();
+        parfait.put("MOVE_FAST", ModuleScore.fullyCovered(100));
+        parfait.put("MEMORY_QUEST", ModuleScore.fullyCovered(100));
+        parfait.put("PLANIFIK", ModuleScore.fullyCovered(100));
+        parfait.put("EMOTIONAL_REGULATION", ModuleScore.fullyCovered(100));
 
-        // Technique : cognitif=30, régulation=5 -> (80*30+20*5)/35 = 71.
-        // Ignoré, ce serait 80*30/30 = 80 : la différence prouve que le module compte.
-        assertThat(result.softSkillScore()).isEqualTo(71);
+        FitScoreResult result = score(parfait, TECHNIQUE_SENIOR, null);
+
+        assertThat(result.softSkillScore()).isEqualTo(100);
+        assertThat(result.coverageRatio()).isEqualTo(100);
     }
 
+    /**
+     * Un module peut être alimenté par PLUSIEURS jeux (Flexibilité cognitive =
+     * Move Fast + Je continue + Je coordonne, cf. GAMES_MODULE.md). Sans regroupement
+     * préalable, son poids serait compté une fois par jeu — 30+30+30 = 90 points sur
+     * 100 au lieu de 30 — et le module écraserait tous les autres.
+     */
     @Test
-    void renormaliseSurLesSeulsModulesJoues() {
-        // Le candidat n'a joué qu'un seul mini-jeu sur les 3 mesurables aujourd'hui :
-        // la pondération doit se renormaliser sur ce seul module, pas retomber à 0.
-        var calculator = new DeterministicFitScoreCalculator();
-        var inputs = new FitScoreInputs(Map.of("MEMORY_QUEST", ModuleScore.fullyCovered(80.0)), TECHNIQUE_SENIOR, null);
+    @DisplayName("Plusieurs jeux d'un même module : le poids n'est compté qu'une fois")
+    void plusieursJeuxUnSeulPoids() {
+        Map<String, ModuleScore> unJeuDeFlex = new LinkedHashMap<>();
+        unJeuDeFlex.put("MOVE_FAST", ModuleScore.fullyCovered(80));
+        unJeuDeFlex.put("MEMORY_QUEST", ModuleScore.fullyCovered(75));
 
-        FitScoreResult result = calculator.calculate(inputs);
+        Map<String, ModuleScore> troisJeuxDeFlex = new LinkedHashMap<>(unJeuDeFlex);
+        troisJeuxDeFlex.put("CONTINUOUS_ATTENTION", ModuleScore.fullyCovered(90));
+        troisJeuxDeFlex.put("VISUOMOTOR_COORDINATION", ModuleScore.fullyCovered(60));
 
-        assertThat(result.softSkillScore()).isEqualTo(80);
-    }
+        int avecUnJeu = score(unJeuDeFlex, TECHNIQUE_SENIOR, null).softSkillScore();
+        int avecTroisJeux = score(troisJeuxDeFlex, TECHNIQUE_SENIOR, null).softSkillScore();
 
-    @Test
-    void ignoreUneCleDeModuleNonReconnueSansEchouer() {
-        // Un module Games qui ne correspond à aucun module CdC (ex. futur module non
-        // encore câblé dans SoftSkillModule) est ignoré, pas fatal au calcul.
-        var calculator = new DeterministicFitScoreCalculator();
-        var inputs = new FitScoreInputs(Map.of("MOVE_FAST", ModuleScore.fullyCovered(80.0), "MODULE_INCONNU", ModuleScore.fullyCovered(10.0)), TECHNIQUE_SENIOR, null);
-
-        FitScoreResult result = calculator.calculate(inputs);
-
-        assertThat(result.softSkillScore()).isEqualTo(80);
+        // La flexibilité passe de 80 à la moyenne des 3 jeux (76,7) : quelques points
+        // d'écart. Si le poids était compté trois fois, l'écart serait massif.
+        assertThat(avecTroisJeux).isCloseTo(avecUnJeu, Offset.offset(3));
     }
 }

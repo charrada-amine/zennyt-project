@@ -4,6 +4,9 @@ import com.zennyt.recruitment.application.port.FitScoreCalculatorPort;
 import com.zennyt.recruitment.domain.model.JobRoleProfile;
 import com.zennyt.recruitment.domain.vo.SoftSkillModule;
 
+import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -80,43 +83,76 @@ public class DeterministicFitScoreCalculator implements FitScoreCalculatorPort {
     private record SoftAggregate(double score, int coverage) {}
 
     /**
-     * CdC §3.2 : Score_Soft = Σ(Score_module_i × Poids_module_i), renormalisé sur les
-     * seuls modules dont un score existe — un candidat n'a pas forcément joué les 5
-     * mini-jeux, et {@code DECISION} n'a toujours aucun moyen d'être mesuré (voir
-     * {@link SoftSkillModule}). Une entrée dont la clé ne correspond à aucun module
-     * CdC connu ({@code fromGamesModule} renvoie {@code null}) est ignorée.
+     * CdC §3.2 : {@code Score_Soft = Σ(Score_module_i × Poids_module_i)}, avec
+     * {@code Σ Poids_module_i = 100}. Une entrée dont la clé ne correspond à aucun
+     * module CdC connu ({@code fromGamesModule} renvoie {@code null}) est ignorée.
      *
-     * <p>F13/F15 — le mécanisme 1 du CdC §3.3 est désormais appliqué <b>par module et
-     * avant l'agrégation</b> (`Score_module_i × Couverture_i`), et non plus globalement
-     * sur le score déjà agrégé. Les deux ne coïncident que si tous les modules
-     * partagent la même couverture ; c'est précisément l'hypothèse que le CdC ne fait
-     * pas. La couverture agrégée renvoyée est la moyenne des couvertures pondérée par
-     * le poids métier des modules — c'est elle qui alimente les seuils du mécanisme 2.
+     * <p><b>F07/F08, décision D-D</b> — la division se fait par <b>100</b>, plus par la
+     * somme des poids des seuls modules joués. L'ancienne renormalisation redistribuait
+     * le poids des modules manquants sur ceux qui restaient, avec deux conséquences
+     * mesurées : sur un profil RELATIONNEL, deux candidats aux régulations émotionnelles
+     * opposées (95 et 20, sur une dimension pesant 45 %) obtenaient le <b>même</b> score ;
+     * et sauter un mini-jeu qu'on rate rapportait <b>+11 points</b> par rapport au fait
+     * de le jouer. Un module non joué compte désormais pour 0 — sa couverture est nulle,
+     * donc sa contribution aussi — et c'est la couverture agrégée qui signale au
+     * recruteur que la mesure est incomplète (seuils 60 %/70 %, mécanisme 2).
+     *
+     * <p>F13/F15 — le mécanisme 1 du CdC §3.3 est appliqué <b>par module et avant
+     * l'agrégation</b> ({@code Score_module_i × Couverture_i}), et non plus globalement
+     * sur le score déjà agrégé. Les deux ne coïncident que si tous les modules partagent
+     * la même couverture ; c'est précisément l'hypothèse que le CdC ne fait pas.
      */
     private static SoftAggregate weightedSoftScore(Map<String, ModuleScore> softSkills,
                                                    JobRoleProfile profile) {
-        double weightedSum = 0;
-        double weightedCoverage = 0;
-        int weightTotal = 0;
+        // Étape 1 — regrouper les jeux par module CdC. Un module peut être alimenté par
+        // PLUSIEURS jeux (Flexibilité cognitive = Move Fast + Je continue + Je coordonne).
+        // Sans ce regroupement, son poids serait compté une fois par jeu : 30 + 30 + 30
+        // = 90 points sur 100 au lieu de 30, et le module écraserait tous les autres.
+        Map<SoftSkillModule, List<ModuleScore>> playedByModule = new EnumMap<>(SoftSkillModule.class);
         for (Map.Entry<String, ModuleScore> entry : softSkills.entrySet()) {
             SoftSkillModule module = SoftSkillModule.fromGamesModule(entry.getKey());
-            if (module == null) continue;
-            int weight = moduleWeight(module, profile);
-            ModuleScore measured = entry.getValue();
-            weightedSum += measured.score() * measured.coverageRatio() / 100d * weight;
-            weightedCoverage += measured.coverageRatio() * weight;
-            weightTotal += weight;
+            if (module == null) continue;   // jeu pas encore rattaché : ignoré, jamais promu
+            playedByModule.computeIfAbsent(module, m -> new ArrayList<>()).add(entry.getValue());
         }
-        // F01/F02 : aucun module pesant pour ce métier n'a été mesuré. L'ancien repli
+
+        // Étape 2 — un module, un poids, une fois.
+        double weightedSum = 0;
+        double weightedCoverage = 0;
+        int denominator = 0;
+        for (SoftSkillModule module : SoftSkillModule.values()) {
+            // Aucun jeu de ce module n'existe encore (« Je Décide » et ses 30 scénarios
+            // manquants) : il sort du numérateur ET du dénominateur. Personne n'est
+            // pénalisé pour un jeu qui n'existe pour personne.
+            if (module.unmeasurable()) continue;
+
+            int weight = moduleWeight(module, profile);
+            denominator += weight;
+
+            List<ModuleScore> played = playedByModule.get(module);
+            if (played == null) continue;   // jeu disponible mais non joué : contribue 0
+
+            // Couverture du module = somme des couvertures des jeux joués, rapportée au
+            // nombre de jeux DISPONIBLES. Avoir joué 1 des 3 jeux de la Flexibilité
+            // cognitive couvre le module à un tiers, pas entièrement.
+            double moduleCoverage = Math.min(100d,
+                played.stream().mapToInt(ModuleScore::coverageRatio).sum()
+                    / (double) module.availableGameCount());
+            double moduleScore = played.stream().mapToDouble(ModuleScore::score).average().orElse(0);
+
+            weightedSum += moduleScore * moduleCoverage / 100d * weight;
+            weightedCoverage += moduleCoverage * weight;
+        }
+
+        // F01/F02 : aucun module pesant pour ce métier n'est mesurable. L'ancien repli
         // moyennait `softSkills.values()` — c'est-à-dire la map ENTIÈRE, y compris les
         // clés que la boucle venait d'écarter. Une clé inconnue devenait ainsi la
         // totalité du Score_Soft, sans aucune pondération métier ({FUTUR_JEU: 90} -> 90),
         // et une map vide produisait un 0 persisté comme une mesure réelle.
         // Une absence de donnée n'est pas un score : rien n'est calculé ni écrit.
-        if (weightTotal == 0) return null;
+        if (denominator == 0 || playedByModule.isEmpty()) return null;
         return new SoftAggregate(
-            bounded(weightedSum / weightTotal),
-            boundedInt(Math.round(weightedCoverage / weightTotal)));
+            bounded(weightedSum / denominator),
+            boundedInt(Math.round(weightedCoverage / denominator)));
     }
 
     private static int moduleWeight(SoftSkillModule module, JobRoleProfile profile) {
