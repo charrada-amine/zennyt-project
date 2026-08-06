@@ -26,6 +26,12 @@ class NotificationsPage extends ConsumerStatefulWidget {
 }
 
 class _NotificationsPageState extends ConsumerState<NotificationsPage> {
+  Future<void> _refreshNotifications() async {
+    ref.invalidate(notificationsProvider);
+    ref.invalidate(currentUserProvider);
+    await ref.read(notificationsProvider.future);
+  }
+
   void _showVerificationDialog() {
     IdentityVerificationDialog.show(
       context,
@@ -223,65 +229,80 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
         data: (currentUser) => notificationsAsync.when(
           data: (notifications) {
             if (notifications.isEmpty) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      AppConstants.isCupertino
-                          ? CupertinoIcons.bell
-                          : Icons.notifications_none,
-                      size: 64,
-                      color: context.colors.brandIndigo,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      l10n.noNotifications,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: context.colors.textPrimary,
+              return RefreshIndicator(
+                onRefresh: _refreshNotifications,
+                child: LayoutBuilder(
+                  builder: (context, constraints) => SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: SizedBox(
+                      height: constraints.maxHeight,
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              AppConstants.isCupertino
+                                  ? CupertinoIcons.bell
+                                  : Icons.notifications_none,
+                              size: 64,
+                              color: context.colors.brandIndigo,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              l10n.noNotifications,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: context.colors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              l10n.stayTuned,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: context.colors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      l10n.stayTuned,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: context.colors.textSecondary,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               );
             }
 
             final groups = groupNotificationsByDate(notifications);
 
-            return SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  for (final group in groups) ...[
-                    _buildSectionHeader(group, l10n, localeName),
-                    ...group.notifications.map(
-                      (notification) => NotificationListItem(
-                        notification: notification,
-                        onTap: () =>
-                            _onNotificationTap(notification, currentUser.id),
-                        onMarkRead: () async {
-                          await ref.read(markNotificationReadUseCaseProvider)(
-                            MarkNotificationReadParams(
-                              id: notification.id,
-                              userId: currentUser.id,
-                            ),
-                          );
-                          ref.invalidate(notificationsProvider);
-                        },
+            return RefreshIndicator(
+              onRefresh: _refreshNotifications,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (final group in groups) ...[
+                      _buildSectionHeader(group, l10n, localeName),
+                      ...group.notifications.map(
+                        (notification) => NotificationListItem(
+                          notification: notification,
+                          onTap: () =>
+                              _onNotificationTap(notification, currentUser.id),
+                          onMarkRead: () async {
+                            await ref.read(markNotificationReadUseCaseProvider)(
+                              MarkNotificationReadParams(
+                                id: notification.id,
+                                userId: currentUser.id,
+                              ),
+                            );
+                            ref.invalidate(notificationsProvider);
+                          },
+                        ),
                       ),
-                    ),
+                    ],
                   ],
-                ],
+                ),
               ),
             );
           },

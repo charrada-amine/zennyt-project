@@ -1,4 +1,5 @@
 import '../../domain/entities/chat.dart';
+import '../../domain/entities/message.dart';
 import 'job_opportunity_model.dart';
 
 /// DTO de la couche data : sérialisation JSON + mapping vers l'entité domaine.
@@ -16,6 +17,7 @@ class ConversationModel {
   final int unreadCount;
   final bool isHiringContact;
   final JobOpportunityModel? jobOpportunity;
+  final SenderRole? myRole;
 
   const ConversationModel({
     required this.id,
@@ -29,6 +31,7 @@ class ConversationModel {
     this.unreadCount = 0,
     this.isHiringContact = false,
     this.jobOpportunity,
+    this.myRole,
   });
 
   factory ConversationModel.fromJson(Map<String, dynamic> json) {
@@ -42,15 +45,46 @@ class ConversationModel {
       counterpartId: json['counterpartId'] as String?,
       counterpartPhotoUrl: json['counterpartPhotoUrl'] as String?,
       lastMessagePreview: json['lastMessagePreview'] as String? ?? '',
-      lastMessageAt: DateTime.fromMillisecondsSinceEpoch(
-        (json['lastMessageAt'].toDouble() * 1000).toInt(),
-      ),
+      lastMessageAt: json['lastMessageAt'] != null
+          ? (json['lastMessageAt'] is int
+              ? DateTime.fromMillisecondsSinceEpoch(
+                  (json['lastMessageAt'].toDouble() * 1000).toInt(),
+                )
+              : DateTime.parse(json['lastMessageAt'] as String))
+          : DateTime.now(),
       unreadCount: json['unreadCount'] as int? ?? 0,
       isHiringContact: json['isHiringContact'] as bool? ?? false,
       jobOpportunity: jobOpportunityJson != null
           ? JobOpportunityModel.fromJson(jobOpportunityJson)
           : null,
+      myRole: _parseSenderRole(json['myRole'] as String?),
     );
+  }
+
+  static SenderRole? _parseSenderRole(String? value) {
+    switch (value) {
+      case 'CANDIDATE':
+        return SenderRole.candidate;
+      case 'RECRUITER':
+        return SenderRole.recruiter;
+      case 'SYSTEM':
+        return SenderRole.system;
+      default:
+        return null;
+    }
+  }
+
+  static String? _senderRoleToString(SenderRole? role) {
+    switch (role) {
+      case SenderRole.candidate:
+        return 'CANDIDATE';
+      case SenderRole.recruiter:
+        return 'RECRUITER';
+      case SenderRole.system:
+        return 'SYSTEM';
+      default:
+        return null;
+    }
   }
 
   Map<String, dynamic> toJson() => {
@@ -64,6 +98,7 @@ class ConversationModel {
         'lastMessageAt': lastMessageAt.toIso8601String(),
         'unreadCount': unreadCount,
         'isHiringContact': isHiringContact,
+        'myRole': _senderRoleToString(myRole),
         if (jobOpportunity != null) 'jobOpportunity': jobOpportunity!.toJson(),
       };
 
@@ -80,5 +115,6 @@ class ConversationModel {
         unreadCount: unreadCount,
         isHiringContact: isHiringContact,
         jobOpportunity: jobOpportunity?.toEntity(),
+        myRole: myRole,
       );
 }

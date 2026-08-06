@@ -87,15 +87,16 @@ class MessageModel {
       content: json['content'] as String,
       contentType: _parseContentType(json['contentType'] as String?),
       attachmentUrl: json['attachmentUrl'] as String?,
-      sentAt: DateTime.fromMillisecondsSinceEpoch(
-        (json['sentAt'].toDouble() * 1000).toInt(),
-      ),
-      readAt: json['readAt'] != null
-          ? DateTime.fromMillisecondsSinceEpoch(
-              (json['readAt'].toDouble() * 1000).toInt(),
-            )
-          : null,
+      sentAt: _parseDateTime(json['sentAt']),
+      readAt: json['readAt'] != null ? _parseDateTime(json['readAt']) : null,
     );
+  }
+
+  static DateTime _parseDateTime(dynamic value) {
+    if (value == null) return DateTime.now();
+    if (value is String) return DateTime.parse(value);
+    if (value is num) return DateTime.fromMillisecondsSinceEpoch((value * 1000).toInt());
+    return DateTime.now();
   }
 
   Map<String, dynamic> toJson() => {

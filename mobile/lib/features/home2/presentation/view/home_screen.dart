@@ -12,6 +12,10 @@ import '../widgets/post_card.dart';
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
+  Future<void> _onRefresh() async {
+    await Future.delayed(const Duration(milliseconds: 800));
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final posts = ref.read(homeRepositoryProvider).getFeedPosts();
@@ -29,16 +33,20 @@ class HomeScreen extends ConsumerWidget {
             NewProjectRow(hPadding: hPadding),
             Divider(height: 1, thickness: 1, color: colors.divider),
             Expanded(
-              child: ListView.separated(
-                padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
-                itemCount: posts.length,
-                separatorBuilder: (_, _) => Divider(
-                  height: 1,
-                  thickness: 8,
-                  color: colors.dividerThick,
+              child: RefreshIndicator(
+                onRefresh: _onRefresh,
+                child: ListView.separated(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
+                  itemCount: posts.length,
+                  separatorBuilder: (_, _) => Divider(
+                    height: 1,
+                    thickness: 8,
+                    color: colors.dividerThick,
+                  ),
+                  itemBuilder: (context, index) =>
+                      PostCard(post: posts[index], hPadding: hPadding),
                 ),
-                itemBuilder: (context, index) =>
-                    PostCard(post: posts[index], hPadding: hPadding),
               ),
             ),
           ],

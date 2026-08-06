@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'job_opportunity.dart';
+import 'message.dart';
 
 /// Entité métier Conversation — pure, sans dépendance framework ni sérialisation.
 ///
@@ -18,6 +19,7 @@ class Conversation extends Equatable {
   final int unreadCount;
   final bool isHiringContact;
   final JobOpportunity? jobOpportunity;
+  final SenderRole? myRole;
 
   const Conversation({
     required this.id,
@@ -31,6 +33,7 @@ class Conversation extends Equatable {
     this.unreadCount = 0,
     this.isHiringContact = false,
     this.jobOpportunity,
+    this.myRole,
   });
 
   @override
@@ -46,5 +49,6 @@ class Conversation extends Equatable {
         unreadCount,
         isHiringContact,
         jobOpportunity,
+        myRole,
       ];
 }

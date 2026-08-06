@@ -19,10 +19,18 @@ class NetworkException implements Exception {
 
 ServerException handleDioException(DioException e) {
   final response = e.response;
-  final data = response?.data as Map<String, dynamic>?;
-  final message = data?['message'] as String? ?? e.message ?? 'Erreur serveur';
+  final data = response?.data;
+  final Map<String, dynamic>? parsedData;
+  if (data is Map<String, dynamic>) {
+    parsedData = data;
+  } else if (data is String && data.isNotEmpty) {
+    parsedData = {'message': data};
+  } else {
+    parsedData = null;
+  }
+  final message = parsedData?['message'] as String? ?? e.message ?? 'Erreur serveur';
   Map<String, String>? fieldErrors;
-  final fieldErrorsList = data?['fieldErrors'] as List<dynamic>?;
+  final fieldErrorsList = parsedData?['fieldErrors'] as List<dynamic>?;
   if (fieldErrorsList != null && fieldErrorsList.isNotEmpty) {
     fieldErrors = {};
     for (final f in fieldErrorsList) {

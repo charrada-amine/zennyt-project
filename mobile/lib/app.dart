@@ -10,9 +10,10 @@ import 'l10n/gen/app_localizations.dart';
 import 'core/theme/theme.dart';
 import 'core/theme/theme_provider.dart';
 import 'shared/widgets/no_connection_overlay.dart';
+import 'features/auth/presentation/auth_providers.dart';
 
-/// Root application widget. Wires the design-system themes, localization and the
-/// GoRouter.
+import 'features/call/presentation/widgets/incoming_call_overlay.dart'; // adjust path to your actual file location
+
 class ZennytApp extends ConsumerWidget {
   const ZennytApp({super.key});
 
@@ -22,11 +23,13 @@ class ZennytApp extends ConsumerWidget {
     final themeMode = ref.watch(themeProvider);
     final router = ref.watch(goRouterProvider);
 
+    ref.watch(webSocketConnectionProvider);
+
     return MaterialApp.router(
       builder: (context, child) {
         final previewChild = DevicePreview.appBuilder(context, child);
         return NoConnectionOverlay(
-          child: previewChild,
+          child: IncomingCallOverlay(child: previewChild!),
         );
       },
       onGenerateTitle: (context) => context.l10n.appName,

@@ -55,14 +55,26 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
     _messageController.clear();
 
     try {
-      await ref.read(sendMessageUseCaseProvider)(
+      final result = await ref.read(sendMessageUseCaseProvider)(
         SendMessageParams(
           conversationId: widget.conversation.id,
           userId: userId,
           content: text,
         ),
       );
-      ref.invalidate(messagesProvider(widget.conversation.id));
+      result.fold(
+        (failure) {
+          // Erreur silencieuse pour l'instant : le message n'est pas inséré.
+          debugPrint('SendMessage failed: $failure');
+        },
+        (message) {
+          // Insertion directe côté expéditeur (le destinataire la reçoit par WS).
+          ref
+              .read(messagesProvider(widget.conversation.id).notifier)
+              .addIncoming(message);
+          ref.invalidate(conversationsProvider);
+        },
+      );
     } catch (_) {
       // Handle error silently for now
     } finally {
@@ -77,6 +89,15 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
     final currentUserAsync = ref.watch(currentUserProvider);
     final messagesAsync = ref.watch(messagesProvider(conversation.id));
     final avatarColor = _colorFromName(conversation.counterpartName);
+
+    // Insertion temps réel : un message reçu sur `/user/queue/messages` pour
+    // cette conversation est ajouté directement à la liste, sans refetch.
+    ref.listen(realtimeMessageStreamProvider, (previous, next) {
+      final message = next.value;
+      if (message != null && message.conversationId == conversation.id) {
+        ref.read(messagesProvider(conversation.id).notifier).addIncoming(message);
+      }
+    });
 
     return currentUserAsync.when(
       data: (currentUser) => PlatformScaffold(
@@ -269,7 +290,11 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
                       ),
                       itemCount: messages.length,
                       itemBuilder: (context, index) {
-                        return MessageBubble(message: messages[index]);
+                        return MessageBubble(
+                          message: messages[index],
+                          isFromCurrentUser: messages[index].senderRole ==
+                              conversation.myRole,
+                        );
                       },
                     );
                   },

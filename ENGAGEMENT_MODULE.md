@@ -1,13 +1,14 @@
 # Module Engagement
 
-**Dernière mise à jour :** 2026-07-18 — stabilisation concurrence, événements et feed.
+**Dernière mise à jour :** 2026-08-04 — temps réel sécurisé des messages, attribution des bulles, intégration mobile du chat, handshake WebSocket mobile authentifié par défaut et invalidation inter-comptes du cache utilisateur.
 
 ## Périmètre
 
 Le bounded context `engagement` couvre le fil social (posts, médias, sondages, likes,
-commentaires et préférences), les conversations candidat/recruteur, les notifications,
-les appareils push, la signalisation d'appels audio/vidéo, le centre d'aide et l'upload média.
-Cette livraison est backend uniquement : aucun fichier mobile ni `shared` n'est modifié.
+commentaires et préférences), les conversations candidat/recruteur (temps réel inclus), les
+notifications, les appareils push, la signalisation d'appels audio/vidéo, le centre d'aide et
+l'upload média. Le backend est complet ; le chat mobile (conversations, messages, temps réel)
+est intégré.
 
 Le contrat de référence est `contracts/engagement.openapi.yaml` v2.0.0. Ses 30 opérations
 sont toutes exposées sous `/api/v1`, utilisent le `sub` du JWT comme acteur et sont protégées
@@ -57,16 +58,19 @@ Events : `UserAccessStateChangedEvent`, `ApplicationSubmittedEvent` et
 |---|---:|---|
 | Posts, likes, commentaires, sondages | 9 | Opérationnel |
 | Préférences, masquer, bloquer | 4 | Opérationnel |
-| Conversations et messages | 5 | Opérationnel |
+| Conversations et messages | 5 | Opérationnel (+ push temps réel) |
 | Notifications | 3 | Opérationnel |
-| Realtime et appareils push | 2 | STOMP local + enregistrement opérationnels |
+| Realtime et appareils push | 2 | Handshake JWT sécurisé, push messages opérationnels |
 | Appels | 3 | Signalisation WebRTC via STOMP |
 | Centre d'aide | 3 | Opérationnel |
 | Média | 1 | Cloudinary, clés requises pour un upload réel |
 
 `POST /realtime/negotiate` renvoie `/ws-engagement`; le client réutilise son bearer token lors
-de l'upgrade HTTP. Les destinations utilisateur sont `/user/queue/call/invite`,
-`/user/queue/call/accept` et `/user/queue/call/end`.
+de l'upgrade HTTP. L'handshake valide le JWT (`JwtHandshakeInterceptor`) et installe un principal
+STOMP (`JwtPrincipalHandshakeHandler`) pour le routage `/user/queue/**`. À chaque message
+enregistré, `SendMessageUseCase` pousse le payload (schéma `Message`) vers le destinataire sur
+`/user/queue/messages` ; l'historique reste récupéré en HTTP. Les destinations utilisateur
+supplémentaires sont `/user/queue/call/invite`, `/user/queue/call/accept` et `/user/queue/call/end`.
 
 ## Persistance
 
@@ -87,7 +91,7 @@ Chaque endpoint porte `@EngagementAuthenticated`. L'acteur doit exister dans la 
 ## Vérification
 
 - Compilation Java 21 : succès.
-- Suite backend : 201 tests, 0 échec, 0 erreur, 0 ignoré, PostgreSQL inclus.
+- Suite backend : 204 tests, 0 échec, 0 erreur, 0 ignoré, PostgreSQL inclus.
 - ArchUnit : 3/3 verts (`domainIsFrameworkAgnostic`, `domainDoesNotDependOnOuterLayers`,
   `boundedContextsDoNotDependOnEachOthersInternals`).
 - Parité : 30 routes runtime = 30 opérations OpenAPI, toutes protégées.
@@ -102,7 +106,8 @@ Chaque endpoint porte `@EngagementAuthenticated`. L'acteur doit exister dans la 
 - Domaine sans Spring/JPA.
 - Isolation par événements, sans appel interne Identity/Recruitment.
 - Contrat-first et identité agissante issue du JWT.
-- Aucun écran ou fichier mobile ajouté.
+- Handshake WebSocket : le JWT est obligatoire et validé (aucune route temps réel non authentifiée).
+- Attribution des bulles pilotée par le serveur (`Conversation.myRole`), jamais devinée côté client.
 - Aucun fichier `shared` modifié.
 
 ## Décisions à valider / roadmap
@@ -113,7 +118,9 @@ Chaque endpoint porte `@EngagementAuthenticated`. L'acteur doit exister dans la 
    `FRIENDS` est implémentée mais la création d'amitié n'est pas une opération du contrat v2.
 3. Définir le traitement agent du centre d'aide ; les messages utilisateurs sont persistés,
    sans réponse automatique inventée.
-4. Intégrer le pack mobile dans une livraison séparée.
+4. **Pack mobile engagement (en cours).** Le chat (messages, conversations, notifications,
+   temps réel WebSocket) est intégré côté mobile. Reste à intégrer : posts/likes/commentaires,
+   sondages, appels, aide.
 5. **Pagination des commentaires — reportée (décision Lot D).** `GET /posts/{id}/comments`
    retourne aujourd'hui un tableau consommé par un client mobile déjà publié. Passer à une
    réponse paginée est un changement de contrat cassant : il doit être fait contract-first et
@@ -168,3 +175,28 @@ Chaque endpoint porte `@EngagementAuthenticated`. L'acteur doit exister dans la 
 6. **2026-07-18 — Revue Claude finale :** verdict GO sans finding P0/P1 ; réserve PostgreSQL
    confirmée par 4 tests conditionnels exécutés, et limite multi-instance du worker tracée dans
    la roadmap.
+7. **2026-08-04 — Chat temps réel sécurisé + attribution correcte des bulles :** handshake
+   STOMP validant le JWT (`JwtHandshakeInterceptor` + `JwtPrincipalHandshakeHandler`, aucun
+   endpoint temps réel non authentifié), poussée de chaque message au destinataire sur
+   `/user/queue/messages` depuis `SendMessageUseCase`, et `Conversation.myRole` ajouté au
+   contrat (enum `CANDIDATE`/`RECRUITER`) et à la réponse `GET /conversations`. Mobile :
+   `myRole` parsé, `MessageBubble` aligné sur le rôle serveur (fini le bug "le destinataire voit
+   ses messages comme les siens"), messages temps réel insérés directement dans la conversation
+   ouverte (`ConversationMessagesNotifier` + `realtimeMessageStreamProvider`) sans refetch,
+   liste de conversations et notifications rafraîchies à la réception. 204 tests backend, 27
+   tests mobile, ArchUnit 3/3, `flutter analyze` sans erreur.
+8. **2026-08-04 — Handshake WebSocket mobile authentifié par défaut :** le singleton
+   `WebSocketService.connect` relit le bearer token depuis le stockage sécurisé
+   (`defaultTokenStorage` dans `mobile/lib/core/storage/token_storage.dart`) quand `authToken`
+   est absent, et l'envoie en `Authorization: Bearer <JWT>` lors de l'upgrade STOMP. Corrige les
+   connexions de la page de test (`messaging_test_page.dart`) et de l'appel vidéo hérité
+   (`video_call_page_old.dart`) qui n'en passaient pas : le serveur rejetait le handshake en 401
+   (cf. `JwtHandshakeInterceptor`), provoquant une boucle de reconnexion toutes les 5 s.
+9. **2026-08-04 — Invalidation inter-comptes du cache utilisateur :** `currentUserProvider`
+   (`mobile/lib/features/home/presentation/providers/home_providers.dart`) écoute désormais
+   `authControllerProvider` et renvoie `CurrentUser.empty()` quand la session est déconnectée.
+   Comme `conversationsProvider` et `notificationsProvider` dérivent tous deux de
+   `currentUserProvider.future`, la liste des conversations et les notifications sont
+   reconstruites au login/logout/switch de compte au lieu de conserver le cache du compte
+   précédent (bug : après un switch de compte, les conversations de l'ancien compte restaient
+   affichées jusqu'à un rechargement manuel).

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/chat_providers.dart';
+import '../../../notifications/presentation/providers/notification_providers.dart';
 import '../../../../core/theme/app_color_scheme.dart';
 import '../../../../core/constants.dart';
 import 'package:zennyt/l10n/gen/app_localizations.dart';
@@ -29,6 +30,15 @@ class ChatsPage extends ConsumerWidget {
       l10n.filterJobOffers,
       l10n.filterProfessionals,
     ];
+
+    // Un message reçu en temps réel met à jour la liste des conversations
+    // (aperçu, tri) et le badge de notifications.
+    ref.listen(realtimeMessageStreamProvider, (previous, next) {
+      if (next.hasValue) {
+        ref.invalidate(conversationsProvider);
+        ref.invalidate(notificationsProvider);
+      }
+    });
 
     return PlatformScaffold(
       appBar: PlatformAppBar(

@@ -96,16 +96,16 @@ class PostRemoteDataSourceImpl implements PostRemoteDataSource {
   @override
   Future<CurrentUserModel> getCurrentUser() async {
     try {
-      final res = await dio.get('/profiles/me');
+      final res = await dio.get('/auth/me');
       final data = res.data as Map<String, dynamic>;
-      final avatarUrl = data['profileImageUrl'] as String? ??
-          data['avatarUrl'] as String? ??
-          data['cvUrl'] as String? ??
-          '';
+      final firstName = data['firstName'] as String? ?? '';
+      final lastName = data['lastName'] as String? ?? '';
       return CurrentUserModel(
-        id: data['userId']?.toString() ?? data['id']?.toString() ?? '',
-        name: data['currentPosition'] as String? ?? 'User',
-        avatarUrl: avatarUrl,
+        id: (data['id'] ?? '').toString(),
+        name: '$firstName $lastName'.trim().isEmpty
+            ? 'User'
+            : '$firstName $lastName'.trim(),
+        avatarUrl: data['profileImageUrl'] as String? ?? '',
         friendIds: const [],
       );
     } on DioException catch (e) {

@@ -43,9 +43,12 @@ public class IdentityService {
 
     @Transactional
     public User updateUser(UUID publicId, String firstName, String lastName, String phoneNumber,
-                           String city, String country, String address) {
+                           String city, String country, String address, String profileImageUrl) {
         User user = currentUser(publicId);
         user.updateIdentity(firstName, lastName, phoneNumber, city, country, address);
+        if (profileImageUrl != null && !profileImageUrl.isBlank()) {
+            user.updateAvatar(profileImageUrl, null);
+        }
         User saved = users.save(user);
         publishAccessState(saved);
         return saved;

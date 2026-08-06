@@ -10,6 +10,7 @@ import 'package:zennyt/core/error/failures.dart';
 import 'package:zennyt/features/home/domain/entities/comment.dart';
 import 'package:zennyt/features/home/domain/usecases/get_comments_by_post.dart';
 import '../../../../core/di/injection.dart';
+import '../../../auth/presentation/auth_controller.dart';
 import '../../domain/entities/current_user.dart';
 import '../../domain/entities/post.dart';
 import '../../domain/entities/user_post_preferences.dart';
@@ -68,7 +69,13 @@ final keepAliveSyncProvider = Provider<void>((ref) {
 
 // ── Current user ────────────────────────────────────────────────────
 
+// Dépend de l'état d'auth pour que les providers scopés utilisateur
+// (conversations, notifications, fil) soient reconstruits au login/logout
+// et ne gardent pas le cache du compte précédent.
 final currentUserProvider = FutureProvider<CurrentUser>((ref) async {
+  final auth = ref.watch(authControllerProvider);
+  if (auth.value == null) return CurrentUser.empty();
+
   final result = await ref.watch(getCurrentUserProvider)();
   return result.fold(
     (failure) => CurrentUser.empty(),

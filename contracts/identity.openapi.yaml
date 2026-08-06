@@ -875,6 +875,10 @@ components:
         city: { type: string, maxLength: 100 }
         country: { type: string, maxLength: 100 }
         address: { type: string, maxLength: 255 }
+        # Avatar distant (ex. avatar généré par défaut). Un fichier local doit
+        # passer par POST /users/me/avatar ; ce champ permet de fixer un avatar
+        # généré (DiceBear) lors de la création de compte côté mobile.
+        profileImageUrl: { type: string, maxLength: 500 }
 
     User:
       allOf:
@@ -885,8 +889,7 @@ components:
             id: { type: integer, format: int64 }
             email: { type: string, format: email }
             role: { $ref: '#/components/schemas/Role' }
-            # L'avatar est en lecture seule : il se gère via POST/DELETE /users/me/avatar.
-            profileImageUrl: { type: string, maxLength: 500, readOnly: true }
+            profileImageUrl: { type: string, maxLength: 500 }
             termsAccepted: { type: boolean }
             emailVerified: { type: boolean }
             active: { type: boolean }

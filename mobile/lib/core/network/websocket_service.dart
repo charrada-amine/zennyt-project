@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:stomp_dart_client/stomp_dart_client.dart';
 import '../constants/app_constants.dart';
+import '../storage/token_storage.dart';
 
 class WebSocketService {
   static final WebSocketService _instance = WebSocketService._internal();
@@ -9,9 +10,10 @@ class WebSocketService {
   WebSocketService._internal();
 
   static String get _websocketUrl {
-    final baseUrl = dotenv.env['API_BASE_URL'] ?? AppConstants.jsonServerBaseUrl;
-    final wsBase = baseUrl.replaceFirst(RegExp(r'^http'), 'ws');
-    return '$wsBase/ws-engagement';
+    //final baseUrl = dotenv.env['API_BASE_URL'] ?? AppConstants.jsonServerBaseUrl;
+    // Remove /api/v1 prefix for WebSocket (it's at root level)
+    //final wsBase = baseUrl.replaceFirst(RegExp(r'^http'), 'ws').replaceFirst(RegExp(r'/api/v1/?$'), '');
+    return "ws://192.168.100.4:8080/ws-engagement";
   }
 
   StompClient? _stompClient;
@@ -19,16 +21,22 @@ class WebSocketService {
   final Map<String, Function(Map<String, dynamic>)> _subscriptions = {};
   final Map<String, StompUnsubscribe> _stompSubs = {};
 
-  void connect({
+  /// Ouvre la connexion STOMP. Si [authToken] est absent, le bearer token est
+  /// relu depuis le stockage sécurisé ([defaultTokenStorage]) : le handshake
+  /// WebSocket exige toujours `Authorization: Bearer <JWT>` côté serveur.
+  Future<void> connect({
     required String userId,
+    String? authToken,
     Function? onConnect,
     Function? onDisconnect,
     Function? onError,
-  }) {
+  }) async {
     if (_stompClient != null && _stompClient!.connected) {
       onConnect?.call();
       return;
     }
+
+    final effectiveToken = authToken ?? await defaultTokenStorage.readAccessToken();
 
     final normalisedUserId = userId.trim().toLowerCase();
 
@@ -36,7 +44,10 @@ class WebSocketService {
       config: StompConfig(
         url: _websocketUrl,
         stompConnectHeaders: {'userId': normalisedUserId},
-        webSocketConnectHeaders: {'userId': normalisedUserId},
+        webSocketConnectHeaders: {
+          'userId': normalisedUserId,
+          if (effectiveToken != null) 'Authorization': 'Bearer $effectiveToken',
+        },
         onConnect: (StompFrame frame) {
           print('✅ WebSocket connected! principal=$normalisedUserId');
           onConnect?.call();
@@ -47,6 +58,7 @@ class WebSocketService {
           onDisconnect?.call();
         },
         onWebSocketError: (dynamic error) {
+          print("wsUrl: ${_websocketUrl}");
           print('❌ WebSocket error: $error');
           onError?.call(error);
         },

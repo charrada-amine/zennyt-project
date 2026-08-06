@@ -6,13 +6,23 @@ import '../../../../core/constants.dart';
 
 class MessageBubble extends StatelessWidget {
   final Message message;
-  const MessageBubble({super.key, required this.message});
+
+  /// True si ce message provient de l'utilisateur courant de la conversation.
+  ///
+  /// ATTENTION : ce n'est PAS `senderRole == candidate`. Le rôle de l'utilisateur
+  /// courant dépend de la conversation (`Conversation.myRole`, renvoyé par le
+  /// backend) : un recruteur envoie des messages avec le rôle RECRUITER.
+  /// La bulle est donc à droite ssi le rôle de l'expéditeur == notre propre rôle.
+  final bool isFromCurrentUser;
+
+  const MessageBubble({
+    super.key,
+    required this.message,
+    required this.isFromCurrentUser,
+  });
 
   @override
   Widget build(BuildContext context) {
-    // Messages from the current user (CANDIDATE) are on the right,
-    // messages from others (RECRUITER/SYSTEM) are on the left.
-    final isFromCurrentUser = message.senderRole == SenderRole.candidate;
     final bubbleColor = isFromCurrentUser ? AppColors.chipSelected : Colors.white;
     final textColor = isFromCurrentUser ? Colors.white : Colors.black87;
 

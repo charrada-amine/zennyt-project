@@ -48,22 +48,27 @@ class IncomingCallState {
 class IncomingCallNotifier extends StateNotifier<IncomingCallState> {
   final CallSignalingRepository _signaling;
   final WebSocketService _webSocketService;
-  IncomingCallNotifier(this._signaling, this._webSocketService) : super(const IncomingCallState()) {
+  IncomingCallNotifier(this._signaling, this._webSocketService)
+    : super(const IncomingCallState()) {
+       debugPrint('🎯 IncomingCallNotifier created, listening for invites');
     _listenForInvites();
   }
 
   void _listenForInvites() {
     _signaling.onCallInvite((data) {
-      final senderId = data['senderId'] as String?;
-      if (senderId == null) return;
+      debugPrint('📞 onCallInvite fired: $data');
+      final initiatorId = data['initiatorId'] as String?;
+      if (initiatorId == null) return;
 
       state = IncomingCallState(
         isActive: true,
         conversationId: data['conversationId'] as String?,
-        senderId: senderId,
+        senderId: initiatorId,
         senderName: data['senderName'] as String? ?? 'Appelant',
-        channelName: data['channelName'] as String?,
-        isVideoCall: data['isVideoCall'] as bool? ?? false,
+        channelName:
+            data['conversationId']
+                as String?, // no channelName field from backend, conversationId doubles as channel
+        isVideoCall: (data['type'] as String?)?.toUpperCase() == 'VIDEO',
       );
     });
   }
@@ -75,11 +80,11 @@ class IncomingCallNotifier extends StateNotifier<IncomingCallState> {
 
 final incomingCallProvider =
     StateNotifierProvider<IncomingCallNotifier, IncomingCallState>((ref) {
-  return IncomingCallNotifier(
-    ref.read(callSignalingRepositoryProvider),
-    ref.read(webSocketServiceProvider),
-  );
-});
+      return IncomingCallNotifier(
+        ref.read(callSignalingRepositoryProvider),
+        ref.read(webSocketServiceProvider),
+      );
+    });
 
 /// Widget overlay qui affiche l'écran d'appel entrant par-dessus tout.
 class IncomingCallOverlay extends ConsumerWidget {
@@ -114,9 +119,7 @@ class IncomingCallOverlay extends ConsumerWidget {
                       radius: 50,
                       backgroundColor: Colors.white24,
                       child: Icon(
-                        incomingCall.isVideoCall
-                            ? Icons.videocam
-                            : Icons.phone,
+                        incomingCall.isVideoCall ? Icons.videocam : Icons.phone,
                         size: 50,
                         color: Colors.white,
                       ),
@@ -153,12 +156,16 @@ class IncomingCallOverlay extends ConsumerWidget {
                           color: Colors.red,
                           label: 'Refuser',
                           onTap: () {
-                            final myUserId = ref.read(currentUserProvider).value?.id ?? '';
-                            ref.read(callSignalingRepositoryProvider).sendReject(
-                              conversationId: incomingCall.conversationId ?? '',
-                              senderId: myUserId,
-                              counterpartId: incomingCall.senderId,
-                            );
+                            final myUserId =
+                                ref.read(currentUserProvider).value?.id ?? '';
+                            ref
+                                .read(callSignalingRepositoryProvider)
+                                .sendReject(
+                                  conversationId:
+                                      incomingCall.conversationId ?? '',
+                                  senderId: myUserId,
+                                  counterpartId: incomingCall.senderId,
+                                );
                             ref.read(incomingCallProvider.notifier).dismiss();
                           },
                         ),
@@ -169,16 +176,23 @@ class IncomingCallOverlay extends ConsumerWidget {
                           label: 'Accepter',
                           onTap: () {
                             ref.read(incomingCallProvider.notifier).dismiss();
-                            context.push('/call', extra: {
-                              'contactName': incomingCall.senderName ?? 'Appelant',
-                              'conversationId': incomingCall.conversationId,
-                              'counterpartId': incomingCall.senderId,
-                              'myUserId': ref.read(currentUserProvider).value?.id,
-                              'incomingOffer': {
-                                'isVideoCall': incomingCall.isVideoCall,
-                                'channelName': incomingCall.channelName,
+                            context.push(
+                              '/call',
+                              extra: {
+                                'contactName':
+                                    incomingCall.senderName ?? 'Appelant',
+                                'conversationId': incomingCall.conversationId,
+                                'counterpartId': incomingCall.senderId,
+                                'myUserId': ref
+                                    .read(currentUserProvider)
+                                    .value
+                                    ?.id,
+                                'incomingOffer': {
+                                  'isVideoCall': incomingCall.isVideoCall,
+                                  'channelName': incomingCall.channelName,
+                                },
                               },
-                            });
+                            );
                           },
                         ),
                       ],
@@ -218,10 +232,7 @@ class _CallActionButton extends StatelessWidget {
           Container(
             width: 70,
             height: 70,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
             child: Icon(icon, color: Colors.white, size: 32),
           ),
           const SizedBox(height: 8),

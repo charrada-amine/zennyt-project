@@ -43,6 +43,12 @@ class _HomePageState extends ConsumerState<HomePage> {
     }
   }
 
+  Future<void> _onRefresh() async {
+    ref.invalidate(currentUserProvider);
+    ref.invalidate(postsProvider);
+    await ref.read(postsProvider.future);
+  }
+
   @override
   Widget build(BuildContext context) {
     final postsAsync = ref.watch(feedPostsProvider);
@@ -108,49 +114,52 @@ class _HomePageState extends ConsumerState<HomePage> {
             thickness: 2,
           ),
           Expanded(
-            child: postsAsync.when(
-              data: (posts) {
-                if (posts.isEmpty) {
-                  return SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Text(
-                        AppLocalizations.of(context).noPostsToShow,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: context.colors.textMuted),
-                      ),
-                    ),
-                  );
-                }
-
-                final hasMore = ref.watch(postsFeedHasMoreProvider);
-
-                return ListView.builder(
-                  controller: _scrollController,
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.only(
-                      top: 8, left: 16, right: 16, bottom: 16),
-                  itemCount: posts.length + (hasMore ? 1 : 0),
-                  itemBuilder: (context, index) {
-                    if (index == posts.length) {
-                      return const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 16),
-                        child: Center(
-                          child: CircularProgressIndicator(),
+            child: RefreshIndicator(
+              onRefresh: _onRefresh,
+              child: postsAsync.when(
+                data: (posts) {
+                  if (posts.isEmpty) {
+                    return SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Text(
+                          AppLocalizations.of(context).noPostsToShow,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: context.colors.textMuted),
                         ),
-                      );
-                    }
-                    final post = posts[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: PostCard(post: post),
+                      ),
                     );
-                  },
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, _) => Center(child: Text(AppLocalizations.of(context).homeError(error.toString()))),
+                  }
+
+                  final hasMore = ref.watch(postsFeedHasMoreProvider);
+
+                  return ListView.builder(
+                    controller: _scrollController,
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.only(
+                        top: 8, left: 16, right: 16, bottom: 16),
+                    itemCount: posts.length + (hasMore ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (index == posts.length) {
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                          child: Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
+                      }
+                      final post = posts[index];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: PostCard(post: post),
+                      );
+                    },
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, _) => Center(child: Text(AppLocalizations.of(context).homeError(error.toString()))),
+              ),
             ),
           ),
         ],

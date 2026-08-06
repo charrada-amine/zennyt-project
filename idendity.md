@@ -810,5 +810,9 @@ The mobile candidate profile supports CV upload, replacement, deletion, and prof
 - 5. 2026-07-18 — Downstream Identity projection callbacks now catch failures around their
   independent transactions. An already committed Identity operation no longer surfaces a false
   HTTP failure; the startup snapshot remains the reconciliation path.
+- 6. 2026-08-03 — `PUT /users/me` now accepts an optional `profileImageUrl` field. The mobile
+  signup flow (which generates a default DiceBear avatar when the user picks no photo) can now
+  persist it end-to-end; `profileImageUrl` is no longer silently dropped from the update payload.
+  Contract `UserUpdate`/`User` schemas updated accordingly (field is no longer read-only).
 
-**Dernière mise à jour :** 2026-07-18
+**Dernière mise à jour :** 2026-08-03

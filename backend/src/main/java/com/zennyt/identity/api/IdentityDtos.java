@@ -65,7 +65,8 @@ public final class IdentityDtos {
         @Size(max = 30) String phoneNumber,
         @Size(max = 100) String city,
         @Size(max = 100) String country,
-        @Size(max = 255) String address
+        @Size(max = 255) String address,
+        @Size(max = 500) String profileImageUrl
     ) {}
 
     public record UserResponse(
