@@ -107,6 +107,15 @@ recruitment:
       max-attempts: ${RECRUITMENT_FITSCORE_QUEUE_MAX_ATTEMPTS:5}
       # Filet de sécurité si un réveil se perd. Le chemin normal est le réveil immédiat.
       poll-interval-ms: ${RECRUITMENT_FITSCORE_QUEUE_POLL_INTERVAL_MS:5000}
+      # Rétention de l'historique terminé. Une ligne est écrite par paire traitée et rien
+      # ne l'efface : sans purge la table croît sur un volume proportionnel au produit des
+      # candidats par les offres. Les index étant partiels sur PENDING, rien ne ralentit —
+      # c'est l'espace disque qui part, silencieusement. Les lignes FAILED sont conservées.
+      retention-days: ${RECRUITMENT_FITSCORE_QUEUE_RETENTION_DAYS:7}
+      # Purge quotidienne. fixedDelay : jamais deux passages en parallèle.
+      purge-interval-ms: ${RECRUITMENT_FITSCORE_QUEUE_PURGE_INTERVAL_MS:86400000}
+      # Laisse le démarrage se terminer avant le premier passage.
+      purge-initial-delay-ms: ${RECRUITMENT_FITSCORE_QUEUE_PURGE_INITIAL_DELAY_MS:300000}
   fitscore-backfill:
     # Intervalle entre deux passages du balayage de rattrapage (paires candidat/offre
     # sans Fit Score). fixedDelay : le passage suivant ne démarre qu'après la fin du

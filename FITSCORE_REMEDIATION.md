@@ -76,7 +76,7 @@ tombe de **+23 à +5 points**.
 | **F27** | ❌ **N'est pas un bug** sur `main` : `MiniGame.DECISION_CORE` existe bien, le javadoc de `SoftSkillModule` est exact |
 
 **Plages de migration mises à jour** (V49-V51 sont prises par les jeux) :
-Phase 0 = **V52-V53** (livré) · Track A = **V54-V57** · Track B = **V58-V61**.
+Phase 0 = **V52-V53** · Track A = **V54-V58** (livré) · Track B = **V59-V63**.
 
 **Baseline §7 à rejouer.** Les chiffres du §7 datent d'avant la fusion. Relancez le harnais sur
 `main` avant de commencer : ils vont bouger, surtout sur les profils RELATIONNEL.
@@ -267,7 +267,7 @@ Sévérité = impact sur la justesse d'un score affiché à un recruteur, pas di
 >
 > | Tâche | État | Livré |
 > |---|---|---|
-> | **P0.1** Plages de migration | ✅ | Phase 0 = V52-V53 · Track A = **V54-V57** · Track B = **V58-V61** |
+> | **P0.1** Plages de migration | ✅ | Phase 0 = V52-V53 · Track A = **V54-V58** (livré) · Track B = **V59-V63** |
 > | **P0.2** F11 — `updated_at` sur `job_role_profiles` | ✅ | migration `V52`, champ ajouté au record, à l'entity et à l'adapter |
 > | **P0.3** F04 — seuil `partialData` | ✅ | `partialData(boolean offerHasAssessment)` ; les 4 appelants passent désormais `offer.assessmentId() != null` |
 > | **P0.4** Fichier `.tmp` mort | ✅ | disparu à la fusion |
@@ -296,8 +296,8 @@ A et B soient ensuite **totalement disjoints**.
       |---|---|
       | `V49` → `V51` | jeux (renumérotation, déjà livré) |
       | `V52` → `V53` | Phase 0 (déjà livré) |
-      | `V54` → `V57` | **Track A** |
-      | `V58` → `V61` | **Track B** |
+      | `V54` → `V58` | **Track A** — *livré, ne pas réutiliser* |
+      | `V59` → `V63` | **Track B** |
       Une migration hors de votre plage = à négocier. C'est la source #1 de conflit Flyway.
 
 - [ ] **P0.2 — F11 : `updated_at` sur `job_role_profiles`.** `V49` (A l'écrit, B relit) :
@@ -370,7 +370,7 @@ backend/src/main/java/com/zennyt/recruitment/
     infrastructure/persistence/FitScore*.java
     infrastructure/persistence/SoftSkillsProjection*.java
 backend/src/main/java/com/zennyt/games/**
-backend/src/main/resources/db/migration/V54..V57
+backend/src/main/resources/db/migration/V54..V58   (livré)
 backend/src/test/java/com/zennyt/recruitment/infrastructure/ai/**
 backend/src/test/java/com/zennyt/recruitment/application/RecomputeFitScores*
 backend/src/test/java/com/zennyt/games/**
@@ -429,7 +429,7 @@ backend/src/test/java/com/zennyt/games/**
       → Corriger le javadoc de `GameType` (« n'a pas encore de GameType »).
 
 - [ ] **F13 + F15 🟡 — Couverture réelle par module.** *(prérequis de F07, décision D-D)*
-      `V54` : `ALTER TABLE recruitment.soft_skills_projection ADD COLUMN coverage_ratio INT NOT NULL DEFAULT 100;`
+      `V54` (livré) : `ALTER TABLE recruitment.soft_skills_projection ADD COLUMN coverage_ratio INT NOT NULL DEFAULT 100;`
       Le signal existe déjà et est **jeté** : `GameResultRecordedEvent` porte `compositeRaw` et
       `compositeMax`, et `GameSession.expectedMiniGames()` donne le dénominateur.
       `GameSoftSkillsListener` ne garde que `normalizedScore` et `gameType`.
@@ -498,7 +498,7 @@ backend/src/main/java/com/zennyt/recruitment/
     application/usecase/GetCandidateResumeUseCase.java
     application/usecase/CreateJobOfferUseCase.java
     api/**            (contrôleurs + DTO)
-backend/src/main/resources/db/migration/V58..V61
+backend/src/main/resources/db/migration/V59..V63
 backend/src/test/java/com/zennyt/recruitment/domain/**
 backend/src/test/java/com/zennyt/recruitment/application/JobProfileTypeClassifierTest.java
 contracts/recruitment.openapi.yaml          <-- B en est SEUL propriétaire
@@ -560,7 +560,7 @@ tooling/bruno/**
 - [ ] **F25 🟢 — Contrainte d'unicité.** `uq_job_positions_name_sector UNIQUE (name, sector)` :
       Postgres considère les `NULL` comme distincts, donc les **9 métiers transverses**
       (`sector = NULL`) ne sont pas protégés des doublons via `ProposeJobPositionUseCase`.
-      → `V58` : index unique partiel `ON job_positions (name) WHERE sector IS NULL`
+      → `V59` : index unique partiel `ON job_positions (name) WHERE sector IS NULL`
       (ou `NULLS NOT DISTINCT` si PG ≥ 15).
 
 - [ ] **F28 🟢 — Test d'invariant sur la courbe.** `JobRoleProfileTest` ne couvre que les deux
@@ -575,7 +575,7 @@ tooling/bruno/**
       Aujourd'hui `type_evaluation_hard` est sur `job_role_profiles` (profil × niveau), donc
       **tous** les métiers ARTISTIQUE partagent le même mode. D-C a tranché : le mode appartient
       au métier.
-      → `V59` : ajouter `type_evaluation_hard` sur `job_positions`, reprendre la valeur du
+      → `V60` : ajouter `type_evaluation_hard` sur `job_positions`, reprendre la valeur du
       profil pour les 142 lignes existantes, puis retirer la colonne de `job_role_profiles`.
       → Adapter `JobPosition`, son entity/adapter, `JobRoleProfileResolver`, le contrat.
       → Seeder les métiers hybrides en `MIXTE` (UX/UI Designer, Motion designer) et les autres
@@ -737,8 +737,8 @@ candidat fort en soft), les bornes 0-100, le `null` sur profil non résolu.
    Besoin d'un fichier de l'autre : demandez, ne le prenez pas.
 2. **`contracts/recruitment.openapi.yaml` appartient à Track B seul.** Track A a besoin d'un
    changement de contrat (F13 expose la couverture ?) → ouvrir une issue, B l'applique.
-3. **Migrations : restez dans votre plage** (P0.1). `V54`–`V57` = Track A, `V58`–`V61` = Track B.
-   Tout ce qui précède est livré.
+3. **Migrations : restez dans votre plage** (P0.1). Track A a livré jusqu'à **V58**
+   (incluse) ; Track B commence donc à **V59**. Tout ce qui précède est pris.
 4. **Rebaser sur `main` tous les jours**, pas fusionner. Historique linéaire, conflits attrapés
    tôt.
 5. **Un commit par `Fxx`.** Format : `fix(fitscore): F01 le repli avale les clés de module inconnues`.
@@ -811,7 +811,7 @@ et non régressables.
 | **Constats** | F01 F02 F03 F04 F07 F08 F12 F13 F14 F15 F21 F22 F27 | F05 F06 F09 F10 F16 F17 F18 F19 F20 F23 F24 F25 F28 F29 F30 **F32** |
 | **Critiques** | F01 F02 F03 F04 | F05 F06 |
 | **Langages** | Java (recruitment + games), SQL | Java (api + domain), SQL, Dart, YAML |
-| **Migrations** | V54–V57 | V58–V61 |
+| **Migrations** | V54–V58 *(livré)* | **V59–V63** |
 | **Ordre interne imposé** | F03 → F13/F15 → F14 → F07/F08 | F05 avant F19 ; F23+F24 ensemble |
 | **Fusionne** | en premier | après rebase sur A |
 

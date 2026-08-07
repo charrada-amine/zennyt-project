@@ -53,6 +53,22 @@ public interface FitScoreWorkQueueRepository {
     /** Âge en secondes de la plus ancienne ligne en attente, 0 si la file est vide. */
     long oldestPendingAgeSeconds();
 
+    /**
+     * Supprime les lignes terminées plus vieilles que {@code retentionDays}.
+     *
+     * <p>Sans cela la table ne fait que croître : une ligne est écrite par paire
+     * candidat × offre traitée, et rien ne l'efface une fois passée à DONE. Les index
+     * étant partiels sur {@code PENDING}, les performances ne se dégradent pas — c'est
+     * l'espace disque qui part, silencieusement, sur un volume proportionnel au produit
+     * des candidats par les offres.
+     *
+     * <p>Les lignes FAILED sont conservées : elles sont le seul témoignage d'un calcul
+     * abandonné, et leur volume est borné par {@code max-attempts}.
+     *
+     * @return le nombre de lignes supprimées
+     */
+    int purgeCompletedOlderThan(int retentionDays);
+
     /** Nombre de lignes abandonnées — à surveiller : c'est un signal de bug, pas une urgence. */
     long failedCount();
 

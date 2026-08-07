@@ -204,4 +204,53 @@ class FitScoreWorkQueuePostgresTest {
         assertThat(queue.oldestPendingAgeSeconds()).isGreaterThanOrEqualTo(0);
         assertThat(queue.depth(PRIORITY_NORMAL)).isEqualTo(1);
     }
+
+    /**
+     * La purge doit distinguer trois cas que seule une vraie base permet de mettre en
+     * scène : une ligne terminée et ancienne (à effacer), une terminée mais récente (à
+     * garder, elle sert encore au diagnostic), et une échouée quel que soit son âge — le
+     * seul témoignage d'un calcul abandonné après max-attempts.
+     */
+    @Test
+    void laPurgeNEffacerieQueLHistoriqueTermineEtAncien() {
+        UUID candidat = UUID.randomUUID();
+        UUID vieilleTerminee = UUID.randomUUID();
+        UUID recenteTerminee = UUID.randomUUID();
+        UUID vieilleEchouee = UUID.randomUUID();
+
+        insererAvecAge(candidat, vieilleTerminee, "DONE", 30);
+        insererAvecAge(candidat, recenteTerminee, "DONE", 1);
+        insererAvecAge(candidat, vieilleEchouee, "FAILED", 30);
+
+        int supprimees = queue.purgeCompletedOlderThan(7);
+
+        assertThat(supprimees).isEqualTo(1);
+        assertThat(offresRestantes(candidat))
+            .containsExactlyInAnyOrder(recenteTerminee, vieilleEchouee)
+            .doesNotContain(vieilleTerminee);
+    }
+
+    @Test
+    void laPurgeNeToucheJamaisUneLigneEnAttente() {
+        UUID candidat = UUID.randomUUID();
+        UUID enAttente = UUID.randomUUID();
+        insererAvecAge(candidat, enAttente, "PENDING", 365);
+
+        assertThat(queue.purgeCompletedOlderThan(7)).isZero();
+        assertThat(offresRestantes(candidat)).containsExactly(enAttente);
+    }
+
+    private void insererAvecAge(UUID candidat, UUID offre, String statut, int ageEnJours) {
+        jdbc.update("""
+            INSERT INTO recruitment.fitscore_work_queue
+                (candidate_id, job_offer_id, priority, status, created_at)
+            VALUES (?, ?, 1, ?, now() - make_interval(days => ?))
+            """, candidat, offre, statut, ageEnJours);
+    }
+
+    private List<UUID> offresRestantes(UUID candidat) {
+        return jdbc.queryForList(
+            "SELECT job_offer_id FROM recruitment.fitscore_work_queue WHERE candidate_id = ?",
+            UUID.class, candidat);
+    }
 }

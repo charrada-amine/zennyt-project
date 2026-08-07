@@ -121,4 +121,23 @@ public class FitScoreWorkQueueRepositoryAdapter implements FitScoreWorkQueueRepo
             Long.class);
         return n == null ? 0 : n;
     }
+
+    /**
+     * Supprimé par lot borné plutôt qu'en un seul DELETE : sur un historique laissé à
+     * grossir longtemps, un DELETE unique verrouillerait beaucoup de lignes et gonflerait
+     * le WAL d'un coup. Le passage suivant reprendra le reste — la purge n'a aucune
+     * urgence, elle doit seulement ne jamais gêner le trafic utilisateur.
+     */
+    @Override
+    public int purgeCompletedOlderThan(int retentionDays) {
+        return jdbc.update("""
+            DELETE FROM recruitment.fitscore_work_queue
+            WHERE id IN (
+                SELECT id FROM recruitment.fitscore_work_queue
+                WHERE status = 'DONE'
+                  AND created_at < now() - make_interval(days => ?)
+                LIMIT 5000
+            )
+            """, retentionDays);
+    }
 }
