@@ -19,6 +19,16 @@ public interface JobOfferRepository {
     /** Variante par lot de {@link #findById} — une seule requête pour tout un lot de recalcul. */
     List<JobOffer> findByIds(List<UUID> ids);
 
+    /**
+     * Identifiants des offres ACTIVE d'un métier (D1).
+     *
+     * <p>Un test soumis pour une offre modifie désormais le sous-score hard du candidat sur
+     * <b>toutes</b> les offres du même métier : c'est cette liste qui définit la portée du
+     * recalcul. Ne renvoie que des identifiants — les paires enfilées n'ont pas besoin de
+     * l'agrégat complet, et la liste peut être longue.
+     */
+    List<UUID> findActiveIdsByJobPositionId(UUID jobPositionId);
+
     void deleteById(UUID id);
 
     /**

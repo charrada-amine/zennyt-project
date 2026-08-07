@@ -1,6 +1,6 @@
 # Demo (full flow) — cheat sheet
 
-**75 requests** (6 logins + 69 steps) exercising every current Recruitment
+**79 requests** (6 logins + 73 steps) exercising every current Recruitment
 endpoint, in an order that chains itself (each request captures the IDs the
 next one needs). Self-sufficient — creates its own job position, offer,
 assessment, test attempt — and rerunnable without a reset: each full run
@@ -82,15 +82,35 @@ Bearer token, no simulated header.
 - 05e Summary (REC) · 200 · candidateCount/passedCount/successRate.
 - 05f Detail with breakdown (REC) · 200 · seule vue avec la correction.
 - 05g Start again (CAND) · **409** · `ATTEMPT_ALREADY_CONSUMED`.
-- 05h Create offer w/o test (REC) · 201.
+- 05h Create offer w/o test (REC) · 201 · **même métier que 02a** — c'est
+  l'offre qui sert à 06d ; `jobPositionId` y est obligatoire.
 - 05i Start on it (CAND) · **404** · `NO_ASSESSMENT_LINKED`.
 - 05j Start as Omar (CAND2) · 201 · tentative indépendante de celle d'Aicha.
 - 05k Abandon (CAND2) · 200 · TestResult ABANDONED, score 0.
 - 05l Submit after abandon (CAND2) · **409** · `ATTEMPT_ALREADY_SUBMITTED`.
 
 ### Candidate resume — AI (06)
-- 06a Get resume (REC) · 200 · soft skills + hard skills bilingues ; hardSkills
-  peut afficher `available:false` juste après 05b (génération asynchrone).
+
+Chaque résumé existe en **deux versions** — recruteur (factuelle) et candidat
+(diplomatique) — et compte **deux sections**. Soit les 4 résumés d'un candidat
+sur un métier : 06a en couvre deux, 06b les deux autres. Le fond est le même
+dans les deux versions ; seule la formulation change.
+
+Le résumé hard skills est indexé par **métier**, plus par offre : il s'appuie
+sur tous les tests du candidat sur ce métier, y compris ceux passés pour
+d'autres recruteurs.
+
+- 06a Resume, version recruteur (REC) · 200 · types 1 et 2 ; hardSkills peut
+  afficher `available:false` juste après 05b (génération asynchrone).
+- 06b Mon resume, version candidat (CAND) · 200 · types 3 et 4 ; `me`, jamais
+  un identifiant en chemin.
+- 06c Mon resume sans offre (CAND) · 200 · `jobOfferId` facultatif côté
+  candidat ; sans lui, seule la section soft skills répond.
+- 06d Hard skills réutilisé entre offres du même métier (REC) · 200 · **le
+  point central du changement** : l'offre de 05h n'a aucun test et le candidat
+  n'a rien passé pour elle, pourtant la section hardSkills est renseignée.
+- 06e Resume d'une offre d'un autre recruteur (REC2) · **403** · la lecture
+  recruteur reste bornée par la propriété de l'offre.
 
 ### Fit scores (07)
 - 07a Callback (AI) · **409** · un score a déjà été précalculé de façon

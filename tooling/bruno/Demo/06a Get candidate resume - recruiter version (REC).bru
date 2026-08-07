@@ -1,0 +1,44 @@
+meta {
+  name: 06a Get candidate resume - recruiter version (REC)
+  type: http
+  seq: 52
+}
+
+get {
+  url: {{baseUrl}}/api/v1/candidates/{{candidateId}}/resume?jobOfferId={{demoOfferId}}
+  body: none
+  auth: none
+}
+
+params:query {
+  jobOfferId: {{demoOfferId}}
+}
+
+headers {
+  Authorization: Bearer {{recruiterToken}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  TYPES 1 et 2 sur 4 — version RECRUTEUR, sections soft skills et hard skills.
+
+  Analyse objective et factuelle : les faiblesses sont nommées telles quelles,
+  en termes d'adéquation au poste. À comparer mot à mot avec 06b, qui restitue
+  exactement le même fond au candidat.
+
+  - softSkills : candidat-level, issu des jeux psychométriques. Identique quelle
+    que soit l'offre consultée.
+  - hardSkills : par MÉTIER, plus par offre. Il s'appuie sur tous les tests du
+    candidat sur le métier de cette offre, y compris ceux passés pour d'autres
+    recruteurs.
+
+  hardSkills peut afficher available:false juste après 05b — le résumé est
+  généré de façon asynchrone (HardSkillsSummaryListener, appel Groq hors thread
+  de requête). Rejouer la requête quelques secondes plus tard montre le texte.
+
+  Sans aucun test sur le métier, le repli n'est plus « un test doit être passé »
+  mais explique que le Fit Score affiché est basé sur les seules soft skills.
+}

@@ -90,7 +90,12 @@ class RecomputeFitScoresUseCaseBatchTest {
 
         RecruitmentActor avecInfo = actor(RECRUTEUR_AVEC_INFO, "Entreprise produit");
         RecruitmentActor sansInfo = actor(RECRUTEUR_SANS_INFO, null);
-        TestResult resultat = testResult(CANDIDATE_COMPLET, offreResolue.id(), 72);
+        // D1 : plusieurs tests du même métier, dont un passé pour une AUTRE offre. Le chemin
+        // par lot doit reconstituer exactement le même historique, ordre compris, sinon
+        // l'estimation pondérée diverge.
+        List<HardSkillHistoryEntry> historique = List.of(
+            historyEntry(offreResolue.id(), 72, Instant.parse("2026-07-01T10:00:00Z")),
+            historyEntry(UUID.randomUUID(), 40, Instant.parse("2026-01-01T10:00:00Z")));
         FitScore existant = FitScore.calculated(SCORE_EXISTANT_ID, CANDIDATE_COMPLET,
             offreResolue.id(), 10, 10, null, 100, Instant.now());
 
@@ -101,9 +106,8 @@ class RecomputeFitScoresUseCaseBatchTest {
         when(actors.findById(RECRUTEUR_SANS_INFO)).thenReturn(Optional.of(sansInfo));
         when(roleProfileResolver.resolve(offreResolue)).thenReturn(PONDERATION);
         when(roleProfileResolver.resolve(offreNonResolue)).thenReturn(null);
-        when(testResults.findByCandidateIdAndJobOfferId(any(), any())).thenReturn(Optional.empty());
-        when(testResults.findByCandidateIdAndJobOfferId(CANDIDATE_COMPLET, offreResolue.id()))
-            .thenReturn(Optional.of(resultat));
+        when(testResults.findHardSkillHistory(any(), any())).thenReturn(List.of());
+        when(testResults.findHardSkillHistory(CANDIDATE_COMPLET, POSITION_ID)).thenReturn(historique);
         when(fitScores.findByCandidateIdAndJobOfferId(any(), any())).thenReturn(Optional.empty());
         when(fitScores.findByCandidateIdAndJobOfferId(CANDIDATE_COMPLET, offreResolue.id()))
             .thenReturn(Optional.of(existant));
@@ -113,7 +117,7 @@ class RecomputeFitScoresUseCaseBatchTest {
         when(softSkills.findByCandidateIds(any())).thenReturn(modules);
         when(actors.findByIds(any())).thenReturn(List.of(avecInfo, sansInfo));
         when(roleProfileResolver.resolveAll(any())).thenReturn(Map.of(offreResolue.id(), PONDERATION));
-        when(testResults.findByPairs(any())).thenReturn(List.of(resultat));
+        when(testResults.findHardSkillHistoryByCouples(any())).thenReturn(historique);
         when(fitScores.findByPairs(any())).thenReturn(List.of(existant));
         when(fitScores.saveAll(any())).thenAnswer(invocation ->
             ((List<?>) invocation.getArgument(0)).size());
@@ -170,7 +174,9 @@ class RecomputeFitScoresUseCaseBatchTest {
 
         verify(softSkills, times(1)).findByCandidateIds(any());
         verify(roleProfileResolver, times(1)).resolveAll(any());
-        verify(testResults, times(1)).findByPairs(any());
+        // D1 : une seule lecture d'historique pour tout le lot, alors qu'il couvre deux
+        // candidats et deux offres — c'est la propriété que le zip par couple préserve.
+        verify(testResults, times(1)).findHardSkillHistoryByCouples(any());
         verify(fitScores, times(1)).findByPairs(any());
         verify(fitScores, times(1)).saveAll(any());
 
@@ -181,7 +187,7 @@ class RecomputeFitScoresUseCaseBatchTest {
         // transporté jusqu'au calculateur sans jamais y être utilisé, au prix d'une
         // requête par paire sur le chemin unitaire.
         verifyNoInteractions(actors);
-        verify(testResults, never()).findByCandidateIdAndJobOfferId(any(), any());
+        verify(testResults, never()).findHardSkillHistory(any(), any());
         verify(fitScores, never()).findByCandidateIdAndJobOfferId(any(), any());
         verify(fitScores, never()).save(any());
     }
@@ -228,10 +234,8 @@ class RecomputeFitScoresUseCaseBatchTest {
             Instant.now(), UUID.randomUUID());
     }
 
-    private static TestResult testResult(UUID candidateId, UUID jobOfferId, int percentage) {
-        Instant now = Instant.now();
-        return TestResult.rehydrate(UUID.randomUUID(), jobOfferId, UUID.randomUUID(), candidateId,
-            percentage, percentage, percentage >= 60, List.of(), now, now, 120,
-            TestResultStatus.COMPLETED);
+    private static HardSkillHistoryEntry historyEntry(UUID jobOfferId, int percentage, Instant completedAt) {
+        return new HardSkillHistoryEntry(CANDIDATE_COMPLET, POSITION_ID, jobOfferId,
+            percentage, percentage >= 60, completedAt, ExperienceLevel.SENIOR.name());
     }
 }

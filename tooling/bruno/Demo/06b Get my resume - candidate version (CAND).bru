@@ -1,0 +1,38 @@
+meta {
+  name: 06b Get my resume - candidate version (CAND)
+  type: http
+  seq: 53
+}
+
+get {
+  url: {{baseUrl}}/api/v1/candidates/me/resume?jobOfferId={{demoOfferId}}
+  body: none
+  auth: none
+}
+
+params:query {
+  jobOfferId: {{demoOfferId}}
+}
+
+headers {
+  Authorization: Bearer {{candidateToken}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  TYPES 3 et 4 sur 4 — version CANDIDAT, sections soft skills et hard skills.
+
+  Même fond que 06a, formulation différente : le texte s'adresse directement à
+  la personne évaluée, présente chaque faiblesse comme une compétence qui se
+  développe, et ne mentionne jamais les autres candidats ni le classement.
+
+  Le fond doit rester identique : si une faiblesse citée dans 06a a disparu
+  ici, c'est un défaut — le candidat serait mal informé. Seul le registre
+  change.
+
+  « me » et non un identifiant en chemin : le candidat vient du jeton, ce qui
+  rend structurellement impossible de lire le résumé de quelqu'un d'autre.
+}

@@ -22,6 +22,26 @@ import java.util.UUID;
 public class GetSwipeDeckUseCase {
     public record RecruiterDeck(long totalElements, List<FitScore> content) {}
 
+    /**
+     * P4 — les candidats dont les compétences techniques ont été mesurées passent devant,
+     * puis le score décroissant à l'intérieur de chaque groupe.
+     *
+     * <p>Ce n'est pas un confort d'affichage, c'est la correction d'une <b>inversion</b>.
+     * Faute de test, le calculateur met {@code hardWeight} à 0 : le score d'un candidat non
+     * évalué est son score soft brut, tandis que celui d'un candidat évalué est tiré vers
+     * son résultat au test. Sur un métier TECHNIQUE / MID ({@code hard_weight = 65}), un
+     * candidat à 70 de soft sans test obtient 70 ; le même profil testé à 60 % obtient
+     * 0,35×70 + 0,65×60 = 64. Le non testé passait donc devant l'évalué — sur un tri par
+     * score seul, systématiquement.
+     *
+     * <p>Corriger par la formule reviendrait à pénaliser l'absence de donnée, ce que le CdC
+     * interdit (une absence n'est pas un zéro). Le tri, lui, ne touche à aucun score : il
+     * dit seulement lequel des deux repose sur une mesure complète.
+     */
+    private static final java.util.Comparator<FitScore> EVALUES_D_ABORD =
+        java.util.Comparator.comparing((FitScore score) -> score.hardSkillScore() == null)
+            .thenComparing(java.util.Comparator.comparingInt(FitScore::score).reversed());
+
     private final JobOfferRepository offers;
     private final FitScoreRepository fitScores;
     private final FitScoreDismissalRepository dismissals;
@@ -71,6 +91,7 @@ public class GetSwipeDeckUseCase {
         List<FitScore> visible = fitScores.findByJobOfferIdOrderByScoreDesc(jobOfferId).stream()
             .filter(score -> !dismissals.isDismissed(
                 recruiterId, score.candidateId(), jobOfferId))
+            .sorted(EVALUES_D_ABORD)
             .toList();
         int safePage = Math.max(0, page);
         int safeSize = Math.max(1, size);

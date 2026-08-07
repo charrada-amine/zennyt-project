@@ -42,4 +42,62 @@ class GetSwipeDeckUseCaseTest {
         assertThat(deck.content()).extracting(FitScore::candidateId)
             .containsExactly(firstCandidate);
     }
+
+    /**
+     * P4 — correction de l'inversion. Le candidat non testé a le meilleur score brut (70
+     * contre 64), parce que faute de test son score est son soft pur alors que celui du
+     * candidat évalué est tiré vers son résultat au QCM. Sans le tier, il passait devant.
+     */
+    @Test
+    void recruiterDeckPutsAssessedCandidatesFirstEvenWithALowerScore() {
+        UUID recruiterId = UUID.randomUUID();
+        UUID offerId = UUID.randomUUID();
+        UUID nonTeste = UUID.randomUUID();
+        UUID teste = UUID.randomUUID();
+        JobOfferRepository offers = mock(JobOfferRepository.class);
+        FitScoreRepository scores = mock(FitScoreRepository.class);
+        FitScoreDismissalRepository dismissals = mock(FitScoreDismissalRepository.class);
+        JobOffer offer = mock(JobOffer.class);
+        when(offer.recruiterId()).thenReturn(recruiterId);
+        when(offers.findById(offerId)).thenReturn(Optional.of(offer));
+        when(scores.findByJobOfferIdOrderByScoreDesc(offerId)).thenReturn(List.of(
+            FitScore.calculated(UUID.randomUUID(), nonTeste, offerId, 70, 70, null, 100, Instant.now()),
+            FitScore.calculated(UUID.randomUUID(), teste, offerId, 64, 70, 60, 100, Instant.now())));
+
+        var deck = new GetSwipeDeckUseCase(offers, scores, dismissals, mock(CandidateFeedRanker.class),
+                mock(InlineFitScoreComputer.class), 200)
+            .recruiterCandidates(recruiterId, offerId, 0, 20);
+
+        assertThat(deck.content()).extracting(FitScore::candidateId)
+            .containsExactly(teste, nonTeste);
+    }
+
+    /** À l'intérieur d'un groupe, le tri par score décroissant est conservé. */
+    @Test
+    void recruiterDeckKeepsScoreOrderWithinEachTier() {
+        UUID recruiterId = UUID.randomUUID();
+        UUID offerId = UUID.randomUUID();
+        UUID testeFort = UUID.randomUUID();
+        UUID testeFaible = UUID.randomUUID();
+        UUID nonTesteFort = UUID.randomUUID();
+        UUID nonTesteFaible = UUID.randomUUID();
+        JobOfferRepository offers = mock(JobOfferRepository.class);
+        FitScoreRepository scores = mock(FitScoreRepository.class);
+        FitScoreDismissalRepository dismissals = mock(FitScoreDismissalRepository.class);
+        JobOffer offer = mock(JobOffer.class);
+        when(offer.recruiterId()).thenReturn(recruiterId);
+        when(offers.findById(offerId)).thenReturn(Optional.of(offer));
+        when(scores.findByJobOfferIdOrderByScoreDesc(offerId)).thenReturn(List.of(
+            FitScore.calculated(UUID.randomUUID(), nonTesteFort, offerId, 92, 92, null, 100, Instant.now()),
+            FitScore.calculated(UUID.randomUUID(), testeFort, offerId, 88, 90, 85, 100, Instant.now()),
+            FitScore.calculated(UUID.randomUUID(), nonTesteFaible, offerId, 55, 55, null, 100, Instant.now()),
+            FitScore.calculated(UUID.randomUUID(), testeFaible, offerId, 40, 50, 30, 100, Instant.now())));
+
+        var deck = new GetSwipeDeckUseCase(offers, scores, dismissals, mock(CandidateFeedRanker.class),
+                mock(InlineFitScoreComputer.class), 200)
+            .recruiterCandidates(recruiterId, offerId, 0, 20);
+
+        assertThat(deck.content()).extracting(FitScore::candidateId)
+            .containsExactly(testeFort, testeFaible, nonTesteFort, nonTesteFaible);
+    }
 }

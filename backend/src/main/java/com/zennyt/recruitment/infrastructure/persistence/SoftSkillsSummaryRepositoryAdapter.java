@@ -2,6 +2,7 @@ package com.zennyt.recruitment.infrastructure.persistence;
 
 import com.zennyt.recruitment.domain.model.SoftSkillsSummary;
 import com.zennyt.recruitment.domain.repository.SoftSkillsSummaryRepository;
+import com.zennyt.recruitment.domain.vo.ResumeAudience;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
@@ -17,17 +18,17 @@ public class SoftSkillsSummaryRepositoryAdapter implements SoftSkillsSummaryRepo
 
     @Override
     public SoftSkillsSummary save(SoftSkillsSummary summary) {
-        return toDomain(jpa.save(new SoftSkillsSummaryEntity(
-            summary.candidateId(), summary.textFr(), summary.textEn(), summary.updatedAt())));
+        return toDomain(jpa.save(new SoftSkillsSummaryEntity(summary.candidateId(), summary.audience(),
+            summary.textFr(), summary.textEn(), summary.updatedAt())));
     }
 
     @Override
-    public Optional<SoftSkillsSummary> findByCandidateId(UUID candidateId) {
-        return jpa.findById(candidateId).map(this::toDomain);
+    public Optional<SoftSkillsSummary> findByCandidateIdAndAudience(UUID candidateId, ResumeAudience audience) {
+        return jpa.findByCandidateIdAndAudience(candidateId, audience).map(this::toDomain);
     }
 
     private SoftSkillsSummary toDomain(SoftSkillsSummaryEntity entity) {
-        return new SoftSkillsSummary(entity.getCandidateId(), entity.getTextFr(),
-            entity.getTextEn(), entity.getUpdatedAt());
+        return new SoftSkillsSummary(entity.getCandidateId(), entity.getAudience(),
+            entity.getTextFr(), entity.getTextEn(), entity.getUpdatedAt());
     }
 }

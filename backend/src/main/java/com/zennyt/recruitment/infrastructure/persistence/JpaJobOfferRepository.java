@@ -21,6 +21,11 @@ public interface JpaJobOfferRepository extends JpaRepository<JobOfferEntity, UUI
     @Query("SELECT j.id FROM JobOfferEntity j WHERE j.assessmentId = :assessmentId")
     java.util.List<UUID> findIdsByAssessmentId(UUID assessmentId);
 
+    /** Portée du recalcul déclenché par un test soumis (D1) — voir le port. */
+    @Query("SELECT j.id FROM JobOfferEntity j "
+         + "WHERE j.jobPositionId = :jobPositionId AND j.status = 'ACTIVE'")
+    java.util.List<UUID> findActiveIdsByJobPositionId(UUID jobPositionId);
+
     @Query("SELECT j.assessmentId, COUNT(j) FROM JobOfferEntity j " +
            "WHERE j.assessmentId IN :assessmentIds GROUP BY j.assessmentId")
     java.util.List<Object[]> countGroupedByAssessmentId(java.util.List<UUID> assessmentIds);

@@ -1,0 +1,30 @@
+meta {
+  name: 06c Get my resume without offer (CAND)
+  type: http
+  seq: 54
+}
+
+get {
+  url: {{baseUrl}}/api/v1/candidates/me/resume
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{candidateToken}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  jobOfferId est facultatif côté candidat : il ne sert qu'à désigner le métier
+  de la section hard skills.
+
+  Sans lui, softSkills répond normalement (il ne dépend d'aucune offre) et
+  hardSkills renvoie available:false — il n'y a pas de métier à viser.
+
+  C'est le cas d'usage « le candidat consulte son profil » hors de toute
+  offre.
+}

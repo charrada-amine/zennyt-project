@@ -28,6 +28,7 @@ body:json {
     "salaryMax": 1200,
     "responsibilities": "N/A",
     "minimumQualifications": "N/A",
+    "jobPositionId": "{{demoJobPositionId}}",
     "openToInternational": false
   }
 }
@@ -41,4 +42,13 @@ script:post-response {
 docs {
   Offre neuve, jamais liée à un test — assessmentId reste null tant qu'aucun
   PATCH (03g) ne la lie explicitement.
+
+  Deux points à noter :
+
+  - jobPositionId est obligatoire depuis la suppression du repli Groq du Fit
+    Score : sans métier, la pondération ne se résout pas et aucun score ne
+    peut être calculé. Cette requête renvoyait 400 tant qu'il manquait.
+  - Le métier est volontairement le MÊME que celui de l'offre principale
+    (02a). C'est ce qui rend cette offre utilisable par 06d pour démontrer la
+    réutilisation de l'historique hard skills entre offres d'un même métier.
 }

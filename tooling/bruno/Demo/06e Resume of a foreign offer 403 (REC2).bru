@@ -1,0 +1,32 @@
+meta {
+  name: 06e Resume of a foreign offer 403 (REC2)
+  type: http
+  seq: 56
+}
+
+get {
+  url: {{baseUrl}}/api/v1/candidates/{{candidateId}}/resume?jobOfferId={{demoOfferId}}
+  body: none
+  auth: none
+}
+
+params:query {
+  jobOfferId: {{demoOfferId}}
+}
+
+headers {
+  Authorization: Bearer {{recruiter2Token}}
+}
+
+assert {
+  res.status: eq 403
+}
+
+docs {
+  Youssef n'est pas propriétaire de l'offre : il ne peut pas lire le résumé
+  d'un candidat à travers elle.
+
+  Garde-fou à conserver maintenant que le résumé hard skills couvre le métier
+  entier — la lecture recruteur reste bornée par la propriété de l'offre, elle
+  ne devient pas un accès libre à l'historique du candidat.
+}

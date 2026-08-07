@@ -1,5 +1,6 @@
 package com.zennyt.recruitment.infrastructure.persistence;
 
+import com.zennyt.recruitment.domain.vo.CandidateJobPositionCouple;
 import com.zennyt.recruitment.domain.vo.CandidateOfferPair;
 
 import java.util.List;
@@ -22,5 +23,13 @@ final class PairArrays {
 
     static String jobOfferIds(List<CandidateOfferPair> pairs) {
         return pairs.stream().map(p -> p.jobOfferId().toString()).collect(Collectors.joining(","));
+    }
+
+    static String coupleCandidateIds(List<CandidateJobPositionCouple> couples) {
+        return couples.stream().map(c -> c.candidateId().toString()).collect(Collectors.joining(","));
+    }
+
+    static String coupleJobPositionIds(List<CandidateJobPositionCouple> couples) {
+        return couples.stream().map(c -> c.jobPositionId().toString()).collect(Collectors.joining(","));
     }
 }

@@ -873,6 +873,27 @@ paths:
   # CANDIDATE RESUME
   # ═══════════════════════════════════════════════════════════════
 
+  /candidates/me/resume:
+    get:
+      operationId: getCandidatesMeResume
+      tags: [CandidateResume]
+      summary: Résumé IA — version candidat, formulation diplomatique (candidat)
+      description: >
+        Même fond que la version recruteur, formulé à l'intention de la personne évaluée.
+        Le candidat est déduit du jeton, jamais de l'URL. `jobOfferId` est facultatif et ne
+        sert qu'à désigner le métier de la section hard skills ; sans lui, seule la section
+        soft skills est renseignée.
+      parameters:
+        - { name: jobOfferId, in: query, required: false, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Résumé IA bilingue, version candidat
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CandidateResume' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
   /candidates/{candidateId}/resume:
     parameters:
       - { name: candidateId, in: path, required: true, schema: { type: string, format: uuid } }
@@ -884,7 +905,10 @@ paths:
         - { name: jobOfferId, in: query, required: true, schema: { type: string, format: uuid } }
       responses:
         '200':
-          description: Résumé IA bilingue (soft skills candidat-level, hard skills par offre)
+          description: >
+            Résumé IA bilingue, version recruteur. Soft skills candidat-level ; hard skills
+            par métier — il s'appuie sur tous les tests du candidat sur le métier de
+            l'offre, y compris ceux passés pour d'autres recruteurs.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/CandidateResume' }

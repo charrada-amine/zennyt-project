@@ -6,12 +6,14 @@ import com.zennyt.recruitment.domain.model.FitScore;
 import com.zennyt.recruitment.domain.model.JobOffer;
 import com.zennyt.recruitment.domain.model.JobRoleProfile;
 import com.zennyt.recruitment.domain.model.SoftSkillsProjection;
-import com.zennyt.recruitment.domain.model.TestResult;
 import com.zennyt.recruitment.domain.repository.FitScoreRepository;
 import com.zennyt.recruitment.domain.repository.JobOfferRepository;
 import com.zennyt.recruitment.domain.repository.SoftSkillsProjectionRepository;
 import com.zennyt.recruitment.domain.repository.TestResultRepository;
+import com.zennyt.recruitment.domain.vo.CandidateJobPositionCouple;
 import com.zennyt.recruitment.domain.vo.CandidateOfferPair;
+import com.zennyt.recruitment.domain.vo.HardSkillHistoryEntry;
+import com.zennyt.recruitment.domain.vo.HardSkillLevelEstimate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -76,8 +78,10 @@ public class RecomputeFitScoresUseCase {
     public FitScore recompute(UUID candidateId, JobOffer offer) {
         Map<String, FitScoreCalculatorPort.ModuleScore> softScores = softScoresByModule(softSkills.findByCandidateId(candidateId));
         JobRoleProfile roleProfile = roleProfileResolver.resolve(offer);
-        Integer hardSkillScore = testResults.findByCandidateIdAndJobOfferId(candidateId, offer.id())
-            .map(TestResult::percentage).orElse(null);
+        Integer hardSkillScore = HardSkillLevelEstimate.estimate(
+            offer.jobPositionId() == null ? List.of()
+                : testResults.findHardSkillHistory(candidateId, offer.jobPositionId()),
+            offer.id());
         UUID existingId = fitScores.findByCandidateIdAndJobOfferId(candidateId, offer.id())
             .map(FitScore::id).orElse(null);
         FitScore computed =
@@ -109,10 +113,17 @@ public class RecomputeFitScoresUseCase {
                 Collectors.collectingAndThen(Collectors.toList(),
                     RecomputeFitScoresUseCase::softScoresByModule)));
         Map<UUID, JobRoleProfile> roleProfileByOffer = roleProfileResolver.resolveAll(offers);
-        Map<String, Integer> hardScoreByPair = testResults.findByPairs(lookupPairs).stream()
-            .collect(Collectors.toMap(
-                result -> pairKey(result.candidateId(), result.jobOfferId()),
-                TestResult::percentage, (a, b) -> a));
+        // L'historique hard skills se lit par (candidat, métier), plus par (candidat, offre) :
+        // plusieurs offres du lot partagent souvent le même métier, donc les couples distincts
+        // sont en général bien moins nombreux que les paires.
+        List<CandidateJobPositionCouple> couples = pairs.stream()
+            .filter(pair -> pair.offer().jobPositionId() != null)
+            .map(pair -> new CandidateJobPositionCouple(pair.candidateId(), pair.offer().jobPositionId()))
+            .distinct().toList();
+        Map<String, List<HardSkillHistoryEntry>> historyByCouple =
+            testResults.findHardSkillHistoryByCouples(couples).stream()
+                .collect(Collectors.groupingBy(
+                    entry -> pairKey(entry.candidateId(), entry.jobPositionId())));
         Map<String, UUID> existingIdByPair = fitScores.findByPairs(lookupPairs).stream()
             .collect(Collectors.toMap(
                 existing -> pairKey(existing.candidateId(), existing.jobOfferId()),
@@ -121,10 +132,15 @@ public class RecomputeFitScoresUseCase {
         List<FitScore> computed = new ArrayList<>(pairs.size());
         for (Pair pair : pairs) {
             String key = pairKey(pair.candidateId(), pair.offer().id());
+            // Même objet de valeur que le chemin unitaire — c'est ce qui interdit aux deux
+            // chemins de diverger, y compris sur la règle « le test de l'offre au rang 1 ».
+            Integer hardSkillScore = HardSkillLevelEstimate.estimate(
+                historyByCouple.get(pairKey(pair.candidateId(), pair.offer().jobPositionId())),
+                pair.offer().id());
             FitScore result = score(pair.candidateId(), pair.offer(),
                 softScoresByCandidate.getOrDefault(pair.candidateId(), Map.of()),
                 roleProfileByOffer.get(pair.offer().id()),
-                hardScoreByPair.get(key),
+                hardSkillScore,
                 existingIdByPair.get(key));
             // null = offre sans métier approuvé, donc incalculable : on n'écrit rien
             // plutôt que d'inventer un score. Le balayage l'exclut déjà en amont.

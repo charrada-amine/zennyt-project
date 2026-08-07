@@ -6,11 +6,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zennyt.recruitment.domain.model.TestAnswer;
 import com.zennyt.recruitment.domain.model.TestResult;
 import com.zennyt.recruitment.domain.repository.TestResultRepository;
+import com.zennyt.recruitment.domain.vo.CandidateJobPositionCouple;
 import com.zennyt.recruitment.domain.vo.CandidateOfferPair;
+import com.zennyt.recruitment.domain.vo.HardSkillHistoryEntry;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -41,6 +45,44 @@ public class TestResultRepositoryAdapter implements TestResultRepository {
 
     @Override public boolean existsByCandidateIdAndJobOfferId(UUID candidateId, UUID jobOfferId) {
         return jpa.existsByCandidateIdAndJobOfferId(candidateId, jobOfferId);
+    }
+
+    @Override public List<HardSkillHistoryEntry> findHardSkillHistory(UUID candidateId, UUID jobPositionId) {
+        if (candidateId == null || jobPositionId == null) return List.of();
+        return jpa.findHardSkillHistory(candidateId, jobPositionId).stream()
+            .map(TestResultRepositoryAdapter::toHistoryEntry).toList();
+    }
+
+    @Override public List<HardSkillHistoryEntry> findHardSkillHistoryByCouples(
+            List<CandidateJobPositionCouple> couples) {
+        if (couples.isEmpty()) return List.of();
+        return jpa.findHardSkillHistoryByCouples(
+                PairArrays.coupleCandidateIds(couples), PairArrays.coupleJobPositionIds(couples)).stream()
+            .map(TestResultRepositoryAdapter::toHistoryEntry).toList();
+    }
+
+    /** Projection native — les colonnes arrivent dans l'ordre du SELECT, pas par nom. */
+    private static HardSkillHistoryEntry toHistoryEntry(Object[] row) {
+        return new HardSkillHistoryEntry(
+            (UUID) row[0], (UUID) row[1], (UUID) row[2],
+            ((Number) row[3]).intValue(), (Boolean) row[4],
+            toInstant(row[5]),
+            (String) row[6]);
+    }
+
+    /**
+     * Le type Java d'une colonne {@code timestamptz} lue en requête native n'est pas
+     * garanti : selon la version du pilote et la configuration, elle remonte en
+     * {@link Instant}, en {@link java.sql.Timestamp} ou en {@link OffsetDateTime}. Un cast
+     * direct compile sans broncher puis échoue à l'exécution — d'où ce point de conversion
+     * unique.
+     */
+    private static Instant toInstant(Object value) {
+        if (value instanceof Instant instant) return instant;
+        if (value instanceof java.sql.Timestamp timestamp) return timestamp.toInstant();
+        if (value instanceof OffsetDateTime offsetDateTime) return offsetDateTime.toInstant();
+        throw new IllegalStateException(
+            "Type d'horodatage inattendu : " + value.getClass().getName());
     }
 
     @Override public List<TestResult> findByJobOfferId(UUID jobOfferId, String sort, int page, int size) {

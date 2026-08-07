@@ -101,8 +101,9 @@ public interface JpaFitScoreRepository extends JpaRepository<FitScoreEntity, UUI
      * (un déclencheur ne rafraîchit que 20 paires : les autres gardent l'ancien profil).
      *
      * <p>Un score est périmé s'il a été calculé avant la dernière évolution d'une de ses
-     * <b>quatre</b> sources : l'offre, les soft skills du candidat, son résultat de test
-     * pour cette offre, et <b>la pondération métier × niveau qui a servi au calcul</b>.
+     * <b>quatre</b> sources : l'offre, les soft skills du candidat, <b>son dernier test
+     * noté sur le métier de l'offre</b>, et la pondération métier × niveau qui a servi au
+     * calcul.
      * On compare des horodatages <b>déjà maintenus</b> par le code existant plutôt que
      * d'ajouter des colonnes de version à incrémenter : oublier un seul site d'incrément
      * recréerait le bug d'origine, en silence.
@@ -116,11 +117,18 @@ public interface JpaFitScoreRepository extends JpaRepository<FitScoreEntity, UUI
      * La sous-requête s'appuie sur l'index unique {@code (profile_type, level)} et sur
      * la colonne {@code updated_at} ajoutée par la migration V52.
      *
+     * <p><b>D1 — la 3e source a changé de portée.</b> Elle comparait au test de la
+     * <i>paire</i> ({@code t.job_offer_id = f.job_offer_id}). Depuis que le sous-score hard
+     * s'estime sur tout l'historique du candidat sur le métier, un test passé pour une
+     * <i>autre</i> offre du même métier rend ce score faux — et la restriction par offre
+     * l'aurait rendu indétectable. La jointure sur {@code job_offers} porte cette
+     * correction ; le filtre de statut reprend celui de la lecture d'historique (D4),
+     * faute de quoi une tentative abandonnée périmerait des scores sans jamais les changer.
+     *
      * <p>Contrairement à {@link #findPairsNeedingScore}, cette requête ne parcourt que les
-     * scores existants (pas de produit croisé). Les deux sous-requêtes corrélées sont
-     * couvertes par des index uniques existants :
-     * {@code soft_skills_projection (candidate_id, module)} et
-     * {@code test_results (candidate_id, job_offer_id)}.
+     * scores existants (pas de produit croisé). Les sous-requêtes corrélées s'appuient sur
+     * l'index unique {@code soft_skills_projection (candidate_id, module)} et sur
+     * {@code idx_test_results_candidate} + {@code idx_job_offers_position} (V57).
      *
      * <p>Converge : un recalcul porte {@code computed_at} à maintenant, donc au-dessus des
      * quatre sources — la paire cesse d'être sélectionnée.
@@ -142,8 +150,10 @@ public interface JpaFitScoreRepository extends JpaRepository<FitScoreEntity, UUI
                                 WHERE s.candidate_id = f.candidate_id)
             OR f.computed_at < (SELECT MAX(t.completed_at)
                                 FROM recruitment.test_results t
+                                JOIN recruitment.job_offers tj ON tj.id = t.job_offer_id
                                 WHERE t.candidate_id = f.candidate_id
-                                  AND t.job_offer_id = f.job_offer_id)
+                                  AND tj.job_position_id = j.job_position_id
+                                  AND t.status IN ('COMPLETED', 'TIMEOUT'))
             OR f.computed_at < (SELECT r.updated_at
                                 FROM recruitment.job_role_profiles r
                                 WHERE r.profile_type = p.profile_type
@@ -189,8 +199,10 @@ public interface JpaFitScoreRepository extends JpaRepository<FitScoreEntity, UUI
                                    WHERE s.candidate_id = f.candidate_id)
                OR f.computed_at < (SELECT MAX(t.completed_at)
                                    FROM recruitment.test_results t
+                                   JOIN recruitment.job_offers tj ON tj.id = t.job_offer_id
                                    WHERE t.candidate_id = f.candidate_id
-                                     AND t.job_offer_id = f.job_offer_id)
+                                     AND tj.job_position_id = j.job_position_id
+                                     AND t.status IN ('COMPLETED', 'TIMEOUT'))
                OR f.computed_at < (SELECT r.updated_at
                                    FROM recruitment.job_role_profiles r
                                    WHERE r.profile_type = p.profile_type

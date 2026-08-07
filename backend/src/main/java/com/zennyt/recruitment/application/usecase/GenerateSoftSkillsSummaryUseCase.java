@@ -5,6 +5,7 @@ import com.zennyt.recruitment.domain.model.SoftSkillsProjection;
 import com.zennyt.recruitment.domain.model.SoftSkillsSummary;
 import com.zennyt.recruitment.domain.repository.SoftSkillsProjectionRepository;
 import com.zennyt.recruitment.domain.repository.SoftSkillsSummaryRepository;
+import com.zennyt.recruitment.domain.vo.ResumeAudience;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -52,7 +53,11 @@ public class GenerateSoftSkillsSummaryUseCase {
             SoftSkillsProjection::score,
             (left, right) -> right));
 
-        var text = generator.generateSoftSkillsSummary(scores);
-        summaries.save(new SoftSkillsSummary(candidateId, text.fr(), text.en(), Instant.now()));
+        // Les deux publics sont générés dans la foulée (P5) : deux appels au modèle, mais
+        // un seul chargement des projections.
+        for (ResumeAudience audience : ResumeAudience.values()) {
+            var text = generator.generateSoftSkillsSummary(scores, audience);
+            summaries.save(new SoftSkillsSummary(candidateId, audience, text.fr(), text.en(), Instant.now()));
+        }
     }
 }

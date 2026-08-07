@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zennyt.recruitment.application.exception.UpstreamServiceException;
 import com.zennyt.recruitment.application.port.ResumeSummaryGeneratorPort;
+import com.zennyt.recruitment.domain.vo.ResumeAudience;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -19,35 +20,94 @@ import java.util.stream.Collectors;
 public class GroqResumeSummaryGenerator implements ResumeSummaryGeneratorPort {
     private static final String URL = "https://api.groq.com/openai/v1/chat/completions";
 
-    private static final String SOFT_SKILLS_SYSTEM_PROMPT = """
-        You are an occupational psychologist writing a concise soft-skills summary
-        paragraph for a recruiter, based on a candidate's validated psychometric
-        game results across cognitive/behavioral modules.
+    /**
+     * Horodatage à la minute, pas au jour : deux tests passés le même jour affichaient la
+     * même date, le modèle n'avait aucun moyen de les ordonner et inversait la trajectoire.
+     */
+    private static final java.time.format.DateTimeFormatter MINUTE =
+        java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm 'UTC'")
+            .withZone(java.time.ZoneOffset.UTC);
 
-        CRITICAL RULES:
-        1. Only reference the modules given — never invent a module or score that
-           wasn't provided.
-        2. Write 4-6 sentences in a professional tone, covering both strengths and
-           growth areas.
-        3. Return ONLY a raw JSON object: {"fr": "...", "en": "..."} — the French
-           and English text must be faithful translations of the same content, not
-           different summaries.
-        4. Do NOT wrap the JSON in Markdown code blocks.
+    /**
+     * Structure commune aux deux sections — reprise de l'exemple fourni par le métier :
+     * forces, puis axes de progression, puis lecture d'ensemble. C'est ce découpage qui
+     * garantit qu'une faiblesse ne peut pas être noyée : elle a son propre paragraphe.
+     */
+    private static final String SHARED_STRUCTURE = """
+
+        STRUCTURE — exactly three short paragraphs, in this order:
+        1. What the results establish as strengths.
+        2. What the results show as areas for improvement. Never skip this paragraph;
+           if the results are uniformly strong, say what would consolidate them.
+        3. A closing overall reading.
+
+        WORDING:
+        - Write in your own words. Never copy a phrase from these instructions into
+          the summary.
+        - Do not speculate about personality, motivation, stress tolerance or private
+          circumstances: a score measures a performance, not a person.
+        - Return ONLY a raw JSON object: {"fr": "...", "en": "..."} — the French and
+          English text must be faithful translations of the same content, not two
+          different summaries. Do NOT wrap the JSON in Markdown code blocks.
         """;
 
-    private static final String HARD_SKILLS_SYSTEM_PROMPT = """
-        You are an expert technical recruiter writing a concise hard-skills summary
-        paragraph for a recruiter, combining a candidate's CV technical background
-        with their actual test performance for a specific job.
+    private static final String SOFT_SKILLS_SYSTEM_PROMPT = """
+        You are an occupational psychologist writing a soft-skills summary of a
+        candidate, based on their validated psychometric game results across
+        cognitive and behavioural modules.
 
-        CRITICAL RULES:
-        1. Blend CV-derived technical skills with the test score/outcome given.
-        2. Write 4-6 sentences in a professional tone, covering both strengths and
-           growth areas.
-        3. Return ONLY a raw JSON object: {"fr": "...", "en": "..."} — the French
-           and English text must be faithful translations of the same content, not
-           different summaries.
-        4. Do NOT wrap the JSON in Markdown code blocks.
+        - Only reference the modules given — never invent a module or a score that
+          was not provided, and never infer one module from the others.
+        - Describe each level qualitatively. Never quote a percentage or a raw
+          score: a psychometric figure means nothing to the reader out of context,
+          and invites a precision the measure does not have.
+        """ + SHARED_STRUCTURE;
+
+    private static final String HARD_SKILLS_SYSTEM_PROMPT = """
+        You are an expert technical recruiter writing a hard-skills summary of a
+        candidate, combining their CV background with their history of technical
+        tests taken for one job position.
+
+        ABOUT THE TEST HISTORY:
+        - Each line is tagged MOST RECENT / PREVIOUS / EARLIER. These tags describe
+          RECENCY ONLY. They are not attempt numbers: the line tagged EARLIER is the
+          candidate's OLDEST test, not their third try. Never number the attempts.
+        - The TRAJECTORY is supplied to you as an established fact. State it as
+          given. Never derive a direction of your own from the list, and never write
+          anything that contradicts the supplied trajectory.
+        - You may cite an individual test result, since the reader can verify it.
+          But never state an aggregate or overall score of your own: the figure shown
+          to the reader is computed elsewhere and yours would contradict it.
+        - Each test carries the seniority level of the offer it was taken for.
+          Mention it only when the tests span different levels — difficulty is set by
+          each recruiter and is not otherwise comparable.
+        """ + SHARED_STRUCTURE;
+
+    /**
+     * Consigne de registre ajoutée au prompt de section selon le public (P5).
+     *
+     * <p>Elle porte sur la <b>formulation</b>, jamais sur le fond : la version candidat doit
+     * mentionner les mêmes axes de progression que la version recruteur. Autoriser le modèle
+     * à taire une faiblesse produirait deux évaluations divergentes du même profil, et la
+     * version candidat cesserait d'être une restitution pour devenir une flatterie.
+     */
+    private static final String RECRUITER_TONE = """
+
+        AUDIENCE: the recruiter, who is deciding. Objective and factual, third person
+        ("the candidate"). Name each shortcoming plainly and in terms of fit for this
+        kind of role. Close on the type of environment the profile suits and what
+        would help it develop.
+        """;
+
+    private static final String CANDIDATE_TONE = """
+
+        AUDIENCE: the candidate themselves, reading about their own results. Address
+        them directly ("your results show..."). Keep EXACTLY the same substance,
+        including every single weakness — leaving one out would misinform the person
+        it concerns. Present each weakness as a skill that develops with practice and
+        experience, not as a verdict. Close on their progression potential and the
+        opportunities it opens. Never mention other candidates, ranking, or any
+        hiring decision.
         """;
 
     private final ObjectMapper objectMapper;
@@ -67,20 +127,52 @@ public class GroqResumeSummaryGenerator implements ResumeSummaryGeneratorPort {
     }
 
     @Override
-    public BilingualText generateSoftSkillsSummary(Map<String, Integer> moduleScores) {
+    public BilingualText generateSoftSkillsSummary(Map<String, Integer> moduleScores, ResumeAudience audience) {
         String userPrompt = "Module scores:\n" + moduleScores.entrySet().stream()
             .map(e -> "- " + e.getKey() + ": " + e.getValue() + "%")
             .collect(Collectors.joining("\n"));
-        return call(SOFT_SKILLS_SYSTEM_PROMPT, userPrompt);
+        return call(SOFT_SKILLS_SYSTEM_PROMPT + tone(audience), userPrompt);
     }
 
     @Override
-    public BilingualText generateHardSkillsSummary(String jobTitle, String cvText, int scorePercent, boolean passed) {
-        String userPrompt = "Job title: " + jobTitle
+    public BilingualText generateHardSkillsSummary(HardSkillsContext context, ResumeAudience audience) {
+        List<HardSkillTestRecap> history = context.history();
+        StringBuilder lignes = new StringBuilder();
+        for (int i = 0; i < history.size(); i++) {
+            HardSkillTestRecap test = history.get(i);
+            // Étiquette de récence en toutes lettres, jamais un numéro : numéroter les
+            // lignes faisait lire « 3. » comme « troisième essai », alors que le rang 3 est
+            // le test le PLUS ANCIEN. Horodatage à la minute, pas au jour : deux tests
+            // passés le même jour affichaient la même date et l'ordre devenait indevinable.
+            lignes.append("- ").append(recence(i)).append(" — ")
+                .append(MINUTE.format(test.completedAt())).append(" — ")
+                .append(test.percentage()).append("% (")
+                .append(test.passed() ? "passed" : "failed")
+                .append("), offer seniority ")
+                .append(test.experienceLevel() == null ? "unspecified" : test.experienceLevel())
+                .append('\n');
+        }
+        String cvText = context.cvText();
+        String userPrompt = "Job position: " + context.jobPositionName()
             + "\nCandidate CV:\n" + (cvText == null || cvText.isBlank() ? "[no CV data available]" : cvText)
-            + "\nTechnical test score: " + scorePercent + "%"
-            + "\nTest outcome: " + (passed ? "passed" : "failed");
-        return call(HARD_SKILLS_SYSTEM_PROMPT, userPrompt);
+            + "\nTechnical tests taken for this job position:\n" + lignes
+            + "\n" + context.trend().asStatement(
+                history.get(0).percentage(),
+                history.size() > 1 ? history.get(1).percentage() : history.get(0).percentage());
+        return call(HARD_SKILLS_SYSTEM_PROMPT + tone(audience), userPrompt);
+    }
+
+    private static String tone(ResumeAudience audience) {
+        return audience == ResumeAudience.CANDIDATE ? CANDIDATE_TONE : RECRUITER_TONE;
+    }
+
+    /** Étiquette de récence — jamais un rang chiffré, qui se lit comme un numéro d'essai. */
+    private static String recence(int index) {
+        return switch (index) {
+            case 0 -> "MOST RECENT";
+            case 1 -> "PREVIOUS";
+            default -> "EARLIER";
+        };
     }
 
     private BilingualText call(String systemPrompt, String userPrompt) {

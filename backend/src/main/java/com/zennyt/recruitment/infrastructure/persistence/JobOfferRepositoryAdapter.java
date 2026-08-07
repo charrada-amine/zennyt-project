@@ -39,6 +39,12 @@ public class JobOfferRepositoryAdapter implements JobOfferRepository {
     }
 
     @Override
+    public List<UUID> findActiveIdsByJobPositionId(UUID jobPositionId) {
+        if (jobPositionId == null) return List.of();
+        return jpa.findActiveIdsByJobPositionId(jobPositionId);
+    }
+
+    @Override
     public void deleteById(UUID id) { jpa.deleteById(id); }
 
     @Override
