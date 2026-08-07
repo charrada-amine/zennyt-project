@@ -64,7 +64,7 @@ class GetCandidateResumeUseCaseTest {
     }
 
     private HardSkillHistoryEntry entry(UUID offerId) {
-        return new HardSkillHistoryEntry(CANDIDATE, POSITION_ID, offerId, 72, true, Instant.now(), "MID");
+        return new HardSkillHistoryEntry(CANDIDATE, POSITION_ID, offerId, 72, true, Instant.now(), "SENIOR");
     }
 
     @Test

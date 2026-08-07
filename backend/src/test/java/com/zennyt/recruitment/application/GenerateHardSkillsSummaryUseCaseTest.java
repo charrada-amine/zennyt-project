@@ -66,7 +66,7 @@ class GenerateHardSkillsSummaryUseCaseTest {
 
     private HardSkillHistoryEntry entry(UUID offerId, int percentage, Instant completedAt) {
         return new HardSkillHistoryEntry(CANDIDATE, POSITION_ID, offerId, percentage,
-            percentage >= 70, completedAt, "MID");
+            percentage >= 70, completedAt, "SENIOR");
     }
 
     private JobOffer offreAvecMetier() {

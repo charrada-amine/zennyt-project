@@ -29,7 +29,7 @@ public class GetSwipeDeckUseCase {
      * <p>Ce n'est pas un confort d'affichage, c'est la correction d'une <b>inversion</b>.
      * Faute de test, le calculateur met {@code hardWeight} à 0 : le score d'un candidat non
      * évalué est son score soft brut, tandis que celui d'un candidat évalué est tiré vers
-     * son résultat au test. Sur un métier TECHNIQUE / MID ({@code hard_weight = 65}), un
+     * son résultat au test. Sur un métier TECHNIQUE / SENIOR ({@code hard_weight = 65}), un
      * candidat à 70 de soft sans test obtient 70 ; le même profil testé à 60 % obtient
      * 0,35×70 + 0,65×60 = 64. Le non testé passait donc devant l'évalué — sur un tri par
      * score seul, systématiquement.

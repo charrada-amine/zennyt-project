@@ -25,7 +25,7 @@ class HardSkillLevelEstimateTest {
 
     private HardSkillHistoryEntry test(UUID offre, int pourcentage, long joursAvant) {
         return new HardSkillHistoryEntry(CANDIDAT, METIER, offre, pourcentage, pourcentage >= 70,
-            MAINTENANT.minus(joursAvant, ChronoUnit.DAYS), "MID");
+            MAINTENANT.minus(joursAvant, ChronoUnit.DAYS), "SENIOR");
     }
 
     @Test

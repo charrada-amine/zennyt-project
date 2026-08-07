@@ -253,7 +253,7 @@ sans clé Groq.
       score hard** avant ceux qui n'en ont pas, puis par score décroissant à l'intérieur de
       chaque groupe. Aujourd'hui c'est `findByJobOfferIdOrderByScoreDesc`, tri à plat.
 
-**Justification à conserver dans le code** — ce n'est pas cosmétique. Sur TECHNIQUE / MID
+**Justification à conserver dans le code** — ce n'est pas cosmétique. Sur TECHNIQUE / SENIOR
 (`hard_weight = 65`, seed V42), un candidat soft 70 sans test obtient **70**, un candidat
 soft 70 testé à 60 % obtient `0,35×70 + 0,65×60 =` **64**. Le non testé passe devant. Le
 tier corrige cette inversion sans toucher à la formule.
