@@ -173,7 +173,13 @@ public class SubmitGameResultUseCase {
             calibrationRepository.save(command.deviceCalibration());
         }
 
-        // Publication des Domain Events après persistance réussie
+        // Publication des Domain Events après persistance réussie — depuis l'agrégat qui
+        // les a enregistrés, jamais depuis ce que renvoie le dépôt. `save` reconstruit une
+        // GameSession via `rehydrate`, et une session reconstruite ne porte aucun
+        // événement : `saved.domainEvents()` serait toujours vide, donc
+        // GameResultRecordedEvent ne serait jamais publié — la projection soft skills de
+        // Recruitment ne serait alors jamais alimentée par une partie jouée. Même défaut
+        // que celui corrigé sur SubmitTestAttemptUseCase et ChangeJobOfferStatusUseCase.
         publishAndClear(session);
 
         // « Je Décide » : le détail par dimension vient du report (catalogue), pas
