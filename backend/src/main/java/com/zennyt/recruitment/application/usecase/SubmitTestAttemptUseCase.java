@@ -80,8 +80,15 @@ public class SubmitTestAttemptUseCase {
         attempt.markResolved(TestAttemptStatus.SUBMITTED);
         testAttempts.save(attempt);
 
-        saved.domainEvents().forEach(events::publishEvent);
-        saved.clearEvents();
+        // Publier depuis l'agrégat qui a enregistré l'événement, pas depuis ce que renvoie
+        // le dépôt : `save` reconstruit un TestResult via `rehydrate`, et un objet
+        // rehydraté ne porte aucun événement. `saved.domainEvents()` était donc toujours
+        // vide et TestResultCompletedEvent n'a jamais été publié — le résumé IA hard
+        // skills n'était jamais généré, et le recalcul du Fit Score ne devait son
+        // exactitude qu'au filet du calcul à l'affichage. Même défaut que celui corrigé
+        // sur ChangeJobOfferStatusUseCase.
+        result.domainEvents().forEach(events::publishEvent);
+        result.clearEvents();
         return saved;
     }
 }

@@ -121,9 +121,16 @@ public class SubmitGameResultUseCase {
             calibrationRepository.save(command.deviceCalibration());
         }
 
-        // Publication des Domain Events après persistance réussie
-        saved.domainEvents().forEach(eventPublisher::publishEvent);
-        saved.clearEvents();
+        // Publication des Domain Events après persistance réussie — depuis l'agrégat qui
+        // les a enregistrés, jamais depuis ce que renvoie le dépôt. `save` reconstruit une
+        // GameSession via `rehydrate`, et une session reconstruite ne porte aucun
+        // événement : `saved.domainEvents()` était toujours vide, donc
+        // GameResultRecordedEvent n'a jamais été publié. Conséquence silencieuse — la
+        // projection soft skills de Recruitment n'était jamais alimentée par une partie
+        // jouée, et le résumé IA correspondant jamais généré. Même défaut que celui
+        // corrigé sur SubmitTestAttemptUseCase et ChangeJobOfferStatusUseCase.
+        session.domainEvents().forEach(eventPublisher::publishEvent);
+        session.clearEvents();
 
         // « Je Décide » : le détail par dimension vient du report (catalogue), pas
         // des seules métriques — on le calcule une fois et le réutilise.
