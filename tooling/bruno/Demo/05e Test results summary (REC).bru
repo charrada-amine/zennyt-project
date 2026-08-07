@@ -1,0 +1,21 @@
+meta {
+  name: 05e Test results summary (REC)
+  type: http
+  seq: 44
+}
+
+get {
+  url: {{baseUrl}}/api/v1/job-offers/{{demoOfferId}}/test-results/summary
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{recruiterToken}}
+}
+
+docs {
+  candidateCount/passedCount/successRate — calculé côté serveur sur
+  l'ensemble complet des résultats (status != ABANDONED && passed), pas
+  seulement la page courante.
+}

@@ -1,0 +1,43 @@
+meta {
+  name: 06d Hard skills reused across offers of same job position (REC)
+  type: http
+  seq: 55
+}
+
+get {
+  url: {{baseUrl}}/api/v1/candidates/{{candidateId}}/resume?jobOfferId={{noAssessmentOfferId}}
+  body: none
+  auth: none
+}
+
+params:query {
+  jobOfferId: {{noAssessmentOfferId}}
+}
+
+headers {
+  Authorization: Bearer {{recruiterToken}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  LE POINT CENTRAL DU CHANGEMENT — à jouer après 05h et 05b.
+
+  L'offre visée ici (noAssessmentOfferId) n'a AUCUN test attaché, et le
+  candidat n'a jamais rien passé pour elle. Elle partage seulement son métier
+  avec l'offre principale.
+
+  Résultat attendu : la section hardSkills est la MÊME que celle de 06a — le
+  résumé est indexé par métier, pas par offre, donc le test passé en 05b pour
+  une autre offre compte ici.
+
+  Avant ce changement, cette requête renvoyait « aucun test passé pour cette
+  offre » et le recruteur n'avait rien à lire.
+
+  Même effet côté Fit Score : le sous-score hard de cette offre est estimé sur
+  le même historique. Il n'est pas forcément identique à celui de 06a — le test
+  passé POUR une offre garde le rang 1 sur cette offre-là, ce qui conserve une
+  différenciation entre offres d'un même métier.
+}

@@ -1,0 +1,20 @@
+meta {
+  name: 08b Identity status PENDING
+  type: http
+  seq: 64
+}
+
+get {
+  url: {{baseUrl}}/api/v1/identity-verifications/{{demoVerificationId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{recruiterToken}}
+}
+
+docs {
+  Statut initial : PENDING. Lisible par le recruteur qui l'a demandée ou le
+  candidat ciblé — 403 pour toute autre identité.
+}

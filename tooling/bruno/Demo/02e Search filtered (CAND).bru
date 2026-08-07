@@ -1,0 +1,26 @@
+meta {
+  name: 02e Search filtered (CAND)
+  type: http
+  seq: 15
+}
+
+get {
+  url: {{baseUrl}}/api/v1/job-offers?experienceLevel=SENIOR&page=0&size=20
+  body: none
+  auth: none
+}
+
+params:query {
+  experienceLevel: SENIOR
+  page: 0
+  size: 20
+}
+
+headers {
+  Authorization: Bearer {{candidateToken}}
+}
+
+docs {
+  Dès qu'un filtre est présent, la recherche plein texte prend le dessus sur
+  le fil recommandé — l'offre de 02a (SENIOR) doit apparaître.
+}

@@ -12,15 +12,18 @@ public class FitScoreEntity {
     @Column(nullable = false) private UUID jobOfferId;
     @Column(nullable = false) private int score;
     private Integer softSkillScore;
-    private Integer cvMatchScore;
+    private Integer hardSkillScore;
+    @Column(nullable = false) private int coverageRatio;
     @Column(nullable = false) private Instant computedAt;
 
     protected FitScoreEntity() {}
     public FitScoreEntity(UUID id, UUID candidateId, UUID jobOfferId, int score,
-                          Integer softSkillScore, Integer cvMatchScore, Instant computedAt) {
+                          Integer softSkillScore, Integer hardSkillScore,
+                          int coverageRatio, Instant computedAt) {
         this.id = id; this.candidateId = candidateId; this.jobOfferId = jobOfferId;
         this.score = score; this.softSkillScore = softSkillScore;
-        this.cvMatchScore = cvMatchScore; this.computedAt = computedAt;
+        this.hardSkillScore = hardSkillScore;
+        this.coverageRatio = coverageRatio; this.computedAt = computedAt;
     }
 
     public UUID getId() { return id; }
@@ -28,6 +31,7 @@ public class FitScoreEntity {
     public UUID getJobOfferId() { return jobOfferId; }
     public int getScore() { return score; }
     public Integer getSoftSkillScore() { return softSkillScore; }
-    public Integer getCvMatchScore() { return cvMatchScore; }
+    public Integer getHardSkillScore() { return hardSkillScore; }
+    public int getCoverageRatio() { return coverageRatio; }
     public Instant getComputedAt() { return computedAt; }
 }

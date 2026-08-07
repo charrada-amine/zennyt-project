@@ -1,0 +1,25 @@
+meta {
+  name: 04d Recruiter matching deck (REC)
+  type: http
+  seq: 33
+}
+
+get {
+  url: {{baseUrl}}/api/v1/job-offers/{{demoOfferId}}/candidates/matching-deck?page=0&size=20
+  body: none
+  auth: none
+}
+
+params:query {
+  page: 0
+  size: 20
+}
+
+headers {
+  Authorization: Bearer {{recruiterToken}}
+}
+
+docs {
+  Deck de candidats à swiper pour cette offre — Aicha doit apparaître avec
+  candidateAlreadyInterested:true (elle a déjà swipé RIGHT en 04b).
+}

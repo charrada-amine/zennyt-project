@@ -17,6 +17,12 @@ import java.util.UUID;
  * @param compositeRaw    points bruts cumulés (ex. 0–30 pour Planifik)
  * @param compositeMax    maximum du barème cumulé
  * @param normalizedScore score ramené sur 100
+ * @param coverageRatio   part des mini-jeux jouables du module réellement jouée
+ *                        (0-100). C'est la couverture au sens du CdC Fit Score v3
+ *                        §3.3 mécanisme 1 : combien du module a été mesuré, à ne pas
+ *                        confondre avec {@code normalizedScore}, qui dit à quel point
+ *                        il a été bien joué. Un Planifik où 2 des 3 mini-jeux ont été
+ *                        joués vaut 67 % de couverture, quel que soit le score obtenu.
  */
 public record GameResultRecordedEvent(
     UUID eventId,
@@ -27,15 +33,16 @@ public record GameResultRecordedEvent(
     int compositeRaw,
     int compositeMax,
     double normalizedScore,
+    int coverageRatio,
     String level
 ) implements DomainEvent {
 
     public static GameResultRecordedEvent of(UUID sessionId, UUID playerId, GameType gameType,
                                              int compositeRaw, int compositeMax,
-                                             double normalizedScore, String level) {
+                                             double normalizedScore, int coverageRatio, String level) {
         return new GameResultRecordedEvent(
             UUID.randomUUID(), Instant.now(), sessionId, playerId, gameType,
-            compositeRaw, compositeMax, normalizedScore, level);
+            compositeRaw, compositeMax, normalizedScore, coverageRatio, level);
     }
 
     @Override

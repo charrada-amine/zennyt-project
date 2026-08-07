@@ -91,6 +91,13 @@
             <version>2.4.0</version>
         </dependency>
 
+        <!-- Extraction de texte PDF (génération de test IA à partir d'un fichier source) -->
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+            <version>3.0.3</version>
+        </dependency>
+
         <!-- Envoi d'e-mails transactionnels (réinitialisation mot de passe) via Resend -->
         <dependency>
             <groupId>com.resend</groupId>

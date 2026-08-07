@@ -1,0 +1,26 @@
+meta {
+  name: 07f Deck after dismiss (REC)
+  type: http
+  seq: 62
+}
+
+get {
+  url: {{baseUrl}}/api/v1/recruiters/me/candidate-feed?jobOfferId={{demoOfferId}}&page=0&size=20
+  body: none
+  auth: none
+}
+
+params:query {
+  jobOfferId: {{demoOfferId}}
+  page: 0
+  size: 20
+}
+
+headers {
+  Authorization: Bearer {{recruiterToken}}
+}
+
+docs {
+  Aicha n'apparaît plus dans ce deck — le dismiss (07e) est définitif tant
+  que le recruteur ne l'annule pas explicitement.
+}

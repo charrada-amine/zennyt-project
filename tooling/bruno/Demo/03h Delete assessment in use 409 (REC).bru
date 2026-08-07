@@ -1,0 +1,22 @@
+meta {
+  name: 03h Delete assessment in use 409 (REC)
+  type: http
+  seq: 29
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/assessments/{{demoAssessmentId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{recruiterToken}}
+}
+
+docs {
+  Refusé : le test est attaché à l'offre depuis 03g → 409
+  {error: "ASSESSMENT_IN_USE", message, linkedJobOfferIds: [...]}. Le
+  recruteur doit d'abord désassigner (PATCH assessmentId: null) avant de
+  supprimer — le backend protège l'intégrité référentielle.
+}

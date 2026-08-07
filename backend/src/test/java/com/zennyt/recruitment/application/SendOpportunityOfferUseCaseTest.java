@@ -4,9 +4,11 @@ import com.zennyt.recruitment.application.usecase.SendOpportunityOfferUseCase;
 import com.zennyt.recruitment.domain.event.JobOpportunityOfferSentEvent;
 import com.zennyt.recruitment.domain.model.JobOffer;
 import com.zennyt.recruitment.domain.model.JobOpportunityOffer;
+import com.zennyt.recruitment.domain.model.Match;
 import com.zennyt.recruitment.domain.model.RecruitmentActor;
 import com.zennyt.recruitment.domain.repository.JobOfferRepository;
 import com.zennyt.recruitment.domain.repository.JobOpportunityOfferRepository;
+import com.zennyt.recruitment.domain.repository.MatchRepository;
 import com.zennyt.recruitment.domain.repository.RecruitmentActorRepository;
 import com.zennyt.shared.application.exception.ForbiddenException;
 import com.zennyt.shared.application.exception.NotFoundException;
@@ -24,9 +26,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 /**
- * Garde-fous du sourcing direct (cadrage 16/07 : ni match ni candidature
- * exigés) : destinataire = acteur candidat actif connu, offre du recruteur
- * appelant, événements publiés après persistance.
+ * Garde-fous du sourcing (contrat squad web : Match ACTIVE désormais seul
+ * exigé, l'entité Application ayant été supprimée) : destinataire = acteur
+ * candidat actif connu, offre du recruteur appelant, événements publiés
+ * après persistance.
  */
 class SendOpportunityOfferUseCaseTest {
 
@@ -38,6 +41,7 @@ class SendOpportunityOfferUseCaseTest {
     private JobOpportunityOfferRepository repository;
     private JobOfferRepository offers;
     private RecruitmentActorRepository actors;
+    private MatchRepository matches;
     private ApplicationEventPublisher events;
     private SendOpportunityOfferUseCase useCase;
 
@@ -46,22 +50,39 @@ class SendOpportunityOfferUseCaseTest {
         repository = mock(JobOpportunityOfferRepository.class);
         offers = mock(JobOfferRepository.class);
         actors = mock(RecruitmentActorRepository.class);
+        matches = mock(MatchRepository.class);
         events = mock(ApplicationEventPublisher.class);
-        useCase = new SendOpportunityOfferUseCase(repository, offers, actors, events);
+        useCase = new SendOpportunityOfferUseCase(repository, offers, actors, matches, events);
 
         when(actors.findById(CANDIDATE)).thenReturn(Optional.of(
-            new RecruitmentActor(CANDIDATE, "CANDIDATE", true, Instant.now(), UUID.randomUUID())));
+            new RecruitmentActor(CANDIDATE, "CANDIDATE", true, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, Instant.now(), UUID.randomUUID())));
         JobOffer offer = mock(JobOffer.class);
         when(offer.recruiterId()).thenReturn(RECRUITER);
         when(offers.findById(OFFER_ID)).thenReturn(Optional.of(offer));
         when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(matches.findByCandidateIdAndJobOfferId(CANDIDATE, OFFER_ID)).thenReturn(Optional.empty());
+    }
+
+    private Match activeMatch() {
+        return Match.rehydrate(UUID.randomUUID(), CANDIDATE, OFFER_ID, RECRUITER, Instant.now());
     }
 
     @Test
-    void envoiDirectSansMatchNiCandidature() {
+    void envoiAutoriseAvecMatchActif() {
+        when(matches.findByCandidateIdAndJobOfferId(CANDIDATE, OFFER_ID)).thenReturn(Optional.of(activeMatch()));
+
         JobOpportunityOffer result = useCase.execute(RECRUITER, CANDIDATE, OFFER_ID);
         assertThat(result.candidateId()).isEqualTo(CANDIDATE);
         verify(events).publishEvent(any(JobOpportunityOfferSentEvent.class));
+    }
+
+    @Test
+    void envoiRefuseSansMatch() {
+        assertThatThrownBy(() -> useCase.execute(RECRUITER, CANDIDATE, OFFER_ID))
+            .isInstanceOf(ForbiddenException.class);
+        verify(repository, never()).save(any());
+        verify(events, never()).publishEvent(any());
     }
 
     @Test
@@ -76,7 +97,8 @@ class SendOpportunityOfferUseCaseTest {
     @Test
     void candidatDesactiveRefuse() {
         when(actors.findById(CANDIDATE)).thenReturn(Optional.of(
-            new RecruitmentActor(CANDIDATE, "CANDIDATE", false, Instant.now(), UUID.randomUUID())));
+            new RecruitmentActor(CANDIDATE, "CANDIDATE", false, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, Instant.now(), UUID.randomUUID())));
         assertThatThrownBy(() -> useCase.execute(RECRUITER, CANDIDATE, OFFER_ID))
             .isInstanceOf(NotFoundException.class);
     }
@@ -84,13 +106,15 @@ class SendOpportunityOfferUseCaseTest {
     @Test
     void cibleRecruteurRefusee() {
         when(actors.findById(CANDIDATE)).thenReturn(Optional.of(
-            new RecruitmentActor(CANDIDATE, "RECRUITER", true, Instant.now(), UUID.randomUUID())));
+            new RecruitmentActor(CANDIDATE, "RECRUITER", true, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, Instant.now(), UUID.randomUUID())));
         assertThatThrownBy(() -> useCase.execute(RECRUITER, CANDIDATE, OFFER_ID))
             .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void offreDUnAutreRecruteurRefusee() {
+        when(matches.findByCandidateIdAndJobOfferId(CANDIDATE, OFFER_ID)).thenReturn(Optional.of(activeMatch()));
         assertThatThrownBy(() -> useCase.execute(INTRUS, CANDIDATE, OFFER_ID))
             .isInstanceOf(ForbiddenException.class);
         verify(repository, never()).save(any());

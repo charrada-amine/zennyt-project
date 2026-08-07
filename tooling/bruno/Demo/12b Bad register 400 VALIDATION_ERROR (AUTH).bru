@@ -1,0 +1,42 @@
+meta {
+  name: 12b Bad register 400 VALIDATION_ERROR (AUTH)
+  type: http
+  seq: 80
+}
+
+post {
+  url: {{baseUrl}}/api/v1/auth/register
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "firstName": "",
+    "lastName": "",
+    "email": "not-an-email",
+    "password": "short",
+    "role": "CANDIDATE",
+    "city": "Tunis",
+    "country": "TN",
+    "termsAccepted": true
+  }
+}
+
+docs {
+  400 {error: "VALIDATION_ERROR", message, fieldErrors: [...]} — noms vides,
+  email malformé, mot de passe trop court (< 8) rejetés par la validation
+  bean (@Valid) côté Identity. Même enveloppe et même code que les 409/404
+  propres à Recruitment (02-11) : GlobalExceptionHandler est unique pour
+  toute l'API.
+
+  Note pour l'équipe frontend : contrairement à AuthController.register
+  (@Valid RegisterRequest), JobOfferController.create n'a aucune validation
+  bean sur CreateJobOfferRequest — un titre vide ou salaryMax < salaryMin est
+  actuellement accepté (201). Vu en vérifiant cette collection en direct ;
+  signalé séparément, pas corrigé ici.
+}

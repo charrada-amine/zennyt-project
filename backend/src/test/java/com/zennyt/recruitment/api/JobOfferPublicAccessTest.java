@@ -17,17 +17,20 @@ import static org.mockito.Mockito.*;
 class JobOfferPublicAccessTest {
     private final JobOfferRepository repository = mock(JobOfferRepository.class);
     private final JobOfferController controller = new JobOfferController(
-        mock(CreateJobOfferUseCase.class), mock(UpdateJobOfferUseCase.class),
+        mock(CreateJobOfferUseCase.class), mock(com.zennyt.recruitment.application.usecase.ReplaceJobOfferUseCase.class),
+        mock(UpdateJobOfferUseCase.class),
         mock(ChangeJobOfferStatusUseCase.class), repository,
-        mock(com.zennyt.recruitment.domain.repository.ApplicationRepository.class),
+        mock(com.zennyt.recruitment.domain.repository.SwipeRepository.class),
         mock(com.zennyt.recruitment.domain.repository.AssessmentRepository.class),
         mock(com.zennyt.recruitment.domain.repository.FitScoreRepository.class),
-        mock(com.zennyt.recruitment.application.usecase.GetSwipeDeckUseCase.class));
+        mock(com.zennyt.recruitment.application.usecase.GetSwipeDeckUseCase.class),
+        mock(com.zennyt.recruitment.domain.repository.RecruitmentActorRepository.class),
+        mock(com.zennyt.recruitment.application.JobRoleProfileResolver.class));
 
     @Test
     void publicDetailHidesEveryNonActiveOffer() {
         for (JobOfferStatus status : new JobOfferStatus[]{
-                JobOfferStatus.DRAFT, JobOfferStatus.HIDDEN, JobOfferStatus.CLOSED}) {
+                JobOfferStatus.DRAFT, JobOfferStatus.CLOSED}) {
             UUID id = UUID.randomUUID();
             JobOffer offer = mock(JobOffer.class);
             when(offer.status()).thenReturn(status);

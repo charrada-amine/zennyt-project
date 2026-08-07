@@ -1,0 +1,35 @@
+meta {
+  name: 10a Initiate payment (REC)
+  type: http
+  seq: 75
+}
+
+post {
+  url: {{baseUrl}}/api/v1/payments
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{recruiterToken}}
+}
+
+body:json {
+  {
+    "matchId": "{{demoMatchId}}",
+    "cardLast4": "4242",
+    "cardType": "VISA"
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setVar("demoPaymentId", res.body.id);
+  }
+}
+
+docs {
+  Le recruteur paie la visioconférence (9.99 EUR + 2.00 EUR de taxe) pour le
+  match de 04j → OTP_SENT (même mécanisme OTP réel que les opportunités).
+}

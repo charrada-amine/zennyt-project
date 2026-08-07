@@ -3,6 +3,7 @@ package com.zennyt.recruitment.application.usecase;
 import com.zennyt.recruitment.domain.model.JobOffer;
 import com.zennyt.recruitment.domain.repository.AssessmentRepository;
 import com.zennyt.recruitment.domain.repository.JobOfferRepository;
+import com.zennyt.recruitment.domain.repository.JobPositionRepository;
 import com.zennyt.recruitment.domain.vo.*;
 import com.zennyt.shared.application.exception.ForbiddenException;
 import com.zennyt.shared.application.exception.NotFoundException;
@@ -19,23 +20,26 @@ public class CreateJobOfferUseCase {
 
     /** Commande de création — tous les champs descriptifs de l'offre. */
     public record Command(
-        String title, String companyName, Location location, SalaryRange salary,
+        String title, Location location, Double salaryMin, Double salaryMax,
         ContractType contractType, WorkplaceType workplaceType, ExperienceLevel experienceLevel,
-        String fieldOfWork, String description, String responsibilities,
+        String description, String responsibilities,
         String minimumQualifications, String preferredQualifications,
-        String whatWeOffer, String howToApply, String companyInfo,
-        UUID assessmentId, int passingScore, boolean openToInternational
+        String whatWeOffer, String howToApply,
+        UUID assessmentId, UUID jobPositionId, boolean openToInternational
     ) {}
 
     private final JobOfferRepository repository;
     private final AssessmentRepository assessmentRepository;
+    private final JobPositionRepository jobPositionRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     public CreateJobOfferUseCase(JobOfferRepository repository,
                                  AssessmentRepository assessmentRepository,
+                                 JobPositionRepository jobPositionRepository,
                                  ApplicationEventPublisher eventPublisher) {
         this.repository = repository;
         this.assessmentRepository = assessmentRepository;
+        this.jobPositionRepository = jobPositionRepository;
         this.eventPublisher = eventPublisher;
     }
 
@@ -48,14 +52,22 @@ public class CreateJobOfferUseCase {
                 throw new ForbiddenException("Cette évaluation appartient à un autre recruteur");
             }
         }
+        // Obligatoire depuis la suppression du repli IA : sans métier, la formule n'a
+        // pas de pondération et l'offre resterait sans Fit Score. Le recruteur choisit
+        // un métier du référentiel, ou en propose un nouveau (ProposeJobPositionUseCase),
+        // immédiatement utilisable en attente d'approbation.
+        if (cmd.jobPositionId() == null) {
+            throw new IllegalArgumentException("Le métier (jobPositionId) est obligatoire");
+        }
+        jobPositionRepository.findById(cmd.jobPositionId())
+            .orElseThrow(() -> new NotFoundException("Métier inexistant : " + cmd.jobPositionId()));
         JobOffer offer = JobOffer.create(recruiterId, cmd.title(), cmd.description(),
-            cmd.contractType(), cmd.workplaceType(), cmd.experienceLevel(), cmd.location(),
-            cmd.passingScore());
-        offer.update(cmd.title(), cmd.companyName(), cmd.location(), cmd.salary(),
-            cmd.contractType(), cmd.workplaceType(), cmd.experienceLevel(), cmd.fieldOfWork(),
+            cmd.contractType(), cmd.workplaceType(), cmd.experienceLevel(), cmd.location());
+        offer.update(cmd.title(), cmd.location(), cmd.salaryMin(), cmd.salaryMax(),
+            cmd.contractType(), cmd.workplaceType(), cmd.experienceLevel(),
             cmd.description(), cmd.responsibilities(), cmd.minimumQualifications(),
-            cmd.preferredQualifications(), cmd.whatWeOffer(), cmd.howToApply(), cmd.companyInfo(),
-            cmd.assessmentId(), cmd.openToInternational());
+            cmd.preferredQualifications(), cmd.whatWeOffer(), cmd.howToApply(),
+            cmd.assessmentId(), cmd.jobPositionId(), cmd.openToInternational());
         // Contrat frontend : une offre créée est immédiatement publiée, avec
         // status et postedAt imposés par le serveur (jamais par le client).
         offer.changeStatus(JobOfferStatus.ACTIVE);

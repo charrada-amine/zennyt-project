@@ -2,6 +2,7 @@ package com.zennyt.recruitment.infrastructure.persistence;
 
 import com.zennyt.recruitment.domain.model.FitScore;
 import com.zennyt.recruitment.domain.repository.FitScoreRepository;
+import com.zennyt.recruitment.domain.vo.CandidateOfferPair;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.Optional;
@@ -16,7 +17,7 @@ public class FitScoreRepositoryAdapter implements FitScoreRepository {
     /** Upsert atomique : un seul score par paire — le dernier calcul gagne. */
     @Override @Transactional public FitScore save(FitScore f) {
         jpa.upsert(f.id(), f.candidateId(), f.jobOfferId(), f.score(),
-            f.softSkillScore(), f.cvMatchScore(), f.computedAt());
+            f.softSkillScore(), f.hardSkillScore(), f.coverageRatio(), f.computedAt());
         return jpa.findFirstByCandidateIdAndJobOfferIdOrderByComputedAtDesc(
                 f.candidateId(), f.jobOfferId())
             .map(this::toDomain)
@@ -34,5 +35,46 @@ public class FitScoreRepositoryAdapter implements FitScoreRepository {
             .map(this::toDomain).toList();
     }
 
-    private FitScore toDomain(FitScoreEntity e) { return FitScore.rehydrate(e.getId(), e.getCandidateId(), e.getJobOfferId(), e.getScore(), e.getSoftSkillScore(), e.getCvMatchScore(), e.getComputedAt()); }
+    @Override public List<FitScore> findByPairs(List<CandidateOfferPair> pairs) {
+        if (pairs.isEmpty()) return List.of();
+        return jpa.findByPairs(PairArrays.candidateIds(pairs), PairArrays.jobOfferIds(pairs)).stream()
+            .map(this::toDomain).toList();
+    }
+
+    @Override public List<PairNeedingScore> findPairsNeedingScore(int limit) {
+        if (limit <= 0) return List.of();
+        return jpa.findPairsNeedingScore(limit).stream()
+            .map(row -> new PairNeedingScore((UUID) row[0], (UUID) row[1]))
+            .toList();
+    }
+
+    @Override public List<PairNeedingScore> findStalePairs(int limit) {
+        if (limit <= 0) return List.of();
+        return jpa.findStalePairs(limit).stream()
+            .map(row -> new PairNeedingScore((UUID) row[0], (UUID) row[1]))
+            .toList();
+    }
+
+    @Override public long countPairsNeedingScore() {
+        return jpa.countPairsNeedingScore();
+    }
+
+    @Override @Transactional public int deleteByJobOfferId(UUID jobOfferId) {
+        return jpa.deleteByJobOfferId(jobOfferId);
+    }
+
+    /** Une seule transaction pour tout le lot, et aucune relecture — voir le port. */
+    @Override @Transactional public int saveAll(List<FitScore> fitScores) {
+        for (FitScore f : fitScores) {
+            jpa.upsert(f.id(), f.candidateId(), f.jobOfferId(), f.score(),
+                f.softSkillScore(), f.hardSkillScore(), f.coverageRatio(), f.computedAt());
+        }
+        return fitScores.size();
+    }
+
+    private FitScore toDomain(FitScoreEntity e) {
+        return FitScore.rehydrate(e.getId(), e.getCandidateId(), e.getJobOfferId(), e.getScore(),
+            e.getSoftSkillScore(), e.getHardSkillScore(), e.getCoverageRatio(),
+            e.getComputedAt());
+    }
 }

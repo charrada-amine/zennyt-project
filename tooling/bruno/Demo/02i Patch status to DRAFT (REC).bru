@@ -1,0 +1,28 @@
+meta {
+  name: 02i Patch status to DRAFT (REC)
+  type: http
+  seq: 19
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/job-offers/{{throwawayOfferId}}/status
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{recruiterToken}}
+}
+
+body:json {
+  {
+    "status": "DRAFT"
+  }
+}
+
+docs {
+  ACTIVE → DRAFT : librement réversible, aucune machine à états
+  (JobOfferStatus.canTransitionTo retourne toujours true, contrat squad web
+  §3.1).
+}

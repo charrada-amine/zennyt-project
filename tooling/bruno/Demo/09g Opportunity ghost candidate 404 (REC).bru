@@ -1,0 +1,29 @@
+meta {
+  name: 09g Opportunity ghost candidate 404 (REC)
+  type: http
+  seq: 73
+}
+
+post {
+  url: {{baseUrl}}/api/v1/job-opportunity-offers
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{recruiterToken}}
+}
+
+body:json {
+  {
+    "candidateId": "99999999-9999-9999-9999-999999999999",
+    "jobOfferId": "{{demoOfferId}}"
+  }
+}
+
+docs {
+  Pas de proposition salariale vers un candidat fantôme — 404, le
+  destinataire doit être un acteur candidat/étudiant actif connu de la
+  projection Identity.
+}

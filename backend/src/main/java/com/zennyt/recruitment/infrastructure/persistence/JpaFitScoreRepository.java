@@ -20,19 +20,194 @@ public interface JpaFitScoreRepository extends JpaRepository<FitScoreEntity, UUI
     @Transactional
     @Query(value = """
         INSERT INTO recruitment.fit_scores
-            (id, candidate_id, job_offer_id, score, soft_skill_score, cv_match_score, computed_at)
-        VALUES (:id, :candidateId, :jobOfferId, :score, :softSkillScore, :cvMatchScore, :computedAt)
+            (id, candidate_id, job_offer_id, score, soft_skill_score,
+             hard_skill_score, coverage_ratio, computed_at)
+        VALUES (:id, :candidateId, :jobOfferId, :score, :softSkillScore,
+                :hardSkillScore, :coverageRatio, :computedAt)
         ON CONFLICT (candidate_id, job_offer_id) DO UPDATE SET
             score = EXCLUDED.score,
             soft_skill_score = EXCLUDED.soft_skill_score,
-            cv_match_score = EXCLUDED.cv_match_score,
+            hard_skill_score = EXCLUDED.hard_skill_score,
+            coverage_ratio = EXCLUDED.coverage_ratio,
             computed_at = EXCLUDED.computed_at
         WHERE recruitment.fit_scores.computed_at <= EXCLUDED.computed_at
         """, nativeQuery = true)
     void upsert(UUID id, UUID candidateId, UUID jobOfferId, int score,
-                Integer softSkillScore, Integer cvMatchScore, Instant computedAt);
+                Integer softSkillScore, Integer hardSkillScore,
+                int coverageRatio, Instant computedAt);
 
     List<FitScoreEntity> findByJobOfferIdOrderByScoreDesc(UUID jobOfferId);
 
+    int deleteByJobOfferId(UUID jobOfferId);
+
     List<FitScoreEntity> findByCandidateIdAndJobOfferIdIn(UUID candidateId, List<UUID> jobOfferIds);
+
+    /**
+     * Scores des paires exactes fournies — jamais leur produit croisé. Même mécanique et
+     * mêmes raisons que {@code JpaTestResultRepository.findByPairs}.
+     */
+    @Query(value = """
+        SELECT f.* FROM recruitment.fit_scores f
+        JOIN unnest(
+                 string_to_array(:candidateIds, ',')::uuid[],
+                 string_to_array(:jobOfferIds, ',')::uuid[]
+             ) AS p(candidate_id, job_offer_id)
+          ON f.candidate_id = p.candidate_id AND f.job_offer_id = p.job_offer_id
+        """, nativeQuery = true)
+    List<FitScoreEntity> findByPairs(String candidateIds, String jobOfferIds);
+
+    /**
+     * Paires (candidat actif, offre ACTIVE) sans score — backlog du balayage de rattrapage.
+     *
+     * <p>SQL natif volontaire : anti-jointure sur un produit croisé, dont le plan doit rester
+     * lisible et prévisible (même raison que l'upsert ci-dessus, qui est natif faute
+     * d'équivalent JPQL). Tri par offre la plus anciennement en attente : les trous les plus
+     * vieux se résorbent en premier, et l'index {@code (status, posted_at)} permet au planner
+     * de s'arrêter dès qu'il a {@code limit} lignes.
+     *
+     * <p><b>La jointure sur {@code job_positions} est un filtre de correctness, pas de
+     * préférence</b> : sans métier au profil assigné, la formule n'a pas de pondération et
+     * la paire est <i>incalculable</i>, pas « en attente ». L'inclure ferait resélectionner
+     * indéfiniment une paire qu'aucun passage ne peut résoudre, consommant le budget du lot
+     * à chaque tour. Dès qu'un admin approuve le métier ({@code profile_type} renseigné), les
+     * paires concernées réapparaissent ici et sont calculées au passage suivant — sans
+     * mécanisme dédié.
+     *
+     * <p>Aucun tri par activité candidat : le seul horodatage disponible
+     * ({@code actors.last_event_at}) est réécrit pour <b>tous</b> les utilisateurs à chaque
+     * démarrage par {@code IdentityAccessSnapshotPublisher}, il ne porte donc aucune
+     * information d'activité réelle.
+     */
+    @Query(value = """
+        SELECT a.public_user_id, j.id
+        FROM recruitment.job_offers j
+        JOIN recruitment.job_positions p
+          ON p.id = j.job_position_id AND p.profile_type IS NOT NULL
+        CROSS JOIN recruitment.actors a
+        LEFT JOIN recruitment.fit_scores f
+          ON f.job_offer_id = j.id AND f.candidate_id = a.public_user_id
+        WHERE j.status = 'ACTIVE'
+          AND a.role = 'CANDIDATE'
+          AND a.active = TRUE
+          AND f.id IS NULL
+        ORDER BY j.posted_at ASC
+        LIMIT :limit
+        """, nativeQuery = true)
+    List<Object[]> findPairsNeedingScore(int limit);
+
+    /**
+     * Paires dont le score existe mais est devenu <b>faux</b> — le balayage doit les
+     * reprendre, sinon on remplace un trou de couverture par un trou de fraîcheur
+     * (un déclencheur ne rafraîchit que 20 paires : les autres gardent l'ancien profil).
+     *
+     * <p>Un score est périmé s'il a été calculé avant la dernière évolution d'une de ses
+     * <b>quatre</b> sources : l'offre, les soft skills du candidat, <b>son dernier test
+     * noté sur le métier de l'offre</b>, et la pondération métier × niveau qui a servi au
+     * calcul.
+     * On compare des horodatages <b>déjà maintenus</b> par le code existant plutôt que
+     * d'ajouter des colonnes de version à incrémenter : oublier un seul site d'incrément
+     * recréerait le bug d'origine, en silence.
+     *
+     * <p><b>F12 — la 4e source.</b> Jusqu'ici aucun déclencheur ne réagissait à un
+     * changement de pondération : le jour où l'atelier RH livre ses valeurs calibrées,
+     * <i>tous</i> les scores en cache deviennent faux et rien ne le détectait. Or c'est
+     * le scénario le plus certain du projet — l'atelier est le prérequis déclaré de la
+     * mise en production, et son unique livrable est un nouveau jeu de pondérations.
+     * La seule issue manuelle, {@code recomputeAllActive()}, est plafonnée à 20 offres.
+     * La sous-requête s'appuie sur l'index unique {@code (profile_type, level)} et sur
+     * la colonne {@code updated_at} ajoutée par la migration V52.
+     *
+     * <p><b>D1 — la 3e source a changé de portée.</b> Elle comparait au test de la
+     * <i>paire</i> ({@code t.job_offer_id = f.job_offer_id}). Depuis que le sous-score hard
+     * s'estime sur tout l'historique du candidat sur le métier, un test passé pour une
+     * <i>autre</i> offre du même métier rend ce score faux — et la restriction par offre
+     * l'aurait rendu indétectable. La jointure sur {@code job_offers} porte cette
+     * correction ; le filtre de statut reprend celui de la lecture d'historique (D4),
+     * faute de quoi une tentative abandonnée périmerait des scores sans jamais les changer.
+     *
+     * <p>Contrairement à {@link #findPairsNeedingScore}, cette requête ne parcourt que les
+     * scores existants (pas de produit croisé). Les sous-requêtes corrélées s'appuient sur
+     * l'index unique {@code soft_skills_projection (candidate_id, module)} et sur
+     * {@code idx_test_results_candidate} + {@code idx_job_offers_position} (V57).
+     *
+     * <p>Converge : un recalcul porte {@code computed_at} à maintenant, donc au-dessus des
+     * quatre sources — la paire cesse d'être sélectionnée.
+     */
+    @Query(value = """
+        SELECT f.candidate_id, f.job_offer_id
+        FROM recruitment.fit_scores f
+        JOIN recruitment.job_offers j ON j.id = f.job_offer_id
+        JOIN recruitment.job_positions p
+          ON p.id = j.job_position_id AND p.profile_type IS NOT NULL
+        JOIN recruitment.actors a ON a.public_user_id = f.candidate_id
+        WHERE j.status = 'ACTIVE'
+          AND a.role = 'CANDIDATE'
+          AND a.active = TRUE
+          AND (
+               f.computed_at < j.updated_at
+            OR f.computed_at < (SELECT MAX(s.updated_at)
+                                FROM recruitment.soft_skills_projection s
+                                WHERE s.candidate_id = f.candidate_id)
+            OR f.computed_at < (SELECT MAX(t.completed_at)
+                                FROM recruitment.test_results t
+                                JOIN recruitment.job_offers tj ON tj.id = t.job_offer_id
+                                WHERE t.candidate_id = f.candidate_id
+                                  AND tj.job_position_id = j.job_position_id
+                                  AND t.status IN ('COMPLETED', 'TIMEOUT'))
+            OR f.computed_at < (SELECT r.updated_at
+                                FROM recruitment.job_role_profiles r
+                                WHERE r.profile_type = p.profile_type
+                                  AND r.level = j.experience_level)
+          )
+        ORDER BY f.computed_at ASC
+        LIMIT :limit
+        """, nativeQuery = true)
+    List<Object[]> findStalePairs(int limit);
+
+    /**
+     * Profondeur du retard — mêmes critères que {@link #findPairsNeedingScore} et
+     * {@link #findStalePairs} réunis, mais sans {@code LIMIT} : c'est un indicateur de
+     * supervision, pas une sélection de travail.
+     */
+    @Query(value = """
+        SELECT
+          (SELECT count(*)
+           FROM recruitment.job_offers j
+           JOIN recruitment.job_positions p
+             ON p.id = j.job_position_id AND p.profile_type IS NOT NULL
+           CROSS JOIN recruitment.actors a
+           LEFT JOIN recruitment.fit_scores f
+             ON f.job_offer_id = j.id AND f.candidate_id = a.public_user_id
+           WHERE j.status = 'ACTIVE'
+             AND a.role = 'CANDIDATE'
+             AND a.active = TRUE
+             AND f.id IS NULL)
+          +
+          (SELECT count(*)
+           FROM recruitment.fit_scores f
+           JOIN recruitment.job_offers j ON j.id = f.job_offer_id
+           JOIN recruitment.job_positions p
+             ON p.id = j.job_position_id AND p.profile_type IS NOT NULL
+           JOIN recruitment.actors a ON a.public_user_id = f.candidate_id
+           WHERE j.status = 'ACTIVE'
+             AND a.role = 'CANDIDATE'
+             AND a.active = TRUE
+             AND (
+                  f.computed_at < j.updated_at
+               OR f.computed_at < (SELECT MAX(s.updated_at)
+                                   FROM recruitment.soft_skills_projection s
+                                   WHERE s.candidate_id = f.candidate_id)
+               OR f.computed_at < (SELECT MAX(t.completed_at)
+                                   FROM recruitment.test_results t
+                                   JOIN recruitment.job_offers tj ON tj.id = t.job_offer_id
+                                   WHERE t.candidate_id = f.candidate_id
+                                     AND tj.job_position_id = j.job_position_id
+                                     AND t.status IN ('COMPLETED', 'TIMEOUT'))
+               OR f.computed_at < (SELECT r.updated_at
+                                   FROM recruitment.job_role_profiles r
+                                   WHERE r.profile_type = p.profile_type
+                                     AND r.level = j.experience_level)
+             ))
+        """, nativeQuery = true)
+    long countPairsNeedingScore();
 }

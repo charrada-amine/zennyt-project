@@ -60,9 +60,14 @@ public class FitScoreController {
         } else if (!actorId.equals(candidateId)) {
             throw new ForbiddenException("Vous ne pouvez consulter que votre propre score");
         }
+        // F04 : le seuil de couverture dépend de la présence d'un QCM sur l'OFFRE,
+        // pas de la tentative du candidat (CdC §3.3).
+        boolean offerHasAssessment = jobOfferRepository.findById(jobOfferId)
+            .map(o -> o.assessmentId() != null).orElse(false);
         return fitScoreRepository.findByCandidateIdAndJobOfferId(candidateId, jobOfferId)
             .map(f -> ResponseEntity.ok(new FitScoreResponse(f.id(), f.candidateId(), f.jobOfferId(),
-                f.score(), f.goodFit(), f.softSkillScore(), f.cvMatchScore(), f.computedAt().toString())))
+                f.score(), f.goodFit(), f.softSkillScore(), f.hardSkillScore(),
+                f.partialData(offerHasAssessment), f.computedAt().toString())))
             .orElse(ResponseEntity.notFound().build());
     }
 
@@ -95,5 +100,6 @@ public class FitScoreController {
     }
 
     record FitScoreResponse(UUID id, UUID candidateId, UUID jobOfferId, int score, boolean goodFit,
-                            Integer softSkillScore, Integer cvMatchScore, String computedAt) {}
+                            Integer softSkillScore, Integer hardSkillScore,
+                            boolean partialData, String computedAt) {}
 }

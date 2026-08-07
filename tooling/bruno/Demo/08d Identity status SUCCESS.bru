@@ -1,0 +1,19 @@
+meta {
+  name: 08d Identity status SUCCESS
+  type: http
+  seq: 66
+}
+
+get {
+  url: {{baseUrl}}/api/v1/identity-verifications/{{demoVerificationId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{recruiterToken}}
+}
+
+docs {
+  status est passé à COMPLETED_SUCCESS suite au callback de 08c.
+}

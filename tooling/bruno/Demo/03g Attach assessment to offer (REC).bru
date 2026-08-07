@@ -1,0 +1,28 @@
+meta {
+  name: 03g Attach assessment to offer (REC)
+  type: http
+  seq: 28
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/job-offers/{{demoOfferId}}
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{recruiterToken}}
+}
+
+body:json {
+  {
+    "assessmentId": "{{demoAssessmentId}}"
+  }
+}
+
+docs {
+  PATCH n'accepte que status/assessmentId (tout le reste passe par PUT,
+  02f). Le test devient LE test de compétences de l'offre — nécessaire avant
+  qu'un candidat puisse démarrer une tentative (05a).
+}

@@ -1,8 +1,7 @@
 package com.zennyt.engagement.application.listener;
 
 import com.zennyt.engagement.application.port.ApplicationEventRetryStore;
-import com.zennyt.recruitment.domain.event.ApplicationStatusChangedEvent;
-import com.zennyt.recruitment.domain.event.ApplicationSubmittedEvent;
+import com.zennyt.recruitment.domain.event.MatchCreatedEvent;
 import com.zennyt.shared.domain.event.DomainEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,8 +22,7 @@ public class ApplicationEventRetryWorker {
     private static final long MAX_RETRY_SECONDS = 3_600L;
 
     private final ApplicationEventRetryStore retryStore;
-    private final ApplicationSubmittedProjector submittedProjector;
-    private final ApplicationStatusChangedProjector statusProjector;
+    private final MatchCreatedProjector matchCreatedProjector;
 
     @Scheduled(fixedDelay = POLL_DELAY_MILLIS, initialDelay = POLL_DELAY_MILLIS)
     public void retryDueEvents() {
@@ -43,10 +41,8 @@ public class ApplicationEventRetryWorker {
     }
 
     private void project(DomainEvent event) {
-        if (event instanceof ApplicationSubmittedEvent submitted) {
-            submittedProjector.project(submitted);
-        } else if (event instanceof ApplicationStatusChangedEvent statusChanged) {
-            statusProjector.project(statusChanged);
+        if (event instanceof MatchCreatedEvent matchCreated) {
+            matchCreatedProjector.project(matchCreated);
         } else {
             throw new IllegalArgumentException("Événement Engagement non supporté: " + event.eventType());
         }

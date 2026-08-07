@@ -1,7 +1,7 @@
 package com.zennyt.recruitment.api;
 
 import com.zennyt.recruitment.api.dto.CreateJobOfferRequest;
-import com.zennyt.recruitment.api.dto.SwipeRequest;
+import com.zennyt.recruitment.api.security.AdminOnly;
 import com.zennyt.recruitment.api.security.Authenticated;
 import com.zennyt.recruitment.api.security.CandidateOrStudentOnly;
 import com.zennyt.recruitment.api.security.RecruiterOnly;
@@ -18,15 +18,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class RecruitmentSecurityAnnotationTest {
     private static final List<Class<?>> CONTROLLERS = List.of(
-        ApplicationController.class, AssessmentAttemptController.class,
-        AssessmentController.class, CallbackController.class, FitScoreController.class,
+        AssessmentController.class, CallbackController.class, CandidateResumeController.class,
+        FitScoreController.class,
         IdentityVerificationController.class, JobOfferController.class,
-        JobOpportunityOfferController.class, MatchController.class,
-        PaymentController.class, PublicTestController.class, SwipeController.class);
+        JobOpportunityOfferController.class, JobPositionController.class, JobRoleProfileController.class,
+        MatchController.class,
+        PaymentController.class, PublicTestController.class, SwipeController.class,
+        TestAttemptController.class, TestResultController.class);
 
     private static final Set<String> INTENTIONALLY_PUBLIC = Set.of(
         "JobOfferController#getById", "JobOfferController#search", "PublicTestController#getByToken",
-        "CallbackController#fitScore", "CallbackController#integrity",
+        "CallbackController#fitScore",
         "CallbackController#identity");
 
     @Test
@@ -37,7 +39,7 @@ class RecruitmentSecurityAnnotationTest {
                 .map(method -> new Endpoint(type, method)))
             .toList();
 
-        assertThat(endpoints).hasSize(44);
+        assertThat(endpoints).hasSize(56);
         assertThat(endpoints)
             .allSatisfy(endpoint -> assertThat(isProtected(endpoint.method())
                 || INTENTIONALLY_PUBLIC.contains(endpoint.key()))
@@ -49,7 +51,8 @@ class RecruitmentSecurityAnnotationTest {
     @Test
     void actorIdentifiersAreNotAcceptedInActorControlledRequests() {
         assertThat(componentNames(CreateJobOfferRequest.class)).doesNotContain("recruiterId");
-        assertThat(componentNames(SwipeRequest.class)).doesNotContain("swiperId");
+        assertThat(componentNames(SwipeController.SwipeRequest.class))
+            .doesNotContain("swiperId", "candidateId", "jobOfferId");
     }
 
     private static boolean isEndpoint(Method method) {
@@ -62,6 +65,7 @@ class RecruitmentSecurityAnnotationTest {
         return method.isAnnotationPresent(Authenticated.class)
             || method.isAnnotationPresent(CandidateOrStudentOnly.class)
             || method.isAnnotationPresent(RecruiterOnly.class)
+            || method.isAnnotationPresent(AdminOnly.class)
             || method.isAnnotationPresent(PreAuthorize.class);
     }
 

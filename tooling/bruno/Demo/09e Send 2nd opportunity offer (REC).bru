@@ -1,0 +1,34 @@
+meta {
+  name: 09e Send 2nd opportunity offer (REC)
+  type: http
+  seq: 71
+}
+
+post {
+  url: {{baseUrl}}/api/v1/job-opportunity-offers
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{recruiterToken}}
+}
+
+body:json {
+  {
+    "candidateId": "{{candidateId}}",
+    "jobOfferId": "{{demoOfferId}}"
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setVar("demoOpportunity2Id", res.body.id);
+  }
+}
+
+docs {
+  Une 2e offre d'opportunité, distincte de 09a (pas de contrainte d'unicité
+  candidat+offre) — celle-ci sera refusée par Aicha (09f).
+}

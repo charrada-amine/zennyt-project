@@ -1,0 +1,28 @@
+meta {
+  name: 02j Swipe on draft 409 JOB_NOT_ACTIVE (CAND)
+  type: http
+  seq: 20
+}
+
+post {
+  url: {{baseUrl}}/api/v1/job-offers/{{throwawayOfferId}}/swipes
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{candidateToken}}
+}
+
+body:json {
+  {
+    "direction": "RIGHT"
+  }
+}
+
+docs {
+  Une offre DRAFT n'est pas swipable → 409 {error: "JOB_NOT_ACTIVE"}. Le
+  backend défend la règle même si le client (mobile) ne devrait normalement
+  jamais présenter une offre non-ACTIVE dans le deck.
+}

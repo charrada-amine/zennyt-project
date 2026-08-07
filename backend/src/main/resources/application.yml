@@ -1,6 +1,17 @@
 spring:
   application:
     name: zennyt-api
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true   # 400 sur un champ inconnu (contrat squad web §1/§3.3),
+                                          # au lieu de l'ignorer silencieusement
+  datasource:
+    hikari:
+      # Explicite plutôt qu'hérité du défaut : le travail de fond Fit Score est borné à
+      # recruitment.fitscore.db-pool-size threads (2 par défaut), donc à autant de
+      # connexions. Le ratio 2/10 est un choix, pas un hasard — il garantit qu'au moins
+      # 8 connexions restent disponibles pour les requêtes utilisateur.
+      maximum-pool-size: ${DB_POOL_MAX:10}
   jpa:
     hibernate:
       ddl-auto: validate          # le schéma est géré par migrations (Flyway/Liquibase), jamais auto
@@ -40,12 +51,74 @@ groq:
   connect-timeout-ms: ${GROQ_CONNECT_TIMEOUT_MS:5000}
   read-timeout-ms: ${GROQ_READ_TIMEOUT_MS:20000}
 
+# Recherche sémantique "Recommended for you" (rôle recherché <-> métier) et
+# classification d'un nouveau métier proposé. Clé absente = NoOpEmbeddingPort
+# (aucune empreinte calculée, signal neutre) — voir plan. Fournisseur : HuggingFace
+# Inference Providers, provider "hf-inference" (gratuit). Générer un token
+# "fine-grained" avec la permission "Make calls to Inference Providers" sur
+# huggingface.co/settings/tokens (PAS un simple token "read") et le mettre dans
+# un fichier .env / application-local.yml local, jamais collé dans le chat.
+embedding:
+  huggingface:
+    api-key: ${EMBEDDING_HF_API_KEY:}
+    model: ${EMBEDDING_HF_MODEL:intfloat/multilingual-e5-small}
+  connect-timeout-ms: ${EMBEDDING_CONNECT_TIMEOUT_MS:5000}
+  read-timeout-ms: ${EMBEDDING_READ_TIMEOUT_MS:15000}
+
 recruitment:
   callbacks:
     secret: ${RECRUITMENT_CALLBACK_SECRET:}
   otp:
     ttl: ${RECRUITMENT_OTP_TTL:PT10M}
     max-attempts: ${RECRUITMENT_OTP_MAX_ATTEMPTS:5}
+  ranking:
+    # Points ajoutés au Fit Score par critère de préférence respecté (contrat,
+    # télétravail, localisation, international) — jamais assez pour renverser
+    # un vrai écart de Fit Score. Valeurs de départ, ajustables sans redéploiement de code.
+    criterion-bonus: ${RECRUITMENT_RANKING_CRITERION_BONUS:2.0}
+    # Poids du bonus de similarité sémantique (rôle recherché <-> métier), 0-1 x ce poids.
+    semantic-weight: ${RECRUITMENT_RANKING_SEMANTIC_WEIGHT:2.0}
+    # Taille du pool d'offres actives re-classées avant pagination (voir CandidateFeedRanker).
+    pool-size: ${RECRUITMENT_RANKING_POOL_SIZE:200}
+  fitscore:
+    # Nombre maximum de threads du travail de fond Fit Score, donc nombre maximum de
+    # connexions qu'il peut détenir simultanément. Sur un pool applicatif de 10, il en
+    # reste toujours au moins 8 pour les requêtes utilisateur — garantie structurelle,
+    # indépendante des autres réglages. Voir FitScoreAiConfig.
+    db-pool-size: ${RECRUITMENT_FITSCORE_DB_POOL_SIZE:2}
+    inline:
+      # Calcul des notes manquantes au moment de l'affichage. Désactivé par défaut :
+      # c'est l'interrupteur de retour arrière immédiat, sans redéploiement.
+      enabled: ${RECRUITMENT_FITSCORE_INLINE_ENABLED:false}
+      # Budget de calcul par requête d'affichage. Un budget de TEMPS, pas un compteur de
+      # paires : il reste valable quand le matériel ou le code change.
+      budget-ms: ${RECRUITMENT_FITSCORE_INLINE_BUDGET_MS:800}
+      # Ceinture de sécurité doublant le budget. Vaut la taille du pool d'offres, donc
+      # n'est jamais atteinte en pratique — elle borne le pire cas si le budget est mal réglé.
+      max-pairs: ${RECRUITMENT_FITSCORE_INLINE_MAX_PAIRS:200}
+    queue:
+      # File de travail durable. Désactivée par défaut : interrupteur de retour arrière.
+      enabled: ${RECRUITMENT_FITSCORE_QUEUE_ENABLED:false}
+      # Taille de transaction du worker — une granularité, pas un plafond de débit :
+      # le worker enchaîne les passages tant que la file est pleine.
+      chunk-size: ${RECRUITMENT_FITSCORE_QUEUE_CHUNK_SIZE:200}
+      # Essais avant abandon. Une paire abandonnée n'est pas perdue : le calcul à
+      # l'affichage la reprendra — c'est ce qui autorise la file à échouer.
+      max-attempts: ${RECRUITMENT_FITSCORE_QUEUE_MAX_ATTEMPTS:5}
+      # Filet de sécurité si un réveil se perd. Le chemin normal est le réveil immédiat.
+      poll-interval-ms: ${RECRUITMENT_FITSCORE_QUEUE_POLL_INTERVAL_MS:5000}
+  fitscore-backfill:
+    # Intervalle entre deux passages du balayage de rattrapage (paires candidat/offre
+    # sans Fit Score). fixedDelay : le passage suivant ne démarre qu'après la fin du
+    # précédent — jamais de chevauchement.
+    interval-ms: ${RECRUITMENT_FITSCORE_BACKFILL_INTERVAL_MS:3600000}
+    # Budget d un passage. Deadline, pas compteur : reste valable si le materiel change.
+    deadline-ms: ${RECRUITMENT_FITSCORE_BACKFILL_DEADLINE_MS:5000}
+    # Paires traitées par passage. Ce plafond ne borne PAS la capacité de calcul (mesurée
+    # à ~29 ms/paire avant batch-loading, bien plus vite depuis) : il borne la pression
+    # exercée sur la base partagée avec le trafic utilisateur. Le vrai plafond du système
+    # est ce budget BDD, pas le CPU.
+    batch-size: ${RECRUITMENT_FITSCORE_BACKFILL_BATCH_SIZE:200}
 
 server:
   port: 8080

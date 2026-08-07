@@ -1,0 +1,24 @@
+meta {
+  name: 09c Confirm opportunity (CAND)
+  type: http
+  seq: 69
+}
+
+post {
+  url: {{baseUrl}}/api/v1/job-opportunity-offers/{{demoOpportunityId}}/confirm
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{candidateToken}}
+}
+
+docs {
+  Elle confirme → déclenche un vrai OTP SMS (6 chiffres, salé + haché
+  SHA-256, TTL 10 min) → status OTP_SENT. En dev le code n'est jamais
+  retourné par l'API : il est tracé dans le log applicatif
+  (DevOtpDeliveryLogger) — voir 09d pour le refus déterministe avec un
+  mauvais code, et docs/DEMO_INTEGRATION.md §B pour vérifier avec le vrai
+  code en direct.
+}

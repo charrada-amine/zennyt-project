@@ -6,13 +6,10 @@ import com.zennyt.engagement.application.port.ProcessedEventStore;
 import com.zennyt.engagement.domain.repository.ConversationRepository;
 import com.zennyt.engagement.domain.repository.EngagementApplicationRepository;
 import com.zennyt.engagement.domain.repository.NotificationRepository;
-import com.zennyt.recruitment.domain.event.ApplicationStatusChangedEvent;
-import com.zennyt.recruitment.domain.event.ApplicationSubmittedEvent;
-import com.zennyt.recruitment.domain.vo.ApplicationStatus;
+import com.zennyt.recruitment.domain.event.MatchCreatedEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -27,8 +24,7 @@ class ApplicationEventListenerIdempotencyTest {
     private NotificationRepository notifications;
     private ApplicationEventRetryStore retryStore;
 
-    private ApplicationSubmittedListener submitted;
-    private ApplicationStatusChangedListener statusChanged;
+    private MatchCreatedListener matchCreated;
 
     @BeforeEach
     void setUp() {
@@ -37,24 +33,22 @@ class ApplicationEventListenerIdempotencyTest {
         conversations = mock(ConversationRepository.class);
         notifications = mock(NotificationRepository.class);
         retryStore = mock(ApplicationEventRetryStore.class);
-        submitted = new ApplicationSubmittedListener(
-            new ApplicationSubmittedProjector(processedEvents, applications, conversations, notifications),
+        matchCreated = new MatchCreatedListener(
+            new MatchCreatedProjector(processedEvents, applications, conversations, notifications),
             retryStore);
-        statusChanged = new ApplicationStatusChangedListener(
-            new ApplicationStatusChangedProjector(processedEvents, notifications), retryStore);
     }
 
-    private ApplicationSubmittedEvent submitEvent() {
-        return ApplicationSubmittedEvent.of(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
+    private MatchCreatedEvent matchEvent() {
+        return MatchCreatedEvent.of(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
             UUID.randomUUID(), "Backend Engineer");
     }
 
     @Test
-    void first_submitted_event_projects_creates_conversation_and_notifies() {
+    void first_match_created_event_projects_creates_conversation_and_notifies() {
         when(processedEvents.claim(any())).thenReturn(true);
         when(conversations.createIfAbsent(any())).thenReturn(true);
 
-        submitted.on(submitEvent());
+        matchCreated.on(matchEvent());
 
         verify(applications).upsert(any());
         verify(conversations).createIfAbsent(any());
@@ -62,10 +56,10 @@ class ApplicationEventListenerIdempotencyTest {
     }
 
     @Test
-    void replayed_submitted_event_is_a_full_no_op() {
+    void replayed_match_created_event_is_a_full_no_op() {
         when(processedEvents.claim(any())).thenReturn(false);
 
-        submitted.on(submitEvent());
+        matchCreated.on(matchEvent());
 
         verify(applications, never()).upsert(any());
         verify(conversations, never()).createIfAbsent(any());
@@ -73,33 +67,11 @@ class ApplicationEventListenerIdempotencyTest {
     }
 
     @Test
-    void replayed_status_changed_event_creates_no_notification() {
-        when(processedEvents.claim(any())).thenReturn(false);
-        var event = ApplicationStatusChangedEvent.of(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
-            UUID.randomUUID(), "Backend Engineer", ApplicationStatus.PENDING, ApplicationStatus.SHORTLISTED);
-
-        statusChanged.on(event);
-
-        verify(notifications, never()).save(any());
-    }
-
-    @Test
-    void first_status_changed_event_creates_one_notification() {
-        when(processedEvents.claim(any())).thenReturn(true);
-        var event = ApplicationStatusChangedEvent.of(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
-            UUID.randomUUID(), "Backend Engineer", ApplicationStatus.PENDING, ApplicationStatus.SHORTLISTED);
-
-        statusChanged.on(event);
-
-        verify(notifications, times(1)).save(any());
-    }
-
-    @Test
     void failed_projection_is_queued_without_escaping_to_recruitment() {
-        ApplicationSubmittedProjector failingProjector = mock(ApplicationSubmittedProjector.class);
-        ApplicationSubmittedListener safeListener =
-            new ApplicationSubmittedListener(failingProjector, retryStore);
-        ApplicationSubmittedEvent event = submitEvent();
+        MatchCreatedProjector failingProjector = mock(MatchCreatedProjector.class);
+        MatchCreatedListener safeListener =
+            new MatchCreatedListener(failingProjector, retryStore);
+        MatchCreatedEvent event = matchEvent();
         doThrow(new IllegalStateException("database down")).when(failingProjector).project(event);
 
         safeListener.on(event);

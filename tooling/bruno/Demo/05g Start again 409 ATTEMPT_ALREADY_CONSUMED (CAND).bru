@@ -1,0 +1,22 @@
+meta {
+  name: 05g Start again 409 ATTEMPT_ALREADY_CONSUMED (CAND)
+  type: http
+  seq: 46
+}
+
+post {
+  url: {{baseUrl}}/api/v1/job-offers/{{demoOfferId}}/test-attempts
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{candidateToken}}
+}
+
+docs {
+  Un résultat existe déjà pour (Aicha, demoOfferId) — même ABANDONED
+  compterait — → 409 {error: "ATTEMPT_ALREADY_CONSUMED"}. Une seule
+  tentative par candidat par offre, pour toujours, appliquée par contrainte
+  unique en base (pas seulement en logique applicative).
+}

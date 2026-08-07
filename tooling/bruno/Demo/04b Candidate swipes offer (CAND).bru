@@ -1,0 +1,27 @@
+meta {
+  name: 04b Candidate swipes offer (CAND)
+  type: http
+  seq: 31
+}
+
+post {
+  url: {{baseUrl}}/api/v1/job-offers/{{demoOfferId}}/swipes
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{candidateToken}}
+}
+
+body:json {
+  {
+    "direction": "RIGHT"
+  }
+}
+
+docs {
+  Le candidat like l'offre → matched:false (moitié du match, le recruteur
+  n'a pas encore swipé). L'identité du swiper vient du JWT, jamais du body.
+}

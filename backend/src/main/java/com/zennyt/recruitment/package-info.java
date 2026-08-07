@@ -1,10 +1,10 @@
 /**
  * Bounded Context <b>Recruitment</b> — contexte de référence (hexagonal complet).
  *
- * <p>Responsabilités : publication et recherche d'offres, candidatures et
- * machine à états de leur statut, matching, offres sauvegardées.
+ * <p>Responsabilités : publication et recherche d'offres, swipes et matching,
+ * évaluations, offres d'opportunité.
  *
- * <p>Événements publiés : {@code JobPublishedEvent}, {@code ApplicationSubmittedEvent}.
- * Propriété : Squad Jobs.
+ * <p>Événements publiés : {@code JobOfferCreatedEvent}, {@code SwipeRecordedEvent},
+ * {@code MatchCreatedEvent}. Propriété : Squad Jobs.
  */
 package com.zennyt.recruitment;

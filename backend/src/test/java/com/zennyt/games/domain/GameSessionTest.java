@@ -235,21 +235,35 @@ class GameSessionTest {
         GameSession session = GameSession.start(UUID.randomUUID(), GameType.PLANIFIK);
         Score full = new Score(10, 10, "Bon à excellent");
 
+        // F14 — un événement est désormais émis à CHAQUE mini-jeu, avec la couverture
+        // courante. Avant, une session partielle n'émettait rien : le candidat n'avait
+        // aucun score tant qu'il n'avait pas tout terminé (CdC §3.3, qui prévoit une
+        // décote de couverture, pas une disparition).
         session.recordResult(MiniGame.OPTIMAL_PATH, full, scoring);
-        assertTrue(session.domainEvents().isEmpty(), "pas encore terminée (1/3)");
+        assertEquals(1, session.domainEvents().size(), "émis dès le 1er mini-jeu");
+        assertEquals(33, event(session, 0).coverageRatio(), "1/3 joué");
+        assertEquals(100.0, event(session, 0).normalizedScore(),
+            "sans faute sur ce qui a été joué : la couverture porte l'incomplétude, pas le score");
+
         session.recordResult(MiniGame.TASK_SCHEDULING, full, scoring);
-        assertTrue(session.domainEvents().isEmpty(), "pas encore terminée (2/3)");
+        assertEquals(2, session.domainEvents().size());
+        assertEquals(67, event(session, 1).coverageRatio(), "2/3 joué");
+        assertNotEquals(SessionStatus.COMPLETED, session.status(), "pas encore terminée (2/3)");
 
         session.recordResult(MiniGame.PREVISION_PUZZLE, full, scoring);
 
         assertEquals(SessionStatus.COMPLETED, session.status());
         assertEquals(30, session.compositeRaw());
         assertEquals(30, session.compositeMax());
-        assertEquals(1, session.domainEvents().size());
-        GameResultRecordedEvent event =
-            assertInstanceOf(GameResultRecordedEvent.class, session.domainEvents().get(0));
+        assertEquals(3, session.domainEvents().size());
+        GameResultRecordedEvent event = event(session, 2);
         assertEquals(30, event.compositeRaw());
         assertEquals(30, event.compositeMax());
+        assertEquals(100, event.coverageRatio(), "module entièrement couvert");
+    }
+
+    private static GameResultRecordedEvent event(GameSession session, int index) {
+        return assertInstanceOf(GameResultRecordedEvent.class, session.domainEvents().get(index));
     }
 
     /** Métriques Move Fast sans échauffement, règle Orientation, temps neutres. */

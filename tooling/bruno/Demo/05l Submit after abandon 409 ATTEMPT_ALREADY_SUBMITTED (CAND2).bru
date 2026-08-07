@@ -1,0 +1,28 @@
+meta {
+  name: 05l Submit after abandon 409 ATTEMPT_ALREADY_SUBMITTED (CAND2)
+  type: http
+  seq: 51
+}
+
+post {
+  url: {{baseUrl}}/api/v1/test-attempts/{{demoAttempt2Id}}/submit
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{candidate2Token}}
+}
+
+body:json {
+  {
+    "answers": []
+  }
+}
+
+docs {
+  La tentative d'Omar est déjà résolue (abandonnée en 05k) → 409
+  {error: "ATTEMPT_ALREADY_SUBMITTED"}. Pas de second essai sur une
+  tentative déjà consommée, qu'elle ait été soumise ou abandonnée.
+}

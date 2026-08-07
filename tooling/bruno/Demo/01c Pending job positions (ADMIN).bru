@@ -1,0 +1,20 @@
+meta {
+  name: 01c Pending job positions (ADMIN)
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/api/v1/job-positions/pending
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{adminToken}}
+}
+
+docs {
+  File d'attente d'approbation — réservé à l'ADMIN. La proposition de 01b
+  doit y figurer.
+}

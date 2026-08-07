@@ -1,0 +1,36 @@
+meta {
+  name: 03d Update assessment PUT (REC)
+  type: http
+  seq: 25
+}
+
+put {
+  url: {{baseUrl}}/api/v1/assessments/{{demoAssessmentId}}
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{recruiterToken}}
+}
+
+body:json {
+  {
+    "title": "Test Backend Java/Spring — v2",
+    "timeLimitSeconds": 900,
+    "questions": [
+      { "text": "Quelle annotation déclare un bean Spring géré ?", "options": ["@Component", "@Data", "@Getter", "@Slf4j"], "correctOptionIndex": 0 },
+      { "text": "Quel HTTP status pour une création réussie ?", "options": ["200", "201", "204", "409"], "correctOptionIndex": 1 },
+      { "text": "Quelle interface JPA fournit findById ?", "options": ["EntityManager", "CrudRepository", "Session", "Query"], "correctOptionIndex": 1 },
+      { "text": "Quel mot-clé rend un champ immuable en Java ?", "options": ["static", "transient", "final", "volatile"], "correctOptionIndex": 2 }
+    ]
+  }
+}
+
+docs {
+  timeLimitSeconds 600 → 900. Les questions renvoyées sans id créeraient de
+  nouvelles questions (id serveur) ; ici on renvoie le même contenu, donc de
+  nouvelles questions remplacent les anciennes (id régénérés) — voir docs du
+  contrôleur pour la sémantique "avec id = conservée".
+}

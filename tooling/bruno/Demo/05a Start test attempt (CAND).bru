@@ -1,0 +1,44 @@
+meta {
+  name: 05a Start test attempt (CAND)
+  type: http
+  seq: 40
+}
+
+post {
+  url: {{baseUrl}}/api/v1/job-offers/{{demoOfferId}}/test-attempts
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{candidateToken}}
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setVar("demoAttemptId", res.body.attemptId);
+
+    // Les questions/options reviennent mélangées (jamais de correctOptionIndex).
+    // On connaît le texte de la bonne réponse depuis la création (03a) : on
+    // retrouve son index dans l'ordre mélangé pour construire une soumission
+    // à 100% — démontre le dé-mélange serveur sans jamais lire l'index original.
+    const correctTextByQuestion = {
+      "Quelle annotation déclare un bean Spring géré ?": "@Component",
+      "Quel HTTP status pour une création réussie ?": "201",
+      "Quelle interface JPA fournit findById ?": "CrudRepository",
+      "Quel mot-clé rend un champ immuable en Java ?": "final"
+    };
+    const answers = res.body.questions.map(q => ({
+      questionId: q.id,
+      selectedOptionIndex: q.options.indexOf(correctTextByQuestion[q.text])
+    }));
+    bru.setVar("demoTestAnswers", JSON.stringify(answers));
+  }
+}
+
+docs {
+  Démarre l'unique tentative pour (Aicha, demoOfferId) — questions et
+  options mélangées par tentative. 404 NO_ASSESSMENT_LINKED si l'offre n'a
+  pas de test lié (voir 05i), 409 ATTEMPT_ALREADY_CONSUMED si un résultat
+  existe déjà (voir 05g).
+}

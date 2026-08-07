@@ -17,6 +17,7 @@ public class AssessmentEntity {
     private String shareableLink;
     @Column(columnDefinition = "TEXT") private String questionsJson;
     @Column(nullable = false) private Instant createdAt;
+    @Column(nullable = false) private Instant updatedAt;
 
     protected AssessmentEntity() {}
 
@@ -38,4 +39,6 @@ public class AssessmentEntity {
     public void setQuestionsJson(String v) { this.questionsJson = v; }
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant v) { this.createdAt = v; }
+    public Instant getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(Instant v) { this.updatedAt = v; }
 }

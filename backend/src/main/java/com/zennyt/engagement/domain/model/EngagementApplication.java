@@ -5,9 +5,11 @@ import java.util.Objects;
 import java.util.UUID;
 
 /**
- * Projection locale de candidature dans le contexte Engagement.
+ * Projection locale de la mise en relation candidat/recruteur dans le contexte
+ * Engagement — {@code applicationId} porte l'id du match mutuel (Recruitment
+ * n'a plus d'entité Application, remplacée par les swipes/matchs).
  *
- * <p>Alimentée par {@code ApplicationSubmittedEvent} (Recruitment), elle porte le
+ * <p>Alimentée par {@code MatchCreatedEvent} (Recruitment), elle porte le
  * strict nécessaire pour (re)construire une conversation sans appel direct au
  * module Recruitment. Read model applicatif, agnostique du framework.
  */

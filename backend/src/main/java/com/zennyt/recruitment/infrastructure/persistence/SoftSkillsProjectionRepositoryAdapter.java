@@ -20,12 +20,24 @@ public class SoftSkillsProjectionRepositoryAdapter implements SoftSkillsProjecti
     @Override
     public SoftSkillsProjection save(SoftSkillsProjection projection) {
         return toDomain(jpa.save(new SoftSkillsProjectionEntity(
-            projection.candidateId(), projection.score(), projection.updatedAt())));
+            projection.id(), projection.candidateId(), projection.module(),
+            projection.score(), projection.coverageRatio(), projection.updatedAt())));
     }
 
     @Override
-    public Optional<SoftSkillsProjection> findByCandidateId(UUID candidateId) {
-        return jpa.findById(candidateId).map(this::toDomain);
+    public Optional<SoftSkillsProjection> findByCandidateIdAndModule(UUID candidateId, String module) {
+        return jpa.findByCandidateIdAndModule(candidateId, module).map(this::toDomain);
+    }
+
+    @Override
+    public List<SoftSkillsProjection> findByCandidateId(UUID candidateId) {
+        return jpa.findByCandidateId(candidateId).stream().map(this::toDomain).toList();
+    }
+
+    @Override
+    public List<SoftSkillsProjection> findByCandidateIds(List<UUID> candidateIds) {
+        if (candidateIds.isEmpty()) return List.of();
+        return jpa.findByCandidateIdIn(candidateIds).stream().map(this::toDomain).toList();
     }
 
     @Override
@@ -34,6 +46,7 @@ public class SoftSkillsProjectionRepositoryAdapter implements SoftSkillsProjecti
     }
 
     private SoftSkillsProjection toDomain(SoftSkillsProjectionEntity entity) {
-        return new SoftSkillsProjection(entity.getCandidateId(), entity.getScore(), entity.getUpdatedAt());
+        return new SoftSkillsProjection(entity.getId(), entity.getCandidateId(),
+            entity.getModule(), entity.getScore(), entity.getCoverageRatio(), entity.getUpdatedAt());
     }
 }

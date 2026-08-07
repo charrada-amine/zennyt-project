@@ -1,0 +1,28 @@
+meta {
+  name: 09d Verify opportunity OTP wrong code 401 (CAND)
+  type: http
+  seq: 70
+}
+
+post {
+  url: {{baseUrl}}/api/v1/job-opportunity-offers/{{demoOpportunityId}}/verify-otp
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{candidateToken}}
+}
+
+body:json {
+  {
+    "otpCode": "000000"
+  }
+}
+
+docs {
+  Un mauvais code est rejeté → 401. Fini le "tout code passe" — le tunnel
+  OTP est réel de bout en bout (le vrai code n'est disponible que dans le
+  log serveur, jamais via l'API).
+}

@@ -26,17 +26,11 @@ public class MatchRepositoryAdapter implements MatchRepository {
     }
     @Override public long countByCandidateId(UUID candidateId) { return jpa.countByCandidateId(candidateId); }
 
-    @Override public List<Match> findByRecruiterId(UUID recruiterId, UUID jobOfferId, int page, int size) {
-        var pageable = PageRequest.of(page, size);
-        var result = jobOfferId != null
-            ? jpa.findByRecruiterIdAndJobOfferId(recruiterId, jobOfferId, pageable)
-            : jpa.findByRecruiterId(recruiterId, pageable);
-        return result.map(this::toDomain).getContent();
+    @Override public List<Match> findByJobOfferId(UUID jobOfferId, int page, int size) {
+        return jpa.findByJobOfferId(jobOfferId, PageRequest.of(page, size)).map(this::toDomain).getContent();
     }
-    @Override public long countByRecruiterId(UUID recruiterId, UUID jobOfferId) {
-        return jobOfferId != null ? jpa.countByRecruiterIdAndJobOfferId(recruiterId, jobOfferId) : jpa.countByRecruiterId(recruiterId);
-    }
+    @Override public long countByJobOfferId(UUID jobOfferId) { return jpa.countByJobOfferId(jobOfferId); }
 
-    private MatchEntity toEntity(Match m) { return new MatchEntity(m.id(), m.candidateId(), m.jobOfferId(), m.recruiterId(), m.jobOfferTitle(), m.status(), m.matchedAt()); }
-    private Match toDomain(MatchEntity e) { return Match.rehydrate(e.getId(), e.getCandidateId(), e.getJobOfferId(), e.getRecruiterId(), e.getJobOfferTitle(), e.getStatus(), e.getMatchedAt()); }
+    private MatchEntity toEntity(Match m) { return new MatchEntity(m.id(), m.candidateId(), m.jobOfferId(), m.recruiterId(), m.matchedAt()); }
+    private Match toDomain(MatchEntity e) { return Match.rehydrate(e.getId(), e.getCandidateId(), e.getJobOfferId(), e.getRecruiterId(), e.getMatchedAt()); }
 }

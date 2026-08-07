@@ -1,0 +1,28 @@
+meta {
+  name: 07c Recompute fit scores (REC)
+  type: http
+  seq: 59
+}
+
+post {
+  url: {{baseUrl}}/api/v1/fit-scores/recompute
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{recruiterToken}}
+}
+
+body:json {
+  {
+    "jobOfferId": "{{demoOfferId}}"
+  }
+}
+
+docs {
+  Recalcul synchrone (levier démo — le déclenchement normal est asynchrone,
+  à l'activation d'une offre ou après une partie jouée) : tous les profils
+  candidats connus sont scorés par Groq contre cette offre.
+}

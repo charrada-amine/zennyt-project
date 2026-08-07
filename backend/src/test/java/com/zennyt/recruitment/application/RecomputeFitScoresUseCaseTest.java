@@ -4,10 +4,13 @@ import com.zennyt.recruitment.application.port.FitScoreCalculatorPort;
 import com.zennyt.recruitment.application.usecase.RecomputeFitScoresUseCase;
 import com.zennyt.recruitment.domain.model.FitScore;
 import com.zennyt.recruitment.domain.model.JobOffer;
+import com.zennyt.recruitment.domain.model.RecruitmentActor;
 import com.zennyt.recruitment.domain.model.SoftSkillsProjection;
 import com.zennyt.recruitment.domain.repository.FitScoreRepository;
 import com.zennyt.recruitment.domain.repository.JobOfferRepository;
+import com.zennyt.recruitment.domain.repository.RecruitmentActorRepository;
 import com.zennyt.recruitment.domain.repository.SoftSkillsProjectionRepository;
+import com.zennyt.recruitment.domain.repository.TestResultRepository;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -26,44 +29,63 @@ class RecomputeFitScoresUseCaseTest {
         UUID offerId = UUID.randomUUID();
         UUID existingId = UUID.randomUUID();
         FitScoreCalculatorPort calculator = inputs ->
-            new FitScoreCalculatorPort.FitScoreResult(84, 77, 91);
+            new FitScoreCalculatorPort.FitScoreResult(84, 77, 100);
         FitScoreRepository scores = mock(FitScoreRepository.class);
         JobOfferRepository offers = mock(JobOfferRepository.class);
         SoftSkillsProjectionRepository soft = mock(SoftSkillsProjectionRepository.class);
+        UUID recruiterId = UUID.randomUUID();
         JobOffer offer = mock(JobOffer.class);
         when(offer.id()).thenReturn(offerId);
+        when(offer.recruiterId()).thenReturn(recruiterId);
         when(offer.description()).thenReturn("Java backend");
-        when(offer.companyInfo()).thenReturn("Entreprise produit");
-        when(soft.findByCandidateId(candidateId)).thenReturn(Optional.of(
-            new SoftSkillsProjection(candidateId, 77, Instant.now())));
+        RecruitmentActorRepository actors = mock(RecruitmentActorRepository.class);
+        when(actors.findById(recruiterId)).thenReturn(Optional.of(
+            new RecruitmentActor(recruiterId, "RECRUITER", true, null, null, null, null,
+                "Zennyt Inc.", "Entreprise produit", null, null, null, null, null, null, null,
+                Instant.now(), UUID.randomUUID())));
+        when(soft.findByCandidateId(candidateId)).thenReturn(List.of(
+            SoftSkillsProjection.create(candidateId, "MOVE_FAST", 77, 100, Instant.now())));
         when(scores.findByCandidateIdAndJobOfferId(candidateId, offerId)).thenReturn(Optional.of(
-            FitScore.calculated(existingId, candidateId, offerId, 10, 10, 10, Instant.now())));
+            FitScore.calculated(existingId, candidateId, offerId, 10, 10, null, 100, Instant.now())));
         when(scores.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        JobRoleProfileResolver roleProfileResolver = mock(JobRoleProfileResolver.class);
+        TestResultRepository testResults = mock(TestResultRepository.class);
 
-        FitScore result = new RecomputeFitScoresUseCase(calculator, scores, offers, soft)
+        FitScore result = new RecomputeFitScoresUseCase(calculator, scores, offers, soft,
+                roleProfileResolver, testResults, 5000)
             .recompute(candidateId, offer);
 
         assertThat(result.id()).isEqualTo(existingId);
         assertThat(result.score()).isEqualTo(84);
         assertThat(result.softSkillScore()).isEqualTo(77);
-        assertThat(result.cvMatchScore()).isEqualTo(91);
     }
 
+    /**
+     * Remplace l'ancien {@code publicationBatchIsBounded}, qui verrouillait le plafond de
+     * 20 par déclencheur — c'est-à-dire exactement la cause du trou de couverture
+     * permanent. Le déclencheur n'est plus borné à 20 mais à {@code triggerLimit}, un
+     * garde-fou volontairement large : ce test échouerait si quelqu'un réintroduisait un
+     * petit plafond en pensant « borner par prudence ».
+     */
     @Test
-    void publicationBatchIsBounded() {
+    void leDeclencheurNestPlusBorneA20MaisAuGardeFouLarge() {
         FitScoreCalculatorPort calculator = inputs ->
-            new FitScoreCalculatorPort.FitScoreResult(50, 50, 50);
+            new FitScoreCalculatorPort.FitScoreResult(50, 50, 100);
         FitScoreRepository scores = mock(FitScoreRepository.class);
         JobOfferRepository offers = mock(JobOfferRepository.class);
         SoftSkillsProjectionRepository soft = mock(SoftSkillsProjectionRepository.class);
         UUID offerId = UUID.randomUUID();
         when(offers.findById(offerId)).thenReturn(Optional.of(mock(JobOffer.class)));
-        when(soft.findCandidateIds(RecomputeFitScoresUseCase.MAX_BATCH_SIZE)).thenReturn(List.of());
+        when(soft.findCandidateIds(anyInt())).thenReturn(List.of());
+        JobRoleProfileResolver roleProfileResolver = mock(JobRoleProfileResolver.class);
+        TestResultRepository testResults = mock(TestResultRepository.class);
 
-        var pairs = new RecomputeFitScoresUseCase(calculator, scores, offers, soft)
+        var pairs = new RecomputeFitScoresUseCase(calculator, scores, offers, soft,
+                roleProfileResolver, testResults, 5000)
             .pairsForOffer(offerId);
 
-        verify(soft).findCandidateIds(RecomputeFitScoresUseCase.MAX_BATCH_SIZE);
+        verify(soft).findCandidateIds(5000);
+        verify(soft, never()).findCandidateIds(RecomputeFitScoresUseCase.MAX_BATCH_SIZE);
         assertThat(pairs).isEmpty();
     }
 }

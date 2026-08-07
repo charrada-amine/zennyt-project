@@ -1,0 +1,41 @@
+meta {
+  name: 02f Replace job offer PUT (REC)
+  type: http
+  seq: 16
+}
+
+put {
+  url: {{baseUrl}}/api/v1/job-offers/{{demoOfferId}}
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{recruiterToken}}
+}
+
+body:json {
+  {
+    "title": "Ingénieur Backend Senior — Équipe Plateforme",
+    "description": "Rejoignez notre équipe plateforme pour construire l'API de matching, révision complète de l'annonce.",
+    "contractType": "FULL_TIME",
+    "workplaceType": "HYBRID",
+    "experienceLevel": "SENIOR",
+    "city": "Tunis",
+    "country": "TN",
+    "salaryMin": 3200,
+    "salaryMax": 5500,
+    "responsibilities": "Concevoir et maintenir les APIs du contexte Recruitment.",
+    "minimumQualifications": "5 ans d'expérience Java/Spring Boot.",
+    "jobPositionId": "{{demoJobPositionId}}",
+    "openToInternational": true
+  }
+}
+
+docs {
+  PUT = remplacement complet (tous les champs descriptifs, même forme que la
+  création). workplaceType passe de REMOTE à HYBRID, openToInternational à
+  true. Pour un changement partiel (juste status/assessmentId), voir PATCH
+  (02h/03g).
+}

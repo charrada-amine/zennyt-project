@@ -1,0 +1,27 @@
+meta {
+  name: 10c Verify payment OTP wrong code 401 (REC)
+  type: http
+  seq: 77
+}
+
+post {
+  url: {{baseUrl}}/api/v1/payments/{{demoPaymentId}}/verify-otp
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{recruiterToken}}
+}
+
+body:json {
+  {
+    "otpCode": "000000"
+  }
+}
+
+docs {
+  Même garde-fou que 09d : un mauvais code OTP est rejeté (401), qu'il
+  s'agisse d'une opportunité ou d'un paiement.
+}

@@ -32,8 +32,13 @@ public class ChangeJobOfferStatusUseCase {
         }
         offer.changeStatus(newStatus);
         JobOffer saved = repository.save(offer);
-        saved.domainEvents().forEach(eventPublisher::publishEvent);
-        saved.clearEvents();
+        // Publier depuis `offer` et non `saved` : l'adaptateur de persistance reconstruit
+        // un agrégat neuf (rehydrate), qui ne porte donc aucun événement enregistré.
+        // Avec `saved`, JobOfferStatusChangedEvent n'était jamais publié — ni le
+        // précalcul à la publication, ni la purge à la fermeture ne se déclenchaient.
+        // Même ordre que CreateJobOfferUseCase, qui publie bien depuis l'agrégat modifié.
+        offer.domainEvents().forEach(eventPublisher::publishEvent);
+        offer.clearEvents();
         return saved;
     }
 }

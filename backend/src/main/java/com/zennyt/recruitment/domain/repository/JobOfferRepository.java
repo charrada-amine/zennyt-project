@@ -16,20 +16,43 @@ public interface JobOfferRepository {
 
     Optional<JobOffer> findById(UUID id);
 
+    /** Variante par lot de {@link #findById} — une seule requête pour tout un lot de recalcul. */
+    List<JobOffer> findByIds(List<UUID> ids);
+
+    /**
+     * Identifiants des offres ACTIVE d'un métier (D1).
+     *
+     * <p>Un test soumis pour une offre modifie désormais le sous-score hard du candidat sur
+     * <b>toutes</b> les offres du même métier : c'est cette liste qui définit la portée du
+     * recalcul. Ne renvoie que des identifiants — les paires enfilées n'ont pas besoin de
+     * l'agrégat complet, et la liste peut être longue.
+     */
+    List<UUID> findActiveIdsByJobPositionId(UUID jobPositionId);
+
     void deleteById(UUID id);
 
-    /** Offres du recruteur connecté, filtrées par statut optionnel. */
-    List<JobOffer> findByRecruiterId(UUID recruiterId, JobOfferStatus status, int page, int size);
+    /**
+     * Offres du recruteur connecté, filtrées par statut optionnel.
+     * @param sort {@code "champ,direction"} (ex. {@code "postedAt,desc"}) — {@code null}/vide
+     *             ou champ non reconnu retombe sur le tri par défaut (contrat squad web §1/§3.2).
+     */
+    List<JobOffer> findByRecruiterId(UUID recruiterId, JobOfferStatus status, String sort, int page, int size);
 
     long countByRecruiterId(UUID recruiterId, JobOfferStatus status);
 
     /** Une offre référence-t-elle encore cette évaluation ? (intégrité avant suppression) */
     boolean existsByAssessmentId(UUID assessmentId);
 
+    /** Ids des offres référençant encore cette évaluation. */
+    List<UUID> findIdsByAssessmentId(UUID assessmentId);
+
+    /** Nombre d'offres référençant chaque évaluation (vue liste recruteur). */
+    java.util.Map<UUID, Long> countByAssessmentIds(List<UUID> assessmentIds);
+
     /** Recherche plein texte avec filtres (vue candidat, offres ACTIVE uniquement). */
     List<JobOffer> search(String query, String location, String contractType,
                           String workplaceType, String experienceLevel, String fieldOfWork,
-                          Double salaryMin, Double salaryMax, int page, int size);
+                          Double salaryMin, Double salaryMax, String sort, int page, int size);
 
     long countSearch(String query, String location, String contractType,
                      String workplaceType, String experienceLevel, String fieldOfWork,
@@ -39,4 +62,16 @@ public interface JobOfferRepository {
     List<JobOffer> findFeedForCandidate(UUID candidateId, int page, int size);
 
     long countFeedForCandidate(UUID candidateId);
+
+    /** Offre + indicateur "le recruteur a déjà swipé RIGHT sur ce candidat pour cette offre". */
+    record MatchingDeckOffer(JobOffer offer, boolean recruiterAlreadyInterested) {}
+
+    /**
+     * Deck de swipe candidat (contrat squad web §5.5) : offres ACTIVE, exclut celles
+     * déjà swipées LEFT ou déjà matchées, priorité aux offres où le recruteur a déjà
+     * swipé RIGHT sur ce candidat.
+     */
+    List<MatchingDeckOffer> findMatchingDeckForCandidate(UUID candidateId, int page, int size);
+
+    long countMatchingDeckForCandidate(UUID candidateId);
 }

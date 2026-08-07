@@ -1,0 +1,29 @@
+meta {
+  name: 03e Generate assessment from prompt (REC)
+  type: http
+  seq: 26
+}
+
+post {
+  url: {{baseUrl}}/api/v1/assessments/generate/from-prompt
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{recruiterToken}}
+}
+
+body:json {
+  {
+    "jobDescription": "Développeur mobile Flutter, 2 ans d'expérience, connaissance de Riverpod et des tests widget.",
+    "questionCount": 5
+  }
+}
+
+docs {
+  Génération IA (Groq) d'un QCM complet à partir d'une description libre du
+  poste — pas de clé configurée en local : le stub hors-ligne renvoie un jeu
+  de questions déterministe (voir GroqAssessmentGeneratorTest).
+}

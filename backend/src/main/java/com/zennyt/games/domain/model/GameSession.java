@@ -82,17 +82,39 @@ public class GameSession extends AggregateRoot {
         attempts.add(Attempt.of(miniGame, score));
 
         if (attempts.size() == expectedMiniGames().size()) {
-            complete(scoring);
+            complete();
         }
+        // F14 — un événement à CHAQUE mini-jeu, pas seulement à complétion totale.
+        // Avant, une session partielle n'émettait rien du tout : pas de projection, pas
+        // de score. Le CdC §3.3 prévoit l'inverse — la donnée partielle arrive avec une
+        // décote de couverture, elle ne disparaît pas. Le listener fait un upsert par
+        // (candidat, module) : chaque émission remplace la précédente par une mieux
+        // couverte, jusqu'à 100 % à la complétion.
+        publishResult(scoring);
     }
 
-    private void complete(PlanifikScoringService scoring) {
+    private void complete() {
         this.status = SessionStatus.COMPLETED;
         this.completedAt = Instant.now();
+    }
+
+    private void publishResult(PlanifikScoringService scoring) {
+        double played = playedNormalizedScore();
         registerEvent(GameResultRecordedEvent.of(
             id, playerId, gameType,
-            compositeRaw(), compositeMax(), normalizedScore(),
-            scoring.interpretGlobal(gameType, compositeRaw(), normalizedScore())));
+            compositeRaw(), compositeMax(), played, coverageRatio(),
+            scoring.interpretGlobal(gameType, compositeRaw(), played)));
+    }
+
+    /**
+     * Part des mini-jeux jouables du module effectivement jouée (0-100) — la
+     * couverture au sens du CdC Fit Score v3 §3.3. Distincte du score : elle dit
+     * combien du module a été mesuré, pas à quel point il a été réussi.
+     */
+    public int coverageRatio() {
+        int expected = expectedMiniGames().size();
+        if (expected == 0) return 0;
+        return Math.min(100, Math.round(attempts.size() * 100f / expected));
     }
 
     private boolean isRecorded(MiniGame miniGame) {
@@ -138,6 +160,25 @@ public class GameSession extends AggregateRoot {
 
     public double normalizedScore() {
         return compositeMax() == 0 ? 0.0 : compositeRaw() * 100.0 / compositeMax();
+    }
+
+    /**
+     * Score ramené sur 100 <b>de ce qui a réellement été joué</b> — et non du module
+     * complet comme {@link #normalizedScore()}.
+     *
+     * <p>F14 — c'est cette valeur qui part dans l'événement, jamais {@code normalizedScore()}.
+     * Sur une session partielle, {@code normalizedScore()} divise par le maximum du module
+     * entier : un joueur ayant parfaitement réussi 1 des 3 mini-jeux de Planifik obtiendrait
+     * 33/100. Couplé à une couverture de 33 %, le Fit Score appliquerait 33 × 0,33 = 11 — la
+     * même incomplétude comptée deux fois. La couverture porte l'incomplétude ; le score
+     * doit porter la seule performance.
+     *
+     * <p>À complétion totale, {@code compositeMax()} vaut exactement la somme des maximums
+     * enregistrés : les deux valeurs coïncident, et le comportement existant est inchangé.
+     */
+    public double playedNormalizedScore() {
+        int recordedMax = attempts.stream().mapToInt(a -> a.score().maxPoints()).sum();
+        return recordedMax == 0 ? 0.0 : compositeRaw() * 100.0 / recordedMax;
     }
 
     public UUID id() { return id; }

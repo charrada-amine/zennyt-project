@@ -1,0 +1,33 @@
+meta {
+  name: 00 Login Aicha (CAND)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/auth/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "candidate1@zennyt.com",
+    "password": "zennyt123"
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    bru.setVar("candidateToken", res.body.accessToken);
+  }
+}
+
+docs {
+  Login candidate principale (Aicha) — suit le parcours complet : swipe,
+  match, test de compétences, opportunité.
+}
