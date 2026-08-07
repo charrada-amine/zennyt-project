@@ -3,9 +3,15 @@ package com.zennyt.games.api.dto;
 import com.zennyt.games.domain.model.Attempt;
 import com.zennyt.games.domain.model.GameSession;
 import com.zennyt.games.domain.vo.DecisionReport;
+import com.zennyt.games.domain.vo.ContinuousAttentionEpochReport;
+import com.zennyt.games.domain.vo.ContinuousAttentionPhaseReport;
+import com.zennyt.games.domain.vo.ContinuousAttentionReport;
+import com.zennyt.games.domain.vo.CoordinationReport;
 import com.zennyt.games.domain.vo.EmotionalRadarReport;
 import com.zennyt.games.domain.vo.MemoryQuestReport;
 import com.zennyt.games.domain.vo.MoveFastFlexibilityReport;
+import com.zennyt.games.domain.vo.ObjectLocationLevelReport;
+import com.zennyt.games.domain.vo.ObjectLocationReport;
 import com.zennyt.games.domain.vo.PrevisionPuzzleReport;
 import com.zennyt.games.domain.vo.ReflectivePauseReport;
 import com.zennyt.games.domain.vo.ScoreBreakdown;
@@ -32,8 +38,226 @@ public record GameSessionResponse(
     DecisionIndicatorsResponse decisionIndicators,
     EmotionalRadarIndicatorsResponse emotionalRadarIndicators,
     ReflectivePauseIndicatorsResponse reflectivePauseIndicators,
+    ContinuousAttentionIndicatorsResponse continuousAttentionIndicators,
+    CoordinationIndicatorsResponse coordinationIndicators,
+    ObjectLocationIndicatorsResponse objectLocationIndicators,
     List<ScoreBreakdownLineResponse> scoreBreakdown
 ) {
+    /** Rapport descriptif de liaison objet-position, sans norme clinique. */
+    public record ObjectLocationIndicatorsResponse(
+        String protocolVersion,
+        String completionReason,
+        boolean completed,
+        boolean sessionValid,
+        boolean technicalValid,
+        boolean minimumLevelsValid,
+        boolean progressionValid,
+        boolean timingValid,
+        int provisionalAccuracyScore,
+        int completedLevelCount,
+        int passedLevelCount,
+        int administeredObjectCount,
+        int exactPlacementCount,
+        int swapCount,
+        int localErrorCount,
+        int globalErrorCount,
+        int unplacedCount,
+        double exactAccuracyPercent,
+        double swapRatePercent,
+        double localErrorRatePercent,
+        double globalErrorRatePercent,
+        double averageDisplacementCells,
+        int span,
+        Double loadSlope,
+        Double averageFirstPlacementIntervalMs,
+        int repositionCount,
+        int backgroundEventCount,
+        int focusLossCount,
+        int orientationChangeCount,
+        int droppedFrameCount,
+        int timingDeviationCount,
+        List<ObjectLocationLevelIndicatorsResponse> levels,
+        List<String> validityIssues
+    ) {
+        static ObjectLocationIndicatorsResponse from(ObjectLocationReport r) {
+            return new ObjectLocationIndicatorsResponse(
+                r.protocolVersion(), r.completionReason().name(), r.completed(),
+                r.sessionValid(), r.technicalValid(), r.minimumLevelsValid(),
+                r.progressionValid(), r.timingValid(), r.provisionalAccuracyScore(),
+                r.completedLevelCount(), r.passedLevelCount(),
+                r.administeredObjectCount(), r.exactPlacementCount(), r.swapCount(),
+                r.localErrorCount(), r.globalErrorCount(), r.unplacedCount(),
+                r.exactAccuracyPercent(), r.swapRatePercent(),
+                r.localErrorRatePercent(), r.globalErrorRatePercent(),
+                r.averageDisplacementCells(), r.span(), r.loadSlope(),
+                r.averageFirstPlacementIntervalMs(), r.repositionCount(),
+                r.backgroundEventCount(), r.focusLossCount(),
+                r.orientationChangeCount(), r.droppedFrameCount(),
+                r.timingDeviationCount(),
+                r.levels().stream()
+                    .map(ObjectLocationLevelIndicatorsResponse::from).toList(),
+                r.validityIssues());
+        }
+    }
+
+    /** Détail descriptif d'un niveau, pratique comprise. */
+    public record ObjectLocationLevelIndicatorsResponse(
+        String phase,
+        int levelIndex,
+        int objectCount,
+        boolean completed,
+        boolean timedOut,
+        boolean passed,
+        int exactCount,
+        int swapCount,
+        int localErrorCount,
+        int globalErrorCount,
+        int unplacedCount,
+        double exactAccuracyPercent,
+        double averageDisplacementCells,
+        int recallDurationMs,
+        int actionCount,
+        int repositionCount,
+        Double averageFirstPlacementIntervalMs
+    ) {
+        static ObjectLocationLevelIndicatorsResponse from(
+                ObjectLocationLevelReport r) {
+            return new ObjectLocationLevelIndicatorsResponse(
+                r.phase().name(), r.levelIndex(), r.objectCount(), r.completed(),
+                r.timedOut(), r.passed(), r.exactCount(), r.swapCount(),
+                r.localErrorCount(), r.globalErrorCount(), r.unplacedCount(),
+                r.exactAccuracyPercent(), r.averageDisplacementCells(),
+                r.recallDurationMs(), r.actionCount(), r.repositionCount(),
+                r.averageFirstPlacementIntervalMs());
+        }
+    }
+
+    /** Rapport visuomoteur calculé depuis les positions pointeur brutes. */
+    public record CoordinationIndicatorsResponse(
+        String protocolVersion,
+        String inputSource,
+        boolean completed,
+        boolean sessionValid,
+        boolean interrupted,
+        int provisionalAccuracyScore,
+        double overallAccuracyPercent,
+        double fastAccuracyPercent,
+        double slowAccuracyPercent,
+        double longSegmentAccuracyPercent,
+        double shortSegmentAccuracyPercent,
+        double averageCenterDistance,
+        long testExecutionTimeMs,
+        boolean accuracyValid,
+        boolean executionTimeValid,
+        boolean taskValid,
+        boolean technicalValid,
+        int sampleCount,
+        int absentSampleCount,
+        int backgroundEventCount,
+        int droppedFrameCount,
+        int timingDeviationCount,
+        int samplingGapCount,
+        List<String> validityIssues
+    ) {
+        static CoordinationIndicatorsResponse from(CoordinationReport r) {
+            return new CoordinationIndicatorsResponse(
+                r.protocolVersion(), r.inputSource().name(), r.completed(),
+                r.sessionValid(), r.interrupted(), r.provisionalAccuracyScore(),
+                r.overallAccuracyPercent(), r.fastAccuracyPercent(),
+                r.slowAccuracyPercent(), r.longSegmentAccuracyPercent(),
+                r.shortSegmentAccuracyPercent(), r.averageCenterDistance(),
+                r.testExecutionTimeMs(), r.accuracyValid(),
+                r.executionTimeValid(), r.taskValid(), r.technicalValid(), r.sampleCount(),
+                r.absentSampleCount(), r.backgroundEventCount(),
+                r.droppedFrameCount(), r.timingDeviationCount(),
+                r.samplingGapCount(), r.validityIssues());
+        }
+    }
+
+    /** Rapport descriptif Long Rosvold X/AX, sans norme ni bande clinique. */
+    public record ContinuousAttentionIndicatorsResponse(
+        String protocolVersion,
+        boolean completed,
+        boolean sessionValid,
+        boolean interrupted,
+        int provisionalAccuracyScore,
+        ContinuousAttentionPhaseIndicatorsResponse xPhase,
+        ContinuousAttentionPhaseIndicatorsResponse axPhase,
+        List<ContinuousAttentionEpochIndicatorsResponse> epochs,
+        int axTargetCount,
+        int ayCount,
+        int bxCount,
+        int byCount,
+        int extraResponseCount,
+        int backgroundEventCount,
+        int droppedFrameCount,
+        int timingDeviationCount,
+        List<String> validityIssues
+    ) {
+        static ContinuousAttentionIndicatorsResponse from(ContinuousAttentionReport r) {
+            return new ContinuousAttentionIndicatorsResponse(
+                r.protocolVersion(), r.completed(), r.sessionValid(), r.interrupted(),
+                r.provisionalAccuracyScore(),
+                ContinuousAttentionPhaseIndicatorsResponse.from(r.xPhase()),
+                ContinuousAttentionPhaseIndicatorsResponse.from(r.axPhase()),
+                r.epochs().stream()
+                    .map(ContinuousAttentionEpochIndicatorsResponse::from).toList(),
+                r.axTargetCount(), r.ayCount(), r.bxCount(), r.byCount(),
+                r.extraResponseCount(), r.backgroundEventCount(), r.droppedFrameCount(),
+                r.timingDeviationCount(), r.validityIssues());
+        }
+    }
+
+    public record ContinuousAttentionEpochIndicatorsResponse(
+        String phase,
+        int epochIndex,
+        double hitRatePercent,
+        double falseAlarmRatePercent,
+        Double averageHitReactionTimeMs,
+        Double reactionTimeVariabilityMs,
+        double dPrime
+    ) {
+        static ContinuousAttentionEpochIndicatorsResponse from(
+                ContinuousAttentionEpochReport r) {
+            return new ContinuousAttentionEpochIndicatorsResponse(
+                r.phase().name(), r.epochIndex(), r.hitRatePercent(),
+                r.falseAlarmRatePercent(), r.averageHitReactionTimeMs(),
+                r.reactionTimeVariabilityMs(), r.dPrime());
+        }
+    }
+
+    public record ContinuousAttentionPhaseIndicatorsResponse(
+        String phase,
+        int targetCount,
+        int nonTargetCount,
+        int hitCount,
+        int omissionCount,
+        int commissionCount,
+        int correctRejectionCount,
+        double hitRatePercent,
+        double omissionRatePercent,
+        double falseAlarmRatePercent,
+        double correctRejectionRatePercent,
+        double balancedAccuracyPercent,
+        Double averageHitReactionTimeMs,
+        Double medianHitReactionTimeMs,
+        Double stdDevHitReactionTimeMs,
+        Double reactionTimeCoefficientOfVariation,
+        double dPrime,
+        double responseBiasC
+    ) {
+        static ContinuousAttentionPhaseIndicatorsResponse from(
+                ContinuousAttentionPhaseReport r) {
+            return new ContinuousAttentionPhaseIndicatorsResponse(
+                r.phase().name(), r.targetCount(), r.nonTargetCount(), r.hitCount(),
+                r.omissionCount(), r.commissionCount(), r.correctRejectionCount(),
+                r.hitRatePercent(), r.omissionRatePercent(), r.falseAlarmRatePercent(),
+                r.correctRejectionRatePercent(), r.balancedAccuracyPercent(),
+                r.averageHitReactionTimeMs(), r.medianHitReactionTimeMs(),
+                r.stdDevHitReactionTimeMs(), r.reactionTimeCoefficientOfVariation(),
+                r.dPrime(), r.responseBiasC());
+        }
+    }
     /**
      * Indicateurs de reconnaissance émotionnelle (calculés serveur).
      * Présent uniquement quand le résultat soumis concerne Emotional Radar.
@@ -240,7 +464,7 @@ public record GameSessionResponse(
     }
 
     public static GameSessionResponse from(GameSession s) {
-        return from(s, null, null, null, null, null, null, null);
+        return from(s, null, null, null, null, null, null, null, null, null, null);
     }
 
     public static GameSessionResponse from(GameSession s,
@@ -250,6 +474,9 @@ public record GameSessionResponse(
                                            DecisionReport decisionReport,
                                            EmotionalRadarReport emotionalRadarReport,
                                            ReflectivePauseReport reflectivePauseReport,
+                                           ContinuousAttentionReport continuousAttentionReport,
+                                           CoordinationReport coordinationReport,
+                                           ObjectLocationReport objectLocationReport,
                                            ScoreBreakdown scoreBreakdown) {
         return new GameSessionResponse(
             s.id(), s.playerId(), s.gameType().name(), s.status().name(),
@@ -266,6 +493,12 @@ public record GameSessionResponse(
                 : EmotionalRadarIndicatorsResponse.from(emotionalRadarReport),
             reflectivePauseReport == null ? null
                 : ReflectivePauseIndicatorsResponse.from(reflectivePauseReport),
+            continuousAttentionReport == null ? null
+                : ContinuousAttentionIndicatorsResponse.from(continuousAttentionReport),
+            coordinationReport == null ? null
+                : CoordinationIndicatorsResponse.from(coordinationReport),
+            objectLocationReport == null ? null
+                : ObjectLocationIndicatorsResponse.from(objectLocationReport),
             scoreBreakdown == null ? null
                 : scoreBreakdown.lines().stream().map(ScoreBreakdownLineResponse::from).toList());
     }

@@ -45,7 +45,16 @@ public enum MiniGame {
      * « Reflective Pause » — contrôle de l'impulsivité sous pression.
      * Temps contrôlé /3 + réponses non impulsives /4 + prise de recul /3.
      */
-    REFLECTIVE_PAUSE_CORE(GameType.EMOTIONAL_REGULATION, 10, true);
+    REFLECTIVE_PAUSE_CORE(GameType.EMOTIONAL_REGULATION, 10, true),
+    /**
+     * « Je continue » — protocole Long Rosvold X/AX. Le score provisoire /100
+     * ne dépend que des balanced accuracies des deux phases de test.
+     */
+    CONTINUOUS_ATTENTION_CORE(GameType.CONTINUOUS_ATTENTION, 100, true),
+    /** « Je coordonne » — tracking visuomoteur, précision globale /100 provisoire. */
+    COORDINATION_TRACKING_CORE(GameType.VISUOMOTOR_COORDINATION, 100, true),
+    /** « Je place » — exactitude objet-position /100, barème provisoire isolé. */
+    OBJECT_LOCATION_BINDING_CORE(GameType.VISUOSPATIAL_MEMORY, 100, true);
 
     private final GameType gameType;
     private final int maxPoints;

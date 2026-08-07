@@ -36,6 +36,11 @@ public class GameSessionRepositoryAdapter implements GameSessionRepository {
         return jpa.findById(id).map(this::toDomain);
     }
 
+    @Override
+    public Optional<GameSession> findByIdForUpdate(UUID id) {
+        return jpa.findByIdForUpdate(id).map(this::toDomain);
+    }
+
     // ───────────── Mappers ─────────────
     private GameSessionEntity toEntity(GameSession s) {
         List<AttemptEmbeddable> attempts = s.attempts().stream()

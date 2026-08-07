@@ -4,6 +4,8 @@ import '../domain/config/memory_quest_config.dart';
 import '../domain/config/move_fast_config.dart';
 import '../domain/config/reflective_pause_config.dart';
 import '../domain/decision_scenario_catalog.dart';
+import '../domain/entities/continuous_attention_metrics.dart';
+import '../domain/entities/coordination_tracking_metrics.dart';
 import '../domain/entities/decision_metrics.dart';
 import '../domain/entities/device_calibration.dart';
 import '../domain/entities/emotional_radar.dart';
@@ -13,6 +15,7 @@ import '../domain/entities/game_type.dart';
 import '../domain/entities/game_metrics.dart';
 import '../domain/entities/memory_quest_metrics.dart';
 import '../domain/entities/mini_game.dart';
+import '../domain/entities/object_location_metrics.dart';
 import '../domain/entities/move_fast_metrics.dart';
 import '../domain/entities/planifik_metrics.dart';
 import '../domain/entities/prevision_puzzle_metrics.dart';
@@ -20,7 +23,10 @@ import '../domain/entities/reflective_pause_metrics.dart';
 import '../domain/entities/score_breakdown.dart';
 import '../domain/entities/task_scheduling_metrics.dart';
 import '../domain/repositories/games_repository.dart';
+import 'continuous_attention_scoring.dart';
+import 'coordination_tracking_scoring.dart';
 import 'decision_scoring.dart';
+import 'object_location_scoring.dart';
 
 /// [GamesRepository] MOCK — permet de jouer en totale autonomie, sans backend.
 ///
@@ -46,6 +52,9 @@ class GamesMockRepository implements GamesRepository {
   static const _decisionScoring = DecisionScoring(
     EmptyDecisionScenarioCatalog(),
   );
+  static const _continuousAttentionScoring = ContinuousAttentionScoring();
+  static const _coordinationTrackingScoring = CoordinationTrackingScoring();
+  static const _objectLocationScoring = ObjectLocationScoring();
 
   // Config « Chemin Optimal » — miroir de OptimalPathConfig (backend).
   static const double _optimalPathTolerance = 0.10; // optimal_path_tolerance
@@ -86,6 +95,145 @@ class GamesMockRepository implements GamesRepository {
       throw StateError('Session mock introuvable : $sessionId');
     }
 
+    if (miniGame == MiniGame.continuousAttentionCore) {
+      if (current.gameType != GameType.continuousAttention) {
+        throw StateError(
+          '${MiniGame.continuousAttentionCore.wire} does not belong to '
+          '${current.gameType.wire}',
+        );
+      }
+      if (current.status != 'IN_PROGRESS' ||
+          current.attempts.any(
+            (attempt) => attempt.miniGame == MiniGame.continuousAttentionCore,
+          )) {
+        throw StateError(
+          'Continuous-attention result already recorded for $sessionId',
+        );
+      }
+    }
+    if (miniGame == MiniGame.coordinationTrackingCore) {
+      if (current.gameType != GameType.visuomotorCoordination) {
+        throw StateError(
+          '${MiniGame.coordinationTrackingCore.wire} does not belong to '
+          '${current.gameType.wire}',
+        );
+      }
+      if (current.status != 'IN_PROGRESS' ||
+          current.attempts.any(
+            (attempt) => attempt.miniGame == MiniGame.coordinationTrackingCore,
+          )) {
+        throw StateError(
+          'Coordination-tracking result already recorded for $sessionId',
+        );
+      }
+    }
+    if (miniGame == MiniGame.objectLocationBindingCore) {
+      if (current.gameType != GameType.visuospatialMemory) {
+        throw StateError(
+          '${MiniGame.objectLocationBindingCore.wire} does not belong to '
+          '${current.gameType.wire}',
+        );
+      }
+      if (current.status != 'IN_PROGRESS' ||
+          current.attempts.any(
+            (attempt) => attempt.miniGame == MiniGame.objectLocationBindingCore,
+          )) {
+        throw StateError(
+          'Object-location result already recorded for $sessionId',
+        );
+      }
+    }
+
+    final continuousAttentionResult =
+        miniGame == MiniGame.continuousAttentionCore
+        ? _continuousAttentionScoring.score(
+            sessionId: sessionId,
+            metrics: metrics as ContinuousAttentionMetrics,
+          )
+        : null;
+    final coordinationTrackingResult =
+        miniGame == MiniGame.coordinationTrackingCore
+        ? _coordinationTrackingScoring.score(
+            metrics as CoordinationTrackingMetrics,
+          )
+        : null;
+    final objectLocationResult = miniGame == MiniGame.objectLocationBindingCore
+        ? _objectLocationScoring.score(
+            sessionId: sessionId,
+            metrics: metrics as ObjectLocationMetrics,
+          )
+        : null;
+    if (continuousAttentionResult != null &&
+        !continuousAttentionResult.indicators.sessionValid) {
+      final audited = GameSession(
+        id: current.id,
+        gameType: current.gameType,
+        status: current.status,
+        compositeRaw: current.compositeRaw,
+        compositeMax: current.compositeMax,
+        normalized: current.normalized,
+        attempts: current.attempts,
+        startedAt: current.startedAt,
+        completedAt: current.completedAt,
+        scoreBreakdown: _continuousAttentionBreakdown(
+          continuousAttentionResult.indicators,
+          continuousAttentionResult.score,
+        ),
+        reflectivePauseIndicators: current.reflectivePauseIndicators,
+        continuousAttentionIndicators: continuousAttentionResult.indicators,
+        coordinationIndicators: current.coordinationIndicators,
+      );
+      _sessions[sessionId] = audited;
+      return audited;
+    }
+    if (coordinationTrackingResult != null &&
+        !coordinationTrackingResult.indicators.sessionValid) {
+      final audited = GameSession(
+        id: current.id,
+        gameType: current.gameType,
+        status: current.status,
+        compositeRaw: current.compositeRaw,
+        compositeMax: current.compositeMax,
+        normalized: current.normalized,
+        attempts: current.attempts,
+        startedAt: current.startedAt,
+        completedAt: current.completedAt,
+        scoreBreakdown: _coordinationTrackingBreakdown(
+          coordinationTrackingResult.indicators,
+          coordinationTrackingResult.score,
+        ),
+        reflectivePauseIndicators: current.reflectivePauseIndicators,
+        continuousAttentionIndicators: current.continuousAttentionIndicators,
+        coordinationIndicators: coordinationTrackingResult.indicators,
+        objectLocationIndicators: current.objectLocationIndicators,
+      );
+      _sessions[sessionId] = audited;
+      return audited;
+    }
+    if (objectLocationResult != null &&
+        !objectLocationResult.indicators.sessionValid) {
+      final audited = GameSession(
+        id: current.id,
+        gameType: current.gameType,
+        status: current.status,
+        compositeRaw: current.compositeRaw,
+        compositeMax: current.compositeMax,
+        normalized: current.normalized,
+        attempts: current.attempts,
+        startedAt: current.startedAt,
+        completedAt: current.completedAt,
+        scoreBreakdown: _objectLocationBreakdown(
+          objectLocationResult.indicators,
+          objectLocationResult.score,
+        ),
+        reflectivePauseIndicators: current.reflectivePauseIndicators,
+        continuousAttentionIndicators: current.continuousAttentionIndicators,
+        coordinationIndicators: current.coordinationIndicators,
+        objectLocationIndicators: objectLocationResult.indicators,
+      );
+      _sessions[sessionId] = audited;
+      return audited;
+    }
     final score = switch (miniGame) {
       MiniGame.optimalPath => _scoreOptimalPath(metrics as PlanifikMetrics),
       MiniGame.previsionPuzzle => _scorePrevisionPuzzle(
@@ -110,6 +258,9 @@ class GamesMockRepository implements GamesRepository {
       MiniGame.reflectivePauseCore => _scoreReflectivePause(
         metrics as ReflectivePauseMetrics,
       ),
+      MiniGame.continuousAttentionCore => continuousAttentionResult!.score,
+      MiniGame.coordinationTrackingCore => coordinationTrackingResult!.score,
+      MiniGame.objectLocationBindingCore => objectLocationResult!.score,
     };
     final attempts = [
       ...current.attempts,
@@ -120,6 +271,9 @@ class GamesMockRepository implements GamesRepository {
         miniGame == MiniGame.moveFastCore ||
         miniGame == MiniGame.memoryQuestCore ||
         miniGame == MiniGame.decisionCore ||
+        miniGame == MiniGame.continuousAttentionCore ||
+        miniGame == MiniGame.coordinationTrackingCore ||
+        miniGame == MiniGame.objectLocationBindingCore ||
         attempts.length >= _expectedMiniGames(current.gameType);
     final max = complete
         ? attempts.fold<int>(0, (sum, a) => sum + a.score.maxPoints)
@@ -140,6 +294,16 @@ class GamesMockRepository implements GamesRepository {
       reflectivePauseIndicators: miniGame == MiniGame.reflectivePauseCore
           ? _reflectivePauseIndicators(metrics as ReflectivePauseMetrics, score)
           : current.reflectivePauseIndicators,
+      continuousAttentionIndicators:
+          miniGame == MiniGame.continuousAttentionCore
+          ? continuousAttentionResult!.indicators
+          : current.continuousAttentionIndicators,
+      coordinationIndicators: miniGame == MiniGame.coordinationTrackingCore
+          ? coordinationTrackingResult!.indicators
+          : current.coordinationIndicators,
+      objectLocationIndicators: miniGame == MiniGame.objectLocationBindingCore
+          ? objectLocationResult!.indicators
+          : current.objectLocationIndicators,
     );
     _sessions[sessionId] = updated;
     return updated;
@@ -217,7 +381,9 @@ class GamesMockRepository implements GamesRepository {
         tasks.add(_taskScore(m.afterDistractionAccuracy));
       }
     }
-    final avg = tasks.isEmpty ? 0.0 : tasks.reduce((a, b) => a + b) / tasks.length;
+    final avg = tasks.isEmpty
+        ? 0.0
+        : tasks.reduce((a, b) => a + b) / tasks.length;
     final composite = (avg / 5 * 100).round();
     return GameScore(
       rawPoints: composite,
@@ -392,7 +558,196 @@ class GamesMockRepository implements GamesRepository {
         metrics as ReflectivePauseMetrics,
         score,
       ),
+      MiniGame.continuousAttentionCore => _breakdownContinuousAttention(
+        metrics as ContinuousAttentionMetrics,
+        score,
+        sessionId,
+      ),
+      MiniGame.coordinationTrackingCore => _breakdownCoordinationTracking(
+        metrics as CoordinationTrackingMetrics,
+        score,
+      ),
+      MiniGame.objectLocationBindingCore => _breakdownObjectLocation(
+        metrics as ObjectLocationMetrics,
+        score,
+        sessionId,
+      ),
     };
+  }
+
+  List<ScoreBreakdownLine> _breakdownObjectLocation(
+    ObjectLocationMetrics metrics,
+    GameScore score,
+    String sessionId,
+  ) {
+    final report = _objectLocationScoring
+        .score(sessionId: sessionId, metrics: metrics)
+        .indicators;
+    return _objectLocationBreakdown(report, score);
+  }
+
+  List<ScoreBreakdownLine> _objectLocationBreakdown(
+    ObjectLocationIndicators report,
+    GameScore score,
+  ) {
+    String percent(double value) => '${value.toStringAsFixed(1)} %';
+    return [
+      const ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.note,
+        label:
+            'Score provisoire = placements exacts / objets administrés, '
+            'avec un seul arrondi. Permutations, distance et temps restent '
+            'descriptifs.',
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.info,
+        label: 'Placements exacts',
+        detail:
+            '${report.exactPlacementCount}/${report.administeredObjectCount} '
+            '(${percent(report.exactAccuracyPercent)})',
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.info,
+        label: 'Empan atteint',
+        detail: '${report.span} objets',
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.info,
+        label: 'Permutations / erreurs proches / éloignées',
+        detail:
+            '${report.swapCount} / ${report.localErrorCount} / '
+            '${report.globalErrorCount}',
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.info,
+        label: 'Distance moyenne',
+        detail:
+            '${report.averageDisplacementCells.toStringAsFixed(2)} cellules',
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.info,
+        label: 'Validité technique',
+        detail: report.sessionValid
+            ? 'valide'
+            : report.validityIssues.join(', '),
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.total,
+        label: 'Score descriptif',
+        points: score.rawPoints,
+        maxPoints: score.maxPoints,
+      ),
+    ];
+  }
+
+  List<ScoreBreakdownLine> _breakdownCoordinationTracking(
+    CoordinationTrackingMetrics metrics,
+    GameScore score,
+  ) {
+    final report = _coordinationTrackingScoring.score(metrics).indicators;
+    return _coordinationTrackingBreakdown(report, score);
+  }
+
+  List<ScoreBreakdownLine> _coordinationTrackingBreakdown(
+    CoordinationTrackingIndicators report,
+    GameScore score,
+  ) {
+    String percent(double value) => '${value.toStringAsFixed(1)} %';
+    return [
+      const ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.note,
+        label:
+            'Score provisoire = précision globale mesurée, arrondie une fois '
+            'au demi-point supérieur. Les sous-précisions et la distance '
+            'restent descriptives.',
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.info,
+        label: 'Précision globale',
+        detail: percent(report.overallAccuracyPercent),
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.info,
+        label: 'Vitesse lente / rapide',
+        detail:
+            '${percent(report.slowAccuracyPercent)} / '
+            '${percent(report.fastAccuracyPercent)}',
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.info,
+        label: 'Segments longs / courts',
+        detail:
+            '${percent(report.longSegmentAccuracyPercent)} / '
+            '${percent(report.shortSegmentAccuracyPercent)}',
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.info,
+        label: 'Distance moyenne au centre',
+        detail: report.averageCenterDistance.toStringAsFixed(1),
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.info,
+        label: 'Validité technique',
+        detail: report.sessionValid
+            ? 'valide'
+            : report.validityIssues.join(', '),
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.total,
+        label: 'Score descriptif',
+        points: score.rawPoints,
+        maxPoints: score.maxPoints,
+      ),
+    ];
+  }
+
+  List<ScoreBreakdownLine> _breakdownContinuousAttention(
+    ContinuousAttentionMetrics metrics,
+    GameScore score,
+    String sessionId,
+  ) {
+    final report = _continuousAttentionScoring
+        .score(sessionId: sessionId, metrics: metrics)
+        .indicators;
+    return _continuousAttentionBreakdown(report, score);
+  }
+
+  List<ScoreBreakdownLine> _continuousAttentionBreakdown(
+    ContinuousAttentionIndicators report,
+    GameScore score,
+  ) {
+    return [
+      const ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.note,
+        label:
+            'Score provisoire = moyenne de la balanced accuracy X_TEST et '
+            'AX_TEST, arrondie une seule fois. Entraînement, temps, d-prime '
+            'et biais c sont hors score.',
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.info,
+        label: 'X_TEST — balanced accuracy',
+        detail: '${report.xPhase.balancedAccuracyPercent} %',
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.info,
+        label: 'AX_TEST — balanced accuracy',
+        detail: '${report.axPhase.balancedAccuracyPercent} %',
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.info,
+        label: 'Validité technique',
+        detail: report.sessionValid
+            ? 'valide'
+            : report.validityIssues.join(', '),
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.total,
+        label: 'Score descriptif',
+        points: score.rawPoints,
+        maxPoints: score.maxPoints,
+      ),
+    ];
   }
 
   List<ScoreBreakdownLine> _breakdownReflectivePause(
@@ -515,33 +870,62 @@ class GamesMockRepository implements GamesRepository {
             'Chaque tâche est notée sur 5 ; le score = moyenne des tâches '
             'jouées, ramenée sur 100.',
       ),
-      _crit('Rappel même ordre', _pct(m.sameAccuracy), _taskScore(m.sameAccuracy), 5),
-      _crit('Rappel inverse', _pct(m.reverseAccuracy), _taskScore(m.reverseAccuracy), 5),
+      _crit(
+        'Rappel même ordre',
+        _pct(m.sameAccuracy),
+        _taskScore(m.sameAccuracy),
+        5,
+      ),
+      _crit(
+        'Rappel inverse',
+        _pct(m.reverseAccuracy),
+        _taskScore(m.reverseAccuracy),
+        5,
+      ),
     ];
     if (m.missionBPlayed) {
-      lines.add(_crit("Restauration d'objets", _pct(m.restoreAccuracy),
-          _taskScore(m.restoreAccuracy), 5));
+      lines.add(
+        _crit(
+          "Restauration d'objets",
+          _pct(m.restoreAccuracy),
+          _taskScore(m.restoreAccuracy),
+          5,
+        ),
+      );
     }
     if (m.distractionPlayed) {
       lines
-        ..add(_crit('Rappel après distraction', _pct(m.afterDistractionAccuracy),
-            _taskScore(m.afterDistractionAccuracy), 5))
-        ..add(ScoreBreakdownLine(
-          kind: ScoreBreakdownKind.info,
-          label: 'Question rapide',
-          detail: m.distractionQuestionCorrect ? 'correcte' : 'manquée',
-        ));
+        ..add(
+          _crit(
+            'Rappel après distraction',
+            _pct(m.afterDistractionAccuracy),
+            _taskScore(m.afterDistractionAccuracy),
+            5,
+          ),
+        )
+        ..add(
+          ScoreBreakdownLine(
+            kind: ScoreBreakdownKind.info,
+            label: 'Question rapide',
+            detail: m.distractionQuestionCorrect ? 'correcte' : 'manquée',
+          ),
+        );
     }
-    lines.add(ScoreBreakdownLine(
-      kind: ScoreBreakdownKind.total,
-      label: 'Composite',
-      points: score.rawPoints,
-      maxPoints: score.maxPoints,
-    ));
+    lines.add(
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.total,
+        label: 'Composite',
+        points: score.rawPoints,
+        maxPoints: score.maxPoints,
+      ),
+    );
     return lines;
   }
 
-  List<ScoreBreakdownLine> _breakdownMoveFast(MoveFastMetrics m, GameScore score) {
+  List<ScoreBreakdownLine> _breakdownMoveFast(
+    MoveFastMetrics m,
+    GameScore score,
+  ) {
     final replay = _replayMoveFast(m.correctResponses);
     final correct = m.correctResponses.where((c) => c).length;
     return [
@@ -604,29 +988,49 @@ class GamesMockRepository implements GamesRepository {
       };
       final levelScore = optimalPts + attemptsPts + zonesPts + secondaryPts;
       if (n > 1) {
-        lines.add(ScoreBreakdownLine(
-          kind: ScoreBreakdownKind.info,
-          label: 'Niveau ${i + 1}',
-        ));
+        lines.add(
+          ScoreBreakdownLine(
+            kind: ScoreBreakdownKind.info,
+            label: 'Niveau ${i + 1}',
+          ),
+        );
       }
       lines
         ..add(_crit('Chemin optimal (±10 %)', _pct(deviation), optimalPts, 4))
         ..add(_crit('Essais', '${l.attempts}', attemptsPts, 3))
-        ..add(_crit('Zones coûteuses évitées', _zonesLabel(l.costlyZonesAvoided), zonesPts, 2))
-        ..add(_crit('Objectif secondaire', _secondaryLabel(l.secondaryObjectivesReached), secondaryPts, 1))
-        ..add(ScoreBreakdownLine(
-          kind: ScoreBreakdownKind.subtotal,
-          label: 'Niveau ${i + 1}',
-          points: levelScore,
-          maxPoints: 10,
-        ));
+        ..add(
+          _crit(
+            'Zones coûteuses évitées',
+            _zonesLabel(l.costlyZonesAvoided),
+            zonesPts,
+            2,
+          ),
+        )
+        ..add(
+          _crit(
+            'Objectif secondaire',
+            _secondaryLabel(l.secondaryObjectivesReached),
+            secondaryPts,
+            1,
+          ),
+        )
+        ..add(
+          ScoreBreakdownLine(
+            kind: ScoreBreakdownKind.subtotal,
+            label: 'Niveau ${i + 1}',
+            points: levelScore,
+            maxPoints: 10,
+          ),
+        );
     }
-    lines.add(ScoreBreakdownLine(
-      kind: ScoreBreakdownKind.total,
-      label: 'Moyenne des $n niveaux',
-      points: score.rawPoints,
-      maxPoints: 10,
-    ));
+    lines.add(
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.total,
+        label: 'Moyenne des $n niveaux',
+        points: score.rawPoints,
+        maxPoints: 10,
+      ),
+    );
     return lines;
   }
 
@@ -655,29 +1059,42 @@ class GamesMockRepository implements GamesRepository {
           : 1;
       final levelScore = firstTryPts + seqPts + extraPts;
       if (n > 1) {
-        lines.add(ScoreBreakdownLine(
-          kind: ScoreBreakdownKind.info,
-          label: 'Niveau ${i + 1}',
-          detail: '${l.discCount} disques',
-        ));
+        lines.add(
+          ScoreBreakdownLine(
+            kind: ScoreBreakdownKind.info,
+            label: 'Niveau ${i + 1}',
+            detail: '${l.discCount} disques',
+          ),
+        );
       }
       lines
-        ..add(_crit('Réussi du 1er coup', l.firstTrySuccess ? 'oui' : 'non', firstTryPts, 4))
+        ..add(
+          _crit(
+            'Réussi du 1er coup',
+            l.firstTrySuccess ? 'oui' : 'non',
+            firstTryPts,
+            4,
+          ),
+        )
         ..add(_crit('Erreurs de séquence', '${l.sequenceErrors}', seqPts, 3))
         ..add(_crit('Coups superflus', _pct(safeRatio), extraPts, 3))
-        ..add(ScoreBreakdownLine(
-          kind: ScoreBreakdownKind.subtotal,
-          label: 'Niveau ${i + 1}',
-          points: levelScore,
-          maxPoints: 10,
-        ));
+        ..add(
+          ScoreBreakdownLine(
+            kind: ScoreBreakdownKind.subtotal,
+            label: 'Niveau ${i + 1}',
+            points: levelScore,
+            maxPoints: 10,
+          ),
+        );
     }
-    lines.add(ScoreBreakdownLine(
-      kind: ScoreBreakdownKind.total,
-      label: 'Moyenne des $n niveaux',
-      points: score.rawPoints,
-      maxPoints: 10,
-    ));
+    lines.add(
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.total,
+        label: 'Moyenne des $n niveaux',
+        points: score.rawPoints,
+        maxPoints: 10,
+      ),
+    );
     return lines;
   }
 
@@ -758,6 +1175,9 @@ class GamesMockRepository implements GamesRepository {
       GameType.decision => 0,
       // Emotional Radar (max dynamique /27 actuellement) + Reflective Pause /10.
       GameType.emotionalRegulation => 2,
+      GameType.continuousAttention => 1,
+      GameType.visuomotorCoordination => 1,
+      GameType.visuospatialMemory => 1,
     };
   }
 
@@ -778,6 +1198,12 @@ class GamesMockRepository implements GamesRepository {
       GameType.decision => 0,
       GameType.emotionalRegulation =>
         recorded.contains(MiniGame.reflectivePauseCore) ? 0 : 10,
+      GameType.continuousAttention =>
+        recorded.contains(MiniGame.continuousAttentionCore) ? 0 : 100,
+      GameType.visuomotorCoordination =>
+        recorded.contains(MiniGame.coordinationTrackingCore) ? 0 : 100,
+      GameType.visuospatialMemory =>
+        recorded.contains(MiniGame.objectLocationBindingCore) ? 0 : 100,
     };
   }
 
@@ -1085,13 +1511,13 @@ class _MockScene {
 
   /// Projection expurgée — miroir de `EmotionalRadarDtos.SceneResponse.from`.
   EmotionalRadarScene toScene() => EmotionalRadarScene(
-        id: id,
-        sceneOrder: order,
-        mediaType: mediaType,
-        promptText: prompt,
-        instructionText: instruction,
-        altText: altText,
-      );
+    id: id,
+    sceneOrder: order,
+    mediaType: mediaType,
+    promptText: prompt,
+    instructionText: instruction,
+    altText: altText,
+  );
 }
 
 /// Réponse notée conservée par le mock (équivalent d'une ligne persistée

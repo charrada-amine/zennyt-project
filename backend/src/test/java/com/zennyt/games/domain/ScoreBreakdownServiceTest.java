@@ -1,21 +1,28 @@
 package com.zennyt.games.domain;
 
 import com.zennyt.games.domain.service.PlanifikScoringService;
+import com.zennyt.games.domain.service.ContinuousAttentionScoringService;
 import com.zennyt.games.domain.service.ScoreBreakdownService;
+import com.zennyt.games.domain.service.ObjectLocationScoringService;
 import com.zennyt.games.domain.vo.CostlyZonesAvoided;
+import com.zennyt.games.domain.vo.ContinuousAttentionReport;
 import com.zennyt.games.domain.vo.MoveFastMetrics;
 import com.zennyt.games.domain.vo.MoveFastResponse;
 import com.zennyt.games.domain.vo.MoveFastRule;
 import com.zennyt.games.domain.vo.OptimalPathLevel;
+import com.zennyt.games.domain.vo.ObjectLocationReport;
 import com.zennyt.games.domain.vo.PlanifikMetrics;
 import com.zennyt.games.domain.vo.PrevisionPuzzleLevel;
 import com.zennyt.games.domain.vo.PrevisionPuzzleMetrics;
 import com.zennyt.games.domain.vo.Score;
 import com.zennyt.games.domain.vo.ScoreBreakdown;
 import com.zennyt.games.domain.vo.SecondaryObjectivesReached;
+import com.zennyt.games.support.ContinuousAttentionTestFixtures;
+import com.zennyt.games.support.ObjectLocationTestFixtures;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -91,5 +98,50 @@ class ScoreBreakdownServiceTest {
             && "2".equals(l.detail()) && l.points() == 2));
         ScoreBreakdown.Line total = b.lines().get(b.lines().size() - 1);
         assertEquals(4, total.points());
+    }
+
+    @Test
+    void continuous_attention_breakdown_is_canonical_and_uses_server_report() {
+        UUID sessionId =
+            UUID.fromString("00000000-0000-4000-8000-000000000001");
+        ContinuousAttentionScoringService ca =
+            new ContinuousAttentionScoringService();
+        ContinuousAttentionReport report = ca.report(
+            sessionId, ContinuousAttentionTestFixtures.perfect(sessionId));
+        Score score = ca.score(report);
+
+        ScoreBreakdown result = breakdown.continuousAttention(report, score);
+
+        assertEquals(5, result.lines().size());
+        assertEquals(ScoreBreakdown.Kind.NOTE, result.lines().get(0).kind());
+        assertEquals("X_TEST — balanced accuracy", result.lines().get(1).label());
+        assertEquals("100.0 %", result.lines().get(1).detail());
+        assertEquals("AX_TEST — balanced accuracy", result.lines().get(2).label());
+        assertEquals("100.0 %", result.lines().get(2).detail());
+        assertEquals("Validité technique", result.lines().get(3).label());
+        assertEquals("valide", result.lines().get(3).detail());
+        assertEquals("Score descriptif", result.lines().get(4).label());
+        assertEquals(100, result.lines().get(4).points());
+        assertEquals(100, result.lines().get(4).maxPoints());
+    }
+
+    @Test
+    void object_location_breakdown_keeps_descriptive_metrics_outside_score() {
+        ObjectLocationScoringService service = new ObjectLocationScoringService();
+        ObjectLocationReport report = service.report(
+            ObjectLocationTestFixtures.SESSION_ID,
+            ObjectLocationTestFixtures.validStopRule(ObjectLocationTestFixtures.SESSION_ID));
+        Score score = service.score(report);
+
+        ScoreBreakdown result = breakdown.objectLocation(report, score);
+
+        assertTrue(result.lines().get(0).detail() == null);
+        assertTrue(result.lines().get(0).label().contains("hors score"));
+        assertTrue(result.lines().stream().anyMatch(line ->
+            "Swaps / erreurs locales / globales / omissions".equals(line.label())
+                && line.points() == null));
+        ScoreBreakdown.Line total = result.lines().get(result.lines().size() - 1);
+        assertEquals(25, total.points());
+        assertEquals(100, total.maxPoints());
     }
 }

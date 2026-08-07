@@ -3,12 +3,13 @@ info:
   title: Zennyt — Games API
   description: >
     Bounded context Games : jeux sérieux d'évaluation cognitive (Planifik,
-    Move Fast, Memory Quest, Choix&Cap). Le client démarre une session, joue
-    les mini-jeux et remonte des MÉTRIQUES objectives ; le score déterministe
-    est calculé côté serveur. Ce contexte est indépendant : il n'expose et ne
-    consomme aucun autre contexte, et publie son résultat via l'événement
-    games.result.recorded.
-  version: 1.0.0
+    Move Fast, Memory Quest, Je Décide, Emotional Regulation et Continuous
+    Attention, Visuomotor Coordination et Visuospatial Memory). Le client démarre une session, joue
+    les mini-jeux et remonte
+    des MÉTRIQUES objectives ; le score déterministe est calculé côté serveur.
+    Ce contexte est indépendant : il n'expose et ne consomme aucun autre
+    contexte, et publie son résultat via l'événement games.result.recorded.
+  version: 1.3.0
 
 servers:
   - url: https://api.zennyt.com/api/v1
@@ -52,6 +53,33 @@ paths:
         Le client n'envoie jamais de score, seulement des métriques mesurées.
         Le serveur calcule le score du mini-jeu ; au dernier mini-jeu du type,
         la session passe COMPLETED et l'événement games.result.recorded est émis.
+        La session doit appartenir au joueur authentifié.
+
+        Pour CONTINUOUS_ATTENTION_CORE, une structure, une séquence ou un tuple
+        réponse/temps incohérent produit 400 et ne persiste rien. Une structure
+        valide mais techniquement non comparable (session incomplète,
+        interruption, arrière-plan ou divergence temporelle) produit 200 avec
+        la session toujours IN_PROGRESS et sessionValid=false : le run brut est
+        conservé pour audit, mais aucun Attempt ni événement n'est créé. Une
+        nouvelle soumission du même run remplace atomiquement cet audit. Seule
+        une soumission valide enregistre l'Attempt et complète la session.
+
+        COORDINATION_TRACKING_CORE suit le même principe : la position de la
+        balle, la distance et toutes les précisions sont recalculées par le
+        serveur depuis les timestamps et coordonnées pointeur fixed-point. Une
+        trace structurellement incohérente produit 400. Une trace dont
+        technicalValid ou taskValid est faux reste audit-only, sans Attempt ni
+        événement.
+
+        OBJECT_LOCATION_BINDING_CORE applique le même modèle audit-only. Le
+        serveur reconstruit le catalogue, les objets, leurs cellules d'origine
+        et leur réserve depuis l'UUID de session. Le client ne transmet que les
+        actions brutes. Une interruption, perte de focus, rotation, mise en
+        arrière-plan ou divergence temporelle conserve le run sans créer
+        d'Attempt ni d'événement. Même valide, son score reste provisoire : la
+        session et l'Attempt sont enregistrés mais games.result.recorded n'est
+        pas publié tant que le barème et l'intégration Fit Score ne sont pas
+        validés par le psychologue.
       requestBody:
         required: true
         content:
@@ -64,6 +92,8 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/GameSession' }
         '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
+        '401': { $ref: './common.openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: './common.openapi.yaml#/components/responses/Forbidden' }
         '404': { $ref: './common.openapi.yaml#/components/responses/NotFound' }
 
   /games/sessions/{sessionId}/emotional-radar/scenes:
@@ -150,16 +180,27 @@ components:
       description: >
         Type de jeu sérieux (un domaine cognitif = un type). EMOTIONAL_REGULATION
         (« Je gère ») héberge Emotional Radar et Reflective Pause, sur le modèle
-        de PLANIFIK qui héberge ses trois mini-jeux.
-      enum: [PLANIFIK, MOVE_FAST, MEMORY_QUEST, DECISION, EMOTIONAL_REGULATION]
+        de PLANIFIK qui héberge ses trois mini-jeux. CONTINUOUS_ATTENTION reste
+        distinct de MOVE_FAST : « Je continue » apparaît dans la même catégorie
+        mobile sans modifier les sessions ni le barème historique de Move Fast.
+        VISUOMOTOR_COORDINATION (« Je coordonne ») est lui aussi indépendant.
+        VISUOSPATIAL_MEMORY (« Je place ») apparaît à côté de Memory Quest sans
+        modifier son agrégat ni son barème historique.
+      enum: [PLANIFIK, MOVE_FAST, MEMORY_QUEST, DECISION, EMOTIONAL_REGULATION, CONTINUOUS_ATTENTION, VISUOMOTOR_COORDINATION, VISUOSPATIAL_MEMORY]
 
     MiniGame:
       type: string
       description: >
         Mini-jeu évalué dans une session. DECISION_CORE (« Je Décide ») est déclaré
         mais non jouable tant que le catalogue de scénarios est vide (même patron
-        que TASK_SCHEDULING avant implémentation).
-      enum: [OPTIMAL_PATH, TASK_SCHEDULING, PREVISION_PUZZLE, MOVE_FAST_CORE, MEMORY_QUEST_CORE, DECISION_CORE, EMOTIONAL_RADAR_CORE, REFLECTIVE_PAUSE_CORE]
+        que TASK_SCHEDULING avant implémentation). CONTINUOUS_ATTENTION_CORE
+        implémente le protocole Long Rosvold CPT X/AX ; il ne reprend aucune norme
+        ni interprétation du Conners CPT-3. COORDINATION_TRACKING_CORE implémente
+        une trajectoire carrée fixe, horaire et prédictible ; aucun score,
+        inside/outside ni distance calculée par le client n'est accepté.
+        OBJECT_LOCATION_BINDING_CORE ne reçoit ni grille attendue, ni position
+        d'origine, ni score : le serveur les reconstruit.
+      enum: [OPTIMAL_PATH, TASK_SCHEDULING, PREVISION_PUZZLE, MOVE_FAST_CORE, MEMORY_QUEST_CORE, DECISION_CORE, EMOTIONAL_RADAR_CORE, REFLECTIVE_PAUSE_CORE, CONTINUOUS_ATTENTION_CORE, COORDINATION_TRACKING_CORE, OBJECT_LOCATION_BINDING_CORE]
 
     SessionStatus:
       type: string
@@ -329,6 +370,862 @@ components:
           minItems: 1
           items: { $ref: '#/components/schemas/MoveFastResponseItem' }
           description: "Essais mesurés dans l'ordre de jeu (échauffement inclus)."
+
+    ContinuousAttentionPhase:
+      type: string
+      description: >
+        Phase du protocole Long Rosvold CPT. Les phases PRACTICE sont persistées
+        pour l'audit mais toujours exclues du score et des indicateurs finaux.
+      enum: [X_PRACTICE, X_TEST, AX_PRACTICE, AX_TEST]
+
+    ContinuousAttentionTestPhase:
+      type: string
+      description: Phase de test cotée ; une phase PRACTICE n'apparaît jamais dans les indicateurs.
+      enum: [X_TEST, AX_TEST]
+
+    ContinuousAttentionProtocolVersion:
+      type: string
+      description: Version figée de la génération et de la validation du protocole.
+      enum: [ROSVOLD_LONG_V1]
+
+    ContinuousAttentionInputSource:
+      type: string
+      description: Source sémantique de la première réponse reçue pendant la fenêtre.
+      enum: [TOUCH, KEYBOARD]
+
+    ContinuousAttentionTrialMetric:
+      type: object
+      description: >
+        Mesures brutes d'un essai « Je continue ». `correct` est conservé pour
+        l'audit du client, mais le serveur le recalcule depuis phase,
+        previousLetter/currentLetter et responseCode puis rejette toute divergence.
+        La réponse est acceptée uniquement pendant les 690 ms d'affichage.
+      required:
+        - trialIndex
+        - previousLetter
+        - currentLetter
+        - responseCode
+        - correct
+        - latencyMs
+        - scheduledOnsetMs
+        - actualOnsetMs
+        - responseTimestampMs
+        - actualDisplayDurationMs
+        - actualIsiDurationMs
+        - inputSource
+        - extraResponseCount
+        - interrupted
+      properties:
+        trialIndex:
+          type: integer
+          minimum: 1
+          maximum: 31
+          description: Index 1-based dans le bloc.
+        previousLetter:
+          type: string
+          nullable: true
+          minLength: 1
+          maxLength: 1
+          pattern: '^[A-Z]$'
+          description: >
+            null uniquement au premier essai de la famille X et au premier essai
+            de la famille AX. La lettre précédente reste continue de PRACTICE
+            vers TEST et entre les blocs d'une même famille. Le générateur
+            empêche tout AX non planifié à une frontière.
+        currentLetter:
+          type: string
+          minLength: 1
+          maxLength: 1
+          pattern: '^[A-Z]$'
+        responseCode:
+          type: integer
+          enum: [0, 57]
+          description: "57 = réponse (barre d'espace ou tap sémantique) ; 0 = aucune réponse."
+        correct:
+          type: integer
+          enum: [0, 1]
+          description: Valeur client contrôlée et recalculée serveur.
+        latencyMs:
+          type: integer
+          nullable: true
+          minimum: 0
+          maximum: 689
+          description: >
+            null quand responseCode=0 ; temps depuis l'apparition effective de
+            la lettre. Fenêtre valide [0, 690 ms) : 689 accepté, 690 rejeté.
+        scheduledOnsetMs:
+          type: integer
+          format: int64
+          minimum: 0
+          description: >
+            Début prévu relatif au début de la phase, selon la timeline absolue
+            trialPosition × 920 ms. Même origine monotone que actualOnsetMs et
+            responseTimestampMs.
+        actualOnsetMs:
+          type: integer
+          format: int64
+          minimum: 0
+          description: >
+            Début réellement observé, relatif au même début de phase et mesuré
+            par la même horloge monotone que scheduledOnsetMs.
+        responseTimestampMs:
+          type: integer
+          format: int64
+          nullable: true
+          minimum: 0
+          description: >
+            Timestamp monotone relatif au même début de phase ; null sans
+            réponse. Pour une réponse, responseTimestampMs - actualOnsetMs doit
+            être exactement égal à latencyMs.
+        actualDisplayDurationMs:
+          type: integer
+          minimum: 0
+          description: Durée réelle d'affichage de la lettre, cible nominale 690 ms.
+        actualIsiDurationMs:
+          type: integer
+          minimum: 0
+          description: Durée réelle de l'écran vide, cible nominale 230 ms.
+        inputSource:
+          allOf: [ { $ref: '#/components/schemas/ContinuousAttentionInputSource' } ]
+          nullable: true
+          description: null quand responseCode=0 ; TOUCH ou KEYBOARD quand responseCode=57.
+        extraResponseCount:
+          type: integer
+          minimum: 0
+          description: Réponses supplémentaires pendant le même essai, ignorées pour la cotation.
+        interrupted:
+          type: boolean
+          description: true si l'application a perdu le focus ou si une pause a interrompu l'essai.
+
+    ContinuousAttentionBlockMetric:
+      type: object
+      description: >
+        Un bloc Rosvold de 31 lettres. X_PRACTICE/X_TEST contiennent exactement
+        8 cibles X ; AX_PRACTICE/AX_TEST exactement 6 séquences AX, sans AX accidentel.
+      required: [phase, blockIndex, trials]
+      properties:
+        phase: { $ref: '#/components/schemas/ContinuousAttentionPhase' }
+        blockIndex:
+          type: integer
+          minimum: 1
+          maximum: 20
+          description: Index 1-based dans la phase (1–2 pratique, 1–20 test).
+        trials:
+          type: array
+          minItems: 31
+          maxItems: 31
+          items: { $ref: '#/components/schemas/ContinuousAttentionTrialMetric' }
+
+    ContinuousAttentionMetrics:
+      type: object
+      description: >
+        Protocole Long Rosvold CPT adulte complet : X puis AX, 2 blocs de pratique
+        + 20 blocs de test par phase, 31 essais par bloc, lettre 690 ms et écran
+        vide 230 ms. La séquence est générée de façon déterministe depuis l'id de
+        session et `protocolVersion`, puis reconstruite et validée par le serveur.
+        Ce protocole n'est PAS le Conners CPT-3 et n'utilise aucune de ses normes.
+
+        Génération ROSVOLD_LONG_V1, normative pour Java et Dart :
+        seedMaterial = lower(sessionId) + "|" + protocolVersion ; FNV-1a 32 bits
+        sur UTF-8 ; état zéro remplacé par 0x6D2B79F5 ; xorshift32 unsigned
+        (<<13, >>>17, <<5), réduction par modulo non signé et Fisher-Yates
+        descendant. Un bloc X construit 8 X puis 23 tirages avec remplacement
+        dans ABCDEFGHIJKLMNOPQRSTUVWYZ avant mélange. Un bloc AX mélange 6 tokens
+        AX_PAIR et 19 tokens distracteurs ; AX_PAIR s'étend en A,X, tandis qu'un
+        distracteur est tiré avec remplacement dans A-Z et X est retiré si la
+        lettre émise précédente est A. previousLetter est réinitialisée avant
+        X_PRACTICE puis avant AX_PRACTICE seulement.
+
+        Vecteur canonique pour la session
+        00000000-0000-4000-8000-000000000001 : seed 0xFC0A124C,
+        FNV du flux aplati 0xD9278D75, premier bloc
+        HZNXXAJGQXXYYKEOCXFVXOXLJLNNIXH, premier bloc AX
+        AXHAXDNCNOJAAXVAXAXZUAXAIIPACHW, dernier bloc
+        JYGAXJBYARQQKAXFSPAXXAXFYAXAXDY.
+      required:
+        - protocolVersion
+        - blocks
+        - sessionCompleted
+        - interrupted
+        - backgroundEventCount
+        - droppedFrameCount
+      properties:
+        protocolVersion:
+          $ref: '#/components/schemas/ContinuousAttentionProtocolVersion'
+        blocks:
+          type: array
+          minItems: 44
+          maxItems: 44
+          items: { $ref: '#/components/schemas/ContinuousAttentionBlockMetric' }
+          description: >
+            Ordre obligatoire : 2 X_PRACTICE, 20 X_TEST, 2 AX_PRACTICE,
+            20 AX_TEST. Les 1 364 essais, entraînement compris, sont persistés
+            pour un run structurellement valide, y compris lorsqu'il est
+            conservé audit-only car techniquement non comparable.
+        sessionCompleted:
+          type: boolean
+        interrupted:
+          type: boolean
+          description: >
+            true si une phase de test soumise a été interrompue ou si
+            l'application a perdu le focus pendant un stimulus. Après une
+            reprise locale complète, le client soumet uniquement le run final :
+            il n'agrège pas les essais abandonnés au run recommencé.
+        backgroundEventCount:
+          type: integer
+          minimum: 0
+        droppedFrameCount:
+          type: integer
+          minimum: 0
+          description: Frames manquées observées pendant la timeline de stimuli.
+
+    ContinuousAttentionEpochIndicators:
+      type: object
+      description: Agrégat descriptif d'une époque de 5 blocs de test.
+      required:
+        - phase
+        - epochIndex
+        - hitRatePercent
+        - falseAlarmRatePercent
+        - averageHitReactionTimeMs
+        - reactionTimeVariabilityMs
+        - dPrime
+      properties:
+        phase: { $ref: '#/components/schemas/ContinuousAttentionTestPhase' }
+        epochIndex: { type: integer, minimum: 1, maximum: 4 }
+        hitRatePercent: { type: number, format: double }
+        falseAlarmRatePercent: { type: number, format: double }
+        averageHitReactionTimeMs: { type: number, format: double, nullable: true }
+        reactionTimeVariabilityMs: { type: number, format: double, nullable: true }
+        dPrime:
+          type: number
+          format: double
+          description: Indicateur descriptif avec correction log-linéaire ; jamais intégré au score.
+
+    ContinuousAttentionPhaseIndicators:
+      type: object
+      description: Indicateurs descriptifs calculés côté serveur pour une phase de test.
+      required:
+        - phase
+        - targetCount
+        - nonTargetCount
+        - hitCount
+        - omissionCount
+        - commissionCount
+        - correctRejectionCount
+        - hitRatePercent
+        - omissionRatePercent
+        - falseAlarmRatePercent
+        - correctRejectionRatePercent
+        - balancedAccuracyPercent
+        - averageHitReactionTimeMs
+        - medianHitReactionTimeMs
+        - stdDevHitReactionTimeMs
+        - reactionTimeCoefficientOfVariation
+        - dPrime
+        - responseBiasC
+      properties:
+        phase: { $ref: '#/components/schemas/ContinuousAttentionTestPhase' }
+        targetCount: { type: integer }
+        nonTargetCount: { type: integer }
+        hitCount: { type: integer }
+        omissionCount: { type: integer }
+        commissionCount: { type: integer }
+        correctRejectionCount: { type: integer }
+        hitRatePercent: { type: number, format: double }
+        omissionRatePercent: { type: number, format: double }
+        falseAlarmRatePercent: { type: number, format: double }
+        correctRejectionRatePercent: { type: number, format: double }
+        balancedAccuracyPercent:
+          type: number
+          format: double
+          description: "(hitRate + correctRejectionRate) / 2 ; composante du score provisoire."
+        averageHitReactionTimeMs: { type: number, format: double, nullable: true }
+        medianHitReactionTimeMs: { type: number, format: double, nullable: true }
+        stdDevHitReactionTimeMs: { type: number, format: double, nullable: true }
+        reactionTimeCoefficientOfVariation:
+          type: number
+          format: double
+          nullable: true
+          description: "écart-type / moyenne des latences des hits corrects."
+        dPrime:
+          type: number
+          format: double
+          description: >
+            Descriptif uniquement. H=(hits+0.5)/(targets+1),
+            FA=(commissions+0.5)/(nonTargets+1), dPrime=Z(H)-Z(FA).
+        responseBiasC:
+          type: number
+          format: double
+          description: >
+            Descriptif uniquement ; c=-0.5×(Z(H)+Z(FA)), jamais intégré au score.
+
+    ContinuousAttentionIndicators:
+      type: object
+      description: >
+        Rapport serveur « Je continue ». Le score provisoire /100 est uniquement
+        la moyenne des balanced accuracies X_TEST et AX_TEST. d-prime, biais c et
+        temps de réaction restent descriptifs, sans diagnostic, percentile,
+        classement ni norme Conners. Le niveau du Score associé est la constante
+        neutre "Descriptive — provisional", jamais une bande dérivée du résultat.
+      required:
+        - protocolVersion
+        - completed
+        - sessionValid
+        - interrupted
+        - provisionalAccuracyScore
+        - xPhase
+        - axPhase
+        - epochs
+        - axTargetCount
+        - ayCount
+        - bxCount
+        - byCount
+        - extraResponseCount
+        - backgroundEventCount
+        - droppedFrameCount
+        - timingDeviationCount
+        - validityIssues
+      properties:
+        protocolVersion: { $ref: '#/components/schemas/ContinuousAttentionProtocolVersion' }
+        completed: { type: boolean }
+        sessionValid:
+          type: boolean
+          description: >
+            true uniquement si sessionCompleted=true, aucune interruption,
+            aucun passage arrière-plan et aucun écart >100 ms entre onset prévu
+            et réel, durée d'affichage et 690 ms, ou ISI et 230 ms. Un écart de
+            100 ms est accepté ; cette tolérance est un critère de validité,
+            jamais une composante du score. Une structure invalide est rejetée
+            avant de produire ce rapport.
+        interrupted: { type: boolean }
+        provisionalAccuracyScore:
+          type: integer
+          minimum: 0
+          maximum: 100
+        xPhase:
+          allOf: [ { $ref: '#/components/schemas/ContinuousAttentionPhaseIndicators' } ]
+          description: X_TEST uniquement ; 160 cibles et 460 non-cibles attendues.
+        axPhase:
+          allOf: [ { $ref: '#/components/schemas/ContinuousAttentionPhaseIndicators' } ]
+          description: AX_TEST uniquement ; 120 cibles et 500 non-cibles attendues.
+        epochs:
+          type: array
+          minItems: 8
+          maxItems: 8
+          description: Quatre époques de 5 blocs pour X_TEST puis quatre pour AX_TEST.
+          items: { $ref: '#/components/schemas/ContinuousAttentionEpochIndicators' }
+        axTargetCount:
+          type: integer
+          description: Séquences AX cibles dans AX_TEST uniquement ; attendu 120.
+        ayCount:
+          type: integer
+          description: A suivi d'une lettre non-X dans AX_TEST uniquement.
+        bxCount:
+          type: integer
+          description: X précédé d'une lettre non-A dans AX_TEST uniquement.
+        byCount:
+          type: integer
+          description: Autres paires dans AX_TEST uniquement.
+        extraResponseCount:
+          type: integer
+          description: Somme sur les 44 blocs, pratique comprise ; descriptif hors score.
+        backgroundEventCount:
+          type: integer
+          description: Événements arrière-plan pendant les stimuli du run soumis.
+        droppedFrameCount:
+          type: integer
+          description: >
+            Frames manquées sur les stimuli du run soumis ; descriptif. La
+            validité dépend des timings réellement mesurés, pas directement de
+            ce compteur.
+        timingDeviationCount:
+          type: integer
+          description: >
+            Essais dont l'onset réel, l'affichage ou l'ISI sortent de la
+            tolérance technique provisoire de 100 ms.
+        validityIssues:
+          type: array
+          items: { type: string }
+
+    CoordinationProtocolVersion:
+      type: string
+      description: >
+        Version figée de « Je coordonne ». PROVISOIRE — géométrie et vitesses
+        non validées par le psychologue. La balle suit le carré normalisé [0,1]
+        avec un inset 0.16, démarre au coin supérieur gauche et avance
+        continûment dans le sens horaire. Un tour lent dure 7000 ms et un tour
+        rapide 3500 ms.
+      enum: [FIXED_SQUARE_CW_V1]
+
+    CoordinationPhase:
+      type: string
+      description: PRACTICE est persistée pour audit mais exclue de toute cotation.
+      enum: [PRACTICE, TEST]
+
+    CoordinationSpeed:
+      type: string
+      enum: [SLOW, FAST]
+
+    CoordinationInputSource:
+      type: string
+      description: Modalité de pointage auditée pour l'ensemble du run.
+      enum: [MOUSE, TOUCH, STYLUS]
+
+    CoordinationPointerSample:
+      type: object
+      description: >
+        Position brute du pointeur sur une frame. Les coordonnées sont des
+        fixed-point normalisés dans [0, 1_000_000] relativement au plateau
+        carré. La position de la balle, la distance et l'état visuel ne sont
+        jamais transmis : le serveur les reconstruit depuis timestampMs.
+      required: [sampleIndex, timestampMs, pointerPresent, pointerX, pointerY]
+      properties:
+        sampleIndex:
+          type: integer
+          minimum: 1
+          description: Index 1-based dans le segment.
+        timestampMs:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Temps monotone relatif au déclenchement initial du mouvement.
+        pointerPresent:
+          type: boolean
+          description: false lorsque le doigt/curseur ne fournit aucune position exploitable.
+        pointerX:
+          type: integer
+          nullable: true
+          minimum: 0
+          maximum: 1000000
+          description: Requis lorsque pointerPresent=true, null sinon.
+        pointerY:
+          type: integer
+          nullable: true
+          minimum: 0
+          maximum: 1000000
+          description: Requis lorsque pointerPresent=true, null sinon.
+
+    CoordinationSegmentMetric:
+      type: object
+      description: >
+        Segment contigu de la trajectoire. phase, speed et nominalDurationMs
+        sont contrôlés contre la séquence FIXED_SQUARE_CW_V1 ; le client ne
+        peut pas choisir l'ordre ni la vitesse.
+      required:
+        - phase
+        - segmentIndex
+        - speed
+        - nominalDurationMs
+        - actualStartMs
+        - actualEndMs
+        - samples
+      properties:
+        phase: { $ref: '#/components/schemas/CoordinationPhase' }
+        segmentIndex:
+          type: integer
+          minimum: 1
+          maximum: 14
+          description: Index global 1-based ; 1–2 pratique, 3–14 test.
+        speed: { $ref: '#/components/schemas/CoordinationSpeed' }
+        nominalDurationMs:
+          type: integer
+          enum: [2333, 7000]
+        actualStartMs:
+          type: integer
+          format: int64
+          minimum: 0
+        actualEndMs:
+          type: integer
+          format: int64
+          minimum: 1
+        samples:
+          type: array
+          minItems: 2
+          maxItems: 2000
+          items: { $ref: '#/components/schemas/CoordinationPointerSample' }
+
+    CoordinationMetrics:
+      type: object
+      description: >
+        Trace brute complète de « Je coordonne » : deux segments de pratique
+        de 7000 ms (lent, rapide), puis douze segments test dans l'ordre
+        7000 lent, 7000 rapide, 2333 lent, 2333 rapide, répété trois fois.
+        La pratique est exclue. Le serveur reconstruit une trajectoire carrée
+        horaire continue et calcule une précision pondérée par le temps. La
+        distance est normalisée par la diagonale du plateau vers [0,1200] ;
+        un pointeur absent vaut 1200. Le client n'envoie aucun agrégat ni score.
+      required:
+        - protocolVersion
+        - inputSource
+        - coordinationSegments
+        - sessionCompleted
+        - interrupted
+        - backgroundEventCount
+        - droppedFrameCount
+      properties:
+        protocolVersion: { $ref: '#/components/schemas/CoordinationProtocolVersion' }
+        inputSource: { $ref: '#/components/schemas/CoordinationInputSource' }
+        coordinationSegments:
+          type: array
+          minItems: 14
+          maxItems: 14
+          items: { $ref: '#/components/schemas/CoordinationSegmentMetric' }
+        sessionCompleted: { type: boolean }
+        interrupted:
+          type: boolean
+          description: >
+            Toute pause ou perte de focus pendant la mesure rend le run
+            audit-only : aucun Attempt/event/Fit Score n'est créé.
+        backgroundEventCount: { type: integer, minimum: 0 }
+        droppedFrameCount:
+          type: integer
+          minimum: 0
+          description: Descriptif uniquement ; jamais intégré au score ni à taskValid.
+
+    CoordinationIndicators:
+      type: object
+      description: >
+        Rapport calculé côté serveur. Le score /100 provisoire est uniquement
+        roundHalfUp(overallAccuracyPercent). Les sous-précisions et la distance
+        sont descriptives, sans diagnostic, percentile ni classement.
+      required:
+        - protocolVersion
+        - inputSource
+        - completed
+        - sessionValid
+        - interrupted
+        - provisionalAccuracyScore
+        - overallAccuracyPercent
+        - fastAccuracyPercent
+        - slowAccuracyPercent
+        - longSegmentAccuracyPercent
+        - shortSegmentAccuracyPercent
+        - averageCenterDistance
+        - testExecutionTimeMs
+        - accuracyValid
+        - executionTimeValid
+        - taskValid
+        - technicalValid
+        - sampleCount
+        - absentSampleCount
+        - backgroundEventCount
+        - droppedFrameCount
+        - timingDeviationCount
+        - samplingGapCount
+        - validityIssues
+      properties:
+        protocolVersion: { $ref: '#/components/schemas/CoordinationProtocolVersion' }
+        inputSource: { $ref: '#/components/schemas/CoordinationInputSource' }
+        completed: { type: boolean }
+        sessionValid:
+          type: boolean
+          description: >
+            true si taskValid est vrai, la session est complète et aucune
+            interruption/perte de focus n'a eu lieu.
+        interrupted: { type: boolean }
+        provisionalAccuracyScore: { type: integer, minimum: 0, maximum: 100 }
+        overallAccuracyPercent: { type: number, format: double, minimum: 0, maximum: 100 }
+        fastAccuracyPercent: { type: number, format: double, minimum: 0, maximum: 100 }
+        slowAccuracyPercent: { type: number, format: double, minimum: 0, maximum: 100 }
+        longSegmentAccuracyPercent: { type: number, format: double, minimum: 0, maximum: 100 }
+        shortSegmentAccuracyPercent: { type: number, format: double, minimum: 0, maximum: 100 }
+        averageCenterDistance:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1200
+          description: Distance moyenne pondérée, diagonale normalisée vers [0,1200].
+        testExecutionTimeMs:
+          type: integer
+          format: int64
+          description: Durée réelle des douze segments test ; valide entre 54000 et 58000 inclus.
+        accuracyValid: { type: boolean, description: "Précision serveur finie dans [0,100]." }
+        executionTimeValid: { type: boolean, description: "testExecutionTimeMs dans [54000,58000]." }
+        taskValid: { type: boolean, description: accuracyValid AND executionTimeValid. }
+        technicalValid:
+          type: boolean
+          description: >
+            completed AND NOT interrupted AND backgroundEventCount = 0 AND
+            timingDeviationCount = 0. Les gaps d'échantillonnage et frames
+            perdues restent descriptifs ; le score est toutefois réintégré
+            serveur sur une grille canonique de 1 ms.
+        sampleCount: { type: integer, minimum: 0 }
+        absentSampleCount: { type: integer, minimum: 0 }
+        backgroundEventCount: { type: integer, minimum: 0 }
+        droppedFrameCount: { type: integer, minimum: 0 }
+        timingDeviationCount:
+          type: integer
+          minimum: 0
+          description: >
+            Nombre de segments test hors tolérance. N'entre pas dans le score
+            ni taskValid, mais rend technicalValid faux.
+        samplingGapCount:
+          type: integer
+          minimum: 0
+          description: Descriptif uniquement ; jamais intégré au score ni à taskValid.
+        validityIssues:
+          type: array
+          items: { type: string }
+
+    ObjectLocationProtocolVersion:
+      type: string
+      description: >
+        Version figée du protocole provisoire de « Je place ». La progression,
+        la grille et les timings peuvent être remplacés dans la configuration
+        serveur sans modifier le moteur ni les métriques brutes.
+      enum: [OBJECT_LOCATION_FINE_V1]
+
+    ObjectLocationPhase:
+      type: string
+      description: PRACTICE est persistée pour audit mais exclue de toute cotation.
+      enum: [PRACTICE, TEST]
+
+    ObjectLocationCompletionReason:
+      type: string
+      description: >
+        MAX_LEVELS après les six niveaux ; STOP_RULE après deux échecs
+        consécutifs (jamais avant trois niveaux) ; TECHNICAL_INTERRUPTION pour
+        un run incomplet conservé audit-only.
+      enum: [MAX_LEVELS, STOP_RULE, TECHNICAL_INTERRUPTION]
+
+    ObjectLocationActionType:
+      type: string
+      enum: [PLACE, RETURN_TO_RESERVE]
+
+    ObjectLocationPlacementAction:
+      type: object
+      description: >
+        Action brute pendant la restitution. objectId doit appartenir au niveau
+        déterministe reconstruit par le serveur. PLACE exige targetCellIndex ;
+        RETURN_TO_RESERVE exige null. Une cellule occupée éjecte son objet vers
+        la réserve. Aucun état correct/incorrect n'est transmis.
+      required: [actionIndex, actionType, objectId, timestampMs]
+      properties:
+        actionIndex: { type: integer, minimum: 1, maximum: 256 }
+        actionType: { $ref: '#/components/schemas/ObjectLocationActionType' }
+        objectId:
+          type: string
+          minLength: 1
+          maxLength: 48
+        targetCellIndex:
+          type: integer
+          nullable: true
+          minimum: 0
+          maximum: 15
+        timestampMs:
+          type: integer
+          format: int64
+          minimum: 0
+
+    ObjectLocationLevelMetric:
+      type: object
+      description: >
+        Mesure brute d'un niveau. La pratique est l'index 0 avec 2 objets ; les
+        tests 1–6 utilisent respectivement 3–8 objets. Les objets et cellules
+        d'origine ne figurent jamais dans le payload.
+      required:
+        - phase
+        - levelIndex
+        - objectCount
+        - actualEncodingDurationMs
+        - actualRetentionDurationMs
+        - actualRecallDurationMs
+        - timedOut
+        - completed
+        - actions
+      properties:
+        phase: { $ref: '#/components/schemas/ObjectLocationPhase' }
+        levelIndex: { type: integer, minimum: 0, maximum: 6 }
+        objectCount: { type: integer, minimum: 2, maximum: 8 }
+        actualEncodingDurationMs: { type: integer, minimum: 0, maximum: 12250 }
+        actualRetentionDurationMs: { type: integer, minimum: 0, maximum: 2250 }
+        actualRecallDurationMs:
+          type: integer
+          minimum: 0
+          maximum: 32250
+        timedOut: { type: boolean }
+        completed: { type: boolean }
+        actions:
+          type: array
+          maxItems: 256
+          items: { $ref: '#/components/schemas/ObjectLocationPlacementAction' }
+
+    ObjectLocationMetrics:
+      type: object
+      description: >
+        Trace brute de « Je place ». Le serveur dérive la graine de
+        sessionId|OBJECT_LOCATION_FINE_V1 avec FNV-1a 32 bits puis xorshift32,
+        reconstruit les layouts et rejoue les actions. Le score, les positions
+        d'origine et les catégories d'erreur ne sont jamais acceptés du client.
+      required:
+        - protocolVersion
+        - completionReason
+        - objectLocationLevels
+        - sessionCompleted
+        - interrupted
+        - backgroundEventCount
+        - focusLossCount
+        - orientationChangeCount
+        - droppedFrameCount
+      properties:
+        protocolVersion: { $ref: '#/components/schemas/ObjectLocationProtocolVersion' }
+        completionReason: { $ref: '#/components/schemas/ObjectLocationCompletionReason' }
+        objectLocationLevels:
+          type: array
+          minItems: 1
+          maxItems: 7
+          items: { $ref: '#/components/schemas/ObjectLocationLevelMetric' }
+        sessionCompleted: { type: boolean }
+        interrupted: { type: boolean }
+        backgroundEventCount: { type: integer, minimum: 0 }
+        focusLossCount: { type: integer, minimum: 0 }
+        orientationChangeCount: { type: integer, minimum: 0 }
+        droppedFrameCount:
+          type: integer
+          minimum: 0
+          description: Descriptif uniquement ; n'entre jamais dans le score.
+
+    ObjectLocationLevelIndicators:
+      type: object
+      required:
+        - phase
+        - levelIndex
+        - objectCount
+        - completed
+        - timedOut
+        - passed
+        - exactCount
+        - swapCount
+        - localErrorCount
+        - globalErrorCount
+        - unplacedCount
+        - exactAccuracyPercent
+        - averageDisplacementCells
+        - recallDurationMs
+        - actionCount
+        - repositionCount
+      properties:
+        phase: { $ref: '#/components/schemas/ObjectLocationPhase' }
+        levelIndex: { type: integer, minimum: 0, maximum: 6 }
+        objectCount: { type: integer, minimum: 2, maximum: 8 }
+        completed: { type: boolean }
+        timedOut: { type: boolean }
+        passed: { type: boolean }
+        exactCount: { type: integer, minimum: 0 }
+        swapCount: { type: integer, minimum: 0 }
+        localErrorCount: { type: integer, minimum: 0 }
+        globalErrorCount: { type: integer, minimum: 0 }
+        unplacedCount: { type: integer, minimum: 0 }
+        exactAccuracyPercent: { type: number, format: double, minimum: 0, maximum: 100 }
+        averageDisplacementCells: { type: number, format: double, minimum: 0 }
+        recallDurationMs: { type: integer, minimum: 0 }
+        actionCount: { type: integer, minimum: 0, maximum: 256 }
+        repositionCount: { type: integer, minimum: 0 }
+        averageFirstPlacementIntervalMs:
+          type: number
+          format: double
+          nullable: true
+          description: Intervalle moyen entre premières poses sur ce niveau.
+
+    ObjectLocationIndicators:
+      type: object
+      description: >
+        Rapport descriptif calculé côté serveur. PROVISOIRE — le score /100 est
+        uniquement l'exactitude globale sur les objets des niveaux TEST
+        terminés, avec un seul arrondi half-up. Swaps, distances, erreurs,
+        pente et temps restent hors score. Aucun diagnostic, percentile ou
+        classement. EXACT, SWAP, LOCAL, GLOBAL et omission sont des catégories
+        exclusives ; une omission reçoit la distance diagonale maximale mais
+        n'est pas comptée comme erreur GLOBAL.
+      required:
+        - protocolVersion
+        - completionReason
+        - completed
+        - sessionValid
+        - technicalValid
+        - minimumLevelsValid
+        - progressionValid
+        - timingValid
+        - provisionalAccuracyScore
+        - completedLevelCount
+        - passedLevelCount
+        - administeredObjectCount
+        - exactPlacementCount
+        - swapCount
+        - localErrorCount
+        - globalErrorCount
+        - unplacedCount
+        - exactAccuracyPercent
+        - swapRatePercent
+        - localErrorRatePercent
+        - globalErrorRatePercent
+        - averageDisplacementCells
+        - span
+        - repositionCount
+        - backgroundEventCount
+        - focusLossCount
+        - orientationChangeCount
+        - droppedFrameCount
+        - timingDeviationCount
+        - levels
+        - validityIssues
+      properties:
+        protocolVersion: { $ref: '#/components/schemas/ObjectLocationProtocolVersion' }
+        completionReason: { $ref: '#/components/schemas/ObjectLocationCompletionReason' }
+        completed: { type: boolean }
+        sessionValid: { type: boolean }
+        technicalValid: { type: boolean }
+        minimumLevelsValid: { type: boolean }
+        progressionValid: { type: boolean }
+        timingValid: { type: boolean }
+        provisionalAccuracyScore: { type: integer, minimum: 0, maximum: 100 }
+        completedLevelCount: { type: integer, minimum: 0, maximum: 6 }
+        passedLevelCount: { type: integer, minimum: 0, maximum: 6 }
+        administeredObjectCount: { type: integer, minimum: 0, maximum: 33 }
+        exactPlacementCount: { type: integer, minimum: 0, maximum: 33 }
+        swapCount: { type: integer, minimum: 0, maximum: 33 }
+        localErrorCount: { type: integer, minimum: 0, maximum: 33 }
+        globalErrorCount:
+          type: integer
+          minimum: 0
+          maximum: 33
+          description: Objet placé à plus d'une cellule, hors origine d'un autre objet.
+        unplacedCount:
+          type: integer
+          minimum: 0
+          maximum: 33
+          description: Omission au timeout ; catégorie séparée de GLOBAL.
+        exactAccuracyPercent: { type: number, format: double, minimum: 0, maximum: 100 }
+        swapRatePercent: { type: number, format: double, minimum: 0, maximum: 100 }
+        localErrorRatePercent: { type: number, format: double, minimum: 0, maximum: 100 }
+        globalErrorRatePercent: { type: number, format: double, minimum: 0, maximum: 100 }
+        averageDisplacementCells: { type: number, format: double, minimum: 0 }
+        span: { type: integer, minimum: 0, maximum: 8 }
+        loadSlope:
+          type: number
+          format: double
+          nullable: true
+          description: Pente OLS exactitude (%) selon la charge ; descriptive.
+        averageFirstPlacementIntervalMs:
+          type: number
+          format: double
+          nullable: true
+          description: Moyenne des intervalles entre premières poses, hors score.
+        repositionCount: { type: integer, minimum: 0 }
+        backgroundEventCount: { type: integer, minimum: 0 }
+        focusLossCount: { type: integer, minimum: 0 }
+        orientationChangeCount: { type: integer, minimum: 0 }
+        droppedFrameCount: { type: integer, minimum: 0 }
+        timingDeviationCount: { type: integer, minimum: 0 }
+        levels:
+          type: array
+          minItems: 1
+          maxItems: 7
+          items: { $ref: '#/components/schemas/ObjectLocationLevelIndicators' }
+        validityIssues:
+          type: array
+          items: { type: string }
 
     PrevisionPuzzleLevelMetrics:
       type: object
@@ -918,6 +1815,9 @@ components:
         - $ref: '#/components/schemas/DecisionMetrics'
         - $ref: '#/components/schemas/EmotionalRadarMetrics'
         - $ref: '#/components/schemas/ReflectivePauseMetrics'
+        - $ref: '#/components/schemas/ContinuousAttentionMetrics'
+        - $ref: '#/components/schemas/CoordinationMetrics'
+        - $ref: '#/components/schemas/ObjectLocationMetrics'
 
     SubmitResultRequest:
       type: object
@@ -984,6 +1884,24 @@ components:
           allOf: [ { $ref: '#/components/schemas/ReflectivePauseIndicators' } ]
           nullable: true
           description: "Présent uniquement quand le résultat soumis concerne Reflective Pause."
+        continuousAttentionIndicators:
+          allOf: [ { $ref: '#/components/schemas/ContinuousAttentionIndicators' } ]
+          nullable: true
+          description: >
+            Présent uniquement après « Je continue ». Rapport descriptif Rosvold
+            X/AX ; aucune norme ou interprétation Conners CPT-3.
+        coordinationIndicators:
+          allOf: [ { $ref: '#/components/schemas/CoordinationIndicators' } ]
+          nullable: true
+          description: >
+            Présent uniquement après « Je coordonne ». Toutes les précisions et
+            distances sont reconstruites côté serveur depuis la trace brute.
+        objectLocationIndicators:
+          allOf: [ { $ref: '#/components/schemas/ObjectLocationIndicators' } ]
+          nullable: true
+          description: >
+            Présent uniquement après « Je place ». Layout, score et catégories
+            d'erreur sont reconstruits côté serveur depuis les actions brutes.
         scoreBreakdown:
           type: array
           nullable: true

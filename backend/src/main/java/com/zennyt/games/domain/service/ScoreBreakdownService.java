@@ -8,10 +8,13 @@ import com.zennyt.games.domain.config.PrevisionPuzzleConfig;
 import com.zennyt.games.domain.config.ReflectivePauseConfig;
 import com.zennyt.games.domain.config.TaskSchedulingConfig;
 import com.zennyt.games.domain.vo.DecisionReport;
+import com.zennyt.games.domain.vo.CoordinationReport;
+import com.zennyt.games.domain.vo.ContinuousAttentionReport;
 import com.zennyt.games.domain.vo.GameMetrics;
 import com.zennyt.games.domain.vo.MemoryQuestMetrics;
 import com.zennyt.games.domain.vo.MoveFastMetrics;
 import com.zennyt.games.domain.vo.OptimalPathLevel;
+import com.zennyt.games.domain.vo.ObjectLocationReport;
 import com.zennyt.games.domain.vo.PlanifikMetrics;
 import com.zennyt.games.domain.vo.PrevisionPuzzleLevel;
 import com.zennyt.games.domain.vo.PrevisionPuzzleMetrics;
@@ -34,6 +37,73 @@ import java.util.List;
  * {@code _buildBreakdown}) reproduit ces lignes à l'identique.
  */
 public class ScoreBreakdownService {
+
+    /** « Je place » — seule l'exactitude objet-position entre dans le /100. */
+    public ScoreBreakdown objectLocation(ObjectLocationReport report, Score score) {
+        List<Line> lines = new ArrayList<>();
+        lines.add(Line.note("Score provisoire = placements exacts / objets administrés, "
+            + "arrondi half-up une seule fois. Pratique, swaps, distances, "
+            + "pente et temps sont hors score."));
+        lines.add(Line.info("Placements exacts",
+            report.exactPlacementCount() + "/" + report.administeredObjectCount()
+                + " (" + report.exactAccuracyPercent() + " %)"));
+        lines.add(Line.info("Swaps / erreurs locales / globales / omissions",
+            report.swapCount() + " / " + report.localErrorCount() + " / "
+                + report.globalErrorCount() + " / " + report.unplacedCount()));
+        lines.add(Line.info("Distance moyenne",
+            report.averageDisplacementCells() + " cellules"));
+        lines.add(Line.info("Empan atteint", String.valueOf(report.span())));
+        lines.add(Line.info("Validité technique",
+            report.sessionValid() ? "valide" : String.join(", ", report.validityIssues())));
+        lines.add(Line.total("Score descriptif", score.rawPoints(), score.maxPoints()));
+        return new ScoreBreakdown(lines);
+    }
+
+    /**
+     * « Je coordonne » — seule la précision globale entre dans le /100.
+     * Les découpes vitesse/durée et la distance restent descriptives.
+     */
+    public ScoreBreakdown coordination(CoordinationReport report, Score score) {
+        List<Line> lines = new ArrayList<>();
+        lines.add(Line.note("Score provisoire = précision globale pondérée par le temps, "
+            + "arrondie half-up une seule fois. Pratique, vitesse, durée et distance "
+            + "moyenne sont hors score."));
+        lines.add(Line.info("Précision globale", report.overallAccuracyPercent() + " %"));
+        lines.add(Line.info("Vitesse lente / rapide",
+            report.slowAccuracyPercent() + " % / "
+                + report.fastAccuracyPercent() + " %"));
+        lines.add(Line.info("Segments longs / courts",
+            report.longSegmentAccuracyPercent() + " % / "
+                + report.shortSegmentAccuracyPercent() + " %"));
+        lines.add(Line.info("Distance moyenne normalisée",
+            report.averageCenterDistance() + " / 1200"));
+        lines.add(Line.info("Validité de la tâche",
+            report.taskValid() ? "valide" : String.join(", ", report.validityIssues())));
+        lines.add(Line.info("Validité technique",
+            report.technicalValid() ? "valide" : String.join(", ", report.validityIssues())));
+        lines.add(Line.total("Score descriptif", score.rawPoints(), score.maxPoints()));
+        return new ScoreBreakdown(lines);
+    }
+
+    /**
+     * Long Rosvold — le /100 est la moyenne unique des deux balanced
+     * accuracies. RT, d-prime et biais restent informatifs et hors score.
+     */
+    public ScoreBreakdown continuousAttention(
+            ContinuousAttentionReport report, Score score) {
+        List<Line> lines = new ArrayList<>();
+        lines.add(Line.note("Score provisoire = moyenne de la balanced accuracy "
+            + "X_TEST et AX_TEST, arrondie une seule fois. Entraînement, temps, "
+            + "d-prime et biais c sont hors score."));
+        lines.add(Line.info("X_TEST — balanced accuracy",
+            report.xPhase().balancedAccuracyPercent() + " %"));
+        lines.add(Line.info("AX_TEST — balanced accuracy",
+            report.axPhase().balancedAccuracyPercent() + " %"));
+        lines.add(Line.info("Validité technique",
+            report.sessionValid() ? "valide" : String.join(", ", report.validityIssues())));
+        lines.add(Line.total("Score descriptif", score.rawPoints(), score.maxPoints()));
+        return new ScoreBreakdown(lines);
+    }
 
     /** Détail selon le type de métriques ; {@code null} si non supporté. */
     public ScoreBreakdown build(GameMetrics metrics, Score score) {

@@ -4,5 +4,7 @@ package com.zennyt.games.domain.vo;
 public sealed interface GameMetrics
     permits PlanifikMetrics, TaskSchedulingMetrics, MoveFastMetrics,
             PrevisionPuzzleMetrics, MemoryQuestMetrics, DecisionMetrics,
-            EmotionalRadarMetrics, ReflectivePauseMetrics {
+            EmotionalRadarMetrics, ReflectivePauseMetrics,
+            ContinuousAttentionMetrics, CoordinationMetrics,
+            ObjectLocationMetrics {
 }
