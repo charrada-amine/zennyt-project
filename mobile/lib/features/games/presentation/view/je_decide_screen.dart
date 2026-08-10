@@ -86,9 +86,11 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
     setState(() {
       _checkingSavedProgress = false;
       _resumeSavedJourney = hasSavedCheckpoint;
-      _savedResumeStep = DecisionGameplayStep.values.firstWhere(
-        (step) => step.name == savedStepName,
-        orElse: () => DecisionGameplayStep.encouragement,
+      _savedResumeStep = sanitizeDecisionResumeStep(
+        DecisionGameplayStep.values.firstWhere(
+          (step) => step.name == savedStepName,
+          orElse: () => DecisionGameplayStep.encouragement,
+        ),
       );
       if (hasSavedCheckpoint) _stage = _DecisionStage.gameplay;
     });

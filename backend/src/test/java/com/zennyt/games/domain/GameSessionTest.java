@@ -168,6 +168,57 @@ class GameSessionTest {
     }
 
     @Test
+    void continuousAttention_is_separate_and_completes_on_its_single_core_game() {
+        GameSession session =
+            GameSession.start(UUID.randomUUID(), GameType.CONTINUOUS_ATTENTION);
+        Score score = new Score(84, 100, "Descriptive — provisional");
+
+        session.recordResult(MiniGame.CONTINUOUS_ATTENTION_CORE, score, scoring);
+
+        assertEquals(SessionStatus.COMPLETED, session.status());
+        assertEquals(84, session.compositeRaw());
+        assertEquals(100, session.compositeMax());
+        assertEquals(1, session.domainEvents().size());
+        GameResultRecordedEvent event =
+            assertInstanceOf(GameResultRecordedEvent.class, session.domainEvents().get(0));
+        assertEquals(GameType.CONTINUOUS_ATTENTION, event.gameType());
+        assertEquals("Descriptive — provisional", event.level());
+    }
+
+    @Test
+    void visuomotorCoordination_isSeparateAndDoesNotChangeMoveFastComposition() {
+        GameSession coordination = GameSession.start(
+            UUID.randomUUID(), GameType.VISUOMOTOR_COORDINATION);
+        assertEquals(List.of(MiniGame.COORDINATION_TRACKING_CORE),
+            coordination.expectedMiniGames());
+
+        coordination.recordResult(
+            MiniGame.COORDINATION_TRACKING_CORE,
+            new Score(73, 100, "Descriptive — provisional"),
+            scoring);
+
+        assertEquals(SessionStatus.COMPLETED, coordination.status());
+        assertEquals(73, coordination.compositeRaw());
+        assertEquals(100, coordination.compositeMax());
+        assertEquals(List.of(MiniGame.MOVE_FAST_CORE),
+            GameSession.start(UUID.randomUUID(), GameType.MOVE_FAST)
+                .expectedMiniGames());
+    }
+
+    @Test
+    void visuospatialMemory_isSeparateAndDoesNotChangeMemoryQuestComposition() {
+        GameSession objectLocation = GameSession.start(
+            UUID.randomUUID(), GameType.VISUOSPATIAL_MEMORY);
+        assertEquals(List.of(MiniGame.OBJECT_LOCATION_BINDING_CORE),
+            objectLocation.expectedMiniGames());
+        assertEquals(List.of(MiniGame.MEMORY_QUEST_CORE),
+            GameSession.start(UUID.randomUUID(), GameType.MEMORY_QUEST)
+                .expectedMiniGames());
+        assertEquals("Descriptive — provisional",
+            scoring.interpretGlobal(GameType.VISUOSPATIAL_MEMORY, 72, 72.0));
+    }
+
+    @Test
     void recording_a_foreign_minigame_is_rejected() {
         GameSession session = GameSession.start(UUID.randomUUID(), GameType.MEMORY_QUEST);
         Score score = new Score(10, 10, "Bon à excellent");

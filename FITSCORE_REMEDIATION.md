@@ -6,6 +6,34 @@ matrice `fit_score/00-README.md` … `16-prochaines-etapes.md`.
 Chaque constat a été vérifié dans le code. Les calculs ont été rejoués en exécutant le vrai
 `DeterministicFitScoreCalculator` compilé depuis les sources (voir §7 Vérification).
 
+
+## Fusion du 2026-08-10 — les trois jeux Games arrivent
+
+L'équipe Games a livré « Je continue », « Je coordonne » et la mémoire visuospatiale.
+Trois conséquences, dans l'ordre où elles se sont manifestées :
+
+1. **Collision Flyway.** Leurs migrations étaient numérotées `V27`, `V28`, `V29` — trois
+   numéros déjà pris par recruitment. Renumérotées `V61`, `V62`, `V63`. **Le prochain
+   numéro libre est V64**, pour tout le monde. Les bases déjà migrées côté Games
+   rejoueront ces trois migrations sous leur nouveau numéro : à vérifier chez eux.
+
+2. **Le Fit Score les ignorait.** `SoftSkillModule` les déclarait encore indisponibles,
+   donc ils sortaient du dénominateur. Drapeaux passés à `true`. Effet : la flexibilité
+   compte désormais 3 jeux et la mémoire 2, donc **jouer Move Fast seul ne couvre plus
+   qu'un tiers de la flexibilité** au lieu de la totalité. C'est la décote de couverture
+   du CdC §3.3 qui a enfin de quoi s'exercer — les scores d'un candidat partiel baissent,
+   ceux d'un candidat complet sont inchangés (`FitScoreBaselineTest` le prouve : les 5
+   personas retrouvent leurs valeurs d'origine dès qu'on leur fait jouer tous les jeux).
+
+3. **Le doublon est maintenant surveillé.** `SoftSkillModule` redit ce que
+   `MiniGame.isPlayable()` sait déjà, parce que la règle d'architecture interdit à
+   recruitment de lire le domaine Games. `SoftSkillModuleGamesParityTest` échoue si les
+   deux divergent — c'est ce qui doit rattraper la prochaine livraison.
+
+**Défaut trouvé au passage :** `DevDataSeeder` insérait ses projections soft-skills avec
+un identifiant neuf à chaque démarrage. Invisible jusqu'à `V54` et sa contrainte
+d'unicité, qui faisait échouer tout **second** démarrage. Rendu idempotent.
+
 ---
 
 ## 🔄 Mise à jour du 2026-08-04 — après la fusion du travail Games

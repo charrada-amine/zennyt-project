@@ -52,12 +52,24 @@ class FitScoreBaselineTest {
             modules[0], modules[1], modules[2], modules[3], modules[4], false, Instant.now());
     }
 
-    /** Les 4 modules réellement produits par Games depuis la livraison de « Je gère ». */
+    /**
+     * Un candidat qui a joué <b>tous</b> les jeux livrés, module par module.
+     *
+     * <p>Ces personas mesurent la <i>pondération</i> métier, pas la décote de couverture :
+     * ils doivent donc rester pleinement couverts. Avant la livraison Games du 2026-08-10,
+     * un seul jeu par module suffisait pour cela — la flexibilité en compte désormais 3 et
+     * la mémoire 2, et il faut les alimenter tous pour garder la même signification. Sans
+     * ça les personas se seraient mis à décrire des candidats qui sautent la moitié des
+     * jeux, et les scores de référence auraient chuté sans qu'aucune pondération ne bouge.
+     */
     private static Map<String, ModuleScore> measuredModules(double flex, double memory,
                                                             double planning, double regulation) {
         Map<String, ModuleScore> scores = new LinkedHashMap<>();
         scores.put("MOVE_FAST", ModuleScore.fullyCovered(flex));
+        scores.put("CONTINUOUS_ATTENTION", ModuleScore.fullyCovered(flex));
+        scores.put("VISUOMOTOR_COORDINATION", ModuleScore.fullyCovered(flex));
         scores.put("MEMORY_QUEST", ModuleScore.fullyCovered(memory));
+        scores.put("VISUOSPATIAL_MEMORY", ModuleScore.fullyCovered(memory));
         scores.put("PLANIFIK", ModuleScore.fullyCovered(planning));
         scores.put("EMOTIONAL_REGULATION", ModuleScore.fullyCovered(regulation));
         return scores;   // DECISION reste inatteignable : DECISION_CORE.playable() == false
@@ -160,7 +172,7 @@ class FitScoreBaselineTest {
         int sansLeJeuRate = score(saute, technique, null).softSkillScore();
 
         assertThat(sansLeJeuRate).isLessThan(avecLeJeuRate);
-        assertThat(avecLeJeuRate - sansLeJeuRate).isEqualTo(6);
+        assertThat(avecLeJeuRate - sansLeJeuRate).isEqualTo(7);
     }
 
     /**
@@ -180,13 +192,14 @@ class FitScoreBaselineTest {
         assertThat(score(Map.of("JEU_PAS_ENCORE_CABLE", ModuleScore.fullyCovered(10)), technique, null)).isNull();
 
         // Mélangée à un module connu, elle reste ignorée : seul MOVE_FAST compte.
-        // 40 × 30 / 70 = 17 — la valeur inconnue (90) n'y contribue en rien.
+        // 40 × 0,33 × 30 / 70 = 6 — la valeur inconnue (90) n'y contribue en rien.
+        // Move Fast est 1 des 3 jeux de la flexibilité, d'où la décote au tiers.
         Map<String, ModuleScore> melange = new LinkedHashMap<>();
         melange.put("MOVE_FAST", ModuleScore.fullyCovered(40));
         melange.put("JEU_PAS_ENCORE_CABLE", ModuleScore.fullyCovered(90));
-        assertThat(score(melange, technique, null).softSkillScore()).isEqualTo(17);
+        assertThat(score(melange, technique, null).softSkillScore()).isEqualTo(6);
         assertThat(score(Map.of("MOVE_FAST", ModuleScore.fullyCovered(40)), technique, null)
-            .softSkillScore()).isEqualTo(17);
+            .softSkillScore()).isEqualTo(6);
     }
 
     /**

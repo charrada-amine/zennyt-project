@@ -23,19 +23,23 @@ import java.util.List;
  * qu'ajustée le 2026-08-05.
  *
  * <p><b>À tenir à jour quand Games livre :</b> passer un jeu à {@code true} suffit
- * — le calcul s'adapte sans autre modification.
+ * — le calcul s'adapte sans autre modification. Cette liste redit ce que
+ * {@code MiniGame.isPlayable()} sait déjà, parce que la règle d'architecture interdit à
+ * recruitment de lire le domaine Games. Le doublon est donc assumé, mais surveillé :
+ * {@code SoftSkillModuleGamesParityTest} échoue si les deux divergent — c'est ce qui a
+ * rattrapé la livraison des trois jeux du 2026-08-10, restés ici à {@code false} après
+ * leur fusion.
  */
 public enum SoftSkillModule {
 
     COGNITIVE_FLEXIBILITY(
         game("MOVE_FAST", true),
-        // Livrés par Games mais pas encore fusionnés chez nous (cf. GAMES_MODULE.md).
-        game("CONTINUOUS_ATTENTION", false),
-        game("VISUOMOTOR_COORDINATION", false)),
+        game("CONTINUOUS_ATTENTION", true),
+        game("VISUOMOTOR_COORDINATION", true)),
 
     WORKING_MEMORY(
         game("MEMORY_QUEST", true),
-        game("VISUOSPATIAL_MEMORY", false)),
+        game("VISUOSPATIAL_MEMORY", true)),
 
     /**
      * « Je Décide » — moteur backend et écrans mobiles complets, mais le catalogue

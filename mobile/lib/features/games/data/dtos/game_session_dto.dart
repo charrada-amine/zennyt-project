@@ -1,7 +1,10 @@
+import '../../domain/entities/continuous_attention_metrics.dart';
+import '../../domain/entities/coordination_tracking_metrics.dart';
 import '../../domain/entities/game_score.dart';
 import '../../domain/entities/game_session.dart';
 import '../../domain/entities/game_type.dart';
 import '../../domain/entities/mini_game.dart';
+import '../../domain/entities/object_location_metrics.dart';
 import '../../domain/entities/reflective_pause_metrics.dart';
 import '../../domain/entities/score_breakdown.dart';
 
@@ -21,6 +24,9 @@ class GameSessionDto {
     this.completedAt,
     this.scoreBreakdown = const [],
     this.reflectivePauseIndicators,
+    this.continuousAttentionIndicators,
+    this.coordinationIndicators,
+    this.objectLocationIndicators,
   });
 
   final String id;
@@ -34,6 +40,9 @@ class GameSessionDto {
   final DateTime? completedAt;
   final List<ScoreBreakdownLine> scoreBreakdown;
   final ReflectivePauseIndicators? reflectivePauseIndicators;
+  final ContinuousAttentionIndicators? continuousAttentionIndicators;
+  final CoordinationTrackingIndicators? coordinationIndicators;
+  final ObjectLocationIndicators? objectLocationIndicators;
 
   factory GameSessionDto.fromJson(Map<String, dynamic> json) {
     return GameSessionDto(
@@ -64,6 +73,22 @@ class GameSessionDto {
           : ReflectivePauseIndicators.fromJson(
               json['reflectivePauseIndicators'] as Map<String, dynamic>,
             ),
+      continuousAttentionIndicators:
+          json['continuousAttentionIndicators'] == null
+          ? null
+          : ContinuousAttentionIndicators.fromJson(
+              json['continuousAttentionIndicators'] as Map<String, dynamic>,
+            ),
+      coordinationIndicators: json['coordinationIndicators'] == null
+          ? null
+          : CoordinationTrackingIndicators.fromJson(
+              json['coordinationIndicators'] as Map<String, dynamic>,
+            ),
+      objectLocationIndicators: json['objectLocationIndicators'] == null
+          ? null
+          : ObjectLocationIndicators.fromJson(
+              json['objectLocationIndicators'] as Map<String, dynamic>,
+            ),
     );
   }
 
@@ -79,6 +104,9 @@ class GameSessionDto {
     completedAt: completedAt,
     scoreBreakdown: scoreBreakdown,
     reflectivePauseIndicators: reflectivePauseIndicators,
+    continuousAttentionIndicators: continuousAttentionIndicators,
+    coordinationIndicators: coordinationIndicators,
+    objectLocationIndicators: objectLocationIndicators,
   );
 
   static GameAttempt _attemptFromJson(Map<String, dynamic> json) {

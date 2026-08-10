@@ -15,6 +15,7 @@ import java.util.UUID;
  */
 public record SubmitGameResultCommand(
     UUID sessionId,
+    UUID playerId,
     MiniGame miniGame,
     GameMetrics metrics,
     DeviceCalibration deviceCalibration

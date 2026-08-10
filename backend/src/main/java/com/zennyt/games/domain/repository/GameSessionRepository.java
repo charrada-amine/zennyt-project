@@ -17,4 +17,11 @@ public interface GameSessionRepository {
     GameSession save(GameSession session);
 
     Optional<GameSession> findById(UUID id);
+
+    /**
+     * Charge une session en la verrouillant pour toute la transaction de
+     * soumission. Le port reste indépendant de JPA ; l'adaptateur choisit le
+     * mécanisme de sérialisation approprié.
+     */
+    Optional<GameSession> findByIdForUpdate(UUID id);
 }

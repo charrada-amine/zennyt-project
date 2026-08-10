@@ -37,6 +37,21 @@ enum DecisionGameplayStep {
   selfControl,
 }
 
+/// Étapes de transition/overlay qui ne doivent jamais servir de point de
+/// reprise : les réutiliser comme cible ferait boucler la reprise entre les
+/// écrans « Welcome back » et « Progress saved ».
+const _nonResumableDecisionSteps = {
+  DecisionGameplayStep.pause,
+  DecisionGameplayStep.savedProgress,
+  DecisionGameplayStep.resumeJourney,
+};
+
+/// Ramène une étape sauvegardée vers un scénario réellement reprenable.
+DecisionGameplayStep sanitizeDecisionResumeStep(DecisionGameplayStep step) =>
+    _nonResumableDecisionSteps.contains(step)
+    ? DecisionGameplayStep.encouragement
+    : step;
+
 /// Boucle de gameplay mobile des Phases 2–3.
 ///
 /// Les valeurs XP reproduisent uniquement les états visuels des maquettes :
@@ -260,9 +275,12 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
         if (mounted) await _openPauseMenu();
         return;
       case DecisionPauseAction.exit:
-        _resumeTarget = _step;
-        await DecisionProgressStore().saveCheckpoint(stepName: _step.name);
-        if (mounted) _goTo(DecisionGameplayStep.savedProgress);
+        final resumeStep = sanitizeDecisionResumeStep(_step);
+        _resumeTarget = resumeStep;
+        await DecisionProgressStore().saveCheckpoint(stepName: resumeStep.name);
+        // « Save and exit » ramène directement à l'accueil ; la reprise se fera
+        // via l'écran « Welcome back » à la prochaine ouverture.
+        if (mounted) widget.onClose();
         return;
       case DecisionPauseAction.resume || null:
         if (timerWasRunning && mounted) {

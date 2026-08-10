@@ -16,10 +16,27 @@ import com.zennyt.games.domain.vo.MoveFastResponse;
 import com.zennyt.games.domain.vo.MoveFastRule;
 import com.zennyt.games.domain.config.PrevisionPuzzleConfig;
 import com.zennyt.games.domain.vo.CalibrationMethod;
+import com.zennyt.games.domain.vo.ContinuousAttentionBlockMetric;
+import com.zennyt.games.domain.vo.ContinuousAttentionInputSource;
+import com.zennyt.games.domain.vo.ContinuousAttentionMetrics;
+import com.zennyt.games.domain.vo.ContinuousAttentionPhase;
+import com.zennyt.games.domain.vo.ContinuousAttentionTrialMetric;
+import com.zennyt.games.domain.vo.CoordinationInputSource;
+import com.zennyt.games.domain.vo.CoordinationMetrics;
+import com.zennyt.games.domain.vo.CoordinationPhase;
+import com.zennyt.games.domain.vo.CoordinationPointerSample;
+import com.zennyt.games.domain.vo.CoordinationSegmentMetric;
+import com.zennyt.games.domain.vo.CoordinationSpeed;
 import com.zennyt.games.domain.vo.DeviceCalibration;
 import com.zennyt.games.domain.vo.DeviceCategory;
 import com.zennyt.games.domain.vo.InputMode;
 import com.zennyt.games.domain.vo.OptimalPathLevel;
+import com.zennyt.games.domain.vo.ObjectLocationActionType;
+import com.zennyt.games.domain.vo.ObjectLocationCompletionReason;
+import com.zennyt.games.domain.vo.ObjectLocationLevelMetric;
+import com.zennyt.games.domain.vo.ObjectLocationMetrics;
+import com.zennyt.games.domain.vo.ObjectLocationPhase;
+import com.zennyt.games.domain.vo.ObjectLocationPlacementAction;
 import com.zennyt.games.domain.vo.PlanifikMetrics;
 import com.zennyt.games.domain.vo.PrevisionPuzzleLevel;
 import com.zennyt.games.domain.vo.PrevisionPuzzleMetrics;
@@ -30,6 +47,7 @@ import com.zennyt.games.domain.vo.SecondaryObjectivesReached;
 import com.zennyt.games.domain.vo.TaskSchedulingMetrics;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
@@ -92,7 +110,94 @@ public record SubmitResultRequest(
         @Size(min = 1) @Valid List<EmotionalRadarScenePayload> emotionalRadarScenes,
         // « Reflective Pause » — 10 choix + timings bruts, aucun point.
         @Size(min = 10, max = 10) @Valid
-        List<ReflectivePauseMomentPayload> reflectivePauseMoments
+        List<ReflectivePauseMomentPayload> reflectivePauseMoments,
+        // « Je continue » — protocole Long Rosvold complet, mesures brutes.
+        String protocolVersion,
+        @Size(min = 44, max = 44) @Valid
+        List<ContinuousAttentionBlockPayload> blocks,
+        Boolean interrupted,
+        @Min(0) Integer backgroundEventCount,
+        @Min(0) Integer droppedFrameCount,
+        // « Je coordonne » — modalité + 14 segments de positions fixed-point.
+        CoordinationInputSource inputSource,
+        @Size(min = 14, max = 14) @Valid
+        List<CoordinationSegmentPayload> coordinationSegments,
+        // « Je place » — actions brutes uniquement, layout reconstruit serveur.
+        ObjectLocationCompletionReason completionReason,
+        @Size(min = 1, max = 7) @Valid
+        List<ObjectLocationLevelPayload> objectLocationLevels,
+        @Min(0) Integer focusLossCount,
+        @Min(0) Integer orientationChangeCount
+    ) {}
+
+    /** Timings et actions brutes d'un niveau « Je place ». */
+    public record ObjectLocationLevelPayload(
+        @NotNull ObjectLocationPhase phase,
+        @NotNull @Min(0) @Max(6) Integer levelIndex,
+        @NotNull @Min(2) @Max(8) Integer objectCount,
+        @NotNull @Min(0) @Max(12_250) Integer actualEncodingDurationMs,
+        @NotNull @Min(0) @Max(2_250) Integer actualRetentionDurationMs,
+        @NotNull @Min(0) @Max(32_250) Integer actualRecallDurationMs,
+        @NotNull Boolean timedOut,
+        @NotNull Boolean completed,
+        @NotNull @Size(max = 256) @Valid
+        List<ObjectLocationPlacementActionPayload> actions
+    ) {}
+
+    /** Une pose, un déplacement ou un retour à la réserve. */
+    public record ObjectLocationPlacementActionPayload(
+        @NotNull @Min(1) @Max(256) Integer actionIndex,
+        @NotNull ObjectLocationActionType actionType,
+        @NotNull @Size(min = 1, max = 48) String objectId,
+        @Min(0) @Max(15) Integer targetCellIndex,
+        @NotNull @Min(0) Long timestampMs
+    ) {}
+
+    /** Un segment contigu du protocole visuomoteur. */
+    public record CoordinationSegmentPayload(
+        @NotNull CoordinationPhase phase,
+        @NotNull @Min(1) @Max(14) Integer segmentIndex,
+        @NotNull CoordinationSpeed speed,
+        @NotNull @Min(1) Integer nominalDurationMs,
+        @NotNull @Min(0) Long actualStartMs,
+        @NotNull @Min(1) Long actualEndMs,
+        @NotNull @Size(min = 2, max = 2000) @Valid
+        List<CoordinationPointerSamplePayload> samples
+    ) {}
+
+    /** Position pointeur brute ; aucune position de balle ni distance client. */
+    public record CoordinationPointerSamplePayload(
+        @NotNull @Min(1) @Max(2000) Integer sampleIndex,
+        @NotNull @Min(0) Long timestampMs,
+        @NotNull Boolean pointerPresent,
+        @Min(0) @Max(1_000_000) Integer pointerX,
+        @Min(0) @Max(1_000_000) Integer pointerY
+    ) {}
+
+    /** Un bloc de 31 essais du protocole Long Rosvold. */
+    public record ContinuousAttentionBlockPayload(
+        @NotNull ContinuousAttentionPhase phase,
+        @NotNull @Min(1) Integer blockIndex,
+        @NotNull @Size(min = 31, max = 31) @Valid
+        List<ContinuousAttentionTrialPayload> trials
+    ) {}
+
+    /** Mesures temporelles et réponse brute d'un essai. */
+    public record ContinuousAttentionTrialPayload(
+        @NotNull @Min(1) @Max(31) Integer trialIndex,
+        String previousLetter,
+        @NotNull String currentLetter,
+        @NotNull Integer responseCode,
+        @NotNull Integer correct,
+        @Min(0) @Max(689) Integer latencyMs,
+        @NotNull @Min(0) Long scheduledOnsetMs,
+        @NotNull @Min(0) Long actualOnsetMs,
+        @Min(0) Long responseTimestampMs,
+        @NotNull @Min(0) Integer actualDisplayDurationMs,
+        @NotNull @Min(0) Integer actualIsiDurationMs,
+        ContinuousAttentionInputSource inputSource,
+        @NotNull @Min(0) Integer extraResponseCount,
+        @NotNull Boolean interrupted
     ) {}
 
     /**
@@ -266,7 +371,111 @@ public record SubmitResultRequest(
             case REFLECTIVE_PAUSE_CORE -> new ReflectivePauseMetrics(
                 required(metrics.reflectivePauseMoments(), "reflectivePauseMoments").stream()
                     .map(SubmitResultRequest::toReflectivePauseMoment).toList());
+            case CONTINUOUS_ATTENTION_CORE -> new ContinuousAttentionMetrics(
+                required(metrics.protocolVersion(), "protocolVersion"),
+                required(metrics.blocks(), "blocks").stream()
+                    .map(SubmitResultRequest::toContinuousAttentionBlock).toList(),
+                required(metrics.sessionCompleted(), "sessionCompleted"),
+                required(metrics.interrupted(), "interrupted"),
+                required(metrics.backgroundEventCount(), "backgroundEventCount"),
+                required(metrics.droppedFrameCount(), "droppedFrameCount"));
+            case COORDINATION_TRACKING_CORE -> new CoordinationMetrics(
+                required(metrics.protocolVersion(), "protocolVersion"),
+                required(metrics.inputSource(), "inputSource"),
+                required(metrics.coordinationSegments(), "coordinationSegments").stream()
+                    .map(SubmitResultRequest::toCoordinationSegment).toList(),
+                required(metrics.sessionCompleted(), "sessionCompleted"),
+                required(metrics.interrupted(), "interrupted"),
+                required(metrics.backgroundEventCount(), "backgroundEventCount"),
+                required(metrics.droppedFrameCount(), "droppedFrameCount"));
+            case OBJECT_LOCATION_BINDING_CORE -> new ObjectLocationMetrics(
+                required(metrics.protocolVersion(), "protocolVersion"),
+                required(metrics.completionReason(), "completionReason"),
+                required(metrics.objectLocationLevels(), "objectLocationLevels").stream()
+                    .map(SubmitResultRequest::toObjectLocationLevel).toList(),
+                required(metrics.sessionCompleted(), "sessionCompleted"),
+                required(metrics.interrupted(), "interrupted"),
+                required(metrics.backgroundEventCount(), "backgroundEventCount"),
+                required(metrics.focusLossCount(), "focusLossCount"),
+                required(metrics.orientationChangeCount(), "orientationChangeCount"),
+                required(metrics.droppedFrameCount(), "droppedFrameCount"));
         };
+    }
+
+    private static ObjectLocationLevelMetric toObjectLocationLevel(
+            ObjectLocationLevelPayload payload) {
+        return new ObjectLocationLevelMetric(
+            required(payload.phase(), "phase"),
+            required(payload.levelIndex(), "levelIndex"),
+            required(payload.objectCount(), "objectCount"),
+            required(payload.actualEncodingDurationMs(), "actualEncodingDurationMs"),
+            required(payload.actualRetentionDurationMs(), "actualRetentionDurationMs"),
+            required(payload.actualRecallDurationMs(), "actualRecallDurationMs"),
+            required(payload.timedOut(), "timedOut"),
+            required(payload.completed(), "completed"),
+            required(payload.actions(), "actions").stream()
+                .map(SubmitResultRequest::toObjectLocationAction).toList());
+    }
+
+    private static ObjectLocationPlacementAction toObjectLocationAction(
+            ObjectLocationPlacementActionPayload payload) {
+        return new ObjectLocationPlacementAction(
+            required(payload.actionIndex(), "actionIndex"),
+            required(payload.actionType(), "actionType"),
+            required(payload.objectId(), "objectId"),
+            payload.targetCellIndex(),
+            required(payload.timestampMs(), "timestampMs"));
+    }
+
+    private static CoordinationSegmentMetric toCoordinationSegment(
+            CoordinationSegmentPayload payload) {
+        return new CoordinationSegmentMetric(
+            required(payload.phase(), "phase"),
+            required(payload.segmentIndex(), "segmentIndex"),
+            required(payload.speed(), "speed"),
+            required(payload.nominalDurationMs(), "nominalDurationMs"),
+            required(payload.actualStartMs(), "actualStartMs"),
+            required(payload.actualEndMs(), "actualEndMs"),
+            required(payload.samples(), "samples").stream()
+                .map(SubmitResultRequest::toCoordinationSample).toList());
+    }
+
+    private static CoordinationPointerSample toCoordinationSample(
+            CoordinationPointerSamplePayload payload) {
+        return new CoordinationPointerSample(
+            required(payload.sampleIndex(), "sampleIndex"),
+            required(payload.timestampMs(), "timestampMs"),
+            required(payload.pointerPresent(), "pointerPresent"),
+            payload.pointerX(), payload.pointerY());
+    }
+
+    private static ContinuousAttentionBlockMetric toContinuousAttentionBlock(
+            ContinuousAttentionBlockPayload payload) {
+        return new ContinuousAttentionBlockMetric(
+            required(payload.phase(), "phase"),
+            required(payload.blockIndex(), "blockIndex"),
+            required(payload.trials(), "trials").stream()
+                .map(SubmitResultRequest::toContinuousAttentionTrial)
+                .toList());
+    }
+
+    private static ContinuousAttentionTrialMetric toContinuousAttentionTrial(
+            ContinuousAttentionTrialPayload payload) {
+        return new ContinuousAttentionTrialMetric(
+            required(payload.trialIndex(), "trialIndex"),
+            payload.previousLetter(),
+            required(payload.currentLetter(), "currentLetter"),
+            required(payload.responseCode(), "responseCode"),
+            required(payload.correct(), "correct"),
+            payload.latencyMs(),
+            required(payload.scheduledOnsetMs(), "scheduledOnsetMs"),
+            required(payload.actualOnsetMs(), "actualOnsetMs"),
+            payload.responseTimestampMs(),
+            required(payload.actualDisplayDurationMs(), "actualDisplayDurationMs"),
+            required(payload.actualIsiDurationMs(), "actualIsiDurationMs"),
+            payload.inputSource(),
+            required(payload.extraResponseCount(), "extraResponseCount"),
+            required(payload.interrupted(), "interrupted"));
     }
 
     private static ReflectivePauseMomentMetric toReflectivePauseMoment(

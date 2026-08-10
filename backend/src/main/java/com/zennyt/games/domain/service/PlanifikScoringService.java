@@ -204,6 +204,18 @@ public class PlanifikScoringService {
             // isolées dans EmotionalRadarProvisionalRules (aucune fiche ne les fixe).
             case EMOTIONAL_REGULATION ->
                 com.zennyt.games.domain.config.EmotionalRadarProvisionalRules.interpret(normalized);
+            // Aucune bande clinique ni percentile : libellé purement descriptif.
+            case CONTINUOUS_ATTENTION ->
+                com.zennyt.games.domain.config.ContinuousAttentionProvisionalRules
+                    .DESCRIPTIVE_LEVEL;
+            // Score visuomoteur provisoire, sans bande clinique.
+            case VISUOMOTOR_COORDINATION ->
+                com.zennyt.games.domain.config.CoordinationProvisionalRules
+                    .DESCRIPTIVE_LEVEL;
+            // Score objet-position provisoire, sans bande clinique.
+            case VISUOSPATIAL_MEMORY ->
+                com.zennyt.games.domain.config.ObjectLocationProvisionalRules
+                    .DESCRIPTIVE_LEVEL;
         };
     }
 

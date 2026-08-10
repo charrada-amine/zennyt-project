@@ -1,6 +1,9 @@
+import 'continuous_attention_metrics.dart';
+import 'coordination_tracking_metrics.dart';
 import 'game_score.dart';
 import 'game_type.dart';
 import 'mini_game.dart';
+import 'object_location_metrics.dart';
 import 'reflective_pause_metrics.dart';
 import 'score_breakdown.dart';
 
@@ -31,6 +34,9 @@ class GameSession {
     this.completedAt,
     this.scoreBreakdown = const [],
     this.reflectivePauseIndicators,
+    this.continuousAttentionIndicators,
+    this.coordinationIndicators,
+    this.objectLocationIndicators,
   });
 
   final String id;
@@ -48,6 +54,15 @@ class GameSession {
 
   /// Présent après une soumission Reflective Pause.
   final ReflectivePauseIndicators? reflectivePauseIndicators;
+
+  /// Présent après une soumission « Je continue ».
+  final ContinuousAttentionIndicators? continuousAttentionIndicators;
+
+  /// Présent après une soumission « Je coordonne ».
+  final CoordinationTrackingIndicators? coordinationIndicators;
+
+  /// Présent après une soumission « Je place ».
+  final ObjectLocationIndicators? objectLocationIndicators;
 
   bool get isCompleted => status == 'COMPLETED';
 

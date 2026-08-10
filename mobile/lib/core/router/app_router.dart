@@ -25,7 +25,10 @@ import '../../features/profile_settings/presentation/view/personal_informations_
 import '../../features/profile_settings/presentation/view/privacy_policy_screen.dart';
 import '../../features/navigation/presentation/view/main_navigation_screen.dart';
 import '../../features/games/presentation/view/emotional_radar_screen.dart';
+import '../../features/games/presentation/view/continuous_attention_screen.dart';
+import '../../features/games/presentation/view/coordination_tracking_screen.dart';
 import '../../features/games/presentation/view/investigate_screen.dart';
+import '../../features/games/presentation/view/je_place_screen.dart';
 import '../../features/games/presentation/view/je_decide_screen.dart';
 import '../../features/games/presentation/view/move_fast_screen.dart';
 import '../../features/games/presentation/view/planifik_screen.dart';
@@ -189,6 +192,16 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const MoveFastScreen(),
       ),
       GoRoute(
+        path: AppRoutes.gamesJeContinue,
+        name: AppRoutes.nGamesJeContinue,
+        builder: (context, state) => const ContinuousAttentionScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.gamesJeCoordonne,
+        name: AppRoutes.nGamesJeCoordonne,
+        builder: (context, state) => const CoordinationTrackingScreen(),
+      ),
+      GoRoute(
         path: AppRoutes.gamesPredictivePuzzle,
         name: AppRoutes.nGamesPredictivePuzzle,
         builder: (context, state) => const PredictivePuzzleScreen(),
@@ -202,6 +215,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.gamesInvestigate,
         name: AppRoutes.nGamesInvestigate,
         builder: (context, state) => const InvestigateScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.gamesJePlace,
+        name: AppRoutes.nGamesJePlace,
+        builder: (context, state) => const JePlaceScreen(),
       ),
       GoRoute(
         path: AppRoutes.gamesJeDecide,

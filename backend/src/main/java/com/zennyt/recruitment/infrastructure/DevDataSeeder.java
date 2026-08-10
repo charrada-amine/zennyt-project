@@ -134,11 +134,9 @@ public class DevDataSeeder implements CommandLineRunner {
         // Projections soft skills des candidats de démo : sans elles, aucune paire
         // candidat×offre n'existe pour le recalcul des fit scores (les projections
         // réelles arrivent via les événements du module Games).
-        softSkillsRepository.save(SoftSkillsProjection.create(CANDIDATE, "MOVE_FAST", 85, 100, Instant.now()));
-        softSkillsRepository.save(SoftSkillsProjection.create(
-            UUID.fromString("44444444-4444-4444-4444-444444444444"), "MOVE_FAST", 58, 100, Instant.now()));
-        softSkillsRepository.save(SoftSkillsProjection.create(
-            UUID.fromString("55555555-5555-5555-5555-555555555555"), "MOVE_FAST", 74, 100, Instant.now()));
+        seedProjection(CANDIDATE, "MOVE_FAST", 85);
+        seedProjection(UUID.fromString("44444444-4444-4444-4444-444444444444"), "MOVE_FAST", 58);
+        seedProjection(UUID.fromString("55555555-5555-5555-5555-555555555555"), "MOVE_FAST", 74);
 
         log.info("""
             [DevDataSeeder] Données de démo insérées :
@@ -169,5 +167,23 @@ public class DevDataSeeder implements CommandLineRunner {
             "Responsabilités à définir.", "Bac+5 ou équivalent.", "Expérience en équipe agile.",
             "Package compétitif, télétravail, formation.", "Postulez via l'application.",
             null, jobPositionId, false, JobOfferStatus.ACTIVE, now, now);
+    }
+
+    /**
+     * Réécrit la projection si elle existe déjà, au lieu d'en insérer une seconde.
+     *
+     * <p>Tout le reste du seeder est idempotent par construction ({@code rehydrate} avec
+     * des UUID fixes) ; ces trois lignes ne l'étaient pas — {@code create} tire un
+     * identifiant neuf à chaque fois. C'est passé inaperçu tant que rien n'interdisait
+     * les doublons : depuis V54 et sa contrainte
+     * {@code uq_soft_skills_projection_candidate_module}, le second démarrage échouait.
+     */
+    private void seedProjection(UUID candidateId, String module, int score) {
+        UUID existingId = softSkillsRepository.findByCandidateIdAndModule(candidateId, module)
+            .map(SoftSkillsProjection::id)
+            .orElse(null);
+        softSkillsRepository.save(existingId != null
+            ? new SoftSkillsProjection(existingId, candidateId, module, score, 100, Instant.now())
+            : SoftSkillsProjection.create(candidateId, module, score, 100, Instant.now()));
     }
 }
