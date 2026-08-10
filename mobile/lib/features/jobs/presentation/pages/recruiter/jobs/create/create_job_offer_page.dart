@@ -6,6 +6,7 @@ import 'package:zennyt/core/error/api_exception.dart';
 import 'package:zennyt/core/router/app_routes.dart';
 import 'package:zennyt/shared/widgets/custom_app_bar.dart';
 import 'package:zennyt/features/jobs/domain/entities/job.dart';
+import 'package:zennyt/features/jobs/domain/entities/job_position.dart';
 import 'package:zennyt/features/jobs/domain/repositories/jobs_repository.dart';
 import 'package:zennyt/features/jobs/presentation/providers/jobs_provider.dart';
 import 'package:zennyt/features/jobs/presentation/widgets/employment_type_bottom_sheet.dart';
@@ -58,6 +59,14 @@ class _CreateJobOfferPageState extends ConsumerState<CreateJobOfferPage> {
   String? _selectedAssessmentId;
   String? _selectedAssessmentTitle;
 
+  /// F06 — sans métier, le serveur refuse la création : la formule Fit Score n'a
+  /// aucune pondération à appliquer. Le champ était câblé mais aucun écran ne le
+  /// renseignait, donc toute création échouait.
+  /// Seul l'id est conservé : le libellé et le profil métier se relisent dans le
+  /// référentiel. En reprise d'édition, le serveur ne renvoie que l'id — dupliquer
+  /// l'état obligerait à gérer un cas « id connu, libellé inconnu ».
+  String? _selectedJobPositionId;
+
   bool get _isEditMode => widget.existingJob != null;
 
   @override
@@ -77,6 +86,7 @@ class _CreateJobOfferPageState extends ConsumerState<CreateJobOfferPage> {
       _contractType = job.contractType;
       _workplaceType = job.workplaceType;
       _experienceLevel = job.experienceLevel;
+      _selectedJobPositionId = job.jobPositionId;
       _remote = job.remote;
       _openToInternational = job.openToInternational;
       _selectedAssessmentId = job.assessmentId;
@@ -243,7 +253,11 @@ class _CreateJobOfferPageState extends ConsumerState<CreateJobOfferPage> {
             );
         ref.invalidate(jobOfferDetailProvider(jobId));
       } else {
-        await ref.read(jobOffersProvider.notifier).createJob(
+        // F23/F24 (FITSCORE_REMEDIATION.md §3): assessmentId isn't part of the
+        // create payload (backend-enforced — see JobsRepositoryImpl.createJobOffer).
+        // Assignment is a separate PATCH, chained here so picking an assessment
+        // during creation still works from the user's point of view.
+        final newJob = await ref.read(jobOffersProvider.notifier).createJob(
               CreateJobOfferParams(
                 title: _titleCtrl.text.trim(),
                 companyName: _companyCtrl.text.trim(),
@@ -265,9 +279,18 @@ class _CreateJobOfferPageState extends ConsumerState<CreateJobOfferPage> {
                 howToApply: _descHowToApply,
                 companyInfo: _companyInfoCtrl.text.trim(),
                 assessmentId: _selectedAssessmentId,
+                jobPositionId: _selectedJobPositionId,
                 openToInternational: _openToInternational,
               ),
             );
+        if (_selectedAssessmentId != null) {
+          await ref.read(jobOffersProvider.notifier).assignAssessment(
+                AssignAssessmentParams(
+                  jobId: newJob.id,
+                  assessmentId: _selectedAssessmentId,
+                ),
+              );
+        }
       }
 
       if (mounted) {
@@ -314,6 +337,20 @@ class _CreateJobOfferPageState extends ConsumerState<CreateJobOfferPage> {
                 hint: 'e.g. Senior Flutter Developer',
               ),
             ),
+            const SizedBox(height: 16),
+            JobFormField(
+              label: 'Métier (référentiel)',
+              value: _selectedPosition()?.label,
+              onTap: _openJobPositionDialog,
+            ),
+            const SizedBox(height: 16),
+            JobFormField(
+              label: 'Niveau hiérarchique',
+              value: _selectedPosition()?.levelLabel(_experienceLevel) ??
+                  _experienceLevel.label,
+              onTap: _openExperienceLevelDialog,
+            ),
+            _buildWeightingPreview(),
             const SizedBox(height: 16),
             JobFormField(
               label: 'Type of workplace',
@@ -368,6 +405,133 @@ class _CreateJobOfferPageState extends ConsumerState<CreateJobOfferPage> {
           ],
         ),
       ),
+    );
+  }
+
+  /// F06 — sélection du métier dans le référentiel. Le serveur n'accepte que des
+  /// métiers approuvés : un métier proposé mais pas encore validé par un admin n'a
+  /// pas de profil, donc pas de pondération, donc l'offre resterait sans Fit Score.
+  Future<void> _openJobPositionDialog() async {
+    final positions = await ref.read(jobPositionsProvider.future);
+    if (!mounted) return;
+
+    final selected = await showDialog<JobPosition>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: const Text('Métier'),
+        children: [
+          SizedBox(
+            width: double.maxFinite,
+            height: 420,
+            child: ListView.builder(
+              itemCount: positions.length,
+              itemBuilder: (context, i) {
+                final position = positions[i];
+                return ListTile(
+                  title: Text(position.name),
+                  subtitle: position.sector == null
+                      ? const Text('Métier transverse')
+                      : Text(position.sector!),
+                  selected: position.id == _selectedJobPositionId,
+                  onTap: () => Navigator.pop(context, position),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (selected == null) return;
+    setState(() => _selectedJobPositionId = selected.id);
+  }
+
+  /// Le référentiel est déjà en cache après le premier chargement ; tant qu'il ne
+  /// l'est pas, le champ reste vide plutôt que d'afficher un id brut.
+  JobPosition? _selectedPosition() {
+    if (_selectedJobPositionId == null) return null;
+    final positions = ref.watch(jobPositionsProvider).asData?.value;
+    if (positions == null) return null;
+    final match = positions.where((p) => p.id == _selectedJobPositionId);
+    return match.isEmpty ? null : match.first;
+  }
+
+  /// Le niveau n'avait aucun sélecteur : toute offre partait en JUNIOR. C'est pourtant
+  /// lui qui décide du partage soft/hard — sur un métier Technique, 35 % de hard en
+  /// Junior contre 65 % en Senior.
+  Future<void> _openExperienceLevelDialog() async {
+    final position = _selectedPosition();
+    final selected = await showDialog<ExperienceLevel>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: const Text('Niveau hiérarchique'),
+        children: ExperienceLevel.values
+            .map((level) => SimpleDialogOption(
+                  onPressed: () => Navigator.pop(context, level),
+                  child: Text(position?.levelLabel(level) ?? level.label),
+                ))
+            .toList(),
+      ),
+    );
+    if (selected == null) return;
+    setState(() => _experienceLevel = selected);
+  }
+
+  /// F30 — montre au recruteur ce que son choix implique réellement. Lecture seule :
+  /// les niveaux d'héritage entreprise et offre sont reportés (décision D-E), il n'y a
+  /// donc rien à ajuster ici — seulement à rendre visible une pondération qui, sinon,
+  /// s'applique sans que personne ne la voie.
+  Widget _buildWeightingPreview() {
+    final profileType = _selectedPosition()?.profileType;
+    if (profileType == null) return const SizedBox.shrink();
+
+    final profiles = ref.watch(jobRoleProfilesProvider);
+    return profiles.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
+      data: (all) {
+        final match = all
+            .where((p) => p.profileType == profileType && p.level == _experienceLevel)
+            .toList();
+        if (match.isEmpty) return const SizedBox.shrink();
+        final profile = match.first;
+
+        return Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFCBD5E1)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Pondération appliquée · ${profile.profileType}',
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+                const SizedBox(height: 6),
+                Text('Soft skills ${profile.softWeight} %  ·  Hard skills ${profile.hardWeight} %',
+                    style: const TextStyle(fontSize: 12)),
+                const SizedBox(height: 8),
+                ...profile.moduleWeights.map((m) => Padding(
+                      padding: const EdgeInsets.only(bottom: 2),
+                      child: Text('${m.key} — ${m.value} %',
+                          style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                    )),
+                if (!profile.calibrated) ...[
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Pondération v1, pas encore validée en atelier RH.',
+                    style: TextStyle(
+                        fontSize: 11, color: Color(0xFFC2620A), fontStyle: FontStyle.italic),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

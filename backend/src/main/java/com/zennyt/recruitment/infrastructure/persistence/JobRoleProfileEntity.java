@@ -2,7 +2,6 @@ package com.zennyt.recruitment.infrastructure.persistence;
 
 import com.zennyt.recruitment.domain.vo.ExperienceLevel;
 import com.zennyt.recruitment.domain.vo.JobProfileType;
-import com.zennyt.recruitment.domain.vo.TypeEvaluationHard;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -27,8 +26,6 @@ public class JobRoleProfileEntity {
     @Column(name = "decision_making_weight", nullable = false) private int decisionMakingWeight;
     @Column(name = "executive_planning_weight", nullable = false) private int executivePlanningWeight;
     @Column(name = "emotional_regulation_weight", nullable = false) private int emotionalRegulationWeight;
-    @Enumerated(EnumType.STRING) @Column(name = "type_evaluation_hard", nullable = false)
-    private TypeEvaluationHard typeEvaluationHard;
     @Column(nullable = false) private boolean calibrated;
     /** F11 — horodatage du referentiel, prerequis du balayage de peremption (F12). */
     @Column(name = "updated_at", nullable = false) private Instant updatedAt;
@@ -39,7 +36,7 @@ public class JobRoleProfileEntity {
                                 int softWeight, int hardWeight, int expectedHardWeight,
                                 int cognitiveFlexibilityWeight, int workingMemoryWeight,
                                 int decisionMakingWeight, int executivePlanningWeight,
-                                int emotionalRegulationWeight, TypeEvaluationHard typeEvaluationHard,
+                                int emotionalRegulationWeight,
                                 boolean calibrated, Instant updatedAt) {
         this.id = id;
         this.profileType = profileType;
@@ -52,7 +49,6 @@ public class JobRoleProfileEntity {
         this.decisionMakingWeight = decisionMakingWeight;
         this.executivePlanningWeight = executivePlanningWeight;
         this.emotionalRegulationWeight = emotionalRegulationWeight;
-        this.typeEvaluationHard = typeEvaluationHard;
         this.calibrated = calibrated;
         this.updatedAt = updatedAt;
     }
@@ -68,7 +64,6 @@ public class JobRoleProfileEntity {
     public int getDecisionMakingWeight() { return decisionMakingWeight; }
     public int getExecutivePlanningWeight() { return executivePlanningWeight; }
     public int getEmotionalRegulationWeight() { return emotionalRegulationWeight; }
-    public TypeEvaluationHard getTypeEvaluationHard() { return typeEvaluationHard; }
     public boolean isCalibrated() { return calibrated; }
     public Instant getUpdatedAt() { return updatedAt; }
 }

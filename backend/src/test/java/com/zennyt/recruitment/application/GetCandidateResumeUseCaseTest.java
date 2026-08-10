@@ -3,15 +3,22 @@ package com.zennyt.recruitment.application;
 import com.zennyt.recruitment.application.usecase.GetCandidateResumeUseCase;
 import com.zennyt.recruitment.domain.model.HardSkillsSummary;
 import com.zennyt.recruitment.domain.model.JobOffer;
+import com.zennyt.recruitment.domain.vo.JobPositionStatus;
+import com.zennyt.recruitment.domain.model.JobPosition;
+import com.zennyt.recruitment.domain.model.JobRoleProfile;
 import com.zennyt.recruitment.domain.model.SoftSkillsProjection;
 import com.zennyt.recruitment.domain.model.SoftSkillsSummary;
 import com.zennyt.recruitment.domain.repository.HardSkillsSummaryRepository;
 import com.zennyt.recruitment.domain.repository.JobOfferRepository;
+import com.zennyt.recruitment.domain.repository.JobPositionRepository;
 import com.zennyt.recruitment.domain.repository.SoftSkillsProjectionRepository;
 import com.zennyt.recruitment.domain.repository.SoftSkillsSummaryRepository;
 import com.zennyt.recruitment.domain.repository.TestResultRepository;
+import com.zennyt.recruitment.domain.vo.ExperienceLevel;
 import com.zennyt.recruitment.domain.vo.HardSkillHistoryEntry;
+import com.zennyt.recruitment.domain.vo.JobProfileType;
 import com.zennyt.recruitment.domain.vo.ResumeAudience;
+import com.zennyt.recruitment.domain.vo.TypeEvaluationHard;
 import com.zennyt.shared.application.exception.ForbiddenException;
 import com.zennyt.shared.application.exception.NotFoundException;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,6 +47,8 @@ class GetCandidateResumeUseCaseTest {
     private SoftSkillsProjectionRepository softSkillsProjections;
     private SoftSkillsSummaryRepository softSkillsSummaries;
     private HardSkillsSummaryRepository hardSkillsSummaries;
+    private JobPositionRepository jobPositions;
+    private JobOffer offer;
     private GetCandidateResumeUseCase useCase;
 
     @BeforeEach
@@ -49,10 +58,11 @@ class GetCandidateResumeUseCaseTest {
         softSkillsProjections = mock(SoftSkillsProjectionRepository.class);
         softSkillsSummaries = mock(SoftSkillsSummaryRepository.class);
         hardSkillsSummaries = mock(HardSkillsSummaryRepository.class);
+        jobPositions = mock(JobPositionRepository.class);
         useCase = new GetCandidateResumeUseCase(jobOffers, testResults, softSkillsProjections,
-            softSkillsSummaries, hardSkillsSummaries);
+            softSkillsSummaries, hardSkillsSummaries, jobPositions);
 
-        JobOffer offer = mock(JobOffer.class);
+        offer = mock(JobOffer.class);
         when(offer.recruiterId()).thenReturn(RECRUITER);
         when(offer.jobPositionId()).thenReturn(POSITION_ID);
         when(jobOffers.findById(OFFER_ID)).thenReturn(Optional.of(offer));
@@ -61,6 +71,9 @@ class GetCandidateResumeUseCaseTest {
         when(softSkillsSummaries.findByCandidateIdAndAudience(any(), any())).thenReturn(Optional.empty());
         when(hardSkillsSummaries.findByCandidateIdAndJobPositionIdAndAudience(any(), any(), any()))
             .thenReturn(Optional.empty());
+        // jobPositions.findById renvoie Optional.empty() par défaut (mock non stubbé) —
+        // c'est le cas « métier non résolu », qui préserve les replis existants.
+        when(jobPositions.findById(any())).thenReturn(Optional.empty());
     }
 
     private HardSkillHistoryEntry entry(UUID offerId) {
@@ -137,6 +150,33 @@ class GetCandidateResumeUseCaseTest {
         assertThat(result.hardSkills().available()).isFalse();
         assertThat(result.hardSkills().textEn())
             .isEqualTo(GetCandidateResumeUseCase.HARD_SKILLS_PENDING_EN);
+    }
+
+    /**
+     * F18 (FITSCORE_REMEDIATION.md §3 index F18, décision D-F) — pour un métier
+     * ARTISTIQUE évalué uniquement par Portfolio, le recruteur ne doit jamais
+     * voir "un test doit être passé" (faux — aucun QCM n'est prévu pour ce
+     * profil) : le message explicite l'emporte sur les replis "not tested"/
+     * "pending", même si aucun test n'a jamais été tenté.
+     */
+    @Test
+    void artistiquePortfolioOnlyProfileYieldsExplicitDisclaimerInsteadOfNotTested() {
+        // F32 — le mode se lit désormais sur le MÉTIER, pas sur le profil : c'est ce qui
+        // permet à un Photographe d'être en Portfolio pendant qu'un UX/UI Designer est en
+        // Mixte, alors que les deux sont ARTISTIQUE.
+        JobPosition photographe = JobPosition.rehydrate(POSITION_ID, "Photographe",
+            "Media, Culture & Entertainment", JobProfileType.ARTISTIQUE, false,
+            JobPositionStatus.APPROVED, null, null, null, null, null, Instant.now(), null, null,
+            TypeEvaluationHard.PORTFOLIO);
+        when(jobPositions.findById(POSITION_ID)).thenReturn(Optional.of(photographe));
+
+        var result = useCase.execute(CANDIDATE, OFFER_ID, RECRUITER);
+
+        assertThat(result.hardSkills().available()).isFalse();
+        assertThat(result.hardSkills().textFr())
+            .isEqualTo(GetCandidateResumeUseCase.HARD_SKILLS_PORTFOLIO_ONLY_FR);
+        assertThat(result.hardSkills().textEn())
+            .isEqualTo(GetCandidateResumeUseCase.HARD_SKILLS_PORTFOLIO_ONLY_EN);
     }
 
     @Test

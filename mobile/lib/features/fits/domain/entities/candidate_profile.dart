@@ -7,10 +7,26 @@ class CandidateProfile extends Equatable {
   final String seniority;
   final int fitScore;
   final String location;
-  final String decisionMaking;
-  final String cognitiveFlexibility;
-  final String emotionalRegulation;
+
+  /// F10 (FITSCORE_REMEDIATION.md §3 index F10) — the backend's
+  /// `CandidateFeedItem` only exposes one aggregate `softSkillsScore`; there is
+  /// no per-module breakdown (decision-making, cognitive flexibility, emotional
+  /// regulation) yet. This used to be rendered three times under three
+  /// different module names from that single value, asserting a granularity
+  /// to the recruiter that doesn't exist. One honest qualitative value instead.
+  final String softSkillsLevel;
+
+  /// Real `hardSkillScore` (contract-backed), one entry — not three fabricated
+  /// module scores. Empty when the candidate hasn't been hard-skills tested
+  /// for this offer yet (`hardSkillScore: null`).
   final Map<String, int> hardSkills;
+
+  /// F16 (FITSCORE_REMEDIATION.md §3 index F16) — coverage of the psychometric
+  /// games is below the confidence threshold (CdC §3.3). Computed, contracted
+  /// and previously never read by any client — the recruiter saw a bare
+  /// percentage with none of the three reserves it was designed with.
+  final bool partialData;
+
   final List<String> contractTypes;
   final bool isImmediate;
 
@@ -20,10 +36,9 @@ class CandidateProfile extends Equatable {
     required this.seniority,
     required this.fitScore,
     required this.location,
-    required this.decisionMaking,
-    required this.cognitiveFlexibility,
-    required this.emotionalRegulation,
+    required this.softSkillsLevel,
     required this.hardSkills,
+    required this.partialData,
     required this.contractTypes,
     required this.isImmediate,
   });

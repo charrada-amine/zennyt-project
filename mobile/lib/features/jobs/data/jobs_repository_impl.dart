@@ -4,6 +4,7 @@ import 'package:zennyt/core/error/api_exception.dart';
 import 'package:zennyt/features/jobs/domain/entities/assessment.dart';
 import 'package:zennyt/features/jobs/domain/entities/job.dart';
 import 'package:zennyt/features/jobs/domain/repositories/jobs_repository.dart';
+import 'package:zennyt/features/jobs/domain/entities/job_position.dart';
 /// [JobsRepository] backed by Dio, talking to the integrated recruitment API.
 ///
 /// Route/field names below are the merged backend's actual contract
@@ -33,6 +34,13 @@ class JobsRepositoryImpl implements JobsRepository {
   @override
   Future<JobOffer> createJobOffer(CreateJobOfferParams p) {
     return _guard(() async {
+      // F24 (FITSCORE_REMEDIATION.md §3 index F24): `CreateJobOfferRequest` has
+      // no assessmentId field by design (contract squad web §3.3 reserves
+      // assignment for PATCH) and the backend runs Jackson with
+      // fail-on-unknown-properties: true — sending it here doesn't get
+      // silently dropped, it 400s the whole request. Callers that want to
+      // attach an assessment at creation time call assignAssessmentToJob
+      // right after this returns (see JobOffersNotifier.createJob).
       final res = await _dio.post<Map<String, dynamic>>('/job-offers', data: {
         'title': p.title,
         'companyName': p.companyName,
@@ -53,8 +61,13 @@ class JobsRepositoryImpl implements JobsRepository {
         'whatWeOffer': p.whatWeOffer,
         'howToApply': p.howToApply,
         'companyInfo': p.companyInfo,
-        'assessmentId': p.assessmentId,
         'openToInternational': p.openToInternational,
+        // F06 (FITSCORE_REMEDIATION.md §3 index F06): required server-side
+        // since the AI-fallback path was removed — every create call failed
+        // without it. Le sélecteur de métier du formulaire de création le
+        // renseigne désormais ; s'il reste null, le 422 du serveur est le bon
+        // signal et ne doit pas être masqué ici.
+        'jobPositionId': p.jobPositionId,
       });
       return _jobFromJson(res.data!);
     });
@@ -95,6 +108,30 @@ class JobsRepositoryImpl implements JobsRepository {
   @override
   Future<void> deleteJobOffer(String id) {
     return _guard(() => _dio.delete<void>('/job-offers/$id'));
+  }
+
+  /// F06 — le catalogue des métiers, nécessaire au sélecteur du formulaire de création.
+  /// L'API ne renvoie que les métiers APPROVED : un métier encore en attente d'approbation
+  /// n'a pas de profil, donc aucune pondération, donc l'offre resterait sans Fit Score.
+  @override
+  Future<List<JobPosition>> getJobPositions() {
+    return _guard(() async {
+      final res = await _dio.get<List<dynamic>>('/job-positions');
+      return res.data!
+          .map((e) => JobPosition.fromJson(e as Map<String, dynamic>))
+          .toList()
+        ..sort((a, b) => a.name.compareTo(b.name));
+    });
+  }
+
+  /// F30 — les 24 lignes du référentiel de pondération. Petit et fixe : chargé
+  /// intégralement, puis filtré côté écran sur le couple (profil, niveau) choisi.
+  @override
+  Future<List<JobRoleProfile>> getJobRoleProfiles() {
+    return _guard(() async {
+      final res = await _dio.get<List<dynamic>>('/job-role-profiles');
+      return res.data!.map((e) => JobRoleProfile.fromJson(e as Map<String, dynamic>)).toList();
+    });
   }
 
   @override
@@ -209,11 +246,17 @@ class JobsRepositoryImpl implements JobsRepository {
         howToApply: json['howToApply'] as String? ?? '',
         companyInfo: json['companyInfo'] as String? ?? '',
         assessmentId: json['assessmentId'] as String?,
+        jobPositionId: json['jobPositionId'] as String?,
         openToInternational: json['openToInternational'] as bool? ?? false,
         status: JobStatus.fromString(json['status'] as String? ?? 'ACTIVE'),
         postedAt: json['postedAt'] != null
             ? DateTime.tryParse(json['postedAt'] as String) ?? DateTime.now()
             : DateTime.now(),
+        // F16/F17/F19 (FITSCORE_REMEDIATION.md §3): null on the recruiter's own
+        // offer list (no candidate context — "absent si non connecté" per the
+        // contract), populated on the candidate-facing deck/search response.
+        fitScore: (json['fitScore'] as num?)?.toInt(),
+        hardSkillsAlert: HardSkillsAlertLevel.fromString(json['hardSkillsAlert'] as String?),
       );
 
   static Assessment _assessmentFromJson(Map<String, dynamic> json) {

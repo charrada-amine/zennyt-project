@@ -174,9 +174,11 @@ Lorsqu'une offre est publiée sans QCM hard skills, le système ne pénalise jam
 
 | Niveau | Poids hard attendu (référentiel) | Message si offre publiée sans QCM |
 |---|---|---|
-| **Junior** | Faible (~30 %) | Pas d'alerte, ou alerte discrète |
-| **Senior / Lead** | Fort (~45-55 %) | Alerte forte : les postes Senior/Lead reposent normalement à ~50 % sur le hard skills. Sans QCM, le Fit Score sera basé à 100 % sur les soft skills. |
-| **Manager** | Modéré (~25 %) | Alerte modérée |
+| **Junior** | Faible (~20-35 %) | Pas d'alerte (`< 20 %`), ou alerte discrète (`20-35 %`) |
+| **Senior / Lead** | Fort (`> 35 %`) | Alerte modérée (`35-50 %`) à forte (`≥ 50 %`) : les postes Senior/Lead reposent normalement à ~50-65 % sur le hard skills. Sans QCM, le Fit Score sera basé à 100 % sur les soft skills. |
+| **Manager** | Modéré à faible selon le métier (~10-30 %) | **Alerte modérée, systématiquement** — palier fixe indépendant du poids calculé |
+
+> **Note de dérivation (FITSCORE_REMEDIATION.md §2 décision D-B, tâche F05).** Cette table n'est pas monotone en fonction du poids hard réel : un poste Manager pèse souvent *moins* de hard skills qu'un poste Junior (ex. Technique Manager = 30 %, Technique Junior = 35 %), alors que le Manager doit tout de même afficher une alerte modérée. Aucune fonction de seuil unique sur `poids_hard_attendu` ne peut donc reproduire les trois lignes à la fois. L'implémentation dérive Junior et Senior/Lead par seuil sur le poids (`< 20 %` → aucune, `≤ 35 %` → discrète, `< 50 %` → modérée, sinon forte), et applique un **palier fixe** à Manager (toujours modérée), plutôt que de forcer un seuil qui casserait Junior ou Senior/Lead. Voir `JobRoleProfile.hardSkillsAlert()`.
 
 **Cas particulier du profil Artistique** — pour ce profil, l'absence de QCM (ou de mode Mixte) n'est pas une anomalie à signaler comme un oubli — c'est le fonctionnement normal pour la plupart de ces métiers, puisque leur hard skills s'évalue par portfolio. Le message affiché au recruteur est donc informatif, pas une alerte : « Le hard skills de ce métier s'évalue par portfolio — consultez le portfolio du candidat pour juger la qualité du travail », plutôt que le message d'incitation à ajouter un QCM utilisé pour les autres profils.
 

@@ -571,7 +571,7 @@ tooling/bruno/**
       maximal, décroissance jusqu'au dernier niveau, `JUNIOR < ` le pic.
       *~15 lignes, le meilleur rapport valeur/effort de tout l'audit.*
 
-- [ ] **F32 🟠 — [D-C] Mode d'évaluation par métier.**
+- [x] **F32 ✅ — [D-C] Mode d'évaluation par métier.** *(fait le 2026-08-10, V60)*
       Aujourd'hui `type_evaluation_hard` est sur `job_role_profiles` (profil × niveau), donc
       **tous** les métiers ARTISTIQUE partagent le même mode. D-C a tranché : le mode appartient
       au métier.
@@ -604,7 +604,7 @@ tooling/bruno/**
 
 ### B2 — Client mobile & contrat
 
-- [ ] **F06 🔴 — Création d'offre cassée.** `mobile/…/jobs_repository_impl.dart:36` poste 21
+- [x] **F06 ✅ — Création d'offre cassée.** *(fait le 2026-08-10 — sélecteur de métier livré)* `mobile/…/jobs_repository_impl.dart:36` poste 21
       champs, **sans `jobPositionId`**, obligatoire côté serveur depuis la suppression du repli
       IA. Chaque appel échoue.
       *Contexte* : `mobile/lib/features/jobs/` est **non suivi par git** — c'est le portage en
@@ -664,12 +664,19 @@ tooling/bruno/**
       texte nulle part. Aujourd'hui le seul signal reçu est `hardSkillsAlert`, dont tout le
       cadrage est « il manque quelque chose » : l'alarme est là, la réassurance non.
 
-- [ ] **F30 🟡 — Préremplissage des curseurs.** `GET /api/v1/job-role-profiles` existe, est au
+- [x] **F30 ✅ — Préremplissage des curseurs.** *(fait le 2026-08-10, lecture seule)* `GET /api/v1/job-role-profiles` existe, est au
       contrat, et son javadoc dit son usage — « pour pré-remplir les curseurs de pondération du
       formulaire de création d'offre ». Recherche `job-role-profiles` sur tout le dépôt
       (`.dart`, `.ts`, `.js`, `.bru`) : **un seul résultat, le contrat lui-même**.
       → Le consommer à la création d'offre (affichage lecture seule tant que D-E n'a pas
       tranché les overrides).
+      **Livré.** Le formulaire affiche le partage soft/hard et les 5 poids de modules dès que
+      le métier et le niveau sont choisis, plus la mention « pondération v1 non validée » quand
+      `calibrated` est faux. En passant : le formulaire n'avait **aucun sélecteur de niveau**,
+      toute offre partait en JUNIOR — or c'est le niveau qui décide du partage soft/hard (35 %
+      de hard en Junior contre 65 % en Senior sur un profil Technique). Le sélecteur ajouté
+      utilise les intitulés propres au métier (`levelLabels`) : « Chef de chantier » plutôt que
+      « Manager ».
 
 ---
 

@@ -1276,6 +1276,14 @@ components:
         name: { type: string, example: "Développeur" }
         sector: { type: string, nullable: true, description: "null = métier transverse", example: "IT, AI & Fintech" }
         profileType: { $ref: '#/components/schemas/JobProfileType' }
+        typeEvaluationHard:
+          allOf: [{ $ref: '#/components/schemas/TypeEvaluationHard' }]
+          description: >
+            Mode de mesure du hard skills, propre au MÉTIER depuis V60 (décision D-C).
+            Portait auparavant sur JobRoleProfile, ce qui forçait tous les métiers d'une
+            même famille au même mode : le CdC §4.3 veut pourtant UX/UI Designer en Mixte
+            et Photographe en Portfolio, tous deux ARTISTIQUE. Le calcul du Score_Hard en
+            mode MIXTE n'est pas encore implémenté (voir D-F).
         calibrated: { type: boolean, description: "false = pondération v1 non validée en atelier RH" }
         status: { $ref: '#/components/schemas/JobPositionStatus' }
         levelLabels:
@@ -1308,7 +1316,6 @@ components:
         decisionMakingWeight: { type: integer, minimum: 0, maximum: 100 }
         executivePlanningWeight: { type: integer, minimum: 0, maximum: 100 }
         emotionalRegulationWeight: { type: integer, minimum: 0, maximum: 100 }
-        typeEvaluationHard: { $ref: '#/components/schemas/TypeEvaluationHard' }
         calibrated: { type: boolean, description: "false = pondération v1 non validée en atelier RH" }
 
     JobOfferStatus:
@@ -1445,9 +1452,10 @@ components:
       description: >
         Alerte "hard skills manquant" (CdC Fit Score v3 §6) quand aucun QCM
         n'est attaché à l'offre — purement informationnel, jamais utilisé
-        dans le calcul du Fit Score. ARTISTIQUE reste toujours à INFO
-        (évaluation par portfolio, fonctionnement normal, pas une anomalie).
-      enum: [NONE, INFO, MODERATE, STRONG]
+        dans le calcul du Fit Score. ARTISTIQUE reste toujours à
+        PORTFOLIO_BASED (F19, distinct d'INFO) : évaluation par portfolio,
+        fonctionnement normal, pas une anomalie à signaler comme un oubli.
+      enum: [NONE, INFO, MODERATE, STRONG, PORTFOLIO_BASED]
 
     RecruiterSummary:
       type: object

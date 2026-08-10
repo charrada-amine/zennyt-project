@@ -2,6 +2,7 @@ package com.zennyt.architecture;
 
 import com.zennyt.recruitment.domain.vo.ContractType;
 import com.zennyt.recruitment.domain.vo.ExperienceLevel;
+import com.zennyt.recruitment.domain.vo.HardSkillsAlertLevel;
 import com.zennyt.recruitment.domain.vo.JobProfileType;
 import com.zennyt.recruitment.domain.vo.TypeEvaluationHard;
 import com.zennyt.recruitment.domain.vo.WorkplaceType;
@@ -50,6 +51,10 @@ class ApiContractEnumParityTest {
     @DisplayName("Les autres enums métier du contrat restent alignés")
     void autresEnumsParity() throws IOException {
         assertContractEnumMatches("JobProfileType", JobProfileType.values());
+        // Ajoute apres coup : Track B a etendu cet enum (F19, PORTFOLIO_BASED) et rien
+        // ne surveillait sa parite. L'oubli aurait ete silencieux — le contrat aurait
+        // decrit 4 valeurs la ou le serveur en renvoie 5.
+        assertContractEnumMatches("HardSkillsAlertLevel", HardSkillsAlertLevel.values());
         assertContractEnumMatches("TypeEvaluationHard", TypeEvaluationHard.values());
         assertContractEnumMatches("ContractType", ContractType.values());
         assertContractEnumMatches("WorkplaceType", WorkplaceType.values());

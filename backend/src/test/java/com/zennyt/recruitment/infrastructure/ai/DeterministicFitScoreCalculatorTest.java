@@ -32,13 +32,11 @@ class DeterministicFitScoreCalculatorTest {
 
     /** Technique/Senior — hard 65, soft 35, modules 30/20/30/15/5 (matrice v4.1). */
     private static final JobRoleProfile TECHNIQUE_SENIOR = new JobRoleProfile(
-        JobProfileType.TECHNIQUE, ExperienceLevel.SENIOR, 35, 65, 65, 30, 20, 30, 15, 5,
-        TypeEvaluationHard.QCM, false, Instant.now());
+        JobProfileType.TECHNIQUE, ExperienceLevel.SENIOR, 35, 65, 65, 30, 20, 30, 15, 5, false, Instant.now());
 
     /** Relationnel/Senior — hard 20, soft 80, modules 10/10/20/15/45 (matrice v4.1). */
     private static final JobRoleProfile RELATIONNEL_SENIOR = new JobRoleProfile(
-        JobProfileType.RELATIONNEL, ExperienceLevel.SENIOR, 80, 20, 20, 10, 10, 20, 15, 45,
-        TypeEvaluationHard.QCM, false, Instant.now());
+        JobProfileType.RELATIONNEL, ExperienceLevel.SENIOR, 80, 20, 20, 10, 10, 20, 15, 45, false, Instant.now());
 
     private final DeterministicFitScoreCalculator calculator = new DeterministicFitScoreCalculator();
 

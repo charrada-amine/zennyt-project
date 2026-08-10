@@ -49,7 +49,7 @@ class FitScoreBaselineTest {
         }
         int hard = hardCurve[level.ordinal()];
         return new JobRoleProfile(type, level, 100 - hard, hard, hard,
-            modules[0], modules[1], modules[2], modules[3], modules[4], mode, false, Instant.now());
+            modules[0], modules[1], modules[2], modules[3], modules[4], false, Instant.now());
     }
 
     /** Les 4 modules réellement produits par Games depuis la livraison de « Je gère ». */
