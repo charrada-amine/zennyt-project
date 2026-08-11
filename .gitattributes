@@ -1,0 +1,10 @@
+# Sans cette regle, git a devine tout seul qu'un PDF etait du texte et a annonce
+# convertir ses fins de ligne au prochain checkout — ce qui corrompt le fichier.
+# Le depot est clone sur Windows et sur Linux, donc le cas se produira.
+*.pdf   binary
+*.png   binary
+*.jpg   binary
+*.docx  binary
+*.xlsx  binary
+*.ttf   binary
+*.woff2 binary
