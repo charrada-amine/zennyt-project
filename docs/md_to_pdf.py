@@ -39,6 +39,8 @@ ST = {
                          spaceBefore=14, spaceAfter=6),
     "h3": ParagraphStyle("h3", parent=S["Heading3"], fontSize=10.5, textColor=colors.black,
                          spaceBefore=11, spaceAfter=5),
+    "h4": ParagraphStyle("h4", parent=S["Heading4"], fontSize=9.8, textColor=GRIS_TEXTE,
+                         spaceBefore=9, spaceAfter=4),
     "corps": ParagraphStyle("corps", parent=S["Normal"], fontSize=9.5, leading=14,
                             alignment=TA_LEFT, spaceAfter=7),
     "liste": ParagraphStyle("liste", parent=S["Normal"], fontSize=9.5, leading=14,
@@ -102,10 +104,16 @@ def construire_tableau(lignes, largeur_page):
     donnees = [r + [""] * (nb_col - len(r)) for r in donnees]
 
     # Largeur proportionnelle au contenu, bornée pour qu'aucune colonne n'écrase les autres.
+    #
+    # Le plancher tient compte du MOT le plus long de la colonne, pas seulement de la
+    # longueur moyenne : sans ça, une colonne etroite intitulee « Planification » etait
+    # coupee en « Planificatio / n », ce qui se voit immediatement a la lecture.
     poids = []
     for i in range(nb_col):
         longueurs = [len(r[i]) for r in donnees]
-        poids.append(max(6, min(60, sum(longueurs) / len(longueurs) + max(longueurs) * 0.25)))
+        mot_le_plus_long = max((len(m) for r in donnees for m in r[i].split()), default=1)
+        poids.append(max(6, mot_le_plus_long * 1.1,
+                         min(60, sum(longueurs) / len(longueurs) + max(longueurs) * 0.25)))
     total = sum(poids)
     largeurs = [largeur_page * p / total for p in poids]
 
@@ -210,7 +218,7 @@ def convertir(chemin_md, chemin_pdf):
                 flux.append(Paragraph(inline(contenu), ST["titre"]))
                 premier_titre = False
             else:
-                flux.append(Paragraph(inline(contenu), ST[f"h{min(niveau, 3)}"]))
+                flux.append(Paragraph(inline(contenu), ST[f"h{min(niveau, 4)}"]))
         elif nu.startswith(">"):
             bloc = [nu.lstrip("> ").strip()]
             j = i + 1
