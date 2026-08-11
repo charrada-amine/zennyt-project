@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.Authentication;
 
 import java.security.Principal;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -288,9 +289,15 @@ public class JobOfferController {
         Map<UUID, Long> applicantCounts = swipeRepository.countRightByJobOfferIds(offerIds);
         Map<UUID, com.zennyt.recruitment.domain.model.FitScore> scoresByOffer = fitScoresByOffer(offerIds, authentication);
         List<UUID> recruiterIds = offers.stream().map(JobOffer::recruiterId).distinct().toList();
-        Map<UUID, String> companyNamesByRecruiter = actors.findByIds(recruiterIds).stream()
-            .collect(Collectors.toMap(com.zennyt.recruitment.domain.model.RecruitmentActor::publicUserId,
-                a -> a.companyName(), (left, right) -> left));
+        // Un recruteur qui vient de s'inscrire n'a pas encore de nom d'entreprise : il le
+        // renseigne à l'onboarding. Collectors.toMap refuse les valeurs nulles (NPE dans
+        // HashMap.merge), donc ce recruteur-là recevait un 500 sur sa propre liste d'offres
+        // — le premier écran qu'il ouvre après avoir publié. Une entrée absente et une
+        // entrée nulle veulent dire la même chose ici : pas de nom à afficher.
+        Map<UUID, String> companyNamesByRecruiter = new HashMap<>();
+        for (var actor : actors.findByIds(recruiterIds)) {
+            companyNamesByRecruiter.putIfAbsent(actor.publicUserId(), actor.companyName());
+        }
         var resolvedByOffer = roleProfileResolver.resolveAllWithEvaluationMode(offers);
         return offers.stream().map(offer -> {
             String companyName = companyNamesByRecruiter.get(offer.recruiterId());

@@ -101,4 +101,29 @@ class JobOfferControllerSummaryTest {
         return new JobRoleProfile(JobProfileType.TECHNIQUE, ExperienceLevel.SENIOR,
             35, 65, 65, 30, 20, 30, 15, 5, false, Instant.now());
     }
+
+    /**
+     * Un recruteur tout juste inscrit n'a pas encore de nom d'entreprise — il le renseigne
+     * à l'onboarding, pas à l'inscription. Le regroupement par lot de F20 utilisait
+     * {@code Collectors.toMap}, qui lève un {@code NullPointerException} sur une valeur
+     * nulle : ce recruteur recevait un 500 sur sa propre liste d'offres, c'est-à-dire sur
+     * le premier écran qu'il ouvre après avoir publié. Trouvé en exécutant l'API pour de
+     * vrai — les mocks des autres tests fournissaient tous un nom.
+     */
+    @Test
+    void listingSurvivesRecruiterWithoutCompanyName() {
+        UUID recruiter = UUID.randomUUID();
+        UUID offerId = UUID.randomUUID();
+        JobOffer offer = offerOwnedBy(offerId, recruiter);
+        when(jobOfferRepository.findByRecruiterId(any(), any(), any(), anyInt(), anyInt()))
+            .thenReturn(List.of(offer));
+        when(jobOfferRepository.countByRecruiterId(any(), any())).thenReturn(1L);
+        when(actors.findByIds(anyList())).thenReturn(List.of(actorNamed(recruiter, null)));
+        when(roleProfileResolver.resolveAllWithEvaluationMode(anyList())).thenReturn(Map.of());
+
+        var response = controller.myOffers(null, null, 0, 20, () -> recruiter.toString());
+
+        assertThat(response.getBody().content()).hasSize(1);
+        assertThat(response.getBody().content().get(0).companyName()).isNull();
+    }
 }
