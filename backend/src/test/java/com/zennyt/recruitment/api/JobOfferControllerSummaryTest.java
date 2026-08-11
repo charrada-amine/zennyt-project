@@ -66,9 +66,9 @@ class JobOfferControllerSummaryTest {
         when(jobOfferRepository.countByRecruiterId(any(), any())).thenReturn(2L);
         when(actors.findByIds(anyList())).thenReturn(List.of(
             actorNamed(recruiterA, "Acme"), actorNamed(recruiterB, "Globex")));
-        JobRoleProfile profile = roleProfile();
-        Map<UUID, JobRoleProfile> resolved = Map.of(offer1Id, profile);
-        when(roleProfileResolver.resolveAll(anyList())).thenReturn(resolved);
+        var resolved = Map.of(offer1Id, new JobRoleProfileResolver.ResolvedProfile(
+            roleProfile(), TypeEvaluationHard.QCM));
+        when(roleProfileResolver.resolveAllWithEvaluationMode(anyList())).thenReturn(resolved);
 
         var response = controller.myOffers(null, null, 0, 20,
             () -> recruiterA.toString());
@@ -76,10 +76,11 @@ class JobOfferControllerSummaryTest {
         assertThat(response.getBody().content()).hasSize(2);
         // Batch variants called exactly once for the whole page...
         verify(actors, times(1)).findByIds(anyList());
-        verify(roleProfileResolver, times(1)).resolveAll(anyList());
+        verify(roleProfileResolver, times(1)).resolveAllWithEvaluationMode(anyList());
         // ...and the per-offer variants never called at all.
         verify(actors, never()).findById(any());
         verify(roleProfileResolver, never()).resolve(any());
+        verify(roleProfileResolver, never()).resolveWithEvaluationMode(any());
     }
 
     private static JobOffer offerOwnedBy(UUID id, UUID recruiterId) {

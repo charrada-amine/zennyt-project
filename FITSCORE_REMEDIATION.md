@@ -7,6 +7,27 @@ Chaque constat a été vérifié dans le code. Les calculs ont été rejoués en
 `DeterministicFitScoreCalculator` compilé depuis les sources (voir §7 Vérification).
 
 
+## Correctif du 2026-08-11 — l'alerte hard skills suivait la famille, pas le métier
+
+Suite directe de F32. Le mode d'évaluation avait bien déménagé sur `job_positions`, mais
+`JobRoleProfile.hardSkillsAlert()` décidait toujours sur `profileType == ARTISTIQUE`. Rien
+ne cassait : l'ancien lecteur continuait de répondre, et il répondait faux.
+
+Conséquence : les trois métiers **MIXTE** (UX/UI Designer, UX/UI e-commerce, Motion
+designer) annonçaient « portfolio, pas de test attendu » alors que leur mode réclame un QCM.
+Leur recruteur n'était jamais averti du test manquant — exactement les trois métiers pour
+lesquels F32 avait été faite.
+
+`hardSkillsAlert()` prend désormais le mode en paramètre : seul `PORTFOLIO` court-circuite
+la dérivation par les poids, `MIXTE` et `QCM` la suivent. Le mode voyage par le résolveur,
+qui chargeait déjà le métier — pas une requête de plus, ce que F20 venait de supprimer.
+
+Deux tests le verrouillent : un test paramétré sur les trois modes à profil et poids
+identiques, et un test sur base réelle vérifiant que *Photographe* et *UX/UI Designer* —
+même famille, même ligne de pondération — reçoivent deux signaux différents.
+
+---
+
 ## Fusion du 2026-08-10 — les trois jeux Games arrivent
 
 L'équipe Games a livré « Je continue », « Je coordonne » et la mémoire visuospatiale.

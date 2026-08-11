@@ -2,6 +2,11 @@ package com.zennyt.recruitment.infrastructure.persistence;
 
 import com.zennyt.ZennytApplication;
 import com.zennyt.recruitment.domain.repository.JobPositionRepository;
+import com.zennyt.recruitment.domain.repository.JobRoleProfileRepository;
+import com.zennyt.recruitment.domain.vo.ExperienceLevel;
+import com.zennyt.recruitment.domain.vo.HardSkillsAlertLevel;
+import com.zennyt.recruitment.domain.vo.JobPositionStatus;
+import com.zennyt.recruitment.domain.vo.JobProfileType;
 import com.zennyt.recruitment.domain.vo.TypeEvaluationHard;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -44,6 +49,7 @@ class TypeEvaluationHardByPositionPostgresTest {
 
     @Autowired private JobPositionRepository positions;
     @Autowired private JdbcTemplate jdbc;
+    @Autowired private JobRoleProfileRepository roleProfiles;
 
     @Test
     @DisplayName("Deux métiers ARTISTIQUE peuvent avoir des modes différents")
@@ -85,12 +91,44 @@ class TypeEvaluationHardByPositionPostgresTest {
     @DisplayName("Le mode remonte jusqu'au domaine, pas seulement en base")
     void leModeRemonteJusquAuDomaine() {
         var photographe = positions
-            .findByStatus(com.zennyt.recruitment.domain.vo.JobPositionStatus.APPROVED, null).stream()
+            .findByStatus(JobPositionStatus.APPROVED, null).stream()
             .filter(p -> "Photographe".equals(p.name()))
             .findFirst();
 
         assertThat(photographe).isPresent();
         assertThat(photographe.get().typeEvaluationHard()).isEqualTo(TypeEvaluationHard.PORTFOLIO);
+    }
+
+    /**
+     * Boucle fermée : le mode lu en base décide bien de l'alerte hard skills.
+     *
+     * <p>Les tests unitaires prouvent que {@code hardSkillsAlert} obéit au mode ; celui-ci
+     * prouve que le mode qui lui parvient est celui du vrai métier seedé. Sans ce maillon,
+     * la correction pourrait être juste et inopérante — c'est exactement ce qui s'était
+     * passé : la logique était correcte pour ARTISTIQUE, mais elle lisait la famille au
+     * lieu du métier, et les trois hybrides passaient à travers.
+     */
+    @Test
+    @DisplayName("Un métier hybride réclame bien un QCM, un métier portfolio non")
+    void lAlerteSuitLeModeDuMetierSeede() {
+        var artistiqueSenior = roleProfiles
+            .findByProfileTypeAndLevel(JobProfileType.ARTISTIQUE, ExperienceLevel.SENIOR)
+            .orElseThrow();
+
+        // Photographe : le portfolio EST l'évaluation, aucun test ne manque.
+        assertThat(artistiqueSenior.hardSkillsAlert(modeDomaineDe("Photographe")))
+            .isEqualTo(HardSkillsAlertLevel.PORTFOLIO_BASED);
+
+        // UX/UI Designer : même profil, même ligne de pondération, mais un QCM est attendu.
+        assertThat(artistiqueSenior.hardSkillsAlert(modeDomaineDe("UX/UI Designer")))
+            .isEqualTo(HardSkillsAlertLevel.STRONG);
+    }
+
+    private TypeEvaluationHard modeDomaineDe(String metier) {
+        return positions.findByStatus(JobPositionStatus.APPROVED, null).stream()
+            .filter(p -> metier.equals(p.name()))
+            .findFirst().orElseThrow()
+            .typeEvaluationHard();
     }
 
     private String modeDe(String metier) {

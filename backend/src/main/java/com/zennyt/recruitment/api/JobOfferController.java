@@ -254,8 +254,10 @@ public class JobOfferController {
      */
     private HardSkillsAlertLevel hardSkillsAlert(JobOffer offer) {
         if (offer.assessmentId() != null) return HardSkillsAlertLevel.NONE;
-        JobRoleProfile roleProfile = roleProfileResolver.resolve(offer);
-        return roleProfile != null ? roleProfile.hardSkillsAlert() : HardSkillsAlertLevel.NONE;
+        var resolved = roleProfileResolver.resolveWithEvaluationMode(offer);
+        return resolved != null
+            ? resolved.weights().hardSkillsAlert(resolved.evaluationMode())
+            : HardSkillsAlertLevel.NONE;
     }
 
     private String shareableLink(JobOffer offer) {
@@ -289,12 +291,13 @@ public class JobOfferController {
         Map<UUID, String> companyNamesByRecruiter = actors.findByIds(recruiterIds).stream()
             .collect(Collectors.toMap(com.zennyt.recruitment.domain.model.RecruitmentActor::publicUserId,
                 a -> a.companyName(), (left, right) -> left));
-        Map<UUID, JobRoleProfile> roleProfilesByOffer = roleProfileResolver.resolveAll(offers);
+        var resolvedByOffer = roleProfileResolver.resolveAllWithEvaluationMode(offers);
         return offers.stream().map(offer -> {
             String companyName = companyNamesByRecruiter.get(offer.recruiterId());
             HardSkillsAlertLevel alert = offer.assessmentId() != null ? HardSkillsAlertLevel.NONE
-                : Optional.ofNullable(roleProfilesByOffer.get(offer.id()))
-                    .map(JobRoleProfile::hardSkillsAlert).orElse(HardSkillsAlertLevel.NONE);
+                : Optional.ofNullable(resolvedByOffer.get(offer.id()))
+                    .map(r -> r.weights().hardSkillsAlert(r.evaluationMode()))
+                    .orElse(HardSkillsAlertLevel.NONE);
             return JobOfferSummaryResponse.from(offer, companyName,
                 applicantCounts.getOrDefault(offer.id(), 0L), scoresByOffer.get(offer.id()), alert);
         }).toList();

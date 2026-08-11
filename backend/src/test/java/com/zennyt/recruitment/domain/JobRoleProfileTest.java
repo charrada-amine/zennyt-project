@@ -35,20 +35,37 @@ class JobRoleProfileTest {
     }
 
     /**
-     * F19 (FITSCORE_REMEDIATION.md §3 index F19) — ARTISTIQUE porte un jeton
-     * dédié PORTFOLIO_BASED, distinct d'INFO, pour que le client ne le
-     * confonde plus avec « pensez à ajouter un QCM » (voir hardSkillsAlert()).
+     * F19 — le mode PORTFOLIO porte un jeton dédié, distinct d'INFO, pour que le client
+     * ne le confonde pas avec « pensez à ajouter un QCM ».
+     *
+     * <p><b>Le cœur de ce test est la ligne MIXTE.</b> L'alerte se décidait sur le profil
+     * ARTISTIQUE, ce qui rendait les trois métiers hybrides du CdC §4.3 (UX/UI Designer,
+     * UX/UI e-commerce, Motion designer) définitivement muets : ils annonçaient « pas de
+     * QCM attendu » alors qu'ils en réclament un, et leur recruteur n'était jamais averti
+     * du test manquant. Même profil, même niveau, même poids — seul le mode change, et
+     * c'est lui qui doit décider.
      */
-    @Test
-    void artistiqueProfileAlwaysHasPortfolioBasedAlertRegardlessOfExpectedHardWeight() {
-        JobRoleProfile profile = new JobRoleProfile(JobProfileType.ARTISTIQUE, ExperienceLevel.SENIOR,
-            45, 55, 55, 40, 15, 15, 15, 15, false, java.time.Instant.now());
+    @ParameterizedTest(name = "ARTISTIQUE/SENIOR en {0} -> {1}")
+    @MethodSource("evaluationModes")
+    void alertFollowsTheJobPositionEvaluationModeNotTheProfileFamily(
+            TypeEvaluationHard mode, HardSkillsAlertLevel expected) {
+        JobRoleProfile artistiqueSenior = profileOf(JobProfileType.ARTISTIQUE, ExperienceLevel.SENIOR, 55);
 
-        assertThat(profile.hardSkillsAlert()).isEqualTo(HardSkillsAlertLevel.PORTFOLIO_BASED);
+        assertThat(artistiqueSenior.hardSkillsAlert(mode)).isEqualTo(expected);
+    }
+
+    private static Stream<Arguments> evaluationModes() {
+        return Stream.of(
+            // Le portfolio EST l'évaluation : rien ne manque, donc rien à signaler.
+            Arguments.of(TypeEvaluationHard.PORTFOLIO, HardSkillsAlertLevel.PORTFOLIO_BASED),
+            // Mixte réclame un QCM en plus du portfolio : l'absence de test est une vraie
+            // anomalie, et à 55 de poids hard elle mérite l'alerte la plus forte.
+            Arguments.of(TypeEvaluationHard.MIXTE, HardSkillsAlertLevel.STRONG),
+            Arguments.of(TypeEvaluationHard.QCM, HardSkillsAlertLevel.STRONG));
     }
 
     @Test
-    void nonArtistiqueAlertLevelIsBucketedByExpectedHardWeight() {
+    void alertLevelIsBucketedByExpectedHardWeight() {
         JobRoleProfile relationnelJunior = new JobRoleProfile(JobProfileType.RELATIONNEL, ExperienceLevel.JUNIOR,
             90, 10, 10, 10, 10, 20, 15, 45, false, java.time.Instant.now());
         JobRoleProfile managerialMid = new JobRoleProfile(JobProfileType.MANAGERIAL, ExperienceLevel.SENIOR,
@@ -56,9 +73,12 @@ class JobRoleProfileTest {
         JobRoleProfile technicalMid = new JobRoleProfile(JobProfileType.TECHNIQUE, ExperienceLevel.SENIOR,
             35, 65, 65, 30, 20, 30, 15, 5, false, java.time.Instant.now());
 
-        assertThat(relationnelJunior.hardSkillsAlert()).isEqualTo(HardSkillsAlertLevel.NONE);
-        assertThat(managerialMid.hardSkillsAlert()).isEqualTo(HardSkillsAlertLevel.MODERATE);
-        assertThat(technicalMid.hardSkillsAlert()).isEqualTo(HardSkillsAlertLevel.STRONG);
+        assertThat(relationnelJunior.hardSkillsAlert(TypeEvaluationHard.QCM))
+            .isEqualTo(HardSkillsAlertLevel.NONE);
+        assertThat(managerialMid.hardSkillsAlert(TypeEvaluationHard.QCM))
+            .isEqualTo(HardSkillsAlertLevel.MODERATE);
+        assertThat(technicalMid.hardSkillsAlert(TypeEvaluationHard.QCM))
+            .isEqualTo(HardSkillsAlertLevel.STRONG);
     }
 
     /**
@@ -69,6 +89,10 @@ class JobRoleProfileTest {
      * TECHNIQUE/JUNIOR (poids 35) tombait en MODERATE au lieu d'INFO, et les 5
      * profils non-artistiques de niveau MANAGER tombaient en INFO/NONE au lieu de
      * MODERATE.
+     *
+     * <p>Toutes les lignes sont évaluées en mode {@code QCM} : ce test porte sur la
+     * dérivation par les POIDS, que le mode d'évaluation ne modifie pas. Le seul mode qui
+     * court-circuite cette dérivation est {@code PORTFOLIO}, testé séparément.
      */
     @ParameterizedTest(name = "{0}/{1} (poids hard={2}) -> {3}")
     @MethodSource("seededRoleProfiles")
@@ -76,7 +100,7 @@ class JobRoleProfileTest {
                                    int expectedHardWeight, HardSkillsAlertLevel expectedAlert) {
         JobRoleProfile profile = profileOf(profileType, level, expectedHardWeight);
 
-        assertThat(profile.hardSkillsAlert()).isEqualTo(expectedAlert);
+        assertThat(profile.hardSkillsAlert(TypeEvaluationHard.QCM)).isEqualTo(expectedAlert);
     }
 
     private static Stream<Arguments> seededRoleProfiles() {
@@ -106,11 +130,13 @@ class JobRoleProfileTest {
             Arguments.of(JobProfileType.CONVENTIONNEL, ExperienceLevel.SENIOR, 40, HardSkillsAlertLevel.MODERATE),
             Arguments.of(JobProfileType.CONVENTIONNEL, ExperienceLevel.LEAD, 35, HardSkillsAlertLevel.INFO),
             Arguments.of(JobProfileType.CONVENTIONNEL, ExperienceLevel.MANAGER, 20, HardSkillsAlertLevel.MODERATE),
-            // ARTISTIQUE — toujours PORTFOLIO_BASED (F19), courbe hard 30/55/45/25
-            Arguments.of(JobProfileType.ARTISTIQUE, ExperienceLevel.JUNIOR, 30, HardSkillsAlertLevel.PORTFOLIO_BASED),
-            Arguments.of(JobProfileType.ARTISTIQUE, ExperienceLevel.SENIOR, 55, HardSkillsAlertLevel.PORTFOLIO_BASED),
-            Arguments.of(JobProfileType.ARTISTIQUE, ExperienceLevel.LEAD, 45, HardSkillsAlertLevel.PORTFOLIO_BASED),
-            Arguments.of(JobProfileType.ARTISTIQUE, ExperienceLevel.MANAGER, 25, HardSkillsAlertLevel.PORTFOLIO_BASED)
+            // ARTISTIQUE — courbe hard 30/55/45/25. Les alertes ci-dessous sont celles du
+            // mode QCM/MIXTE ; en mode PORTFOLIO la famille bascule en PORTFOLIO_BASED,
+            // couvert par alertFollowsTheJobPositionEvaluationModeNotTheProfileFamily().
+            Arguments.of(JobProfileType.ARTISTIQUE, ExperienceLevel.JUNIOR, 30, HardSkillsAlertLevel.INFO),
+            Arguments.of(JobProfileType.ARTISTIQUE, ExperienceLevel.SENIOR, 55, HardSkillsAlertLevel.STRONG),
+            Arguments.of(JobProfileType.ARTISTIQUE, ExperienceLevel.LEAD, 45, HardSkillsAlertLevel.MODERATE),
+            Arguments.of(JobProfileType.ARTISTIQUE, ExperienceLevel.MANAGER, 25, HardSkillsAlertLevel.MODERATE)
         );
     }
 
@@ -154,8 +180,6 @@ class JobRoleProfileTest {
 
     /** Poids de module par profil (V42) — non pertinents pour l'alerte, juste requis par l'invariant du record. */
     private static JobRoleProfile profileOf(JobProfileType profileType, ExperienceLevel level, int hardWeight) {
-        TypeEvaluationHard mode = profileType == JobProfileType.ARTISTIQUE
-            ? TypeEvaluationHard.PORTFOLIO : TypeEvaluationHard.QCM;
         int[] modules = switch (profileType) {
             case TECHNIQUE -> new int[] {30, 20, 30, 15, 5};
             case ANALYTIQUE -> new int[] {25, 20, 30, 15, 10};

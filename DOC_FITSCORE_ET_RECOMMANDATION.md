@@ -595,11 +595,18 @@ l'information — pour eux, l'absence de QCM est le fonctionnement normal et non
 corriger. Le distinguer évite qu'un client affiche « pensez à ajouter un test » à un
 photographe.
 
-⚠️ **Ce signal se trompe aujourd'hui sur les trois métiers MIXTE.** Il est décidé sur la
-*famille* ARTISTIQUE, pas sur le mode du métier (5.8) : *UX/UI Designer*, *UX/UI e-commerce*
-et *Motion designer* reçoivent donc « portfolio, pas de test attendu » alors que leur mode
-en réclame un. Le recruteur n'est jamais alerté du QCM manquant sur exactement les trois
-métiers pour lesquels le déplacement du réglage avait été fait. Correction à faire.
+**Le signal se lit sur le mode du métier, pas sur la famille.** Ce point a été un défaut
+pendant deux jours, et il vaut d'être retenu : la décision se prenait sur
+`profileType == ARTISTIQUE`, ce qui était exact tant que le mode vivait sur la matrice. Le
+déplacement du réglage sur le métier (5.8) a rendu cette lecture fausse sans rien casser de
+visible — *UX/UI Designer*, *UX/UI e-commerce* et *Motion designer* annonçaient « pas de
+test attendu » alors que leur mode en réclame un, et leur recruteur n'était jamais averti du
+QCM manquant. Exactement les trois métiers pour lesquels le déplacement avait été fait.
+
+C'est le mode d'échec typique d'un réglage qu'on déménage : l'ancien lecteur continue de
+répondre, et il répond faux. Un test sur base réelle vérifie désormais que deux métiers de
+la même famille et de la même ligne de pondération — *Photographe* et *UX/UI Designer* —
+reçoivent bien deux signaux différents.
 
 > **Références** — migrations `V42__job_role_profiles.sql`,
 > `V53__experience_level_back_to_cdc_scale.sql`, `V60__type_evaluation_hard_by_job_position.sql`,
@@ -1126,7 +1133,7 @@ Tous sont modifiables par variable d'environnement, **sans redéploiement**.
 |---|---|
 | Le mini-jeu « Prise de décision » | Non jouable — le catalogue de 30 scénarios est vide. Un module sur cinq ne compte donc dans aucun score. C'est le dernier trou du référentiel de jeux. |
 | Le calcul du mode MIXTE | Le mode est stocké et lisible, mais le sous-score hard ne le distingue pas encore de QCM. Ni pondération portfolio/test, ni dépôt de portfolio. |
-| L'alerte hard skills sur les métiers MIXTE | ⚠️ **Défaut actif** — décidée sur la famille ARTISTIQUE et non sur le mode du métier, donc les trois métiers hybrides n'alertent jamais (5.9). |
+| L'alerte hard skills sur les métiers MIXTE | ✅ Corrigé le 11 août 2026 — l'alerte suit le mode du métier, vérifié sur base réelle (5.9). |
 | La calibration des 24 lignes | `calibrated = false` partout. Atelier RH requis. |
 | Le seuil « bon profil » à 70 | Marqué provisoire dans le code, jamais validé par le produit. |
 | Les seuils de couverture 60 / 70 | À valider avec les RH. |
