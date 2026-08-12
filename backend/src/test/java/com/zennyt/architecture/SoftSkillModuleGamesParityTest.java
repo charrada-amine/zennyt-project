@@ -62,8 +62,19 @@ class SoftSkillModuleGamesParityTest {
             .containsAll(declaresParFitScore);
     }
 
+    /**
+     * Jeux <b>livrés par Games</b> (mini-jeu jouable) mais <b>délibérément pas encore
+     * comptés</b> au Fit Score, le temps de finaliser leur intégration côté recrutement.
+     * <b>Décision produit du 2026-08-12</b> : « Je continue », « Je coordonne » et
+     * « Je place » restent {@code available = false} dans {@link SoftSkillModule} — ils
+     * n'entrent donc pas encore au dénominateur. Retirer une entrée d'ici dès que le jeu
+     * correspondant est fusionné (et passé à {@code true}).
+     */
+    private static final java.util.Set<String> INTENTIONNELLEMENT_DIFFERES = java.util.Set.of(
+        "CONTINUOUS_ATTENTION", "VISUOMOTOR_COORDINATION", "VISUOSPATIAL_MEMORY");
+
     @Test
-    @DisplayName("La disponibilité déclarée au Fit Score suit celle de Games")
+    @DisplayName("La disponibilité déclarée au Fit Score suit celle de Games (hors différés assumés)")
     void disponibiliteAlignee() {
         Map<String, Boolean> cotesGames = playableParGameType();
 
@@ -71,18 +82,33 @@ class SoftSkillModuleGamesParityTest {
         for (SoftSkillModule module : SoftSkillModule.values()) {
             for (SoftSkillModule.Game game : module.games()) {
                 boolean cotéGames = cotesGames.getOrDefault(game.gamesModule(), false);
-                if (cotéGames != game.available()) {
-                    ecarts.put(game.gamesModule(),  cotéGames);
+                if (cotéGames != game.available()
+                    && !INTENTIONNELLEMENT_DIFFERES.contains(game.gamesModule())) {
+                    ecarts.put(game.gamesModule(), cotéGames);
                 }
             }
         }
 
         assertThat(ecarts)
-            .as("Games et le Fit Score ne sont plus d'accord sur ces jeux. La valeur "
-                + "indiquée est celle de Games (isPlayable), qui fait foi : reportez-la "
-                + "dans SoftSkillModule. Un jeu livré mais laissé à false sort du "
-                + "dénominateur et fausse toutes les couvertures.")
+            .as("Games et le Fit Score ne sont plus d'accord sur ces jeux (et ce ne sont "
+                + "pas des différés assumés). La valeur indiquée est celle de Games "
+                + "(isPlayable), qui fait foi : reportez-la dans SoftSkillModule. Un jeu "
+                + "livré mais laissé à false sort du dénominateur et fausse les couvertures.")
             .isEmpty();
+
+        // Garde-fou de l'allowlist : chaque jeu « différé » doit vraiment diverger
+        // (Games jouable, SoftSkillModule false). Sinon l'entrée est périmée — le jeu a
+        // été fusionné et compté : il faut la retirer d'INTENTIONNELLEMENT_DIFFERES.
+        for (String differe : INTENTIONNELLEMENT_DIFFERES) {
+            boolean jouableCoteGames = cotesGames.getOrDefault(differe, false);
+            boolean disponibleFitScore = Arrays.stream(SoftSkillModule.values())
+                .flatMap(m -> m.games().stream())
+                .anyMatch(g -> g.gamesModule().equals(differe) && g.available());
+            assertThat(jouableCoteGames && !disponibleFitScore)
+                .as("« %s » n'est plus un différé : soit Games ne le déclare plus jouable, "
+                    + "soit il est désormais compté au Fit Score. Retirez-le de la liste.", differe)
+                .isTrue();
+        }
     }
 
     /**

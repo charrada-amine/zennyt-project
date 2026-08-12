@@ -6,9 +6,12 @@ import com.zennyt.games.domain.catalog.DecisionScenarioCatalog;
 import com.zennyt.games.domain.event.GameResultRecordedEvent;
 import com.zennyt.games.domain.model.GameSession;
 import com.zennyt.games.domain.model.MiniGame;
+import com.zennyt.games.domain.repository.ContinuousAttentionMetricsRepository;
+import com.zennyt.games.domain.repository.CoordinationMetricsRepository;
 import com.zennyt.games.domain.repository.DeviceCalibrationRepository;
 import com.zennyt.games.domain.repository.EmotionalRadarAnswerRepository;
 import com.zennyt.games.domain.repository.GameSessionRepository;
+import com.zennyt.games.domain.repository.ObjectLocationMetricsRepository;
 import com.zennyt.games.domain.vo.GameType;
 import com.zennyt.games.domain.vo.MemoryQuestMetrics;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,11 +54,14 @@ class SubmitGameResultUseCaseEventTest {
         useCase = new SubmitGameResultUseCase(repository,
             mock(DeviceCalibrationRepository.class),
             mock(EmotionalRadarAnswerRepository.class),
+            mock(ContinuousAttentionMetricsRepository.class),
+            mock(CoordinationMetricsRepository.class),
+            mock(ObjectLocationMetricsRepository.class),
             eventPublisher,
             mock(DecisionScenarioCatalog.class));
 
         session = GameSession.start(JOUEUR, GameType.MEMORY_QUEST);
-        when(repository.findById(session.id())).thenReturn(Optional.of(session));
+        when(repository.findByIdForUpdate(session.id())).thenReturn(Optional.of(session));
         // Comme GameSessionRepositoryAdapter : une session reconstruite, sans événements.
         when(repository.save(any())).thenAnswer(invocation -> reconstruire(invocation.getArgument(0)));
     }
@@ -66,7 +72,7 @@ class SubmitGameResultUseCaseEventTest {
     }
 
     private SubmitGameResultCommand commande() {
-        return new SubmitGameResultCommand(session.id(), MiniGame.MEMORY_QUEST_CORE,
+        return new SubmitGameResultCommand(session.id(), JOUEUR, MiniGame.MEMORY_QUEST_CORE,
             new MemoryQuestMetrics(7, 6, 5, 7, 8, 6, 3, true, 6, 4, true, 5, true, List.of()),
             null);
     }

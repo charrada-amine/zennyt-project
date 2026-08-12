@@ -52,38 +52,28 @@ class FitScoreBaselineTest {
             modules[0], modules[1], modules[2], modules[3], modules[4], mode, false, Instant.now());
     }
 
-<<<<<<< Updated upstream
-    /** Les 4 modules réellement produits par Games depuis la livraison de « Je gère ». */
-=======
     /**
-     * Un candidat qui a joué <b>tous</b> les jeux livrés, module par module.
+     * Un candidat qui a joué <b>tous</b> les jeux mesurables, un par module.
      *
      * <p>Ces personas mesurent la <i>pondération</i> métier, pas la décote de couverture :
-     * ils doivent donc rester pleinement couverts. Avant la livraison Games du 2026-08-10,
-     * un seul jeu par module suffisait pour cela — la flexibilité en compte désormais 3 et
-     * la mémoire 2, et il faut les alimenter tous pour garder la même signification. Sans
-     * ça les personas se seraient mis à décrire des candidats qui sautent la moitié des
-     * jeux, et les scores de référence auraient chuté sans qu'aucune pondération ne bouge.
+     * ils doivent donc rester pleinement couverts. Chaque module CdC ne compte aujourd'hui
+     * qu'un seul jeu disponible côté recrutement (Je continue / Je coordonne / Je place
+     * livrés par Games mais pas encore fusionnés) : alimenter un jeu par module suffit
+     * donc à couvrir 100 % de chacun.
      *
      * <p><b>2026-08-12 — activation de « Je Décide ».</b> Le catalogue de la prise de
      * décision est désormais livré ({@code DECISION_CORE.isPlayable() == true}) : le
      * module {@code DECISION_MAKING} est mesurable et entre dans le Fit Score. Les
-     * personas reçoivent donc un score décision pour rester pleinement couverts, et
-     * les baselines ci-dessous ont été recalculées en conséquence (le poids décision,
-     * ex. 30 % en Technique, pèse maintenant réellement).
+     * personas reçoivent donc un score décision pour rester pleinement couverts (le poids
+     * décision, ex. 30 % en Technique, pèse maintenant réellement dans le dénominateur).
      */
->>>>>>> Stashed changes
     private static Map<String, ModuleScore> measuredModules(double flex, double memory,
                                                             double decision, double planning,
                                                             double regulation) {
         Map<String, ModuleScore> scores = new LinkedHashMap<>();
         scores.put("MOVE_FAST", ModuleScore.fullyCovered(flex));
         scores.put("MEMORY_QUEST", ModuleScore.fullyCovered(memory));
-<<<<<<< Updated upstream
-=======
-        scores.put("VISUOSPATIAL_MEMORY", ModuleScore.fullyCovered(memory));
         scores.put("DECISION", ModuleScore.fullyCovered(decision));
->>>>>>> Stashed changes
         scores.put("PLANIFIK", ModuleScore.fullyCovered(planning));
         scores.put("EMOTIONAL_REGULATION", ModuleScore.fullyCovered(regulation));
         return scores;
@@ -187,14 +177,10 @@ class FitScoreBaselineTest {
         int sansLeJeuRate = score(saute, technique, null).softSkillScore();
 
         assertThat(sansLeJeuRate).isLessThan(avecLeJeuRate);
-<<<<<<< Updated upstream
-        assertThat(avecLeJeuRate - sansLeJeuRate).isEqualTo(6);
-=======
-        // L'écart valait 7 avant l'activation de « Je Décide ». La décision (poids 30 %
-        // en Technique, non jouée ici) est désormais au dénominateur : elle dilue le
-        // poids relatif de Planifik, et l'écart tombe à 4 — mais reste strictement positif.
-        assertThat(avecLeJeuRate - sansLeJeuRate).isEqualTo(4);
->>>>>>> Stashed changes
+        // Depuis l'activation de « Je Décide », la décision (poids 30 % en Technique,
+        // non jouée ici) est au dénominateur : jouer Planifik (raté, 30) fait tout de
+        // même passer le soft de 39 à 44, soit +5 — jouer n'est jamais pénalisant.
+        assertThat(avecLeJeuRate - sansLeJeuRate).isEqualTo(5);
     }
 
     /**
@@ -214,25 +200,15 @@ class FitScoreBaselineTest {
         assertThat(score(Map.of("JEU_PAS_ENCORE_CABLE", ModuleScore.fullyCovered(10)), technique, null)).isNull();
 
         // Mélangée à un module connu, elle reste ignorée : seul MOVE_FAST compte.
-<<<<<<< Updated upstream
-        // 40 × 30 / 70 = 17 — la valeur inconnue (90) n'y contribue en rien.
+        // 40 × 30 / 100 = 12 — la valeur inconnue (90) n'y contribue en rien. La
+        // flexibilité ne compte qu'un jeu disponible, Move Fast la couvre à 100 % ; le
+        // dénominateur vaut 100 depuis que la décision est mesurable.
         Map<String, ModuleScore> melange = new LinkedHashMap<>();
         melange.put("MOVE_FAST", ModuleScore.fullyCovered(40));
         melange.put("JEU_PAS_ENCORE_CABLE", ModuleScore.fullyCovered(90));
-        assertThat(score(melange, technique, null).softSkillScore()).isEqualTo(17);
+        assertThat(score(melange, technique, null).softSkillScore()).isEqualTo(12);
         assertThat(score(Map.of("MOVE_FAST", ModuleScore.fullyCovered(40)), technique, null)
-            .softSkillScore()).isEqualTo(17);
-=======
-        // 40 × 0,33 × 30 / 100 = 4 — la valeur inconnue (90) n'y contribue en rien.
-        // Move Fast est 1 des 3 jeux de la flexibilité, d'où la décote au tiers ; le
-        // dénominateur vaut 100 (et non plus 70) depuis que la décision est mesurable.
-        Map<String, ModuleScore> melange = new LinkedHashMap<>();
-        melange.put("MOVE_FAST", ModuleScore.fullyCovered(40));
-        melange.put("JEU_PAS_ENCORE_CABLE", ModuleScore.fullyCovered(90));
-        assertThat(score(melange, technique, null).softSkillScore()).isEqualTo(4);
-        assertThat(score(Map.of("MOVE_FAST", ModuleScore.fullyCovered(40)), technique, null)
-            .softSkillScore()).isEqualTo(4);
->>>>>>> Stashed changes
+            .softSkillScore()).isEqualTo(12);
     }
 
     /**
