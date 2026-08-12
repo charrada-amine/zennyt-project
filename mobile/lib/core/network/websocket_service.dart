@@ -122,6 +122,28 @@ class WebSocketService {
       key: 'call/reject',
       destination: '/user/queue/call/reject',
     );
+
+    // DEBUG: common alternative call destinations
+    _registerSub(
+      key: 'debug/call/invitation',
+      destination: '/user/queue/call/invitation',
+    );
+    _registerSub(
+      key: 'debug/call/invites',
+      destination: '/user/queue/call/invites',
+    );
+    _registerSub(
+      key: 'debug/calls/invite',
+      destination: '/user/queue/calls/invite',
+    );
+    _registerSub(
+      key: 'debug/topic/call/invite',
+      destination: '/topic/call/invite',
+    );
+    _registerSub(
+      key: 'debug/queue/call/invite',
+      destination: '/queue/call/invite',
+    );
   }
 
   void _registerSub({required String key, required String destination}) {

@@ -132,8 +132,8 @@ class NotificationListItem extends StatelessWidget {
           child: Container(
             decoration: BoxDecoration(
               color: notification.isRead
-                  ? AppColors.gray50
-                  : const Color(0x1311428D),
+                  ? context.colors.cardSurface
+                  : context.colors.primary.withOpacity(0.08),
               border: Border.all(
                 color: context.colors.border,
                 width: 1,
@@ -190,10 +190,10 @@ class NotificationListItem extends StatelessWidget {
                                 Expanded(
                                   child: Text(
                                     notification.title,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w600,
-                                      color: AppColors.textDark,
+                                      color: context.colors.textPrimary,
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,

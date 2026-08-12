@@ -48,6 +48,8 @@ abstract class CallSignalingRepository {
   /// Appel terminé.
   void onEndCall(void Function(Map<String, dynamic> data) callback);
 
-  /// Retire tous les callbacks enregistrés.
+  /// Retire les callbacks enregistrés par une page d'appel
+  /// (accept/reject/end), sans toucher au listener global `call/invite`
+  /// utilisé par l'overlay d'appel entrant.
   void dispose();
 }

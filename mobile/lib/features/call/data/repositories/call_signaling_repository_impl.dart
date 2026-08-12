@@ -84,7 +84,8 @@ class CallSignalingRepositoryImpl implements CallSignalingRepository {
 
   @override
   void dispose() {
-    webSocketService.unsubscribeCallback('call/invite');
+    // Ne retire PAS `call/invite` : ce callback appartient au notifier global
+    // de l'overlay d'appel entrant (incomingCallProvider), pas à la page d'appel.
     webSocketService.unsubscribeCallback('call/accept');
     webSocketService.unsubscribeCallback('call/reject');
     webSocketService.unsubscribeCallback('call/end');

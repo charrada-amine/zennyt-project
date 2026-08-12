@@ -135,10 +135,10 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
                   children: [
                     Text(
                       conversation.counterpartName,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.textDark,
+                        color: context.colors.textPrimary,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -264,7 +264,7 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
           showBack: true,
         ),
         bottomNavigationBar: null,
-        backgroundColor: AppColors.background,
+        backgroundColor: context.colors.scaffoldBg,
         body: SafeArea(
           child: Column(
             children: [

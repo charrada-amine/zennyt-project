@@ -62,20 +62,27 @@ class CallVirtualBackgroundPanel extends ConsumerWidget {
     final selectedImageIdx = ref.watch(selectedImageIndexProvider);
 
     return Positioned(
-      bottom: 120,
+      bottom: 220,
       left: 16,
       right: 16,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.black87,
+          color: const Color(0xEE1E1E24),
           borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.white12, width: 1),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black45,
+              blurRadius: 16,
+              offset: Offset(0, 8),
+            ),
+          ],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-
-              Row(
+            Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 _BgButton(
@@ -117,11 +124,11 @@ class CallVirtualBackgroundPanel extends ConsumerWidget {
             // Options secondaires conditionnelles (Images)
             if (active == VirtualBgType.image) ...[
               const Padding(
-                padding: EdgeInsets.symmetric(vertical: 8.0),
+                padding: EdgeInsets.symmetric(vertical: 12.0),
                 child: Divider(color: Colors.white24, height: 1),
               ),
               SizedBox(
-                height: 50,
+                height: 54,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
                   itemCount: availableBgImages.length,
@@ -137,14 +144,14 @@ class CallVirtualBackgroundPanel extends ConsumerWidget {
                         );
                       },
                       child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 8),
-                        width: 50,
-                        height: 50,
+                        margin: const EdgeInsets.symmetric(horizontal: 6),
+                        width: 52,
+                        height: 52,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(
                             color: isSelected
-                                ? Colors.purpleAccent
+                                ? const Color(0xFF818CF8)
                                 : Colors.transparent,
                             width: 3,
                           ),
@@ -162,15 +169,16 @@ class CallVirtualBackgroundPanel extends ConsumerWidget {
                 ),
               ),
             ],
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
             GestureDetector(
               onTap: () =>
                   ref.read(showVirtualBgPanelProvider.notifier).state = false,
               child: Text(
                 l10n.closeLabel,
                 style: const TextStyle(
-                  color: Colors.purpleAccent,
+                  color: Color(0xFF818CF8),
                   fontWeight: FontWeight.w600,
+                  fontSize: 14,
                 ),
               ),
             ),

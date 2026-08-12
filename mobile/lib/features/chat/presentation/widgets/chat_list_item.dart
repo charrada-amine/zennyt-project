@@ -81,9 +81,10 @@ class ChatListItem extends StatelessWidget {
                           Flexible(
                             child: Text(
                               conversation.counterpartName,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
+                                color: context.colors.textPrimary,
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),

@@ -31,14 +31,8 @@ class CallRemoteVideo extends StatelessWidget {
       ),
     );
 
-    return Positioned.fill(
-      child: Visibility(
-        visible: remoteHasVideo,
-        maintainState: true,
-        maintainAnimation: true,
-        maintainSize: true,
-        child: videoWidget,
-      ),
-    );
+    // Always render the video view; Agora will show black until frames arrive.
+    // The remoteHasVideo flag is used only for UI indicators, not for hiding the view.
+    return Positioned.fill(child: videoWidget);
   }
 }

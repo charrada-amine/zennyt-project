@@ -50,10 +50,10 @@ class JobOpportunityCard extends StatelessWidget {
               children: [
                 Text(
                   l10n.jobOpportunity,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: _titleColor,
+                    color: context.colors.textPrimary,
                   ),
                 ),
                 const Spacer(),
@@ -75,10 +75,10 @@ class JobOpportunityCard extends StatelessWidget {
             const SizedBox(height: 12),
             RichText(
               text: TextSpan(
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   height: 1.45,
-                  color: _titleColor,
+                  color: context.colors.textPrimary,
                 ),
                 children: [
                   TextSpan(

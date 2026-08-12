@@ -69,6 +69,9 @@ class IncomingCallNotifier extends StateNotifier<IncomingCallState> {
       final initiatorId = data['initiatorId'] as String?;
       if (initiatorId == null) return;
 
+      _signaling.onEndCall((_) => dismiss());
+      _signaling.onReject((_) => dismiss());
+
       final callId = data['callId'] as String?;
 
       state = IncomingCallState(

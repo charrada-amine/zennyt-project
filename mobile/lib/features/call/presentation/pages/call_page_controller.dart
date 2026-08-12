@@ -10,10 +10,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:zennyt/features/call/domain/entities/call.dart';
 import 'package:zennyt/features/call/domain/repositories/call_signaling_repository.dart';
 import 'package:zennyt/features/call/presentation/providers/call_provider.dart';
 import 'package:zennyt/features/call/presentation/providers/call_recording_provider.dart';
 import 'package:zennyt/features/call/presentation/services/call_recording_service.dart';
+import 'package:zennyt/features/call/data/repositories/call_recording_repository_impl.dart';
 
 import '../providers/call_ui_providers.dart';
 
@@ -59,6 +61,7 @@ class CallPageController {
   bool remoteHasVideo = false;
   bool isCallEnded = false;
   String myResolvedUserId = '';
+  String? currentCallId;
 
   bool get isOutgoing => incomingOffer == null;
 
@@ -144,31 +147,22 @@ class CallPageController {
         debugPrint('✅ WebSocket connected, proceeding with call');
       }
 
-      /* if (isOutgoing) {
-        // ─── APPEL SORTANT : envoyer invite, attendre accept ──────────────
+      _setupSignalingListeners();
+
+      if (isOutgoing) {
+        debugPrint('📞 Initiating outgoing call as $myResolvedUserId');
         if (conversationId != null) {
-          _signaling.sendCallInvite(
-            conversationId: conversationId!,
-            senderId: myResolvedUserId,
-            counterpartId: counterpartId,
-            channelName: channelName,
-            isVideoCall: isVideoCall,
-          );
+          currentCallId = await _startCallOnBackend(conversationId!);
+          debugPrint('📞 Outgoing call session created: callId=$currentCallId');
         }
       } else {
-        // ─── APPEL ENTRANT : rejoindre directement le canal ────────────────
         await _joinAgoraChannel();
-        // Envoyer accept au correspondant
-        if (conversationId != null) {
-          _signaling.sendAccept(
-            conversationId: conversationId!,
-            senderId: myResolvedUserId,
-            counterpartId: counterpartId,
-          );
+        final incomingCallId = incomingOffer?['callId'] as String?;
+        if (incomingCallId != null) {
+          currentCallId = incomingCallId;
+          await _acceptCallOnBackend(incomingCallId);
         }
-      } */
-      // TEMP TEST MODE: skip invite/accept signaling entirely, join channel directly
-      await _joinAgoraChannel();
+      }
     } catch (e) {
       debugPrint('Error during initialization: $e');
     }
@@ -177,16 +171,32 @@ class CallPageController {
   /// Call after channel join (from onJoinChannelSuccess or onUserJoined) to
   /// start recording the call.
   void _startRecordingIfNeeded() {
+    if (!isVideoCall) {
+      debugPrint('🎥 Recording skipped (audio call, isVideoCall=false)');
+      return;
+    }
     if (_recordingService != null) return;
-    if (_engine == null || channelName.isEmpty) return;
+    if (_engine == null || channelName.isEmpty) {
+      debugPrint('🎥 Recording skipped (engine/channel not ready)');
+      return;
+    }
 
-    final service = ref.read(callRecordingServiceProvider);
+    final repository = CallRecordingRepositoryImpl(
+      local: ref.read(recordingLocalDataSourceProvider),
+      remote: ref.read(recordingRemoteDataSourceProvider),
+    );
+
+    final service = CallRecordingService(
+      repository: repository,
+      engine: _engine!,
+    );
 
     // Update UI state when recording starts/stops
     service.onRecordingStateChanged = (isRecording) {
       ref.read(isRecordingProvider.notifier).state = isRecording;
     };
 
+    debugPrint('🎥 Starting recording for channel $channelName');
     // Start recording in the background
     service.startRecording(sessionId: channelName);
     service.startRetryService();
@@ -213,15 +223,46 @@ class CallPageController {
     );
   }
 
+  Future<String?> _startCallOnBackend(String conversationId) async {
+    final call = Call(
+      id: conversationId,
+      contactName: contactName,
+      type: isVideoCall ? CallType.video : CallType.audio,
+      status: CallStatus.outgoing,
+      startTime: DateTime.now(),
+    );
+    final result = await ref.read(callRepositoryProvider).startCall(call);
+    return result.fold(
+      (failure) {
+        debugPrint('❌ startCall failed: ${failure.message}');
+        return null;
+      },
+      (callId) => callId,
+    );
+  }
+
+  Future<bool> _acceptCallOnBackend(String callId) async {
+    final result = await ref.read(callRepositoryProvider).joinCall(callId);
+    return result.fold(
+      (failure) {
+        debugPrint('❌ joinCall failed: ${failure.message}');
+        return false;
+      },
+      (_) => true,
+    );
+  }
+
   void _registerEventHandler() {
     _engine!.registerEventHandler(
       RtcEngineEventHandler(
         onJoinChannelSuccess: (connection, elapsed) {
           _joined = true;
+          debugPrint('✅ Joined Agora channel: ${connection.channelId}');
           onStateChanged();
         },
         onUserJoined: (connection, uid, elapsed) {
           remoteUid = uid;
+          debugPrint('👥 Remote user joined (uid=$uid), isVideoCall=$isVideoCall');
           // Start recording after the first user joins (conversation truly started)
           _startRecordingIfNeeded();
           onStateChanged();
@@ -393,11 +434,12 @@ class CallPageController {
   }
 
   Future<void> endCall() async {
-    if (conversationId != null) {
-      _signaling.sendEndCall(
-        conversationId: conversationId!,
-        senderId: myResolvedUserId,
-        counterpartId: counterpartId,
+    if (currentCallId != null) {
+      final result =
+          await ref.read(callRepositoryProvider).endCall(currentCallId!);
+      result.fold(
+        (failure) => debugPrint('❌ endCall failed: ${failure.message}'),
+        (_) => debugPrint('📞 Call ended on backend: $currentCallId'),
       );
     }
     await Future.delayed(const Duration(milliseconds: 200));

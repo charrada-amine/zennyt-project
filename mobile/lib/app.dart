@@ -28,8 +28,14 @@ class ZennytApp extends ConsumerWidget {
     return MaterialApp.router(
       builder: (context, child) {
         final previewChild = DevicePreview.appBuilder(context, child);
-        return NoConnectionOverlay(
-          child: IncomingCallOverlay(child: previewChild!),
+        return DefaultTextStyle(
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface,
+            decoration: TextDecoration.none,
+          ),
+          child: NoConnectionOverlay(
+            child: IncomingCallOverlay(child: previewChild),
+          ),
         );
       },
       onGenerateTitle: (context) => context.l10n.appName,

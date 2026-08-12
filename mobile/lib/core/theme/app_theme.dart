@@ -472,7 +472,7 @@ class AppTheme {
         labelSmall: AppTypography.labelSmall.copyWith(
           color: AppColors.textTertiary,
         ),
-      ),
+      ).apply(decoration: TextDecoration.none),
 
       // --- Tooltip ---
       tooltipTheme: TooltipThemeData(
@@ -846,7 +846,7 @@ class AppTheme {
         labelSmall: AppTypography.labelSmall.copyWith(
           color: AppColors.textTertiaryDark,
         ),
-      ),
+      ).apply(decoration: TextDecoration.none),
 
       // --- Switch ---
       switchTheme: SwitchThemeData(

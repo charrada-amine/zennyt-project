@@ -1,6 +1,6 @@
 # Module Engagement
 
-**Dernière mise à jour :** 2026-08-04 — temps réel sécurisé des messages, attribution des bulles, intégration mobile du chat, handshake WebSocket mobile authentifié par défaut et invalidation inter-comptes du cache utilisateur.
+**Dernière mise à jour :** 2026-08-07 — appels : l'appel sortant initie réellement la session serveur (REST `POST /calls/start`), l'overlay d'appel entrant s'affiche chez le destinataire ; enregistrement : chunks mp4 écrits sur disque (`call_recordings/`), fini le `MediaRecorder` `-5`, et suppression de la reconfiguration audio (`audioProfileMusicHighQualityStereo` + game streaming) qui coupait le son dans l'appel et dans l'enregistrement.
 
 ## Périmètre
 
@@ -61,7 +61,7 @@ Events : `UserAccessStateChangedEvent`, `ApplicationSubmittedEvent` et
 | Conversations et messages | 5 | Opérationnel (+ push temps réel) |
 | Notifications | 3 | Opérationnel |
 | Realtime et appareils push | 2 | Handshake JWT sécurisé, push messages opérationnels |
-| Appels | 3 | Signalisation WebRTC via STOMP |
+| Appels | 3 | Session REST (start/join/end) + signalisation WebRTC via STOMP |
 | Centre d'aide | 3 | Opérationnel |
 | Média | 1 | Cloudinary, clés requises pour un upload réel |
 
@@ -119,8 +119,8 @@ Chaque endpoint porte `@EngagementAuthenticated`. L'acteur doit exister dans la 
 3. Définir le traitement agent du centre d'aide ; les messages utilisateurs sont persistés,
    sans réponse automatique inventée.
 4. **Pack mobile engagement (en cours).** Le chat (messages, conversations, notifications,
-   temps réel WebSocket) est intégré côté mobile. Reste à intégrer : posts/likes/commentaires,
-   sondages, appels, aide.
+   temps réel WebSocket) et le câblage des appels (session REST start/join/end, overlay d'appel
+   entrant) sont intégrés côté mobile. Reste à intégrer : posts/likes/commentaires, sondages, aide.
 5. **Pagination des commentaires — reportée (décision Lot D).** `GET /posts/{id}/comments`
    retourne aujourd'hui un tableau consommé par un client mobile déjà publié. Passer à une
    réponse paginée est un changement de contrat cassant : il doit être fait contract-first et
@@ -200,3 +200,49 @@ Chaque endpoint porte `@EngagementAuthenticated`. L'acteur doit exister dans la 
    reconstruites au login/logout/switch de compte au lieu de conserver le cache du compte
    précédent (bug : après un switch de compte, les conversations de l'ancien compte restaient
    affichées jusqu'à un rechargement manuel).
+10. **2026-08-07 — Appels : l'overlay d'appel entrant s'affiche enfin chez le destinataire.** Le
+    bouton d'appel de la page chat envoyait une invitation STOMP `/app/call/{conversationId}/invite`
+    sans handler côté backend (aucun `@MessageMapping`) : le serveur ne créait jamais la session
+    d'appel et ne poussait donc jamais l'invitation au correspondant. L'appel sortant passe
+    désormais par `POST /api/v1/calls/start` (`InitiateCallUseCase`, qui pousse
+    `/user/queue/call/invite`), l'acceptation entrante par `POST /api/v1/calls/{callId}/join`
+    (`JoinCallUseCase`, qui pousse `/user/queue/call/accept`) et la fin d'appel par
+    `POST /api/v1/calls/{callId}/end` (`EndCallUseCase`, qui pousse `/user/queue/call/end`).
+    Correction aussi de `CallSignalingRepositoryImpl.dispose()` qui retirait le listener global
+    `call/invite` de l'overlay (après le premier appel, plus aucune invitation ne pouvait
+    s'afficher) ; l'overlay se ré-enregistre en outre sur `call/end`/`call/reject` à chaque
+    nouvelle invitation. Fichiers mobile : `call_page_controller.dart`,
+    `call_signaling_repository_impl.dart`, `incoming_call_overlay.dart`. 27 tests mobile verts,
+    `flutter analyze` sans nouvelle erreur ni nouveau warning.
+11. **2026-08-07 — Enregistrement d'appel : les chunks mp4 sont enfin écrits sur disque.**
+    `CallRecordingService` appelait `MediaRecorder.stopRecording()` avant tout
+    `startRecording()` (le premier `startRecording` n'avait lieu qu'à la 1ʳᵉ expiration du timer,
+    *après* un stop) : Agora renvoyait `-5 (ERR_REFUSED)`, l'exception interrompait le chunk et
+    **aucun fichier n'était jamais produit**. Le service démarre désormais le premier chunk
+    immédiatement dans `startRecording()` ; le timer 10 s ferme le chunk courant
+    (`stopRecording()` → flush mp4 → `saveChunk`) puis en ouvre un nouveau (`_startNewChunk()`),
+    et `stopRecording()` final clôt le dernier chunk avant `destroyMediaRecorder`. `maxDurationMs`
+    porté de 10 000 à 60 000 ms (filet de sécurité : l'arrêt manuel gagne toujours la course).
+    Fichier : `call_recording_service.dart`. 27 tests mobile verts, `flutter analyze` sans
+    nouvelle erreur ni nouveau warning.
+12. **2026-08-07 — Enregistrement : logs de diagnostic + démarrage robuste.** Aucune ligne de log
+    ne mentionnait l'enregistrement, impossible de savoir s'il démarrait. Ajout de logs explicites
+    dans `call_page_controller` (`✅ Joined Agora channel`, `👥 Remote user joined`,
+    `_startRecordingIfNeeded` : raison du skip) et `call_recording_service` (`🔴 Recording started
+    → <dossier>`, `🎬 Chunk N saved: <fichier>`, `⏹ Recording stopped`, `🎙 Recorder state/reason`).
+    Le premier chunk démarre maintenant immédiatement, avec **15 tentatives espacées de 2 s** si le
+    flux local n'est pas encore publié (cas fréquent : caméra absente/muette côté desktop → Agora
+    renvoie `RecorderReasonCode.recorderReasonNoStream`, ou appel vidéo démarré caméra éteinte) ;
+    un échec ne laisse plus de « chunk fantôme » (qui déclenchait un `-5` au stop). Rappel :
+    l'enregistrement ne démarre que pour un **appel vidéo** après que le correspondant a rejoint le
+    canal Agora (`onUserJoined`), et il enregistre le **flux local** de l'appareil.
+13. **2026-08-07 — Enregistrement : plus aucune reconfiguration audio de l'appel.** Le service
+    appliquait `setAudioProfile(audioProfileMusicHighQualityStereo, audioScenarioGameStreaming)`
+    au moteur **pendant** l'appel (au démarrage de l'enregistrement, donc sur les deux appareils).
+    Le scénario « game streaming » remplace la chaîne audio optimisée voix (AEC/NS/routage) et peut
+    couper la capture micro locale jusqu'au redémarrage du moteur → plus de son dans l'appel ni
+    dans l'enregistrement. Suppression de cet appel : l'enregistreur capture le flux que le moteur
+    publie déjà, il ne doit pas re-pipeliner l'audio de l'appel. La config vidéo 720p/30 fps reste
+    (l'enregistrement bénéficie de la qualité du flux publié). Fichier :
+    `call_recording_service.dart`. 27 tests mobile verts, `flutter analyze` sans nouvelle erreur
+    ni nouveau warning.

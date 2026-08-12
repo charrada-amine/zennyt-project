@@ -23,8 +23,12 @@ class MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bubbleColor = isFromCurrentUser ? AppColors.chipSelected : Colors.white;
-    final textColor = isFromCurrentUser ? Colors.white : Colors.black87;
+    final bubbleColor = isFromCurrentUser
+        ? AppColors.chipSelected
+        : context.colors.cardSurface;
+    final textColor = isFromCurrentUser
+        ? Colors.white
+        : context.colors.textPrimary;
 
     return Padding(
       padding: EdgeInsets.only(

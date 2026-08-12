@@ -38,9 +38,9 @@ class CallBottomSheet extends ConsumerWidget {
 
     return DraggableScrollableSheet(
       controller: controller,
-      initialChildSize: 0.25,
-      minChildSize: 0.12,
-      maxChildSize: 0.30,
+      initialChildSize: 0.32,
+      minChildSize: 0.16,
+      maxChildSize: 0.38,
       builder: (context, scrollController) {
         return Container(
           decoration:BoxDecoration(
