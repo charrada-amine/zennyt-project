@@ -1,22 +1,18 @@
 package com.zennyt.games.infrastructure.catalog;
 
 import com.zennyt.games.domain.catalog.DecisionScenarioCatalog;
-import org.springframework.stereotype.Component;
 
 import java.util.Optional;
 
 /**
- * Implémentation vivante <b>VIDE</b> du catalogue « Je Décide ».
+ * Implémentation <b>VIDE</b> du catalogue « Je Décide » — repli / usage de test.
  *
- * <p>// EN ATTENTE DU PSYCHOLOGUE — 30 scénarios + étiquetage des options
- * (chaque option étiquetée d'une {@code OptionQuality}). Aucun contenu de
- * scénario n'est inventé ici.
- *
- * <p>Tant que ce catalogue est vide, {@code MiniGame.DECISION_CORE} reste non
- * jouable : une session DECISION ne peut donc pas être complétée en production.
- * Les tests injectent un catalogue de test à la place.
+ * <p><b>N'est plus le bean vivant</b> : depuis la livraison de la banque du
+ * psychologue, l'implémentation active est {@link JsonDecisionScenarioCatalog}
+ * (chargée depuis {@code resources/games/decision_scenarios.json}). Cette classe
+ * reste disponible pour les tests qui veulent simuler un catalogue vide (mini-jeu
+ * non jouable) sans démarrer le contexte Spring. Elle n'invente aucun scénario.
  */
-@Component
 public class EmptyDecisionScenarioCatalog implements DecisionScenarioCatalog {
 
     @Override

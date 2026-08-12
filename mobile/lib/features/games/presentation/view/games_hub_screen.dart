@@ -36,6 +36,7 @@ const _logoPredictivePuzzle =
 // de jeu, contrairement aux icônes de catégorie qui en portent une).
 const _logoEmotionalRadar = 'assets/games icons/Emotional Radar.png';
 const _logoReflectivePause = 'assets/games icons/Reflective Pause.png';
+const _logoStrategicChoices = 'assets/games icons/Strategic Choices.png';
 
 /// Hub des jeux sérieux, aligné sur l'écran Progress / Games de la maquette.
 class GamesHubScreen extends ConsumerWidget {
@@ -180,6 +181,7 @@ class GamesHubScreen extends ConsumerWidget {
                     key: const ValueKey('game-category-emotional-regulation'),
                     title: 'Emotional Regulation',
                     iconAsset: _iconEmotion,
+                    aptitudeLabel: '3 games',
                     games: const [
                       _GameEntry(
                         label: 'Emotional Radar',
@@ -194,6 +196,13 @@ class GamesHubScreen extends ConsumerWidget {
                         route: AppRoutes.gamesReflectivePause,
                         logoAsset: _logoReflectivePause,
                         fallbackIcon: Icons.timer_outlined,
+                      ),
+                      _GameEntry(
+                        label: 'Strategic Choices',
+                        subtitle: 'Reflect · choose · respond',
+                        route: AppRoutes.gamesStrategicChoices,
+                        logoAsset: _logoStrategicChoices,
+                        fallbackIcon: Icons.call_split_rounded,
                       ),
                     ],
                   ),

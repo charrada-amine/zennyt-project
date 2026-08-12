@@ -29,11 +29,11 @@ public enum MiniGame {
     MEMORY_QUEST_CORE(GameType.MEMORY_QUEST, 100, true),
     /**
      * « Je Décide » — prise de décision. Score agrégé = SCW /100.
-     * Non jouable tant que le {@code DecisionScenarioCatalog} est vide (30 scénarios
-     * + étiquetage des options à fournir) — même patron que TASK_SCHEDULING avant
-     * implémentation. Repasser à {@code true} une fois le catalogue rempli.
+     * Jouable : le {@code DecisionScenarioCatalog} est désormais rempli par la
+     * banque du psychologue (120 items, {@code JsonDecisionScenarioCatalog} chargé
+     * depuis {@code resources/games/decision_scenarios.json}).
      */
-    DECISION_CORE(GameType.DECISION, 100, false),
+    DECISION_CORE(GameType.DECISION, 100, true),
     /**
      * « Emotional Radar » — reconnaissance émotionnelle. Barème <b>dynamique</b>
      * (comme {@code MOVE_FAST_CORE}, d'où {@code maxPoints = 0}) : le maximum vaut

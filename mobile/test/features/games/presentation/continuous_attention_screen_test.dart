@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zennyt/core/storage/shared_preferences_provider.dart';
+import 'package:zennyt/features/auth/presentation/current_user_provider.dart';
 import 'package:zennyt/features/games/domain/config/continuous_attention_config.dart';
 import 'package:zennyt/features/games/domain/entities/continuous_attention_metrics.dart';
 import 'package:zennyt/features/games/domain/entities/device_calibration.dart';
@@ -43,6 +44,7 @@ void main() {
         overrides: [
           gamesRepositoryProvider.overrideWithValue(gameRepository),
           sharedPreferencesProvider.overrideWithValue(preferences),
+          currentUserProvider.overrideWithValue(null),
         ],
         child: MaterialApp(
           builder: (context, child) => MediaQuery(

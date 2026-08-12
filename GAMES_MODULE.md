@@ -25,8 +25,9 @@ Chaque **jeu** correspond à un `GameType` (un domaine cognitif = une fiche) et 
 | **« Je Décide » — Phases 1–4 mobile** | `DECISION` | `DECISION_CORE` | Prise de décision (II, ER, DT, CS, RE — /18 chacune → /90 → SCW /100) | 🟡 **Parcours UI complet** (aperçu maquette) + 🟢 **moteur backend prêt** : agrégation, règle DT, imputation, interprétations, validité, couche provisoire isolée. **Non jouable end-to-end** tant que le catalogue de 30 scénarios est vide (`DECISION_CORE.isPlayable()=false`) | Flutter (UI) / Java (moteur) |
 | **Emotional Radar — « Je gère »** | `EMOTIONAL_REGULATION` | `EMOTIONAL_RADAR_CORE` | Régulation émotionnelle — reconnaissance d'émotion (famille + nuance + intensité) | 🟢 Jouable **9 pts/scène** — 3 scènes rédigées (27), 15 visées (135) ; **contenu servi par le backend** | Flutter custom |
 | **Reflective Pause — « Je gère »** | `EMOTIONAL_REGULATION` | `REFLECTIVE_PAUSE_CORE` | Régulation émotionnelle — contrôle de l'impulsivité sous pression | 🟢 **Complet /10** — 10 moments, pause minimale 3 s, résultats + insights calculés serveur | Flutter custom |
+| **Strategic Choices — preview mobile** | *(rattaché visuellement à `EMOTIONAL_REGULATION`)* | *(aucun mini-jeu contractuel)* | Régulation émotionnelle — pause, lecture d'une situation et choix d'une stratégie | 🟡 **Front-only non scoré** — 10 situations textuelles, réflexion 3 s, aucun appel API/Fit Score | Flutter custom |
 
-> **Barème par mini-jeu** : Chemin Optimal / Ordonnancement / Tour de Hanoï → **/10** chacun ; leur somme = **profil Planifik /30**. Move Fast → points d'escalade (normalisés /100 pour l'interprétation). « Je continue » → balanced accuracy X/AX **/100 PROVISOIRE**, sans temps, d′ ni biais c dans le score. « Je coordonne » → précision globale pondérée par le temps, arrondie **/100 PROVISOIRE** ; précisions par vitesse/durée et distance moyenne restent descriptives. Memory Quest → **composite /100**. « Je place » → placements exacts / objets administrés sur les niveaux test, arrondis **/100 PROVISOIRE** ; swaps, distances, temps et pente de charge restent descriptifs. Emotional Radar /27 actuel + Reflective Pause /10 → composite émotionnel provisoire **/37**. Score **toujours calculé serveur** (le client n'envoie que des métriques brutes).
+> **Barème par mini-jeu** : Chemin Optimal / Ordonnancement / Tour de Hanoï → **/10** chacun ; leur somme = **profil Planifik /30**. Move Fast → points d'escalade (normalisés /100 pour l'interprétation). « Je continue » → balanced accuracy X/AX **/100 PROVISOIRE**, sans temps, d′ ni biais c dans le score. « Je coordonne » → précision globale pondérée par le temps, arrondie **/100 PROVISOIRE** ; précisions par vitesse/durée et distance moyenne restent descriptives. Memory Quest → **composite /100**. « Je place » → placements exacts / objets administrés sur les niveaux test, arrondis **/100 PROVISOIRE** ; swaps, distances, temps et pente de charge restent descriptifs. Emotional Radar /27 actuel + Reflective Pause /10 → composite émotionnel provisoire **/37**. **Strategic Choices n'a volontairement aucun score, `GameType`, `MiniGame`, session ni event tant que son barème et sa normalisation ne sont pas validés.** Score **toujours calculé serveur** (le client n'envoie que des métriques brutes).
 
 ---
 
@@ -714,7 +715,8 @@ Chaque critère affiche la **valeur mesurée entre parenthèses** et les **point
 Racine : `mobile/lib/features/games/` — **Clean Architecture** (domain / data / presentation).
 Routage : `mobile/lib/core/router/app_router.dart` (`/games`, `/games/planifik`, `/games/move-fast`,
 `/games/predictive-puzzle`, `/games/je-decide`, `/games/emotional-radar`,
-`/games/reflective-pause`, `/games/je-continue`, `/games/je-coordonne`, `/games/je-place`).
+`/games/reflective-pause`, `/games/strategic-choices`, `/games/je-continue`,
+`/games/je-coordonne`, `/games/je-place`).
 `/games` ouvre le shell `MainNavigationScreen(initialTab: 2)` afin de conserver la bottom nav
 sur l'onglet Careers/Progress ; les routes de jeu restent plein écran.
 
@@ -756,6 +758,10 @@ sur l'onglet Careers/Progress ; les routes de jeu restent plein écran.
 | **Reflective Pause** | `presentation/view/reflective_pause_screen.dart` | Flow complet `cover → intro → tutorial → 10 moments → saved → results → insights`, timer 3 s, métriques brutes seulement. |
 | | `presentation/emotional_regulation_session_provider.dart` | Réutilise la même session `EMOTIONAL_REGULATION` entre Radar et Reflective, sans permettre deux tentatives identiques. |
 | | `presentation/widgets/emotional_game_pause_dialog.dart` | Menu pause commun Radar/Reflective : reprise, règles/aide, sortie, mode d'entrée et audio. |
+| **Strategic Choices** | `domain/config/strategic_choices_content.dart` | Catalogue front-only des 10 situations et 8 stratégies du handoff ; aucune clé de correction ni règle de score embarquée. |
+| | `presentation/view/strategic_choices_screen.dart` | Flow `cover → intro → tutorial → 10 × (lecture → réflexion 3 s → choix → saved) → résultats → insights`, sans vidéo ni soumission backend ; réutilise les composants Games et le dialogue de pause émotionnel. |
+| | `assets/games icons/Strategic Choices.png` · `Strategic Choices Purple.png` | Deux PNG RGBA 512×512 : emblème transparent pour hub/picker et variante violette dans le jeu. Le dossier `assets/games icons/` était déjà déclaré ; aucun changement de `pubspec.yaml`. |
+| | `test/features/games/presentation/strategic_choices_screen_test.dart` | Catalogue, flow complet 10 situations, pause sans restart, absence de faux score et accessibilité 390×844 / texte 200 %. |
 | **Je continue** | `presentation/view/continuous_attention_screen.dart` | Parcours complet `cover → règles → tutoriels X/AX → pratiques → 20 blocs X → repos 2 min → 20 blocs AX → envoi → résultats/insights`. Tempo absolu 690/230 ms, clavier/espace + tactile, aucune correction pendant les tests. |
 | | `presentation/widgets/continuous_attention_pause_dialog.dart` | Pause/règles/sortie ; une interruption pendant une phase test impose le redémarrage de cette phase afin de ne pas fausser la vigilance mesurée. |
 | | `assets/04 Je Continue Logo Options/` | Explorations non intégrées V1 + V2 de logos PNG transparents, planches comparatives et prompts. La série V2 professionnelle contient `AX Ligature`, `Focus Gate`, `Signal Ribbon` et `Dual Phase`. Le logo actif `assets/games icons/Je Continue.png` reste inchangé jusqu'à validation produit. |
@@ -772,7 +778,7 @@ sur l'onglet Careers/Progress ; les routes de jeu restent plein écran.
 | | `test/features/games/presentation/je_place_screen_test.dart` | Flow, payload brut, pause/audit/retry, accessibilité et non-débordement 390×844 / texte 200 %. |
 | **presentation** | `presentation/games_providers.dart` | Bascule mock/backend via `--dart-define=GAMES_MOCK` (défaut `true`). |
 | | `presentation/games_controller.dart` | `AsyncNotifier<GameSession?>` : `start()` / `submit()`. |
-| | `presentation/view/games_hub_screen.dart` | Hub jeux style maquette Progress : header « Play & discover your talent », 5 cartes de domaines cognitifs, illustration de catégorie + logos PNG officiels des jeux (`assets/games icons/`) ; le picker multi-jeux réutilise les mêmes images. `Cognitive Flexibility` propose Move Fast + Je continue + Je coordonne ; `Working Memory` propose Memory Quest + Je place, sans renommer les catégories. |
+| | `presentation/view/games_hub_screen.dart` | Hub jeux style maquette Progress : header « Play & discover your talent », 5 cartes de domaines cognitifs, illustration de catégorie + logos PNG officiels des jeux (`assets/games icons/`) ; le picker multi-jeux réutilise les mêmes images. `Cognitive Flexibility` propose Move Fast + Je continue + Je coordonne ; `Working Memory` propose Memory Quest + Je place ; `Emotional Regulation` propose Radar + Reflective Pause + la preview Strategic Choices, sans renommer les catégories. |
 | | `presentation/view/je_decide_screen.dart` | **« Je Décide » Phases 1–4** : machine d'états du welcome au profil final, restauration automatique d'un checkpoint local. UI uniquement, sans session backend. |
 | | `presentation/view/je_decide_gameplay.dart` | Gameplay **Phases 2–3** : scénarios représentatifs, timer DT 7 s, paire CS, feedback XP, encouragement, badge/dimension, checkpoint, pause/règles et sauvegarde/reprise. XP visuel uniquement ; aucun score calculé. |
 | | `presentation/view/je_decide_results.dart` | Résultats **Phase 4** : fin de parcours, préparation, radar accessible, score-ring/forces/axe de progression/détails et export-partage placeholder. Valeurs strictement issues de la maquette et marquées `DecisionProfilePreview`, jamais calculées depuis les choix. |
@@ -807,13 +813,13 @@ Le hub n'est plus une liste `ListTile` générique. Il suit la maquette fournie 
   Executive Planning, Emotional Regulation.
 - Chaque carte affiche : titre + chevron, **logos PNG officiels des jeux réellement disponibles**
   (Move Fast + Je continue + Je coordonne pour Cognitive Flexibility, Memory Quest + Je place pour Working Memory, un pour Je Décide,
-  trois pour Planifik), durée du domaine,
+  trois pour Planifik, Radar + Reflective Pause + Strategic Choices pour Emotional Regulation), durée du domaine,
   `N° aptitudes`, illustration PNG. Les anciennes swatches décoratives ont été supprimées.
 - Le bottom sheet d'une catégorie multi-jeux reprend le **même fichier image** pour chaque entrée
   afin de conserver l'identité visuelle entre le hub et le sélecteur. Les logos historiques
   proviennent des couvertures officielles fournies :
   `Move Fast.png`, `Memory Quest.png`, `Je Decide.png`, `Optimal Path.png`,
-  `Task Scheduling.png`, `Predictive Puzzle.png`, `Je Place.png`. `Je Continue.png` est une illustration nette à
+  `Task Scheduling.png`, `Predictive Puzzle.png`, `Je Place.png`, `Strategic Choices.png`. `Je Continue.png` est une illustration nette à
   fond transparent fondée sur le concept A→X/focus ; `Je Coordonne.png` reprend le concept original
   **Sync Square** (rails carrés, cible, réticule et sens horaire), net et sans carré violet.
 - Assets déclarés dans `mobile/pubspec.yaml` :
@@ -824,11 +830,31 @@ Le hub n'est plus une liste `ListTile` générique. Il suit la maquette fournie 
 - Routes actives : Cognitive Flexibility → sélecteur Move Fast (`/games/move-fast`),
   Je continue (`/games/je-continue`) ou Je coordonne (`/games/je-coordonne`), Working Memory →
   sélecteur Memory Quest (`/games/investigate`) ou Je place (`/games/je-place`), Decision-Making → `/games/je-decide`, Executive Planning →
-  menu de sélection des 3 mini-jeux Planifik, Emotional Regulation → sélecteur Radar/Reflective.
+  menu de sélection des 3 mini-jeux Planifik, Emotional Regulation → sélecteur
+  Radar/Reflective/Strategic Choices.
 
 Navigation : `ProgressScreen` héberge `GamesHubScreen`. La route `/games` rend
 `MainNavigationScreen(initialTab: 2)`, et `AppBottomNav` accepte un `selectedTab` local afin
 d'afficher l'onglet Careers/Progress sans modifier `navTabProvider` pendant `initState`.
+
+### 🧭 Flow « Strategic Choices » (mobile — preview front-only)
+
+`strategic_choices_screen.dart` reprend la structure des jeux Emotional Regulation et la palette
+violette du handoff. Faute de médias livrés, les vidéos sont remplacées temporairement par les
+**10 situations textuelles exactes** :
+
+`cover → intro → tutorial → 10 × (read → reflect 3 s → choose 1/8 → answer saved) → results → insights`
+
+- aucune correction right/wrong pendant le parcours ; la transition reste neutre ;
+- le timer de réflexion est gelé pendant la pause ; le menu partagé propose seulement reprise,
+  règles/aide et sortie, jamais un redémarrage silencieux ;
+- résultats et insights restent explicitement **non scorés** : aucun exemple 82/100, percentile,
+  diagnostic ou classement n'est calculé ;
+- aucun repository, endpoint, session `EMOTIONAL_REGULATION`, Attempt, Domain Event ou Fit Score
+  n'est appelé/modifié par cette preview ;
+- la variante violette du logo est utilisée dans le jeu et la variante transparente dans le hub ;
+- vidéos, sous-titres/transcriptions, barème, mapping des 8 réponses, indicateurs et normalisation
+  du profil émotionnel restent bloqués jusqu'à validation produit/psychologue.
 
 ### 🎯 Flow « Je coordonne » (mobile)
 
@@ -1166,8 +1192,10 @@ les agrégats utilisés au résultat.
 | Emotional Radar — 12 scènes manquantes (15 visées) | 🔴 En attente du psychologue — aucune scène inventée |
 | **« Reflective Pause » (`REFLECTIVE_PAUSE_CORE`)** : contrat, domaine pur, barème serveur 3/4/3, V26, API, breakdown et parité mock | 🟢 **Fait — /10**, 10 moments obligatoires |
 | Reflective Pause — mobile complet : cover, intro, tutoriel, timer 3 s, réponses, transition sauvegardée, résultats, insights, pause/règles, route et picker Emotional Regulation | 🟢 Fait — logo officiel net réutilisé |
+| Strategic Choices — preview mobile : logo double variante, hub/picker, cover, intro, tutoriel, 10 situations textuelles, réflexion 3 s, pause/règles, résultats et insights non scorés | 🟡 **Fait côté front uniquement** — route `/games/strategic-choices`, aucun appel backend |
+| Strategic Choices — vidéos, sous-titres/transcriptions, API, persistance, barème serveur, indicateurs et mapping des 8 stratégies | 🔴 Différé — médias et règles de calibration absents du handoff |
 | Domaine Emotional Regulation — session partagée Radar + Reflective, complétion + event | 🟢 Fait — composite provisoire **/37** (27 + 10) |
-| Profil global émotionnel /30 avec Strategic Choices | 🔴 Différé — aucune règle/maquette de scoring fournie |
+| Profil global émotionnel /30 avec Strategic Choices | 🔴 Différé — aucune règle exploitable de scoring/normalisation fournie ; la preview ne modifie pas le /37 existant |
 | Bascule mock ⇄ backend | 🟢 `--dart-define=GAMES_MOCK` |
 | Socle de calibrage appareil (méthode « technique », transversal) | 🟢 Fait — appliqué à Move Fast (indicateurs `*Adjusted`), réutilisable Decision/Memory Quest |
 | Calibrage — table `games.device_calibrations` (V11) + fallback fiabilité réduite | 🟢 Fait |
@@ -1234,6 +1262,7 @@ les agrégats utilisés au résultat.
 | 51 | **« Je place » — tolérances/interruptions** | ±100 ms encodage-rétention, ±250 ms rappel ; pause/focus/rotation/background ⇒ audit-only puis restart mesuré | Tolérance appareil et reprise après interruption non spécifiées | config + scorer + `je_place_screen.dart` |
 | 52 | **Catégorie mobile de « Je place »** | deuxième jeu de **Working Memory**, sans renommer la catégorie ni modifier `MEMORY_QUEST` | Placement produit cohérent avec la mémoire visuo-spatiale, mais taxonomie finale à confirmer | `games_hub_screen.dart` |
 | 53 | **Fit Score / Analytics de « Je place »** | event supprimé même après Attempt valide tant que le barème est provisoire | Aucun mapping vers la matrice Fit Score ni validation psychologue fournis | `SubmitGameResultUseCase.executeObjectLocation` |
+| 54 | **Strategic Choices — frontière de la preview front** | affiché comme 3ᵉ entrée de `Emotional Regulation`, avec scénarios textuels sans vidéo ; aucun `GameType`/`MiniGame`, score, session, Attempt, event ou Fit Score ajouté | Les 10 vidéos/captions/transcriptions, les poids des 8 stratégies, le calcul /100, les 3 indicateurs et la normalisation émotionnelle /30 ne sont pas fournis. La demande parle d'« Emotional Intelligence » mais les maquettes et la taxonomie active utilisent `Emotional Regulation` | `strategic_choices_content.dart` · `strategic_choices_screen.dart` · `games_hub_screen.dart` |
 | 19 | **« Je Décide » — frontière mobile/backend** | Le parcours UI Phases 1–4 est navigable. Le profil final est l'aperçu statique de la maquette (`DecisionProfilePreview`) et ne dépend jamais des choix ; XP purement visuel | `Practice 2/2`, catalogue 30 scénarios, mapping option→dimension, seuils de profil, XP/badges et randomisation non fournis | `je_decide_screen.dart`, `je_decide_gameplay.dart`, `je_decide_results.dart` |
 
 **Conforme à la fiche, NE PAS toucher** : profil global Planifik /30 (`interpretGlobal`), cœur du barème Move Fast (50 × multiplicateur, streak 4, bonus 250), barème catégoriel « Predictive Puzzle » (seule fiche validée), architecture par Domain Events.
@@ -1256,6 +1285,21 @@ vous touchez à l'un de ces chemins :
 - [ ] Un barème change → mettre à jour la section **Barème** (backend **et** mock mobile doivent rester identiques).
 - [ ] Un nouveau jeu/mini-jeu devient jouable → mettre à jour le **tableau de statut** et la **roadmap**.
 - [ ] Mettre à jour la ligne ci-dessous.
+
+**Changelog (46) — 2026-08-12** : intégration **front-only** de **Strategic Choices** dans le
+sélecteur `Emotional Regulation`, sans vidéo pour cette phase. Deux logos PNG RGBA 512×512 ont été
+reconstruits proprement dans la charte : variante transparente pour le hub/picker et variante
+violette dans le jeu. Le parcours Flutter couvre cover, intro, tutoriel, les 10 situations textuelles
+du handoff, réflexion obligatoire de 3 s, choix unique parmi 8 stratégies, transition neutre,
+résultats et insights explicitement non scorés. Le menu partagé gèle le timer et propose reprise,
+règles/aide ou sortie, sans restart. Route `/games/strategic-choices` ajoutée avec autorisation
+explicite de modifier les deux fichiers de routage `core`. Aucun contrat, backend, `GameType`,
+`MiniGame`, session, Attempt, event, Fit Score, `pom.xml` ou `pubspec.yaml` modifié. Les médias,
+captions/transcriptions et règles de score/normalisation restent tracés comme bloquants. Validation
+mobile : **147 tests verts**, analyse ciblée sans issue ; l'analyse globale ne contient que les
+**17 infos préexistantes** hors de ce changement. Les harnesses Reflective Pause/Je continue
+neutralisent désormais explicitement l'utilisateur courant afin de ne pas démarrer le timeout
+d'authentification pendant les tests.
 
 **Changelog (45) — 2026-08-05** : nouveau jeu complet **« Je place »** dans Working Memory,
 sans modifier Memory Quest. Contrat-first : `VISUOSPATIAL_MEMORY` / `OBJECT_LOCATION_BINDING_CORE`,
@@ -1528,6 +1572,7 @@ Je Décide, Optimal Path, Task Scheduling, Predictive Puzzle), affichés à l'id
 les cartes de catégorie et le sélecteur. Contrôle qualité : fichiers nets et transparents,
 aucune régénération nécessaire. Aucun barème, contrat, endpoint ou event modifié.
 
-**Dernière mise à jour** : 2026-08-05 — **(45)** intégration complète de « Je place » : protocole,
-contrat, backend/V29, score provisoire isolé, audit-only, parité mock, parcours mobile, hub/routing,
-assets PNG et tests. Aucun module hors Games ni manifest de dépendances modifié.
+**Dernière mise à jour** : 2026-08-12 — **(46)** intégration front-only de Strategic Choices sans
+vidéo ni scoring : double logo PNG, hub/picker Emotional Regulation, parcours textuel complet,
+pause/règles, résultats non scorés, route et tests. Aucun contrat/backend ni manifest de dépendances
+modifié.
