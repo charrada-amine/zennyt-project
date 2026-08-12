@@ -13,6 +13,7 @@ import '../../../../../shared/widgets/language_toggle.dart';
 import '../../../../../shared/widgets/primary_button.dart';
 import '../../../../../shared/widgets/screen_top_bar.dart';
 import '../../../../../core/theme/theme.dart';
+import '../../widgets/auth_desktop_shell.dart';
 import '../viewmodel/signup_viewmodel.dart';
 
 class CreateAccountScreen extends ConsumerStatefulWidget {
@@ -110,129 +111,147 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
     final hPadding = Responsive.horizontalPadding(context);
     final colors = context.colors;
 
-    return Scaffold(
-      backgroundColor: colors.scaffoldBg,
-      body: SafeArea(
-        child: CenteredConstrainedBox(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              ScreenTopBar(
-                leading: AppBackButton(
-                  onPressed: () => context.go(AppRoutes.login),
-                ),
-                trailing: const LanguageToggle(),
-              ),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(
-                    hPadding,
-                    AppSpacing.xs,
-                    hPadding,
-                    AppSpacing.xl,
-                  ),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        AuthHeader(title: context.l10n.createAccountTitle),
-                        const SizedBox(height: AppSpacing.xl),
-                        AppTextField(
-                          hint: context.l10n.firstName,
-                          controller: _firstName,
-                          textInputAction: TextInputAction.next,
-                          prefixIcon: Icons.person_outline_rounded,
-                          validator: (v) =>
-                              _required(v, context.l10n.firstName),
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        AppTextField(
-                          hint: context.l10n.lastName,
-                          controller: _lastName,
-                          textInputAction: TextInputAction.next,
-                          prefixIcon: Icons.person_outline_rounded,
-                          validator: (v) => _required(v, context.l10n.lastName),
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        AppTextField(
-                          hint: context.l10n.emailHyphen,
-                          controller: _email,
-                          keyboardType: TextInputType.emailAddress,
-                          textInputAction: TextInputAction.next,
-                          prefixIcon: Icons.mail_outline_rounded,
-                          validator: _validateEmail,
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        AppTextField(
-                          hint: context.l10n.phone,
-                          controller: _phone,
-                          keyboardType: TextInputType.phone,
-                          textInputAction: TextInputAction.next,
-                          prefixIcon: Icons.phone_outlined,
-                          validator: _validatePhone,
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        _CountryField(
-                          value: _country,
-                          onChanged: (v) => setState(() => _country = v),
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        AppTextField(
-                          hint: context.l10n.city,
-                          controller: _city,
-                          textInputAction: TextInputAction.next,
-                          prefixIcon: Icons.location_city_outlined,
-                          validator: (v) => (v == null || v.trim().isEmpty)
-                              ? context.l10n.cityRequired
-                              : null,
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        AppTextField(
-                          hint: context.l10n.password,
-                          controller: _password,
-                          obscureText: true,
-                          textInputAction: TextInputAction.next,
-                          prefixIcon: Icons.lock_outline_rounded,
-                          validator: _validatePassword,
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        AppTextField(
-                          hint: context.l10n.confirmPassword,
-                          controller: _confirm,
-                          obscureText: true,
-                          textInputAction: TextInputAction.done,
-                          prefixIcon: Icons.lock_outline_rounded,
-                          validator: _validateConfirm,
-                          onSubmitted: (_) => _submit(),
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        _TermsCheckbox(
-                          value: _acceptedTerms,
-                          showError: _termsTouched && !_acceptedTerms,
-                          onChanged: (v) =>
-                              setState(() => _acceptedTerms = v ?? false),
-                        ),
-                        const SizedBox(height: AppSpacing.xl),
-                        Center(
-                          child: SizedBox(
-                            width: 190,
-                            child: PrimaryButton(
-                              label: context.l10n.continueLabel,
-                              loading: isLoading,
-                              onPressed: _submit,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.base),
-                        _LoginRow(onTap: () => context.go(AppRoutes.login)),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
+    final formContent = Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AuthHeader(title: context.l10n.createAccountTitle),
+          const SizedBox(height: AppSpacing.xl),
+          AppTextField(
+            hint: context.l10n.firstName,
+            controller: _firstName,
+            textInputAction: TextInputAction.next,
+            prefixIcon: Icons.person_outline_rounded,
+            validator: (v) =>
+                _required(v, context.l10n.firstName),
           ),
+          const SizedBox(height: AppSpacing.md),
+          AppTextField(
+            hint: context.l10n.lastName,
+            controller: _lastName,
+            textInputAction: TextInputAction.next,
+            prefixIcon: Icons.person_outline_rounded,
+            validator: (v) => _required(v, context.l10n.lastName),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          AppTextField(
+            hint: context.l10n.emailHyphen,
+            controller: _email,
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.next,
+            prefixIcon: Icons.mail_outline_rounded,
+            validator: _validateEmail,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          AppTextField(
+            hint: context.l10n.phone,
+            controller: _phone,
+            keyboardType: TextInputType.phone,
+            textInputAction: TextInputAction.next,
+            prefixIcon: Icons.phone_outlined,
+            validator: _validatePhone,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          _CountryField(
+            value: _country,
+            onChanged: (v) => setState(() => _country = v),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          AppTextField(
+            hint: context.l10n.city,
+            controller: _city,
+            textInputAction: TextInputAction.next,
+            prefixIcon: Icons.location_city_outlined,
+            validator: (v) => (v == null || v.trim().isEmpty)
+                ? context.l10n.cityRequired
+                : null,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          AppTextField(
+            hint: context.l10n.password,
+            controller: _password,
+            obscureText: true,
+            textInputAction: TextInputAction.next,
+            prefixIcon: Icons.lock_outline_rounded,
+            validator: _validatePassword,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          AppTextField(
+            hint: context.l10n.confirmPassword,
+            controller: _confirm,
+            obscureText: true,
+            textInputAction: TextInputAction.done,
+            prefixIcon: Icons.lock_outline_rounded,
+            validator: _validateConfirm,
+            onSubmitted: (_) => _submit(),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          _TermsCheckbox(
+            value: _acceptedTerms,
+            showError: _termsTouched && !_acceptedTerms,
+            onChanged: (v) =>
+                setState(() => _acceptedTerms = v ?? false),
+          ),
+          const SizedBox(height: AppSpacing.xl),
+          Center(
+            child: SizedBox(
+              width: 190,
+              child: PrimaryButton(
+                label: context.l10n.continueLabel,
+                loading: isLoading,
+                onPressed: _submit,
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.base),
+          _LoginRow(onTap: () => context.go(AppRoutes.login)),
+        ],
+      ),
+    );
+
+    return ResponsiveBuilder(
+      mobile: (context) => Scaffold(
+        backgroundColor: colors.scaffoldBg,
+        body: SafeArea(
+          child: CenteredConstrainedBox(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ScreenTopBar(
+                  leading: AppBackButton(
+                    onPressed: () => context.go(AppRoutes.login),
+                  ),
+                  trailing: const LanguageToggle(),
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.fromLTRB(
+                      hPadding,
+                      AppSpacing.xs,
+                      hPadding,
+                      AppSpacing.xl,
+                    ),
+                    child: formContent,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      desktop: (context) => AuthDesktopShell(
+        formContent: Column(
+          children: [
+            ScreenTopBar(
+              leading: AppBackButton(
+                onPressed: () => context.go(AppRoutes.login),
+              ),
+              trailing: const LanguageToggle(),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            formContent,
+          ],
         ),
       ),
     );

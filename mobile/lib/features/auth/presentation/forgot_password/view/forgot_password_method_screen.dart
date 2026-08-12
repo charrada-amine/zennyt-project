@@ -6,6 +6,8 @@ import '../../../../../core/router/app_routes.dart';
 import '../../../../../core/theme/theme.dart';
 import '../../../../../shared/widgets/screen_top_bar.dart';
 import '../../../../../shared/widgets/language_toggle.dart';
+import '../../../../../core/utils/responsive.dart';
+import '../../widgets/auth_desktop_shell.dart';
 
 class ForgotPasswordMethodScreen extends StatelessWidget {
   const ForgotPasswordMethodScreen({super.key});
@@ -15,62 +17,68 @@ class ForgotPasswordMethodScreen extends StatelessWidget {
     final l10n = context.l10n;
     final colors = context.colors;
 
-    return Scaffold(
-      backgroundColor: colors.scaffoldBg,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 24,
-            vertical: AppSpacing.lg,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const ScreenTopBar(trailing: LanguageToggle()),
-              const SizedBox(height: AppSpacing.xl),
-
-              Text(
-                l10n.forgotPasswordTitle,
-                style: AppTypography.headlineMedium.copyWith(
-                  color: colors.primary,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                l10n.chooseResetMethod,
-                style: AppTypography.bodyMedium.copyWith(
-                  color: colors.textSecondary,
-                  height: 1.5,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.xxl),
-
-              // Email option
-              _ResetMethodCard(
-                icon: Icons.email_outlined,
-                iconColor: colors.primary,
-                title: l10n.resetViaEmail,
-                subtitle: l10n.resetViaEmailDesc,
-                colors: colors,
-                onTap: () => context.push(AppRoutes.forgotPasswordEmail),
-              ),
-              const SizedBox(height: AppSpacing.md),
-
-              // SMS option (Coming soon)
-              _ResetMethodCard(
-                icon: Icons.sms_outlined,
-                iconColor: colors.textMuted,
-                title: l10n.resetViaSms,
-                subtitle: l10n.resetViaSmsDesc,
-                colors: colors,
-                enabled: false,
-                badge: l10n.comingSoon,
-                onTap: () {},
-              ),
-            ],
+    final formContent = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const ScreenTopBar(trailing: LanguageToggle()),
+        const SizedBox(height: AppSpacing.xl),
+        Text(
+          l10n.forgotPasswordTitle,
+          style: AppTypography.headlineMedium.copyWith(
+            color: colors.primary,
+            fontWeight: FontWeight.w700,
           ),
         ),
+        const SizedBox(height: AppSpacing.sm),
+        Text(
+          l10n.chooseResetMethod,
+          style: AppTypography.bodyMedium.copyWith(
+            color: colors.textSecondary,
+            height: 1.5,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xxl),
+
+        // Email option
+        _ResetMethodCard(
+          icon: Icons.email_outlined,
+          iconColor: colors.primary,
+          title: l10n.resetViaEmail,
+          subtitle: l10n.resetViaEmailDesc,
+          colors: colors,
+          onTap: () => context.push(AppRoutes.forgotPasswordEmail),
+        ),
+        const SizedBox(height: AppSpacing.md),
+
+        // SMS option (Coming soon)
+        _ResetMethodCard(
+          icon: Icons.sms_outlined,
+          iconColor: colors.textMuted,
+          title: l10n.resetViaSms,
+          subtitle: l10n.resetViaSmsDesc,
+          colors: colors,
+          enabled: false,
+          badge: l10n.comingSoon,
+          onTap: () {},
+        ),
+      ],
+    );
+
+    return ResponsiveBuilder(
+      mobile: (context) => Scaffold(
+        backgroundColor: colors.scaffoldBg,
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 24,
+              vertical: AppSpacing.lg,
+            ),
+            child: formContent,
+          ),
+        ),
+      ),
+      desktop: (context) => AuthDesktopShell(
+        formContent: formContent,
       ),
     );
   }

@@ -11,6 +11,7 @@ import '../../../../../shared/widgets/app_text_field.dart';
 import '../../../../../shared/widgets/primary_button.dart';
 import '../../../../../shared/widgets/screen_top_bar.dart';
 import '../../../../../shared/widgets/language_toggle.dart';
+import '../../widgets/auth_desktop_shell.dart';
 import '../../auth_providers.dart';
 
 class ForgotPasswordOtpScreen extends ConsumerStatefulWidget {
@@ -190,143 +191,150 @@ class _ForgotPasswordOtpScreenState
       ),
     );
 
-    return Scaffold(
-      backgroundColor: colors.scaffoldBg,
-      body: SafeArea(
-        child: CenteredConstrainedBox(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(
-              hPadding,
-              AppSpacing.lg,
-              hPadding,
-              AppSpacing.xl,
+    final formContent = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const ScreenTopBar(trailing: LanguageToggle()),
+        const SizedBox(height: AppSpacing.xl),
+
+        Container(
+          width: 72,
+          height: 72,
+          decoration: BoxDecoration(
+            color: colors.primary.withValues(alpha: 0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            Icons.lock_outline_rounded,
+            color: colors.primary,
+            size: 36,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+
+        Text(
+          l10n.otpVerificationTitle,
+          style: AppTypography.headlineMedium.copyWith(
+            color: colors.primary,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Text(
+          l10n.otpVerificationSubtitle(widget.email),
+          style: AppTypography.bodyMedium.copyWith(
+            color: colors.textSecondary,
+            height: 1.5,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xxl),
+
+        // OTP input
+        Center(
+          child: Pinput(
+            controller: _otpController,
+            length: 6,
+            defaultPinTheme: defaultPinTheme,
+            focusedPinTheme: defaultPinTheme.copyWith(
+              decoration: defaultPinTheme.decoration!.copyWith(
+                border: Border.all(color: colors.primary, width: 2),
+              ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const ScreenTopBar(trailing: LanguageToggle()),
-                const SizedBox(height: AppSpacing.xl),
+            keyboardType: TextInputType.number,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
 
-                Container(
-                  width: 72,
-                  height: 72,
-                  decoration: BoxDecoration(
-                    color: colors.primary.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.lock_outline_rounded,
-                    color: colors.primary,
-                    size: 36,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-
-                Text(
-                  l10n.otpVerificationTitle,
-                  style: AppTypography.headlineMedium.copyWith(
-                    color: colors.primary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  l10n.otpVerificationSubtitle(widget.email),
-                  style: AppTypography.bodyMedium.copyWith(
-                    color: colors.textSecondary,
-                    height: 1.5,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xxl),
-
-                // OTP input
-                Center(
-                  child: Pinput(
-                    controller: _otpController,
-                    length: 6,
-                    defaultPinTheme: defaultPinTheme,
-                    focusedPinTheme: defaultPinTheme.copyWith(
-                      decoration: defaultPinTheme.decoration!.copyWith(
-                        border: Border.all(color: colors.primary, width: 2),
-                      ),
-                    ),
-                    keyboardType: TextInputType.number,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.md),
-
-                // Resend code
-                Center(
-                  child: TextButton(
-                    onPressed: _isResending ? null : _resendCode,
-                    child: Text(
-                      l10n.resendCode,
-                      style: AppTypography.bodySmall.copyWith(
-                        color: _isResending ? colors.textMuted : colors.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-
-                // New password
-                AppTextField(
-                  hint: l10n.newPassword,
-                  controller: _newPasswordController,
-                  obscureText: true,
-                  textInputAction: TextInputAction.next,
-                  prefixIcon: Icons.lock_outline_rounded,
-                ),
-                const SizedBox(height: AppSpacing.base),
-
-                // Confirm new password
-                AppTextField(
-                  hint: l10n.confirmNewPassword,
-                  controller: _confirmPasswordController,
-                  obscureText: true,
-                  textInputAction: TextInputAction.done,
-                  prefixIcon: Icons.lock_outline_rounded,
-                  onSubmitted: (_) => _resetPassword(),
-                ),
-
-                if (_error != null) ...[
-                  const SizedBox(height: AppSpacing.sm),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.error_outline_rounded,
-                        size: 16,
-                        color: colors.error,
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          _error!,
-                          style: AppTypography.bodySmall.copyWith(
-                            color: colors.error,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-                const SizedBox(height: AppSpacing.xxl),
-
-                Center(
-                  child: SizedBox(
-                    width: 220,
-                    child: PrimaryButton(
-                      label: l10n.resetPasswordBtn,
-                      loading: _isLoading,
-                      onPressed: _resetPassword,
-                    ),
-                  ),
-                ),
-              ],
+        // Resend code
+        Center(
+          child: TextButton(
+            onPressed: _isResending ? null : _resendCode,
+            child: Text(
+              l10n.resendCode,
+              style: AppTypography.bodySmall.copyWith(
+                color: _isResending ? colors.textMuted : colors.primary,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ),
+        const SizedBox(height: AppSpacing.lg),
+
+        // New password
+        AppTextField(
+          hint: l10n.newPassword,
+          controller: _newPasswordController,
+          obscureText: true,
+          textInputAction: TextInputAction.next,
+          prefixIcon: Icons.lock_outline_rounded,
+        ),
+        const SizedBox(height: AppSpacing.base),
+
+        // Confirm new password
+        AppTextField(
+          hint: l10n.confirmNewPassword,
+          controller: _confirmPasswordController,
+          obscureText: true,
+          textInputAction: TextInputAction.done,
+          prefixIcon: Icons.lock_outline_rounded,
+          onSubmitted: (_) => _resetPassword(),
+        ),
+
+        if (_error != null) ...[
+          const SizedBox(height: AppSpacing.sm),
+          Row(
+            children: [
+              Icon(
+                Icons.error_outline_rounded,
+                size: 16,
+                color: colors.error,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  _error!,
+                  style: AppTypography.bodySmall.copyWith(
+                    color: colors.error,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+        const SizedBox(height: AppSpacing.xxl),
+
+        Center(
+          child: SizedBox(
+            width: 220,
+            child: PrimaryButton(
+              label: l10n.resetPasswordBtn,
+              loading: _isLoading,
+              onPressed: _resetPassword,
+            ),
+          ),
+        ),
+      ],
+    );
+
+    return ResponsiveBuilder(
+      mobile: (context) => Scaffold(
+        backgroundColor: colors.scaffoldBg,
+        body: SafeArea(
+          child: CenteredConstrainedBox(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(
+                hPadding,
+                AppSpacing.lg,
+                hPadding,
+                AppSpacing.xl,
+              ),
+              child: formContent,
+            ),
+          ),
+        ),
+      ),
+      desktop: (context) => AuthDesktopShell(
+        formContent: formContent,
       ),
     );
   }
