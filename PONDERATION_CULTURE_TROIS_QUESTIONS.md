@@ -6,6 +6,34 @@ Document de cadrage, en réponse aux questions posées sur le cahier des charges
 
 ---
 
+## ⚠️ Décision du 11 août 2026 — le sujet n'est pas engagé
+
+**Après lecture de ce document, la pondération par la culture d'entreprise ne sera pas
+implémentée.** La pondération de base par métier et niveau, déjà validée, reste seule en
+vigueur.
+
+Le motif principal est le constat de la partie 2.2 de ce document : un texte RH générique
+obtient le même bonus maximal qu'un texte décrivant une culture réellement marquée. **Nous
+mesurerions la rédaction de l'offre, pas la culture de l'équipe.** S'y ajoutent trois
+raisons : une entreprise n'a pas une culture unique — un poste en R&D et un poste en
+conformité cherchent des profils opposés, alors que le même paragraphe de présentation est
+réutilisé d'une offre à l'autre ; le fit culturel porte un risque de biais réel ; et la
+proportion n'y est pas, avec ~11 jours de développement, un atelier RH, une analyse RGPD et
+des tests de non-discrimination pour un signal dont la valeur ajoutée restait à démontrer.
+
+**Ce document reste la trace de l'instruction du sujet**, et c'est à ce titre qu'il est
+conservé. Les recommandations qu'il contient ne sont pas des décisions à appliquer : ce sont
+les options qui ont été évaluées avant l'arbitrage. Deux résultats gardent une valeur propre
+et sont réutilisables :
+
+- **La règle d'absorption** (question 3) : si un poids de module doit un jour être ajusté
+  pour une raison quelconque, la répartition proportionnelle avec plancher est démontrée
+  sûre, et la répartition à parts égales démontrée inapplicable.
+- **Le dénominateur inférieur à 100** (partie 2.4) : ce constat concerne le Fit Score
+  actuel, indépendamment de toute pondération culturelle.
+
+---
+
 ## Ce que ce document contient
 
 Trois questions ont été posées :

@@ -846,11 +846,44 @@ repasse devant. Le groupe traduit un **état de la mesure**, pas un jugement sur
 
 ---
 
-# Partie IV — La pondération assistée par la culture 📋
+# Partie IV — La pondération assistée par la culture ❌ *abandonnée*
 
-> **Cette partie décrit un système qui n'existe pas encore.** Elle figure ici parce que sa
-> place dans l'ensemble — *où* elle s'insère — est ce qui manque le plus pour comprendre la
-> cible. L'analyse détaillée est dans `PLAN_PONDERATION_CULTURE.md`.
+> **Décision du 11 août 2026 : cette pondération ne sera pas construite.** La pondération
+> de base par métier et niveau, déjà validée, reste seule en vigueur.
+>
+> Cette partie est conservée telle qu'elle a été écrite, parce qu'elle est la trace du
+> raisonnement qui a mené à l'abandon. Elle ne décrit pas une cible : elle décrit ce qui a
+> été étudié puis écarté, et pourquoi. Les motifs sont en 10 bis.
+>
+> L'analyse détaillée reste dans `PLAN_PONDERATION_CULTURE.md`, et les mesures qui ont
+> emporté la décision dans `PONDERATION_CULTURE_TROIS_QUESTIONS.md`.
+
+## 10 bis. Pourquoi elle est abandonnée
+
+Le cahier des charges « Pondération assistée » v3.0 a été instruit, et trois questions ont
+été posées : la méthode d'extraction, l'origine du chiffre du bonus, et la règle
+d'absorption. Les réponses chiffrées ont conduit à ne pas engager le sujet.
+
+**Ce qui a emporté la décision :**
+
+| Constat | Détail |
+|---|---|
+| **On mesure la rédaction, pas la culture** | Mesuré : un texte RH parfaitement générique obtient le **même bonus maximal** (+9) qu'un texte décrivant une culture réellement marquée. Le comptage d'expressions mesure la richesse du vocabulaire employé, pas l'intensité d'une culture. |
+| **Une entreprise n'a pas une culture unique** | Un poste en R&D et un poste en conformité cherchent des profils opposés — alors que les recruteurs réutilisent le même paragraphe de présentation sur toutes leurs offres. |
+| **Le sujet est sensible** | Le fit culturel porte un risque de biais réel, dans un domaine que l'AI Act classe à haut risque. |
+| **La proportion n'y est pas** | ~11 jours de développement, un atelier RH, une analyse d'impact RGPD et des tests de non-discrimination — pour un signal dont la valeur ajoutée restait à démontrer. |
+
+**Une nuance, pour qui rouvrirait le sujet.** Le CdC v3.0 avait partiellement anticipé
+l'objection des cultures multiples : il prévoyait d'analyser la description du poste *avec*
+le profil entreprise, et de faire primer la description du poste en cas de contradiction.
+Cela n'annule pas l'objection — précisément parce que le paragraphe réutilisé d'une offre à
+l'autre est justement celui qui porte la culture, tandis que la description du poste parle
+du rôle. Le mécanisme prévu ne rattrape donc pas le défaut qu'il visait.
+
+**Ce qui reste vrai malgré l'abandon** : les mesures d'absorption de la partie 13 gardent
+leur valeur. Si un jour un poids de module doit être ajusté pour une raison quelconque, la
+règle de répartition proportionnelle avec plancher est démontrée sûre, et la répartition à
+parts égales démontrée inapplicable.
 
 ## 11. Le principe
 
@@ -1141,7 +1174,7 @@ Tous sont modifiables par variable d'environnement, **sans redéploiement**.
 | Le renommage de `hardSkillScore` | À trancher — le champ a changé de sens. |
 | Le fonctionnement multi-instance | Le réveil du worker est interne au processus. |
 | La charge réelle en production | Jamais mesurée. Le bornage du travail de fond l'encadre en attendant. |
-| La pondération culture | Spécifiée, non construite. Neuf points à trancher (partie 14). |
+| La pondération culture | ❌ **Abandonnée le 11 août 2026.** Le texte d'une offre n'est pas une base fiable pour ajuster un score — voir 10 bis. La pondération de base par métier reste seule en vigueur. |
 
 ---
 
