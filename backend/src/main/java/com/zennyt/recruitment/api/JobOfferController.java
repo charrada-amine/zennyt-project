@@ -139,8 +139,12 @@ public class JobOfferController {
             UUID.fromString(principal.getName()), jobOfferId, page, size);
         // F04 : le seuil de couverture dépend de la présence d'un QCM sur l'OFFRE,
         // pas de la tentative du candidat. Lu une seule fois pour tout le lot.
-        boolean offerHasAssessment = jobOfferRepository.findById(jobOfferId)
-            .map(o -> o.assessmentId() != null).orElse(false);
+        var offre = jobOfferRepository.findById(jobOfferId);
+        boolean offerHasAssessment = offre.map(o -> o.assessmentId() != null).orElse(false);
+        // Le mode d'évaluation appartient au métier de l'offre : il est le même pour tous
+        // les candidats du deck, donc résolu une seule fois hors de la boucle.
+        var modeMetier = offre.map(roleProfileResolver::resolveWithEvaluationMode)
+            .map(r -> r == null ? null : r.evaluationMode()).orElse(null);
         var items = result.content().stream().map(score -> {
             var actor = actors.findById(score.candidateId());
             return new CandidateFeedItemResponse(score.candidateId(),
@@ -149,7 +153,7 @@ public class JobOfferController {
                 actor.map(a -> a.city()).orElse(null),
                 actor.map(a -> a.country()).orElse(null),
                 score.score(), score.goodFit(), score.softSkillScore(),
-                score.hardSkillScore(), score.partialData(offerHasAssessment));
+                score.hardSkillScore(), score.partialData(offerHasAssessment, modeMetier));
         }).toList();
         return ResponseEntity.ok(PageResponse.of(items, page, size, result.totalElements()));
     }
@@ -242,23 +246,14 @@ public class JobOfferController {
         String link = shareableLink(offer);
         var fitScore = fitScore(offer, authentication);
         var recruiter = actors.findById(offer.recruiterId());
+        var resolved = roleProfileResolver.resolveWithEvaluationMode(offer);
+        var mode = resolved != null ? resolved.evaluationMode() : null;
+        HardSkillsAlertLevel alert = offer.assessmentId() != null || resolved == null
+            ? HardSkillsAlertLevel.NONE
+            : resolved.weights().hardSkillsAlert(mode);
         return JobOfferResponse.from(offer, applicantCounts.getOrDefault(offer.id(), 0L), link, fitScore,
             recruiter.map(a -> a.companyName()).orElse(null), recruiter.map(a -> a.companyInfo()).orElse(null),
-            hardSkillsAlert(offer));
-    }
-
-    /**
-     * Alerte « hard skills manquant » (CdC Fit Score v3 §6) — purement
-     * informationnelle, jamais utilisée dans le calcul du Fit Score. NONE si
-     * un QCM est déjà attaché, ou si l'offre n'est pas encore reliée au
-     * référentiel de métiers (pas de base pour dériver une alerte).
-     */
-    private HardSkillsAlertLevel hardSkillsAlert(JobOffer offer) {
-        if (offer.assessmentId() != null) return HardSkillsAlertLevel.NONE;
-        var resolved = roleProfileResolver.resolveWithEvaluationMode(offer);
-        return resolved != null
-            ? resolved.weights().hardSkillsAlert(resolved.evaluationMode())
-            : HardSkillsAlertLevel.NONE;
+            alert, mode);
     }
 
     private String shareableLink(JobOffer offer) {
@@ -301,12 +296,13 @@ public class JobOfferController {
         var resolvedByOffer = roleProfileResolver.resolveAllWithEvaluationMode(offers);
         return offers.stream().map(offer -> {
             String companyName = companyNamesByRecruiter.get(offer.recruiterId());
-            HardSkillsAlertLevel alert = offer.assessmentId() != null ? HardSkillsAlertLevel.NONE
-                : Optional.ofNullable(resolvedByOffer.get(offer.id()))
-                    .map(r -> r.weights().hardSkillsAlert(r.evaluationMode()))
-                    .orElse(HardSkillsAlertLevel.NONE);
+            var resolved = resolvedByOffer.get(offer.id());
+            var mode = resolved != null ? resolved.evaluationMode() : null;
+            HardSkillsAlertLevel alert = offer.assessmentId() != null || resolved == null
+                ? HardSkillsAlertLevel.NONE
+                : resolved.weights().hardSkillsAlert(mode);
             return JobOfferSummaryResponse.from(offer, companyName,
-                applicantCounts.getOrDefault(offer.id(), 0L), scoresByOffer.get(offer.id()), alert);
+                applicantCounts.getOrDefault(offer.id(), 0L), scoresByOffer.get(offer.id()), alert, mode);
         }).toList();
     }
 

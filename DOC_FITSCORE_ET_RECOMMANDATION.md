@@ -650,8 +650,8 @@ paires* elle est déclenchée.
 | 1 | Partie jouée | Le candidat termine un mini-jeu | Toutes les offres du fil du candidat | ✅ |
 | 2 | Offre publiée | Une offre passe ACTIVE | Tous les candidats ayant joué | ✅ |
 | 3 | Test soumis | Un QCM est terminé | L'offre testée **+ toutes les offres ACTIVE du même métier** | ✅ |
-| 4 | Calcul à l'affichage | Le candidat ouvre son fil | Les offres affichées sans note | 🔧 |
-| 5 | File de travail | Réveil après commit | Ce qui a été enfilé par 1, 2, 3 | 🔧 |
+| 4 | Calcul à l'affichage | Le candidat ouvre son fil | Les offres affichées sans note | ✅ |
+| 5 | File de travail | Réveil après commit | Ce qui a été enfilé par 1, 2, 3 | ✅ |
 | 6 | Pré-remplissage | Toutes les heures | Paires sans note ou périmées | ✅ |
 
 ### 6.1 Les trois déclencheurs événementiels
@@ -664,7 +664,7 @@ Le troisième a changé de portée : un test soumis modifie désormais l'estimat
 candidat sur **tout le métier**, donc toutes les offres ACTIVE de ce métier sont reprises,
 pas seulement celle du QCM.
 
-### 6.2 Le calcul à l'affichage 🔧 — la garantie d'exactitude
+### 6.2 Le calcul à l'affichage ✅ — la garantie d'exactitude
 
 C'est la couche la plus importante conceptuellement : **elle transforme le travail de fond
 d'une garantie en une optimisation.**
@@ -682,7 +682,7 @@ Deux garde-fous :
 Cette couche **ne fait jamais échouer la requête** : si le calcul déborde ou échoue,
 l'affichage se poursuit avec ce qui existe.
 
-### 6.3 La file de travail 🔧
+### 6.3 La file de travail ✅
 
 Une table en base, pas une file en mémoire : le travail **survit à un redémarrage**.
 
@@ -1157,9 +1157,9 @@ cd backend && ./mvnw test
 | `recruitment.ranking.semantic-weight` | 2,0 | Multiplicateur de la similarité sémantique |
 | `recruitment.ranking.pool-size` | 200 | Offres reclassées avant pagination |
 | `recruitment.fitscore.db-pool-size` | 2 | Connexions maximales du travail de fond, sur un pool de 10 — au moins 8 restent aux utilisateurs |
-| `recruitment.fitscore.inline.enabled` | **false** | Interrupteur du calcul à l'affichage |
+| `recruitment.fitscore.inline.enabled` | **true** | Interrupteur du calcul à l'affichage — activé le 15/08/2026 |
 | `recruitment.fitscore.inline.budget-ms` | 800 | Budget de temps par requête d'affichage |
-| `recruitment.fitscore.queue.enabled` | **false** | Interrupteur de la file de travail |
+| `recruitment.fitscore.queue.enabled` | **true** | Interrupteur de la file de travail — activée le 15/08/2026 |
 | `recruitment.fitscore.queue.chunk-size` | 200 | Taille de transaction du worker |
 | `recruitment.fitscore.queue.max-attempts` | 5 | Essais avant abandon d'une paire |
 | `recruitment.fitscore.queue.retention-days` | 7 | Rétention de l'historique de la file |
@@ -1189,7 +1189,7 @@ Tous sont modifiables par variable d'environnement, **sans redéploiement**.
 | Sujet | État |
 |---|---|
 | Le mini-jeu « Prise de décision » | ✅ **Livré le 15 août 2026** — catalogue de 120 items. Les cinq modules sont mesurables et le dénominateur vaut 100. |
-| Le calcul du mode MIXTE | Le mode est stocké et lisible, mais le sous-score hard ne le distingue pas encore de QCM. Ni pondération portfolio/test, ni dépôt de portfolio. |
+| Le calcul du mode MIXTE | ⚠️ **Partiellement traité le 15/08/2026** — une offre en mode Mixte est désormais signalée « données partielles », et le mode remonte à l'API. Ce qui manque n'est pas du code : **personne ne note un portfolio**. Il n'existe que comme une URL sur le profil candidat. Une pondération portfolio/QCM suppose d'abord de décider qui évalue, sur quelle échelle et à quel moment. |
 | L'alerte hard skills sur les métiers MIXTE | ✅ Corrigé le 11 août 2026 — l'alerte suit le mode du métier, vérifié sur base réelle (5.9). |
 | La calibration des 24 lignes | `calibrated = false` partout. Atelier RH requis. |
 | Le seuil « bon profil » à 70 | Marqué provisoire dans le code, jamais validé par le produit. |

@@ -1442,8 +1442,15 @@ components:
         goodFit: { type: boolean, nullable: true, description: "Vrai à partir du seuil provisoire de 70." }
         softSkillScore: { type: integer, minimum: 0, maximum: 100, nullable: true }
         hardSkillScore: { type: integer, minimum: 0, maximum: 100, nullable: true, description: "null tant qu'aucune tentative de QCM n'est complétée" }
-        partialData: { type: boolean, nullable: true, description: "Couverture des jeux psychométriques sous le seuil (CdC Fit Score v3 §3.3)" }
+        partialData: { type: boolean, nullable: true, description: "Mesure jugée incomplète — déclenche un badge côté client, n'ajuste jamais le score. Vrai si la couverture des jeux passe sous le seuil (60 % avec QCM sur l'offre, 70 % sans), ou si le métier est en mode MIXTE : celui-ci attend un portfolio en plus du QCM, et le portfolio n'a aucune note dans le système (CdC Fit Score v3 §3.3 et §4.3)." }
         hardSkillsAlert: { $ref: '#/components/schemas/HardSkillsAlertLevel' }
+        typeEvaluationHard:
+          allOf: [{ $ref: '#/components/schemas/TypeEvaluationHard' }]
+          nullable: true
+          description: >
+            Mode de mesure du hard skills du métier de l'offre. Null si l'offre n'est pas
+            encore reliée au référentiel. Permet au client d'expliquer un partialData dû
+            au mode MIXTE plutôt qu'à une couverture faible.
         postedAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
 
@@ -1534,8 +1541,11 @@ components:
         goodFit: { type: boolean, nullable: true }
         softSkillScore: { type: integer, nullable: true }
         hardSkillScore: { type: integer, nullable: true }
-        partialData: { type: boolean, nullable: true }
+        partialData: { type: boolean, nullable: true, description: "Mesure jugée incomplète — déclenche un badge côté client, n'ajuste jamais le score. Vrai si la couverture des jeux passe sous le seuil (60 % avec QCM sur l'offre, 70 % sans), ou si le métier est en mode MIXTE : celui-ci attend un portfolio en plus du QCM, et le portfolio n'a aucune note dans le système (CdC Fit Score v3 §3.3 et §4.3)." }
         hardSkillsAlert: { $ref: '#/components/schemas/HardSkillsAlertLevel' }
+        typeEvaluationHard:
+          allOf: [{ $ref: '#/components/schemas/TypeEvaluationHard' }]
+          nullable: true
 
     JobOfferSummaryPage:
       type: object
@@ -1698,7 +1708,7 @@ components:
         goodFit: { type: boolean, description: "Vrai à partir du seuil provisoire de 70." }
         softSkillScore: { type: integer, minimum: 0, maximum: 100, nullable: true }
         hardSkillScore: { type: integer, minimum: 0, maximum: 100, nullable: true, description: "null tant qu'aucune tentative de QCM n'est complétée" }
-        partialData: { type: boolean, description: "Couverture des jeux psychométriques sous le seuil (CdC Fit Score v3 §3.3) — badge « données partielles »" }
+        partialData: { type: boolean, description: "Mesure jugée incomplète — déclenche un badge côté client, n'ajuste jamais le score. Vrai si la couverture des jeux passe sous le seuil (60 % avec QCM sur l'offre, 70 % sans), ou si le métier est en mode MIXTE : celui-ci attend un portfolio en plus du QCM, et le portfolio n'a aucune note dans le système (CdC Fit Score v3 §3.3 et §4.3)." }
         computedAt: { type: string, format: date-time }
 
     # ── Candidate Feed ─────────────────────────────────────────

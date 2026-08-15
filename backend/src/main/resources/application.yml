@@ -87,9 +87,11 @@ recruitment:
     # indépendante des autres réglages. Voir FitScoreAiConfig.
     db-pool-size: ${RECRUITMENT_FITSCORE_DB_POOL_SIZE:2}
     inline:
-      # Calcul des notes manquantes au moment de l'affichage. Désactivé par défaut :
-      # c'est l'interrupteur de retour arrière immédiat, sans redéploiement.
-      enabled: ${RECRUITMENT_FITSCORE_INLINE_ENABLED:false}
+      # Calcul des notes manquantes au moment de l'affichage. ACTIVÉ depuis le 15/08/2026 :
+      # c'est lui qui garantit qu'une offre affichée n'est jamais reléguée en fin de liste
+      # faute de note. Il reste l'interrupteur de retour arrière immédiat — passer la
+      # variable d'environnement à false suffit, sans redéploiement.
+      enabled: ${RECRUITMENT_FITSCORE_INLINE_ENABLED:true}
       # Budget de calcul par requête d'affichage. Un budget de TEMPS, pas un compteur de
       # paires : il reste valable quand le matériel ou le code change.
       budget-ms: ${RECRUITMENT_FITSCORE_INLINE_BUDGET_MS:800}
@@ -97,8 +99,11 @@ recruitment:
       # n'est jamais atteinte en pratique — elle borne le pire cas si le budget est mal réglé.
       max-pairs: ${RECRUITMENT_FITSCORE_INLINE_MAX_PAIRS:200}
     queue:
-      # File de travail durable. Désactivée par défaut : interrupteur de retour arrière.
-      enabled: ${RECRUITMENT_FITSCORE_QUEUE_ENABLED:false}
+      # File de travail durable. ACTIVÉE depuis le 15/08/2026. Sans elle, les recalculs
+      # déclenchés par un événement ne survivent pas à un redémarrage, et seul le
+      # pré-remplissage horaire rattrape — avec jusqu'à une heure de retard.
+      # Interrupteur de retour arrière : passer la variable d'environnement à false.
+      enabled: ${RECRUITMENT_FITSCORE_QUEUE_ENABLED:true}
       # Taille de transaction du worker — une granularité, pas un plafond de débit :
       # le worker enchaîne les passages tant que la file est pleine.
       chunk-size: ${RECRUITMENT_FITSCORE_QUEUE_CHUNK_SIZE:200}
