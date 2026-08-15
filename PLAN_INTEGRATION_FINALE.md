@@ -1,7 +1,35 @@
 # Plan d'intégration finale — ramener tout le monde sur `main`
 
 **Module Recrutement — Zennyt**
-État au 15 août 2026. Point de départ : `amine/main` = `9d1d675`.
+Établi le 15 août 2026 · **exécuté le même jour.**
+
+---
+
+## ✅ Exécuté — état final
+
+Les deux branches sont fusionnées dans `main`. Ce document est conservé comme trace du
+raisonnement et des chiffres qui ont guidé l'opération.
+
+| Étape | Résultat |
+|---|---|
+| 1 — Fusion `Games-Progress` | ✅ 4 conflits résolus, 7 attentes de tests recalculées |
+| 2 — Mise à jour des documents | ✅ §3.1, §3.4, §3.5, §5.6, annexe D, et les deux PDF |
+| 3 — Recalcul des scores | ⚠️ à lancer en environnement réel — voir ci-dessous |
+| 4 — Fusion `IntergrationV1` | ✅ 3 conflits résolus, secret écarté, `.vs/` ignoré |
+| 5 — Clôture | ✅ poussé sur `main` |
+
+**Vérifications finales : 527 tests, 0 échec · `flutter analyze` 0 erreur · schéma Flyway 63
+· démarrage confirmé, `actuator/health` 200 · l'alerte hard skills répond toujours
+correctement sur les métiers Mixte.**
+
+Deux écarts par rapport au plan initial, tous deux en faveur de la prudence :
+
+- **Les fichiers de tests de `Games-Progress` n'ont pas été repris.** Ils précèdent F32 et
+  n'utilisent plus le bon constructeur de `JobRoleProfile`. Les tests du Fit Score ont donc
+  été repris depuis `main` puis recalculés, comme le plan le recommandait pour les valeurs.
+- **Le secret Cloudinary n'était pas dans `main`** — notre `.env.example` n'avait que des
+  valeurs vides. Il venait bien de leur branche et n'y est pas entré. Il reste **à révoquer**
+  côté Cloudinary : il figure dans l'historique de leurs branches depuis le 28 juin.
 
 ---
 
