@@ -42,13 +42,13 @@ public enum SoftSkillModule {
         game("VISUOSPATIAL_MEMORY", true)),
 
     /**
-     * « Je Décide » — moteur backend et écrans mobiles complets, mais le catalogue
-     * de 30 scénarios est vide ({@code EmptyDecisionScenarioCatalog},
-     * {@code DECISION_CORE.isPlayable() == false}). En attente du psychologue.
-     * Tant que c'est le cas, ce module ne compte dans aucun score : sans ça, un
-     * développeur parfait plafonnerait à 70/100 — exactement le seuil « bon profil ».
+     * « Je Décide » — prise de décision. Le catalogue est désormais livré (banque
+     * de 120 items du psychologue, {@code JsonDecisionScenarioCatalog}) et
+     * {@code DECISION_CORE.isPlayable() == true}. Le module est donc mesurable et
+     * entre dans le Fit Score : un candidat qui ne l'a pas joué est pénalisé, comme
+     * pour tout autre jeu disponible.
      */
-    DECISION_MAKING(game("DECISION", false)),
+    DECISION_MAKING(game("DECISION", true)),
 
     EXECUTIVE_PLANNING(game("PLANIFIK", true)),
 

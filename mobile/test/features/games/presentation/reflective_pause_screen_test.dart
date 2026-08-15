@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zennyt/core/storage/shared_preferences_provider.dart';
+import 'package:zennyt/features/auth/presentation/current_user_provider.dart';
 import 'package:zennyt/features/games/data/games_mock_repository.dart';
 import 'package:zennyt/features/games/presentation/games_providers.dart';
 import 'package:zennyt/features/games/presentation/view/reflective_pause_screen.dart';
@@ -19,6 +20,7 @@ void main() {
         overrides: [
           gamesRepositoryProvider.overrideWithValue(GamesMockRepository()),
           sharedPreferencesProvider.overrideWithValue(preferences),
+          currentUserProvider.overrideWithValue(null),
         ],
         child: MaterialApp(
           home: ReflectivePauseScreen(now: tester.binding.clock.now),

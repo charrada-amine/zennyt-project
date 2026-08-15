@@ -1,0 +1,425 @@
+{
+  "_comment": "Référentiel émotionnel PROVISOIRE d'Emotional Radar v2. Base : Cowen & Keltner (2017, 27 catégories) + compléments nommés dans le brief (colère, culpabilité, honte, frustration, gratitude, soulagement, regret...). Les COORDONNÉES sont un placeholder 2D valence/arousal — à REMPLACER par l'espace sémantique réel de Cowen & Keltner. La répartition en catégories et les types de stimulus sont provisoires, à valider par le psychologue. Voir EMOTIONAL_RADAR_V2_TASKS.md.",
+  "source": "Cowen & Keltner (2017) + littérature (brief 2026-08-12)",
+  "provisional": true,
+  "count": 45,
+  "categoryBreakdown": {
+    "POSITIVE": 18,
+    "AMBIVALENT_COGNITIVE": 4,
+    "NEGATIVE": 20,
+    "PROSOCIAL": 3
+  },
+  "stimulusBreakdown": {
+    "FACIAL": 13,
+    "BODY": 9,
+    "SOCIAL": 11,
+    "CONTEXTUAL": 12
+  },
+  "emotions": [
+    {
+      "key": "JOY",
+      "labelFr": "Joie",
+      "labelEn": "Joy",
+      "category": "POSITIVE",
+      "stimulusType": "FACIAL",
+      "valence": 0.9,
+      "arousal": 0.7
+    },
+    {
+      "key": "AMUSEMENT",
+      "labelFr": "Amusement",
+      "labelEn": "Amusement",
+      "category": "POSITIVE",
+      "stimulusType": "FACIAL",
+      "valence": 0.8,
+      "arousal": 0.6
+    },
+    {
+      "key": "SATISFACTION",
+      "labelFr": "Satisfaction",
+      "labelEn": "Satisfaction",
+      "category": "POSITIVE",
+      "stimulusType": "FACIAL",
+      "valence": 0.7,
+      "arousal": 0.4
+    },
+    {
+      "key": "INTEREST",
+      "labelFr": "Intérêt",
+      "labelEn": "Interest",
+      "category": "POSITIVE",
+      "stimulusType": "FACIAL",
+      "valence": 0.5,
+      "arousal": 0.5
+    },
+    {
+      "key": "SURPRISE",
+      "labelFr": "Surprise",
+      "labelEn": "Surprise",
+      "category": "AMBIVALENT_COGNITIVE",
+      "stimulusType": "FACIAL",
+      "valence": 0.1,
+      "arousal": 0.8
+    },
+    {
+      "key": "SADNESS",
+      "labelFr": "Tristesse",
+      "labelEn": "Sadness",
+      "category": "NEGATIVE",
+      "stimulusType": "FACIAL",
+      "valence": -0.8,
+      "arousal": 0.3
+    },
+    {
+      "key": "ANGER",
+      "labelFr": "Colère",
+      "labelEn": "Anger",
+      "category": "NEGATIVE",
+      "stimulusType": "FACIAL",
+      "valence": -0.7,
+      "arousal": 0.8
+    },
+    {
+      "key": "FEAR",
+      "labelFr": "Peur",
+      "labelEn": "Fear",
+      "category": "NEGATIVE",
+      "stimulusType": "FACIAL",
+      "valence": -0.8,
+      "arousal": 0.9
+    },
+    {
+      "key": "DISGUST",
+      "labelFr": "Dégoût",
+      "labelEn": "Disgust",
+      "category": "NEGATIVE",
+      "stimulusType": "FACIAL",
+      "valence": -0.7,
+      "arousal": 0.5
+    },
+    {
+      "key": "HORROR",
+      "labelFr": "Horreur",
+      "labelEn": "Horror",
+      "category": "NEGATIVE",
+      "stimulusType": "FACIAL",
+      "valence": -0.9,
+      "arousal": 0.9
+    },
+    {
+      "key": "CONTEMPT",
+      "labelFr": "Mépris",
+      "labelEn": "Contempt",
+      "category": "NEGATIVE",
+      "stimulusType": "FACIAL",
+      "valence": -0.6,
+      "arousal": 0.4
+    },
+    {
+      "key": "DISAPPOINTMENT",
+      "labelFr": "Déception",
+      "labelEn": "Disappointment",
+      "category": "NEGATIVE",
+      "stimulusType": "FACIAL",
+      "valence": -0.6,
+      "arousal": 0.3
+    },
+    {
+      "key": "PAIN",
+      "labelFr": "Douleur",
+      "labelEn": "Pain",
+      "category": "NEGATIVE",
+      "stimulusType": "FACIAL",
+      "valence": -0.8,
+      "arousal": 0.6
+    },
+    {
+      "key": "EXCITEMENT",
+      "labelFr": "Excitation",
+      "labelEn": "Excitement",
+      "category": "POSITIVE",
+      "stimulusType": "BODY",
+      "valence": 0.8,
+      "arousal": 0.9
+    },
+    {
+      "key": "TRIUMPH",
+      "labelFr": "Triomphe",
+      "labelEn": "Triumph",
+      "category": "POSITIVE",
+      "stimulusType": "BODY",
+      "valence": 0.9,
+      "arousal": 0.8
+    },
+    {
+      "key": "PRIDE",
+      "labelFr": "Fierté",
+      "labelEn": "Pride",
+      "category": "POSITIVE",
+      "stimulusType": "BODY",
+      "valence": 0.7,
+      "arousal": 0.6
+    },
+    {
+      "key": "CALMNESS",
+      "labelFr": "Calme",
+      "labelEn": "Calmness",
+      "category": "POSITIVE",
+      "stimulusType": "BODY",
+      "valence": 0.5,
+      "arousal": 0.1
+    },
+    {
+      "key": "ANXIETY",
+      "labelFr": "Anxiété",
+      "labelEn": "Anxiety",
+      "category": "NEGATIVE",
+      "stimulusType": "BODY",
+      "valence": -0.6,
+      "arousal": 0.7
+    },
+    {
+      "key": "BOREDOM",
+      "labelFr": "Ennui",
+      "labelEn": "Boredom",
+      "category": "NEGATIVE",
+      "stimulusType": "BODY",
+      "valence": -0.4,
+      "arousal": 0.2
+    },
+    {
+      "key": "FRUSTRATION",
+      "labelFr": "Frustration",
+      "labelEn": "Frustration",
+      "category": "NEGATIVE",
+      "stimulusType": "BODY",
+      "valence": -0.6,
+      "arousal": 0.6
+    },
+    {
+      "key": "SHAME",
+      "labelFr": "Honte",
+      "labelEn": "Shame",
+      "category": "NEGATIVE",
+      "stimulusType": "BODY",
+      "valence": -0.7,
+      "arousal": 0.4
+    },
+    {
+      "key": "REJECTION",
+      "labelFr": "Rejet",
+      "labelEn": "Rejection",
+      "category": "NEGATIVE",
+      "stimulusType": "BODY",
+      "valence": -0.7,
+      "arousal": 0.5
+    },
+    {
+      "key": "HUMILIATION",
+      "labelFr": "Humiliation",
+      "labelEn": "Humiliation",
+      "category": "NEGATIVE",
+      "stimulusType": "SOCIAL",
+      "valence": -0.8,
+      "arousal": 0.6
+    },
+    {
+      "key": "AWKWARDNESS",
+      "labelFr": "Malaise social",
+      "labelEn": "Awkwardness",
+      "category": "AMBIVALENT_COGNITIVE",
+      "stimulusType": "SOCIAL",
+      "valence": -0.3,
+      "arousal": 0.5
+    },
+    {
+      "key": "ENVY",
+      "labelFr": "Envie",
+      "labelEn": "Envy",
+      "category": "NEGATIVE",
+      "stimulusType": "SOCIAL",
+      "valence": -0.5,
+      "arousal": 0.5
+    },
+    {
+      "key": "JEALOUSY",
+      "labelFr": "Jalousie",
+      "labelEn": "Jealousy",
+      "category": "NEGATIVE",
+      "stimulusType": "SOCIAL",
+      "valence": -0.6,
+      "arousal": 0.6
+    },
+    {
+      "key": "ADORATION",
+      "labelFr": "Adoration",
+      "labelEn": "Adoration",
+      "category": "POSITIVE",
+      "stimulusType": "SOCIAL",
+      "valence": 0.8,
+      "arousal": 0.5
+    },
+    {
+      "key": "ROMANCE",
+      "labelFr": "Romance",
+      "labelEn": "Romance",
+      "category": "POSITIVE",
+      "stimulusType": "SOCIAL",
+      "valence": 0.8,
+      "arousal": 0.5
+    },
+    {
+      "key": "GRATITUDE",
+      "labelFr": "Gratitude",
+      "labelEn": "Gratitude",
+      "category": "PROSOCIAL",
+      "stimulusType": "SOCIAL",
+      "valence": 0.8,
+      "arousal": 0.4
+    },
+    {
+      "key": "SYMPATHY",
+      "labelFr": "Sympathie",
+      "labelEn": "Sympathy",
+      "category": "PROSOCIAL",
+      "stimulusType": "SOCIAL",
+      "valence": 0.4,
+      "arousal": 0.3
+    },
+    {
+      "key": "COMPASSION",
+      "labelFr": "Compassion",
+      "labelEn": "Compassion",
+      "category": "PROSOCIAL",
+      "stimulusType": "SOCIAL",
+      "valence": 0.4,
+      "arousal": 0.4
+    },
+    {
+      "key": "EMPATHIC_PAIN",
+      "labelFr": "Douleur empathique",
+      "labelEn": "Empathic pain",
+      "category": "NEGATIVE",
+      "stimulusType": "SOCIAL",
+      "valence": -0.6,
+      "arousal": 0.5
+    },
+    {
+      "key": "ADMIRATION",
+      "labelFr": "Admiration",
+      "labelEn": "Admiration",
+      "category": "POSITIVE",
+      "stimulusType": "SOCIAL",
+      "valence": 0.7,
+      "arousal": 0.5
+    },
+    {
+      "key": "GUILT",
+      "labelFr": "Culpabilité",
+      "labelEn": "Guilt",
+      "category": "NEGATIVE",
+      "stimulusType": "CONTEXTUAL",
+      "valence": -0.7,
+      "arousal": 0.4
+    },
+    {
+      "key": "REGRET",
+      "labelFr": "Regret",
+      "labelEn": "Regret",
+      "category": "NEGATIVE",
+      "stimulusType": "CONTEXTUAL",
+      "valence": -0.6,
+      "arousal": 0.3
+    },
+    {
+      "key": "LONELINESS",
+      "labelFr": "Solitude",
+      "labelEn": "Loneliness",
+      "category": "NEGATIVE",
+      "stimulusType": "CONTEXTUAL",
+      "valence": -0.7,
+      "arousal": 0.3
+    },
+    {
+      "key": "NOSTALGIA",
+      "labelFr": "Nostalgie",
+      "labelEn": "Nostalgia",
+      "category": "AMBIVALENT_COGNITIVE",
+      "stimulusType": "CONTEXTUAL",
+      "valence": 0.1,
+      "arousal": 0.3
+    },
+    {
+      "key": "DOUBT",
+      "labelFr": "Doute",
+      "labelEn": "Doubt",
+      "category": "AMBIVALENT_COGNITIVE",
+      "stimulusType": "CONTEXTUAL",
+      "valence": -0.3,
+      "arousal": 0.4
+    },
+    {
+      "key": "RELIEF",
+      "labelFr": "Soulagement",
+      "labelEn": "Relief",
+      "category": "POSITIVE",
+      "stimulusType": "CONTEXTUAL",
+      "valence": 0.6,
+      "arousal": 0.3
+    },
+    {
+      "key": "AESTHETIC_APPRECIATION",
+      "labelFr": "Appréciation esthétique",
+      "labelEn": "Aesthetic appreciation",
+      "category": "POSITIVE",
+      "stimulusType": "CONTEXTUAL",
+      "valence": 0.7,
+      "arousal": 0.4
+    },
+    {
+      "key": "AWE",
+      "labelFr": "Émerveillement",
+      "labelEn": "Awe",
+      "category": "POSITIVE",
+      "stimulusType": "CONTEXTUAL",
+      "valence": 0.6,
+      "arousal": 0.6
+    },
+    {
+      "key": "ENTRANCEMENT",
+      "labelFr": "Fascination",
+      "labelEn": "Entrancement",
+      "category": "POSITIVE",
+      "stimulusType": "CONTEXTUAL",
+      "valence": 0.6,
+      "arousal": 0.5
+    },
+    {
+      "key": "CRAVING",
+      "labelFr": "Désir (craving)",
+      "labelEn": "Craving",
+      "category": "POSITIVE",
+      "stimulusType": "CONTEXTUAL",
+      "valence": 0.5,
+      "arousal": 0.6
+    },
+    {
+      "key": "HOPE",
+      "labelFr": "Espoir",
+      "labelEn": "Hope",
+      "category": "POSITIVE",
+      "stimulusType": "CONTEXTUAL",
+      "valence": 0.6,
+      "arousal": 0.4
+    },
+    {
+      "key": "SEXUAL_DESIRE",
+      "labelFr": "Désir sexuel",
+      "labelEn": "Sexual desire",
+      "category": "POSITIVE",
+      "stimulusType": "CONTEXTUAL",
+      "valence": 0.6,
+      "arousal": 0.7
+    }
+  ]
+}

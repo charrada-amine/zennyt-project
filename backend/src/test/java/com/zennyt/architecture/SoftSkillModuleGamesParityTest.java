@@ -62,8 +62,24 @@ class SoftSkillModuleGamesParityTest {
             .containsAll(declaresParFitScore);
     }
 
+    /**
+     * Jeux <b>livrés par Games</b> mais <b>délibérément pas encore comptés</b> au Fit
+     * Score, le temps de finaliser leur intégration côté recrutement.
+     *
+     * <p><b>La liste est vide, et c'est l'état normal.</b> Elle a servi entre le 10 et le
+     * 15 août 2026 : la branche Games travaillait sur une base antérieure où « Je
+     * continue », « Je coordonne » et « Je place » étaient encore à {@code false}, alors
+     * que {@code main} les comptait déjà. La fusion a réaligné les deux, donc plus rien
+     * n'est différé.
+     *
+     * <p>Le garde-fou du bas de {@link #disponibiliteAlignee()} interdit d'y laisser une
+     * entrée périmée : une entrée qui ne diverge plus fait échouer le test. C'est
+     * volontaire — une allowlist qu'on oublie de vider finit par masquer un vrai écart.
+     */
+    private static final java.util.Set<String> INTENTIONNELLEMENT_DIFFERES = java.util.Set.of();
+
     @Test
-    @DisplayName("La disponibilité déclarée au Fit Score suit celle de Games")
+    @DisplayName("La disponibilité déclarée au Fit Score suit celle de Games (hors différés assumés)")
     void disponibiliteAlignee() {
         Map<String, Boolean> cotesGames = playableParGameType();
 
@@ -71,32 +87,48 @@ class SoftSkillModuleGamesParityTest {
         for (SoftSkillModule module : SoftSkillModule.values()) {
             for (SoftSkillModule.Game game : module.games()) {
                 boolean cotéGames = cotesGames.getOrDefault(game.gamesModule(), false);
-                if (cotéGames != game.available()) {
-                    ecarts.put(game.gamesModule(),  cotéGames);
+                if (cotéGames != game.available()
+                    && !INTENTIONNELLEMENT_DIFFERES.contains(game.gamesModule())) {
+                    ecarts.put(game.gamesModule(), cotéGames);
                 }
             }
         }
 
         assertThat(ecarts)
-            .as("Games et le Fit Score ne sont plus d'accord sur ces jeux. La valeur "
-                + "indiquée est celle de Games (isPlayable), qui fait foi : reportez-la "
-                + "dans SoftSkillModule. Un jeu livré mais laissé à false sort du "
-                + "dénominateur et fausse toutes les couvertures.")
+            .as("Games et le Fit Score ne sont plus d'accord sur ces jeux (et ce ne sont "
+                + "pas des différés assumés). La valeur indiquée est celle de Games "
+                + "(isPlayable), qui fait foi : reportez-la dans SoftSkillModule. Un jeu "
+                + "livré mais laissé à false sort du dénominateur et fausse les couvertures.")
             .isEmpty();
+
+        // Garde-fou de l'allowlist : chaque jeu « différé » doit vraiment diverger
+        // (Games jouable, SoftSkillModule false). Sinon l'entrée est périmée — le jeu a
+        // été fusionné et compté : il faut la retirer d'INTENTIONNELLEMENT_DIFFERES.
+        for (String differe : INTENTIONNELLEMENT_DIFFERES) {
+            boolean jouableCoteGames = cotesGames.getOrDefault(differe, false);
+            boolean disponibleFitScore = Arrays.stream(SoftSkillModule.values())
+                .flatMap(m -> m.games().stream())
+                .anyMatch(g -> g.gamesModule().equals(differe) && g.available());
+            assertThat(jouableCoteGames && !disponibleFitScore)
+                .as("« %s » n'est plus un différé : soit Games ne le déclare plus jouable, "
+                    + "soit il est désormais compté au Fit Score. Retirez-le de la liste.", differe)
+                .isTrue();
+        }
     }
 
     /**
-     * Le seul module attendu comme non mesurable est « Je Décide » : son moteur existe,
-     * son catalogue de 30 scénarios est vide en attendant le psychologue. Si un autre
-     * module devient non mesurable, c'est soit une régression Games, soit une décision
-     * qui doit être écrite noir sur blanc.
+     * Depuis l'activation de « Je Décide » (2026-08-12 : catalogue de 120 items livré,
+     * {@code DECISION_CORE.isPlayable() == true}), les cinq modules du CdC sont
+     * mesurables. Plus aucun module ne doit sortir du calcul : si l'un redevient non
+     * mesurable, c'est soit une régression Games, soit une décision produit qui doit
+     * être écrite noir sur blanc (et ce test mis à jour en conséquence).
      */
     @Test
-    @DisplayName("Seule la prise de décision reste non mesurable")
-    void seuleLaPriseDeDecisionEstNonMesurable() {
+    @DisplayName("Les cinq modules sont mesurables (aucun jeu manquant)")
+    void tousLesModulesSontMesurables() {
         assertThat(Arrays.stream(SoftSkillModule.values())
             .filter(SoftSkillModule::unmeasurable)
             .toList())
-            .containsExactly(SoftSkillModule.DECISION_MAKING);
+            .isEmpty();
     }
 }

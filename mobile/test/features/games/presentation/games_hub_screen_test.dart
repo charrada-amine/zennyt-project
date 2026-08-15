@@ -177,6 +177,10 @@ void main() {
       'category-game-logo-Reflective Pause',
       'assets/games icons/Reflective Pause.png',
     );
+    expectAssetLogo(
+      'category-game-logo-Strategic Choices',
+      'assets/games icons/Strategic Choices.png',
+    );
 
     await tester.tap(planningCard);
     await tester.pumpAndSettle();
@@ -218,6 +222,14 @@ void main() {
     expect(
       find.byKey(const ValueKey('picker-game-logo-Reflective Pause')),
       findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('picker-game-logo-Strategic Choices')),
+      findsOneWidget,
+    );
+    expectAssetLogo(
+      'picker-game-logo-Strategic Choices',
+      'assets/games icons/Strategic Choices.png',
     );
   });
 

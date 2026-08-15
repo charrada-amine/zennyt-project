@@ -34,6 +34,7 @@ import '../../features/games/presentation/view/move_fast_screen.dart';
 import '../../features/games/presentation/view/planifik_screen.dart';
 import '../../features/games/presentation/view/predictive_puzzle_screen.dart';
 import '../../features/games/presentation/view/reflective_pause_screen.dart';
+import '../../features/games/presentation/view/strategic_choices_screen.dart';
 import '../../features/games/presentation/view/task_scheduling_screen.dart';
 import '../../features/splash/presentation/view/splash_screen.dart';
 import '../../features/profile_settings/cv_autofill/presentation/view/cv_camera_capture_screen.dart';
@@ -235,6 +236,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.gamesReflectivePause,
         name: AppRoutes.nGamesReflectivePause,
         builder: (context, state) => const ReflectivePauseScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.gamesStrategicChoices,
+        name: AppRoutes.nGamesStrategicChoices,
+        builder: (context, state) => const StrategicChoicesScreen(),
       ),
       GoRoute(
         path: AppRoutes.profileSettings,

@@ -1,0 +1,2876 @@
+{
+  "_comment": "Banque « Je Décide » — 120 items (24 par dimension) extraits du document du psychologue « Test_Je_decide_Banque120_combinee.docx ». Seul le catalogue (dimension + format + qualité par option) fait autorité côté serveur. MVP : II et DT scorés réellement ; ER-19..24 scorés ; ER-1..18, RE et CS en notation NEUTRE provisoire (SATISFACTORY) — voir provisionalScoring:true — en attendant le vrai modèle de profil (aversion λ, actualisation k, cohérence de paire).",
+  "source": "Test_Je_decide_Banque120_combinee.docx",
+  "itemsPerDimension": 24,
+  "totalItems": 120,
+  "items": [
+    {
+      "itemId": "II-1",
+      "dimension": "II",
+      "format": "STANDARD",
+      "vignette": "Vous préparez un déplacement professionnel. Trois hôtels : A (prix bas, à 30 min à pied du lieu de rendez-vous, avis mixtes), B (prix moyen, à 8 min à pied, bonnes notes), C (cher, dépassant votre budget, à 5 min, note excellente). Votre budget ne doit pas dépasser le tarif moyen et le trajet ne doit pas excéder 10 minutes à pied.",
+      "task": "Classez les trois options du plus au moins adapté, puis choisissez la justification qui reflète le mieux votre raisonnement.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "II-1-o1",
+          "quality": "OPTIMAL",
+          "text": "Je choisis B : il respecte mon plafond budgétaire et son trajet de 8 minutes reste sous les 10 minutes requises. C est hors budget et A est trop éloigné."
+        },
+        {
+          "optionId": "II-1-o2",
+          "quality": "SATISFACTORY",
+          "text": "Je choisis B car il a de bonnes notes et un trajet acceptable."
+        },
+        {
+          "optionId": "II-1-o3",
+          "quality": "PARTIAL",
+          "text": "Je choisis C car la note excellente suggère un meilleur confort pour un déplacement professionnel."
+        },
+        {
+          "optionId": "II-1-o4",
+          "quality": "DEFICIENT",
+          "text": "Je choisis A car j'ai l'habitude de marcher et le prix bas m'arrange."
+        }
+      ]
+    },
+    {
+      "itemId": "II-2",
+      "dimension": "II",
+      "format": "STANDARD",
+      "vignette": "Vous choisissez un smartphone pour un usage professionnel avec déplacements fréquents. Trois modèles : A (prix moyen, autonomie 2 jours, design correct), B (prix bas, autonomie 1 jour, bonnes critiques), C (cher, dépassant votre budget, autonomie 3 jours). Budget limité, autonomie ≥ 2 jours requise.",
+      "task": "Classez les trois options du plus au moins adapté, puis choisissez la justification qui reflète le mieux votre raisonnement.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "II-2-o1",
+          "quality": "OPTIMAL",
+          "text": "Je choisis A : son prix reste dans mon budget et son autonomie de 2 jours couvre mes déplacements. B est insuffisant en autonomie, C dépasse mon budget."
+        },
+        {
+          "optionId": "II-2-o2",
+          "quality": "SATISFACTORY",
+          "text": "Je choisis A car l'autonomie me semble suffisante pour mes trajets."
+        },
+        {
+          "optionId": "II-2-o3",
+          "quality": "PARTIAL",
+          "text": "Je choisis C car une meilleure autonomie réduit le risque de panne lors d'un déplacement important."
+        },
+        {
+          "optionId": "II-2-o4",
+          "quality": "DEFICIENT",
+          "text": "Je choisis B car les critiques positives me rassurent sur la fiabilité."
+        }
+      ]
+    },
+    {
+      "itemId": "II-3",
+      "dimension": "II",
+      "format": "STANDARD",
+      "vignette": "Vous cherchez un appartement à louer. Trois options : A (loyer dans le plafond, trajet 25 min, quartier calme), B (loyer bas, trajet 50 min, quartier très calme), C (loyer élevé, dépassant votre plafond, trajet 10 min, quartier animé). Plafond de loyer fixe, trajet ≤ 30 min exigé. Le calme du quartier est un critère secondaire non éliminatoire.",
+      "task": "Classez les trois options du plus au moins adapté, puis choisissez la justification qui reflète le mieux votre raisonnement.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "II-3-o1",
+          "quality": "OPTIMAL",
+          "text": "Je choisis A : il respecte le plafond de loyer et le trajet de 25 minutes reste dans la limite. B dépasse le trajet autorisé, C dépasse le budget. Le calme du quartier est un plus mais ne peut pas primer sur les contraintes obligatoires."
+        },
+        {
+          "optionId": "II-3-o2",
+          "quality": "SATISFACTORY",
+          "text": "Je choisis A car le loyer et le trajet me conviennent, et le quartier calme est appréciable."
+        },
+        {
+          "optionId": "II-3-o3",
+          "quality": "PARTIAL",
+          "text": "Je choisis B car le trajet de 50 min est long mais le loyer bas me permet d'économiser et le quartier calme est important pour moi."
+        },
+        {
+          "optionId": "II-3-o4",
+          "quality": "DEFICIENT",
+          "text": "Je choisis C car un trajet court est plus important que tout le reste."
+        }
+      ]
+    },
+    {
+      "itemId": "II-4",
+      "dimension": "II",
+      "format": "STANDARD",
+      "vignette": "Vous recevez trois offres d'emploi : A (CDI, salaire légèrement sous votre seuil minimum), B (CDD 18 mois, salaire 15% au-dessus de votre seuil, secteur porteur), C (CDI, salaire au seuil exact, poste avec perspectives d'évolution mentionnées dans l'offre). Priorité à la stabilité contractuelle ; le salaire doit atteindre le seuil minimum.",
+      "task": "Classez les trois options du plus au moins adapté, puis choisissez la justification qui reflète le mieux votre raisonnement.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "II-4-o1",
+          "quality": "OPTIMAL",
+          "text": "Je choisis C : c'est un CDI et le salaire atteint mon seuil minimum. A est éliminé par le salaire insuffisant, B par l'absence de stabilité contractuelle."
+        },
+        {
+          "optionId": "II-4-o2",
+          "quality": "SATISFACTORY",
+          "text": "Je choisis C car c'est un CDI avec des perspectives d'évolution intéressantes."
+        },
+        {
+          "optionId": "II-4-o3",
+          "quality": "PARTIAL",
+          "text": "Je choisis B : le salaire supérieur me permet d'épargner et 18 mois c'est suffisant pour me retourner."
+        },
+        {
+          "optionId": "II-4-o4",
+          "quality": "DEFICIENT",
+          "text": "Je choisis A car le nom du poste correspond exactement à ma formation."
+        }
+      ]
+    },
+    {
+      "itemId": "II-5",
+      "dimension": "II",
+      "format": "STANDARD",
+      "vignette": "Vous organisez un repas d'affaires. Trois restaurants : A (cher, hors budget, ambiance calme, note 4.8/5), B (pas cher, dans le budget, très bruyant, note 4.5/5), C (prix dans le budget, ambiance calme, note 4.2/5). Budget plafonné ; conversation professionnelle requérant calme.",
+      "task": "Classez les trois options du plus au moins adapté, puis choisissez la justification qui reflète le mieux votre raisonnement.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "II-5-o1",
+          "quality": "OPTIMAL",
+          "text": "Je choisis C : il respecte le budget de l'entreprise et son ambiance calme permet de conduire la réunion. A est hors budget, B trop bruyant. La différence de note entre C (4.2) et B (4.5) est non significative face aux contraintes."
+        },
+        {
+          "optionId": "II-5-o2",
+          "quality": "SATISFACTORY",
+          "text": "Je choisis C car l'ambiance calme est essentielle et le prix reste acceptable."
+        },
+        {
+          "optionId": "II-5-o3",
+          "quality": "PARTIAL",
+          "text": "Je choisis A : la note excellente et le cadre professionnel justifient un dépassement de budget ponctuel."
+        },
+        {
+          "optionId": "II-5-o4",
+          "quality": "DEFICIENT",
+          "text": "Je choisis B car j'y connais le chef de salle et j'obtiendrai une bonne table."
+        }
+      ]
+    },
+    {
+      "itemId": "II-6",
+      "dimension": "II",
+      "format": "STANDARD",
+      "vignette": "Vous choisissez une mutuelle santé. Trois offres : A (prime élevée, hors budget, couverture complète), B (prime basse, dans le budget, couverture insuffisante pour un antécédent médical connu), C (prime dans le budget, couverture adaptée à l'antécédent, délai de remboursement 30 jours). Budget serré ; couverture de l'antécédent obligatoire.",
+      "task": "Classez les trois options du plus au moins adapté, puis choisissez la justification qui reflète le mieux votre raisonnement.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "II-6-o1",
+          "quality": "OPTIMAL",
+          "text": "Je choisis C : la prime respecte mon budget et la couverture inclut mon antécédent médical. A est hors budget, B ne couvre pas mon antécédent, ce qui représente un risque financier réel."
+        },
+        {
+          "optionId": "II-6-o2",
+          "quality": "SATISFACTORY",
+          "text": "Je choisis C car l'antécédent est couvert et le tarif est acceptable."
+        },
+        {
+          "optionId": "II-6-o3",
+          "quality": "PARTIAL",
+          "text": "Je choisis A : une couverture complète vaut l'investissement supplémentaire, surtout avec un antécédent."
+        },
+        {
+          "optionId": "II-6-o4",
+          "quality": "DEFICIENT",
+          "text": "Je choisis B car le site internet est plus clair et facile à utiliser."
+        }
+      ]
+    },
+    {
+      "itemId": "II-7",
+      "dimension": "II",
+      "format": "STANDARD",
+      "vignette": "Vous achetez une voiture pour des trajets professionnels réguliers de 250 km. Trois modèles : A (dans le budget, autonomie 550 km, consommation standard), B (moins cher, autonomie 280 km, faible consommation), C (cher, hors budget, autonomie 700 km, faible consommation). Budget plafonné ; autonomie ≥ 500 km requise pour les trajets sans rechargement.",
+      "task": "Classez les trois options du plus au moins adapté, puis choisissez la justification qui reflète le mieux votre raisonnement.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "II-7-o1",
+          "quality": "OPTIMAL",
+          "text": "Je choisis A : il respecte mon budget et son autonomie de 550 km couvre largement mes trajets de 250 km. B est éliminé par une autonomie trop faible (280 km < 500 km), C par le dépassement budgétaire."
+        },
+        {
+          "optionId": "II-7-o2",
+          "quality": "SATISFACTORY",
+          "text": "Je choisis A car l'autonomie suffit pour mes besoins professionnels."
+        },
+        {
+          "optionId": "II-7-o3",
+          "quality": "PARTIAL",
+          "text": "Je choisis B : la faible consommation compensera le coût sur la durée, même si l'autonomie est limite."
+        },
+        {
+          "optionId": "II-7-o4",
+          "quality": "DEFICIENT",
+          "text": "Je choisis C car les commerciaux de ma connaissance préfèrent ce modèle."
+        }
+      ]
+    },
+    {
+      "itemId": "II-8",
+      "dimension": "II",
+      "format": "STANDARD",
+      "vignette": "Vous cherchez une crèche pour votre enfant. Trois options : A (tarif bas, horaires 9h–17h, projet pédagogique bilingue), B (tarif dans le budget, horaires 7h30–19h, projet pédagogique standard), C (tarif élevé, hors budget, horaires 7h–20h, projet pédagogique bilingue). Budget plafonné ; horaires devant couvrir 8h–18h30.",
+      "task": "Classez les trois options du plus au moins adapté, puis choisissez la justification qui reflète le mieux votre raisonnement.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "II-8-o1",
+          "quality": "OPTIMAL",
+          "text": "Je choisis B : le tarif est dans le budget et les horaires 7h30–19h couvrent mon amplitude 8h–18h30. A est éliminé par ses horaires trop courts, C par son tarif hors budget. Le projet bilingue de A et C est intéressant mais ne peut pas primer sur les contraintes pratiques."
+        },
+        {
+          "optionId": "II-8-o2",
+          "quality": "SATISFACTORY",
+          "text": "Je choisis B car les horaires et le tarif correspondent à mes besoins."
+        },
+        {
+          "optionId": "II-8-o3",
+          "quality": "PARTIAL",
+          "text": "Je choisis A : le projet bilingue représente un avantage éducatif important pour le développement de mon enfant."
+        },
+        {
+          "optionId": "II-8-o4",
+          "quality": "DEFICIENT",
+          "text": "Je choisis C car la décoration des locaux est plus moderne et rassurante."
+        }
+      ]
+    },
+    {
+      "itemId": "II-9",
+      "dimension": "II",
+      "format": "STANDARD",
+      "vignette": "Vous choisissez une salle de sport. Trois options : A (moins chère, à 40 min de trajet, équipements récents), B (chère, hors budget, à 5 min, équipements récents), C (dans le budget, à 12 min, équipements corrects). Budget plafonné ; distance ≤ 15 min.",
+      "task": "Classez les trois options du plus au moins adapté, puis choisissez la justification qui reflète le mieux votre raisonnement.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "II-9-o1",
+          "quality": "OPTIMAL",
+          "text": "Je choisis C : l'abonnement respecte mon budget et la salle est à 12 minutes, soit sous les 15 minutes requises. A est trop loin (40 min), B dépasse le budget."
+        },
+        {
+          "optionId": "II-9-o2",
+          "quality": "SATISFACTORY",
+          "text": "Je choisis C car la distance et le tarif me conviennent malgré des équipements légèrement moins récents."
+        },
+        {
+          "optionId": "II-9-o3",
+          "quality": "PARTIAL",
+          "text": "Je choisis A : les équipements récents valent le trajet plus long, surtout si j'y vais en vélo."
+        },
+        {
+          "optionId": "II-9-o4",
+          "quality": "DEFICIENT",
+          "text": "Je choisis B car l'ambiance de la salle m'a semblé meilleure lors de ma visite."
+        }
+      ]
+    },
+    {
+      "itemId": "II-10",
+      "dimension": "II",
+      "format": "STANDARD",
+      "vignette": "Vous sélectionnez un logiciel de gestion de projet pour votre équipe de 12 personnes. Trois options : A (moins cher, incompatible avec votre messagerie et votre CRM actuels), B (licence dans le budget, compatible avec la messagerie uniquement), C (prix dans le budget, compatible messagerie et CRM). Budget plafonné ; compatibilité totale avec l'environnement existant requise.",
+      "task": "Classez les trois options du plus au moins adapté, puis choisissez la justification qui reflète le mieux votre raisonnement.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "II-10-o1",
+          "quality": "OPTIMAL",
+          "text": "Je choisis C : la licence respecte le budget et l'intégration couvre la messagerie et le CRM, ce qui est la condition posée. A est incompatible, B n'assure qu'une compatibilité partielle."
+        },
+        {
+          "optionId": "II-10-o2",
+          "quality": "SATISFACTORY",
+          "text": "Je choisis C car il est pleinement compatible avec notre environnement actuel."
+        },
+        {
+          "optionId": "II-10-o3",
+          "quality": "PARTIAL",
+          "text": "Je choisis B : la compatibilité messagerie couvre l'essentiel du travail collaboratif, le CRM peut être connecté manuellement."
+        },
+        {
+          "optionId": "II-10-o4",
+          "quality": "DEFICIENT",
+          "text": "Je choisis A car l'interface graphique est plus intuitive selon les démos en ligne."
+        }
+      ]
+    },
+    {
+      "itemId": "II-11",
+      "dimension": "II",
+      "format": "STANDARD",
+      "vignette": "Vous sélectionnez un fournisseur pour un contrat annuel. Trois options : A (tarif bas, délai livraison 18 jours, certifié ISO 9001), B (cher, hors budget, délai 3 jours, certifié ISO 9001), C (dans le budget, délai 6 jours, en cours de certification ISO). Budget plafonné ; délai ≤ 7 jours exigé contractuellement.",
+      "task": "Classez les trois options du plus au moins adapté, puis choisissez la justification qui reflète le mieux votre raisonnement.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "II-11-o1",
+          "quality": "OPTIMAL",
+          "text": "Je choisis C : le tarif est dans le budget et le délai de 6 jours respecte l'exigence contractuelle de 7 jours. A dépasse le délai (18 j), B dépasse le budget. L'absence de certification ISO de C est un point de vigilance à surveiller lors du renouvellement."
+        },
+        {
+          "optionId": "II-11-o2",
+          "quality": "SATISFACTORY",
+          "text": "Je choisis C car le délai et le prix correspondent aux exigences du contrat."
+        },
+        {
+          "optionId": "II-11-o3",
+          "quality": "PARTIAL",
+          "text": "Je choisis A : la certification ISO 9001 garantit une qualité plus fiable sur la durée, même si le délai est plus long."
+        },
+        {
+          "optionId": "II-11-o4",
+          "quality": "DEFICIENT",
+          "text": "Je choisis B car un fournisseur cher inspire plus confiance pour un contrat stratégique."
+        }
+      ]
+    },
+    {
+      "itemId": "II-12",
+      "dimension": "II",
+      "format": "STANDARD",
+      "vignette": "Vous choisissez une formation professionnelle certifiante. Trois options : A (moins chère, format journée incompatible avec votre emploi du temps, reconnue par votre secteur), B (tarif dans le budget, format soirée compatible, reconnaissance sectorielle identique à A), C (chère, hors budget, format soirée, reconnue internationalement). Budget plafonné ; format compatible avec emploi du temps actuel.",
+      "task": "Classez les trois options du plus au moins adapté, puis choisissez la justification qui reflète le mieux votre raisonnement.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "II-12-o1",
+          "quality": "OPTIMAL",
+          "text": "Je choisis B : le tarif respecte mon budget et le format soirée est compatible avec mon emploi du temps. A est éliminé par son format journée incompatible. C est hors budget. La reconnaissance internationale de C est attrayante mais sans rapport avec mon usage prévu."
+        },
+        {
+          "optionId": "II-12-o2",
+          "quality": "SATISFACTORY",
+          "text": "Je choisis B car les horaires et le budget me conviennent."
+        },
+        {
+          "optionId": "II-12-o3",
+          "quality": "PARTIAL",
+          "text": "Je choisis C : la reconnaissance internationale est un investissement dans ma carrière à long terme."
+        },
+        {
+          "optionId": "II-12-o4",
+          "quality": "DEFICIENT",
+          "text": "Je choisis A car le nom de l'organisme de formation m'est familier."
+        }
+      ]
+    },
+    {
+      "itemId": "II-13",
+      "dimension": "II",
+      "format": "STANDARD",
+      "vignette": "Vous choisissez un déménageur. Trois options : A (tarif dans le budget, assurance couvrant la valeur totale des biens, disponible dans 2 semaines), B (moins cher, assurance plafonnée à 50% de la valeur des biens, disponible immédiatement), C (cher, hors budget, assurance totale, disponible la semaine prochaine). Budget plafonné ; assurance couvrant 100% de la valeur obligatoire.",
+      "task": "Classez les trois options du plus au moins adapté, puis choisissez la justification qui reflète le mieux votre raisonnement.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "II-13-o1",
+          "quality": "OPTIMAL",
+          "text": "Je choisis A : le tarif respecte le budget et l'assurance couvre intégralement la valeur de mes biens. B sous-assure (50%), ce qui représente un risque financier direct. C est hors budget."
+        },
+        {
+          "optionId": "II-13-o2",
+          "quality": "SATISFACTORY",
+          "text": "Je choisis A car l'assurance est complète et le prix est acceptable."
+        },
+        {
+          "optionId": "II-13-o3",
+          "quality": "PARTIAL",
+          "text": "Je choisis B : disponible immédiatement et le surcoût d'assurance peut être souscrit séparément auprès de mon assureur."
+        },
+        {
+          "optionId": "II-13-o4",
+          "quality": "DEFICIENT",
+          "text": "Je choisis C car les camions neufs indiquent une entreprise sérieuse."
+        }
+      ]
+    },
+    {
+      "itemId": "II-14",
+      "dimension": "II",
+      "format": "STANDARD",
+      "vignette": "Vous choisissez un forfait internet pour le télétravail intensif (visioconférences quotidiennes, transferts de fichiers lourds). Trois options : A (moins cher, débit moyen 20 Mb/s, suffisant pour la navigation mais insuffisant pour la visio HD), B (tarif dans le budget, débit 100 Mb/s, compatible visio HD), C (cher, hors budget, débit 500 Mb/s, fibre optique). Budget plafonné ; débit ≥ 50 Mb/s requis pour les usages professionnels.",
+      "task": "Classez les trois options du plus au moins adapté, puis choisissez la justification qui reflète le mieux votre raisonnement.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "II-14-o1",
+          "quality": "OPTIMAL",
+          "text": "Je choisis B : le tarif est dans le budget et les 100 Mb/s couvrent largement les besoins en visioconférence et transferts. A est éliminé par un débit insuffisant (20 Mb/s < 50 Mb/s requis), C par le dépassement budgétaire."
+        },
+        {
+          "optionId": "II-14-o2",
+          "quality": "SATISFACTORY",
+          "text": "Je choisis B car le débit est suffisant pour mes usages professionnels."
+        },
+        {
+          "optionId": "II-14-o3",
+          "quality": "PARTIAL",
+          "text": "Je choisis C : la fibre optique 500 Mb/s garantit une stabilité supérieure lors des pics d'utilisation."
+        },
+        {
+          "optionId": "II-14-o4",
+          "quality": "DEFICIENT",
+          "text": "Je choisis A car cet opérateur est celui que j'ai toujours utilisé."
+        }
+      ]
+    },
+    {
+      "itemId": "II-15",
+      "dimension": "II",
+      "format": "STANDARD",
+      "vignette": "Vous choisissez un espace de coworking pour votre équipe de 4 personnes. Trois options : A (moins cher, open space uniquement, pas de salle de réunion réservable), B (cher, hors budget, salles privatives réservables, accès 24h/24), C (dans le budget, salles de réunion réservables 4h/semaine incluses, accès standard 8h–20h). Budget plafonné ; au moins une salle de réunion réservable requise hebdomadairement.",
+      "task": "Classez les trois options du plus au moins adapté, puis choisissez la justification qui reflète le mieux votre raisonnement.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "II-15-o1",
+          "quality": "OPTIMAL",
+          "text": "Je choisis C : le tarif est dans le budget et les 4h de salle incluses par semaine couvrent nos besoins habituels. A ne propose aucune salle privée, B dépasse le budget."
+        },
+        {
+          "optionId": "II-15-o2",
+          "quality": "SATISFACTORY",
+          "text": "Je choisis C car les salles de réunion sont disponibles et le tarif est acceptable."
+        },
+        {
+          "optionId": "II-15-o3",
+          "quality": "PARTIAL",
+          "text": "Je choisis B : l'accès 24h/24 offre une flexibilité utile pour une équipe aux horaires variables."
+        },
+        {
+          "optionId": "II-15-o4",
+          "quality": "DEFICIENT",
+          "text": "Je choisis A car la décoration est plus moderne et l'ambiance propice à la créativité."
+        }
+      ]
+    },
+    {
+      "itemId": "II-16",
+      "dimension": "II",
+      "format": "STANDARD",
+      "vignette": "Vous choisissez un traiteur pour un séminaire d'entreprise (80 personnes, dont 12 avec allergies au gluten et 5 végétariens). Trois options : A (moins cher, menus standards, pas d'option sans gluten ni végétarienne), B (dans le budget, menus adaptés gluten et végétarien, service assis), C (cher, hors budget, menus gastronomiques avec toutes adaptations, service à table). Budget plafonné ; menus adaptés obligatoires pour l'ensemble des régimes présents.",
+      "task": "Classez les trois options du plus au moins adapté, puis choisissez la justification qui reflète le mieux votre raisonnement.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "II-16-o1",
+          "quality": "OPTIMAL",
+          "text": "Je choisis B : le tarif respecte le budget et les menus couvrent les deux régimes identifiés (sans gluten et végétarien). A ne propose aucune adaptation, C dépasse le budget."
+        },
+        {
+          "optionId": "II-16-o2",
+          "quality": "SATISFACTORY",
+          "text": "Je choisis B car les menus sont adaptés aux contraintes alimentaires de nos invités."
+        },
+        {
+          "optionId": "II-16-o3",
+          "quality": "PARTIAL",
+          "text": "Je choisis A : les invités avec allergies peuvent apporter leur propre repas, ce qui est courant dans ce type d'événement."
+        },
+        {
+          "optionId": "II-16-o4",
+          "quality": "DEFICIENT",
+          "text": "Je choisis C car un traiteur gastronomique valorise l'image de l'entreprise."
+        }
+      ]
+    },
+    {
+      "itemId": "II-17",
+      "dimension": "II",
+      "format": "STANDARD",
+      "vignette": "Vous réservez une salle pour une conférence annuelle (140 participants). Trois options : A (dans le budget, capacité 150 personnes, équipement audiovisuel standard, parking 30 places), B (moins cher, capacité 90 personnes, bon équipement AV, proche transports en commun), C (cher, hors budget, capacité 250 personnes, équipement AV haut de gamme, parking 100 places). Budget plafonné ; capacité ≥ 140 personnes obligatoire.",
+      "task": "Classez les trois options du plus au moins adapté, puis choisissez la justification qui reflète le mieux votre raisonnement.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "II-17-o1",
+          "quality": "OPTIMAL",
+          "text": "Je choisis A : le tarif est dans le budget et la salle peut accueillir 150 personnes, soit 10 de plus que les 140 prévus. B est éliminé par une capacité insuffisante (90 < 140), C par le dépassement budgétaire."
+        },
+        {
+          "optionId": "II-17-o2",
+          "quality": "SATISFACTORY",
+          "text": "Je choisis A car la capacité est suffisante et le budget est respecté."
+        },
+        {
+          "optionId": "II-17-o3",
+          "quality": "PARTIAL",
+          "text": "Je choisis C : une salle plus grande offre une marge de sécurité utile si des invités de dernière minute se présentent."
+        },
+        {
+          "optionId": "II-17-o4",
+          "quality": "DEFICIENT",
+          "text": "Je choisis B car la proximité des transports en commun est importante pour l'accessibilité."
+        }
+      ]
+    },
+    {
+      "itemId": "II-18",
+      "dimension": "II",
+      "format": "STANDARD",
+      "vignette": "Vous choisissez un ordinateur portable pour un graphiste de votre équipe (travail sur logiciels de retouche photo et montage vidéo). Trois options : A (moins cher, RAM 8 Go, GPU intégré, performances insuffisantes pour le montage vidéo 4K), B (dans le budget, RAM 16 Go, GPU dédié 4 Go, compatible avec les logiciels métiers), C (cher, hors budget, RAM 32 Go, GPU dédié 8 Go, performances maximales). Budget plafonné ; performances compatibles avec les logiciels métiers obligatoires.",
+      "task": "Classez les trois options du plus au moins adapté, puis choisissez la justification qui reflète le mieux votre raisonnement.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "II-18-o1",
+          "quality": "OPTIMAL",
+          "text": "Je choisis B : le tarif est dans le budget et les spécifications (16 Go RAM, GPU 4 Go) sont suffisantes pour les logiciels de retouche et montage utilisés. A est éliminé par des performances insuffisantes pour le montage 4K, C par le dépassement budgétaire."
+        },
+        {
+          "optionId": "II-18-o2",
+          "quality": "SATISFACTORY",
+          "text": "Je choisis B car les performances couvrent les besoins professionnels du graphiste."
+        },
+        {
+          "optionId": "II-18-o3",
+          "quality": "PARTIAL",
+          "text": "Je choisis C : investir dans la meilleure configuration réduit les risques de lenteur et prolonge la durée de vie utile de la machine."
+        },
+        {
+          "optionId": "II-18-o4",
+          "quality": "DEFICIENT",
+          "text": "Je choisis A car le design est plus léger, ce qui est pratique pour les déplacements."
+        }
+      ]
+    },
+    {
+      "itemId": "II-19",
+      "dimension": "II",
+      "format": "STANDARD",
+      "vignette": "Vous cherchez un local commercial pour ouvrir un cabinet paramédical recevant du public à mobilité réduite. Trois locaux : A (loyer dans votre budget, accès de plain-pied avec rampe PMR conforme), B (loyer moins cher, accès par un escalier de 3 marches, aucune rampe), C (loyer élevé, dépasse votre budget, accès PMR conforme avec ascenseur). Votre budget est plafonné et l'accessibilité PMR est une obligation réglementaire pour votre activité.",
+      "task": "Classez les trois locaux du plus au moins adapté, puis choisissez la justification qui reflète le mieux votre raisonnement.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "II-19-o1",
+          "quality": "OPTIMAL",
+          "text": "Je choisis A : le loyer respecte mon budget et l'accès PMR conforme répond à mon obligation réglementaire, contrairement à B (non accessible) et C (hors budget)."
+        },
+        {
+          "optionId": "II-19-o2",
+          "quality": "SATISFACTORY",
+          "text": "Je choisis A car l'accessibilité me semble correcte."
+        },
+        {
+          "optionId": "II-19-o3",
+          "quality": "PARTIAL",
+          "text": "Je choisis C car un local plus cher est toujours mieux situé."
+        },
+        {
+          "optionId": "II-19-o4",
+          "quality": "DEFICIENT",
+          "text": "Je choisis B car la façade est plus esthétique."
+        }
+      ]
+    },
+    {
+      "itemId": "II-20",
+      "dimension": "II",
+      "format": "STANDARD",
+      "vignette": "Vous devez louer un camion pour un déménagement professionnel. Trois véhicules : A (tarif dans votre budget, nécessite un permis B classique que vous détenez), B (moins cher, nécessite un permis C1 que vous ne détenez pas), C (cher, dépasse votre budget, nécessite un permis B classique). Votre budget est plafonné et vous ne pouvez conduire qu'avec le permis B que vous détenez.",
+      "task": "Classez les trois véhicules du plus au moins adapté, puis choisissez la justification qui reflète le mieux votre raisonnement.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "II-20-o1",
+          "quality": "OPTIMAL",
+          "text": "Je choisis A : le tarif respecte mon budget et le véhicule est compatible avec mon permis B, contrairement à B (permis non détenu) et C (hors budget)."
+        },
+        {
+          "optionId": "II-20-o2",
+          "quality": "SATISFACTORY",
+          "text": "Je choisis A car le véhicule me semble facile à conduire."
+        },
+        {
+          "optionId": "II-20-o3",
+          "quality": "PARTIAL",
+          "text": "Je choisis C car un camion plus cher est toujours plus fiable."
+        },
+        {
+          "optionId": "II-20-o4",
+          "quality": "DEFICIENT",
+          "text": "Je choisis B car la couleur du camion est plus discrète."
+        }
+      ]
+    },
+    {
+      "itemId": "II-21",
+      "dimension": "II",
+      "format": "STANDARD",
+      "vignette": "Vous cherchez une pension pour votre chien pendant vos vacances. Trois options : A (moins chère, pas de vétérinaire sur place), B (chère, dépasse votre budget, vétérinaire sur place), C (tarif dans votre budget, vétérinaire sur place). Votre budget est plafonné et un vétérinaire doit être disponible sur place en raison d'un traitement médical en cours.",
+      "task": "Classez les trois options du plus au moins adapté, puis choisissez la justification qui reflète le mieux votre raisonnement.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "II-21-o1",
+          "quality": "OPTIMAL",
+          "text": "Je choisis C : le tarif respecte mon budget et un vétérinaire est sur place pour le traitement de mon chien, contrairement à A (pas de vétérinaire) et B (hors budget)."
+        },
+        {
+          "optionId": "II-21-o2",
+          "quality": "SATISFACTORY",
+          "text": "Je choisis C car un vétérinaire est présent."
+        },
+        {
+          "optionId": "II-21-o3",
+          "quality": "PARTIAL",
+          "text": "Je choisis B car une pension plus chère est toujours plus sérieuse."
+        },
+        {
+          "optionId": "II-21-o4",
+          "quality": "DEFICIENT",
+          "text": "Je choisis A car les locaux ont l'air spacieux sur les photos."
+        }
+      ]
+    },
+    {
+      "itemId": "II-22",
+      "dimension": "II",
+      "format": "STANDARD",
+      "vignette": "Vous choisissez un fournisseur d'électricité pour votre entreprise. Trois offres : A (tarif dans votre budget, électricité certifiée 100 % renouvelable), B (chère, dépasse votre budget, électricité certifiée 100 % renouvelable), C (moins chère, électricité non certifiée renouvelable). Votre budget est plafonné et la certification 100 % renouvelable est exigée par votre charte RSE.",
+      "task": "Classez les trois offres de la plus à la moins adaptée, puis choisissez la justification qui reflète le mieux votre raisonnement.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "II-22-o1",
+          "quality": "OPTIMAL",
+          "text": "Je choisis A : le tarif respecte mon budget et l'électricité est certifiée renouvelable, comme l'exige ma charte RSE, contrairement à B (hors budget) et C (non certifiée)."
+        },
+        {
+          "optionId": "II-22-o2",
+          "quality": "SATISFACTORY",
+          "text": "Je choisis A car l'électricité me semble verte."
+        },
+        {
+          "optionId": "II-22-o3",
+          "quality": "PARTIAL",
+          "text": "Je choisis B car un fournisseur plus cher est toujours plus fiable."
+        },
+        {
+          "optionId": "II-22-o4",
+          "quality": "DEFICIENT",
+          "text": "Je choisis C car le site du fournisseur est plus moderne."
+        }
+      ]
+    },
+    {
+      "itemId": "II-23",
+      "dimension": "II",
+      "format": "STANDARD",
+      "vignette": "Vous cherchez un avocat pour un litige commercial complexe. Trois cabinets : A (honoraires dans votre budget, spécialisé en droit commercial), B (moins cher, généraliste sans spécialisation en droit commercial), C (cher, dépasse votre budget, spécialisé en droit commercial). Votre budget est plafonné et la spécialisation en droit commercial est indispensable pour ce dossier.",
+      "task": "Classez les trois cabinets du plus au moins adapté, puis choisissez la justification qui reflète le mieux votre raisonnement.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "II-23-o1",
+          "quality": "OPTIMAL",
+          "text": "Je choisis A : les honoraires respectent mon budget et la spécialisation en droit commercial correspond à mon dossier, contrairement à B (non spécialisé) et C (hors budget)."
+        },
+        {
+          "optionId": "II-23-o2",
+          "quality": "SATISFACTORY",
+          "text": "Je choisis A car l'avocat me semble compétent."
+        },
+        {
+          "optionId": "II-23-o3",
+          "quality": "PARTIAL",
+          "text": "Je choisis C car un avocat plus cher gagne toujours plus de dossiers."
+        },
+        {
+          "optionId": "II-23-o4",
+          "quality": "DEFICIENT",
+          "text": "Je choisis B car le cabinet est plus proche de mon domicile."
+        }
+      ]
+    },
+    {
+      "itemId": "II-24",
+      "dimension": "II",
+      "format": "STANDARD",
+      "vignette": "Vous choisissez un prestataire pour le nettoyage de vos entrepôts en hauteur. Trois prestataires : A (tarif dans votre budget, équipe habilitée travail en hauteur), B (moins cher, équipe non habilitée travail en hauteur), C (cher, dépasse votre budget, équipe habilitée travail en hauteur). Votre budget est plafonné et l'habilitation travail en hauteur est une obligation légale pour cette prestation.",
+      "task": "Classez les trois prestataires du plus au moins adapté, puis choisissez la justification qui reflète le mieux votre raisonnement.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "II-24-o1",
+          "quality": "OPTIMAL",
+          "text": "Je choisis A : le tarif respecte mon budget et l'équipe est habilitée travail en hauteur, comme l'exige la réglementation, contrairement à B (non habilitée) et C (hors budget)."
+        },
+        {
+          "optionId": "II-24-o2",
+          "quality": "SATISFACTORY",
+          "text": "Je choisis A car l'équipe me semble compétente."
+        },
+        {
+          "optionId": "II-24-o3",
+          "quality": "PARTIAL",
+          "text": "Je choisis C car un prestataire plus cher est toujours plus sérieux."
+        },
+        {
+          "optionId": "II-24-o4",
+          "quality": "DEFICIENT",
+          "text": "Je choisis B car les avis en ligne sont nombreux."
+        }
+      ]
+    },
+    {
+      "itemId": "ER-1",
+      "dimension": "ER",
+      "format": "STANDARD",
+      "vignette": "Option X : 50 € garantis. Option Y : 60 % de chance de gagner 90 €, 40 % de chance de gagner 0 €.",
+      "task": "Choisissez l'option X ou l'option Y.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "ER-1-X",
+          "quality": "SATISFACTORY",
+          "text": "Option X"
+        },
+        {
+          "optionId": "ER-1-Y",
+          "quality": "SATISFACTORY",
+          "text": "Option Y"
+        }
+      ]
+    },
+    {
+      "itemId": "ER-2",
+      "dimension": "ER",
+      "format": "STANDARD",
+      "vignette": "Option X : 30 € garantis. Option Y : 50 % de chance de gagner 70 €, 50 % de chance de gagner 0 €.",
+      "task": "Choisissez l'option X ou l'option Y.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "ER-2-X",
+          "quality": "SATISFACTORY",
+          "text": "Option X"
+        },
+        {
+          "optionId": "ER-2-Y",
+          "quality": "SATISFACTORY",
+          "text": "Option Y"
+        }
+      ]
+    },
+    {
+      "itemId": "ER-3",
+      "dimension": "ER",
+      "format": "STANDARD",
+      "vignette": "Option X : perte certaine de 50 €. Option Y : 50 % de chance de perdre 120 €, 50 % de chance de ne rien perdre.",
+      "task": "Choisissez l'option X ou l'option Y.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "ER-3-X",
+          "quality": "SATISFACTORY",
+          "text": "Option X"
+        },
+        {
+          "optionId": "ER-3-Y",
+          "quality": "SATISFACTORY",
+          "text": "Option Y"
+        }
+      ]
+    },
+    {
+      "itemId": "ER-4",
+      "dimension": "ER",
+      "format": "STANDARD",
+      "vignette": "Option X : 100 € garantis. Option Y : 25 % de chance de gagner 450 €, 75 % de chance de gagner 0 €.",
+      "task": "Choisissez l'option X ou l'option Y.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "ER-4-X",
+          "quality": "SATISFACTORY",
+          "text": "Option X"
+        },
+        {
+          "optionId": "ER-4-Y",
+          "quality": "SATISFACTORY",
+          "text": "Option Y"
+        }
+      ]
+    },
+    {
+      "itemId": "ER-5",
+      "dimension": "ER",
+      "format": "STANDARD",
+      "vignette": "Option X : perte certaine de 20 €. Option Y : 50 % de chance de perdre 50 €, 50 % de chance de ne rien perdre.",
+      "task": "Choisissez l'option X ou l'option Y.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "ER-5-X",
+          "quality": "SATISFACTORY",
+          "text": "Option X"
+        },
+        {
+          "optionId": "ER-5-Y",
+          "quality": "SATISFACTORY",
+          "text": "Option Y"
+        }
+      ]
+    },
+    {
+      "itemId": "ER-6",
+      "dimension": "ER",
+      "format": "STANDARD",
+      "vignette": "Option X : 200 € garantis. Option Y : 80 % de chance de gagner 270 €, 20 % de chance de gagner 0 €.",
+      "task": "Choisissez l'option X ou l'option Y.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "ER-6-X",
+          "quality": "SATISFACTORY",
+          "text": "Option X"
+        },
+        {
+          "optionId": "ER-6-Y",
+          "quality": "SATISFACTORY",
+          "text": "Option Y"
+        }
+      ]
+    },
+    {
+      "itemId": "ER-7",
+      "dimension": "ER",
+      "format": "STANDARD",
+      "vignette": "Option X : 40 € garantis. Option Y : 20 % de chance de gagner 250 €, 80 % de chance de gagner 0 €.",
+      "task": "Choisissez l'option X ou l'option Y.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "ER-7-X",
+          "quality": "SATISFACTORY",
+          "text": "Option X"
+        },
+        {
+          "optionId": "ER-7-Y",
+          "quality": "SATISFACTORY",
+          "text": "Option Y"
+        }
+      ]
+    },
+    {
+      "itemId": "ER-8",
+      "dimension": "ER",
+      "format": "STANDARD",
+      "vignette": "Option X : perte certaine de 80 €. Option Y : 90 % de chance de perdre 100 €, 10 % de chance de ne rien perdre.",
+      "task": "Choisissez l'option X ou l'option Y.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "ER-8-X",
+          "quality": "SATISFACTORY",
+          "text": "Option X"
+        },
+        {
+          "optionId": "ER-8-Y",
+          "quality": "SATISFACTORY",
+          "text": "Option Y"
+        }
+      ]
+    },
+    {
+      "itemId": "ER-9",
+      "dimension": "ER",
+      "format": "STANDARD",
+      "vignette": "Option X : 15 € garantis. Option Y : 50 % de chance de gagner 40 €, 50 % de chance de gagner 0 €.",
+      "task": "Choisissez l'option X ou l'option Y.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "ER-9-X",
+          "quality": "SATISFACTORY",
+          "text": "Option X"
+        },
+        {
+          "optionId": "ER-9-Y",
+          "quality": "SATISFACTORY",
+          "text": "Option Y"
+        }
+      ]
+    },
+    {
+      "itemId": "ER-10",
+      "dimension": "ER",
+      "format": "STANDARD",
+      "vignette": "Option X : perte certaine de 10 €. Option Y : 50 % de chance de perdre 25 €, 50 % de chance de ne rien perdre.",
+      "task": "Choisissez l'option X ou l'option Y.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "ER-10-X",
+          "quality": "SATISFACTORY",
+          "text": "Option X"
+        },
+        {
+          "optionId": "ER-10-Y",
+          "quality": "SATISFACTORY",
+          "text": "Option Y"
+        }
+      ]
+    },
+    {
+      "itemId": "ER-11",
+      "dimension": "ER",
+      "format": "STANDARD",
+      "vignette": "Option X : 500 € garantis. Option Y : 60 % de chance de gagner 900 €, 40 % de chance de gagner 0 €.",
+      "task": "Choisissez l'option X ou l'option Y.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "ER-11-X",
+          "quality": "SATISFACTORY",
+          "text": "Option X"
+        },
+        {
+          "optionId": "ER-11-Y",
+          "quality": "SATISFACTORY",
+          "text": "Option Y"
+        }
+      ]
+    },
+    {
+      "itemId": "ER-12",
+      "dimension": "ER",
+      "format": "STANDARD",
+      "vignette": "Option X : perte certaine de 300 €. Option Y : 60 % de chance de perdre 600 €, 40 % de chance de ne rien perdre.",
+      "task": "Choisissez l'option X ou l'option Y.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "ER-12-X",
+          "quality": "SATISFACTORY",
+          "text": "Option X"
+        },
+        {
+          "optionId": "ER-12-Y",
+          "quality": "SATISFACTORY",
+          "text": "Option Y"
+        }
+      ]
+    },
+    {
+      "itemId": "ER-13",
+      "dimension": "ER",
+      "format": "STANDARD",
+      "vignette": "Option X : 25 € garantis. Option Y : 10 % de chance de gagner 300 €, 90 % de chance de gagner 0 €.",
+      "task": "Choisissez l'option X ou l'option Y.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "ER-13-X",
+          "quality": "SATISFACTORY",
+          "text": "Option X"
+        },
+        {
+          "optionId": "ER-13-Y",
+          "quality": "SATISFACTORY",
+          "text": "Option Y"
+        }
+      ]
+    },
+    {
+      "itemId": "ER-14",
+      "dimension": "ER",
+      "format": "STANDARD",
+      "vignette": "Option X : perte certaine de 5 €. Option Y : 10 % de chance de perdre 60 €, 90 % de chance de ne rien perdre.",
+      "task": "Choisissez l'option X ou l'option Y.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "ER-14-X",
+          "quality": "SATISFACTORY",
+          "text": "Option X"
+        },
+        {
+          "optionId": "ER-14-Y",
+          "quality": "SATISFACTORY",
+          "text": "Option Y"
+        }
+      ]
+    },
+    {
+      "itemId": "ER-15",
+      "dimension": "ER",
+      "format": "STANDARD",
+      "vignette": "Option X : 70 € garantis. Option Y : 50 % de chance de gagner 160 €, 50 % de chance de gagner 0 €.",
+      "task": "Choisissez l'option X ou l'option Y.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "ER-15-X",
+          "quality": "SATISFACTORY",
+          "text": "Option X"
+        },
+        {
+          "optionId": "ER-15-Y",
+          "quality": "SATISFACTORY",
+          "text": "Option Y"
+        }
+      ]
+    },
+    {
+      "itemId": "ER-16",
+      "dimension": "ER",
+      "format": "STANDARD",
+      "vignette": "Option X : perte certaine de 100 €. Option Y : 50 % de chance de perdre 220 €, 50 % de chance de ne rien perdre.",
+      "task": "Choisissez l'option X ou l'option Y.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "ER-16-X",
+          "quality": "SATISFACTORY",
+          "text": "Option X"
+        },
+        {
+          "optionId": "ER-16-Y",
+          "quality": "SATISFACTORY",
+          "text": "Option Y"
+        }
+      ]
+    },
+    {
+      "itemId": "ER-17",
+      "dimension": "ER",
+      "format": "STANDARD",
+      "vignette": "Option X : 1 000 € garantis. Option Y : 30 % de chance de gagner 4 000 €, 70 % de chance de gagner 0 €.",
+      "task": "Choisissez l'option X ou l'option Y.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "ER-17-X",
+          "quality": "SATISFACTORY",
+          "text": "Option X"
+        },
+        {
+          "optionId": "ER-17-Y",
+          "quality": "SATISFACTORY",
+          "text": "Option Y"
+        }
+      ]
+    },
+    {
+      "itemId": "ER-18",
+      "dimension": "ER",
+      "format": "STANDARD",
+      "vignette": "Option X : perte certaine de 150 €. Option Y : 30 % de chance de perdre 600 €, 70 % de chance de ne rien perdre.",
+      "task": "Choisissez l'option X ou l'option Y.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "ER-18-X",
+          "quality": "SATISFACTORY",
+          "text": "Option X"
+        },
+        {
+          "optionId": "ER-18-Y",
+          "quality": "SATISFACTORY",
+          "text": "Option Y"
+        }
+      ]
+    },
+    {
+      "itemId": "ER-19",
+      "dimension": "ER",
+      "format": "STANDARD",
+      "vignette": "Option X : 60 € garantis. Option Y : 50 % de chance de gagner 150 €, 50 % de chance de gagner 0 €.",
+      "task": "Choisissez l'option X ou l'option Y.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "ER-19-o1",
+          "quality": "OPTIMAL",
+          "text": "Choix de Y — maximise l'utilité espérée (75 € > 60 €)."
+        },
+        {
+          "optionId": "ER-19-o2",
+          "quality": "SATISFACTORY",
+          "text": "Choix de X avec justification partielle cohérente (ex. aversion au risque explicitement déclarée)."
+        },
+        {
+          "optionId": "ER-19-o3",
+          "quality": "PARTIAL",
+          "text": "Choix de X sans justification ou avec justification incohérente."
+        },
+        {
+          "optionId": "ER-19-o4",
+          "quality": "DEFICIENT",
+          "text": "Réponse incohérente ou absente."
+        }
+      ]
+    },
+    {
+      "itemId": "ER-20",
+      "dimension": "ER",
+      "format": "STANDARD",
+      "vignette": "Option X : perte certaine de 40 €. Option Y : 50 % de chance de perdre 100 €, 50 % de chance de ne rien perdre.",
+      "task": "Choisissez l'option X ou l'option Y.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "ER-20-o1",
+          "quality": "OPTIMAL",
+          "text": "Choix de X — minimise la perte espérée (−40 € > −50 €)."
+        },
+        {
+          "optionId": "ER-20-o2",
+          "quality": "SATISFACTORY",
+          "text": "Choix de Y avec justification partielle cohérente."
+        },
+        {
+          "optionId": "ER-20-o3",
+          "quality": "PARTIAL",
+          "text": "Choix de Y sans justification ou avec justification incohérente."
+        },
+        {
+          "optionId": "ER-20-o4",
+          "quality": "DEFICIENT",
+          "text": "Réponse incohérente ou absente."
+        }
+      ]
+    },
+    {
+      "itemId": "ER-21",
+      "dimension": "ER",
+      "format": "STANDARD",
+      "vignette": "Option X : 120 € garantis. Option Y : 40 % de chance de gagner 350 €, 60 % de chance de gagner 0 €.",
+      "task": "Choisissez l'option X ou l'option Y.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "ER-21-o1",
+          "quality": "OPTIMAL",
+          "text": "Choix de Y — maximise l'utilité espérée (140 € > 120 €)."
+        },
+        {
+          "optionId": "ER-21-o2",
+          "quality": "SATISFACTORY",
+          "text": "Choix de X avec justification partielle cohérente."
+        },
+        {
+          "optionId": "ER-21-o3",
+          "quality": "PARTIAL",
+          "text": "Choix de X sans justification ou avec justification incohérente."
+        },
+        {
+          "optionId": "ER-21-o4",
+          "quality": "DEFICIENT",
+          "text": "Réponse incohérente ou absente."
+        }
+      ]
+    },
+    {
+      "itemId": "ER-22",
+      "dimension": "ER",
+      "format": "STANDARD",
+      "vignette": "Option X : perte certaine de 60 €. Option Y : 70 % de chance de perdre 100 €, 30 % de chance de ne rien perdre.",
+      "task": "Choisissez l'option X ou l'option Y.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "ER-22-o1",
+          "quality": "OPTIMAL",
+          "text": "Choix de X — minimise la perte espérée (−60 € > −70 €)."
+        },
+        {
+          "optionId": "ER-22-o2",
+          "quality": "SATISFACTORY",
+          "text": "Choix de Y avec justification partielle cohérente."
+        },
+        {
+          "optionId": "ER-22-o3",
+          "quality": "PARTIAL",
+          "text": "Choix de Y sans justification ou avec justification incohérente."
+        },
+        {
+          "optionId": "ER-22-o4",
+          "quality": "DEFICIENT",
+          "text": "Réponse incohérente ou absente."
+        }
+      ]
+    },
+    {
+      "itemId": "ER-23",
+      "dimension": "ER",
+      "format": "STANDARD",
+      "vignette": "Option X : 45 € garantis. Option Y : 25 % de chance de gagner 200 €, 75 % de chance de gagner 0 €.",
+      "task": "Choisissez l'option X ou l'option Y.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "ER-23-o1",
+          "quality": "OPTIMAL",
+          "text": "Choix de Y — maximise l'utilité espérée (50 € > 45 €)."
+        },
+        {
+          "optionId": "ER-23-o2",
+          "quality": "SATISFACTORY",
+          "text": "Choix de X avec justification partielle cohérente."
+        },
+        {
+          "optionId": "ER-23-o3",
+          "quality": "PARTIAL",
+          "text": "Choix de X sans justification ou avec justification incohérente."
+        },
+        {
+          "optionId": "ER-23-o4",
+          "quality": "DEFICIENT",
+          "text": "Réponse incohérente ou absente."
+        }
+      ]
+    },
+    {
+      "itemId": "ER-24",
+      "dimension": "ER",
+      "format": "STANDARD",
+      "vignette": "Option X : perte certaine de 250 €. Option Y : 40 % de chance de perdre 700 €, 60 % de chance de ne rien perdre.",
+      "task": "Choisissez l'option X ou l'option Y.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "ER-24-o1",
+          "quality": "OPTIMAL",
+          "text": "Choix de X — minimise la perte espérée (−250 € > −280 €)."
+        },
+        {
+          "optionId": "ER-24-o2",
+          "quality": "SATISFACTORY",
+          "text": "Choix de Y avec justification partielle cohérente."
+        },
+        {
+          "optionId": "ER-24-o3",
+          "quality": "PARTIAL",
+          "text": "Choix de Y sans justification ou avec justification incohérente."
+        },
+        {
+          "optionId": "ER-24-o4",
+          "quality": "DEFICIENT",
+          "text": "Réponse incohérente ou absente."
+        }
+      ]
+    },
+    {
+      "itemId": "DT-1",
+      "dimension": "DT",
+      "format": "TEMPORAL_DECISION",
+      "vignetteRef": "II-1",
+      "optimalOption": "B",
+      "task": "Vous disposez de 7 secondes pour choisir l'option A, B ou C.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "DT-1-A",
+          "quality": "DEFICIENT",
+          "text": "Option A"
+        },
+        {
+          "optionId": "DT-1-B",
+          "quality": "OPTIMAL",
+          "text": "Option B"
+        },
+        {
+          "optionId": "DT-1-C",
+          "quality": "DEFICIENT",
+          "text": "Option C"
+        }
+      ]
+    },
+    {
+      "itemId": "DT-2",
+      "dimension": "DT",
+      "format": "TEMPORAL_DECISION",
+      "vignetteRef": "II-2",
+      "optimalOption": "A",
+      "task": "Vous disposez de 7 secondes pour choisir l'option A, B ou C.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "DT-2-A",
+          "quality": "OPTIMAL",
+          "text": "Option A"
+        },
+        {
+          "optionId": "DT-2-B",
+          "quality": "DEFICIENT",
+          "text": "Option B"
+        },
+        {
+          "optionId": "DT-2-C",
+          "quality": "DEFICIENT",
+          "text": "Option C"
+        }
+      ]
+    },
+    {
+      "itemId": "DT-3",
+      "dimension": "DT",
+      "format": "TEMPORAL_DECISION",
+      "vignetteRef": "II-3",
+      "optimalOption": "A",
+      "task": "Vous disposez de 7 secondes pour choisir l'option A, B ou C.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "DT-3-A",
+          "quality": "OPTIMAL",
+          "text": "Option A"
+        },
+        {
+          "optionId": "DT-3-B",
+          "quality": "DEFICIENT",
+          "text": "Option B"
+        },
+        {
+          "optionId": "DT-3-C",
+          "quality": "DEFICIENT",
+          "text": "Option C"
+        }
+      ]
+    },
+    {
+      "itemId": "DT-4",
+      "dimension": "DT",
+      "format": "TEMPORAL_DECISION",
+      "vignetteRef": "II-4",
+      "optimalOption": "C",
+      "task": "Vous disposez de 7 secondes pour choisir l'option A, B ou C.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "DT-4-A",
+          "quality": "DEFICIENT",
+          "text": "Option A"
+        },
+        {
+          "optionId": "DT-4-B",
+          "quality": "DEFICIENT",
+          "text": "Option B"
+        },
+        {
+          "optionId": "DT-4-C",
+          "quality": "OPTIMAL",
+          "text": "Option C"
+        }
+      ]
+    },
+    {
+      "itemId": "DT-5",
+      "dimension": "DT",
+      "format": "TEMPORAL_DECISION",
+      "vignetteRef": "II-5",
+      "optimalOption": "C",
+      "task": "Vous disposez de 7 secondes pour choisir l'option A, B ou C.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "DT-5-A",
+          "quality": "DEFICIENT",
+          "text": "Option A"
+        },
+        {
+          "optionId": "DT-5-B",
+          "quality": "DEFICIENT",
+          "text": "Option B"
+        },
+        {
+          "optionId": "DT-5-C",
+          "quality": "OPTIMAL",
+          "text": "Option C"
+        }
+      ]
+    },
+    {
+      "itemId": "DT-6",
+      "dimension": "DT",
+      "format": "TEMPORAL_DECISION",
+      "vignetteRef": "II-6",
+      "optimalOption": "C",
+      "task": "Vous disposez de 7 secondes pour choisir l'option A, B ou C.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "DT-6-A",
+          "quality": "DEFICIENT",
+          "text": "Option A"
+        },
+        {
+          "optionId": "DT-6-B",
+          "quality": "DEFICIENT",
+          "text": "Option B"
+        },
+        {
+          "optionId": "DT-6-C",
+          "quality": "OPTIMAL",
+          "text": "Option C"
+        }
+      ]
+    },
+    {
+      "itemId": "DT-7",
+      "dimension": "DT",
+      "format": "TEMPORAL_DECISION",
+      "vignetteRef": "II-7",
+      "optimalOption": "A",
+      "task": "Vous disposez de 7 secondes pour choisir l'option A, B ou C.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "DT-7-A",
+          "quality": "OPTIMAL",
+          "text": "Option A"
+        },
+        {
+          "optionId": "DT-7-B",
+          "quality": "DEFICIENT",
+          "text": "Option B"
+        },
+        {
+          "optionId": "DT-7-C",
+          "quality": "DEFICIENT",
+          "text": "Option C"
+        }
+      ]
+    },
+    {
+      "itemId": "DT-8",
+      "dimension": "DT",
+      "format": "TEMPORAL_DECISION",
+      "vignetteRef": "II-8",
+      "optimalOption": "B",
+      "task": "Vous disposez de 7 secondes pour choisir l'option A, B ou C.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "DT-8-A",
+          "quality": "DEFICIENT",
+          "text": "Option A"
+        },
+        {
+          "optionId": "DT-8-B",
+          "quality": "OPTIMAL",
+          "text": "Option B"
+        },
+        {
+          "optionId": "DT-8-C",
+          "quality": "DEFICIENT",
+          "text": "Option C"
+        }
+      ]
+    },
+    {
+      "itemId": "DT-9",
+      "dimension": "DT",
+      "format": "TEMPORAL_DECISION",
+      "vignetteRef": "II-9",
+      "optimalOption": "C",
+      "task": "Vous disposez de 7 secondes pour choisir l'option A, B ou C.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "DT-9-A",
+          "quality": "DEFICIENT",
+          "text": "Option A"
+        },
+        {
+          "optionId": "DT-9-B",
+          "quality": "DEFICIENT",
+          "text": "Option B"
+        },
+        {
+          "optionId": "DT-9-C",
+          "quality": "OPTIMAL",
+          "text": "Option C"
+        }
+      ]
+    },
+    {
+      "itemId": "DT-10",
+      "dimension": "DT",
+      "format": "TEMPORAL_DECISION",
+      "vignetteRef": "II-10",
+      "optimalOption": "C",
+      "task": "Vous disposez de 7 secondes pour choisir l'option A, B ou C.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "DT-10-A",
+          "quality": "DEFICIENT",
+          "text": "Option A"
+        },
+        {
+          "optionId": "DT-10-B",
+          "quality": "DEFICIENT",
+          "text": "Option B"
+        },
+        {
+          "optionId": "DT-10-C",
+          "quality": "OPTIMAL",
+          "text": "Option C"
+        }
+      ]
+    },
+    {
+      "itemId": "DT-11",
+      "dimension": "DT",
+      "format": "TEMPORAL_DECISION",
+      "vignetteRef": "II-11",
+      "optimalOption": "C",
+      "task": "Vous disposez de 7 secondes pour choisir l'option A, B ou C.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "DT-11-A",
+          "quality": "DEFICIENT",
+          "text": "Option A"
+        },
+        {
+          "optionId": "DT-11-B",
+          "quality": "DEFICIENT",
+          "text": "Option B"
+        },
+        {
+          "optionId": "DT-11-C",
+          "quality": "OPTIMAL",
+          "text": "Option C"
+        }
+      ]
+    },
+    {
+      "itemId": "DT-12",
+      "dimension": "DT",
+      "format": "TEMPORAL_DECISION",
+      "vignetteRef": "II-12",
+      "optimalOption": "B",
+      "task": "Vous disposez de 7 secondes pour choisir l'option A, B ou C.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "DT-12-A",
+          "quality": "DEFICIENT",
+          "text": "Option A"
+        },
+        {
+          "optionId": "DT-12-B",
+          "quality": "OPTIMAL",
+          "text": "Option B"
+        },
+        {
+          "optionId": "DT-12-C",
+          "quality": "DEFICIENT",
+          "text": "Option C"
+        }
+      ]
+    },
+    {
+      "itemId": "DT-13",
+      "dimension": "DT",
+      "format": "TEMPORAL_DECISION",
+      "vignetteRef": "II-13",
+      "optimalOption": "A",
+      "task": "Vous disposez de 7 secondes pour choisir l'option A, B ou C.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "DT-13-A",
+          "quality": "OPTIMAL",
+          "text": "Option A"
+        },
+        {
+          "optionId": "DT-13-B",
+          "quality": "DEFICIENT",
+          "text": "Option B"
+        },
+        {
+          "optionId": "DT-13-C",
+          "quality": "DEFICIENT",
+          "text": "Option C"
+        }
+      ]
+    },
+    {
+      "itemId": "DT-14",
+      "dimension": "DT",
+      "format": "TEMPORAL_DECISION",
+      "vignetteRef": "II-14",
+      "optimalOption": "B",
+      "task": "Vous disposez de 7 secondes pour choisir l'option A, B ou C.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "DT-14-A",
+          "quality": "DEFICIENT",
+          "text": "Option A"
+        },
+        {
+          "optionId": "DT-14-B",
+          "quality": "OPTIMAL",
+          "text": "Option B"
+        },
+        {
+          "optionId": "DT-14-C",
+          "quality": "DEFICIENT",
+          "text": "Option C"
+        }
+      ]
+    },
+    {
+      "itemId": "DT-15",
+      "dimension": "DT",
+      "format": "TEMPORAL_DECISION",
+      "vignetteRef": "II-15",
+      "optimalOption": "C",
+      "task": "Vous disposez de 7 secondes pour choisir l'option A, B ou C.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "DT-15-A",
+          "quality": "DEFICIENT",
+          "text": "Option A"
+        },
+        {
+          "optionId": "DT-15-B",
+          "quality": "DEFICIENT",
+          "text": "Option B"
+        },
+        {
+          "optionId": "DT-15-C",
+          "quality": "OPTIMAL",
+          "text": "Option C"
+        }
+      ]
+    },
+    {
+      "itemId": "DT-16",
+      "dimension": "DT",
+      "format": "TEMPORAL_DECISION",
+      "vignetteRef": "II-16",
+      "optimalOption": "B",
+      "task": "Vous disposez de 7 secondes pour choisir l'option A, B ou C.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "DT-16-A",
+          "quality": "DEFICIENT",
+          "text": "Option A"
+        },
+        {
+          "optionId": "DT-16-B",
+          "quality": "OPTIMAL",
+          "text": "Option B"
+        },
+        {
+          "optionId": "DT-16-C",
+          "quality": "DEFICIENT",
+          "text": "Option C"
+        }
+      ]
+    },
+    {
+      "itemId": "DT-17",
+      "dimension": "DT",
+      "format": "TEMPORAL_DECISION",
+      "vignetteRef": "II-17",
+      "optimalOption": "A",
+      "task": "Vous disposez de 7 secondes pour choisir l'option A, B ou C.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "DT-17-A",
+          "quality": "OPTIMAL",
+          "text": "Option A"
+        },
+        {
+          "optionId": "DT-17-B",
+          "quality": "DEFICIENT",
+          "text": "Option B"
+        },
+        {
+          "optionId": "DT-17-C",
+          "quality": "DEFICIENT",
+          "text": "Option C"
+        }
+      ]
+    },
+    {
+      "itemId": "DT-18",
+      "dimension": "DT",
+      "format": "TEMPORAL_DECISION",
+      "vignetteRef": "II-18",
+      "optimalOption": "B",
+      "task": "Vous disposez de 7 secondes pour choisir l'option A, B ou C.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "DT-18-A",
+          "quality": "DEFICIENT",
+          "text": "Option A"
+        },
+        {
+          "optionId": "DT-18-B",
+          "quality": "OPTIMAL",
+          "text": "Option B"
+        },
+        {
+          "optionId": "DT-18-C",
+          "quality": "DEFICIENT",
+          "text": "Option C"
+        }
+      ]
+    },
+    {
+      "itemId": "DT-19",
+      "dimension": "DT",
+      "format": "TEMPORAL_DECISION",
+      "vignetteRef": "II-19",
+      "optimalOption": "B",
+      "task": "Vous disposez de 7 secondes pour choisir l'option A, B ou C.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "DT-19-A",
+          "quality": "DEFICIENT",
+          "text": "Option A"
+        },
+        {
+          "optionId": "DT-19-B",
+          "quality": "OPTIMAL",
+          "text": "Option B"
+        },
+        {
+          "optionId": "DT-19-C",
+          "quality": "DEFICIENT",
+          "text": "Option C"
+        }
+      ]
+    },
+    {
+      "itemId": "DT-20",
+      "dimension": "DT",
+      "format": "TEMPORAL_DECISION",
+      "vignetteRef": "II-20",
+      "optimalOption": "A",
+      "task": "Vous disposez de 7 secondes pour choisir l'option A, B ou C.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "DT-20-A",
+          "quality": "OPTIMAL",
+          "text": "Option A"
+        },
+        {
+          "optionId": "DT-20-B",
+          "quality": "DEFICIENT",
+          "text": "Option B"
+        },
+        {
+          "optionId": "DT-20-C",
+          "quality": "DEFICIENT",
+          "text": "Option C"
+        }
+      ]
+    },
+    {
+      "itemId": "DT-21",
+      "dimension": "DT",
+      "format": "TEMPORAL_DECISION",
+      "vignetteRef": "II-21",
+      "optimalOption": "C",
+      "task": "Vous disposez de 7 secondes pour choisir l'option A, B ou C.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "DT-21-A",
+          "quality": "DEFICIENT",
+          "text": "Option A"
+        },
+        {
+          "optionId": "DT-21-B",
+          "quality": "DEFICIENT",
+          "text": "Option B"
+        },
+        {
+          "optionId": "DT-21-C",
+          "quality": "OPTIMAL",
+          "text": "Option C"
+        }
+      ]
+    },
+    {
+      "itemId": "DT-22",
+      "dimension": "DT",
+      "format": "TEMPORAL_DECISION",
+      "vignetteRef": "II-22",
+      "optimalOption": "B",
+      "task": "Vous disposez de 7 secondes pour choisir l'option A, B ou C.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "DT-22-A",
+          "quality": "DEFICIENT",
+          "text": "Option A"
+        },
+        {
+          "optionId": "DT-22-B",
+          "quality": "OPTIMAL",
+          "text": "Option B"
+        },
+        {
+          "optionId": "DT-22-C",
+          "quality": "DEFICIENT",
+          "text": "Option C"
+        }
+      ]
+    },
+    {
+      "itemId": "DT-23",
+      "dimension": "DT",
+      "format": "TEMPORAL_DECISION",
+      "vignetteRef": "II-23",
+      "optimalOption": "A",
+      "task": "Vous disposez de 7 secondes pour choisir l'option A, B ou C.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "DT-23-A",
+          "quality": "OPTIMAL",
+          "text": "Option A"
+        },
+        {
+          "optionId": "DT-23-B",
+          "quality": "DEFICIENT",
+          "text": "Option B"
+        },
+        {
+          "optionId": "DT-23-C",
+          "quality": "DEFICIENT",
+          "text": "Option C"
+        }
+      ]
+    },
+    {
+      "itemId": "DT-24",
+      "dimension": "DT",
+      "format": "TEMPORAL_DECISION",
+      "vignetteRef": "II-24",
+      "optimalOption": "C",
+      "task": "Vous disposez de 7 secondes pour choisir l'option A, B ou C.",
+      "provisionalScoring": false,
+      "options": [
+        {
+          "optionId": "DT-24-A",
+          "quality": "DEFICIENT",
+          "text": "Option A"
+        },
+        {
+          "optionId": "DT-24-B",
+          "quality": "DEFICIENT",
+          "text": "Option B"
+        },
+        {
+          "optionId": "DT-24-C",
+          "quality": "OPTIMAL",
+          "text": "Option C"
+        }
+      ]
+    },
+    {
+      "itemId": "CS-1a",
+      "dimension": "CS",
+      "format": "COHERENCE_PAIR",
+      "pairId": "CS-1",
+      "vignette": "CS-1a — Cadrage GAIN\nPlan A : 200 emplois sauvés de façon certaine.\nPlan B : 1 chance sur 3 que les 600 emplois soient sauvés, 2 chances sur 3 qu'aucun ne le soit.",
+      "task": "Choisissez le Plan A ou le Plan B.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "CS-1a-A",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option A"
+        },
+        {
+          "optionId": "CS-1a-B",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option B"
+        }
+      ]
+    },
+    {
+      "itemId": "CS-1b",
+      "dimension": "CS",
+      "format": "COHERENCE_PAIR",
+      "pairId": "CS-1",
+      "vignette": "CS-1b — Cadrage PERTE\nPlan A : 400 emplois perdus de façon certaine.\nPlan B : 1 chance sur 3 qu'aucun emploi ne soit perdu, 2 chances sur 3 que les 600 le soient.",
+      "task": "Choisissez le Plan A ou le Plan B.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "CS-1b-A",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option A"
+        },
+        {
+          "optionId": "CS-1b-B",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option B"
+        }
+      ]
+    },
+    {
+      "itemId": "CS-2a",
+      "dimension": "CS",
+      "format": "COHERENCE_PAIR",
+      "pairId": "CS-2",
+      "vignette": "CS-2a — Cadrage GAIN\nOption A : conserver 7 000 € de façon certaine.\nOption B : 70 % de chance de conserver les 10 000 €, 30 % de chance de tout perdre.",
+      "task": "Choisissez le Plan A ou le Plan B.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "CS-2a-A",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option A"
+        },
+        {
+          "optionId": "CS-2a-B",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option B"
+        }
+      ]
+    },
+    {
+      "itemId": "CS-2b",
+      "dimension": "CS",
+      "format": "COHERENCE_PAIR",
+      "pairId": "CS-2",
+      "vignette": "CS-2b — Cadrage PERTE\nOption A : perdre 3 000 € de façon certaine.\nOption B : 70 % de chance de ne rien perdre, 30 % de chance de tout perdre.",
+      "task": "Choisissez le Plan A ou le Plan B.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "CS-2b-A",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option A"
+        },
+        {
+          "optionId": "CS-2b-B",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option B"
+        }
+      ]
+    },
+    {
+      "itemId": "CS-3a",
+      "dimension": "CS",
+      "format": "COHERENCE_PAIR",
+      "pairId": "CS-3",
+      "vignette": "CS-3a — Cadrage GAIN\nPlan A : 300 employés préservent leur santé de façon certaine.\nPlan B : 1 chance sur 3 que les 900 soient préservés, 2 chances sur 3 qu'aucun ne le soit.",
+      "task": "Choisissez le Plan A ou le Plan B.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "CS-3a-A",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option A"
+        },
+        {
+          "optionId": "CS-3a-B",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option B"
+        }
+      ]
+    },
+    {
+      "itemId": "CS-3b",
+      "dimension": "CS",
+      "format": "COHERENCE_PAIR",
+      "pairId": "CS-3",
+      "vignette": "CS-3b — Cadrage PERTE\nPlan A : la santé de 600 employés se dégradera de façon certaine.\nPlan B : 1 chance sur 3 qu'aucun employé ne soit affecté, 2 chances sur 3 que les 900 le soient.",
+      "task": "Choisissez le Plan A ou le Plan B.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "CS-3b-A",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option A"
+        },
+        {
+          "optionId": "CS-3b-B",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option B"
+        }
+      ]
+    },
+    {
+      "itemId": "CS-4a",
+      "dimension": "CS",
+      "format": "COHERENCE_PAIR",
+      "pairId": "CS-4",
+      "vignette": "CS-4a — Cadrage GAIN\nPlan A : 100 accidents évités de façon certaine.\nPlan B : 1 chance sur 3 d'éviter les 300 accidents, 2 chances sur 3 de n'en éviter aucun.",
+      "task": "Choisissez le Plan A ou le Plan B.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "CS-4a-A",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option A"
+        },
+        {
+          "optionId": "CS-4a-B",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option B"
+        }
+      ]
+    },
+    {
+      "itemId": "CS-4b",
+      "dimension": "CS",
+      "format": "COHERENCE_PAIR",
+      "pairId": "CS-4",
+      "vignette": "CS-4b — Cadrage PERTE\nPlan A : 200 accidents surviendront de façon certaine.\nPlan B : 1 chance sur 3 qu'aucun accident ne survienne, 2 chances sur 3 que les 300 surviennent.",
+      "task": "Choisissez le Plan A ou le Plan B.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "CS-4b-A",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option A"
+        },
+        {
+          "optionId": "CS-4b-B",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option B"
+        }
+      ]
+    },
+    {
+      "itemId": "CS-5a",
+      "dimension": "CS",
+      "format": "COHERENCE_PAIR",
+      "pairId": "CS-5",
+      "vignette": "CS-5a — Cadrage GAIN\nPlan A : 30 salariés seront formés de façon certaine.\nPlan B : 1 chance sur 3 que les 90 soient formés, 2 chances sur 3 qu'aucun ne le soit.",
+      "task": "Choisissez le Plan A ou le Plan B.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "CS-5a-A",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option A"
+        },
+        {
+          "optionId": "CS-5a-B",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option B"
+        }
+      ]
+    },
+    {
+      "itemId": "CS-5b",
+      "dimension": "CS",
+      "format": "COHERENCE_PAIR",
+      "pairId": "CS-5",
+      "vignette": "CS-5b — Cadrage PERTE\nPlan A : 60 salariés resteront sans formation de façon certaine.\nPlan B : 1 chance sur 3 que tous soient formés, 2 chances sur 3 qu'aucun ne le soit.",
+      "task": "Choisissez le Plan A ou le Plan B.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "CS-5b-A",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option A"
+        },
+        {
+          "optionId": "CS-5b-B",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option B"
+        }
+      ]
+    },
+    {
+      "itemId": "CS-6a",
+      "dimension": "CS",
+      "format": "COHERENCE_PAIR",
+      "pairId": "CS-6",
+      "vignette": "CS-6a — Cadrage GAIN\nPlan A : 300 tonnes préservées de façon certaine.\nPlan B : 1 chance sur 3 de préserver les 900 tonnes, 2 chances sur 3 de n'en préserver aucune.",
+      "task": "Choisissez le Plan A ou le Plan B.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "CS-6a-A",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option A"
+        },
+        {
+          "optionId": "CS-6a-B",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option B"
+        }
+      ]
+    },
+    {
+      "itemId": "CS-6b",
+      "dimension": "CS",
+      "format": "COHERENCE_PAIR",
+      "pairId": "CS-6",
+      "vignette": "CS-6b — Cadrage PERTE\nPlan A : 600 tonnes perdues de façon certaine.\nPlan B : 1 chance sur 3 qu'aucune tonne ne soit perdue, 2 chances sur 3 que les 900 le soient.",
+      "task": "Choisissez le Plan A ou le Plan B.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "CS-6b-A",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option A"
+        },
+        {
+          "optionId": "CS-6b-B",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option B"
+        }
+      ]
+    },
+    {
+      "itemId": "CS-7a",
+      "dimension": "CS",
+      "format": "COHERENCE_PAIR",
+      "pairId": "CS-7",
+      "vignette": "CS-7a — Cadrage GAIN\nPlan A : 300 hectares préservés de façon certaine.\nPlan B : 1 chance sur 3 de préserver les 900 hectares, 2 chances sur 3 de n'en préserver aucun.",
+      "task": "Choisissez le Plan A ou le Plan B.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "CS-7a-A",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option A"
+        },
+        {
+          "optionId": "CS-7a-B",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option B"
+        }
+      ]
+    },
+    {
+      "itemId": "CS-7b",
+      "dimension": "CS",
+      "format": "COHERENCE_PAIR",
+      "pairId": "CS-7",
+      "vignette": "CS-7b — Cadrage PERTE\nPlan A : 600 hectares dégradés de façon certaine.\nPlan B : 1 chance sur 3 qu'aucun hectare ne soit dégradé, 2 chances sur 3 que les 900 le soient.",
+      "task": "Choisissez le Plan A ou le Plan B.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "CS-7b-A",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option A"
+        },
+        {
+          "optionId": "CS-7b-B",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option B"
+        }
+      ]
+    },
+    {
+      "itemId": "CS-8a",
+      "dimension": "CS",
+      "format": "COHERENCE_PAIR",
+      "pairId": "CS-8",
+      "vignette": "CS-8a — Cadrage GAIN\nPlan A : 30 000 € préservés de façon certaine.\nPlan B : 1 chance sur 3 de préserver les 90 000 €, 2 chances sur 3 de tout perdre.",
+      "task": "Choisissez le Plan A ou le Plan B.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "CS-8a-A",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option A"
+        },
+        {
+          "optionId": "CS-8a-B",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option B"
+        }
+      ]
+    },
+    {
+      "itemId": "CS-8b",
+      "dimension": "CS",
+      "format": "COHERENCE_PAIR",
+      "pairId": "CS-8",
+      "vignette": "CS-8b — Cadrage PERTE\nPlan A : perdre 60 000 € de façon certaine.\nPlan B : 1 chance sur 3 de ne rien perdre, 2 chances sur 3 de tout perdre.",
+      "task": "Choisissez le Plan A ou le Plan B.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "CS-8b-A",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option A"
+        },
+        {
+          "optionId": "CS-8b-B",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option B"
+        }
+      ]
+    },
+    {
+      "itemId": "CS-9a",
+      "dimension": "CS",
+      "format": "COHERENCE_PAIR",
+      "pairId": "CS-9",
+      "vignette": "CS-9a — Cadrage GAIN\nPlan A : 300 salariés protégés de façon certaine.\nPlan B : 1 chance sur 3 de protéger les 900 salariés, 2 chances sur 3 de n'en protéger aucun.",
+      "task": "Choisissez le Plan A ou le Plan B.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "CS-9a-A",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option A"
+        },
+        {
+          "optionId": "CS-9a-B",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option B"
+        }
+      ]
+    },
+    {
+      "itemId": "CS-9b",
+      "dimension": "CS",
+      "format": "COHERENCE_PAIR",
+      "pairId": "CS-9",
+      "vignette": "CS-9b — Cadrage PERTE\nPlan A : 600 salariés touchés de façon certaine.\nPlan B : 1 chance sur 3 qu'aucun salarié ne soit touché, 2 chances sur 3 que les 900 le soient.",
+      "task": "Choisissez le Plan A ou le Plan B.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "CS-9b-A",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option A"
+        },
+        {
+          "optionId": "CS-9b-B",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option B"
+        }
+      ]
+    },
+    {
+      "itemId": "CS-10a",
+      "dimension": "CS",
+      "format": "COHERENCE_PAIR",
+      "pairId": "CS-10",
+      "vignette": "CS-10a — Cadrage GAIN\nPlan A : 60 000 dossiers clients seront protégés de façon certaine.\nPlan B : 1 chance sur 3 que les 180 000 dossiers soient protégés, 2 chances sur 3 qu'aucun ne le soit.",
+      "task": "Choisissez le Plan A ou le Plan B.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "CS-10a-A",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option A"
+        },
+        {
+          "optionId": "CS-10a-B",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option B"
+        }
+      ]
+    },
+    {
+      "itemId": "CS-10b",
+      "dimension": "CS",
+      "format": "COHERENCE_PAIR",
+      "pairId": "CS-10",
+      "vignette": "CS-10b — Cadrage PERTE\nPlan A : 120 000 dossiers clients seront compromis de façon certaine.\nPlan B : 1 chance sur 3 qu'aucun dossier ne soit compromis, 2 chances sur 3 que les 180 000 le soient.",
+      "task": "Choisissez le Plan A ou le Plan B.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "CS-10b-A",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option A"
+        },
+        {
+          "optionId": "CS-10b-B",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option B"
+        }
+      ]
+    },
+    {
+      "itemId": "CS-11a",
+      "dimension": "CS",
+      "format": "COHERENCE_PAIR",
+      "pairId": "CS-11",
+      "vignette": "CS-11a — Cadrage GAIN\nPlan A : 80 élèves réussiront leur année de façon certaine.\nPlan B : 1 chance sur 3 que les 240 élèves réussissent, 2 chances sur 3 qu'aucun ne réussisse.",
+      "task": "Choisissez le Plan A ou le Plan B.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "CS-11a-A",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option A"
+        },
+        {
+          "optionId": "CS-11a-B",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option B"
+        }
+      ]
+    },
+    {
+      "itemId": "CS-11b",
+      "dimension": "CS",
+      "format": "COHERENCE_PAIR",
+      "pairId": "CS-11",
+      "vignette": "CS-11b — Cadrage PERTE\nPlan A : 160 élèves sur 240 échoueront leur année de façon certaine.\nPlan B : 1 chance sur 3 qu'aucun élève n'échoue, 2 chances sur 3 que les 240 échouent.",
+      "task": "Choisissez le Plan A ou le Plan B.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "CS-11b-A",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option A"
+        },
+        {
+          "optionId": "CS-11b-B",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option B"
+        }
+      ]
+    },
+    {
+      "itemId": "CS-12a",
+      "dimension": "CS",
+      "format": "COHERENCE_PAIR",
+      "pairId": "CS-12",
+      "vignette": "CS-12a — Cadrage GAIN\nPlan A : 100 000 foyers seront épargnés par la coupure de façon certaine.\nPlan B : 1 chance sur 3 que les 300 000 foyers soient épargnés, 2 chances sur 3 qu'aucun ne le soit.",
+      "task": "Choisissez le Plan A ou le Plan B.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "CS-12a-A",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option A"
+        },
+        {
+          "optionId": "CS-12a-B",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option B"
+        }
+      ]
+    },
+    {
+      "itemId": "CS-12b",
+      "dimension": "CS",
+      "format": "COHERENCE_PAIR",
+      "pairId": "CS-12",
+      "vignette": "CS-12b — Cadrage PERTE\nPlan A : 200 000 foyers sur 300 000 subiront une coupure de façon certaine.\nPlan B : 1 chance sur 3 qu'aucun foyer ne subisse de coupure, 2 chances sur 3 que les 300 000 la subissent.",
+      "task": "Choisissez le Plan A ou le Plan B.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "CS-12b-A",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option A"
+        },
+        {
+          "optionId": "CS-12b-B",
+          "quality": "SATISFACTORY",
+          "text": "Plan / Option B"
+        }
+      ]
+    },
+    {
+      "itemId": "RE-1",
+      "dimension": "RE",
+      "format": "STANDARD",
+      "vignette": "Option immédiate : 10 € maintenant. Option différée : 25 € dans 7 jours.",
+      "task": "Choisissez l'option immédiate ou l'option différée.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "RE-1-IMMEDIATE",
+          "quality": "SATISFACTORY",
+          "text": "Option immédiate"
+        },
+        {
+          "optionId": "RE-1-DEFERRED",
+          "quality": "SATISFACTORY",
+          "text": "Option différée"
+        }
+      ]
+    },
+    {
+      "itemId": "RE-2",
+      "dimension": "RE",
+      "format": "STANDARD",
+      "vignette": "Option immédiate : 15 € maintenant. Option différée : 40 € dans 14 jours.",
+      "task": "Choisissez l'option immédiate ou l'option différée.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "RE-2-IMMEDIATE",
+          "quality": "SATISFACTORY",
+          "text": "Option immédiate"
+        },
+        {
+          "optionId": "RE-2-DEFERRED",
+          "quality": "SATISFACTORY",
+          "text": "Option différée"
+        }
+      ]
+    },
+    {
+      "itemId": "RE-3",
+      "dimension": "RE",
+      "format": "STANDARD",
+      "vignette": "Option immédiate : 5 € maintenant. Option différée : 12 € dans 3 jours.",
+      "task": "Choisissez l'option immédiate ou l'option différée.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "RE-3-IMMEDIATE",
+          "quality": "SATISFACTORY",
+          "text": "Option immédiate"
+        },
+        {
+          "optionId": "RE-3-DEFERRED",
+          "quality": "SATISFACTORY",
+          "text": "Option différée"
+        }
+      ]
+    },
+    {
+      "itemId": "RE-4",
+      "dimension": "RE",
+      "format": "STANDARD",
+      "vignette": "Option immédiate : 50 € maintenant. Option différée : 100 € dans 30 jours.",
+      "task": "Choisissez l'option immédiate ou l'option différée.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "RE-4-IMMEDIATE",
+          "quality": "SATISFACTORY",
+          "text": "Option immédiate"
+        },
+        {
+          "optionId": "RE-4-DEFERRED",
+          "quality": "SATISFACTORY",
+          "text": "Option différée"
+        }
+      ]
+    },
+    {
+      "itemId": "RE-5",
+      "dimension": "RE",
+      "format": "STANDARD",
+      "vignette": "Une offre s'affiche avec un compte à rebours visuel : « 10 € maintenant — 10 secondes restantes » (rouge clignotant) vs 15 € dans 2 jours sans contrainte de temps.",
+      "task": "Choisissez l'option immédiate ou l'option différée.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "RE-5-IMMEDIATE",
+          "quality": "SATISFACTORY",
+          "text": "Option immédiate"
+        },
+        {
+          "optionId": "RE-5-DEFERRED",
+          "quality": "SATISFACTORY",
+          "text": "Option différée"
+        }
+      ]
+    },
+    {
+      "itemId": "RE-6",
+      "dimension": "RE",
+      "format": "STANDARD",
+      "vignette": "Option immédiate : 20 € maintenant. Option différée : 60 € dans 60 jours.",
+      "task": "Choisissez l'option immédiate ou l'option différée.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "RE-6-IMMEDIATE",
+          "quality": "SATISFACTORY",
+          "text": "Option immédiate"
+        },
+        {
+          "optionId": "RE-6-DEFERRED",
+          "quality": "SATISFACTORY",
+          "text": "Option différée"
+        }
+      ]
+    },
+    {
+      "itemId": "RE-7",
+      "dimension": "RE",
+      "format": "STANDARD",
+      "vignette": "Option immédiate : 8 € maintenant. Option différée : 20 € dans 5 jours.",
+      "task": "Choisissez l'option immédiate ou l'option différée.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "RE-7-IMMEDIATE",
+          "quality": "SATISFACTORY",
+          "text": "Option immédiate"
+        },
+        {
+          "optionId": "RE-7-DEFERRED",
+          "quality": "SATISFACTORY",
+          "text": "Option différée"
+        }
+      ]
+    },
+    {
+      "itemId": "RE-8",
+      "dimension": "RE",
+      "format": "STANDARD",
+      "vignette": "Option immédiate : 25 € maintenant. Option différée : 55 € dans 21 jours.",
+      "task": "Choisissez l'option immédiate ou l'option différée.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "RE-8-IMMEDIATE",
+          "quality": "SATISFACTORY",
+          "text": "Option immédiate"
+        },
+        {
+          "optionId": "RE-8-DEFERRED",
+          "quality": "SATISFACTORY",
+          "text": "Option différée"
+        }
+      ]
+    },
+    {
+      "itemId": "RE-9",
+      "dimension": "RE",
+      "format": "STANDARD",
+      "vignette": "Option immédiate : 12 € maintenant. Option différée : 30 € dans 10 jours.",
+      "task": "Choisissez l'option immédiate ou l'option différée.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "RE-9-IMMEDIATE",
+          "quality": "SATISFACTORY",
+          "text": "Option immédiate"
+        },
+        {
+          "optionId": "RE-9-DEFERRED",
+          "quality": "SATISFACTORY",
+          "text": "Option différée"
+        }
+      ]
+    },
+    {
+      "itemId": "RE-10",
+      "dimension": "RE",
+      "format": "STANDARD",
+      "vignette": "Option immédiate : 100 € maintenant. Option différée : 180 € dans 45 jours.",
+      "task": "Choisissez l'option immédiate ou l'option différée.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "RE-10-IMMEDIATE",
+          "quality": "SATISFACTORY",
+          "text": "Option immédiate"
+        },
+        {
+          "optionId": "RE-10-DEFERRED",
+          "quality": "SATISFACTORY",
+          "text": "Option différée"
+        }
+      ]
+    },
+    {
+      "itemId": "RE-11",
+      "dimension": "RE",
+      "format": "STANDARD",
+      "vignette": "Une offre flash s'affiche : « 20 € maintenant — 15 secondes restantes » (bandeau rouge) vs 35 € dans 3 jours sans contrainte de temps.",
+      "task": "Choisissez l'option immédiate ou l'option différée.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "RE-11-IMMEDIATE",
+          "quality": "SATISFACTORY",
+          "text": "Option immédiate"
+        },
+        {
+          "optionId": "RE-11-DEFERRED",
+          "quality": "SATISFACTORY",
+          "text": "Option différée"
+        }
+      ]
+    },
+    {
+      "itemId": "RE-12",
+      "dimension": "RE",
+      "format": "STANDARD",
+      "vignette": "Option immédiate : 30 € maintenant. Option différée : 90 € dans 90 jours.",
+      "task": "Choisissez l'option immédiate ou l'option différée.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "RE-12-IMMEDIATE",
+          "quality": "SATISFACTORY",
+          "text": "Option immédiate"
+        },
+        {
+          "optionId": "RE-12-DEFERRED",
+          "quality": "SATISFACTORY",
+          "text": "Option différée"
+        }
+      ]
+    },
+    {
+      "itemId": "RE-13",
+      "dimension": "RE",
+      "format": "STANDARD",
+      "vignette": "Option immédiate : 6 € maintenant. Option différée : 8 € dans 2 jours.",
+      "task": "Choisissez l'option immédiate ou l'option différée.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "RE-13-IMMEDIATE",
+          "quality": "SATISFACTORY",
+          "text": "Option immédiate"
+        },
+        {
+          "optionId": "RE-13-DEFERRED",
+          "quality": "SATISFACTORY",
+          "text": "Option différée"
+        }
+      ]
+    },
+    {
+      "itemId": "RE-14",
+      "dimension": "RE",
+      "format": "STANDARD",
+      "vignette": "Option immédiate : 40 € maintenant. Option différée : 70 € dans 14 jours.",
+      "task": "Choisissez l'option immédiate ou l'option différée.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "RE-14-IMMEDIATE",
+          "quality": "SATISFACTORY",
+          "text": "Option immédiate"
+        },
+        {
+          "optionId": "RE-14-DEFERRED",
+          "quality": "SATISFACTORY",
+          "text": "Option différée"
+        }
+      ]
+    },
+    {
+      "itemId": "RE-15",
+      "dimension": "RE",
+      "format": "STANDARD",
+      "vignette": "Une offre s'affiche avec compte à rebours et message : « 50 € maintenant — 30 secondes » vs 80 € dans 10 jours sans contrainte de temps.",
+      "task": "Choisissez l'option immédiate ou l'option différée.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "RE-15-IMMEDIATE",
+          "quality": "SATISFACTORY",
+          "text": "Option immédiate"
+        },
+        {
+          "optionId": "RE-15-DEFERRED",
+          "quality": "SATISFACTORY",
+          "text": "Option différée"
+        }
+      ]
+    },
+    {
+      "itemId": "RE-16",
+      "dimension": "RE",
+      "format": "STANDARD",
+      "vignette": "Option immédiate : 18 € maintenant. Option différée : 45 € dans 30 jours.",
+      "task": "Choisissez l'option immédiate ou l'option différée.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "RE-16-IMMEDIATE",
+          "quality": "SATISFACTORY",
+          "text": "Option immédiate"
+        },
+        {
+          "optionId": "RE-16-DEFERRED",
+          "quality": "SATISFACTORY",
+          "text": "Option différée"
+        }
+      ]
+    },
+    {
+      "itemId": "RE-17",
+      "dimension": "RE",
+      "format": "STANDARD",
+      "vignette": "Option immédiate : 3 € maintenant. Option différée : 8 € dans 4 jours.",
+      "task": "Choisissez l'option immédiate ou l'option différée.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "RE-17-IMMEDIATE",
+          "quality": "SATISFACTORY",
+          "text": "Option immédiate"
+        },
+        {
+          "optionId": "RE-17-DEFERRED",
+          "quality": "SATISFACTORY",
+          "text": "Option différée"
+        }
+      ]
+    },
+    {
+      "itemId": "RE-18",
+      "dimension": "RE",
+      "format": "STANDARD",
+      "vignette": "Option immédiate : 200 € maintenant. Option différée : 320 € dans 60 jours.",
+      "task": "Choisissez l'option immédiate ou l'option différée.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "RE-18-IMMEDIATE",
+          "quality": "SATISFACTORY",
+          "text": "Option immédiate"
+        },
+        {
+          "optionId": "RE-18-DEFERRED",
+          "quality": "SATISFACTORY",
+          "text": "Option différée"
+        }
+      ]
+    },
+    {
+      "itemId": "RE-19",
+      "dimension": "RE",
+      "format": "STANDARD",
+      "vignette": "Option immédiate : 7 € maintenant. Option différée : 18 € dans 6 jours.",
+      "task": "Choisissez l'option immédiate ou l'option différée.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "RE-19-IMMEDIATE",
+          "quality": "SATISFACTORY",
+          "text": "Option immédiate"
+        },
+        {
+          "optionId": "RE-19-DEFERRED",
+          "quality": "SATISFACTORY",
+          "text": "Option différée"
+        }
+      ]
+    },
+    {
+      "itemId": "RE-20",
+      "dimension": "RE",
+      "format": "STANDARD",
+      "vignette": "Option immédiate : 22 € maintenant. Option différée : 50 € dans 20 jours.",
+      "task": "Choisissez l'option immédiate ou l'option différée.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "RE-20-IMMEDIATE",
+          "quality": "SATISFACTORY",
+          "text": "Option immédiate"
+        },
+        {
+          "optionId": "RE-20-DEFERRED",
+          "quality": "SATISFACTORY",
+          "text": "Option différée"
+        }
+      ]
+    },
+    {
+      "itemId": "RE-21",
+      "dimension": "RE",
+      "format": "STANDARD",
+      "vignette": "Une offre s'affiche avec un compte à rebours : « 30 € maintenant, offre valable 20 secondes » (urgence visuelle marquée) vs 45 € dans 5 jours sans contrainte de temps.",
+      "task": "Choisissez l'option immédiate ou l'option différée.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "RE-21-IMMEDIATE",
+          "quality": "SATISFACTORY",
+          "text": "Option immédiate"
+        },
+        {
+          "optionId": "RE-21-DEFERRED",
+          "quality": "SATISFACTORY",
+          "text": "Option différée"
+        }
+      ]
+    },
+    {
+      "itemId": "RE-22",
+      "dimension": "RE",
+      "format": "STANDARD",
+      "vignette": "Option immédiate : 60 € maintenant. Option différée : 110 € dans 40 jours.",
+      "task": "Choisissez l'option immédiate ou l'option différée.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "RE-22-IMMEDIATE",
+          "quality": "SATISFACTORY",
+          "text": "Option immédiate"
+        },
+        {
+          "optionId": "RE-22-DEFERRED",
+          "quality": "SATISFACTORY",
+          "text": "Option différée"
+        }
+      ]
+    },
+    {
+      "itemId": "RE-23",
+      "dimension": "RE",
+      "format": "STANDARD",
+      "vignette": "Option immédiate : 9 € maintenant. Option différée : 22 € dans 6 jours.",
+      "task": "Choisissez l'option immédiate ou l'option différée.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "RE-23-IMMEDIATE",
+          "quality": "SATISFACTORY",
+          "text": "Option immédiate"
+        },
+        {
+          "optionId": "RE-23-DEFERRED",
+          "quality": "SATISFACTORY",
+          "text": "Option différée"
+        }
+      ]
+    },
+    {
+      "itemId": "RE-24",
+      "dimension": "RE",
+      "format": "STANDARD",
+      "vignette": "Option immédiate : 150 € maintenant. Option différée : 260 € dans 50 jours.",
+      "task": "Choisissez l'option immédiate ou l'option différée.",
+      "provisionalScoring": true,
+      "options": [
+        {
+          "optionId": "RE-24-IMMEDIATE",
+          "quality": "SATISFACTORY",
+          "text": "Option immédiate"
+        },
+        {
+          "optionId": "RE-24-DEFERRED",
+          "quality": "SATISFACTORY",
+          "text": "Option différée"
+        }
+      ]
+    }
+  ]
+}

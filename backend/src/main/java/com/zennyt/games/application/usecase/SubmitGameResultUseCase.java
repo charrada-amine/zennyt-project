@@ -108,8 +108,8 @@ public class SubmitGameResultUseCase {
         this.coordinationMetrics = coordinationMetrics;
         this.objectLocationMetrics = objectLocationMetrics;
         this.eventPublisher = eventPublisher;
-        // « Je Décide » : le catalogue (port) est injecté ; l'impl vivante est vide
-        // tant que le psychologue n'a pas fourni les 30 scénarios.
+        // « Je Décide » : le catalogue (port) est injecté ; l'impl vivante
+        // (JsonDecisionScenarioCatalog) est désormais remplie par la banque de 120 items.
         this.decision = new DecisionScoringService(decisionCatalog);
     }
 
