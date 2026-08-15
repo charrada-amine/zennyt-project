@@ -29,8 +29,9 @@ et sont réutilisables :
 - **La règle d'absorption** (question 3) : si un poids de module doit un jour être ajusté
   pour une raison quelconque, la répartition proportionnelle avec plancher est démontrée
   sûre, et la répartition à parts égales démontrée inapplicable.
-- **Le dénominateur inférieur à 100** (partie 2.4) : ce constat concerne le Fit Score
-  actuel, indépendamment de toute pondération culturelle.
+- ~~**Le dénominateur inférieur à 100** (partie 2.4)~~ — **résolu le 15 août 2026.** Le
+  catalogue « Je Décide » a été livré, les cinq modules sont mesurables et le dénominateur
+  vaut 100 partout. Le constat était juste au moment de l'écrire ; il ne s'applique plus.
 
 ---
 
@@ -290,7 +291,13 @@ suivi de la réussite en poste. Le projet n'a aucune donnée de ce type.
 ❌ Un modèle appris sur l'historique reproduit les biais de l'historique — précisément le
 risque que l'AI Act vise. Demanderait un test de non-discrimination formel.
 
-## 2.4 Un point qu'aucune option ne doit ignorer
+## 2.4 Un point qu'aucune option ne doit ignorer *(résolu depuis)*
+
+> **Cette section n'est plus d'actualité.** Le catalogue « Je Décide » a été livré le
+> 15 août 2026 : les cinq modules sont mesurables et le dénominateur vaut 100 sur tous les
+> profils. Le raisonnement est conservé parce qu'il reste vrai en général — un plafond
+> exprimé en points de pondération ne veut pas dire la même chose selon le dénominateur —
+> mais les chiffres ci-dessous appartiennent désormais au passé.
 
 Un bonus de +9 points **ne vaut pas 9 points de Fit Score**. Le sous-score soft n'est pas
 divisé par 100, mais par la somme des poids des modules **mesurables** — et « Prise de

@@ -1,7 +1,7 @@
 # Fit Score et recommandation — comment ça marche
 
 **Module Recrutement — Zennyt**
-Document de référence. État au 11 août 2026.
+Document de référence. État au 15 août 2026.
 
 ---
 
@@ -134,7 +134,7 @@ ou plusieurs mini-jeux :
 |---|---|---|
 | **Flexibilité cognitive** | Move Fast · Je continue · Je coordonne | ✅ 3 sur 3 |
 | **Mémoire de travail** | Memory Quest · Je place | ✅ 2 sur 2 |
-| **Prise de décision** | Je Décide | ❌ **aucun** |
+| **Prise de décision** | Je Décide | ✅ 1 sur 1 |
 | **Planification exécutive** | Planifik | ✅ 1 sur 1 |
 | **Régulation émotionnelle** | Emotional Radar · Reflective Pause | ✅ 1 sur 1 * |
 
@@ -152,9 +152,14 @@ lire le domaine de Games. Ce doublon a déjà dérivé une fois — les trois je
 calcul. Un test de parité fait désormais échouer la CI si les deux listes cessent de
 coïncider.
 
-⚠️ **« Prise de décision » n'est mesurable par personne.** Le moteur et les écrans existent,
-mais le catalogue des 30 scénarios est vide — il attend le psychologue. Ce module ne compte
-donc dans aucun score aujourd'hui (voir 3.4).
+✅ **« Prise de décision » est mesurable depuis le 15 août 2026.** Le catalogue attendu
+depuis le début du projet — 120 items livrés par le psychologue — est en place, et le
+module compte désormais dans tous les scores. **Les cinq modules du cahier des charges sont
+donc mesurables**, pour la première fois.
+
+Conséquence à connaître : ne pas jouer « Je Décide » coûte maintenant le poids du module,
+soit **30 points sur un profil Technique ou Analytique**. La veille, le module était
+purement ignoré et ne coûtait rien.
 
 ### 3.2 La formule du sous-score soft
 
@@ -194,6 +199,10 @@ incomplète — pas une déformation du score.
 
 ### 3.4 Pourquoi un module non mesurable en sort entièrement
 
+> **Depuis le 15 août 2026, aucun module n'est dans ce cas.** Le mécanisme reste en place et
+> testé — il servira si Games retire un jour un jeu — mais il ne s'applique aujourd'hui à
+> personne. Cette section explique pourquoi il existe.
+
 Symétriquement : on ne pénalise personne pour un jeu **qui n'existe pour personne**.
 
 Si « Prise de décision » restait au dénominateur, sur un métier Technique où il pèse 30 %,
@@ -208,6 +217,10 @@ soit exactement le seuil « bon profil ». Personne ne pourrait jamais le dépas
 Le module sort donc des deux côtés de la fraction, et les quatre autres se répartissent
 mécaniquement l'espace. Le jour où Games livre le catalogue de scénarios, il suffit de
 basculer un drapeau : le calcul s'adapte sans autre modification.
+
+**C'est exactement ce qui s'est passé le 15 août 2026.** Un drapeau a suffi, et le
+dénominateur est repassé à 100 sur tous les profils. La section 5.6 en tire les
+conséquences.
 
 ### 3.5 La couverture
 
@@ -488,29 +501,40 @@ portent les mêmes cinq valeurs.
 | CONVENTIONNEL | 15 | 30 | 15 | 30 | 10 |
 | ARTISTIQUE | **40** | 15 | 15 | 15 | 15 |
 
-### 5.6 Les poids *effectifs* aujourd'hui ⚠️
+### 5.6 Les poids effectifs : ce sont désormais les poids nominaux ✅
 
-C'est le tableau le plus important de cette partie, et le moins intuitif.
+Cette section a longtemps porté le tableau le plus contre-intuitif du document. **Elle ne
+l'est plus depuis le 15 août 2026**, et l'histoire mérite d'être gardée.
 
-Puisque « Prise de décision » n'est mesurable par personne (3.4), son poids sort du
-dénominateur. Les poids réellement appliqués ne sont donc **pas** ceux du tableau
-précédent :
+Tant que « Prise de décision » n'était mesurable par personne, son poids sortait du
+dénominateur, et les poids réellement appliqués n'étaient pas ceux du tableau 5.5. Sur un
+métier Technique, la flexibilité cognitive pesait en réalité **42,9 %** du sous-score soft
+et non 30 %, parce qu'on divisait par 70 et non par 100.
 
-| Profil | Dénominateur réel | Flex. cognitive | Mém. travail | Planification | Rég. émotionnelle |
-|---|---|---|---|---|---|
-| TECHNIQUE | **70** | 30 → **42,9 %** | 20 → 28,6 % | 15 → 21,4 % | 5 → 7,1 % |
-| ANALYTIQUE | **70** | 25 → **35,7 %** | 20 → 28,6 % | 15 → 21,4 % | 10 → 14,3 % |
-| RELATIONNEL | **80** | 10 → 12,5 % | 10 → 12,5 % | 15 → 18,8 % | 45 → **56,3 %** |
-| MANAGERIAL | **80** | 10 → 12,5 % | 10 → 12,5 % | 30 → **37,5 %** | 30 → **37,5 %** |
-| CONVENTIONNEL | **85** | 15 → 17,6 % | 30 → **35,3 %** | 30 → **35,3 %** | 10 → 11,8 % |
-| ARTISTIQUE | **85** | 40 → **47,1 %** | 15 → 17,6 % | 15 → 17,6 % | 15 → 17,6 % |
+Le catalogue livré, **les cinq modules pèsent, le dénominateur vaut 100 partout, et les
+poids effectifs sont exactement les poids nominaux du tableau 5.5.** Il n'y a plus d'écart
+à corriger mentalement.
 
-Sur un métier **Technique**, la flexibilité cognitive pèse donc en réalité **42,9 %** du
-sous-score soft, pas 30 %. Le jour où « Je Décide » sera livré, tous ces pourcentages
-changeront — sans qu'aucune ligne de code ne bouge.
+| Profil | Dénominateur | Écart entre poids nominal et poids effectif |
+|---|---|---|
+| Les six profils | **100** | aucun |
 
-⚠️ **Ce dénominateur, différent de 100, se propage plus loin qu'on ne l'imagine.** Il est
-notamment ce qui invalide une justification du cahier des charges culture (partie 13.1).
+**Ce que ce changement a déplacé, concrètement :**
+
+| Profil | Flexibilité cognitive — avant | après |
+|---|---|---|
+| TECHNIQUE | 42,9 % | **30 %** |
+| ANALYTIQUE | 35,7 % | **25 %** |
+| ARTISTIQUE | 47,1 % | **40 %** |
+
+Les candidats déjà notés voient donc leur score bouger, sans qu'aucune pondération n'ait
+été touchée. C'est le comportement voulu : le calcul reflète enfin la matrice telle qu'elle
+a été écrite.
+
+> **Un point qui a disparu avec cette livraison.** Le dénominateur inférieur à 100
+> invalidait une justification du cahier des charges « pondération culture » — celle du
+> plafond de la couche D. Ce cahier des charges ayant été abandonné le 11 août (partie IV),
+> et le dénominateur étant revenu à 100 le 15, la question est doublement close.
 
 ### 5.7 « v1 — non calibré »
 
@@ -1164,7 +1188,7 @@ Tous sont modifiables par variable d'environnement, **sans redéploiement**.
 
 | Sujet | État |
 |---|---|
-| Le mini-jeu « Prise de décision » | Non jouable — le catalogue de 30 scénarios est vide. Un module sur cinq ne compte donc dans aucun score. C'est le dernier trou du référentiel de jeux. |
+| Le mini-jeu « Prise de décision » | ✅ **Livré le 15 août 2026** — catalogue de 120 items. Les cinq modules sont mesurables et le dénominateur vaut 100. |
 | Le calcul du mode MIXTE | Le mode est stocké et lisible, mais le sous-score hard ne le distingue pas encore de QCM. Ni pondération portfolio/test, ni dépôt de portfolio. |
 | L'alerte hard skills sur les métiers MIXTE | ✅ Corrigé le 11 août 2026 — l'alerte suit le mode du métier, vérifié sur base réelle (5.9). |
 | La calibration des 24 lignes | `calibrated = false` partout. Atelier RH requis. |
@@ -1179,4 +1203,4 @@ Tous sont modifiables par variable d'environnement, **sans redéploiement**.
 ---
 
 *Module Recrutement — projet Zennyt. Toutes les valeurs de ce document proviennent du code
-et des migrations, pas d'estimations. État au 11 août 2026.*
+et des migrations, pas d'estimations. État au 15 août 2026.*
