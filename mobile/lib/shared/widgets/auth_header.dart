@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/theme.dart';
+import '../../core/utils/responsive.dart';
 import 'zennyt_logo.dart';
 
 /// Shared header used at the top of auth / sign-up screens: the centered
@@ -20,10 +21,12 @@ class AuthHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final bool shouldShowLogo = showLogo && !Responsive.isDesktop(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        if (showLogo) ...[
+        if (shouldShowLogo) ...[
           const ZennytLogo(size: 44, showTagline: true),
           const SizedBox(height: AppSpacing.xl),
         ],

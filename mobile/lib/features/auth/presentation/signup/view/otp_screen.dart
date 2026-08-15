@@ -11,6 +11,7 @@ import '../../../../../core/utils/responsive.dart';
 import '../../../../../shared/widgets/primary_button.dart';
 import '../../../../../shared/widgets/zennyt_logo.dart';
 import '../../../../../core/theme/theme.dart';
+import '../../widgets/auth_desktop_shell.dart';
 import '../viewmodel/signup_viewmodel.dart';
 
 class OtpScreen extends ConsumerStatefulWidget {
@@ -115,99 +116,116 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
 
     final colors = context.colors;
 
-    return Scaffold(
-      backgroundColor: colors.scaffoldBg,
-      body: SafeArea(
-        child: CenteredConstrainedBox(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: hPadding),
-            child: Column(
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: AppSpacing.xl),
-                        const Center(
-                          child: ZennytLogo(size: 48, showTagline: true),
-                        ),
-                        const SizedBox(height: AppSpacing.xxxl),
-                        Text(
-                          AppStrings.confirmationSmsTitle,
-                          style: AppTypography.headlineMedium.copyWith(
-                            color: colors.textPrimary,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.sm),
-                        Text(
-                          AppStrings.confirmationSmsBody,
-                          style: AppTypography.bodyMedium.copyWith(
-                            color: colors.textSecondary,
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.xl),
-                        _OtpBoxes(
-                          controller: _pinController,
-                          isError: isError,
-                          isValid: isValid,
-                          boxWidth: boxWidth,
-                          gap: gap,
-                          pinTheme: _pinTheme,
-                          onChanged: (value) {
-                            ref
-                                .read(signupViewModelProvider.notifier)
-                                .resetOtpStatus();
-                            final complete = value.length == 6;
-                            if (complete != _isComplete) {
-                              setState(() => _isComplete = complete);
-                            }
-                          },
-                        ),
-                        if (isError) ...[
-                          const SizedBox(height: AppSpacing.sm),
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.error_outline_rounded,
-                                size: AppSpacing.iconSm,
-                                color: colors.error,
-                              ),
-                              const SizedBox(width: AppSpacing.xs),
-                              Text(
-                                AppStrings.invalidCode,
-                                style: AppTypography.bodySmall.copyWith(
-                                  color: colors.error,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                        const SizedBox(height: AppSpacing.xl),
-                        Center(
-                          child: SizedBox(
-                            width: 190,
-                            child: PrimaryButton(
-                              label: AppStrings.continueLabel,
-                              loading: state.isLoading,
-                              onPressed: _isComplete ? _verify : null,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+    final innerForm = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: AppSpacing.xl),
+        const Center(
+          child: ZennytLogo(size: 48, showTagline: true),
+        ),
+        const SizedBox(height: AppSpacing.xxxl),
+        Text(
+          AppStrings.confirmationSmsTitle,
+          style: AppTypography.headlineMedium.copyWith(
+            color: colors.textPrimary,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Text(
+          AppStrings.confirmationSmsBody,
+          style: AppTypography.bodyMedium.copyWith(
+            color: colors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        _OtpBoxes(
+          controller: _pinController,
+          isError: isError,
+          isValid: isValid,
+          boxWidth: boxWidth,
+          gap: gap,
+          pinTheme: _pinTheme,
+          onChanged: (value) {
+            ref
+                .read(signupViewModelProvider.notifier)
+                .resetOtpStatus();
+            final complete = value.length == 6;
+            if (complete != _isComplete) {
+              setState(() => _isComplete = complete);
+            }
+          },
+        ),
+        if (isError) ...[
+          const SizedBox(height: AppSpacing.sm),
+          Row(
+            children: [
+              Icon(
+                Icons.error_outline_rounded,
+                size: AppSpacing.iconSm,
+                color: colors.error,
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              Text(
+                AppStrings.invalidCode,
+                style: AppTypography.bodySmall.copyWith(
+                  color: colors.error,
                 ),
-                _ResendRow(secondsLeft: _secondsLeft, onResend: _resend),
-                const SizedBox(height: AppSpacing.xxl),
-                _ChangePhoneBlock(
-                  onTap: () => context.push(AppRoutes.changePhone),
-                ),
-                const SizedBox(height: AppSpacing.xl),
-              ],
+              ),
+            ],
+          ),
+        ],
+        const SizedBox(height: AppSpacing.xl),
+        Center(
+          child: SizedBox(
+            width: 190,
+            child: PrimaryButton(
+              label: AppStrings.continueLabel,
+              loading: state.isLoading,
+              onPressed: _isComplete ? _verify : null,
             ),
           ),
+        ),
+      ],
+    );
+
+    return ResponsiveBuilder(
+      mobile: (context) => Scaffold(
+        backgroundColor: colors.scaffoldBg,
+        body: SafeArea(
+          child: CenteredConstrainedBox(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: hPadding),
+              child: Column(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: innerForm,
+                    ),
+                  ),
+                  _ResendRow(secondsLeft: _secondsLeft, onResend: _resend),
+                  const SizedBox(height: AppSpacing.xxl),
+                  _ChangePhoneBlock(
+                    onTap: () => context.push(AppRoutes.changePhone),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+      desktop: (context) => AuthDesktopShell(
+        formContent: Column(
+          children: [
+            innerForm,
+            const SizedBox(height: AppSpacing.xxxl),
+            _ResendRow(secondsLeft: _secondsLeft, onResend: _resend),
+            const SizedBox(height: AppSpacing.xxl),
+            _ChangePhoneBlock(
+              onTap: () => context.push(AppRoutes.changePhone),
+            ),
+          ],
         ),
       ),
     );

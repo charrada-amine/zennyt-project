@@ -43,6 +43,16 @@ class AppUser {
 
   String get fullName => '$firstName $lastName';
 
+  /// Returns [profileImageUrl] if present and non-empty, or deterministically
+  /// generates a default avatar URL using [email] as the seed.
+  String get effectiveAvatarUrl {
+    if (profileImageUrl != null && profileImageUrl!.isNotEmpty) {
+      return profileImageUrl!;
+    }
+    final seed = email.trim().isNotEmpty ? email.trim() : 'zennyt';
+    return 'https://api.dicebear.com/9.x/avataaars/png?seed=${Uri.encodeComponent(seed)}';
+  }
+
   factory AppUser.fromJson(Map<String, dynamic> json) => AppUser(
     id: (json['id'] ?? '').toString(),
     firstName: (json['firstName'] ?? '') as String,

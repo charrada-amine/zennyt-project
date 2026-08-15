@@ -42,7 +42,7 @@ public class ProfileController {
                                    @Valid @RequestBody UserUpdateRequest request) {
         return UserResponse.from(identity.updateUser(userId, request.firstName(),
             request.lastName(), request.phoneNumber(), request.city(), request.country(),
-            request.address()));
+            request.address(), request.profileImageUrl()));
     }
 
     @PostMapping(value = "/users/me/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

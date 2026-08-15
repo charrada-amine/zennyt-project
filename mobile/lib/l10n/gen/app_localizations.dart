@@ -1045,6 +1045,840 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to save profile: {error}'**
   String cvReviewSaveFailed(String error);
+
+  /// No description provided for @acceptAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Accept'**
+  String get acceptAction;
+
+  /// No description provided for @actionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Action failed.\nPlease try again.'**
+  String get actionFailed;
+
+  /// No description provided for @add.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get add;
+
+  /// No description provided for @addAnOption.
+  ///
+  /// In en, this message translates to:
+  /// **'Add an option'**
+  String get addAnOption;
+
+  /// No description provided for @aiResumeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Resume'**
+  String get aiResumeLabel;
+
+  /// No description provided for @allChats.
+  ///
+  /// In en, this message translates to:
+  /// **'All chats'**
+  String get allChats;
+
+  /// No description provided for @andTwoOthers.
+  ///
+  /// In en, this message translates to:
+  /// **'and 2 others'**
+  String get andTwoOthers;
+
+  /// No description provided for @areYouSureLogOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to log out?'**
+  String get areYouSureLogOut;
+
+  /// No description provided for @audioCall.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio Call'**
+  String get audioCall;
+
+  /// No description provided for @block.
+  ///
+  /// In en, this message translates to:
+  /// **'Block'**
+  String get block;
+
+  /// No description provided for @calling.
+  ///
+  /// In en, this message translates to:
+  /// **'Calling...'**
+  String get calling;
+
+  /// No description provided for @cameraOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera Off'**
+  String get cameraOff;
+
+  /// No description provided for @cameraOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera On'**
+  String get cameraOn;
+
+  /// No description provided for @closeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get closeLabel;
+
+  /// No description provided for @commentPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a comment...'**
+  String get commentPlaceholder;
+
+  /// No description provided for @commentsAndShares.
+  ///
+  /// In en, this message translates to:
+  /// **'{comments} Comments · {shares} Shares'**
+  String commentsAndShares(String comments, String shares);
+
+  /// No description provided for @commentsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Comments'**
+  String get commentsTitle;
+
+  /// No description provided for @confirmOffer.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm offer'**
+  String get confirmOffer;
+
+  /// No description provided for @connected.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected'**
+  String get connected;
+
+  /// No description provided for @conversationId.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversation ID'**
+  String get conversationId;
+
+  /// No description provided for @customerService.
+  ///
+  /// In en, this message translates to:
+  /// **'24/7 customer service'**
+  String get customerService;
+
+  /// No description provided for @deleteLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get deleteLabel;
+
+  /// No description provided for @discussionAssistant.
+  ///
+  /// In en, this message translates to:
+  /// **'Discussion assistant'**
+  String get discussionAssistant;
+
+  /// No description provided for @discussionAssistantTyping.
+  ///
+  /// In en, this message translates to:
+  /// **'Discussion assistant is typing'**
+  String get discussionAssistantTyping;
+
+  /// No description provided for @documentLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Document'**
+  String get documentLabel;
+
+  /// No description provided for @earpiece.
+  ///
+  /// In en, this message translates to:
+  /// **'Earpiece'**
+  String get earpiece;
+
+  /// No description provided for @editProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Profile'**
+  String get editProfile;
+
+  /// No description provided for @effectApplied.
+  ///
+  /// In en, this message translates to:
+  /// **'Effect {effect} applied!'**
+  String effectApplied(String effect);
+
+  /// No description provided for @effects.
+  ///
+  /// In en, this message translates to:
+  /// **'effects'**
+  String get effects;
+
+  /// No description provided for @end.
+  ///
+  /// In en, this message translates to:
+  /// **'end'**
+  String get end;
+
+  /// No description provided for @errorLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Error: {error}'**
+  String errorLabel(String error);
+
+  /// No description provided for @errorText.
+  ///
+  /// In en, this message translates to:
+  /// **'Error'**
+  String get errorText;
+
+  /// No description provided for @exploreOffer.
+  ///
+  /// In en, this message translates to:
+  /// **'Explore offer'**
+  String get exploreOffer;
+
+  /// No description provided for @filter1.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter 1'**
+  String get filter1;
+
+  /// No description provided for @filter2.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter 2'**
+  String get filter2;
+
+  /// No description provided for @filter3.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter 3'**
+  String get filter3;
+
+  /// No description provided for @filterAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get filterAll;
+
+  /// No description provided for @filterJobOffers.
+  ///
+  /// In en, this message translates to:
+  /// **'Job Offers'**
+  String get filterJobOffers;
+
+  /// No description provided for @filterProfessionals.
+  ///
+  /// In en, this message translates to:
+  /// **'Professionals'**
+  String get filterProfessionals;
+
+  /// No description provided for @flip.
+  ///
+  /// In en, this message translates to:
+  /// **'flip'**
+  String get flip;
+
+  /// No description provided for @friendsVisibility.
+  ///
+  /// In en, this message translates to:
+  /// **'Friends'**
+  String get friendsVisibility;
+
+  /// No description provided for @great.
+  ///
+  /// In en, this message translates to:
+  /// **'Great'**
+  String get great;
+
+  /// No description provided for @hide.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide'**
+  String get hide;
+
+  /// No description provided for @hiringContact.
+  ///
+  /// In en, this message translates to:
+  /// **'Hiring contact'**
+  String get hiringContact;
+
+  /// No description provided for @iAppreciateYourService.
+  ///
+  /// In en, this message translates to:
+  /// **'I appreciate your service'**
+  String get iAppreciateYourService;
+
+  /// No description provided for @identityVerificationDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'The recruiter has requested an identity verification with face matching to ensure trust and security.'**
+  String get identityVerificationDescription;
+
+  /// No description provided for @identityVerificationRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Identity verification required !'**
+  String get identityVerificationRequired;
+
+  /// No description provided for @important.
+  ///
+  /// In en, this message translates to:
+  /// **'Important !'**
+  String get important;
+
+  /// No description provided for @importantAlertDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'The video interview will be automatically recorded for moderation purposes.\nDo not ask for a candidate\'s personal contact details.'**
+  String get importantAlertDescription;
+
+  /// No description provided for @jobOpportunity.
+  ///
+  /// In en, this message translates to:
+  /// **'Job Opportunity'**
+  String get jobOpportunity;
+
+  /// No description provided for @justNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Just now'**
+  String get justNow;
+
+  /// No description provided for @timeAgoMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} {count, plural, =1{minute} other{minutes}} ago'**
+  String timeAgoMinutes(int count);
+
+  /// No description provided for @timeAgoHours.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} {count, plural, =1{hour} other{hours}} ago'**
+  String timeAgoHours(int count);
+
+  /// No description provided for @timeAgoDays.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} {count, plural, =1{day} other{days}} ago'**
+  String timeAgoDays(int count);
+
+  /// No description provided for @timeAgoMonths.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} {count, plural, =1{month} other{months}} ago'**
+  String timeAgoMonths(int count);
+
+  /// No description provided for @timeAgoYears.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} {count, plural, =1{year} other{years}} ago'**
+  String timeAgoYears(int count);
+
+  /// No description provided for @likedByAndOthers.
+  ///
+  /// In en, this message translates to:
+  /// **'Liked by {name} & {others} others'**
+  String likedByAndOthers(String name, String others);
+
+  /// No description provided for @likedYourPost.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} liked your post'**
+  String likedYourPost(String name);
+
+  /// No description provided for @mediaAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get mediaAdd;
+
+  /// No description provided for @mediaAddCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Add ({count})'**
+  String mediaAddCount(int count);
+
+  /// No description provided for @mediaLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Media'**
+  String get mediaLabel;
+
+  /// No description provided for @mediaPermissionDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo library access is required to select media.'**
+  String get mediaPermissionDenied;
+
+  /// No description provided for @mediaRecents.
+  ///
+  /// In en, this message translates to:
+  /// **'Recents'**
+  String get mediaRecents;
+
+  /// No description provided for @mute.
+  ///
+  /// In en, this message translates to:
+  /// **'mute'**
+  String get mute;
+
+  /// No description provided for @myId.
+  ///
+  /// In en, this message translates to:
+  /// **'My ID (UUID)'**
+  String get myId;
+
+  /// No description provided for @newLike.
+  ///
+  /// In en, this message translates to:
+  /// **'New like'**
+  String get newLike;
+
+  /// No description provided for @newProject.
+  ///
+  /// In en, this message translates to:
+  /// **'New Project'**
+  String get newProject;
+
+  /// No description provided for @noChats.
+  ///
+  /// In en, this message translates to:
+  /// **'Aucun chat'**
+  String get noChats;
+
+  /// No description provided for @noCommentsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No comments yet.'**
+  String get noCommentsYet;
+
+  /// No description provided for @noMatchingOffers.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching offers.'**
+  String get noMatchingOffers;
+
+  /// No description provided for @noNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'No notifications to show.'**
+  String get noNotifications;
+
+  /// No description provided for @noPortfolioItems.
+  ///
+  /// In en, this message translates to:
+  /// **'No portfolio items yet'**
+  String get noPortfolioItems;
+
+  /// No description provided for @noPostsToShow.
+  ///
+  /// In en, this message translates to:
+  /// **'No posts to show.'**
+  String get noPostsToShow;
+
+  /// No description provided for @ok.
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get ok;
+
+  /// No description provided for @oneVote.
+  ///
+  /// In en, this message translates to:
+  /// **'1 vote'**
+  String get oneVote;
+
+  /// No description provided for @optionIndex.
+  ///
+  /// In en, this message translates to:
+  /// **'Option {index}'**
+  String optionIndex(int index);
+
+  /// No description provided for @optionsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} options'**
+  String optionsCount(int count);
+
+  /// No description provided for @outputCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Add your card'**
+  String get outputCard;
+
+  /// No description provided for @overview.
+  ///
+  /// In en, this message translates to:
+  /// **'Overview'**
+  String get overview;
+
+  /// No description provided for @perMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'/Mo.'**
+  String get perMonth;
+
+  /// No description provided for @poll.
+  ///
+  /// In en, this message translates to:
+  /// **'Poll'**
+  String get poll;
+
+  /// No description provided for @pollAttached.
+  ///
+  /// In en, this message translates to:
+  /// **'Poll attached'**
+  String get pollAttached;
+
+  /// No description provided for @pollDisclaimer.
+  ///
+  /// In en, this message translates to:
+  /// **'* We do not allow requests related to political opinions, medical information, or other sensitive data.\nThis option is only intended for questions related to Progress Careers.'**
+  String get pollDisclaimer;
+
+  /// No description provided for @poor.
+  ///
+  /// In en, this message translates to:
+  /// **'Poor'**
+  String get poor;
+
+  /// No description provided for @portfolioLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Portfolio'**
+  String get portfolioLabel;
+
+  /// No description provided for @postAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Post'**
+  String get postAction;
+
+  /// No description provided for @postCreationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to publish your post.\nPlease try again.'**
+  String get postCreationFailed;
+
+  /// No description provided for @postHidden.
+  ///
+  /// In en, this message translates to:
+  /// **'Post hidden from your feed.'**
+  String get postHidden;
+
+  /// No description provided for @postLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Post'**
+  String get postLabel;
+
+  /// No description provided for @prepareYourId.
+  ///
+  /// In en, this message translates to:
+  /// **'Prepare your ID'**
+  String get prepareYourId;
+
+  /// No description provided for @profileLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile'**
+  String get profileLabel;
+
+  /// No description provided for @publicVisibility.
+  ///
+  /// In en, this message translates to:
+  /// **'Public'**
+  String get publicVisibility;
+
+  /// No description provided for @publishLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Publish'**
+  String get publishLabel;
+
+  /// No description provided for @rateYourExperience.
+  ///
+  /// In en, this message translates to:
+  /// **'Rate your experience'**
+  String get rateYourExperience;
+
+  /// No description provided for @read.
+  ///
+  /// In en, this message translates to:
+  /// **'Read'**
+  String get read;
+
+  /// No description provided for @recipientId.
+  ///
+  /// In en, this message translates to:
+  /// **'Recipient ID (UUID)'**
+  String get recipientId;
+
+  /// No description provided for @recruiter.
+  ///
+  /// In en, this message translates to:
+  /// **'Recruiter'**
+  String get recruiter;
+
+  /// No description provided for @rejectAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Reject'**
+  String get rejectAction;
+
+  /// No description provided for @rejectOffer.
+  ///
+  /// In en, this message translates to:
+  /// **'Reject offer'**
+  String get rejectOffer;
+
+  /// No description provided for @remoteLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Remote'**
+  String get remoteLabel;
+
+  /// No description provided for @report.
+  ///
+  /// In en, this message translates to:
+  /// **'Report'**
+  String get report;
+
+  /// No description provided for @resumeAi.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume AI'**
+  String get resumeAi;
+
+  /// No description provided for @retry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get retry;
+
+  /// No description provided for @scoreLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Score'**
+  String get scoreLabel;
+
+  /// No description provided for @send.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get send;
+
+  /// No description provided for @sendMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Send message...'**
+  String get sendMessage;
+
+  /// No description provided for @sent.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent'**
+  String get sent;
+
+  /// No description provided for @shareLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get shareLabel;
+
+  /// No description provided for @showAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Show all'**
+  String get showAll;
+
+  /// No description provided for @showLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Show'**
+  String get showLabel;
+
+  /// No description provided for @softSkillsScore.
+  ///
+  /// In en, this message translates to:
+  /// **'SOFT SKILLS SCORE'**
+  String get softSkillsScore;
+
+  /// No description provided for @speaker.
+  ///
+  /// In en, this message translates to:
+  /// **'Speaker'**
+  String get speaker;
+
+  /// No description provided for @stayTuned.
+  ///
+  /// In en, this message translates to:
+  /// **'Stay tuned for new notifications.'**
+  String get stayTuned;
+
+  /// No description provided for @tellUsMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Tell us more'**
+  String get tellUsMore;
+
+  /// No description provided for @thankYouForYourOpinion.
+  ///
+  /// In en, this message translates to:
+  /// **'Thank you for your opinion'**
+  String get thankYouForYourOpinion;
+
+  /// No description provided for @timeframe.
+  ///
+  /// In en, this message translates to:
+  /// **'Timeframe'**
+  String get timeframe;
+
+  /// No description provided for @timeLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'{duration} left'**
+  String timeLeft(String duration);
+
+  /// No description provided for @today.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get today;
+
+  /// No description provided for @typeTheQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Type the question'**
+  String get typeTheQuestion;
+
+  /// No description provided for @userBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'User blocked.\nTheir posts are hidden from your feed.'**
+  String get userBlocked;
+
+  /// No description provided for @verifyNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify now'**
+  String get verifyNow;
+
+  /// No description provided for @videoCall.
+  ///
+  /// In en, this message translates to:
+  /// **'Video Call'**
+  String get videoCall;
+
+  /// No description provided for @videoOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Video On'**
+  String get videoOn;
+
+  /// No description provided for @voteCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} votes'**
+  String voteCount(int count);
+
+  /// No description provided for @voted.
+  ///
+  /// In en, this message translates to:
+  /// **'Voted'**
+  String get voted;
+
+  /// No description provided for @votesCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} votes'**
+  String votesCount(int count);
+
+  /// No description provided for @weAreOffering.
+  ///
+  /// In en, this message translates to:
+  /// **'We are offering a {position} position with a salary of '**
+  String weAreOffering(String position);
+
+  /// No description provided for @whatCanWeImprove.
+  ///
+  /// In en, this message translates to:
+  /// **'What can we improve?'**
+  String get whatCanWeImprove;
+
+  /// No description provided for @yesterday.
+  ///
+  /// In en, this message translates to:
+  /// **'Yesterday'**
+  String get yesterday;
+
+  /// No description provided for @yourComments.
+  ///
+  /// In en, this message translates to:
+  /// **'Your comments'**
+  String get yourComments;
+
+  /// No description provided for @yourQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Your question'**
+  String get yourQuestion;
+
+  /// No description provided for @homeError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error: {error}'**
+  String homeError(String error);
+
+  /// No description provided for @timeframe1Day.
+  ///
+  /// In en, this message translates to:
+  /// **'1 day'**
+  String get timeframe1Day;
+
+  /// No description provided for @timeframe3Days.
+  ///
+  /// In en, this message translates to:
+  /// **'3 days'**
+  String get timeframe3Days;
+
+  /// No description provided for @timeframe7Days.
+  ///
+  /// In en, this message translates to:
+  /// **'7 days'**
+  String get timeframe7Days;
+
+  /// No description provided for @timeframe14Days.
+  ///
+  /// In en, this message translates to:
+  /// **'14 days'**
+  String get timeframe14Days;
+
+  /// No description provided for @dateFormatted.
+  ///
+  /// In en, this message translates to:
+  /// **'{day}/{month}/{year}'**
+  String dateFormatted(String day, String month, String year);
+
+  /// No description provided for @sessionExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Your session has expired. Please log in again.'**
+  String get sessionExpired;
+
+  /// No description provided for @likesCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} likes'**
+  String likesCount(String count);
 }
 
 class _AppLocalizationsDelegate

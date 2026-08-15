@@ -23,6 +23,20 @@ class AppRoutes {
 
   static const String home = '/home';
 
+  // Jobs, Calls, Chat & Community Features
+  static const String jobs = '/jobs';
+  static const String call = '/call';
+  static const String videoCall = '/video-call';
+  static const String chats = '/chats';
+  static const String chatDetail = '/chats/:id';
+  static const String createPost = '/create-post';
+  static const String createPostMedia = '/create-post/media';
+  static const String createPostPoll = '/create-post/poll';
+  static const String helpCenter = '/help-center';
+  static const String helpCenterDetail = '/help-center/:id';
+  static const String testFeatures = '/test-features';
+  static const String notifications = '/notifications';
+
   // Games (jeux sérieux cognitifs)
   static const String games = '/games';
   static const String gamesPlanifik = '/games/planifik';
@@ -79,6 +93,18 @@ class AppRoutes {
   static const String nProfileSetup = 'profileSetup';
   static const String nFieldOfWork = 'fieldOfWork';
   static const String nHome = 'home';
+  static const String nJobs = 'jobs';
+  static const String nCall = 'call';
+  static const String nVideoCall = 'videoCall';
+  static const String nChats = 'chats';
+  static const String nChatDetail = 'chatDetail';
+  static const String nCreatePost = 'createPost';
+  static const String nCreatePostMedia = 'createPostMedia';
+  static const String nCreatePostPoll = 'createPostPoll';
+  static const String nHelpCenter = 'helpCenter';
+  static const String nHelpCenterDetail = 'helpCenterDetail';
+  static const String nTestFeatures = 'testFeatures';
+  static const String nNotifications = 'notifications';
   static const String nGames = 'games';
   static const String nGamesPlanifik = 'gamesPlanifik';
   static const String nGamesMoveFast = 'gamesMoveFast';

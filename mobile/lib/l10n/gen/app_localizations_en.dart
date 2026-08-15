@@ -504,4 +504,497 @@ class AppLocalizationsEn extends AppLocalizations {
   String cvReviewSaveFailed(String error) {
     return 'Failed to save profile: $error';
   }
+
+  @override
+  String get acceptAction => 'Accept';
+
+  @override
+  String get actionFailed => 'Action failed.\nPlease try again.';
+
+  @override
+  String get add => 'Add';
+
+  @override
+  String get addAnOption => 'Add an option';
+
+  @override
+  String get aiResumeLabel => 'AI Resume';
+
+  @override
+  String get allChats => 'All chats';
+
+  @override
+  String get andTwoOthers => 'and 2 others';
+
+  @override
+  String get areYouSureLogOut => 'Are you sure you want to log out?';
+
+  @override
+  String get audioCall => 'Audio Call';
+
+  @override
+  String get block => 'Block';
+
+  @override
+  String get calling => 'Calling...';
+
+  @override
+  String get cameraOff => 'Camera Off';
+
+  @override
+  String get cameraOn => 'Camera On';
+
+  @override
+  String get closeLabel => 'Close';
+
+  @override
+  String get commentPlaceholder => 'Add a comment...';
+
+  @override
+  String commentsAndShares(String comments, String shares) {
+    return '$comments Comments · $shares Shares';
+  }
+
+  @override
+  String get commentsTitle => 'Comments';
+
+  @override
+  String get confirmOffer => 'Confirm offer';
+
+  @override
+  String get connected => 'Connected';
+
+  @override
+  String get conversationId => 'Conversation ID';
+
+  @override
+  String get customerService => '24/7 customer service';
+
+  @override
+  String get deleteLabel => 'Delete';
+
+  @override
+  String get discussionAssistant => 'Discussion assistant';
+
+  @override
+  String get discussionAssistantTyping => 'Discussion assistant is typing';
+
+  @override
+  String get documentLabel => 'Document';
+
+  @override
+  String get earpiece => 'Earpiece';
+
+  @override
+  String get editProfile => 'Edit Profile';
+
+  @override
+  String effectApplied(String effect) {
+    return 'Effect $effect applied!';
+  }
+
+  @override
+  String get effects => 'effects';
+
+  @override
+  String get end => 'end';
+
+  @override
+  String errorLabel(String error) {
+    return 'Error: $error';
+  }
+
+  @override
+  String get errorText => 'Error';
+
+  @override
+  String get exploreOffer => 'Explore offer';
+
+  @override
+  String get filter1 => 'Filter 1';
+
+  @override
+  String get filter2 => 'Filter 2';
+
+  @override
+  String get filter3 => 'Filter 3';
+
+  @override
+  String get filterAll => 'All';
+
+  @override
+  String get filterJobOffers => 'Job Offers';
+
+  @override
+  String get filterProfessionals => 'Professionals';
+
+  @override
+  String get flip => 'flip';
+
+  @override
+  String get friendsVisibility => 'Friends';
+
+  @override
+  String get great => 'Great';
+
+  @override
+  String get hide => 'Hide';
+
+  @override
+  String get hiringContact => 'Hiring contact';
+
+  @override
+  String get iAppreciateYourService => 'I appreciate your service';
+
+  @override
+  String get identityVerificationDescription =>
+      'The recruiter has requested an identity verification with face matching to ensure trust and security.';
+
+  @override
+  String get identityVerificationRequired => 'Identity verification required !';
+
+  @override
+  String get important => 'Important !';
+
+  @override
+  String get importantAlertDescription =>
+      'The video interview will be automatically recorded for moderation purposes.\nDo not ask for a candidate\'s personal contact details.';
+
+  @override
+  String get jobOpportunity => 'Job Opportunity';
+
+  @override
+  String get justNow => 'Just now';
+
+  @override
+  String timeAgoMinutes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'minutes',
+      one: 'minute',
+    );
+    return '$count $_temp0 ago';
+  }
+
+  @override
+  String timeAgoHours(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'hours',
+      one: 'hour',
+    );
+    return '$count $_temp0 ago';
+  }
+
+  @override
+  String timeAgoDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'days',
+      one: 'day',
+    );
+    return '$count $_temp0 ago';
+  }
+
+  @override
+  String timeAgoMonths(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'months',
+      one: 'month',
+    );
+    return '$count $_temp0 ago';
+  }
+
+  @override
+  String timeAgoYears(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'years',
+      one: 'year',
+    );
+    return '$count $_temp0 ago';
+  }
+
+  @override
+  String likedByAndOthers(String name, String others) {
+    return 'Liked by $name & $others others';
+  }
+
+  @override
+  String likedYourPost(String name) {
+    return '$name liked your post';
+  }
+
+  @override
+  String get mediaAdd => 'Add';
+
+  @override
+  String mediaAddCount(int count) {
+    return 'Add ($count)';
+  }
+
+  @override
+  String get mediaLabel => 'Media';
+
+  @override
+  String get mediaPermissionDenied =>
+      'Photo library access is required to select media.';
+
+  @override
+  String get mediaRecents => 'Recents';
+
+  @override
+  String get mute => 'mute';
+
+  @override
+  String get myId => 'My ID (UUID)';
+
+  @override
+  String get newLike => 'New like';
+
+  @override
+  String get newProject => 'New Project';
+
+  @override
+  String get noChats => 'Aucun chat';
+
+  @override
+  String get noCommentsYet => 'No comments yet.';
+
+  @override
+  String get noMatchingOffers => 'No matching offers.';
+
+  @override
+  String get noNotifications => 'No notifications to show.';
+
+  @override
+  String get noPortfolioItems => 'No portfolio items yet';
+
+  @override
+  String get noPostsToShow => 'No posts to show.';
+
+  @override
+  String get ok => 'OK';
+
+  @override
+  String get oneVote => '1 vote';
+
+  @override
+  String optionIndex(int index) {
+    return 'Option $index';
+  }
+
+  @override
+  String optionsCount(int count) {
+    return '$count options';
+  }
+
+  @override
+  String get outputCard => 'Add your card';
+
+  @override
+  String get overview => 'Overview';
+
+  @override
+  String get perMonth => '/Mo.';
+
+  @override
+  String get poll => 'Poll';
+
+  @override
+  String get pollAttached => 'Poll attached';
+
+  @override
+  String get pollDisclaimer =>
+      '* We do not allow requests related to political opinions, medical information, or other sensitive data.\nThis option is only intended for questions related to Progress Careers.';
+
+  @override
+  String get poor => 'Poor';
+
+  @override
+  String get portfolioLabel => 'Portfolio';
+
+  @override
+  String get postAction => 'Post';
+
+  @override
+  String get postCreationFailed =>
+      'Unable to publish your post.\nPlease try again.';
+
+  @override
+  String get postHidden => 'Post hidden from your feed.';
+
+  @override
+  String get postLabel => 'Post';
+
+  @override
+  String get prepareYourId => 'Prepare your ID';
+
+  @override
+  String get profileLabel => 'Profile';
+
+  @override
+  String get publicVisibility => 'Public';
+
+  @override
+  String get publishLabel => 'Publish';
+
+  @override
+  String get rateYourExperience => 'Rate your experience';
+
+  @override
+  String get read => 'Read';
+
+  @override
+  String get recipientId => 'Recipient ID (UUID)';
+
+  @override
+  String get recruiter => 'Recruiter';
+
+  @override
+  String get rejectAction => 'Reject';
+
+  @override
+  String get rejectOffer => 'Reject offer';
+
+  @override
+  String get remoteLabel => 'Remote';
+
+  @override
+  String get report => 'Report';
+
+  @override
+  String get resumeAi => 'Resume AI';
+
+  @override
+  String get retry => 'Retry';
+
+  @override
+  String get scoreLabel => 'Score';
+
+  @override
+  String get send => 'Send';
+
+  @override
+  String get sendMessage => 'Send message...';
+
+  @override
+  String get sent => 'Sent';
+
+  @override
+  String get shareLabel => 'Share';
+
+  @override
+  String get showAll => 'Show all';
+
+  @override
+  String get showLabel => 'Show';
+
+  @override
+  String get softSkillsScore => 'SOFT SKILLS SCORE';
+
+  @override
+  String get speaker => 'Speaker';
+
+  @override
+  String get stayTuned => 'Stay tuned for new notifications.';
+
+  @override
+  String get tellUsMore => 'Tell us more';
+
+  @override
+  String get thankYouForYourOpinion => 'Thank you for your opinion';
+
+  @override
+  String get timeframe => 'Timeframe';
+
+  @override
+  String timeLeft(String duration) {
+    return '$duration left';
+  }
+
+  @override
+  String get today => 'Today';
+
+  @override
+  String get typeTheQuestion => 'Type the question';
+
+  @override
+  String get userBlocked =>
+      'User blocked.\nTheir posts are hidden from your feed.';
+
+  @override
+  String get verifyNow => 'Verify now';
+
+  @override
+  String get videoCall => 'Video Call';
+
+  @override
+  String get videoOn => 'Video On';
+
+  @override
+  String voteCount(int count) {
+    return '$count votes';
+  }
+
+  @override
+  String get voted => 'Voted';
+
+  @override
+  String votesCount(int count) {
+    return '$count votes';
+  }
+
+  @override
+  String weAreOffering(String position) {
+    return 'We are offering a $position position with a salary of ';
+  }
+
+  @override
+  String get whatCanWeImprove => 'What can we improve?';
+
+  @override
+  String get yesterday => 'Yesterday';
+
+  @override
+  String get yourComments => 'Your comments';
+
+  @override
+  String get yourQuestion => 'Your question';
+
+  @override
+  String homeError(String error) {
+    return 'Error: $error';
+  }
+
+  @override
+  String get timeframe1Day => '1 day';
+
+  @override
+  String get timeframe3Days => '3 days';
+
+  @override
+  String get timeframe7Days => '7 days';
+
+  @override
+  String get timeframe14Days => '14 days';
+
+  @override
+  String dateFormatted(String day, String month, String year) {
+    return '$day/$month/$year';
+  }
+
+  @override
+  String get sessionExpired => 'Your session has expired. Please log in again.';
+
+  @override
+  String likesCount(String count) {
+    return '$count likes';
+  }
 }

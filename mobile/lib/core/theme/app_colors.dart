@@ -2,336 +2,416 @@ import 'package:flutter/material.dart';
 
 /// ──────────────────────────────────────────────────────────────────────────────
 /// APP COLOR PALETTE
-/// Extracted from the Figma Design (Design.jpg) via pixel-level analysis
+/// Extracted from the Figma Color System (FigmaColors/ reference screenshots)
 ///
-/// VERIFIED COLORS — sampled directly from the 9084x32629 design image.
-/// Primary: #21438A (dark blue), Accent: #D12E7D (magenta/pink),
-/// Indigo: #5046E5, Purple: #9747FF, Green: #2AC052
+/// All values are the EXACT hex tokens from the Figma palette.
+/// Light → Dark correspondences are documented inline.
+/// Icon colors are identical across both modes (design decision).
 /// ──────────────────────────────────────────────────────────────────────────────
 
 class AppColors {
   AppColors._(); // Prevent instantiation
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // PRIMARY BRAND COLORS
-  // Dominant dark blue used in headers, nav bars, section banners
-  // Pixel-verified: #21438A (freq: 22,336 — most used non-neutral color)
+  // BRAND COLORS
   // ═══════════════════════════════════════════════════════════════════════════
 
-  static const Color primary = Color(0xFF21438A); // Main brand blue (verified)
-  static const Color primaryDark = Color(
-    0xFF11428E,
-  ); // Darker blue variant (verified)
-  static const Color primaryLight = Color(
-    0xFF214488,
-  ); // Lighter blue variant (verified)
-  static const Color primaryDeep = Color(0xFF102759); // Deepest navy (verified)
-  static const Color primaryDarkest = Color(
-    0xFF001D55,
-  ); // Near-black navy (verified)
+  /// Primary brand identity — dark navy blue (same in both modes)
+  static const Color brandNavy = Color(0xFF11428D);
+
+  /// CTA buttons, active states — indigo
+  /// Light: #4F46E5 | Dark: #818CF8
+  static const Color brandIndigo = Color(0xFF4F46E5);
+  static const Color brandIndigoDark = Color(0xFF818CF8);
+
+  // Legacy aliases for backward compatibility
+  static const Color primary = brandNavy;
+  static const Color primaryDark = Color(0xFF0E3672);
+  static const Color primaryLight = Color(0xFF1A5BB0);
+  static const Color primaryDeep = Color(0xFF0A2E5C);
+  static const Color primaryDarkest = Color(0xFF001D55);
 
   // Primary with opacity variants
-  static const Color primary80 = Color(0xCC21438A); // 80% opacity
-  static const Color primary60 = Color(0x9921438A); // 60% opacity
-  static const Color primary40 = Color(0x6621438A); // 40% opacity
-  static const Color primary20 = Color(0x3321438A); // 20% opacity
-  static const Color primary10 = Color(0x1A21438A); // 10% opacity
+  static const Color primary80 = Color(0xCC11428D);
+  static const Color primary60 = Color(0x9911428D);
+  static const Color primary40 = Color(0x6611428D);
+  static const Color primary20 = Color(0x3311428D);
+  static const Color primary10 = Color(0x1A11428D);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // ACCENT / CTA COLORS — MAGENTA / PINK
   // Used for primary action buttons, section header underlines, key CTAs
-  // Pixel-verified: #D12E7D (freq: 4,467 — second most used color)
-  // NOT red as initially estimated — it's a vibrant magenta/pink!
   // ═══════════════════════════════════════════════════════════════════════════
 
-  static const Color accent = Color(
-    0xFFD12E7D,
-  ); // Primary magenta CTA (verified)
-  static const Color accentDark = Color(0xFFB0256A); // Darker pressed state
-  static const Color accentLight = Color(0xFFDE5A97); // Lighter variant
-  static const Color accentSoft = Color(
-    0xFFFCE4EC,
-  ); // Very soft pink background
-
-  // Darker magenta variant found in design
-  static const Color magentaDark = Color(
-    0xFF681E53,
-  ); // Deep magenta/plum (verified)
+  static const Color accent = Color(0xFFD12E7D);
+  static const Color accentDark = Color(0xFFB0256A);
+  static const Color accentLight = Color(0xFFDE5A97);
+  static const Color accentSoft = Color(0xFFFCE4EC);
+  static const Color magentaDark = Color(0xFF681E53);
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // SECONDARY / INDIGO ACCENT
-  // Used in buttons, active states, interactive elements
-  // Pixel-verified: #5046E5 (freq: 727)
+  // SECONDARY / INDIGO
   // ═══════════════════════════════════════════════════════════════════════════
 
-  static const Color secondary = Color(0xFF5046E5); // Vibrant indigo (verified)
-  static const Color secondaryLight = Color(
-    0xFF675BEF,
-  ); // Light indigo (verified)
-  static const Color secondaryLighter = Color(
-    0xFF7469F3,
-  ); // Lighter indigo (verified)
-  static const Color secondaryBright = Color(
-    0xFF685EFF,
-  ); // Bright indigo (verified)
+  static const Color secondary = Color(0xFF4F46E5);
+  static const Color secondaryLight = Color(0xFF818CF8);
+  static const Color secondaryLighter = Color(0xFF9DA6FA);
+  static const Color secondaryBright = Color(0xFF685EFF);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // PURPLE ACCENT
-  // Used in Figma component annotations, accent elements
-  // Pixel-verified: #9747FF
   // ═══════════════════════════════════════════════════════════════════════════
 
-  static const Color purple = Color(
-    0xFF9747FF,
-  ); // Figma purple accent (verified)
-  static const Color purpleLight = Color(0xFFB388FF); // Light purple
-  static const Color purpleSoft = Color(0xFFE8DEFF); // Very soft purple bg
+  static const Color purple = Color(0xFF9747FF);
+  static const Color purpleLight = Color(0xFFB388FF);
+  static const Color purpleSoft = Color(0xFFE8DEFF);
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // DARK UI ELEMENT COLORS
-  // Additional dark colors found in cards, overlays, and UI elements
-  // Pixel-verified: #27214D, #25224D, #232D39
+  // SURFACE & BACKGROUND COLORS (Figma tokens)
   // ═══════════════════════════════════════════════════════════════════════════
 
-  static const Color darkPurple = Color(
-    0xFF27214D,
-  ); // Dark purple element (verified)
-  static const Color darkPurpleAlt = Color(
-    0xFF25224D,
-  ); // Alt dark purple (verified)
-  static const Color darkSlate = Color(
-    0xFF232D39,
-  ); // Dark blue-slate (verified)
-  static const Color darkSlateAlt = Color(
-    0xFF242E3A,
-  ); // Alt dark slate (verified)
+  // ── Light mode ──
+  /// App Background — Canvas behind all content
+  static const Color appBackground = Color(0xFFF9FBFF);
+
+  /// Surface — Cards, panels, sheets
+  static const Color surface = Color(0xFFFFFFFF);
+
+  /// Surface Raised — Popovers, modals, elevated
+  static const Color surfaceRaised = Color(0xFFFFFFFF);
+
+  /// Sidebar / Nav — Left nav background
+  static const Color sidebarNav = Color(0xFFFFFFFF);
+
+  // ── Dark mode ──
+  /// App Background dark
+  static const Color appBackgroundDark = Color(0xFF141418);
+
+  /// Surface dark — Cards, panels, sheets
+  static const Color surfaceDark = Color(0xFF1E1E24);
+
+  /// Surface Raised dark — Popovers, modals, elevated
+  static const Color surfaceRaisedDark = Color(0xFF252529);
+
+  /// Sidebar / Nav dark
+  static const Color sidebarNavDark = Color(0xFF1E1E24);
+
+  // Legacy aliases
+  static const Color background = appBackground;
+  static const Color backgroundAlt = Color(0xFFF9FBFF);
+  static const Color surfaceVariant = Color(0xFFF3F4F6);
+  static const Color surfaceCool = Color(0xFFF3F4F6);
+  static const Color surfaceWarm = Color(0xFFF9FAFB);
+  static const Color darkBackground = appBackgroundDark;
+  static const Color darkSurface = surfaceDark;
+  static const Color darkSurfaceVariant = surfaceRaisedDark;
+
+  // Dark overlay for modals, bottom sheets
+  static const Color overlay = Color(0x80000000);
+  static const Color overlayLight = Color(0x33000000);
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // SEMANTIC / STATUS COLORS
+  // TYPOGRAPHY COLORS (Figma tokens)
   // ═══════════════════════════════════════════════════════════════════════════
 
-  static const Color success = Color(
-    0xFF2AC052,
-  ); // Green — success/online (verified)
-  static const Color successDark = Color(0xFF15683E); // Dark green (verified)
-  static const Color successLight = Color(0xFF81C784);
-  static const Color successSoft = Color(0xFFE8F5E9); // Soft green bg
+  // ── Light ──
+  /// Text Primary — Headings, main labels
+  static const Color textPrimary = Color(0xFF111827);
 
-  static const Color warning = Color(0xFFFFC107); // Amber — warning
+  /// Text Secondary — Descriptions, subtitles
+  static const Color textSecondary = Color(0xFF6B7280);
+
+  /// Text Tertiary — Placeholders, hints
+  static const Color textTertiary = Color(0xFF9CA3AF);
+
+  /// Text Accent — Nav active, links
+  static const Color textAccent = Color(0xFF11428D);
+
+  // ── Dark ──
+  static const Color textPrimaryDark = Color(0xFFFFFFFF);
+  static const Color textSecondaryDark = Color(0xFF8A8A9A);
+  static const Color textTertiaryDark = Color(0xFF555560);
+  static const Color textAccentDark = Color(0xFF818CF8);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BORDERS & SEPARATORS (Figma tokens)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // ── Light ──
+  /// Border — Card borders (rgba(0,0,0,0.08))
+  static const Color border = Color(0x14000000);
+
+  /// Separator — List row dividers
+  static const Color separator = Color(0xFFF3F4F6);
+
+  /// Input Fill — Input background
+  static const Color inputFill = Color(0xFFF3F4F6);
+
+  /// Chevron — List row arrows
+  static const Color chevron = Color(0xFFD1D5DB);
+
+  // ── Dark ──
+  /// Border dark (rgba(255,255,255,0.08))
+  static const Color borderDark = Color(0x14FFFFFF);
+
+  /// Separator dark
+  static const Color separatorDark = Color(0xFF2A2A30);
+
+  /// Input Fill dark
+  static const Color inputFillDark = Color(0xFF252529);
+
+  /// Chevron dark
+  static const Color chevronDark = Color(0xFF48484A);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // INTERACTIVE STATES (Figma tokens)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // ── Light ──
+  /// Active BG — Selected nav item
+  static const Color activeBg = Color(0xFFEEF2FF);
+
+  /// Active Text — Selected nav label/icon
+  static const Color activeText = Color(0xFF4F46E5);
+
+  /// Hover BG — Row hover state
+  static const Color hoverBg = Color(0xFFF9FAFB);
+
+  // ── Dark ──
+  static const Color activeBgDark = Color(0xFF1E1E2E);
+  static const Color activeTextDark = Color(0xFF818CF8);
+  static const Color hoverBgDark = Color(0xFF252529);
+
+  // ── Toggles (same in both modes unless noted) ──
+  /// Toggle ON — green, same in both modes
+  static const Color toggleOn = Color(0xFF22C55E);
+
+  /// Toggle OFF — inactive toggle track
+  static const Color toggleOff = Color(0xFFD1D5DB);
+  static const Color toggleOffDark = Color(0xFF3A3A3E);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SEMANTIC / STATUS COLORS (Figma tokens)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// Success — Positive change, verified (same in both modes)
+  static const Color success = Color(0xFF22C55E);
+  static const Color successDark = Color(0xFF15803D);
+  static const Color successLight = Color(0xFF4ADE80);
+
+  /// Success BG — light: #F0FDF4, dark: rgba(34,197,94,0.1)
+  static const Color successBg = Color(0xFFF0FDF4);
+  static const Color successBgDark = Color(0x1A22C55E);
+  static const Color successSoft = successBg;
+
+  /// Danger / Error — same in both modes
+  static const Color error = Color(0xFFEF4444);
+  static const Color errorDark = Color(0xFFDC2626);
+  static const Color errorLight = Color(0xFFF87171);
+
+  /// Danger BG — light: #FEF2F2, dark: rgba(239,68,68,0.1)
+  static const Color dangerBg = Color(0xFFFEF2F2);
+  static const Color dangerBgDark = Color(0x1AEF4444);
+  static const Color errorSoft = dangerBg;
+
+  /// Warning
+  static const Color warning = Color(0xFFFFC107);
   static const Color warningDark = Color(0xFFFFA000);
   static const Color warningLight = Color(0xFFFFD54F);
-  static const Color warningSoft = Color(0xFFFFF8E1); // Soft amber bg
+  static const Color warningSoft = Color(0xFFFFF8E1);
 
-  static const Color error = Color(0xFFE53935); // Red — error
-  static const Color errorDark = Color(0xFFC62828);
-  static const Color errorLight = Color(0xFFEF5350);
-  static const Color errorSoft = Color(0xFFFFEBEE); // Soft red bg
+  /// Info
+  static const Color info = Color(0xFF3B82F6);
+  static const Color infoDark = Color(0xFF2563EB);
+  static const Color infoLight = Color(0xFF60A5FA);
+  static const Color infoSoft = Color(0xFFEFF6FF);
 
-  static const Color info = Color(0xFF2196F3); // Blue — info
-  static const Color infoDark = Color(0xFF1976D2);
-  static const Color infoLight = Color(0xFF64B5F6);
-  static const Color infoSoft = Color(0xFFE3F2FD); // Soft blue bg
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ICON COLOR SYSTEM (Figma tokens — unchanged across modes)
+  // Colorful rounded-square icon backgrounds
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// Hired candidates
+  static const Color iconHired = Color(0xFF7C3AED);
+
+  /// Account Center
+  static const Color iconAccount = Color(0xFFEC4899);
+
+  /// Notifications
+  static const Color iconNotification = Color(0xFF3B82F6);
+
+  /// Theme toggle (Dark / Light)
+  static const Color iconTheme = Color(0xFF111827);
+
+  /// Accessibility
+  static const Color iconAccess = Color(0xFF8B5CF6);
+
+  /// Plans & Pricing
+  static const Color iconPricing = Color(0xFFF472B6);
+
+  /// Help / Support
+  static const Color iconHelp = Color(0xFF2563EB);
+
+  /// Terms & Conditions / Legal
+  static const Color iconLegal = Color(0xFF6B7280);
+
+  /// Log out
+  static const Color iconLogout = Color(0xFF1E3A8A);
+
+  /// Verified / Positive (Success icon)
+  static const Color iconSuccess = Color(0xFF10B981);
+
+  // Legacy icon aliases for backward compatibility
+  static const Color iconPurple = iconHired;
+  static const Color iconPink = iconAccount;
+  static const Color iconBlue = iconNotification;
+  static const Color iconBlack = iconTheme;
+  static const Color iconDeepPurple = iconAccess;
+  static const Color iconMediumBlue = iconHelp;
+  static const Color iconGrey = iconLegal;
+  static const Color iconNavy = iconLogout;
 
   // ═══════════════════════════════════════════════════════════════════════════
   // NEUTRAL / GRAY SCALE
-  // Pixel-verified from design elements
+  // Mapped to Figma typography / border tokens
   // ═══════════════════════════════════════════════════════════════════════════
 
   static const Color black = Color(0xFF000000);
-  static const Color gray900 = Color(0xFF232323); // Near-black text (verified)
-  static const Color gray850 = Color(0xFF242424); // Alt near-black (verified)
-  static const Color gray700 = Color(0xFF3F4752); // Dark gray UI (verified)
-  static const Color gray600 = Color(0xFF7A8191); // Secondary text (verified)
-  static const Color gray550 = Color(
-    0xFF7E8595,
-  ); // Alt secondary text (verified)
-  static const Color gray500 = Color(0xFF7C8393); // Placeholder text (verified)
-  static const Color gray450 = Color(
-    0xFF726C8E,
-  ); // Muted purple-gray (verified)
-  static const Color gray400 = Color(0xFFA2AEC4); // Light gray-blue (verified)
-  static const Color gray350 = Color(0xFFA1AEC1); // Alt light gray (verified)
-  static const Color gray300 = Color(
-    0xFFD9D9D9,
-  ); // Borders / dividers (verified)
-  static const Color gray200 = Color(0xFFEEEEEE); // Light dividers
-  static const Color gray100 = Color(0xFFF3F3F3); // Light background (verified)
-  static const Color gray50 = Color(0xFFFAFAFA); // Subtle background (verified)
+  static const Color gray900 = Color(0xFF111827); // = textPrimary
+  static const Color gray850 = Color(0xFF1F2937);
+  static const Color gray700 = Color(0xFF374151);
+  static const Color gray600 = Color(0xFF4B5563);
+  static const Color gray550 = Color(0xFF555560);
+  static const Color gray500 = Color(0xFF6B7280); // = textSecondary
+  static const Color gray450 = Color(0xFF9CA3AF); // = textTertiary
+  static const Color gray400 = Color(0xFF9CA3AF);
+  static const Color gray350 = Color(0xFFD1D5DB); // = chevron
+  static const Color gray300 = Color(0xFFD1D5DB);
+  static const Color gray200 = Color(0xFFE5E7EB);
+  static const Color gray100 = Color(0xFFF3F4F6); // = separator / inputFill
+  static const Color gray50 = Color(0xFFF9FAFB);  // = hoverBg
   static const Color white = Color(0xFFFFFFFF);
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // SURFACE & BACKGROUND COLORS
-  // Pixel-verified screen backgrounds
+  // ADDITIONAL FEATURE & PANEL COLORS (backward compatibility)
   // ═══════════════════════════════════════════════════════════════════════════
 
-  static const Color background = Color(
-    0xFFF6F7FB,
-  ); // Main screen bg — slight blue tint (verified)
-  static const Color backgroundAlt = Color(
-    0xFFFAFBFF,
-  ); // Alt screen bg — subtle blue (verified)
-  static const Color surface = Color(0xFFFFFFFF); // Card surface (white)
-  static const Color surfaceVariant = Color(
-    0xFFF3F2F8,
-  ); // Slightly purple-tinted surface (verified)
-  static const Color surfaceCool = Color(
-    0xFFF3F4F6,
-  ); // Cool gray surface (verified)
-  static const Color surfaceWarm = Color(
-    0xFFF4F5F9,
-  ); // Warm blue surface (verified)
+  static const Color iconColor = Color(0xFF11428D);
+  static const Color chipSelected = Color(0xFF11428D);
+  static const Color chipUnselected = Color(0xFFF3F4F6);
+  static const Color panelBackground = Colors.white;
+  static const Color primaryGrey = Color(0xFF6B7280);
+  static const Color primaryBlue = Color(0xFF4F46E5);
+  static const Color primaryPink = Color(0xFFD12E7D);
+  static const Color subtitleColor = Color(0xFF6B7280);
+  static const Color hiringTagBg = Color(0xFFEEF2FF);
+  static const Color hiringTagText = Color(0xFF11428D);
+  static const Color itemDivider = Color(0xFFF3F4F6);
+  static const Color itemDividerDark = Color(0xFF2A2A30);
 
-  static const Color darkBackground = Color(
-    0xFF27214D,
-  ); // Dark mode background (verified)
-  static const Color darkSurface = Color(
-    0xFF25224D,
-  ); // Dark mode card surface (verified)
-  static const Color darkSurfaceVariant = Color(
-    0xFF232D39,
-  ); // Dark mode elevated surface (verified)
+  static const Color textDark = Color(0xFF111827);
+  static const Color textMuted2 = Color(0xFF6B7280);
+  static const Color surfaceLight = Color(0xFFF9FBFF);
+  static const Color selectedBg = Color(0xFFEEF2FF);
+  static const Color linkBlue = Color(0xFF3B82F6);
+  static const Color dividerThin = Color(0xFFF3F4F6);
+  static const Color cardShadow = Color(0x0F212125);
+  static const Color backBtnBorder = Color(0x14000000);
 
-  // Dark overlay for modals, bottom sheets
-  static const Color overlay = Color(0x80000000); // 50% black overlay
-  static const Color overlayLight = Color(0x33000000); // 20% black overlay
+  static const Color textDarkBlue = Color(0xFF11428D);
+  static const Color dividerLight = Color(0xFFF3F4F6);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // SPECIAL UI ELEMENT COLORS
   // ═══════════════════════════════════════════════════════════════════════════
 
   // Navigation Bar
-  static const Color navBarBackground = Color(
-    0xFF21438A,
-  ); // Bottom nav bg (verified)
-  static const Color navBarActive = Color(0xFFFFFFFF); // Active nav icon
-  static const Color navBarInactive = Color(
-    0xFFA2AEC4,
-  ); // Inactive nav icon (verified gray)
+  static const Color navBarBackground = Color(0xFFFFFFFF);
+  static const Color navBarActive = Color(0xFF4F46E5);
+  static const Color navBarInactive = Color(0xFF9CA3AF);
 
   // Chat Bubbles
-  static const Color chatBubbleSent = Color(
-    0xFF21438A,
-  ); // Sent message bubble (verified)
-  static const Color chatBubbleReceived = Color(
-    0xFFF3F2F8,
-  ); // Received message bubble (verified)
-  static const Color chatBubbleSentText = Color(
-    0xFFFFFFFF,
-  ); // Sent message text
-  static const Color chatBubbleReceivedText = Color(
-    0xFF232323,
-  ); // Received text (verified)
+  static const Color chatBubbleSent = Color(0xFF11428D);
+  static const Color chatBubbleReceived = Color(0xFFF3F4F6);
+  static const Color chatBubbleSentText = Color(0xFFFFFFFF);
+  static const Color chatBubbleReceivedText = Color(0xFF111827);
 
   // Badges & Tags
-  static const Color badge = Color(
-    0xFFD12E7D,
-  ); // Notification badge — magenta (verified)
-  static const Color tagBackground = Color(
-    0xFFF3F2F8,
-  ); // Tag/chip background (verified)
-  static const Color tagText = Color(
-    0xFF5046E5,
-  ); // Tag/chip text — indigo (verified)
+  static const Color badge = Color(0xFFEF4444);
+  static const Color tagBackground = Color(0xFFEEF2FF);
+  static const Color tagText = Color(0xFF4F46E5);
 
-  // Swipe Card Colors (Tinder-like feature)
-  static const Color swipeLike = Color(
-    0xFF2AC052,
-  ); // Like / swipe right (verified)
-  static const Color swipeDislike = Color(
-    0xFFD12E7D,
-  ); // Dislike / swipe left — magenta (verified)
-  static const Color swipeSuperLike = Color(
-    0xFF5046E5,
-  ); // Super like — indigo (verified)
-  static const Color swipeBoost = Color(
-    0xFF9747FF,
-  ); // Boost — purple (verified)
+  // Swipe Card Colors
+  static const Color swipeLike = Color(0xFF22C55E);
+  static const Color swipeDislike = Color(0xFFEF4444);
+  static const Color swipeSuperLike = Color(0xFF4F46E5);
+  static const Color swipeBoost = Color(0xFF9747FF);
 
   // Online Status
-  static const Color online = Color(0xFF2AC052); // Online indicator (verified)
-  static const Color offline = Color(
-    0xFF7A8191,
-  ); // Offline indicator (verified)
-  static const Color busy = Color(0xFFFFC107); // Busy/away indicator
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // PROFILE & SETTINGS MENU COLORS
-  // Specific icon background and text colors matching the profile design
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  static const Color iconPurple = Color(0xFF9E54D4);
-  static const Color iconPink = Color(0xFFD6317A);
-  static const Color iconBlue = Color(0xFF1E88E5);
-  static const Color iconBlack = Color(0xFF1A1A1A);
-  static const Color iconDeepPurple = Color(0xFF5E35B1);
-  static const Color iconMediumBlue = Color(0xFF1976D2);
-  static const Color iconGrey = Color(0xFF757575);
-  static const Color iconNavy = Color(0xFF15448C);
-
-  static const Color textDarkBlue = Color(0xFF283266);
-  static const Color dividerLight = Color(0xFFF1F1F5);
+  static const Color online = Color(0xFF22C55E);
+  static const Color offline = Color(0xFF9CA3AF);
+  static const Color busy = Color(0xFFFFC107);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // GRADIENT DEFINITIONS
-  // Using verified color values
   // ═══════════════════════════════════════════════════════════════════════════
 
   static const LinearGradient primaryGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFF11428E), Color(0xFF21438A)],
+    colors: [Color(0xFF11428D), Color(0xFF1A5BB0)],
   );
 
   static const LinearGradient accentGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFFD12E7D), Color(0xFF9747FF)], // Magenta to purple
+    colors: [Color(0xFFD12E7D), Color(0xFF9747FF)],
   );
 
   static const LinearGradient indigoGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFF5046E5), Color(0xFF7469F3)], // Indigo gradient
+    colors: [Color(0xFF4F46E5), Color(0xFF818CF8)],
   );
 
   static const LinearGradient darkGradient = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
-    colors: [Color(0xFF27214D), Color(0xFF232D39)],
+    colors: [Color(0xFF1E1E24), Color(0xFF141418)],
   );
 
   static const LinearGradient sectionHeaderGradient = LinearGradient(
     begin: Alignment.centerLeft,
     end: Alignment.centerRight,
-    colors: [Color(0xFF11428E), Color(0xFF21438A)],
+    colors: [Color(0xFF11428D), Color(0xFF1A5BB0)],
   );
 
   // Shimmer / Loading gradient
   static const LinearGradient shimmerGradient = LinearGradient(
     begin: Alignment(-1.0, -0.3),
     end: Alignment(1.0, 0.3),
-    colors: [Color(0xFFF3F3F3), Color(0xFFFAFBFF), Color(0xFFF3F3F3)],
+    colors: [Color(0xFFF3F4F6), Color(0xFFF9FBFF), Color(0xFFF3F4F6)],
     stops: [0.0, 0.5, 1.0],
   );
 
   // ═══════════════════════════════════════════════════════════════════════════
   // MATERIAL COLOR SWATCH (for MaterialApp theme)
-  // Based on verified primary #21438A
+  // Based on Brand Navy #11428D
   // ═══════════════════════════════════════════════════════════════════════════
 
   static const MaterialColor primarySwatch = MaterialColor(
-    0xFF21438A,
+    0xFF11428D,
     <int, Color>{
-      50: Color(0xFFE4EAF5),
-      100: Color(0xFFBCCBE5),
-      200: Color(0xFF90A9D4),
-      300: Color(0xFF6487C2),
-      400: Color(0xFF426DB5),
-      500: Color(0xFF21438A), // Primary
-      600: Color(0xFF1D3C7E),
-      700: Color(0xFF183370),
-      800: Color(0xFF142B63),
-      900: Color(0xFF0B1D49),
+      50: Color(0xFFE3EAF5),
+      100: Color(0xFFB9CCE6),
+      200: Color(0xFF8BABD5),
+      300: Color(0xFF5D8AC4),
+      400: Color(0xFF3B71B7),
+      500: Color(0xFF11428D), // Primary
+      600: Color(0xFF0F3B80),
+      700: Color(0xFF0C3270),
+      800: Color(0xFF0A2A61),
+      900: Color(0xFF061C44),
     },
   );
 }

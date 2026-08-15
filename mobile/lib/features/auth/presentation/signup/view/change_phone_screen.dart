@@ -8,6 +8,7 @@ import '../../../../../shared/widgets/app_back_button.dart';
 import '../../../../../shared/widgets/app_text_field.dart';
 import '../../../../../shared/widgets/primary_button.dart';
 import '../../../../../core/theme/theme.dart';
+import '../../widgets/auth_desktop_shell.dart';
 import '../viewmodel/signup_viewmodel.dart';
 
 class ChangePhoneScreen extends ConsumerStatefulWidget {
@@ -48,61 +49,74 @@ class _ChangePhoneScreenState extends ConsumerState<ChangePhoneScreen> {
     final hPadding = Responsive.horizontalPadding(context);
     final colors = context.colors;
 
-    return Scaffold(
-      backgroundColor: colors.scaffoldBg,
-      body: SafeArea(
-        child: CenteredConstrainedBox(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const AppBackButton(),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(
-                    hPadding,
-                    AppSpacing.xs,
-                    hPadding,
-                    AppSpacing.xl,
-                  ),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          AppStrings.changePhoneTitle,
-                          textAlign: TextAlign.center,
-                          style: AppTypography.headlineMedium.copyWith(
-                            color: colors.textPrimary,
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.xxl),
-                        AppTextField(
-                          hint: AppStrings.phoneNumber,
-                          controller: _phone,
-                          keyboardType: TextInputType.phone,
-                          textInputAction: TextInputAction.done,
-                          prefixIcon: Icons.phone_outlined,
-                          validator: _validatePhone,
-                          onSubmitted: (_) => _confirm(),
-                        ),
-                        const SizedBox(height: AppSpacing.xl),
-                        Center(
-                          child: SizedBox(
-                            width: 190,
-                            child: PrimaryButton(
-                              label: AppStrings.confirm,
-                              onPressed: _confirm,
-                            ),
-                          ),
-                        ),
-                      ],
+    final formContent = Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            AppStrings.changePhoneTitle,
+            textAlign: TextAlign.center,
+            style: AppTypography.headlineMedium.copyWith(
+              color: colors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xxl),
+          AppTextField(
+            hint: AppStrings.phoneNumber,
+            controller: _phone,
+            keyboardType: TextInputType.phone,
+            textInputAction: TextInputAction.done,
+            prefixIcon: Icons.phone_outlined,
+            validator: _validatePhone,
+            onSubmitted: (_) => _confirm(),
+          ),
+          const SizedBox(height: AppSpacing.xl),
+          Center(
+            child: SizedBox(
+              width: 190,
+              child: PrimaryButton(
+                label: AppStrings.confirm,
+                onPressed: _confirm,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    return ResponsiveBuilder(
+      mobile: (context) => Scaffold(
+        backgroundColor: colors.scaffoldBg,
+        body: SafeArea(
+          child: CenteredConstrainedBox(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const AppBackButton(),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.fromLTRB(
+                      hPadding,
+                      AppSpacing.xs,
+                      hPadding,
+                      AppSpacing.xl,
                     ),
+                    child: formContent,
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
+        ),
+      ),
+      desktop: (context) => AuthDesktopShell(
+        formContent: Column(
+          children: [
+            const AppBackButton(),
+            const SizedBox(height: AppSpacing.xxl),
+            formContent,
+          ],
         ),
       ),
     );

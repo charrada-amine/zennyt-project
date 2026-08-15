@@ -66,3 +66,7 @@ node_modules/
 04 Move Fast/
 04 Emotional Radar/
 web/
+
+# Reglages d'atelier Visual Studio — 11 fichiers dont une base SQLite avaient ete
+# commites par la branche IntergrationV1 ; ils ne concernent qu'une machine.
+.vs/

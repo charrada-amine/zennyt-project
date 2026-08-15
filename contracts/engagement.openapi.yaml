@@ -3,7 +3,13 @@ info:
   title: Zennyt — Engagement API
   description: >
     Bounded context Engagement : messagerie candidat/recruteur, notifications,
-    enregistrement des appareils push et négociation de la connexion temps réel SignalR.
+    enregistrement des appareils push et négociation de la connexion temps réel STOMP/WebSocket.
+
+    Temps réel : le client négocie via `POST /realtime/negotiate` puis se connecte en
+    STOMP sur `/ws-engagement` (upgrade authentifié par le bearer token JWT). Quand un
+    message est envoyé via `POST /conversations/{id}/messages`, un événement JSON au
+    schéma `Message` est poussé au destinataire sur la file utilisateur
+    `/user/queue/messages` (historique toujours récupéré en HTTP).
   version: 2.0.0
 
 servers:
@@ -20,7 +26,7 @@ tags:
   - name: Notifications
     description: Centre de notifications
   - name: Realtime
-    description: Connexion temps réel (SignalR) et appareils push
+    description: Connexion temps réel (STOMP/WebSocket) et appareils push
   - name: Posts
     description: Fil d'actualité social
   - name: Calls
@@ -409,6 +415,37 @@ paths:
       responses:
         '204': { description: Appel terminé }
 
+  /calls/recording/chunks:
+    post:
+      tags: [Calls]
+      operationId: uploadCallRecordingChunk
+      summary: Upload a call recording chunk
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [sessionId, sequenceNumber, file]
+              properties:
+                sessionId:
+                  type: string
+                  format: uuid
+                  description: Call session identifier
+                sequenceNumber:
+                  type: integer
+                  description: Chunk sequence number
+                file:
+                  type: string
+                  format: binary
+                  description: Video chunk file (MP4)
+      responses:
+        '201':
+          description: Chunk uploaded
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CallRecordingChunk' }
+
   # ───────────── HELP CENTER ─────────────
   /help-chats:
     get:
@@ -647,6 +684,14 @@ components:
         endedAt: { type: string, format: date-time, nullable: true }
         durationSeconds: { type: integer, nullable: true }
 
+    CallRecordingChunk:
+      type: object
+      properties:
+        chunkId: { type: string, format: uuid }
+        url: { type: string, format: uri }
+        sessionId: { type: string, format: uuid }
+        sequenceNumber: { type: integer }
+
     HelpChat:
       type: object
       properties:
@@ -688,6 +733,10 @@ components:
         lastMessagePreview: { type: string }
         lastMessageAt: { type: string, format: date-time }
         unreadCount: { type: integer }
+        myRole:
+          type: string
+          description: "Rôle de l'utilisateur connecté dans cette conversation"
+          enum: [CANDIDATE, RECRUITER]
 
     Message:
       type: object

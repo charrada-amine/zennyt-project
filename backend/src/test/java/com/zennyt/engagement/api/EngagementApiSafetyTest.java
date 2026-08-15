@@ -34,7 +34,7 @@ class EngagementApiSafetyTest {
             .filter(EngagementApiSafetyTest::isEndpoint)
             .toList();
 
-        assertThat(endpoints).hasSize(30);
+        assertThat(endpoints).hasSize(31);
         assertThat(endpoints).allSatisfy(method ->
             assertThat(method.isAnnotationPresent(EngagementAuthenticated.class))
                 .as(method.toGenericString()).isTrue());
@@ -55,7 +55,7 @@ class EngagementApiSafetyTest {
         Set<String> contract = contractRoutes();
         Set<String> runtime = runtimeRoutes();
 
-        assertThat(contract).hasSize(30);
+        assertThat(contract).hasSize(31);
         assertThat(runtime).isEqualTo(contract);
     }
 

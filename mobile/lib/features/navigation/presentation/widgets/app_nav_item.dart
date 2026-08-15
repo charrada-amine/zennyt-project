@@ -84,6 +84,7 @@ class AppNavItem extends StatelessWidget {
               Text(
                 label,
                 style: AppTypography.labelSmall.copyWith(
+                  fontSize: 10,
                   color: selected
                       ? colors.navLabelSelected
                       : colors.navLabelUnselected,

@@ -193,5 +193,250 @@
     "placeholders": {
       "error": { "type": "String" }
     }
+  },
+
+  "acceptAction": "Accept",
+  "actionFailed": "Action failed.\nPlease try again.",
+  "add": "Add",
+  "addAnOption": "Add an option",
+  "aiResumeLabel": "AI Resume",
+  "allChats": "All chats",
+  "andTwoOthers": "and 2 others",
+  "areYouSureLogOut": "Are you sure you want to log out?",
+  "audioCall": "Audio Call",
+  "block": "Block",
+  "calling": "Calling...",
+  "cameraOff": "Camera Off",
+  "cameraOn": "Camera On",
+  "closeLabel": "Close",
+  "commentPlaceholder": "Add a comment...",
+  "commentsAndShares": "{comments} Comments · {shares} Shares",
+  "@commentsAndShares": {
+    "placeholders": {
+      "comments": { "type": "String" },
+      "shares": { "type": "String" }
+    }
+  },
+  "commentsTitle": "Comments",
+  "confirmOffer": "Confirm offer",
+  "connected": "Connected",
+  "conversationId": "Conversation ID",
+  "customerService": "24/7 customer service",
+  "deleteLabel": "Delete",
+  "discussionAssistant": "Discussion assistant",
+  "discussionAssistantTyping": "Discussion assistant is typing",
+  "documentLabel": "Document",
+  "earpiece": "Earpiece",
+  "editProfile": "Edit Profile",
+  "effectApplied": "Effect {effect} applied!",
+  "@effectApplied": {
+    "placeholders": {
+      "effect": { "type": "String" }
+    }
+  },
+  "effects": "effects",
+  "end": "end",
+  "errorLabel": "Error: {error}",
+  "@errorLabel": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "errorText": "Error",
+  "exploreOffer": "Explore offer",
+  "filter1": "Filter 1",
+  "filter2": "Filter 2",
+  "filter3": "Filter 3",
+  "filterAll": "All",
+  "filterJobOffers": "Job Offers",
+  "filterProfessionals": "Professionals",
+  "flip": "flip",
+  "friendsVisibility": "Friends",
+  "great": "Great",
+  "hide": "Hide",
+  "hiringContact": "Hiring contact",
+  "iAppreciateYourService": "I appreciate your service",
+  "identityVerificationDescription": "The recruiter has requested an identity verification with face matching to ensure trust and security.",
+  "identityVerificationRequired": "Identity verification required !",
+  "important": "Important !",
+  "importantAlertDescription": "The video interview will be automatically recorded for moderation purposes.\nDo not ask for a candidate's personal contact details.",
+  "jobOpportunity": "Job Opportunity",
+  "justNow": "Just now",
+  "timeAgoMinutes": "{count} {count, plural, =1{minute} other{minutes}} ago",
+  "@timeAgoMinutes": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "timeAgoHours": "{count} {count, plural, =1{hour} other{hours}} ago",
+  "@timeAgoHours": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "timeAgoDays": "{count} {count, plural, =1{day} other{days}} ago",
+  "@timeAgoDays": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "timeAgoMonths": "{count} {count, plural, =1{month} other{months}} ago",
+  "@timeAgoMonths": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "timeAgoYears": "{count} {count, plural, =1{year} other{years}} ago",
+  "@timeAgoYears": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "likedByAndOthers": "Liked by {name} & {others} others",
+  "@likedByAndOthers": {
+    "placeholders": {
+      "name": { "type": "String" },
+      "others": { "type": "String" }
+    }
+  },
+  "likedYourPost": "{name} liked your post",
+  "@likedYourPost": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "mediaAdd": "Add",
+  "mediaAddCount": "Add ({count})",
+  "@mediaAddCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "mediaLabel": "Media",
+  "mediaPermissionDenied": "Photo library access is required to select media.",
+  "mediaRecents": "Recents",
+  "mute": "mute",
+  "myId": "My ID (UUID)",
+  "newLike": "New like",
+  "newProject": "New Project",
+  "noChats": "Aucun chat",
+  "noCommentsYet": "No comments yet.",
+  "noMatchingOffers": "No matching offers.",
+  "noNotifications": "No notifications to show.",
+  "noPortfolioItems": "No portfolio items yet",
+  "noPostsToShow": "No posts to show.",
+  "ok": "OK",
+  "oneVote": "1 vote",
+  "optionIndex": "Option {index}",
+  "@optionIndex": {
+    "placeholders": {
+      "index": { "type": "int" }
+    }
+  },
+  "optionsCount": "{count} options",
+  "@optionsCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "outputCard": "Add your card",
+  "overview": "Overview",
+  "perMonth": "/Mo.",
+  "poll": "Poll",
+  "pollAttached": "Poll attached",
+  "pollDisclaimer": "* We do not allow requests related to political opinions, medical information, or other sensitive data.\nThis option is only intended for questions related to Progress Careers.",
+  "poor": "Poor",
+  "portfolioLabel": "Portfolio",
+  "postAction": "Post",
+  "postCreationFailed": "Unable to publish your post.\nPlease try again.",
+  "postHidden": "Post hidden from your feed.",
+  "postLabel": "Post",
+  "prepareYourId": "Prepare your ID",
+  "profileLabel": "Profile",
+  "publicVisibility": "Public",
+  "publishLabel": "Publish",
+  "rateYourExperience": "Rate your experience",
+  "read": "Read",
+  "recipientId": "Recipient ID (UUID)",
+  "recruiter": "Recruiter",
+  "rejectAction": "Reject",
+  "rejectOffer": "Reject offer",
+  "remoteLabel": "Remote",
+  "report": "Report",
+  "resumeAi": "Resume AI",
+  "retry": "Retry",
+  "scoreLabel": "Score",
+  "send": "Send",
+  "sendMessage": "Send message...",
+  "sent": "Sent",
+  "shareLabel": "Share",
+  "showAll": "Show all",
+  "showLabel": "Show",
+  "softSkillsScore": "SOFT SKILLS SCORE",
+  "speaker": "Speaker",
+  "stayTuned": "Stay tuned for new notifications.",
+  "tellUsMore": "Tell us more",
+  "thankYouForYourOpinion": "Thank you for your opinion",
+  "timeframe": "Timeframe",
+  "timeLeft": "{duration} left",
+  "@timeLeft": {
+    "placeholders": {
+      "duration": { "type": "String" }
+    }
+  },
+  "today": "Today",
+  "typeTheQuestion": "Type the question",
+  "userBlocked": "User blocked.\nTheir posts are hidden from your feed.",
+  "verifyNow": "Verify now",
+  "videoCall": "Video Call",
+  "videoOn": "Video On",
+  "voteCount": "{count} votes",
+  "@voteCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "voted": "Voted",
+  "votesCount": "{count} votes",
+  "@votesCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "weAreOffering": "We are offering a {position} position with a salary of ",
+  "@weAreOffering": {
+    "placeholders": {
+      "position": { "type": "String" }
+    }
+  },
+  "whatCanWeImprove": "What can we improve?",
+  "yesterday": "Yesterday",
+  "yourComments": "Your comments",
+  "yourQuestion": "Your question",
+
+  "homeError": "Error: {error}",
+  "@homeError": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "timeframe1Day": "1 day",
+  "timeframe3Days": "3 days",
+  "timeframe7Days": "7 days",
+  "timeframe14Days": "14 days",
+  "dateFormatted": "{day}/{month}/{year}",
+  "@dateFormatted": {
+    "placeholders": {
+      "day": { "type": "String" },
+      "month": { "type": "String" },
+      "year": { "type": "String" }
+    }
+  },
+  "sessionExpired": "Your session has expired. Please log in again.",
+  "likesCount": "{count} likes",
+  "@likesCount": {
+    "placeholders": {
+      "count": { "type": "String" }
+    }
   }
 }
