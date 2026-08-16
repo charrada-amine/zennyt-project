@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/audio/sound_service.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../domain/config/object_location_config.dart';
 import '../../domain/entities/game_session.dart';
@@ -80,7 +81,7 @@ class JePlaceScreen extends ConsumerStatefulWidget {
 }
 
 class _JePlaceScreenState extends ConsumerState<JePlaceScreen>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, GameMusicMixin {
   _JePlaceStage _stage = _JePlaceStage.cover;
   int _onboardingPage = 0;
   GameSession? _session;

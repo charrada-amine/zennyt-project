@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/audio/sound_service.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -53,7 +54,8 @@ const List<_Task> _caseTasks = [
 
 enum _Stage { intro, howToPlay, gameplay, score }
 
-class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen> {
+class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen>
+    with GameMusicMixin {
   _Stage _stage = _Stage.intro;
 
   // Emplacements ordonnés (null = vide) + réserve (indices de tâches).

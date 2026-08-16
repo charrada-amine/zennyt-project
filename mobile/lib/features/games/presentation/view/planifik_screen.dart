@@ -3,9 +3,11 @@ import 'dart:math' as math;
 
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/audio/sound_service.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -55,17 +57,39 @@ class _PlanifikScreenState extends ConsumerState<PlanifikScreen> {
   bool _busy = false;
   int _level = 0;
   int _score = 0;
+  // Fautes de case interdite (rouge) AU NIVEAU courant : chaque tentative de
+  // franchissement est comptée comme un « essai » supplémentaire dans les
+  // métriques → sanctionne le score /10 du niveau, en plus de la pénalité
+  // visuelle immédiate sur le score affiché.
+  int _levelCellFaults = 0;
   PlanifikMetrics? _lastMetrics;
   // Cumul explicite des métriques PAR NIVEAU — soumis en un seul PlanifikMetrics
   // au dernier niveau (le backend note chaque niveau /10 puis fait la moyenne).
   final List<PlanifikLevelMetrics> _levelMetrics = [];
+
+  @override
+  void initState() {
+    super.initState();
+    SoundService.instance.startMusic();
+  }
+
+  @override
+  void dispose() {
+    SoundService.instance.stopMusic();
+    super.dispose();
+  }
 
   Future<void> _beginGame() async {
     setState(() {
       _levelConfigs = GridConfig.randomLevels();
       _level = 0;
       _score = 0;
-      _game = PlanifikGame(config: _levelConfigs[_level]);
+      _levelCellFaults = 0;
+      _game = PlanifikGame(
+        config: _levelConfigs[_level],
+        onWrongCell: _onWrongCell,
+        onPointAdded: _onPointAdded,
+      );
       _stage = _PlanifikStage.gameplay;
       _levelAttempts = 0;
       _levelFailed = false;
@@ -78,9 +102,31 @@ class _PlanifikScreenState extends ConsumerState<PlanifikScreen> {
   /// Route correcte validée : +250, on fige les métriques du niveau, puis niveau
   /// suivant (plus dur) ou, au dernier niveau, soumission au backend.
   void _onCorrectRoute() {
+    SoundService.instance.playSfx(GameSfx.correctChoice);
     _score += 250;
     _captureLevelMetrics();
     _goToNextLevelOrSubmit();
+  }
+
+  /// Un point vient d'être ajouté au tracé : son « start-point » pour chaque
+  /// point (départ + intermédiaires), son « goal-point » quand on atteint la
+  /// case d'arrivée.
+  void _onPointAdded(bool isGoal) {
+    SoundService.instance.playSfx(
+      isGoal ? GameSfx.goalPoint : GameSfx.startPoint,
+    );
+  }
+
+  /// Clic sur une case interdite (rouge) : vibration d'erreur + pénalité
+  /// incrémentale (le jeu dessine puis efface le faux segment de son côté).
+  void _onWrongCell() {
+    HapticFeedback.heavyImpact();
+    SoundService.instance.playSfx(GameSfx.wrongChoice);
+    setState(() {
+      _levelCellFaults++; // sanctionne le score /10 du niveau (compté en essais)
+      // Sanction visuelle claire : chaque case interdite retire 3 points.
+      _score = math.max(0, _score - 3);
+    });
   }
 
   void _onWrongRoute() {
@@ -100,7 +146,9 @@ class _PlanifikScreenState extends ConsumerState<PlanifikScreen> {
     _levelMetrics.add(
       _game.buildFailedLevelMetrics(
         levelIndex: _level,
-        attempts: _levelAttempts, // >= 3 → 1 pt sur « essais »
+        // Fautes de case interdite comptées comme des essais → aggravent la
+        // sanction (>= 3 → 1 pt sur « essais »).
+        attempts: _levelAttempts + _levelCellFaults,
       ),
     );
     setState(() => _levelFailed = true);
@@ -115,19 +163,26 @@ class _PlanifikScreenState extends ConsumerState<PlanifikScreen> {
       setState(() {
         _level++;
         _levelAttempts = 0;
+        _levelCellFaults = 0;
         _levelFailed = false;
-        _game = PlanifikGame(config: _levelConfigs[_level]);
+        _game = PlanifikGame(
+          config: _levelConfigs[_level],
+          onWrongCell: _onWrongCell,
+          onPointAdded: _onPointAdded,
+        );
       });
     } else {
       _submitFinal();
     }
   }
 
-  /// Fige les métriques du niveau courant (essais = mauvaises routes + 1).
+  /// Fige les métriques du niveau courant. Les « essais » = mauvaises routes + 1
+  /// + fautes de case interdite : franchir (tenter) une case rouge est ainsi
+  /// sanctionné dans le score /10 du niveau (barème « essais » : 1→3, 2→2, ≥3→1).
   void _captureLevelMetrics() {
     final metrics = _game.buildLevelMetrics(
       levelIndex: _level,
-      attempts: _levelAttempts + 1,
+      attempts: _levelAttempts + 1 + _levelCellFaults,
     );
     if (metrics != null) _levelMetrics.add(metrics);
   }
@@ -148,6 +203,7 @@ class _PlanifikScreenState extends ConsumerState<PlanifikScreen> {
       _busy = false;
       if (scored) _stage = _PlanifikStage.score;
     });
+    if (scored) SoundService.instance.playScoreboard();
   }
 
   void _replay() {
@@ -207,7 +263,9 @@ class _PlanifikScreenState extends ConsumerState<PlanifikScreen> {
         metrics: _lastMetrics,
         onReplay: _replay,
         onCompare: () => setState(() => _stage = _PlanifikStage.comparison),
-        onNext: () => context.go(AppRoutes.gamesTaskScheduling),
+        // Chaque jeu est individuel : Optimal Path se termine sur son propre
+        // écran de score et revient au hub, sans enchaîner sur l'ordonnancement.
+        onNext: () => context.go(AppRoutes.games),
         onBack: () => context.go(AppRoutes.games),
       ),
       _PlanifikStage.comparison => _ComparisonView(
@@ -836,33 +894,35 @@ class _HowToPlayPage2 extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: AppSpacing.lg),
+                // Barème réel : chaque niveau est noté /10 (miroir backend),
+                // puis moyenné sur les 4 niveaux → /100.
                 const _ScoringRow(
                   icon: Icons.gps_fixed_rounded,
-                  iconColor: Color(0xFFEF5B5B),
-                  label: 'Optimal route reached',
-                  points: '+3 pts',
+                  iconColor: Color(0xFF22C55E),
+                  label: 'Optimal route (within 10%)',
+                  points: '+4 pts',
                   pointsColor: Color(0xFF22C55E),
                 ),
                 const _ScoringRow(
-                  icon: Icons.star_rounded,
-                  iconColor: Color(0xFFF5B800),
-                  label: 'Document collected',
-                  points: '+2 pts each',
-                  pointsColor: ZennytGamePalette.magenta,
-                ),
-                const _ScoringRow(
-                  icon: Icons.bolt_rounded,
-                  iconColor: Color(0xFFF5B800),
-                  label: 'Move efficiency bonus',
-                  points: '+2 pts',
+                  icon: Icons.replay_rounded,
+                  iconColor: Color(0xFF00A9D6),
+                  label: 'Attempts (1st / 2nd / 3rd)',
+                  points: '+3 / +2 / +1',
                   pointsColor: Color(0xFF00A9D6),
                 ),
                 const _ScoringRow(
                   icon: Icons.do_not_disturb_rounded,
                   iconColor: Color(0xFFEF5B5B),
-                  label: 'Each wrong move',
-                  points: '-1 pt',
-                  pointsColor: Color(0xFFEF5B5B),
+                  label: 'Costly zones avoided',
+                  points: '+2 pts',
+                  pointsColor: ZennytGamePalette.magenta,
+                ),
+                const _ScoringRow(
+                  icon: Icons.star_rounded,
+                  iconColor: Color(0xFFF5B800),
+                  label: 'Documents collected',
+                  points: '+1 pt',
+                  pointsColor: Color(0xFFF5B800),
                 ),
               ],
             ),
@@ -1164,8 +1224,6 @@ class _GameplayViewState extends State<_GameplayView> {
   int _elapsed = 0;
   int _tries = 0;
   bool _paused = false;
-  bool _soundEffects = true;
-  bool _music = false;
   _Feedback _feedback = _Feedback.none;
   String _feedbackText = '';
 
@@ -1180,25 +1238,34 @@ class _GameplayViewState extends State<_GameplayView> {
   /// Menu pause (comme Move Fast) : pause le timer, propose Reprendre / Règles /
   /// Quitter, et des options audio.
   Future<void> _openPause() async {
+    SoundService.instance.playSfx(GameSfx.pauseClick);
     setState(() => _paused = true);
-    final action = await showDialog<_PauseAction>(
+    final action = await showDialog<GamePauseAction>(
       context: context,
       barrierColor: ZennytGamePalette.ink.withValues(alpha: 0.82),
-      builder: (context) => _PauseDialog(
-        timeLabel: _timeLabel,
-        attempts: _tries,
-        soundEffects: _soundEffects,
-        music: _music,
-        onSoundEffectsChanged: (v) => _soundEffects = v,
-        onMusicChanged: (v) => _music = v,
+      builder: (context) => GamePauseScaffold(
+        buttons: [
+          GamePrimaryButton(
+            label: 'Resume',
+            onPressed: () => Navigator.of(context).pop(GamePauseAction.resume),
+          ),
+          GameOutlineButton(
+            label: 'View rules / Help',
+            onPressed: () => Navigator.of(context).pop(GamePauseAction.help),
+          ),
+          GamePauseExitButton(
+            label: 'Exit mission',
+            onPressed: () => Navigator.of(context).pop(GamePauseAction.exit),
+          ),
+        ],
       ),
     );
     if (!mounted) return;
-    if (action == _PauseAction.exit) {
+    if (action == GamePauseAction.exit) {
       widget.onExit();
       return;
     }
-    if (action == _PauseAction.help) {
+    if (action == GamePauseAction.help) {
       await showDialog<void>(
         context: context,
         barrierColor: ZennytGamePalette.ink.withValues(alpha: 0.82),
@@ -1667,226 +1734,6 @@ class _ValidateButton extends StatelessWidget {
 
 // ─────────────────────────── Menu pause (comme Move Fast) ───────────────────────────
 
-enum _PauseAction { resume, help, exit }
-
-class _PauseDialog extends StatefulWidget {
-  const _PauseDialog({
-    required this.timeLabel,
-    required this.attempts,
-    required this.soundEffects,
-    required this.music,
-    required this.onSoundEffectsChanged,
-    required this.onMusicChanged,
-  });
-
-  final String timeLabel;
-  final int attempts;
-  final bool soundEffects;
-  final bool music;
-  final ValueChanged<bool> onSoundEffectsChanged;
-  final ValueChanged<bool> onMusicChanged;
-
-  @override
-  State<_PauseDialog> createState() => _PauseDialogState();
-}
-
-class _PauseDialogState extends State<_PauseDialog> {
-  late bool _soundEffects = widget.soundEffects;
-  late bool _music = widget.music;
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      insetPadding: const EdgeInsets.all(32),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusXxl),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Pause',
-              style: AppTypography.displayMedium.copyWith(
-                color: ZennytGamePalette.blue,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            // Stats : Time | Attempts.
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                _PauseStat(
-                  label: 'Time',
-                  value: widget.timeLabel,
-                  valueColor: ZennytGamePalette.magenta,
-                ),
-                Container(
-                  width: 1,
-                  height: 44,
-                  margin: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-                  color: ZennytGamePalette.border,
-                ),
-                _PauseStat(
-                  label: 'Attempts',
-                  value: '${widget.attempts}/3',
-                  valueColor: ZennytGamePalette.success,
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            Text(
-              'Audio options',
-              style: AppTypography.titleMedium.copyWith(
-                color: ZennytGamePalette.blue,
-                letterSpacing: 0,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            _PauseSwitchTile(
-              label: 'Sound effects',
-              value: _soundEffects,
-              onChanged: (value) {
-                setState(() => _soundEffects = value);
-                widget.onSoundEffectsChanged(value);
-              },
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            _PauseSwitchTile(
-              label: 'Music',
-              value: _music,
-              onChanged: (value) {
-                setState(() => _music = value);
-                widget.onMusicChanged(value);
-              },
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            GamePrimaryButton(
-              label: 'Resume',
-              onPressed: () => Navigator.of(context).pop(_PauseAction.resume),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            GameOutlineButton(
-              label: 'View rules',
-              onPressed: () => Navigator.of(context).pop(_PauseAction.help),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            OutlinedButton(
-              onPressed: () => Navigator.of(context).pop(_PauseAction.exit),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: ZennytGamePalette.error,
-                backgroundColor: ZennytGamePalette.error.withValues(
-                  alpha: 0.06,
-                ),
-                side: const BorderSide(color: ZennytGamePalette.error),
-                minimumSize: const Size.fromHeight(52),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-                ),
-                textStyle: AppTypography.buttonMedium.copyWith(
-                  letterSpacing: 0,
-                ),
-              ),
-              child: const Text('Exit mission'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _PauseStat extends StatelessWidget {
-  const _PauseStat({
-    required this.label,
-    required this.value,
-    required this.valueColor,
-  });
-
-  final String label;
-  final String value;
-  final Color valueColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          label,
-          style: AppTypography.titleMedium.copyWith(
-            color: ZennytGamePalette.blue,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: AppTypography.titleLarge.copyWith(
-            color: valueColor,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _PauseSwitchTile extends StatelessWidget {
-  const _PauseSwitchTile({
-    required this.label,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final String label;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.base,
-        vertical: AppSpacing.sm,
-      ),
-      decoration: BoxDecoration(
-        border: Border.all(color: ZennytGamePalette.border),
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: AppTypography.titleSmall.copyWith(
-                color: ZennytGamePalette.blue,
-                letterSpacing: 0,
-              ),
-            ),
-          ),
-          Text(
-            value ? 'On' : 'Off',
-            style: AppTypography.labelMedium.copyWith(
-              color: value
-                  ? ZennytGamePalette.success
-                  : ZennytGamePalette.muted,
-              letterSpacing: 0,
-            ),
-          ),
-          Switch(value: value, onChanged: onChanged),
-        ],
-      ),
-    );
-  }
-}
-
 /// Dialogue « Règles » d'Optimal Path (ouvert depuis le menu pause).
 class _OptimalRulesDialog extends StatelessWidget {
   const _OptimalRulesDialog();
@@ -2009,7 +1856,7 @@ class _ScoreView extends StatelessWidget {
   final PlanifikMetrics? metrics;
   final VoidCallback onReplay;
   final VoidCallback onCompare;
-  final VoidCallback onNext; // enchaîne vers Planifik #2 (Ordonnancement)
+  final VoidCallback onNext; // termine le jeu → retour au hub des jeux
   final VoidCallback onBack;
 
   @override
@@ -2066,8 +1913,10 @@ class _ScoreView extends StatelessWidget {
                     letterSpacing: 0,
                   ),
                 ),
-                Text(
-                  '$scorePercent%',
+                AnimatedCountText(
+                  value: scorePercent,
+                  suffix: '%',
+                  onCompleted: SoundService.instance.stopScoreboard,
                   style: AppTypography.displayLarge.copyWith(
                     color: Colors.white,
                     fontSize: 56,
@@ -2153,8 +2002,8 @@ class _ScoreView extends StatelessWidget {
             _ScoreBreakdownPanel(metrics: metrics!),
           ],
           const SizedBox(height: AppSpacing.xxl),
-          // Enchaîne le flow Planifik : #1 Chemin Optimal → #2 Ordonnancement.
-          GamePrimaryButton(label: 'Continue to scheduling', onPressed: onNext),
+          // Jeu individuel : bouton terminal qui referme Optimal Path.
+          GamePrimaryButton(label: 'Finish', onPressed: onNext),
           const SizedBox(height: AppSpacing.md),
           Row(
             children: [

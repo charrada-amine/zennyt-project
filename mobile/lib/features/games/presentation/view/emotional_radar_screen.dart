@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/audio/sound_service.dart';
 import '../../domain/config/emotional_radar_config.dart';
 import '../../domain/entities/emotional_radar.dart';
 import '../../domain/entities/game_session.dart';
@@ -41,7 +42,8 @@ class EmotionalRadarScreen extends ConsumerStatefulWidget {
       _EmotionalRadarScreenState();
 }
 
-class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
+class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen>
+    with GameMusicMixin {
   _Stage _stage = _Stage.cover;
 
   GameSession? _session;
@@ -64,8 +66,6 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
   bool _fullscreenOpenedThisScene = false;
 
   // Options de la carte Pause.
-  bool _soundEffects = true;
-  bool _music = false;
   bool _buttonsInput = true;
 
   EmotionalRadarScene? get _scene {
@@ -253,11 +253,7 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
       context: context,
       barrierColor: const Color(0xCC1B1B4B),
       builder: (context) => EmotionalGamePauseDialog(
-        soundEffects: _soundEffects,
-        music: _music,
         buttonsInput: _buttonsInput,
-        onSoundEffects: (v) => setState(() => _soundEffects = v),
-        onMusic: (v) => setState(() => _music = v),
         onInputMode: (buttons) => setState(() => _buttonsInput = buttons),
       ),
     );

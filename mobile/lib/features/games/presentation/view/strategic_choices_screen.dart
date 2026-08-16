@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/audio/sound_service.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../navigation/presentation/viewmodel/nav_tab_provider.dart';
 import '../../../navigation/presentation/widgets/app_bottom_nav.dart';
@@ -59,7 +60,7 @@ class StrategicChoicesScreen extends ConsumerStatefulWidget {
 }
 
 class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, GameMusicMixin {
   _StrategicStage _stage = _StrategicStage.cover;
   _ScenarioPhase _scenarioPhase = _ScenarioPhase.reading;
   int _situationIndex = 0;
@@ -71,8 +72,6 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
   Timer? _savedTimer;
   bool _pauseOpen = false;
   bool _resumePauseAfterLifecycle = false;
-  bool _soundEffects = true;
-  bool _music = false;
   bool _buttonsInput = true;
 
   bool get _reducedMotion =>
@@ -233,11 +232,7 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
       context: context,
       barrierDismissible: false,
       builder: (context) => EmotionalGamePauseDialog(
-        soundEffects: _soundEffects,
-        music: _music,
         buttonsInput: _buttonsInput,
-        onSoundEffects: (value) => _soundEffects = value,
-        onMusic: (value) => _music = value,
         onInputMode: (value) => _buttonsInput = value,
       ),
     );

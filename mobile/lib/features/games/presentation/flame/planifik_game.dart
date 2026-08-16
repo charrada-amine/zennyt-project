@@ -25,9 +25,29 @@ import 'grid_config.dart';
 /// chemin INCOMPLET compte comme un essai raté (barème « essais ». Voir
 /// GAMES_MODULE.md § Décisions à valider).
 class PlanifikGame extends FlameGame {
-  PlanifikGame({this.config = GridConfig.level1});
+  PlanifikGame({
+    this.config = GridConfig.level1,
+    this.onWrongCell,
+    this.onPointAdded,
+  });
 
   final GridConfig config;
+
+  /// Notifié quand le joueur touche une case interdite (rouge) adjacente au
+  /// tracé : la présentation déclenche le retour haptique et la pénalité de
+  /// score. Le jeu, lui, dessine puis efface le « faux » segment (flash rouge).
+  final void Function()? onWrongCell;
+
+  /// Notifié à chaque point ajouté au tracé. `isGoal` vaut `true` quand le point
+  /// posé est la case d'arrivée (son « goal-point »), sinon c'est un point
+  /// courant (départ ou intermédiaire → son « start-point »).
+  final void Function(bool isGoal)? onPointAdded;
+
+  // Flash d'erreur : segment temporaire vers la case interdite touchée, qui
+  // s'estompe (opacité 1 → 0) puis disparaît.
+  int? _errorFlashIndex;
+  double _errorFlashOpacity = 0;
+  static const double _errorFadePerSec = 2; // ~500 ms d'affichage
 
   /// Incrémenté à chaque modification du tracé — l'écran l'écoute pour
   /// rafraîchir le HUD (pas, bonus) et l'état des boutons undo/clear.
@@ -98,7 +118,14 @@ class PlanifikGame extends FlameGame {
 
   void _handleTap(int row, int col) {
     final index = config.index(row, col);
-    if (!config.isWalkable(index)) return; // obstacle infranchissable
+    if (!config.isWalkable(index)) {
+      // Case interdite (rouge) : si elle jouxte la fin du tracé, on montre un
+      // faux segment qui s'efface + on notifie l'écran (vibration, −score).
+      if (_path.isNotEmpty && _adjacent(index, _path.last)) {
+        _flashError(index);
+      }
+      return; // obstacle infranchissable : jamais ajouté au chemin
+    }
 
     // Premier appui : doit partir de la case départ.
     if (_path.isEmpty) {
@@ -123,7 +150,25 @@ class PlanifikGame extends FlameGame {
   void _addToPath(int index) {
     _path.add(index);
     _cellAt(index).inPath = true;
+    onPointAdded?.call(index == config.end);
     _refresh();
+  }
+
+  void _flashError(int index) {
+    _errorFlashIndex = index;
+    _errorFlashOpacity = 1;
+    onWrongCell?.call();
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    if (_errorFlashIndex == null) return;
+    _errorFlashOpacity -= _errorFadePerSec * dt;
+    if (_errorFlashOpacity <= 0) {
+      _errorFlashOpacity = 0;
+      _errorFlashIndex = null;
+    }
   }
 
   void _refresh() {
@@ -251,28 +296,49 @@ class _RouteLineComponent extends PositionComponent {
   @override
   void render(Canvas canvas) {
     final path = _game._path;
-    if (path.length < 2) return;
+    final width = math.max(3.0, _game._cellSize * 0.14);
 
-    final line = Path();
-    for (var i = 0; i < path.length; i++) {
-      final cell = _game._cellAt(path[i]);
-      final center = cell.position + cell.size / 2;
-      if (i == 0) {
-        line.moveTo(center.x, center.y);
-      } else {
-        line.lineTo(center.x, center.y);
+    if (path.length >= 2) {
+      final line = Path();
+      for (var i = 0; i < path.length; i++) {
+        final cell = _game._cellAt(path[i]);
+        final center = cell.position + cell.size / 2;
+        if (i == 0) {
+          line.moveTo(center.x, center.y);
+        } else {
+          line.lineTo(center.x, center.y);
+        }
       }
+      canvas.drawPath(
+        line,
+        Paint()
+          ..color = BoardPalette.route
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = width
+          ..strokeJoin = StrokeJoin.round
+          ..strokeCap = StrokeCap.round,
+      );
     }
 
-    final width = math.max(3.0, _game._cellSize * 0.14);
-    canvas.drawPath(
-      line,
-      Paint()
-        ..color = BoardPalette.route
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = width
-        ..strokeJoin = StrokeJoin.round
-        ..strokeCap = StrokeCap.round,
-    );
+    // Faux segment (rouge) vers la case interdite touchée, en train de s'effacer.
+    final errIndex = _game._errorFlashIndex;
+    if (errIndex != null && path.isNotEmpty && _game._errorFlashOpacity > 0) {
+      final from = _game._cellAt(path.last);
+      final to = _game._cellAt(errIndex);
+      final a = from.position + from.size / 2;
+      final b = to.position + to.size / 2;
+      canvas.drawLine(
+        Offset(a.x, a.y),
+        Offset(b.x, b.y),
+        Paint()
+          ..color = BoardPalette.blockIcon.withValues(
+            alpha: _game._errorFlashOpacity.clamp(0, 1),
+          )
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = width
+          ..strokeJoin = StrokeJoin.round
+          ..strokeCap = StrokeCap.round,
+      );
+    }
   }
 }

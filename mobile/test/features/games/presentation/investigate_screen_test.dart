@@ -7,8 +7,9 @@ import 'package:zennyt/features/games/domain/config/memory_quest_config.dart';
 import 'package:zennyt/features/games/domain/entities/memory_object.dart';
 import 'package:zennyt/features/games/presentation/view/investigate_screen.dart';
 
-/// « J'investigue » — système de niveaux : 3 tâches réussies au niveau 1 →
-/// niveau 2 (longueur 4) ; distraction ABSENTE aux niveaux 1-2.
+/// « J'investigue » — système de niveaux : **un seul tour par niveau**. Après
+/// le tour du niveau 1 on passe au niveau 2 (longueur 4) ; distraction ABSENTE
+/// aux niveaux 1-2.
 void main() {
   const seed = 12345;
   // Séquence du niveau 1 : longueur = 3 (initial_sequence_length), graine fixe.
@@ -26,7 +27,7 @@ void main() {
   }
 
   testWidgets(
-      '3 réussites au niveau 1 → niveau 2 (longueur 4) ; distraction absente au niveau 1',
+      'un tour au niveau 1 → niveau 2 (longueur 4) ; distraction absente au niveau 1',
       (tester) async {
     tester.view.physicalSize = const Size(1200, 2400);
     tester.view.devicePixelRatio = 1.0;
@@ -54,8 +55,8 @@ void main() {
     // On est au niveau 1.
     expect(find.text('Level 1'), findsOneWidget);
 
-    // Observation des 3 chiffres (900 ms + ISI 250 + amorce 350).
-    await tester.pump(const Duration(milliseconds: 4200));
+    // Observation des 3 chiffres (900 ms + ISI 1000 + amorce 350) = ~6050 ms.
+    await tester.pump(const Duration(milliseconds: 6300));
 
     // Rappel MÊME ordre (parfait → tâche réussie #1).
     expect(find.textContaining('SAME order'), findsOneWidget);
@@ -73,12 +74,13 @@ void main() {
     expect(find.text('Memorize the starting order'), findsOneWidget);
     expect(initialObjects, hasLength(4));
 
-    // Observation (5 s) + manipulations auto (2 × 1500 ms) → restauration.
+    // Observation (5 s) + manipulations auto (2 × 2 × 750 ms) + rétention 3 s
+    // avant le rappel → restauration.
     await tester.pump(const Duration(milliseconds: 5200));
-    await tester.pump(const Duration(milliseconds: 3200));
+    await tester.pump(const Duration(milliseconds: 6200));
     expect(find.text('Restore the STARTING order'), findsOneWidget);
 
-    // Restauration parfaite (tâche réussie #3) → 3 réussites → montée de niveau.
+    // Restauration → fin du tour du niveau 1 → montée automatique au niveau 2.
     for (final obj in initialObjects) {
       await tester.tap(find.text(obj.labelEn).first);
       await tester.pump();
@@ -92,8 +94,9 @@ void main() {
     expect(find.text('Level 2'), findsOneWidget);
     expect(MemoryQuestConfig.sequenceLengthForLevel(2), 4);
 
-    // Laisse l'observation du niveau 2 se dérouler (évite les timers en attente).
-    await tester.pump(const Duration(milliseconds: 5200));
+    // Laisse l'observation du niveau 2 se dérouler (4 chiffres × (900+1000)
+    // + amorce 350 ≈ 7950 ms) — évite les timers en attente.
+    await tester.pump(const Duration(milliseconds: 8200));
     expect(find.textContaining('SAME order'), findsOneWidget);
   });
 }

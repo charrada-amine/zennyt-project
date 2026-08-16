@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/audio/sound_service.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -68,8 +69,6 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
   bool _paused = false;
   // Niveau unique à règle aléatoire : la règle est imprévisible dès le départ.
   bool _randomRule = false;
-  bool _soundEffects = true;
-  bool _music = false;
   int _secondsLeft = _sessionSeconds;
   int _score = 0;
   int _multiplier = 1;
@@ -100,11 +99,13 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
   void initState() {
     super.initState();
     _stimulus = _buildStimulus();
+    SoundService.instance.startMusic();
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    SoundService.instance.stopMusic();
     super.dispose();
   }
 
@@ -164,10 +165,19 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
       // En mode REACH_MAX_MULTIPLIER (fiche), aucune limite de durée.
       if (MoveFastConfig.sessionEndMode == MoveFastSessionEndMode.fixedBudget &&
           _secondsLeft <= 1) {
+        SoundService.instance.playSfx(GameSfx.timerEnd);
         _finishSession();
         return;
       }
-      if (_secondsLeft > 0) setState(() => _secondsLeft--);
+      if (_secondsLeft > 0) {
+        setState(() => _secondsLeft--);
+        // Tic des 10 dernières secondes (budget fixe uniquement).
+        if (MoveFastConfig.sessionEndMode ==
+                MoveFastSessionEndMode.fixedBudget &&
+            _secondsLeft <= 10) {
+          SoundService.instance.playSfx(GameSfx.timerDecrease);
+        }
+      }
     });
   }
 
@@ -212,6 +222,7 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
       _chosenDirection = null;
       _correctDirection = null;
     });
+    SoundService.instance.playScoreboard();
     unawaited(_submitMoveFastResult());
   }
 
@@ -303,6 +314,9 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
     final correct = _expectedDirection;
     final isCorrect = direction == correct;
     final reactionMs = _reactionWatch.elapsedMilliseconds;
+    SoundService.instance.playSfx(
+      isCorrect ? GameSfx.correctChoice : GameSfx.wrongChoice,
+    );
 
     // Métriques de flexibilité cognitive (calcul serveur — on ne fait que mesurer).
     final currentRule = _rule;
@@ -353,11 +367,15 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
           );
           _streakCounter = 0;
           _multiplier = math.min(10, _multiplier + 1);
+          // Le multiplicateur grimpe : son dédié « increase-multiplier ».
+          SoundService.instance.playSfx(GameSfx.increaseMultiplier);
         }
       } else {
         _wrongResponses++;
         if (_streakCounter > 0) {
+          // Une série en cours est brisée : son « reset-counter ».
           _streakCounter = 0;
+          SoundService.instance.playSfx(GameSfx.resetCounter);
         } else {
           _multiplier = math.max(1, _multiplier - 1);
         }
@@ -382,10 +400,25 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
         _correctDirection = null;
         // Niveau unique : la règle change de façon imprévisible à chaque avion.
         if (_randomRule) _rule = _nextRandomRule();
+        final previousStimulus = _stimulus;
         _stimulus = _buildStimulus();
+        _playStimulusChangeSfx(previousStimulus, _stimulus);
       });
       _startReactionTimer();
     });
+  }
+
+  /// Nouveau stimulus : joue le son de changement d'orientation (nez) ou, à
+  /// défaut, de mouvement, selon ce qui diffère de l'avion précédent.
+  void _playStimulusChangeSfx(
+    _MoveFastStimulus previous,
+    _MoveFastStimulus next,
+  ) {
+    if (previous.noseDirection != next.noseDirection) {
+      SoundService.instance.playSfx(GameSfx.planeOrientationChange);
+    } else if (previous.movementDirection != next.movementDirection) {
+      SoundService.instance.playSfx(GameSfx.planeMovementChange);
+    }
   }
 
   /// Choisit la prochaine règle en mode aléatoire : bascule le plus souvent
@@ -399,29 +432,55 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
 
   Future<void> _openPause() async {
     if (_stage != _MoveFastStage.gameplay) return;
+    SoundService.instance.playSfx(GameSfx.pauseClick);
     _timer?.cancel();
     _reactionWatch.stop();
     setState(() => _paused = true);
 
-    final action = await showDialog<_PauseAction>(
+    final action = await showDialog<GamePauseAction>(
       context: context,
       barrierColor: ZennytGamePalette.ink.withValues(alpha: 0.82),
-      builder: (context) => _PauseDialog(
-        inputMode: _inputMode,
-        soundEffects: _soundEffects,
-        music: _music,
-        onInputModeChanged: (mode) => _inputMode = mode,
-        onSoundEffectsChanged: (value) => _soundEffects = value,
-        onMusicChanged: (value) => _music = value,
-      ),
+      builder: (context) {
+        var mode = _inputMode;
+        return StatefulBuilder(
+          builder: (context, setLocal) => GamePauseScaffold(
+            inputMode: GamePauseInputModeToggle(
+              buttonsSelected: mode == _MoveFastInputMode.buttons,
+              onChanged: (buttons) {
+                setLocal(() => mode = buttons
+                    ? _MoveFastInputMode.buttons
+                    : _MoveFastInputMode.tactile);
+                _inputMode = mode;
+              },
+            ),
+            buttons: [
+              GamePrimaryButton(
+                label: 'Resume',
+                onPressed: () =>
+                    Navigator.of(context).pop(GamePauseAction.resume),
+              ),
+              GameOutlineButton(
+                label: 'View rules / Help',
+                onPressed: () =>
+                    Navigator.of(context).pop(GamePauseAction.help),
+              ),
+              GamePauseExitButton(
+                label: 'Exit mission',
+                onPressed: () =>
+                    Navigator.of(context).pop(GamePauseAction.exit),
+              ),
+            ],
+          ),
+        );
+      },
     );
 
     if (!mounted) return;
-    if (action == _PauseAction.exit) {
+    if (action == GamePauseAction.exit) {
       context.pop();
       return;
     }
-    if (action == _PauseAction.help) {
+    if (action == GamePauseAction.help) {
       await _showRulesHelp();
     }
 
@@ -1004,32 +1063,47 @@ class _GameplayView extends StatelessWidget {
           const SizedBox(height: AppSpacing.base),
           GameRuleChip(label: ruleLabel, color: ruleColor),
           const SizedBox(height: AppSpacing.md),
+          // Le plateau des avions occupe presque tout l'écran ; les flèches sont
+          // superposées PAR-DESSUS à ~35% d'opacité (elles restent tactiles :
+          // Opacity ne bloque pas les événements de pointeur).
           Expanded(
-            child: _GameplayBoard(
-              stimulus: stimulus,
-              planeColor: planeColor,
-              feedback: feedback,
-              ruleColor: ruleColor,
-              streakCounter: streakCounter,
-              multiplier: multiplier,
-              inputMode: inputMode,
-              onDirection: isFeedback ? null : onDirection,
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: _GameplayBoard(
+                    stimulus: stimulus,
+                    planeColor: planeColor,
+                    feedback: feedback,
+                    ruleColor: ruleColor,
+                    streakCounter: streakCounter,
+                    multiplier: multiplier,
+                    inputMode: inputMode,
+                    onDirection: isFeedback ? null : onDirection,
+                  ),
+                ),
+                if (inputMode == _MoveFastInputMode.buttons)
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: AppSpacing.md,
+                    child: Opacity(
+                      opacity: 0.35,
+                      child: GameDirectionControls(
+                        onDirection: onDirection,
+                        enabled: !isFeedback,
+                        correctDirection: feedback == _MoveFastFeedback.correct
+                            ? correctDirection
+                            : null,
+                        wrongDirection: feedback == _MoveFastFeedback.error
+                            ? chosenDirection
+                            : null,
+                        compact: true,
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
-          if (inputMode == _MoveFastInputMode.buttons) ...[
-            const SizedBox(height: AppSpacing.sm),
-            GameDirectionControls(
-              onDirection: onDirection,
-              enabled: !isFeedback,
-              correctDirection: feedback == _MoveFastFeedback.correct
-                  ? correctDirection
-                  : null,
-              wrongDirection: feedback == _MoveFastFeedback.error
-                  ? chosenDirection
-                  : null,
-              compact: true,
-            ),
-          ],
         ],
       ),
     );
@@ -1175,22 +1249,40 @@ class _PlaneCluster extends StatelessWidget {
       (cross: 0.56, size: 110, phase: 0.34),
       (cross: -0.05, size: 122, phase: 0.67),
     ];
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return Stack(
-          children: [
-            for (final lane in lanes)
-              _ScrollingPlane(
-                stimulus: stimulus,
-                color: planeColor,
-                size: lane.size,
-                cross: lane.cross,
-                phase: lane.phase,
-                board: constraints.biggest,
-              ),
-          ],
+    // Animation d'apparition : bascule 3D sur les axes X et Z (500 ms) rejouée
+    // à chaque nouveau stimulus (le cluster est recréé par l'AnimatedSwitcher),
+    // en plus du changement de couleur de la règle.
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeOut,
+      builder: (context, t, child) {
+        return Transform(
+          alignment: Alignment.center,
+          transform: Matrix4.identity()
+            ..setEntry(3, 2, 0.0012) // perspective
+            ..rotateX((1 - t) * (math.pi / 2))
+            ..rotateZ((1 - t) * 0.35),
+          child: child,
         );
       },
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return Stack(
+            children: [
+              for (final lane in lanes)
+                _ScrollingPlane(
+                  stimulus: stimulus,
+                  color: planeColor,
+                  size: lane.size,
+                  cross: lane.cross,
+                  phase: lane.phase,
+                  board: constraints.biggest,
+                ),
+            ],
+          );
+        },
+      ),
     );
   }
 }
@@ -1385,184 +1477,6 @@ class _FeedbackBurst extends StatelessWidget {
   }
 }
 
-enum _PauseAction { resume, help, exit }
-
-class _PauseDialog extends StatefulWidget {
-  const _PauseDialog({
-    required this.inputMode,
-    required this.soundEffects,
-    required this.music,
-    required this.onInputModeChanged,
-    required this.onSoundEffectsChanged,
-    required this.onMusicChanged,
-  });
-
-  final _MoveFastInputMode inputMode;
-  final bool soundEffects;
-  final bool music;
-  final ValueChanged<_MoveFastInputMode> onInputModeChanged;
-  final ValueChanged<bool> onSoundEffectsChanged;
-  final ValueChanged<bool> onMusicChanged;
-
-  @override
-  State<_PauseDialog> createState() => _PauseDialogState();
-}
-
-class _PauseDialogState extends State<_PauseDialog> {
-  late _MoveFastInputMode _mode = widget.inputMode;
-  late bool _soundEffects = widget.soundEffects;
-  late bool _music = widget.music;
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      insetPadding: const EdgeInsets.all(32),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusXxl),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Pause',
-              style: AppTypography.displayMedium.copyWith(
-                color: ZennytGamePalette.blue,
-                letterSpacing: 0,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            Text(
-              'Input mode',
-              style: AppTypography.titleMedium.copyWith(
-                color: ZennytGamePalette.blue,
-                letterSpacing: 0,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            SegmentedButton<_MoveFastInputMode>(
-              segments: const [
-                ButtonSegment(
-                  value: _MoveFastInputMode.buttons,
-                  label: Text('Buttons'),
-                ),
-                ButtonSegment(
-                  value: _MoveFastInputMode.tactile,
-                  label: Text('Tactile'),
-                ),
-              ],
-              selected: {_mode},
-              onSelectionChanged: (selected) {
-                setState(() => _mode = selected.first);
-                widget.onInputModeChanged(_mode);
-              },
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Text(
-              'Audio options',
-              style: AppTypography.titleMedium.copyWith(
-                color: ZennytGamePalette.blue,
-                letterSpacing: 0,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            _PauseSwitchTile(
-              label: 'Sound effects',
-              value: _soundEffects,
-              onChanged: (value) {
-                setState(() => _soundEffects = value);
-                widget.onSoundEffectsChanged(value);
-              },
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            _PauseSwitchTile(
-              label: 'Music',
-              value: _music,
-              onChanged: (value) {
-                setState(() => _music = value);
-                widget.onMusicChanged(value);
-              },
-            ),
-            const SizedBox(height: AppSpacing.md),
-            GamePrimaryButton(
-              label: 'Resume',
-              onPressed: () => Navigator.of(context).pop(_PauseAction.resume),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            GameOutlineButton(
-              label: 'View rules / Help',
-              onPressed: () => Navigator.of(context).pop(_PauseAction.help),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            OutlinedButton(
-              onPressed: () => Navigator.of(context).pop(_PauseAction.exit),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: ZennytGamePalette.error,
-                side: const BorderSide(color: ZennytGamePalette.error),
-                minimumSize: const Size.fromHeight(48),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                ),
-              ),
-              child: const Text('Exit mission'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _PauseSwitchTile extends StatelessWidget {
-  const _PauseSwitchTile({
-    required this.label,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final String label;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.base,
-        vertical: AppSpacing.sm,
-      ),
-      decoration: BoxDecoration(
-        border: Border.all(color: ZennytGamePalette.border),
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: AppTypography.titleSmall.copyWith(
-                color: ZennytGamePalette.blue,
-                letterSpacing: 0,
-              ),
-            ),
-          ),
-          Text(
-            value ? 'On' : 'Off',
-            style: AppTypography.labelMedium.copyWith(
-              color: value
-                  ? ZennytGamePalette.success
-                  : ZennytGamePalette.muted,
-              letterSpacing: 0,
-            ),
-          ),
-          Switch(value: value, onChanged: onChanged),
-        ],
-      ),
-    );
-  }
-}
-
 class _ResultsView extends StatelessWidget {
   const _ResultsView({
     required this.cognitiveScore,
@@ -1630,8 +1544,10 @@ class _ResultsView extends StatelessWidget {
                     letterSpacing: 0,
                   ),
                 ),
-                Text(
-                  '$cognitiveScore%',
+                AnimatedCountText(
+                  value: cognitiveScore,
+                  suffix: '%',
+                  onCompleted: SoundService.instance.stopScoreboard,
                   style: AppTypography.displayLarge.copyWith(
                     color: Colors.white,
                     fontSize: 56,

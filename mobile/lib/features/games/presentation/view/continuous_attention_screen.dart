@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/audio/sound_service.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../navigation/presentation/viewmodel/nav_tab_provider.dart';
 import '../../../navigation/presentation/widgets/app_bottom_nav.dart';
@@ -122,7 +123,7 @@ class ContinuousAttentionScreen extends ConsumerStatefulWidget {
 
 class _ContinuousAttentionScreenState
     extends ConsumerState<ContinuousAttentionScreen>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, GameMusicMixin {
   _AttentionStage _stage = _AttentionStage.cover;
   GameSession? _session;
   List<ContinuousAttentionBlockSequence> _sequence = const [];

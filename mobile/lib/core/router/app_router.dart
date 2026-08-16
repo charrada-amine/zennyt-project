@@ -65,6 +65,14 @@ const _publicRoutes = <String>{
   AppRoutes.fieldOfWork,
 };
 
+/// Build de démo « Lot 1 » (livrable de test remis pour valider le gameplay).
+///
+/// Quand `true`, l'application démarre directement sur le **vrai** hub des jeux
+/// (onglet Games de [MainNavigationScreen]) sans authentification, exactement
+/// comme le menu atteint en revenant d'un jeu. Passer à `false` pour un build
+/// de production normal (démarrage sur le splash + flux d'auth).
+const bool kLot1DemoBuild = true;
+
 /// Routes a signed-in user should be bounced away from (back to home).
 const _authOnlyEntryRoutes = <String>{
   AppRoutes.login,
@@ -87,11 +95,17 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   ref.listen(authControllerProvider, (_, _) => refresh.value++);
 
   return GoRouter(
-    initialLocation: AppRoutes.splash,
+    // Build de démo « Lot 1 » : on démarre directement sur le vrai hub des jeux
+    // (le même menu que celui atteint en revenant d'un jeu).
+    initialLocation: kLot1DemoBuild ? AppRoutes.games : AppRoutes.splash,
     refreshListenable: refresh,
     redirect: (context, state) {
-      final auth = ref.read(authControllerProvider);
       final loc = state.matchedLocation;
+      // Build de démo : le menu du lot 1 et les jeux sont accessibles sans
+      // authentification (livrable de test remis pour valider le gameplay).
+      if (kLot1DemoBuild && loc.startsWith('/games')) return null;
+
+      final auth = ref.read(authControllerProvider);
 
       // While the session is being restored on cold start, hold on splash.
       if (auth.isLoading) {

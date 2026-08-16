@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/audio/sound_service.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../navigation/presentation/viewmodel/nav_tab_provider.dart';
 import '../../../navigation/presentation/widgets/app_bottom_nav.dart';
@@ -140,7 +141,8 @@ class ReflectivePauseScreen extends ConsumerStatefulWidget {
       _ReflectivePauseScreenState();
 }
 
-class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
+class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen>
+    with GameMusicMixin {
   _ReflectiveStage _stage = _ReflectiveStage.cover;
   GameSession? _session;
   int _momentIndex = 0;
@@ -153,8 +155,6 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
   bool _submitting = false;
   String? _errorMessage;
 
-  bool _soundEffects = true;
-  bool _music = false;
   bool _buttonsInput = true;
 
   bool get _minimumReached =>
@@ -258,11 +258,7 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
       barrierDismissible: false,
       barrierColor: const Color(0xCC1B1B4B),
       builder: (_) => EmotionalGamePauseDialog(
-        soundEffects: _soundEffects,
-        music: _music,
         buttonsInput: _buttonsInput,
-        onSoundEffects: (value) => setState(() => _soundEffects = value),
-        onMusic: (value) => setState(() => _music = value),
         onInputMode: (value) => setState(() => _buttonsInput = value),
       ),
     );

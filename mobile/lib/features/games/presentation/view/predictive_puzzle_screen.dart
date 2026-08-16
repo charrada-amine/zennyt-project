@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/app_routes.dart';
+import '../../../../core/audio/sound_service.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../domain/entities/game_session.dart';
@@ -30,10 +31,16 @@ class _PuzzleLevel {
   int get optimalMoves => (1 << discCount) - 1;
 }
 
+// 6 niveaux : 3 → 8 disques (le dernier niveau tient 8 disques). L'optimum
+// double presque à chaque disque (7, 15, 31, 63, 127, 255 coups). La tolérance
+// aux erreurs se resserre au fur et à mesure.
 const _puzzleLevels = <_PuzzleLevel>[
-  _PuzzleLevel(discCount: 3, maxErrors: 3),
-  _PuzzleLevel(discCount: 4, maxErrors: 2),
-  _PuzzleLevel(discCount: 5, maxErrors: 1),
+  _PuzzleLevel(discCount: 3, maxErrors: 4),
+  _PuzzleLevel(discCount: 4, maxErrors: 3),
+  _PuzzleLevel(discCount: 5, maxErrors: 3),
+  _PuzzleLevel(discCount: 6, maxErrors: 2),
+  _PuzzleLevel(discCount: 7, maxErrors: 2),
+  _PuzzleLevel(discCount: 8, maxErrors: 1),
 ];
 
 enum _PuzzleStage { intro, rule, planning, running, results, comparison }
@@ -55,6 +62,9 @@ class _PredictivePuzzleScreenState
   int _errors = 0;
   int _retries = 0;
   int _runIndex = 0;
+  // Au moins un coup illégal rencontré pendant le rejeu en cours (le rejeu ne
+  // s'arrête plus au 1er échec : il marque chaque coup fautif en rouge).
+  bool _runHadFailure = false;
   bool _busy = false;
   bool _targetCompleted = false;
   String? _selectedSource;
@@ -95,9 +105,16 @@ class _PredictivePuzzleScreenState
   };
 
   @override
+  void initState() {
+    super.initState();
+    SoundService.instance.startMusic();
+  }
+
+  @override
   void dispose() {
     _timer?.cancel();
     _runTimer?.cancel();
+    SoundService.instance.stopMusic();
     super.dispose();
   }
 
@@ -137,6 +154,8 @@ class _PredictivePuzzleScreenState
         setState(() => _feedback = 'Tower $tower has no disc to move.');
         return;
       }
+      // Une tour source est choisie : on « saisit » le disque du sommet.
+      SoundService.instance.playSfx(GameSfx.diskDrag);
       setState(() {
         _selectedSource = tower;
         _selectedDestination = null;
@@ -176,6 +195,8 @@ class _PredictivePuzzleScreenState
       return;
     }
 
+    // Mouvement valide : le disque est « déposé » sur la tour de destination.
+    SoundService.instance.playSfx(GameSfx.diskDrop);
     setState(() {
       sourceStack.removeLast();
       destinationStack.add(disc);
@@ -197,6 +218,17 @@ class _PredictivePuzzleScreenState
   }
 
   void _addInvalidMove(String source, String destination, String reason) {
+    SoundService.instance.playSfx(GameSfx.wrongChoice);
+    // Tolérance d'erreurs du niveau dépassée (déjà [_maxErrors] erreurs) : le
+    // niveau est échoué → fin de partie + écran de score.
+    if (_errors >= _maxErrors) {
+      setState(() {
+        _feedback =
+            'Error tolerance exceeded ($_maxErrors max) — level failed.';
+      });
+      _finishRun(false);
+      return;
+    }
     final disc = _planningTowers[source]!.isEmpty
         ? 0
         : _planningTowers[source]!.last;
@@ -261,6 +293,7 @@ class _PredictivePuzzleScreenState
     setState(() {
       _stage = _PuzzleStage.running;
       _runIndex = 0;
+      _runHadFailure = false;
       _executionTowers = _initialTowers(_discCount);
       for (var i = 0; i < _queue.length; i++) {
         _queue[i] = _queue[i].copyWith(executed: false, failed: false);
@@ -271,7 +304,8 @@ class _PredictivePuzzleScreenState
       if (!mounted) return;
       if (_runIndex >= _queue.length) {
         timer.cancel();
-        _finishRun(_isTarget(_executionTowers));
+        // Réussite = cible atteinte ET aucun coup fautif pendant le rejeu.
+        _finishRun(_isTarget(_executionTowers) && !_runHadFailure);
         return;
       }
       _executeQueuedMove();
@@ -292,19 +326,25 @@ class _PredictivePuzzleScreenState
       if (legal) {
         source.removeLast();
         destination.add(move.disc);
+        // Rejeu : chaque disque qui passe d'une tour à l'autre fait son bruit.
+        SoundService.instance.playSfx(GameSfx.diskDrop);
         _queue[_runIndex] = move.copyWith(executed: true);
         _runIndex++;
         _feedback = 'Executing move $_runIndex/${_queue.length}.';
         return;
       }
 
+      // Coup illégal : on marque la case en rouge + son d'erreur, SANS appliquer
+      // le déplacement, puis on continue le rejeu (on ne s'arrête plus au 1er
+      // échec) pour signaler tous les coups fautifs.
+      _runHadFailure = true;
       _queue[_runIndex] = move.copyWith(executed: true, failed: true);
       if (move.isValidAtPlanning) {
         _errors = math.min(_maxErrors, _errors + 1);
       }
-      _feedback = 'Execution failed at step ${_runIndex + 1}.';
-      _runTimer?.cancel();
-      _finishRun(false);
+      SoundService.instance.playSfx(GameSfx.wrongChoice);
+      _runIndex++;
+      _feedback = 'Illegal move $_runIndex/${_queue.length} skipped.';
     });
   }
 
@@ -329,6 +369,7 @@ class _PredictivePuzzleScreenState
     // A clean run on a non-final level advances difficulty; a failure (or the
     // final level) ends the session and submits the per-level metrics.
     if (completed && !_isLastLevel) {
+      SoundService.instance.playSfx(GameSfx.correctChoice);
       _advanceLevel();
       return;
     }
@@ -338,6 +379,13 @@ class _PredictivePuzzleScreenState
       _targetCompleted = completed;
       _stage = _PuzzleStage.results;
     });
+    // Tous les niveaux réussis → félicitations ; sinon tableau de score
+    // (arrêtable en fin d'animation de comptage).
+    if (completed) {
+      SoundService.instance.playSfx(GameSfx.congrats);
+    } else {
+      SoundService.instance.playScoreboard();
+    }
     _submitFinal();
   }
 
@@ -386,20 +434,32 @@ class _PredictivePuzzleScreenState
   }
 
   Future<void> _pause() async {
+    SoundService.instance.playSfx(GameSfx.pauseClick);
     _timer?.cancel();
     await showDialog<void>(
       context: context,
-      builder: (_) => _PredictivePauseDialog(
-        elapsed: _elapsed,
-        errors: _errors,
-        onViewRules: () {
-          Navigator.of(context).pop();
-          setState(() => _stage = _PuzzleStage.rule);
-        },
-        onExit: () {
-          Navigator.of(context).pop();
-          context.go(AppRoutes.games);
-        },
+      barrierColor: ZennytGamePalette.ink.withValues(alpha: 0.82),
+      builder: (dialogCtx) => GamePauseScaffold(
+        buttons: [
+          GamePrimaryButton(
+            label: 'Resume',
+            onPressed: () => Navigator.of(dialogCtx).pop(),
+          ),
+          GameOutlineButton(
+            label: 'View rules / Help',
+            onPressed: () {
+              Navigator.of(dialogCtx).pop();
+              setState(() => _stage = _PuzzleStage.rule);
+            },
+          ),
+          GamePauseExitButton(
+            label: 'Exit mission',
+            onPressed: () {
+              Navigator.of(dialogCtx).pop();
+              context.go(AppRoutes.games);
+            },
+          ),
+        ],
       ),
     );
     if (!mounted || _stage != _PuzzleStage.planning) return;
@@ -676,7 +736,7 @@ class _PredictiveIntroView extends StatelessWidget {
                   ),
                   TextSpan(
                     text:
-                        'Sophie moves a growing stack of discs from Tower A to Tower C across 3 levels (3, then 4, then 5 discs). Plan the entire sequence upfront - the machine executes exactly what she planned, no corrections allowed.',
+                        'Sophie moves a growing stack of discs from Tower A to Tower C across 6 levels (3 discs up to 8 discs). Plan the entire sequence upfront - the machine executes exactly what she planned, no corrections allowed.',
                     style: AppTypography.bodyLarge.copyWith(
                       color: ZennytGamePalette.muted,
                       height: 1.25,
@@ -770,7 +830,7 @@ class _HowToRuleViewState extends State<_HowToRuleView> {
             child: Text(
               _page == 0
                   ? 'Sophie can never place a larger disc on top of a smaller one. She uses Tower B as a relay. Each move takes the top disc from one tower and places it on another valid tower.'
-                  : 'Sophie fills in the entire sequence before execution. Once launched, no corrections are possible. Difficulty scales each level (3 → 4 → 5 discs), needing 7, then 15, then 31 optimal moves.',
+                  : 'Sophie fills in the entire sequence before execution. Once launched, no corrections are possible. Difficulty scales each level (3 → 8 discs), the last level needing 255 optimal moves.',
               style: AppTypography.bodyLarge.copyWith(
                 color: ZennytGamePalette.muted,
                 height: 1.28,
@@ -1048,6 +1108,9 @@ class _PuzzleGameplayView extends StatelessWidget {
                       ? Icons.play_arrow_rounded
                       : Icons.add_rounded,
                   color: ZennytGamePalette.success,
+                  // « Run Plan » garde le clic générique ; « Add Move » ne joue
+                  // que le son du disque déposé (géré dans _addMove).
+                  playClickSound: targetReady,
                   onPressed: running ? null : onAddMove,
                 ),
               ),
@@ -1227,7 +1290,12 @@ class _Disc extends StatelessWidget {
     3: ZennytGamePalette.error,
     4: ZennytGamePalette.cyan,
     5: ZennytGamePalette.ruleOrange,
+    6: Color(0xFF8B5CF6), // violet
+    7: Color(0xFF14B8A6), // teal
+    8: Color(0xFF6366F1), // indigo
   };
+
+  static const _fallbackColor = Color(0xFF94A3B8);
 
   @override
   Widget build(BuildContext context) {
@@ -1236,7 +1304,7 @@ class _Disc extends StatelessWidget {
       height: height,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: _colors[disc],
+        color: _colors[disc] ?? _fallbackColor,
         borderRadius: BorderRadius.circular(5),
       ),
       child: Text(
@@ -1302,12 +1370,15 @@ class _MoveChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Chaque coup de la séquence est vert (correct) ou rouge (faute), de façon
+    // dynamique : un coup invalide dès la planification ou échoué à l'exécution
+    // vire au rouge ; les coups valides sont verts (plus vif une fois exécutés).
     final failed = move.failed || !move.isValidAtPlanning;
     final color = failed
-        ? ZennytGamePalette.error.withValues(alpha: 0.65)
+        ? ZennytGamePalette.error.withValues(alpha: 0.85)
         : move.executed
         ? ZennytGamePalette.success
-        : ZennytGamePalette.cyan.withValues(alpha: 0.8);
+        : ZennytGamePalette.success.withValues(alpha: 0.7);
     return Container(
       width: 50,
       padding: const EdgeInsets.symmetric(vertical: 5),
@@ -1391,7 +1462,7 @@ class _MiniDisc extends StatelessWidget {
       width: 12,
       height: 12,
       decoration: BoxDecoration(
-        color: _Disc._colors[disc],
+        color: _Disc._colors[disc] ?? _Disc._fallbackColor,
         shape: BoxShape.circle,
         border: Border.all(color: Colors.white.withValues(alpha: 0.4)),
       ),
@@ -1469,8 +1540,10 @@ class _PredictiveResultsView extends StatelessWidget {
                     letterSpacing: 0,
                   ),
                 ),
-                Text(
-                  '$score%',
+                AnimatedCountText(
+                  value: score,
+                  suffix: '%',
+                  onCompleted: SoundService.instance.stopScoreboard,
                   style: AppTypography.displayLarge.copyWith(
                     color: Colors.white,
                     fontSize: 56,
@@ -1678,201 +1751,6 @@ class _PredictiveComparisonView extends StatelessWidget {
     );
   }
 }
-
-class _PredictivePauseDialog extends StatefulWidget {
-  const _PredictivePauseDialog({
-    required this.elapsed,
-    required this.errors,
-    required this.onViewRules,
-    required this.onExit,
-  });
-
-  final int elapsed;
-  final int errors;
-  final VoidCallback onViewRules;
-  final VoidCallback onExit;
-
-  @override
-  State<_PredictivePauseDialog> createState() => _PredictivePauseDialogState();
-}
-
-class _PredictivePauseDialogState extends State<_PredictivePauseDialog> {
-  bool sound = true;
-  bool music = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final time =
-        '${(widget.elapsed ~/ 60).toString().padLeft(2, '0')}:${(widget.elapsed % 60).toString().padLeft(2, '0')}';
-    return Dialog(
-      backgroundColor: const Color(0xFF121A46),
-      insetPadding: EdgeInsets.zero,
-      child: Container(
-        width: double.infinity,
-        height: double.infinity,
-        alignment: Alignment.center,
-        child: Container(
-          margin: const EdgeInsets.all(AppSpacing.xxl),
-          padding: const EdgeInsets.all(AppSpacing.xxl),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Pause',
-                style: AppTypography.displayMedium.copyWith(
-                  color: ZennytGamePalette.blue,
-                  letterSpacing: 0,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.xxl),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _PauseStat(label: 'Time', value: time),
-                  Container(
-                    width: 1,
-                    height: 42,
-                    margin: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.lg,
-                    ),
-                    color: ZennytGamePalette.gameBlue,
-                  ),
-                  _PauseStat(
-                    label: 'Errors',
-                    value: '${widget.errors}/3',
-                    color: ZennytGamePalette.success,
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.xxl),
-              Text(
-                'Audio options',
-                style: AppTypography.titleMedium.copyWith(
-                  color: ZennytGamePalette.blue,
-                  letterSpacing: 0,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              _PauseSwitchTile(
-                label: 'Sound effects',
-                value: sound,
-                onChanged: (v) => setState(() => sound = v),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              _PauseSwitchTile(
-                label: 'Music',
-                value: music,
-                onChanged: (v) => setState(() => music = v),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              GamePrimaryButton(
-                label: 'Resume',
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              GameOutlineButton(
-                label: 'View rules',
-                onPressed: widget.onViewRules,
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              GameOutlineButton(
-                label: 'Exit mission',
-                color: ZennytGamePalette.error,
-                onPressed: widget.onExit,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _PauseStat extends StatelessWidget {
-  const _PauseStat({
-    required this.label,
-    required this.value,
-    this.color = ZennytGamePalette.magenta,
-  });
-
-  final String label;
-  final String value;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(
-          label,
-          style: AppTypography.titleMedium.copyWith(
-            color: ZennytGamePalette.blue,
-            letterSpacing: 0,
-          ),
-        ),
-        Text(
-          value,
-          style: AppTypography.headlineSmall.copyWith(
-            color: color,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 0,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _PauseSwitchTile extends StatelessWidget {
-  const _PauseSwitchTile({
-    required this.label,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final String label;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.base),
-      decoration: BoxDecoration(
-        border: Border.all(color: ZennytGamePalette.border),
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: AppTypography.titleSmall.copyWith(
-                color: ZennytGamePalette.blue,
-                letterSpacing: 0,
-              ),
-            ),
-          ),
-          Text(
-            value ? 'On' : 'Off',
-            style: AppTypography.labelMedium.copyWith(
-              color: value
-                  ? ZennytGamePalette.success
-                  : ZennytGamePalette.muted,
-              letterSpacing: 0,
-            ),
-          ),
-          Switch(value: value, onChanged: onChanged),
-        ],
-      ),
-    );
-  }
-}
-
 class _SquareIconButton extends StatelessWidget {
   const _SquareIconButton({required this.icon, required this.onTap});
 

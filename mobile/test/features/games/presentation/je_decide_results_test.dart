@@ -56,6 +56,8 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Analytical Decision-Maker'), findsOneWidget);
+    // Le score s'anime de 0 → 82 (compteur animé) : laisser l'animation finir.
+    await tester.pump(const Duration(milliseconds: 1000));
     expect(find.text('82'), findsOneWidget);
     await tap(tester, 'decision-view-insights');
 

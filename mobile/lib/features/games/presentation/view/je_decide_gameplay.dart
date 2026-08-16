@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../../core/audio/sound_service.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../data/decision_progress_store.dart';
 import '../widgets/game_system_components.dart';
@@ -202,6 +203,9 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
 
   void _select(int index) {
     if (_timedOut) return;
+    // Son générique au choix d'une option (les cartes ne sont pas des
+    // GamePrimaryButton, donc pas de clic automatique).
+    SoundService.instance.playSfx(GameSfx.buttonClick);
     if (_step == DecisionGameplayStep.quickChoice) {
       _countdown?.cancel();
     }
@@ -255,6 +259,7 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
   }
 
   Future<void> _openPauseMenu() async {
+    SoundService.instance.playSfx(GameSfx.pauseClick);
     final timerWasRunning =
         _step == DecisionGameplayStep.quickChoice &&
         _selection == null &&
@@ -1701,84 +1706,36 @@ BoxDecoration _lightCardDecoration() => BoxDecoration(
 
 enum DecisionPauseAction { resume, rules, exit }
 
-class DecisionPauseDialog extends StatefulWidget {
+class DecisionPauseDialog extends StatelessWidget {
   const DecisionPauseDialog({super.key, this.gameplayActive = true});
 
   final bool gameplayActive;
 
   @override
-  State<DecisionPauseDialog> createState() => _DecisionPauseDialogState();
-}
-
-class _DecisionPauseDialogState extends State<DecisionPauseDialog> {
-  bool _sound = true;
-  bool _music = true;
-
-  @override
   Widget build(BuildContext context) {
-    return Dialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 22),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(22, 24, 22, 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              widget.gameplayActive ? 'Journey paused' : 'Journey menu',
-              key: const ValueKey('decision-pause-dialog'),
-              style: AppTypography.headlineSmall.copyWith(
-                color: _decisionInk,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              widget.gameplayActive
-                  ? 'Your current choice and timer are safely paused.'
-                  : 'Take a break, review the rules or leave the journey.',
-              textAlign: TextAlign.center,
-              style: AppTypography.bodySmall.copyWith(color: _decisionMuted),
-            ),
-            const SizedBox(height: 18),
-            SwitchListTile.adaptive(
-              value: _sound,
-              onChanged: (value) => setState(() => _sound = value),
-              secondary: const Icon(Icons.volume_up_rounded),
-              title: const Text('Sound'),
-            ),
-            SwitchListTile.adaptive(
-              value: _music,
-              onChanged: (value) => setState(() => _music = value),
-              secondary: const Icon(Icons.music_note_rounded),
-              title: const Text('Music'),
-            ),
-            const SizedBox(height: 12),
-            GamePrimaryButton(
-              key: const ValueKey('decision-pause-dialog-resume'),
-              label: widget.gameplayActive ? 'Resume journey' : 'Continue',
-              onPressed: () =>
-                  Navigator.of(context).pop(DecisionPauseAction.resume),
-            ),
-            const SizedBox(height: 10),
-            GameOutlineButton(
-              key: const ValueKey('decision-view-rules'),
-              label: 'View rules',
-              icon: Icons.menu_book_rounded,
-              onPressed: () =>
-                  Navigator.of(context).pop(DecisionPauseAction.rules),
-            ),
-            const SizedBox(height: 10),
-            TextButton(
-              onPressed: () =>
-                  Navigator.of(context).pop(DecisionPauseAction.exit),
-              child: Text(
-                widget.gameplayActive ? 'Save and exit' : 'Exit journey',
-              ),
-            ),
-          ],
+    return GamePauseScaffold(
+      titleKey: const ValueKey('decision-pause-dialog'),
+      description: gameplayActive
+          ? 'Your current choice and timer are safely paused.'
+          : 'Take a break, review the rules or leave the journey.',
+      buttons: [
+        GamePrimaryButton(
+          key: const ValueKey('decision-pause-dialog-resume'),
+          label: gameplayActive ? 'Resume' : 'Continue',
+          onPressed: () =>
+              Navigator.of(context).pop(DecisionPauseAction.resume),
         ),
-      ),
+        GameOutlineButton(
+          key: const ValueKey('decision-view-rules'),
+          label: 'View rules / Help',
+          onPressed: () =>
+              Navigator.of(context).pop(DecisionPauseAction.rules),
+        ),
+        GamePauseExitButton(
+          label: gameplayActive ? 'Save and exit' : 'Exit journey',
+          onPressed: () => Navigator.of(context).pop(DecisionPauseAction.exit),
+        ),
+      ],
     );
   }
 }

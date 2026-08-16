@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../../../core/audio/sound_service.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 
@@ -41,12 +42,17 @@ class GamePrimaryButton extends StatelessWidget {
     required this.onPressed,
     this.icon,
     this.color = ZennytGamePalette.magenta,
+    this.playClickSound = true,
   });
 
   final String label;
   final VoidCallback? onPressed;
   final IconData? icon;
   final Color color;
+
+  /// Joue le clic générique de bouton. À désactiver quand l'action déclenche
+  /// déjà son propre son (ex. « Add Move » du Predictive-Puzzle → son de disque).
+  final bool playClickSound;
 
   @override
   Widget build(BuildContext context) {
@@ -63,7 +69,14 @@ class GamePrimaryButton extends StatelessWidget {
           );
 
     return FilledButton(
-      onPressed: onPressed,
+      onPressed: onPressed == null
+          ? null
+          : () {
+              if (playClickSound) {
+                SoundService.instance.playSfx(GameSfx.buttonClick);
+              }
+              onPressed!();
+            },
       style: FilledButton.styleFrom(
         backgroundColor: color,
         disabledBackgroundColor: ZennytGamePalette.border,
@@ -97,7 +110,12 @@ class GameOutlineButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return OutlinedButton.icon(
-      onPressed: onPressed,
+      onPressed: onPressed == null
+          ? null
+          : () {
+              SoundService.instance.playSfx(GameSfx.buttonClick);
+              onPressed!();
+            },
       icon: icon == null ? const SizedBox.shrink() : Icon(icon),
       label: Text(label),
       style: OutlinedButton.styleFrom(
@@ -338,8 +356,8 @@ class SeriesRibbon extends StatelessWidget {
               ),
             ),
           const SizedBox(width: AppSpacing.sm),
-          Text(
-            'x$multiplier',
+          _AnimatedMultiplier(
+            multiplier: multiplier,
             style: AppTypography.headlineLarge.copyWith(
               color: ZennytGamePalette.blue,
               letterSpacing: 0,
@@ -347,6 +365,56 @@ class SeriesRibbon extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Multiplicateur qui grossit instantanément (×1.25) quand sa valeur change,
+/// puis redescend à l'échelle 1 sur ~500 ms (fiche « Je bouge »).
+class _AnimatedMultiplier extends StatefulWidget {
+  const _AnimatedMultiplier({required this.multiplier, required this.style});
+
+  final int multiplier;
+  final TextStyle style;
+
+  @override
+  State<_AnimatedMultiplier> createState() => _AnimatedMultiplierState();
+}
+
+class _AnimatedMultiplierState extends State<_AnimatedMultiplier>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 500),
+    value: 1,
+  );
+
+  @override
+  void didUpdateWidget(_AnimatedMultiplier oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.multiplier != widget.multiplier) {
+      // Agrandissement instantané puis retour animé vers l'échelle 1.
+      _controller
+        ..value = 0
+        ..forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final scale = 1 + 0.25 * (1 - Curves.easeOut.transform(_controller.value));
+        return Transform.scale(scale: scale, child: child);
+      },
+      child: Text('x${widget.multiplier}', style: widget.style),
     );
   }
 }
@@ -725,16 +793,374 @@ class ResultStatTile extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.xs),
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          _AnimatedStatValue(
+            value: value,
             style: AppTypography.titleLarge.copyWith(
               color: valueColor,
               letterSpacing: 0,
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Valeur d'une tuile de résultat : si le texte contient **exactement un**
+/// nombre (ex. `97%`, `+2`, `0.42s`, `3 series`), il s'anime de 0 → valeur en
+/// préservant le préfixe/suffixe et le nombre de décimales. Sinon (`Flexibility`,
+/// `8-10 min`, `Mobile`…), le texte est affiché tel quel.
+class _AnimatedStatValue extends StatelessWidget {
+  const _AnimatedStatValue({required this.value, required this.style});
+
+  final String value;
+  final TextStyle style;
+
+  static final RegExp _single = RegExp(r'^(\D*?)(-?\d+(?:\.\d+)?)(\D*)$');
+
+  @override
+  Widget build(BuildContext context) {
+    final match = _single.firstMatch(value);
+    final text = Text(
+      value,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: style,
+    );
+    if (match == null) return text;
+
+    final prefix = match.group(1)!;
+    final numberStr = match.group(2)!;
+    final suffix = match.group(3)!;
+    final target = double.parse(numberStr);
+    final dotIndex = numberStr.indexOf('.');
+    final decimals = dotIndex < 0 ? 0 : numberStr.length - dotIndex - 1;
+
+    return TweenAnimationBuilder<double>(
+      key: ValueKey<String>(value),
+      tween: Tween<double>(begin: 0, end: target),
+      duration: const Duration(milliseconds: 900),
+      curve: Curves.easeOutCubic,
+      builder: (context, animated, _) => Text(
+        '$prefix${animated.toStringAsFixed(decimals)}$suffix',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: style,
+      ),
+    );
+  }
+}
+
+/// Nombre qui s'anime de 0 jusqu'à [value] au montage (écrans de score des jeux).
+///
+/// Rejoue l'animation si [value] change. [prefix]/[suffix] encadrent le nombre
+/// (ex. `%`). [style] et [textAlign] sont transmis au [Text] final.
+class AnimatedCountText extends StatelessWidget {
+  const AnimatedCountText({
+    super.key,
+    required this.value,
+    required this.style,
+    this.prefix = '',
+    this.suffix = '',
+    this.duration = const Duration(milliseconds: 900),
+    this.textAlign,
+    this.onCompleted,
+  });
+
+  final int value;
+  final TextStyle style;
+  final String prefix;
+  final String suffix;
+  final Duration duration;
+  final TextAlign? textAlign;
+
+  /// Appelé une fois quand le comptage 0 → [value] atteint sa valeur finale.
+  /// Utilisé pour couper le son du tableau de score en fin d'animation.
+  final VoidCallback? onCompleted;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      // La clé force un redémarrage à 0 quand la cible change.
+      key: ValueKey<int>(value),
+      tween: Tween<double>(begin: 0, end: value.toDouble()),
+      duration: duration,
+      curve: Curves.easeOutCubic,
+      onEnd: onCompleted,
+      builder: (context, animated, _) => Text(
+        '$prefix${animated.round()}$suffix',
+        style: style,
+        textAlign: textAlign,
+      ),
+    );
+  }
+}
+
+/// Action renvoyée par le menu pause partagé ([GamePauseScaffold]).
+enum GamePauseAction { resume, help, exit, restart }
+
+/// Coquille visuelle **unique** du menu pause, identique dans tous les jeux :
+/// carte blanche arrondie, titre « Pause », une section optionnelle en tête
+/// (ex. « Input mode »), une description optionnelle, le bloc « Audio options »
+/// puis la pile de boutons d'action fournie par l'écran appelant.
+///
+/// Chaque jeu garde son propre enum/handler : il passe simplement ses boutons
+/// (Resume / Restart / View rules / Exit…) via [buttons]. Le rendu reste donc
+/// strictement le même partout — voir la maquette de référence « Je bouge ».
+class GamePauseScaffold extends StatelessWidget {
+  const GamePauseScaffold({
+    super.key,
+    this.title = 'Pause',
+    this.titleKey,
+    this.inputMode,
+    this.description,
+    this.showAudioOptions = true,
+    required this.buttons,
+  });
+
+  final String title;
+  final Key? titleKey;
+
+  /// Section optionnelle affichée entre le titre et « Audio options »
+  /// (ex. le sélecteur « Input mode » de Je bouge / Emotional Radar).
+  final Widget? inputMode;
+
+  /// Texte d'aide/avertissement optionnel (ex. phase mesurée non reprenable).
+  final String? description;
+
+  /// Affiche le bloc « Audio options » (effets + musique). Vrai partout.
+  final bool showAudioOptions;
+
+  /// Boutons d'action, dans l'ordre (Resume, Restart, View rules, Exit…).
+  final List<Widget> buttons;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.white,
+      insetPadding: const EdgeInsets.all(32),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSpacing.radiusXxl),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                title,
+                key: titleKey,
+                textAlign: TextAlign.center,
+                style: AppTypography.displayMedium.copyWith(
+                  color: ZennytGamePalette.blue,
+                  letterSpacing: 0,
+                ),
+              ),
+              if (inputMode != null) ...[
+                const SizedBox(height: AppSpacing.xl),
+                inputMode!,
+              ],
+              if (description != null) ...[
+                SizedBox(
+                  height: inputMode != null ? AppSpacing.lg : AppSpacing.xl,
+                ),
+                Text(
+                  description!,
+                  textAlign: TextAlign.center,
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: ZennytGamePalette.muted,
+                    height: 1.45,
+                  ),
+                ),
+              ],
+              if (showAudioOptions) ...[
+                SizedBox(
+                  height: (inputMode != null || description != null)
+                      ? AppSpacing.lg
+                      : AppSpacing.xl,
+                ),
+                const GamePauseAudioOptions(),
+              ],
+              const SizedBox(height: AppSpacing.md),
+              for (var i = 0; i < buttons.length; i++) ...[
+                if (i > 0) const SizedBox(height: AppSpacing.md),
+                buttons[i],
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Bloc « Audio options » commun : deux interrupteurs (effets sonores +
+/// musique) reliés **directement** au [SoundService]. Auto-géré : aucun état à
+/// tenir côté écran, l'état initial reflète le service.
+class GamePauseAudioOptions extends StatefulWidget {
+  const GamePauseAudioOptions({super.key});
+
+  @override
+  State<GamePauseAudioOptions> createState() => _GamePauseAudioOptionsState();
+}
+
+class _GamePauseAudioOptionsState extends State<GamePauseAudioOptions> {
+  late bool _soundEffects = SoundService.instance.sfxEnabled;
+  late bool _music = SoundService.instance.musicEnabled;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'Audio options',
+          style: AppTypography.titleMedium.copyWith(
+            color: ZennytGamePalette.blue,
+            letterSpacing: 0,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        GamePauseSwitchTile(
+          label: 'Sound effects',
+          value: _soundEffects,
+          onChanged: (value) {
+            setState(() => _soundEffects = value);
+            SoundService.instance.setSfxEnabled(value);
+          },
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        GamePauseSwitchTile(
+          label: 'Music',
+          value: _music,
+          onChanged: (value) {
+            setState(() => _music = value);
+            SoundService.instance.setMusicEnabled(value);
+          },
+        ),
+      ],
+    );
+  }
+}
+
+/// Ligne d'interrupteur bordée du menu pause (label + « On/Off » + [Switch]).
+class GamePauseSwitchTile extends StatelessWidget {
+  const GamePauseSwitchTile({
+    super.key,
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String label;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.base,
+        vertical: AppSpacing.sm,
+      ),
+      decoration: BoxDecoration(
+        border: Border.all(color: ZennytGamePalette.border),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: AppTypography.titleSmall.copyWith(
+                color: ZennytGamePalette.blue,
+                letterSpacing: 0,
+              ),
+            ),
+          ),
+          Text(
+            value ? 'On' : 'Off',
+            style: AppTypography.labelMedium.copyWith(
+              color: value
+                  ? ZennytGamePalette.success
+                  : ZennytGamePalette.muted,
+              letterSpacing: 0,
+            ),
+          ),
+          Switch(value: value, onChanged: onChanged),
+        ],
+      ),
+    );
+  }
+}
+
+/// Sélecteur « Input mode » (Boutons / Tactile) commun, présenté au-dessus des
+/// options audio pour les jeux qui gèrent une entrée directionnelle.
+class GamePauseInputModeToggle extends StatelessWidget {
+  const GamePauseInputModeToggle({
+    super.key,
+    required this.buttonsSelected,
+    required this.onChanged,
+  });
+
+  final bool buttonsSelected;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'Input mode',
+          style: AppTypography.titleMedium.copyWith(
+            color: ZennytGamePalette.blue,
+            letterSpacing: 0,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        SegmentedButton<bool>(
+          segments: const [
+            ButtonSegment(value: true, label: Text('Buttons')),
+            ButtonSegment(value: false, label: Text('Tactile')),
+          ],
+          selected: {buttonsSelected},
+          showSelectedIcon: true,
+          onSelectionChanged: (selected) => onChanged(selected.first),
+        ),
+      ],
+    );
+  }
+}
+
+/// Bouton « Exit … » commun (contour rouge sur fond rosé), identique partout.
+class GamePauseExitButton extends StatelessWidget {
+  const GamePauseExitButton({
+    super.key,
+    this.label = 'Exit mission',
+    required this.onPressed,
+  });
+
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton(
+        onPressed: onPressed,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: ZennytGamePalette.error,
+          side: const BorderSide(color: ZennytGamePalette.error),
+          minimumSize: const Size.fromHeight(52),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+          ),
+          textStyle: AppTypography.buttonMedium.copyWith(letterSpacing: 0),
+        ),
+        child: Text(label),
       ),
     );
   }

@@ -3,9 +3,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/audio/sound_service.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -79,7 +79,7 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
 
   // ── Timers (data-driven, cf. handoff §6/§8) ──────────────────────────────
   static const int _digitVisibleMs = 900; // affichage d'un chiffre
-  static const int _isiMs = 250; // blanc inter-stimulus (input verrouillé)
+  static const int _isiMs = 1000; // blanc inter-stimulus 1 s (input verrouillé)
   static const int _feedbackMs = 250;
 
   // ── Système de niveaux (fiche Tableau 1, via MemoryQuestConfig) ───────────
@@ -89,9 +89,10 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
   _Stage _stage = _Stage.intro;
   bool _paused = false;
 
-  // Niveau courant (1-based) + compteur de tâches réussies au niveau.
+  // Niveau courant (1-based). Un seul tour par niveau, puis incrémentation.
   int _level = 1;
-  int _correctTasksAtLevel = 0;
+  // Erreurs cumulées sur toute la partie : au-delà de [maxMistakes], fin de jeu.
+  int _mistakes = 0;
   // Tâches par instance (avec timing) — active l'ajustement timeout du calibrage.
   final List<MemoryTaskResult> _tasks = [];
   final Stopwatch _taskWatch = Stopwatch(); // temps de la tâche de rappel courante
@@ -117,8 +118,8 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
 
   // ── Mission B — manipulation d'objets (nb d'objets selon le niveau) ──────
   static const int _bManipulations = 2; // 2 manipulations automatiques
-  static const int _observeObjectsMs = 5000; // « 5 sec »
   static const int _manipStepMs = 750;
+  static const int _preRecallMs = 3000; // pause 3 s après manipulation, avant rappel
 
   List<MemoryObject> _objects = const []; // ordre INITIAL à restaurer
   List<MemoryObject> _shownOrder = const []; // ordre affiché (observe/manipulation)
@@ -161,10 +162,18 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
       _stage == _Stage.recallAfterDistraction ? _distractSeq.length : _length;
 
   @override
+  void initState() {
+    super.initState();
+    SoundService.instance.startMusic();
+  }
+
+  @override
   void dispose() {
     _seqToken++; // stoppe toute observation planifiée
     _objToken++;
     _distractTimer?.cancel();
+    SoundService.instance.stopSpeaking();
+    SoundService.instance.stopMusic();
     super.dispose();
   }
 
@@ -173,7 +182,7 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
   void _startMission() {
     setState(() {
       _level = 1;
-      _correctTasksAtLevel = 0;
+      _mistakes = 0;
       _length = MemoryQuestConfig.sequenceLengthForLevel(_level);
       _observedDigits = 0;
       _correctSameDigits = 0;
@@ -212,8 +221,7 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
     _runObservation();
   }
 
-  /// Enregistre une tâche de rappel notée (avec son timing) et compte les
-  /// réussites au niveau ; monte d'un niveau après [correctTasksForLevelUp].
+  /// Enregistre une tâche de rappel notée (avec son timing) pour le score.
   void _recordTask(MemoryTaskKind kind, int correct, int total) {
     final ms = _taskWatch.isRunning ? _taskWatch.elapsedMilliseconds : 0;
     _taskWatch.stop();
@@ -224,19 +232,16 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
       total: total,
       responseTimeMs: ms,
     ));
-    if (total > 0 && correct == total) {
-      _correctTasksAtLevel++;
-    }
+    // Erreur = tâche non parfaite ; compte pour le budget global d'erreurs.
+    if (total > 0 && correct < total) _mistakes++;
   }
-
-  bool get _shouldLevelUp =>
-      _correctTasksAtLevel >= MemoryQuestConfig.correctTasksForLevelUp;
 
   bool get _sessionTimeExhausted =>
       _sessionWatch.elapsed.inMinutes >= MemoryQuestConfig.maxSessionDurationMin;
 
   Future<void> _runObservation() async {
     final token = ++_seqToken;
+    final lang = _lang; // langue capturée pour la voix (le context reste stable)
     // Court délai avant le 1er chiffre (état calme, pas de flash).
     await Future<void>.delayed(const Duration(milliseconds: 350));
     for (var i = 0; i < _sequence.length; i++) {
@@ -245,9 +250,16 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
         _revealIndex = i;
         _showingDigit = true;
       });
+      // Son de chiffre, alterné entre deux variantes pour éviter la monotonie.
+      SoundService.instance.playSfx(
+        i.isEven ? GameSfx.numberClick : GameSfx.numberClickV2,
+      );
+      // Voix native qui énonce le chiffre affiché, dans la langue du jeu.
+      SoundService.instance.speakNumber(_sequence[i], languageCode: lang);
       await Future<void>.delayed(const Duration(milliseconds: _digitVisibleMs));
       if (!mounted || token != _seqToken) return;
       setState(() => _showingDigit = false); // ISI (blanc, input verrouillé)
+      SoundService.instance.playSfx(GameSfx.blankInterval);
       await Future<void>.delayed(const Duration(milliseconds: _isiMs));
     }
     if (!mounted || token != _seqToken) return;
@@ -306,6 +318,9 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
     if (roundPerfect) _highestLength = math.max(_highestLength, _length);
     _lastCorrect = roundPerfect;
     _recordTask(MemoryTaskKind.reverseOrder, correctRev, reversed.length);
+    SoundService.instance.playSfx(
+      roundPerfect ? GameSfx.correctChoice : GameSfx.wrongChoice,
+    );
 
     setState(() => _stage = _Stage.feedback);
     Future<void>.delayed(const Duration(milliseconds: _feedbackMs + 550), () {
@@ -314,20 +329,22 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
     });
   }
 
-  /// Décide, en fin de phases d'un niveau, de monter d'un niveau ou de terminer.
+  /// Fin des phases d'un tour : **un seul tour par niveau**. On monte d'un
+  /// niveau à chaque tour (séquence plus longue + plus d'objets), jusqu'au
+  /// dernier niveau ; puis on affiche le score.
+  ///
+  /// La partie s'arrête aussi (écran de score) dès que le **budget global
+  /// d'erreurs** est dépassé (> [maxMistakes] sur l'ensemble des niveaux), ou si
+  /// le temps de session est écoulé.
   void _endLevel() {
-    final canContinue = _shouldLevelUp &&
-        _level < MemoryQuestConfig.totalLevels &&
-        !_sessionTimeExhausted;
-    if (canContinue) {
-      setState(() {
-        _level++;
-        _correctTasksAtLevel = 0;
-      });
-      _beginRound(); // nouveau niveau : Mission A à la longueur suivante
-    } else {
+    if (_mistakes > MemoryQuestConfig.maxMistakes ||
+        _sessionTimeExhausted ||
+        _level >= MemoryQuestConfig.totalLevels) {
       _finishAndSubmit();
+      return;
     }
+    setState(() => _level++); // niveau suivant : un tour de plus
+    _beginRound();
   }
 
   // ── Mission B — manipulation d'objets ────────────────────────────────────
@@ -346,8 +363,11 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
 
   Future<void> _runObserveThenManipulate() async {
     final token = ++_objToken;
-    // Phase d'observation (ordre initial visible, saisie verrouillée).
-    await Future<void>.delayed(const Duration(milliseconds: _observeObjectsMs));
+    // Phase d'observation (ordre initial visible, saisie verrouillée). Le temps
+    // de mémorisation croît avec le nombre d'objets (≈ 1.25 s / objet).
+    await Future<void>.delayed(
+      Duration(milliseconds: MemoryQuestConfig.objectObservationMs(_objects.length)),
+    );
     if (!mounted || token != _objToken) return;
     setState(() => _stage = _Stage.manipulateObjects);
 
@@ -374,10 +394,16 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
     }
 
     if (!mounted || token != _objToken) return;
-    // Restauration : l'utilisateur reconstruit l'ORDRE INITIAL (pas l'état final).
+    // Rétention : on efface les surbrillances et on laisse 3 s au joueur pour
+    // consolider l'ordre initial AVANT de basculer sur le rappel.
     setState(() {
       _highlightA = -1;
       _highlightB = -1;
+    });
+    await Future<void>.delayed(const Duration(milliseconds: _preRecallMs));
+    if (!mounted || token != _objToken) return;
+    // Restauration : l'utilisateur reconstruit l'ORDRE INITIAL (pas l'état final).
+    setState(() {
       _slots = List<MemoryObject?>.filled(_objects.length, null);
       _pool = List<MemoryObject>.of(_objects)..shuffle(_random);
       _stage = _Stage.restoreOrder;
@@ -405,6 +431,27 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
     });
   }
 
+  /// Dépose [obj] (glissé depuis la réserve ou depuis un autre emplacement) dans
+  /// l'emplacement [slotIndex]. Réserve → emplacement : l'ancien occupant repart
+  /// à la réserve. Emplacement → emplacement : échange des deux objets.
+  void _placeInSlot(MemoryObject obj, int slotIndex) {
+    if (_inputLocked) return;
+    SoundService.instance.playSfx(GameSfx.imageDrop);
+    setState(() {
+      final fromSlot = _slots.indexWhere((o) => o?.id == obj.id);
+      if (fromSlot == slotIndex) return;
+      final target = _slots[slotIndex];
+      if (fromSlot >= 0) {
+        _slots[fromSlot] = target; // échange (target peut être null)
+        _slots[slotIndex] = obj;
+      } else {
+        _pool.remove(obj);
+        if (target != null) _pool.add(target);
+        _slots[slotIndex] = obj;
+      }
+    });
+  }
+
   void _validateRestore() {
     if (_inputLocked || _slots.contains(null)) return;
     var correct = 0;
@@ -414,6 +461,11 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
     _restoreCorrect += correct;
     _missionBDone = true;
     _recordTask(MemoryTaskKind.restore, correct, _objects.length);
+    SoundService.instance.playSfx(
+      correct == _objects.length
+          ? GameSfx.correctChoice
+          : GameSfx.wrongChoice,
+    );
     // Distraction GATÉE : jouée seulement à partir du niveau 3.
     if (MemoryQuestConfig.distractionActiveAtLevel(_level)) {
       _beginDistraction();
@@ -427,11 +479,11 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
   void _beginDistraction() {
     _distractSeq = List<int>.generate(_distractLength, (_) => _random.nextInt(10));
     _entry.clear();
-    // Question rapide : addition simple a + b.
-    final a = 1 + _random.nextInt(9);
-    final b = 1 + _random.nextInt(9);
-    _distractQuestionAnswer = a + b;
-    _distractQuestionText = '$a + $b = ?';
+    // Question d'interférence rapide, variée : addition, soustraction ou
+    // multiplication (fiche « J'investigue » — résistance à l'interférence).
+    final (text, answer) = _buildArithmetic();
+    _distractQuestionAnswer = answer;
+    _distractQuestionText = text;
     _distractChoices = _buildChoices(_distractQuestionAnswer);
     _distractQuestionCorrect = false;
     widget.onDistractionReady?.call(_distractSeq, _distractQuestionAnswer);
@@ -443,11 +495,33 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
     _runDistractionEncode();
   }
 
+  /// Génère une opération simple au résultat positif — tirée aléatoirement
+  /// entre addition, soustraction (a ≥ b) et multiplication (petits facteurs).
+  (String, int) _buildArithmetic() {
+    switch (_random.nextInt(3)) {
+      case 0:
+        final a = 1 + _random.nextInt(9);
+        final b = 1 + _random.nextInt(9);
+        return ('$a + $b = ?', a + b);
+      case 1:
+        final x = 1 + _random.nextInt(9);
+        final y = 1 + _random.nextInt(9);
+        final a = math.max(x, y); // soustraction à résultat ≥ 0
+        final b = math.min(x, y);
+        return ('$a − $b = ?', a - b);
+      default:
+        final a = 2 + _random.nextInt(8); // 2..9
+        final b = 2 + _random.nextInt(8);
+        return ('$a × $b = ?', a * b);
+    }
+  }
+
   List<int> _buildChoices(int answer) {
     final set = <int>{answer};
     while (set.length < 3) {
       final delta = 1 + _random.nextInt(3);
-      set.add(_random.nextBool() ? answer + delta : answer - delta);
+      final candidate = _random.nextBool() ? answer + delta : answer - delta;
+      if (candidate >= 0) set.add(candidate); // pas de proposition négative
     }
     final list = set.toList()..shuffle(_random);
     return list;
@@ -455,6 +529,7 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
 
   Future<void> _runDistractionEncode() async {
     final token = ++_seqToken;
+    final lang = _lang;
     await Future<void>.delayed(const Duration(milliseconds: 350));
     for (var i = 0; i < _distractSeq.length; i++) {
       if (!mounted || token != _seqToken) return;
@@ -462,9 +537,15 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
         _revealIndex = i;
         _showingDigit = true;
       });
+      SoundService.instance.playSfx(
+        i.isEven ? GameSfx.numberClick : GameSfx.numberClickV2,
+      );
+      // Voix native qui énonce le chiffre affiché, dans la langue du jeu.
+      SoundService.instance.speakNumber(_distractSeq[i], languageCode: lang);
       await Future<void>.delayed(const Duration(milliseconds: _digitVisibleMs));
       if (!mounted || token != _seqToken) return;
       setState(() => _showingDigit = false);
+      SoundService.instance.playSfx(GameSfx.blankInterval);
       await Future<void>.delayed(const Duration(milliseconds: _isiMs));
     }
     if (!mounted || token != _seqToken) return;
@@ -529,6 +610,7 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
       _stage = _Stage.results;
       _submitting = true;
     });
+    SoundService.instance.playScoreboard();
     try {
       final session = await (_sessionStart ??=
           ref.read(gamesRepositoryProvider).startSession(GameType.memoryQuest));
@@ -601,18 +683,42 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
         _stage == _Stage.results) {
       return;
     }
+    SoundService.instance.playSfx(GameSfx.pauseClick);
+    SoundService.instance.stopSpeaking(); // coupe la voix des chiffres
     _seqToken++; // gèle les phases verrouillées en cours
     _objToken++;
     _distractTimer?.cancel();
     setState(() => _paused = true);
-    final action = await showDialog<_PauseAction>(
+    final action = await showDialog<GamePauseAction>(
       context: context,
       barrierColor: ZennytGamePalette.ink.withValues(alpha: 0.82),
-      builder: (_) => const _PauseDialog(),
+      builder: (context) => GamePauseScaffold(
+        description: 'The game timer and the sequence are frozen.',
+        buttons: [
+          GamePrimaryButton(
+            label: 'Resume',
+            onPressed: () => Navigator.of(context).pop(GamePauseAction.resume),
+          ),
+          GameOutlineButton(
+            label: 'View rules / Help',
+            onPressed: () => Navigator.of(context).pop(GamePauseAction.help),
+          ),
+          GamePauseExitButton(
+            label: 'Exit mission',
+            onPressed: () => Navigator.of(context).pop(GamePauseAction.exit),
+          ),
+        ],
+      ),
     );
     if (!mounted) return;
-    if (action == _PauseAction.exit) {
+    if (action == GamePauseAction.exit) {
       context.go(AppRoutes.games);
+      return;
+    }
+    if (action == GamePauseAction.help) {
+      await _showRulesHelp();
+      if (!mounted) return;
+      await _openPause(); // revenir au menu pause après l'aide
       return;
     }
     setState(() => _paused = false);
@@ -626,6 +732,39 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
         _stage == _Stage.distraction) {
       _beginDistraction();
     }
+  }
+
+  /// Rappel des règles depuis le menu pause (« View rules / Help »).
+  Future<void> _showRulesHelp() async {
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('How to play'),
+        content: const SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _RulesLine(Icons.visibility_outlined,
+                  'Digits appear one at a time — just watch and listen.'),
+              _RulesLine(Icons.keyboard_alt_outlined,
+                  'Type them back in the same order, then in reverse.'),
+              _RulesLine(Icons.swap_horiz_rounded,
+                  'Then memorize objects and restore their starting order.'),
+              _RulesLine(Icons.lock_outline_rounded,
+                  'You cannot answer while stimuli are shown — it keeps the '
+                      'test fair.'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Back'),
+          ),
+        ],
+      ),
+    );
   }
 
   // ── Build ────────────────────────────────────────────────────────────────
@@ -798,7 +937,9 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
                   slots: _slots,
                   pool: _pool,
                   languageCode: _lang,
+                  enabled: !_inputLocked,
                   onPlace: _placeFromPool,
+                  onPlaceInSlot: _placeInSlot,
                   onRemove: _removeFromSlot,
                   onValidate: _validateRestore,
                 ),
@@ -1143,6 +1284,15 @@ class _FeedbackView extends StatelessWidget {
 
 // ── Mission B — objets : observation / manipulation ─────────────────────────
 
+/// Échelle des cartes d'objets selon leur nombre : pleine taille jusqu'à 6,
+/// puis réduite progressivement pour tout faire tenir sans défilement pénible
+/// (utile pour le glisser-déposer quand il y a beaucoup d'objets).
+double _objectTileScale(int count) {
+  if (count <= 6) return 1.0;
+  if (count <= 9) return 0.82;
+  return 0.68;
+}
+
 class _ObjectsPhaseView extends StatelessWidget {
   const _ObjectsPhaseView({
     required this.order,
@@ -1162,6 +1312,7 @@ class _ObjectsPhaseView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scale = _objectTileScale(order.length);
     return Column(
       children: [
         Text(
@@ -1181,22 +1332,30 @@ class _ObjectsPhaseView extends StatelessWidget {
             letterSpacing: 0,
           ),
         ),
-        const Spacer(),
-        Wrap(
-          alignment: WrapAlignment.center,
-          spacing: 12,
-          runSpacing: 12,
-          children: [
-            for (var i = 0; i < order.length; i++)
-              _ObjectTile(
-                object: order[i],
-                position: i + 1,
-                languageCode: languageCode,
-                highlight: i == highlightA || i == highlightB,
+        const SizedBox(height: AppSpacing.lg),
+        // Centré quand ça tient, défilable au-delà (jusqu'à 12 objets).
+        Expanded(
+          child: Center(
+            child: SingleChildScrollView(
+              child: Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 12 * scale,
+                runSpacing: 12 * scale,
+                children: [
+                  for (var i = 0; i < order.length; i++)
+                    _ObjectTile(
+                      object: order[i],
+                      position: i + 1,
+                      languageCode: languageCode,
+                      highlight: i == highlightA || i == highlightB,
+                      scale: scale,
+                    ),
+                ],
               ),
-          ],
+            ),
+          ),
         ),
-        const Spacer(),
+        const SizedBox(height: AppSpacing.base),
         const _LockedBar(),
       ],
     );
@@ -1210,7 +1369,9 @@ class _RestoreView extends StatelessWidget {
     required this.slots,
     required this.pool,
     required this.languageCode,
+    required this.enabled,
     required this.onPlace,
+    required this.onPlaceInSlot,
     required this.onRemove,
     required this.onValidate,
   });
@@ -1218,13 +1379,16 @@ class _RestoreView extends StatelessWidget {
   final List<MemoryObject?> slots;
   final List<MemoryObject> pool;
   final String languageCode;
+  final bool enabled;
   final ValueChanged<MemoryObject> onPlace;
+  final void Function(MemoryObject object, int slotIndex) onPlaceInSlot;
   final ValueChanged<int> onRemove;
   final VoidCallback onValidate;
 
   @override
   Widget build(BuildContext context) {
     final full = !slots.contains(null);
+    final scale = _objectTileScale(slots.length);
     return Column(
       children: [
         Text(
@@ -1237,7 +1401,7 @@ class _RestoreView extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.sm),
         Text(
-          'Tap an object to place it in the next slot. Tap a slot to remove it.',
+          'Drag each object into its slot. Tap a slot to send it back.',
           textAlign: TextAlign.center,
           style: AppTypography.bodyMedium.copyWith(
             color: Colors.white.withValues(alpha: 0.9),
@@ -1245,42 +1409,84 @@ class _RestoreView extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppSpacing.lg),
-        // Emplacements cibles (ordre à reconstruire).
-        Wrap(
-          alignment: WrapAlignment.center,
-          spacing: 12,
-          runSpacing: 12,
-          children: [
-            for (var i = 0; i < slots.length; i++)
-              _ObjectTile(
-                object: slots[i],
-                position: i + 1,
-                languageCode: languageCode,
-                onTap: slots[i] == null ? null : () => onRemove(i),
-              ),
-          ],
-        ),
-        const Spacer(),
-        // Réserve d'objets (mélangée).
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(AppSpacing.md),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.10),
-            borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-          ),
-          child: Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              for (final obj in pool)
-                _ObjectTile(
-                  object: obj,
-                  languageCode: languageCode,
-                  onTap: () => onPlace(obj),
+        // Zone défilable (emplacements + réserve) : évite tout débordement même
+        // avec beaucoup d'objets (jusqu'à 12 selon le niveau). Le titre et le
+        // bouton Valider restent fixes.
+        Expanded(
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                // Emplacements cibles (ordre à reconstruire) — cibles de dépôt.
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 12 * scale,
+                  runSpacing: 12 * scale,
+                  children: [
+                    for (var i = 0; i < slots.length; i++)
+                      DragTarget<MemoryObject>(
+                        onWillAcceptWithDetails: (_) => enabled,
+                        onAcceptWithDetails: (details) =>
+                            onPlaceInSlot(details.data, i),
+                        builder: (context, candidate, rejected) {
+                          final tile = _ObjectTile(
+                            object: slots[i],
+                            position: i + 1,
+                            languageCode: languageCode,
+                            highlight: candidate.isNotEmpty,
+                            onTap: slots[i] == null ? null : () => onRemove(i),
+                            scale: scale,
+                          );
+                          // Un objet déjà placé peut être re-glissé (échange/retour).
+                          final obj = slots[i];
+                          if (obj == null || !enabled) return tile;
+                          return _DraggableObject(
+                            object: obj,
+                            languageCode: languageCode,
+                            scale: scale,
+                            child: tile,
+                          );
+                        },
+                      ),
+                  ],
                 ),
-            ],
+                const SizedBox(height: AppSpacing.lg),
+                // Réserve d'objets (mélangée) — sources à glisser.
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+                  ),
+                  child: Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 12 * scale,
+                    runSpacing: 12 * scale,
+                    children: [
+                      for (final obj in pool)
+                        enabled
+                            ? _DraggableObject(
+                                object: obj,
+                                languageCode: languageCode,
+                                scale: scale,
+                                child: _ObjectTile(
+                                  object: obj,
+                                  languageCode: languageCode,
+                                  onTap: () => onPlace(obj),
+                                  scale: scale,
+                                ),
+                              )
+                            : _ObjectTile(
+                                object: obj,
+                                languageCode: languageCode,
+                                onTap: () => onPlace(obj),
+                                scale: scale,
+                              ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         const SizedBox(height: AppSpacing.base),
@@ -1293,11 +1499,48 @@ class _RestoreView extends StatelessWidget {
   }
 }
 
-/// Chemin du SVG (vectoriel **multicolore**, fond transparent) de chaque objet,
-/// mappé par [MemoryObject.id]. Réplique les visuels d'origine sans le fond
-/// blanc ni le libellé gravé des anciens PNG.
-String memoryObjectSvg(String id) =>
-    'assets/J’investigue/MemoryObject/svg/$id.svg';
+/// Enveloppe un objet mémoire en [Draggable] : aperçu agrandi pendant le
+/// glissé, source estompée. La donnée transportée est le [MemoryObject].
+class _DraggableObject extends StatelessWidget {
+  const _DraggableObject({
+    required this.object,
+    required this.languageCode,
+    required this.child,
+    this.scale = 1.0,
+  });
+
+  final MemoryObject object;
+  final String languageCode;
+  final Widget child;
+  final double scale;
+
+  @override
+  Widget build(BuildContext context) {
+    return Draggable<MemoryObject>(
+      data: object,
+      dragAnchorStrategy: pointerDragAnchorStrategy,
+      onDragStarted: () =>
+          SoundService.instance.playSfx(GameSfx.imageDrag),
+      feedback: Transform.translate(
+        // Ancre l'aperçu sous le doigt (moitié de la carte, échelle comprise).
+        offset: Offset(-52 * scale, -64 * scale),
+        child: Transform.scale(
+          scale: 1.1,
+          child: Material(
+            color: Colors.transparent,
+            child: _ObjectTile(
+              object: object,
+              languageCode: languageCode,
+              scale: scale,
+            ),
+          ),
+        ),
+      ),
+      childWhenDragging: Opacity(opacity: 0.35, child: child),
+      child: child,
+    );
+  }
+}
 
 class _ObjectTile extends StatelessWidget {
   const _ObjectTile({
@@ -1306,6 +1549,7 @@ class _ObjectTile extends StatelessWidget {
     this.position,
     this.highlight = false,
     this.onTap,
+    this.scale = 1.0,
   });
 
   final MemoryObject? object; // null = emplacement vide
@@ -1314,19 +1558,28 @@ class _ObjectTile extends StatelessWidget {
   final bool highlight;
   final VoidCallback? onTap;
 
+  /// Facteur d'échelle (< 1 quand il y a beaucoup d'objets) : réduit la taille
+  /// des cartes pour tout faire tenir à l'écran sans défilement pénible.
+  final double scale;
+
   @override
   Widget build(BuildContext context) {
     final obj = object;
+    // Carte translucide « givrée » (plus de fond blanc plein) : les objets 2.5D
+    // ressortent, plus grands, directement sur le fond violet.
     final tile = Container(
-      width: 92,
-      height: 112,
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+      width: 104 * scale,
+      height: 136 * scale,
+      padding: EdgeInsets.symmetric(vertical: 8 * scale, horizontal: 8 * scale),
       decoration: BoxDecoration(
-        color: obj == null ? Colors.white.withValues(alpha: 0.14) : Colors.white,
+        color: Colors.white.withValues(alpha: obj == null ? 0.08 : 0.16),
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        border: highlight
-            ? Border.all(color: ZennytGamePalette.magenta, width: 3)
-            : null,
+        border: Border.all(
+          color: highlight
+              ? ZennytGamePalette.magenta
+              : Colors.white.withValues(alpha: 0.28),
+          width: highlight ? 3 : 1,
+        ),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -1335,29 +1588,29 @@ class _ObjectTile extends StatelessWidget {
             Text(
               '$position',
               style: TextStyle(
-                color: obj == null ? Colors.white : ZennytGamePalette.muted,
-                fontSize: 12,
+                color: Colors.white.withValues(alpha: 0.85),
+                fontSize: 12 * scale,
                 fontWeight: FontWeight.w700,
               ),
             ),
-          const SizedBox(height: 4),
+          SizedBox(height: 4 * scale),
           if (obj != null)
-            SvgPicture.asset(
-              memoryObjectSvg(obj.id),
-              width: 44,
-              height: 44,
+            Image.asset(
+              obj.assetPath,
+              width: 64 * scale,
+              height: 64 * scale,
               fit: BoxFit.contain,
             )
           else
-            const SizedBox(height: 44),
-          const SizedBox(height: 6),
+            SizedBox(height: 64 * scale),
+          SizedBox(height: 6 * scale),
           Text(
             obj?.label(languageCode) ?? '—',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: obj == null ? Colors.white : ZennytGamePalette.ink,
-              fontSize: 13,
+              color: Colors.white,
+              fontSize: 13 * scale,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -1801,8 +2054,10 @@ class _ResultsView extends StatelessWidget {
                     letterSpacing: 0,
                   ),
                 ),
-                Text(
-                  '$composite%',
+                AnimatedCountText(
+                  value: composite,
+                  suffix: '%',
+                  onCompleted: SoundService.instance.stopScoreboard,
                   style: AppTypography.displayLarge.copyWith(
                     color: Colors.white,
                     fontSize: 56,
@@ -1944,51 +2199,23 @@ class _BackButton extends StatelessWidget {
   }
 }
 
-enum _PauseAction { resume, exit }
+class _RulesLine extends StatelessWidget {
+  const _RulesLine(this.icon, this.text);
 
-class _PauseDialog extends StatelessWidget {
-  const _PauseDialog();
+  final IconData icon;
+  final String text;
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      insetPadding: const EdgeInsets.all(32),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusXxl),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Paused',
-              style: AppTypography.displayMedium.copyWith(
-                color: ZennytGamePalette.blue,
-                letterSpacing: 0,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              'The game timer and the sequence are frozen.',
-              textAlign: TextAlign.center,
-              style: AppTypography.bodyLarge.copyWith(
-                color: ZennytGamePalette.muted,
-                letterSpacing: 0,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            GamePrimaryButton(
-              label: 'Resume',
-              onPressed: () => Navigator.of(context).pop(_PauseAction.resume),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            GameOutlineButton(
-              label: 'Exit mission',
-              onPressed: () => Navigator.of(context).pop(_PauseAction.exit),
-            ),
-          ],
-        ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 20, color: ZennytGamePalette.blue),
+          const SizedBox(width: 12),
+          Expanded(child: Text(text)),
+        ],
       ),
     );
   }

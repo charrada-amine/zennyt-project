@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../../core/audio/sound_service.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../widgets/game_system_components.dart';
 
@@ -94,7 +95,13 @@ class _DecisionResultsFlowState extends State<DecisionResultsFlow> {
     _step = widget.initialStep;
   }
 
-  void _go(DecisionResultsStep step) => setState(() => _step = step);
+  void _go(DecisionResultsStep step) {
+    // Révélation du profil (badge/score) → son de félicitations.
+    if (step == DecisionResultsStep.profile) {
+      SoundService.instance.playSfx(GameSfx.congrats);
+    }
+    setState(() => _step = step);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -753,34 +760,41 @@ class _ScoreRing extends StatelessWidget {
       child: SizedBox(
         width: 106,
         height: 106,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            SizedBox.expand(
-              child: CircularProgressIndicator(
-                value: score / 100,
-                strokeWidth: 10,
-                backgroundColor: _border,
-                valueColor: const AlwaysStoppedAnimation(_magenta),
+        // Anneau + nombre s'animent ensemble de 0 vers le score final.
+        child: TweenAnimationBuilder<double>(
+          key: ValueKey<int>(score),
+          tween: Tween<double>(begin: 0, end: score.toDouble()),
+          duration: const Duration(milliseconds: 900),
+          curve: Curves.easeOutCubic,
+          builder: (context, animated, _) => Stack(
+            alignment: Alignment.center,
+            children: [
+              SizedBox.expand(
+                child: CircularProgressIndicator(
+                  value: animated / 100,
+                  strokeWidth: 10,
+                  backgroundColor: _border,
+                  valueColor: const AlwaysStoppedAnimation(_magenta),
+                ),
               ),
-            ),
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '$score',
-                  style: AppTypography.headlineMedium.copyWith(
-                    color: _ink,
-                    fontWeight: FontWeight.w800,
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '${animated.round()}',
+                    style: AppTypography.headlineMedium.copyWith(
+                      color: _ink,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
-                ),
-                Text(
-                  '/ 100',
-                  style: AppTypography.bodySmall.copyWith(color: _muted),
-                ),
-              ],
-            ),
-          ],
+                  Text(
+                    '/ 100',
+                    style: AppTypography.bodySmall.copyWith(color: _muted),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

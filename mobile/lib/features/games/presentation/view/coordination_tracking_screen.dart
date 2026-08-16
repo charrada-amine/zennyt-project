@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/audio/sound_service.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../domain/config/coordination_tracking_config.dart';
@@ -59,7 +60,10 @@ class CoordinationTrackingScreen extends ConsumerStatefulWidget {
 
 class _CoordinationTrackingScreenState
     extends ConsumerState<CoordinationTrackingScreen>
-    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+    with
+        SingleTickerProviderStateMixin,
+        WidgetsBindingObserver,
+        GameMusicMixin {
   late final Ticker _ticker;
   _CoordinationStage _stage = _CoordinationStage.cover;
   int _tutorialPage = 0;

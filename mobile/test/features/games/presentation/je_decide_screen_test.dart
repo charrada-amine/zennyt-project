@@ -59,7 +59,10 @@ void main() {
         tester,
         find.byKey(const ValueKey('decision-more-menu')),
       );
-      expect(find.text('Journey menu'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('decision-pause-dialog')),
+        findsOneWidget,
+      );
       await tapVisible(
         tester,
         find.byKey(const ValueKey('decision-view-rules')),
@@ -69,7 +72,10 @@ void main() {
         tester,
         find.byKey(const ValueKey('decision-rules-back')),
       );
-      expect(find.text('Journey menu'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('decision-pause-dialog')),
+        findsOneWidget,
+      );
       await tapVisible(
         tester,
         find.byKey(const ValueKey('decision-pause-dialog-resume')),

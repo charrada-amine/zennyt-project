@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/audio/sound_service.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../data/decision_progress_store.dart';
@@ -74,6 +75,7 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
   void initState() {
     super.initState();
     _restoreSavedJourney();
+    SoundService.instance.startMusic();
   }
 
   Future<void> _restoreSavedJourney() async {
@@ -114,6 +116,7 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
   void dispose() {
     _nicknameController.dispose();
     _onboardingController.dispose();
+    SoundService.instance.stopMusic();
     super.dispose();
   }
 
@@ -197,6 +200,7 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
   }
 
   Future<void> _openJourneyMenu() async {
+    SoundService.instance.playSfx(GameSfx.pauseClick);
     final action = await showDialog<DecisionPauseAction>(
       context: context,
       barrierDismissible: false,

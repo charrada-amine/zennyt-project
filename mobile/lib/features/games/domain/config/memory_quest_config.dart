@@ -15,6 +15,17 @@ class MemoryQuestConfig {
   static const int maxSequenceLength = 9;
   static const int totalLevels = 7; // longueurs 3..9
   static const int correctTasksForLevelUp = 3;
+
+  /// Un seul tour par niveau : après chaque tour on incrémente le niveau
+  /// (séquence plus longue + plus d'objets), jusqu'au dernier niveau.
+  static const int roundsPerLevel = 1;
+
+  /// Budget d'erreurs sur TOUTE la partie (toutes tâches, tous niveaux
+  /// confondus) : le joueur peut se tromper jusqu'à [maxMistakes] fois ; au-delà,
+  /// la partie s'arrête et l'écran de score s'affiche. Une « erreur » = une tâche
+  /// de rappel/restauration non parfaite (chiffres, inverse, objets, après
+  /// distraction).
+  static const int maxMistakes = 3;
   static const bool resetSequenceOnError = true;
   static const int minObjectCount = 4;
   static const int maxObjectCount = 12;
@@ -39,6 +50,22 @@ class MemoryQuestConfig {
 
   /// Distraction gatée : active à partir du niveau 3.
   static bool distractionActiveAtLevel(int level) => level >= distractionMinLevel;
+
+  // ── Temps d'observation des objets (Mission B) ─────────────────────────────
+  /// Temps de mémorisation par objet (ms). Calé sur les 5 s initiales du plus
+  /// petit lot (5000 / 4 objets ≈ 1250 ms) : le temps de réflexion croît donc
+  /// proportionnellement au nombre d'objets à mémoriser.
+  static const int objectObservationMsPerItem = 1250;
+
+  /// Plancher du temps d'observation des objets (identique à l'ancien 5 s fixe).
+  static const int objectObservationMinMs = 5000;
+
+  /// Temps d'observation des objets à un niveau : ~1.25 s × nombre d'objets,
+  /// jamais sous [objectObservationMinMs]. Ex. 4 objets → 5 s, 8 → 10 s, 12 → 15 s.
+  static int objectObservationMs(int objectCount) {
+    final total = objectObservationMsPerItem * objectCount;
+    return total < objectObservationMinMs ? objectObservationMinMs : total;
+  }
 
   // ── Calibrage appareil → timeout par tâche (fiche Tableau 2) ──────────────
   /// PROVISOIRE — à calibrer sur données pilotes (95ᵉ percentile). Miroir backend.
