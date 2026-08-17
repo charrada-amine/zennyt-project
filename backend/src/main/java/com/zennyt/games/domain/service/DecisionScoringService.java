@@ -14,9 +14,11 @@ import com.zennyt.games.domain.vo.Score;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
+import java.util.Set;
 
 /**
  * Service de domaine : barème de « Je Décide » (prise de décision).
@@ -71,7 +73,8 @@ public class DecisionScoringService {
             DimensionOutcome o = dims.get(d);
             dimScores.add(new DecisionReport.DimensionScore(
                 d, o == null ? null : o.score(), DecisionConfig.DIMENSION_MAX,
-                o != null && o.score() != null, o == null ? 0 : o.answeredCount()));
+                o != null && o.score() != null, o == null ? 0 : o.answeredCount(),
+                o != null && o.provisionalScoring()));
         }
 
         List<String> interpretations = interpretations(dims, scw);
@@ -99,6 +102,7 @@ public class DecisionScoringService {
 
         Map<DecisionDimension, List<Integer>> byDimension = new EnumMap<>(DecisionDimension.class);
         Map<DecisionDimension, Integer> answeredCount = new EnumMap<>(DecisionDimension.class);
+        Set<DecisionDimension> scoredForReal = EnumSet.noneOf(DecisionDimension.class);
         for (DecisionDimension d : DecisionDimension.values()) {
             byDimension.put(d, new ArrayList<>());
             answeredCount.put(d, 0);
@@ -118,13 +122,20 @@ public class DecisionScoringService {
             DecisionDimension dim = item.dimension(); // catalogue autoritaire
             byDimension.get(dim).add(points);
             answeredCount.merge(dim, 1, Integer::sum);
+            // Une dimension n'est déclarée provisoire que si TOUS ses items le sont :
+            // un seul item réellement noté suffit à la rendre (partiellement)
+            // discriminante, et l'annoncer neutre serait faux.
+            if (!item.provisionalScoring()) {
+                scoredForReal.add(dim);
+            }
         }
 
         Map<DecisionDimension, DimensionOutcome> out = new EnumMap<>(DecisionDimension.class);
         for (DecisionDimension d : DecisionDimension.values()) {
             OptionalInt imputed = DecisionConfig.imputedDimensionScore(byDimension.get(d));
             out.put(d, new DimensionOutcome(
-                imputed.isPresent() ? imputed.getAsInt() : null, answeredCount.get(d)));
+                imputed.isPresent() ? imputed.getAsInt() : null, answeredCount.get(d),
+                answeredCount.get(d) > 0 && !scoredForReal.contains(d)));
         }
         return out;
     }
@@ -287,7 +298,8 @@ public class DecisionScoringService {
 
     // ── Structures internes ──────────────────────────────────────────────────
 
-    private record DimensionOutcome(Integer score, int answeredCount) {
+    private record DimensionOutcome(Integer score, int answeredCount,
+                                    boolean provisionalScoring) {
     }
 
     private record Timing(double averageMs, double medianMs, double stdDevMs,

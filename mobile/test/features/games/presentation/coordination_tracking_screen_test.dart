@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zennyt/features/games/data/coordination_tracking_scoring.dart';
+import 'package:zennyt/features/games/domain/entities/decision_form.dart';
 import 'package:zennyt/features/games/domain/entities/coordination_tracking_metrics.dart';
 import 'package:zennyt/features/games/domain/entities/device_calibration.dart';
 import 'package:zennyt/features/games/domain/entities/emotional_radar.dart';
@@ -317,6 +318,10 @@ void main() {
 }
 
 class _RecordingRepository implements GamesRepository {
+  @override
+  Future<DecisionForm> decisionItems(String sessionId, {String language = 'fr'}) =>
+      throw UnimplementedError();
+
   static const _sessionId = '00000000-0000-4000-8000-000000000099';
   CoordinationTrackingMetrics? metrics;
 

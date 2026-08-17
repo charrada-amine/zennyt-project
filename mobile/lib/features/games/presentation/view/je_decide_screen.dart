@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,6 +8,12 @@ import '../../../../core/audio/sound_service.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../data/decision_progress_store.dart';
+import '../../domain/entities/decision_form.dart';
+import '../../domain/entities/decision_metrics.dart';
+import '../../domain/entities/game_type.dart';
+import '../../domain/entities/mini_game.dart';
+import '../games_controller.dart';
+import '../games_providers.dart';
 import '../../../navigation/presentation/viewmodel/nav_tab_provider.dart';
 import '../../../navigation/presentation/widgets/app_bottom_nav.dart';
 import 'je_decide_gameplay.dart';
@@ -47,8 +55,12 @@ enum _DecisionStage {
 
 /// Parcours mobile de « Je Décide ».
 ///
-/// Les écrans et transitions suivent les maquettes Phases 1–4. Cette version
-/// ne démarre aucune session backend et ne calcule aucun score côté client.
+/// Les écrans et transitions suivent les maquettes Phases 1–4. Le CONTENU, lui,
+/// vient du backend : la session est ouverte au démarrage du parcours, la forme
+/// de passation (30 items sur les 120 de la banque) est récupérée par
+/// `GET /decision/items`, et le score est calculé serveur à la soumission. Aucun
+/// barème ne vit côté client — voir l'exception de parité en tête de
+/// `games_mock_repository.dart`.
 class JeDecideScreen extends ConsumerStatefulWidget {
   const JeDecideScreen({super.key});
 
@@ -67,7 +79,10 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
   int? _selectedChoice;
   bool _checkingSavedProgress = true;
   bool _resumeSavedJourney = false;
-  DecisionGameplayStep _savedResumeStep = DecisionGameplayStep.encouragement;
+  int _savedItemIndex = 0;
+  DecisionForm? _form;
+  bool _loadingForm = false;
+  Object? _formError;
 
   static const _themes = [_magenta, _violet, _cyan, _orange];
 
@@ -75,31 +90,69 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
   void initState() {
     super.initState();
     _restoreSavedJourney();
-    SoundService.instance.startMusic();
   }
 
   Future<void> _restoreSavedJourney() async {
-    final hasSavedCheckpoint = await DecisionProgressStore()
-        .hasSavedCheckpoint();
-    final savedStepName = hasSavedCheckpoint
-        ? await DecisionProgressStore().loadSavedStep()
-        : null;
+    final store = DecisionProgressStore();
+    final hasSavedCheckpoint = await store.hasSavedCheckpoint();
+    final savedIndex = hasSavedCheckpoint ? await store.loadSavedItemIndex() : 0;
     if (!mounted) return;
     setState(() {
       _checkingSavedProgress = false;
       _resumeSavedJourney = hasSavedCheckpoint;
-      _savedResumeStep = sanitizeDecisionResumeStep(
-        DecisionGameplayStep.values.firstWhere(
-          (step) => step.name == savedStepName,
-          orElse: () => DecisionGameplayStep.encouragement,
-        ),
-      );
+      _savedItemIndex = savedIndex;
       if (hasSavedCheckpoint) _stage = _DecisionStage.gameplay;
     });
+    if (hasSavedCheckpoint) unawaited(_openSessionAndLoadForm());
   }
 
-  Future<void> _completeGameplay() async {
+  /// Ouvre la session puis récupère les 30 items de sa forme.
+  ///
+  /// L'ordre est imposé : la forme est tirée serveur à la création de session,
+  /// donc il n'y a rien à demander avant d'avoir un identifiant de session.
+  Future<void> _openSessionAndLoadForm() async {
+    if (_loadingForm || _form != null) return;
+    setState(() {
+      _loadingForm = true;
+      _formError = null;
+    });
+    try {
+      await ref.read(gamesControllerProvider.notifier).start(GameType.decision);
+      final session = ref.read(gamesControllerProvider).value;
+      if (session == null) {
+        throw StateError('Session « Je Décide » non ouverte.');
+      }
+      final form = await ref
+          .read(gamesRepositoryProvider)
+          .decisionItems(session.id);
+      if (!mounted) return;
+      setState(() {
+        _form = form;
+        _loadingForm = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _formError = error;
+        _loadingForm = false;
+      });
+    }
+  }
+
+  /// Fin de partie : les 30 réponses partent au serveur, qui note.
+  Future<void> _submitJourney(List<DecisionItemResponse> responses) async {
+    // Langue capturée AVANT le premier await : le contexte peut disparaître.
+    final language = Localizations.localeOf(context).languageCode;
     await DecisionProgressStore().clearCheckpoint();
+    await ref
+        .read(gamesControllerProvider.notifier)
+        .submit(
+          miniGame: MiniGame.decisionCore,
+          metrics: DecisionMetrics(
+            items: responses,
+            sessionLanguage: language,
+          ),
+        );
     if (!mounted) return;
     setState(() {
       _resumeSavedJourney = false;
@@ -116,7 +169,6 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
   void dispose() {
     _nicknameController.dispose();
     _onboardingController.dispose();
-    SoundService.instance.stopMusic();
     super.dispose();
   }
 
@@ -229,22 +281,33 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
       return const Scaffold(backgroundColor: _canvas, body: SizedBox.expand());
     }
     if (_stage == _DecisionStage.gameplay) {
+      final form = _form;
       return Scaffold(
         backgroundColor: _canvas,
-        body: DecisionGameplayView(
-          onClose: () => context.go(AppRoutes.games),
-          onComplete: _completeGameplay,
-          initialStep: _resumeSavedJourney
-              ? DecisionGameplayStep.resumeJourney
-              : DecisionGameplayStep.analytical,
-          resumeStepAfterWelcome: _savedResumeStep,
-        ),
+        body: form == null
+            ? _DecisionLoadingView(
+                error: _formError,
+                onRetry: _openSessionAndLoadForm,
+                onBack: () => context.go(AppRoutes.games),
+              )
+            : GameplayMusic(
+                child: DecisionGameplayView(
+                  form: form,
+                  onClose: () => context.go(AppRoutes.games),
+                  onComplete: _submitJourney,
+                  initialIndex: _resumeSavedJourney ? _savedItemIndex : 0,
+                ),
+              ),
       );
     }
     if (_stage == _DecisionStage.results) {
+      final session = ref.watch(gamesControllerProvider).value;
       return Scaffold(
         backgroundColor: _canvas,
         body: DecisionResultsFlow(
+          profile: session == null
+              ? const DecisionProfile(score: 0, level: '—', dimensions: [])
+              : DecisionProfile.fromSession(session),
           onClose: () => context.go(AppRoutes.games),
           onDone: _finishResults,
         ),
@@ -324,7 +387,10 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
         onSelected: (index) => setState(() => _selectedChoice = index),
         onContinue: _selectedChoice == null
             ? null
-            : () => _setStage(_DecisionStage.gameplay),
+            : () {
+                _setStage(_DecisionStage.gameplay);
+                unawaited(_openSessionAndLoadForm());
+              },
       ),
       _DecisionStage.gameplay => const SizedBox.shrink(),
       _DecisionStage.results => const SizedBox.shrink(),
@@ -1573,6 +1639,68 @@ class _ScrollableStage extends StatelessWidget {
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 22),
       child: child,
+    );
+  }
+}
+
+/// Attente (ou échec) du chargement de la forme de passation.
+///
+/// « Je Décide » est le seul jeu du module qui exige le backend : sa banque de
+/// 120 items et sa clé de correction ne sont pas embarquées dans l'application.
+/// L'échec est donc affiché tel quel plutôt que masqué par un contenu de repli.
+class _DecisionLoadingView extends StatelessWidget {
+  const _DecisionLoadingView({
+    required this.error,
+    required this.onRetry,
+    required this.onBack,
+  });
+
+  final Object? error;
+  final VoidCallback onRetry;
+  final VoidCallback onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    if (error == null) {
+      return const Center(
+        key: ValueKey('decision-loading-form'),
+        child: CircularProgressIndicator(color: _violet),
+      );
+    }
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 28),
+        child: Column(
+          key: const ValueKey('decision-form-error'),
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.cloud_off_rounded, size: 56, color: _muted),
+            const SizedBox(height: 16),
+            Text(
+              'Journey unavailable',
+              style: AppTypography.headlineSmall.copyWith(
+                color: _ink,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'The decision scenarios are served by Zennyt and could not be '
+              'loaded. Check your connection and try again.',
+              textAlign: TextAlign.center,
+              style: AppTypography.bodyMedium.copyWith(color: _muted, height: 1.4),
+            ),
+            const SizedBox(height: 24),
+            GamePrimaryButton(
+              key: const ValueKey('decision-retry-form'),
+              label: 'Try again',
+              onPressed: onRetry,
+            ),
+            const SizedBox(height: 10),
+            GameOutlineButton(label: 'Back to games', onPressed: onBack),
+          ],
+        ),
+      ),
     );
   }
 }

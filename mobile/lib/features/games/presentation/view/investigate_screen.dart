@@ -20,7 +20,6 @@ import '../../domain/entities/score_breakdown.dart';
 import '../device_calibration_probe.dart';
 import '../games_providers.dart';
 import '../widgets/game_system_components.dart';
-import '../widgets/score_detail_panel.dart';
 
 /// « J'investigue » — jeu de MÉMOIRE DE TRAVAIL (GameType MEMORY_QUEST).
 ///
@@ -164,7 +163,6 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
   @override
   void initState() {
     super.initState();
-    SoundService.instance.startMusic();
   }
 
   @override
@@ -173,7 +171,6 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
     _objToken++;
     _distractTimer?.cancel();
     SoundService.instance.stopSpeaking();
-    SoundService.instance.stopMusic();
     super.dispose();
   }
 
@@ -812,7 +809,7 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
       _Stage.distraction ||
       _Stage.recallAfterDistraction ||
       _Stage.feedback =>
-        _buildGameplay(),
+        GameplayMusic(child: _buildGameplay()),
       _Stage.results => _ResultsView(
           // Le composite fait autorité côté repo (mock/backend) ; repli local.
           composite:
@@ -2156,10 +2153,6 @@ class _ResultsView extends StatelessWidget {
               ],
             ),
           ),
-          if (breakdown.isNotEmpty) ...[
-            const SizedBox(height: AppSpacing.xl),
-            ScoreDetailPanel(lines: breakdown),
-          ],
           const SizedBox(height: AppSpacing.xxl),
           GamePrimaryButton(label: 'Replay', onPressed: onReplay),
           const SizedBox(height: AppSpacing.md),

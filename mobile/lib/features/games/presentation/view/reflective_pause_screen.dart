@@ -141,8 +141,7 @@ class ReflectivePauseScreen extends ConsumerStatefulWidget {
       _ReflectivePauseScreenState();
 }
 
-class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen>
-    with GameMusicMixin {
+class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
   _ReflectiveStage _stage = _ReflectiveStage.cover;
   GameSession? _session;
   int _momentIndex = 0;
@@ -397,7 +396,7 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen>
             _ReflectiveStage.loading => const _LoadingView(
               key: ValueKey('reflective-loading'),
             ),
-            _ReflectiveStage.gameplay => _GameplayView(
+            _ReflectiveStage.gameplay => GameplayMusic(child: _GameplayView(
               key: ValueKey('reflective-gameplay-$_momentIndex'),
               moment: _moments[_momentIndex],
               momentNumber: _momentIndex + 1,
@@ -408,7 +407,7 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen>
                   setState(() => _selectedResponse = response),
               onValidate: _validateResponse,
               onPause: _openPause,
-            ),
+            )),
             _ReflectiveStage.saved => _SavedView(
               key: ValueKey('reflective-saved-$_momentIndex'),
               momentNumber: _momentIndex + 1,

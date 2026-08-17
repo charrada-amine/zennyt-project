@@ -1,3 +1,18 @@
+-- ⚠️ Renumérotée depuis V27 — NE PAS remettre un numéro inférieur à V51.
+--
+-- Deux raisons. (1) V27 est déjà pris par une migration de `main`
+-- (job_offer_position / drop_match_job_offer_title / experience_level_rename) :
+-- la collision empêchait Flyway de démarrer (« Found more than one migration
+-- with version »), donc le backend entier refusait de booter.
+-- (2) Cette migration réécrit `ck_game_attempts_mini_game` et
+-- `ck_game_sessions_type` avec la liste CUMULATIVE de tous les mini-jeux
+-- connus, Emotional Radar (V50) et Reflective Pause (V51) compris. Placée
+-- AVANT eux, elle était écrasée par leurs listes plus courtes : sur une base
+-- migrée à neuf, CONTINUOUS_ATTENTION_CORE, COORDINATION_TRACKING_CORE et
+-- OBJECT_LOCATION_BINDING_CORE disparaissaient de la contrainte et toute
+-- soumission de ces jeux était rejetée. La dernière migration à réécrire ces
+-- contraintes doit porter la liste la plus complète.
+
 -- V27 — « Je continue » : Long Rosvold CPT X/AX.
 --
 -- Le protocole persiste les 1 364 essais bruts pour audit. Une capture

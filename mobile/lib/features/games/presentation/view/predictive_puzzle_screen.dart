@@ -15,7 +15,6 @@ import '../../domain/entities/mini_game.dart';
 import '../../domain/entities/prevision_puzzle_metrics.dart';
 import '../games_controller.dart';
 import '../widgets/game_system_components.dart';
-import '../widgets/score_detail_panel.dart';
 
 /// A difficulty level of the Predictive Puzzle. Difficulty scales purely by the
 /// number of discs: a standard Tower of Hanoi with `discCount` discs has a
@@ -31,9 +30,18 @@ class _PuzzleLevel {
   int get optimalMoves => (1 << discCount) - 1;
 }
 
-// 6 niveaux : 3 → 8 disques (le dernier niveau tient 8 disques). L'optimum
-// double presque à chaque disque (7, 15, 31, 63, 127, 255 coups). La tolérance
-// aux erreurs se resserre au fur et à mesure.
+// 8 niveaux : 3 → 10 disques. L'optimum double à chaque disque
+// (7, 15, 31, 63, 127, 255, 511, 1023 coups) et la tolérance aux erreurs se
+// resserre au fur et à mesure.
+//
+// ⚠️ La phase de planification exige de composer CHAQUE coup à la main (tour
+// source, tour destination, « Add move »). Le dernier niveau demande donc 1023
+// coups, soit environ 3 000 interactions, et l'échelle complète en cumule 2 032.
+// C'est jouable au sens strict — rien ne casse, la file est rendue
+// paresseusement — mais hors de portée d'un joueur réel. Rendre ces niveaux
+// praticables suppose un mode de saisie autre que coup par coup (par exemple
+// désigner un disque et sa destination finale, ou une résolution assistée).
+// Miroir : PrevisionPuzzleConfig.PUZZLE_LEVELS (backend).
 const _puzzleLevels = <_PuzzleLevel>[
   _PuzzleLevel(discCount: 3, maxErrors: 4),
   _PuzzleLevel(discCount: 4, maxErrors: 3),
@@ -41,6 +49,8 @@ const _puzzleLevels = <_PuzzleLevel>[
   _PuzzleLevel(discCount: 6, maxErrors: 2),
   _PuzzleLevel(discCount: 7, maxErrors: 2),
   _PuzzleLevel(discCount: 8, maxErrors: 1),
+  _PuzzleLevel(discCount: 9, maxErrors: 1),
+  _PuzzleLevel(discCount: 10, maxErrors: 1),
 ];
 
 enum _PuzzleStage { intro, rule, planning, running, results, comparison }
@@ -62,9 +72,6 @@ class _PredictivePuzzleScreenState
   int _errors = 0;
   int _retries = 0;
   int _runIndex = 0;
-  // Au moins un coup illégal rencontré pendant le rejeu en cours (le rejeu ne
-  // s'arrête plus au 1er échec : il marque chaque coup fautif en rouge).
-  bool _runHadFailure = false;
   bool _busy = false;
   bool _targetCompleted = false;
   String? _selectedSource;
@@ -77,6 +84,12 @@ class _PredictivePuzzleScreenState
   // Métriques PAR NIVEAU, cumulées puis soumises une seule fois (le backend
   // note chaque niveau /10 puis fait la moyenne → un seul Attempt).
   final List<PrevisionPuzzleLevelMetrics> _levelMetrics = [];
+
+  // Coups du plan qui manipulent RÉELLEMENT un disque. Les coups fautifs restent
+  // dans la file (affichage rouge + rejeu) mais ne sont pas des « coups
+  // planifiés » : les compter pénaliserait deux fois la même erreur (critère
+  // « erreurs de séquence » ET critère « coups superflus »).
+  int get _validMoveCount => _queue.where((m) => m.isValidAtPlanning).length;
 
   // Agrégats dérivés pour l'affichage des résultats (le score fait autorité serveur).
   int get _accPlanned => _levelMetrics.fold(0, (s, l) => s + l.plannedMoves);
@@ -105,16 +118,9 @@ class _PredictivePuzzleScreenState
   };
 
   @override
-  void initState() {
-    super.initState();
-    SoundService.instance.startMusic();
-  }
-
-  @override
   void dispose() {
     _timer?.cancel();
     _runTimer?.cancel();
-    SoundService.instance.stopMusic();
     super.dispose();
   }
 
@@ -293,7 +299,6 @@ class _PredictivePuzzleScreenState
     setState(() {
       _stage = _PuzzleStage.running;
       _runIndex = 0;
-      _runHadFailure = false;
       _executionTowers = _initialTowers(_discCount);
       for (var i = 0; i < _queue.length; i++) {
         _queue[i] = _queue[i].copyWith(executed: false, failed: false);
@@ -304,8 +309,12 @@ class _PredictivePuzzleScreenState
       if (!mounted) return;
       if (_runIndex >= _queue.length) {
         timer.cancel();
-        // Réussite = cible atteinte ET aucun coup fautif pendant le rejeu.
-        _finishRun(_isTarget(_executionTowers) && !_runHadFailure);
+        // Réussite = cible atteinte. Les coups fautifs sont sautés pendant le
+        // rejeu : ils ne font PAS échouer le niveau tant que la tolérance
+        // d'erreurs du niveau n'est pas dépassée (elle l'est déjà gérée par
+        // [_addInvalidMove]). Ils restent pénalisés au barème via
+        // `firstTrySuccess = false` et le critère « erreurs de séquence ».
+        _finishRun(_isTarget(_executionTowers));
         return;
       }
       _executeQueuedMove();
@@ -337,7 +346,6 @@ class _PredictivePuzzleScreenState
       // Coup illégal : on marque la case en rouge + son d'erreur, SANS appliquer
       // le déplacement, puis on continue le rejeu (on ne s'arrête plus au 1er
       // échec) pour signaler tous les coups fautifs.
-      _runHadFailure = true;
       _queue[_runIndex] = move.copyWith(executed: true, failed: true);
       if (move.isValidAtPlanning) {
         _errors = math.min(_maxErrors, _errors + 1);
@@ -359,15 +367,16 @@ class _PredictivePuzzleScreenState
         discCount: _discCount,
         firstTrySuccess: completed && _retries == 0 && _errors == 0,
         sequenceErrors: _errors,
-        plannedMoves: _queue.length,
+        plannedMoves: _validMoveCount,
         optimalMoves: _optimalMoves,
         retries: _retries,
         completed: completed,
       ),
     );
 
-    // A clean run on a non-final level advances difficulty; a failure (or the
-    // final level) ends the session and submits the per-level metrics.
+    // Un rejeu qui atteint la cible fait passer au niveau suivant ; un échec
+    // (tolérance d'erreurs dépassée) ou le dernier niveau termine la session et
+    // soumet les métriques par niveau.
     if (completed && !_isLastLevel) {
       SoundService.instance.playSfx(GameSfx.correctChoice);
       _advanceLevel();
@@ -515,9 +524,9 @@ class _PredictivePuzzleScreenState
         onBack: () => setState(() => _stage = _PuzzleStage.intro),
         onStartGame: _beginGame,
       ),
-      _PuzzleStage.planning || _PuzzleStage.running => _PuzzleGameplayView(
+      _PuzzleStage.planning || _PuzzleStage.running => GameplayMusic(child: _PuzzleGameplayView(
         elapsed: _timeLabel,
-        movesPlanned: _queue.length,
+        movesPlanned: _validMoveCount,
         optimalMoves: _optimalMoves,
         discCount: _discCount,
         level: _level + 1,
@@ -539,7 +548,7 @@ class _PredictivePuzzleScreenState
         onClear: _clearSequence,
         onUndo: _undo,
         onPause: _pause,
-      ),
+      )),
       _PuzzleStage.results => _PredictiveResultsView(
         session: session,
         busy: _busy,
@@ -1211,12 +1220,13 @@ class _TowerView extends StatelessWidget {
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final columnWidth = constraints.maxWidth;
-                  // Keep the whole stack inside the rod height; discs shrink as
-                  // the level adds more of them so 5 discs still fit cleanly.
+                  // La pile doit tenir DANS la tige : hauteur totale
+                  // = maxDiscs × pas. L'ancien plancher de 20 px faisait déborder
+                  // dès 9 disques (18 + 8 × 20 = 178 > 170) ; il est abaissé à
+                  // 11 px pour que 10 disques rentrent encore.
                   const rodHeight = 170.0;
-                  final discHeight =
-                      (rodHeight / maxDiscs).clamp(20.0, 32.0).toDouble();
-                  final gap = discHeight;
+                  final gap = (rodHeight / maxDiscs).clamp(11.0, 32.0).toDouble();
+                  final discHeight = gap;
 
                   double discWidth(int disc) {
                     final t = maxDiscs <= 1 ? 1.0 : (disc - 1) / (maxDiscs - 1);
@@ -1293,6 +1303,8 @@ class _Disc extends StatelessWidget {
     6: Color(0xFF8B5CF6), // violet
     7: Color(0xFF14B8A6), // teal
     8: Color(0xFF6366F1), // indigo
+    9: Color(0xFFEAB308), // ambre
+    10: Color(0xFFEC4899), // rose
   };
 
   static const _fallbackColor = Color(0xFF94A3B8);
@@ -1309,10 +1321,14 @@ class _Disc extends StatelessWidget {
       ),
       child: Text(
         '$disc',
+        // Le numéro doit rester lisible quand le disque s'amincit : à 10 disques
+        // la hauteur descend à 17 px, où `labelSmall` déborderait.
         style: AppTypography.labelSmall.copyWith(
           color: Colors.white,
           fontWeight: FontWeight.w900,
           letterSpacing: 0,
+          fontSize: (height * 0.55).clamp(8.0, 13.0),
+          height: 1,
         ),
       ),
     );
@@ -1553,8 +1569,8 @@ class _PredictiveResultsView extends StatelessWidget {
                 Text(
                   targetCompleted
                       ? 'All $totalLevels levels cleared successfully.'
-                      : 'Cleared $levelsCleared/$totalLevels levels before a '
-                            'plan broke on execution.',
+                      : 'Cleared $levelsCleared/$totalLevels levels before the '
+                            'error tolerance ran out.',
                   textAlign: TextAlign.center,
                   style: AppTypography.bodyLarge.copyWith(
                     color: Colors.white,
@@ -1592,10 +1608,6 @@ class _PredictiveResultsView extends StatelessWidget {
               ),
             ],
           ),
-          if ((session?.scoreBreakdown ?? const []).isNotEmpty) ...[
-            const SizedBox(height: AppSpacing.xl),
-            ScoreDetailPanel(lines: session!.scoreBreakdown),
-          ],
           const SizedBox(height: AppSpacing.xxl),
           GamePanel(
             backgroundColor: ZennytGamePalette.mist,

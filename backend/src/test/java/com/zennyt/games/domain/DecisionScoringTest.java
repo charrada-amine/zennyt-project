@@ -38,7 +38,12 @@ class DecisionScoringTest {
         final Map<String, Item> items = new HashMap<>();
 
         void put(String id, DecisionDimension dim, DecisionItemFormat fmt, OptionQuality q) {
-            items.put(id, new Item(id, dim, fmt, Map.of("opt", q)));
+            put(id, dim, fmt, q, false);
+        }
+
+        void put(String id, DecisionDimension dim, DecisionItemFormat fmt, OptionQuality q,
+                 boolean provisional) {
+            items.put(id, new Item(id, dim, fmt, provisional, Map.of("opt", q)));
         }
 
         @Override public Optional<Item> item(String itemId) { return Optional.ofNullable(items.get(itemId)); }

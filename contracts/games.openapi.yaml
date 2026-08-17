@@ -96,6 +96,37 @@ paths:
         '403': { $ref: './common.openapi.yaml#/components/responses/Forbidden' }
         '404': { $ref: './common.openapi.yaml#/components/responses/NotFound' }
 
+  /games/sessions/{sessionId}/decision/items:
+    parameters:
+      - { name: sessionId, in: path, required: true, schema: { type: string, format: uuid } }
+      - name: language
+        in: query
+        required: false
+        schema: { type: string, default: fr }
+        description: >
+          Code langue de passation. Sert UNIQUEMENT au multiplicateur linguistique du
+          temps imparti DT (en/fr/de fournis, es/it/pt provisoires, autres → fallback).
+    get:
+      tags: [Games]
+      summary: Items « Je Décide » de la forme assignée à cette session
+      description: >
+        Renvoie les 30 items de la forme parallèle tirée à la création de la session
+        (banque de 120 items, 6 par dimension). La QUALITÉ des options — donc les
+        points /3 — n'apparaît JAMAIS : la correction est faite serveur à la
+        soumission, à partir de la forme relue sur la session et non du payload client.
+      responses:
+        '200':
+          description: Items de la forme assignée, dans l'ordre de passation
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DecisionItemList' }
+        '401': { $ref: './common.openapi.yaml#/components/responses/Unauthorized' }
+        '404': { $ref: './common.openapi.yaml#/components/responses/NotFound' }
+        '409':
+          description: >
+            La session n'est pas une session DECISION, ou aucune forme ne lui est
+            assignée.
+
   /games/sessions/{sessionId}/emotional-radar/scenes:
     parameters:
       - { name: sessionId, in: path, required: true, schema: { type: string, format: uuid } }
@@ -1442,6 +1473,81 @@ components:
         sont renforcés (couche provisoire).
       enum: [SUPERVISED, UNSUPERVISED]
 
+    DecisionItemList:
+      type: object
+      description: >
+        Forme de passation servie au client. ⚠️ Aucun champ de ce schéma, ni d'aucun
+        schéma qu'il référence, ne porte de qualité d'option, de score ou de réponse
+        attendue — un test de sérialisation le vérifie côté serveur.
+      required: [formCode, items, itemsPerDimension]
+      properties:
+        formCode:
+          type: string
+          enum: [A, B, C, D]
+          description: >
+            Forme assignée à la session. Informatif : la notation relit toujours la
+            forme portée par la session, jamais une valeur renvoyée par le client.
+        itemsPerDimension:
+          type: integer
+          description: "Items par dimension dans cette forme (6)."
+        items:
+          type: array
+          minItems: 1
+          items: { $ref: '#/components/schemas/DecisionItemView' }
+          description: "Items dans l'ordre de passation."
+
+    DecisionItemView:
+      type: object
+      description: "Un item prêt à afficher, expurgé de toute clé de correction."
+      required: [itemId, dimension, format, vignette, task, options]
+      properties:
+        itemId: { type: string, description: "Clé de l'item (II-1, DT-7, CS-1a…)." }
+        dimension: { $ref: '#/components/schemas/DecisionDimension' }
+        format: { $ref: '#/components/schemas/DecisionItemFormat' }
+        pairId:
+          type: string
+          nullable: true
+          description: >
+            Identifiant de paire pour les items COHERENCE_PAIR (CS-1a et CS-1b
+            partagent « CS-1 »). Les deux membres d'une paire sont toujours servis
+            ensemble — le cadrage gain/perte n'a aucun sens séparé.
+        vignette:
+          type: string
+          description: >
+            Situation à lire. Déjà résolue : les items TEMPORAL_DECISION n'ont pas de
+            vignette propre et réutilisent celle de leur homologue II, le serveur suit
+            la référence.
+        task: { type: string, description: "Consigne affichée sous la vignette." }
+        timeLimitMs:
+          type: integer
+          nullable: true
+          description: >
+            Temps imparti, présent uniquement pour TEMPORAL_DECISION. Vaut
+            `dt_time_limit_base_s × multiplicateur de langue`. ⚠️ N'inclut PAS
+            `calibrationOffsetMs`, que le serveur ne connaît qu'à la soumission (il
+            se déduit de la télémétrie appareil) : le seuil de notation est donc
+            très légèrement plus permissif que le chronomètre affiché.
+        options:
+          type: array
+          minItems: 2
+          items: { $ref: '#/components/schemas/DecisionOptionView' }
+
+    DecisionOptionView:
+      type: object
+      description: "Option proposée. Ne porte ni qualité, ni score, ni marqueur de justesse."
+      required: [optionId, label]
+      properties:
+        optionId: { type: string, description: "Clé renvoyée dans DecisionItemResponse." }
+        label: { type: string, description: "Énoncé affiché." }
+
+    DecisionItemFormat:
+      type: string
+      description: >
+        Format d'un item, qui détermine la règle de notation serveur. STANDARD →
+        qualité de l'option ; TEMPORAL_DECISION → qualité + rapidité ;
+        COHERENCE_PAIR → items appariés (modèle de cohérence non encore implémenté).
+      enum: [STANDARD, TEMPORAL_DECISION, COHERENCE_PAIR]
+
     DecisionItemResponse:
       type: object
       description: >
@@ -1474,6 +1580,14 @@ components:
           items: { $ref: '#/components/schemas/DecisionItemResponse' }
           description: "Réponses par item (répondus + non répondus)."
         sessionLanguage: { type: string, description: "Code langue (multiplicateur DT ; en/fr/de fournis, es/it/pt provisoires, ar → fallback)." }
+        formCode:
+          type: string
+          enum: [A, B, C, D]
+          readOnly: true
+          description: >
+            Forme de passation. ⚠️ Écho de diagnostic UNIQUEMENT : la notation relit
+            toujours la forme persistée sur la session. Une valeur envoyée par le
+            client est ignorée — c'est ce qui empêche de choisir sa propre forme.
         administrationMode:
           allOf: [ { $ref: '#/components/schemas/AdministrationMode' } ]
           default: SUPERVISED
@@ -1504,6 +1618,14 @@ components:
               maxScore: { type: integer, example: 18 }
               exploitable: { type: boolean, description: "false si > 2 items manquants" }
               answeredItems: { type: integer }
+              provisionalScoring:
+                type: boolean
+                description: >
+                  true → tous les items servis sur cette dimension sont en notation
+                  NEUTRE provisoire : le score ne discrimine pas encore. Concerne CS
+                  et RE (modèles de cohérence de paire et d'actualisation hyperbolique
+                  non implémentés) et une partie de ER. Exposé pour savoir quoi
+                  recalculer le jour où le modèle définitif arrive.
         interpretations:
           type: array
           items: { type: string }

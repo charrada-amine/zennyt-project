@@ -13,7 +13,6 @@ import '../../domain/entities/score_breakdown.dart';
 import '../../domain/entities/task_scheduling_metrics.dart';
 import '../games_providers.dart';
 import '../widgets/game_system_components.dart';
-import '../widgets/score_detail_panel.dart';
 
 /// Planifik #2 — « Ordonnancement de tâches ».
 ///
@@ -54,8 +53,7 @@ const List<_Task> _caseTasks = [
 
 enum _Stage { intro, howToPlay, gameplay, score }
 
-class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen>
-    with GameMusicMixin {
+class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen> {
   _Stage _stage = _Stage.intro;
 
   // Emplacements ordonnés (null = vide) + réserve (indices de tâches).
@@ -215,6 +213,46 @@ class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen>
     );
   }
 
+  /// Menu pause — même `GamePauseScaffold` que tous les autres jeux : reprise,
+  /// réglages son/musique/vibration, règles, sortie.
+  Future<void> _openPause() async {
+    if (_stage != _Stage.gameplay) return;
+    SoundService.instance.playSfx(GameSfx.pauseClick);
+    final action = await showDialog<GamePauseAction>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => GamePauseScaffold(
+        description:
+            'Le plateau est figé. Les tâches déjà posées sont conservées.',
+        buttons: [
+          GamePrimaryButton(
+            label: 'Resume',
+            onPressed: () => Navigator.of(context).pop(GamePauseAction.resume),
+          ),
+          GameOutlineButton(
+            label: 'View rules',
+            onPressed: () => Navigator.of(context).pop(GamePauseAction.help),
+          ),
+          GamePauseExitButton(
+            label: 'Exit mission',
+            onPressed: () => Navigator.of(context).pop(GamePauseAction.exit),
+          ),
+        ],
+      ),
+    );
+    if (!mounted) return;
+    switch (action) {
+      case GamePauseAction.help:
+        setState(() => _stage = _Stage.howToPlay);
+      case GamePauseAction.exit:
+        context.go(AppRoutes.games);
+      case GamePauseAction.resume:
+      case GamePauseAction.restart:
+      case null:
+        break;
+    }
+  }
+
   Widget _buildStage() {
     return switch (_stage) {
       _Stage.intro => _IntroView(
@@ -225,13 +263,14 @@ class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen>
           onStart: _beginGame,
           onBack: () => setState(() => _stage = _Stage.intro),
         ),
-      _Stage.gameplay => _GameplayView(
+      _Stage.gameplay => GameplayMusic(child: _GameplayView(
           slots: _slots,
           pool: _pool,
           onPlace: _place,
           onRemove: _removeFromSlot,
           onValidate: _submit,
-        ),
+          onPause: _openPause,
+        )),
       _Stage.score => _ScoreView(
           rawScore: _serverSession?.lastAttempt?.score.rawPoints,
           level: _serverSession?.lastAttempt?.score.level,
@@ -254,6 +293,7 @@ class _GameplayView extends StatelessWidget {
     required this.onPlace,
     required this.onRemove,
     required this.onValidate,
+    required this.onPause,
   });
 
   final List<int?> slots;
@@ -261,6 +301,7 @@ class _GameplayView extends StatelessWidget {
   final ValueChanged<int> onPlace;
   final ValueChanged<int> onRemove;
   final VoidCallback onValidate;
+  final VoidCallback onPause;
 
   @override
   Widget build(BuildContext context) {
@@ -286,6 +327,25 @@ class _GameplayView extends StatelessWidget {
                 label: 'Planning',
                 color: Colors.white,
                 filled: true,
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              // Ce jeu était le SEUL du module sans menu pause : impossible d'y
+              // couper le son, de relire les règles ou de sortir proprement.
+              SizedBox(
+                width: 44,
+                height: 44,
+                child: IconButton.filled(
+                  tooltip: 'Mettre en pause',
+                  onPressed: onPause,
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.white.withValues(alpha: 0.16),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                    ),
+                  ),
+                  icon: const Icon(Icons.pause, size: 20),
+                ),
               ),
             ],
           ),
@@ -696,10 +756,6 @@ class _ScoreView extends StatelessWidget {
               ],
             ),
           ),
-          if (breakdown.isNotEmpty) ...[
-            const SizedBox(height: AppSpacing.xl),
-            ScoreDetailPanel(lines: breakdown),
-          ],
           const SizedBox(height: AppSpacing.xxl),
           GamePrimaryButton(label: 'Continue to Hanoï', onPressed: onNext),
           const SizedBox(height: AppSpacing.md),

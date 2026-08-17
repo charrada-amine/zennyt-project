@@ -27,19 +27,31 @@ public final class PrevisionPuzzleConfig {
     /**
      * {@code puzzle_levels} — nombre de disques par niveau.
      *
-     * <p>⚠️ DÉCISION PRODUIT (à valider) : la progression 3 → 4 → 5 disques est
-     * un choix produit ; la fiche ne fige pas le nombre de niveaux.
+     * <p>⚠️ DÉCISION PRODUIT (à valider) : la fiche ne fige pas le nombre de
+     * niveaux. La progression monte jusqu'à <b>10 disques</b>, soit un optimum de
+     * {@code 2^10 − 1 = 1023} coups au dernier niveau.
+     *
+     * <p><b>Ces valeurs étaient désynchronisées du client</b> : elles déclaraient
+     * 3 niveaux (3-4-5) alors que {@code predictive_puzzle_screen.dart} en jouait
+     * 6 (3 → 8). Rien ne le détectait, car aucune règle serveur ne lit cette
+     * liste — {@code PrevisionPuzzleLevel} ne valide que {@code discCount ≥ 1} et
+     * le caractère déterministe de l'optimum. La liste reste donc déclarative :
+     * elle documente l'échelle réellement jouée, et doit être tenue à jour avec
+     * le client.
      */
-    public static final List<Integer> PUZZLE_LEVELS = List.of(3, 4, 5);
+    public static final List<Integer> PUZZLE_LEVELS =
+        List.of(3, 4, 5, 6, 7, 8, 9, 10);
 
     /**
      * {@code max_sequence_errors} — tolérance d'erreurs de séquence par niveau.
      *
      * <p>⚠️ DÉCISION PRODUIT (à valider) : la fiche indique <b>3 (constant)</b>.
-     * Le resserrement 3 → 2 → 1 (par niveau) est un choix produit — au-delà de la
-     * tolérance, le niveau est en échec (voir 3.C).
+     * Le resserrement par niveau est un choix produit — au-delà de la tolérance,
+     * le niveau est en échec (voir 3.C). Un élément par niveau de
+     * {@link #PUZZLE_LEVELS}.
      */
-    public static final List<Integer> MAX_SEQUENCE_ERRORS = List.of(3, 2, 1);
+    public static final List<Integer> MAX_SEQUENCE_ERRORS =
+        List.of(4, 3, 3, 2, 2, 1, 1, 1);
 
     /** {@code preview_mode} — le joueur planifie/visualise toute la séquence avant exécution. */
     public static final boolean PREVIEW_MODE = true;

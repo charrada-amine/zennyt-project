@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../../../core/error/api_exception.dart';
+import '../domain/entities/decision_form.dart';
 import '../domain/entities/device_calibration.dart';
 import '../domain/entities/emotional_radar.dart';
 import '../domain/entities/game_session.dart';
@@ -48,6 +49,17 @@ class GamesRepositoryImpl implements GamesRepository {
         },
       );
       return GameSessionDto.fromJson(res.data!).toEntity();
+    });
+  }
+
+  @override
+  Future<DecisionForm> decisionItems(String sessionId, {String language = 'fr'}) {
+    return _guard(() async {
+      final res = await _dio.get<Map<String, dynamic>>(
+        '/games/sessions/$sessionId/decision/items',
+        queryParameters: {'language': language},
+      );
+      return DecisionForm.fromJson(res.data!);
     });
   }
 

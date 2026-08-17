@@ -7,7 +7,6 @@ import com.zennyt.games.domain.vo.DecisionDimension;
 import com.zennyt.games.domain.vo.DecisionItemFormat;
 import com.zennyt.games.domain.vo.OptionQuality;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -35,8 +34,14 @@ import java.util.Optional;
  * profil (aversion λ, actualisation hyperbolique k, cohérence de paire). Remplacer
  * ce provisoire se fera en ré-étiquetant la ressource et/ou en enrichissant le
  * moteur — aucune donnée n'est inventée ici.
+ *
+ * <p><b>⚠️ Remplacée par {@link DatabaseDecisionScenarioCatalog} (V59).</b> La
+ * banque vit désormais en base : c'est le seul moyen de SERVIR les vignettes et
+ * les énoncés d'options au client, que ce chargeur laisse tomber. La classe est
+ * conservée une release comme filet de secours et pour les tests hors base — elle
+ * n'est plus un bean Spring. Le JSON, lui, reste la source du seed Flyway.
  */
-@Component
+@Deprecated(since = "V59", forRemoval = true)
 public class JsonDecisionScenarioCatalog implements DecisionScenarioCatalog {
 
     private static final String RESOURCE_PATH = "games/decision_scenarios.json";
@@ -69,6 +74,7 @@ public class JsonDecisionScenarioCatalog implements DecisionScenarioCatalog {
                 raw.itemId(),
                 DecisionDimension.valueOf(raw.dimension()),
                 DecisionItemFormat.valueOf(raw.format()),
+                raw.provisionalScoring() != null && raw.provisionalScoring(),
                 qualities);
             if (byId.putIfAbsent(item.itemId(), item) != null) {
                 throw new IllegalStateException(
@@ -100,7 +106,8 @@ public class JsonDecisionScenarioCatalog implements DecisionScenarioCatalog {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    private record ItemJson(String itemId, String dimension, String format, List<OptionJson> options) {
+    private record ItemJson(String itemId, String dimension, String format,
+                            Boolean provisionalScoring, List<OptionJson> options) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

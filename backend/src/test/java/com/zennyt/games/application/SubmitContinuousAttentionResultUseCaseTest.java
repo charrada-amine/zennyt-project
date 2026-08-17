@@ -2,6 +2,7 @@ package com.zennyt.games.application;
 
 import com.zennyt.games.application.command.SubmitGameResultCommand;
 import com.zennyt.games.application.usecase.SubmitGameResultUseCase;
+import com.zennyt.games.domain.catalog.DecisionFormCatalog;
 import com.zennyt.games.domain.catalog.DecisionScenarioCatalog;
 import com.zennyt.games.domain.event.GameResultRecordedEvent;
 import com.zennyt.games.domain.model.GameSession;
@@ -57,7 +58,8 @@ class SubmitContinuousAttentionResultUseCaseTest {
             mock(CoordinationMetricsRepository.class),
             mock(ObjectLocationMetricsRepository.class),
             events,
-            mock(DecisionScenarioCatalog.class));
+            mock(DecisionScenarioCatalog.class),
+            mock(DecisionFormCatalog.class));
         when(sessions.save(any(GameSession.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
     }

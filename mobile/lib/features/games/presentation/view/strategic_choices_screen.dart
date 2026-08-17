@@ -60,7 +60,7 @@ class StrategicChoicesScreen extends ConsumerStatefulWidget {
 }
 
 class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
-    with WidgetsBindingObserver, GameMusicMixin {
+    with WidgetsBindingObserver {
   _StrategicStage _stage = _StrategicStage.cover;
   _ScenarioPhase _scenarioPhase = _ScenarioPhase.reading;
   int _situationIndex = 0;
@@ -273,7 +273,10 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+                  SoundService.instance.playSfx(GameSfx.buttonClick);
+                  Navigator.of(context).pop();
+                },
           child: const Text('Back to mission'),
         ),
       ],
@@ -347,7 +350,7 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
                 onBack: _handleBack,
                 onStart: _startJourney,
               ),
-              _StrategicStage.gameplay => _GameplayView(
+              _StrategicStage.gameplay => GameplayMusic(child: _GameplayView(
                 key: ValueKey('strategic-gameplay-$_situationIndex'),
                 situation: StrategicChoicesContent.situations[_situationIndex],
                 situationNumber: _situationIndex + 1,
@@ -358,7 +361,7 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
                 onSelect: _selectStrategy,
                 onValidate: _validateChoice,
                 onPause: _openPause,
-              ),
+              )),
               _StrategicStage.saved => _SavedView(
                 key: ValueKey('strategic-saved-$_situationIndex'),
                 situationNumber: _situationIndex + 1,

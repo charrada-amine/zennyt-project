@@ -161,8 +161,12 @@ public class ScoreBreakdownService {
             + "SCW = score composite standardisé pondéré /100 (poids provisoires)."));
         for (DecisionReport.DimensionScore d : report.dimensions()) {
             if (d.exploitable() && d.score() != null) {
-                lines.add(Line.criterion(d.dimension().name(),
-                    d.answeredItems() + " items", d.score(), d.maxScore()));
+                // Une dimension entièrement provisoire donne le même score à tout le
+                // monde : le dire ici évite de lire un 12/18 comme une performance.
+                String detail = d.provisionalScoring()
+                    ? d.answeredItems() + " items — notation provisoire (ne discrimine pas)"
+                    : d.answeredItems() + " items";
+                lines.add(Line.criterion(d.dimension().name(), detail, d.score(), d.maxScore()));
             } else {
                 lines.add(Line.info(d.dimension().name(), "bloc non exploitable (> 2 items manquants)"));
             }

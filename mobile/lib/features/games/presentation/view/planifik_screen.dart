@@ -3,7 +3,6 @@ import 'dart:math' as math;
 
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -19,7 +18,6 @@ import '../flame/grid_config.dart';
 import '../flame/planifik_game.dart';
 import '../games_controller.dart';
 import '../widgets/game_system_components.dart';
-import '../widgets/score_detail_panel.dart';
 
 /// Jeu « Optimal Path » (Planifik — « Je planifie »).
 ///
@@ -70,12 +68,10 @@ class _PlanifikScreenState extends ConsumerState<PlanifikScreen> {
   @override
   void initState() {
     super.initState();
-    SoundService.instance.startMusic();
   }
 
   @override
   void dispose() {
-    SoundService.instance.stopMusic();
     super.dispose();
   }
 
@@ -120,7 +116,9 @@ class _PlanifikScreenState extends ConsumerState<PlanifikScreen> {
   /// Clic sur une case interdite (rouge) : vibration d'erreur + pénalité
   /// incrémentale (le jeu dessine puis efface le faux segment de son côté).
   void _onWrongCell() {
-    HapticFeedback.heavyImpact();
+    // La vibration est déclenchée par SoundService avec le son d'erreur : un
+    // appel direct à HapticFeedback ici échapperait au réglage « Vibration »
+    // du menu pause.
     SoundService.instance.playSfx(GameSfx.wrongChoice);
     setState(() {
       _levelCellFaults++; // sanctionne le score /10 du niveau (compté en essais)
@@ -246,7 +244,7 @@ class _PlanifikScreenState extends ConsumerState<PlanifikScreen> {
         onBack: () => setState(() => _stage = _PlanifikStage.intro),
         onDone: _beginGame,
       ),
-      _PlanifikStage.gameplay => _GameplayView(
+      _PlanifikStage.gameplay => GameplayMusic(child: _GameplayView(
         key: ValueKey(_level),
         game: _game,
         busy: _busy,
@@ -257,7 +255,7 @@ class _PlanifikScreenState extends ConsumerState<PlanifikScreen> {
         onCorrect: _onCorrectRoute,
         onWrong: _onWrongRoute,
         onExit: () => context.go(AppRoutes.games),
-      ),
+      )),
       _PlanifikStage.score => _ScoreView(
         session: session,
         metrics: _lastMetrics,
@@ -1969,10 +1967,6 @@ class _ScoreView extends StatelessWidget {
               ),
             ],
           ),
-          if ((session?.scoreBreakdown ?? const []).isNotEmpty) ...[
-            const SizedBox(height: AppSpacing.xl),
-            ScoreDetailPanel(lines: session!.scoreBreakdown),
-          ],
           const SizedBox(height: AppSpacing.xxl),
           GamePanel(
             backgroundColor: ZennytGamePalette.mist,

@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zennyt/core/storage/shared_preferences_provider.dart';
 import 'package:zennyt/features/auth/presentation/current_user_provider.dart';
 import 'package:zennyt/features/games/domain/config/continuous_attention_config.dart';
+import 'package:zennyt/features/games/domain/entities/decision_form.dart';
 import 'package:zennyt/features/games/domain/entities/continuous_attention_metrics.dart';
 import 'package:zennyt/features/games/domain/entities/device_calibration.dart';
 import 'package:zennyt/features/games/domain/entities/emotional_radar.dart';
@@ -388,6 +389,10 @@ class _BindingClock implements ContinuousAttentionClock {
 }
 
 class _RecordingGamesRepository implements GamesRepository {
+  @override
+  Future<DecisionForm> decisionItems(String sessionId, {String language = 'fr'}) =>
+      throw UnimplementedError();
+
   _RecordingGamesRepository({this.invalidFirst = false});
 
   static const sessionId = '00000000-0000-4000-8000-000000000001';

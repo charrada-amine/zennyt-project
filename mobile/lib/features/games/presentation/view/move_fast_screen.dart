@@ -19,7 +19,6 @@ import '../../domain/entities/score_breakdown.dart';
 import '../device_calibration_probe.dart';
 import '../games_providers.dart';
 import '../widgets/game_system_components.dart';
-import '../widgets/score_detail_panel.dart';
 
 enum _MoveFastStage {
   intro,
@@ -55,6 +54,10 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
   // Les premiers essais sont marqués practiceTrial=true et exclus par le backend
   // du scoring et des statistiques (fiche révisée, Tableau 2).
   static const int _practiceTrialCount = MoveFastConfig.practiceTrialCount;
+  /// Dernières secondes : barre rouge + tic sonore à chaque seconde.
+  static const int _urgentSeconds = 10;
+  /// Temps d'affichage de 00:00 avant la bascule vers le tableau de score.
+  static const Duration _timeUpHold = Duration(milliseconds: 1400);
 
   final math.Random _random = math.Random();
   final Stopwatch _reactionWatch = Stopwatch();
@@ -78,7 +81,15 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
   int _streakCounter = 0;
   int _completedSeriesStreak = 0;
   int _bestSeriesStreak = 0;
+  // Plus longue suite de bonnes réponses consécutives — ce que « Best streak »
+  // annonce au joueur. `_bestSeriesStreak`, lui, compte des SÉRIES DE 4 achevées :
+  // il affichait 0 après 3 bonnes réponses d'affilée et restait à 1 après 7, parce
+  // qu'il n'est mis à jour qu'au franchissement d'un palier. D'où le chiffre faux.
+  int _correctStreak = 0;
+  int _bestCorrectStreak = 0;
   int _reactionTotalMs = 0;
+  /// Chrono à 00:00 : les entrées sont gelées le temps que le joueur voie zéro.
+  bool _timeExpired = false;
   bool _resultSubmitted = false;
   bool _submittingResult = false;
   Future<GameSession>? _sessionStart;
@@ -99,13 +110,11 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
   void initState() {
     super.initState();
     _stimulus = _buildStimulus();
-    SoundService.instance.startMusic();
   }
 
   @override
   void dispose() {
     _timer?.cancel();
-    SoundService.instance.stopMusic();
     super.dispose();
   }
 
@@ -139,6 +148,9 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
       _streakCounter = 0;
       _completedSeriesStreak = 0;
       _bestSeriesStreak = 0;
+      _bestCorrectStreak = 0;
+      _correctStreak = 0;
+      _timeExpired = false;
       _reactionTotalMs = 0;
       _resultSubmitted = false;
       _submittingResult = false;
@@ -161,23 +173,44 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted || _paused || _stage != _MoveFastStage.gameplay) return;
-      // La limite de temps ne termine la session qu'en mode budget fixe.
-      // En mode REACH_MAX_MULTIPLIER (fiche), aucune limite de durée.
-      if (MoveFastConfig.sessionEndMode == MoveFastSessionEndMode.fixedBudget &&
-          _secondsLeft <= 1) {
-        SoundService.instance.playSfx(GameSfx.timerEnd);
-        _finishSession();
+      // La limite de temps ne s'applique qu'en mode budget fixe. En mode
+      // REACH_MAX_MULTIPLIER (fiche), aucune limite de durée.
+      if (MoveFastConfig.sessionEndMode != MoveFastSessionEndMode.fixedBudget) {
         return;
       }
-      if (_secondsLeft > 0) {
-        setState(() => _secondsLeft--);
-        // Tic des 10 dernières secondes (budget fixe uniquement).
-        if (MoveFastConfig.sessionEndMode ==
-                MoveFastSessionEndMode.fixedBudget &&
-            _secondsLeft <= 10) {
-          SoundService.instance.playSfx(GameSfx.timerDecrease);
-        }
+      if (_secondsLeft <= 0) return; // 00:00 atteint : _expireSession pilote
+
+      setState(() => _secondsLeft--);
+
+      if (_secondsLeft == 0) {
+        _expireSession();
+        return;
       }
+      // Tic sonore de chaque dernière seconde, synchronisé avec la barre rouge.
+      if (_secondsLeft <= _urgentSeconds) {
+        SoundService.instance.playSfx(GameSfx.timerDecrease);
+      }
+    });
+  }
+
+  /// Temps écoulé — 00:00 doit être VU avant la bascule.
+  ///
+  /// L'ancienne boucle terminait la session dès `_secondsLeft <= 1`, donc le
+  /// chrono passait de 00:01 au tableau de score sans jamais afficher zéro. On
+  /// laisse désormais le compteur atteindre 00:00, on joue le son de fin, on gèle
+  /// les entrées, puis on bascule après [_timeUpHold].
+  void _expireSession() {
+    _timer?.cancel();
+    _reactionWatch.stop();
+    SoundService.instance.playSfx(GameSfx.timerEnd);
+    setState(() {
+      _timeExpired = true;
+      _feedback = _MoveFastFeedback.none;
+      _chosenDirection = null;
+      _correctDirection = null;
+    });
+    Timer(_timeUpHold, () {
+      if (mounted && _stage == _MoveFastStage.gameplay) _finishSession();
     });
   }
 
@@ -281,6 +314,8 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
 
   void _handleDirection(GameDirection direction) {
     if (_feedback != _MoveFastFeedback.none) return;
+    // Chrono à 00:00 : la partie est finie, on n'enregistre plus rien.
+    if (_timeExpired) return;
 
     if (_stage == _MoveFastStage.tutorialOrientation) {
       if (direction == GameDirection.right) {
@@ -357,21 +392,30 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
 
       if (isCorrect) {
         _correctResponses++;
-        _streakCounter = math.min(4, _streakCounter + 1);
+        _correctStreak++;
+        _bestCorrectStreak = math.max(_bestCorrectStreak, _correctStreak);
+        _streakCounter = math.min(
+          MoveFastConfig.correctStreakForUpgrade,
+          _streakCounter + 1,
+        );
         _score += 50 * _multiplier;
-        if (_streakCounter == 4) {
+        if (_streakCounter == MoveFastConfig.correctStreakForUpgrade) {
           _completedSeriesStreak++;
           _bestSeriesStreak = math.max(
             _bestSeriesStreak,
             _completedSeriesStreak,
           );
           _streakCounter = 0;
-          _multiplier = math.min(10, _multiplier + 1);
+          _multiplier = math.min(
+            MoveFastConfig.maxMultiplier,
+            _multiplier + 1,
+          );
           // Le multiplicateur grimpe : son dédié « increase-multiplier ».
           SoundService.instance.playSfx(GameSfx.increaseMultiplier);
         }
       } else {
         _wrongResponses++;
+        _correctStreak = 0;
         if (_streakCounter > 0) {
           // Une série en cours est brisée : son « reset-counter ».
           _streakCounter = 0;
@@ -399,26 +443,55 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
         _chosenDirection = null;
         _correctDirection = null;
         // Niveau unique : la règle change de façon imprévisible à chaque avion.
+        final previousRule = _rule;
         if (_randomRule) _rule = _nextRandomRule();
         final previousStimulus = _stimulus;
         _stimulus = _buildStimulus();
-        _playStimulusChangeSfx(previousStimulus, _stimulus);
+        _playStimulusChangeSfx(
+          previousStimulus,
+          _stimulus,
+          ruleChanged: previousRule != _rule,
+        );
       });
       _startReactionTimer();
     });
   }
 
-  /// Nouveau stimulus : joue le son de changement d'orientation (nez) ou, à
-  /// défaut, de mouvement, selon ce qui diffère de l'avion précédent.
+  /// Retour sonore du nouvel avion — **jamais silencieux**.
+  ///
+  /// L'ancienne version ne jouait un son que si le nez ou la trajectoire avait
+  /// changé. Or le tirage peut reproduire le même couple nez/trajectoire alors
+  /// que la RÈGLE a basculé : le joueur voyait la couleur changer sans aucun son,
+  /// ce qui rendait le retour audio erratique. Chaque nouvel essai a désormais
+  /// son son, dans cet ordre de priorité.
   void _playStimulusChangeSfx(
     _MoveFastStimulus previous,
-    _MoveFastStimulus next,
-  ) {
+    _MoveFastStimulus next, {
+    required bool ruleChanged,
+  }) {
+    // 1. Le nez a tourné : c'est le changement le plus saillant.
     if (previous.noseDirection != next.noseDirection) {
       SoundService.instance.playSfx(GameSfx.planeOrientationChange);
-    } else if (previous.movementDirection != next.movementDirection) {
-      SoundService.instance.playSfx(GameSfx.planeMovementChange);
+      return;
     }
+    // 2. La trajectoire a changé.
+    if (previous.movementDirection != next.movementDirection) {
+      SoundService.instance.playSfx(GameSfx.planeMovementChange);
+      return;
+    }
+    // 3. Avion identique mais règle basculée : on joue le son de la règle qui
+    //    devient active, puisque c'est la seule chose à signaler.
+    if (ruleChanged) {
+      SoundService.instance.playSfx(
+        _rule == _MoveFastRule.orientation
+            ? GameSfx.planeOrientationChange
+            : GameSfx.planeMovementChange,
+      );
+      return;
+    }
+    // 4. Rien ne distingue cet essai du précédent : on marque au moins la
+    //    transition, pour que l'absence de son ne soit jamais ambiguë.
+    SoundService.instance.playSfx(GameSfx.blankInterval);
   }
 
   /// Choisit la prochaine règle en mode aléatoire : bascule le plus souvent
@@ -607,7 +680,7 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
         onBack: () =>
             setState(() => _stage = _MoveFastStage.tutorialOrientation),
       ),
-      _MoveFastStage.gameplay => _GameplayView(
+      _MoveFastStage.gameplay => GameplayMusic(child: _GameplayView(
         score: _score,
         timeLabel: _timeLabel,
         progress: _sessionProgress,
@@ -621,9 +694,13 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
         streakCounter: _streakCounter,
         multiplier: _multiplier,
         inputMode: _inputMode,
+        timeCritical:
+            MoveFastConfig.sessionEndMode ==
+                MoveFastSessionEndMode.fixedBudget &&
+            _secondsLeft <= _urgentSeconds,
         onPause: _openPause,
         onDirection: _handleDirection,
-      ),
+      )),
       _MoveFastStage.results => _ResultsView(
         cognitiveScore: _cognitiveScore,
         rawScore: _serverSession?.lastAttempt?.score.rawPoints,
@@ -631,13 +708,13 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
         resultPending: _submittingResult,
         accuracy: _accuracy,
         averageReactionMs: _averageReactionMs,
-        bestSeriesStreak: _bestSeriesStreak,
+        bestCorrectStreak: _bestCorrectStreak,
         onReplay: _startGameplay,
         onCompare: () => setState(() => _stage = _MoveFastStage.comparison),
         onBack: () => context.go(AppRoutes.games),
       ),
       _MoveFastStage.comparison => _ComparisonView(
-        bestSeriesStreak: _bestSeriesStreak,
+        bestCorrectStreak: _bestCorrectStreak,
         scoreDelta: math.max(
           4,
           ((_serverSession?.lastAttempt?.score.rawPoints ?? _score) ~/ 25) -
@@ -1024,6 +1101,7 @@ class _GameplayView extends StatelessWidget {
     required this.streakCounter,
     required this.multiplier,
     required this.inputMode,
+    required this.timeCritical,
     required this.onPause,
     required this.onDirection,
   });
@@ -1041,6 +1119,8 @@ class _GameplayView extends StatelessWidget {
   final int streakCounter;
   final int multiplier;
   final _MoveFastInputMode inputMode;
+  /// Dix dernières secondes : barre rouge, en écho au tic sonore.
+  final bool timeCritical;
   final VoidCallback onPause;
   final ValueChanged<GameDirection> onDirection;
 
@@ -1055,7 +1135,10 @@ class _GameplayView extends StatelessWidget {
             score: score,
             timeLabel: timeLabel,
             progress: progress,
-            progressColor: feedback == _MoveFastFeedback.error
+            // Le rouge des dernières secondes prime sur le rouge d'erreur :
+            // c'est l'information la plus urgente à ce moment-là.
+            progressColor:
+                timeCritical || feedback == _MoveFastFeedback.error
                 ? ZennytGamePalette.error
                 : ZennytGamePalette.success,
             onPause: onPause,
@@ -1085,20 +1168,44 @@ class _GameplayView extends StatelessWidget {
                   Positioned(
                     left: 0,
                     right: 0,
-                    bottom: AppSpacing.md,
-                    child: Opacity(
-                      opacity: 0.35,
-                      child: GameDirectionControls(
-                        onDirection: onDirection,
-                        enabled: !isFeedback,
-                        correctDirection: feedback == _MoveFastFeedback.correct
-                            ? correctDirection
-                            : null,
-                        wrongDirection: feedback == _MoveFastFeedback.error
-                            ? chosenDirection
-                            : null,
-                        compact: true,
-                      ),
+                    bottom: AppSpacing.sm,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Opacity(
+                          opacity: 0.35,
+                          child: GameDirectionControls(
+                            onDirection: onDirection,
+                            enabled: !isFeedback,
+                            correctDirection:
+                                feedback == _MoveFastFeedback.correct
+                                ? correctDirection
+                                : null,
+                            wrongDirection: feedback == _MoveFastFeedback.error
+                                ? chosenDirection
+                                : null,
+                            compact: true,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.xs),
+                        // La consigne vit SOUS la croix directionnelle. Elle était
+                        // auparavant dessinée par le plateau à la même hauteur que
+                        // les flèches, donc superposée à elles. Pleine opacité
+                        // (contrairement aux flèches) et corps réduit.
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.lg,
+                          ),
+                          child: Text(
+                            'Observe the plane. Apply the active rule.',
+                            textAlign: TextAlign.center,
+                            style: AppTypography.bodySmall.copyWith(
+                              color: Colors.white.withValues(alpha: 0.82),
+                              letterSpacing: 0,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
               ],
@@ -1191,23 +1298,11 @@ class _GameplayBoard extends StatelessWidget {
                     ),
                   ),
                 ),
+                // En mode boutons, la consigne est rendue par _GameplayView SOUS
+                // la croix directionnelle — la dessiner ici la superposerait aux
+                // flèches.
                 if (inputMode == _MoveFastInputMode.tactile)
-                  const Positioned.fill(child: _TactileOverlay())
-                else
-                  Align(
-                    alignment: Alignment.bottomCenter,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 42),
-                      child: Text(
-                        'Observe the plane. Apply the active rule.',
-                        textAlign: TextAlign.center,
-                        style: AppTypography.titleMedium.copyWith(
-                          color: Colors.white,
-                          letterSpacing: 0,
-                        ),
-                      ),
-                    ),
-                  ),
+                  const Positioned.fill(child: _TactileOverlay()),
                 if (feedback != _MoveFastFeedback.none)
                   Positioned(
                     top: 78,
@@ -1375,46 +1470,92 @@ class _ScrollingPlaneState extends State<_ScrollingPlane>
 class _TactileOverlay extends StatelessWidget {
   const _TactileOverlay();
 
+  /// Rayon de la zone morte centrale — miroir du seuil de `_GameplayBoard`
+  /// (`delta.distance < 32` ignore le geste). L'afficher évite au joueur de
+  /// taper au centre sans comprendre pourquoi rien ne se passe.
+  static const double _deadZoneRadius = 32;
+
   @override
   Widget build(BuildContext context) {
+    // L'entrée tactile se lit par rapport au CENTRE du plateau : on dispose donc
+    // les repères en croix autour d'un centre matérialisé, au lieu de les aligner
+    // côte à côte comme avant — quatre icônes en ligne ne disaient rien de la
+    // géométrie réellement utilisée.
     return IgnorePointer(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(26, 120, 26, 36),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.end,
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.fromLTRB(20, 84, 20, 20),
+        child: Stack(
           children: [
+            const Align(
+              alignment: Alignment.topCenter,
+              child: _TactileHint(direction: GameDirection.up),
+            ),
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: _TactileHint(direction: GameDirection.left),
+            ),
+            const Align(
+              alignment: Alignment.centerRight,
+              child: _TactileHint(direction: GameDirection.right),
+            ),
+            const Align(
+              alignment: Alignment.bottomCenter,
+              child: _TactileHint(direction: GameDirection.down),
+            ),
             Center(
-              child: Wrap(
-                spacing: 56,
-                runSpacing: 36,
-                alignment: WrapAlignment.center,
-                children: GameDirection.values
-                    .map(
-                      (direction) =>
-                          Icon(direction.icon, color: Colors.white, size: 34),
-                    )
-                    .toList(),
+              child: Container(
+                width: _deadZoneRadius * 2,
+                height: _deadZoneRadius * 2,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.22),
+                  ),
+                ),
               ),
             ),
-            const Spacer(),
-            Text(
-              'Tactile mode',
-              style: AppTypography.titleMedium.copyWith(
-                color: Colors.white,
-                letterSpacing: 0,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              'Swipe in the direction you deduce from the active rule.',
-              style: AppTypography.bodyMedium.copyWith(
-                color: Colors.white,
-                letterSpacing: 0,
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+                child: Text(
+                  'Tap or swipe outwards from the centre.',
+                  textAlign: TextAlign.center,
+                  style: AppTypography.bodySmall.copyWith(
+                    color: Colors.white.withValues(alpha: 0.82),
+                    letterSpacing: 0,
+                  ),
+                ),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Repère directionnel du mode tactile : une flèche dans un disque translucide,
+/// placée du côté qu'elle désigne.
+class _TactileHint extends StatelessWidget {
+  const _TactileHint({required this.direction});
+
+  final GameDirection direction;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 52,
+      height: 52,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.12),
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white.withValues(alpha: 0.32)),
+      ),
+      child: Icon(
+        direction.icon,
+        color: Colors.white.withValues(alpha: 0.9),
+        size: 26,
       ),
     );
   }
@@ -1485,7 +1626,7 @@ class _ResultsView extends StatelessWidget {
     required this.resultPending,
     required this.accuracy,
     required this.averageReactionMs,
-    required this.bestSeriesStreak,
+    required this.bestCorrectStreak,
     required this.onReplay,
     required this.onCompare,
     required this.onBack,
@@ -1497,7 +1638,7 @@ class _ResultsView extends StatelessWidget {
   final bool resultPending;
   final double accuracy;
   final int averageReactionMs;
-  final int bestSeriesStreak;
+  final int bestCorrectStreak;
   final VoidCallback onReplay;
   final VoidCallback onCompare;
   final VoidCallback onBack;
@@ -1587,16 +1728,12 @@ class _ResultsView extends StatelessWidget {
               Expanded(
                 child: ResultStatTile(
                   label: 'Best Streak',
-                  value: '$bestSeriesStreak series',
+                  value: '$bestCorrectStreak correct',
                   valueColor: ZennytGamePalette.magenta,
                 ),
               ),
             ],
           ),
-          if (breakdown.isNotEmpty) ...[
-            const SizedBox(height: AppSpacing.xl),
-            ScoreDetailPanel(lines: breakdown),
-          ],
           const SizedBox(height: AppSpacing.xxl),
           GamePanel(
             backgroundColor: ZennytGamePalette.mist,
@@ -1644,13 +1781,13 @@ class _ResultsView extends StatelessWidget {
 
 class _ComparisonView extends StatelessWidget {
   const _ComparisonView({
-    required this.bestSeriesStreak,
+    required this.bestCorrectStreak,
     required this.scoreDelta,
     required this.onReplay,
     required this.onBack,
   });
 
-  final int bestSeriesStreak;
+  final int bestCorrectStreak;
   final int scoreDelta;
   final VoidCallback onReplay;
   final VoidCallback onBack;
@@ -1739,8 +1876,8 @@ class _ComparisonView extends StatelessWidget {
                 valueColor: ZennytGamePalette.blue,
               ),
               ResultStatTile(
-                label: 'Best series streak',
-                value: '$bestSeriesStreak series',
+                label: 'Best streak',
+                value: '$bestCorrectStreak correct',
                 valueColor: ZennytGamePalette.blue,
               ),
             ],

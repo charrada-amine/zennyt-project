@@ -25,11 +25,20 @@ import java.util.Optional;
  */
 public interface DecisionScenarioCatalog {
 
-    /** Entrée d'un item : dimension, format et qualité de chaque option. */
+    /**
+     * Entrée d'un item : dimension, format et qualité de chaque option.
+     *
+     * @param provisionalScoring true → item en notation NEUTRE provisoire (toutes
+     *        ses options à {@code SATISFACTORY}), en attendant le vrai modèle
+     *        (aversion λ pour ER, actualisation hyperbolique k pour RE, cohérence
+     *        de paire pour CS). Remonté dans le report pour que la lecture d'un
+     *        score dise explicitement quelle dimension ne discrimine pas encore.
+     */
     record Item(
         String itemId,
         DecisionDimension dimension,
         DecisionItemFormat format,
+        boolean provisionalScoring,
         Map<String, OptionQuality> optionQualities
     ) {
         public Item {

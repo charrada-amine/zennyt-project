@@ -1,10 +1,13 @@
 import 'dart:async';
 
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/audio/sound_service.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../data/decision_progress_store.dart';
+import '../../domain/entities/decision_form.dart';
+import '../../domain/entities/decision_metrics.dart';
 import '../widgets/game_system_components.dart';
 
 const _decisionInk = Color(0xFF28234F);
@@ -16,85 +19,108 @@ const _decisionSoftPink = Color(0xFFFFF1F7);
 const _decisionTimer = Color(0xFF2BD06F);
 const _decisionWarning = Color(0xFFFFA033);
 
-/// Étapes de gameplay et de transition livrées dans les Phases 2–3.
+
+/// Écrans de transition intercalés entre les blocs d'items.
 ///
-/// Cette séquence démontre les cinq formats de scénario et leurs états
-/// d'interaction. Le catalogue complet, le scoring et la persistance restent
-/// volontairement hors de ce widget jusqu'à validation du barème serveur.
-enum DecisionGameplayStep {
-  analytical,
-  riskBalance,
-  quickChoice,
-  xpFeedback,
-  checkpoint,
-  encouragement,
-  pause,
-  savedProgress,
-  resumeJourney,
-  badge,
-  dimensionComplete,
-  stabilityFirst,
-  stabilitySecond,
-  selfControl,
+/// Purement narratifs : ils rythment les 30 items et ne mesurent rien. Ils sont
+/// insérés aux frontières de dimension, jamais au milieu d'un bloc — et jamais
+/// entre les deux cadrages d'une paire CS, qui doivent s'enchaîner.
+enum DecisionInterstitial { xpFeedback, checkpoint, encouragement, badge, dimensionComplete }
+
+/// Réponse en cours de construction pour UN item.
+class _PendingAnswer {
+  _PendingAnswer();
+
+  int? selectedIndex;
+
+  /// Changements d'avis avant validation — indicateur `decisionChangesCount` du
+  /// contrat. Le premier choix ne compte pas comme un changement.
+  int changes = 0;
+
+  /// Temps de délibération accumulé hors pause.
+  Duration _accumulated = Duration.zero;
+
+  /// Instant de reprise du chronométrage ; `null` quand il est à l'arrêt.
+  DateTime? _startedAt;
+
+  /// Mesuré sur l'horloge ambiante (`package:clock`) plutôt qu'avec un
+  /// `Stopwatch` : le temps de réponse est une donnée psychométrique, elle doit
+  /// être vérifiable par un test déterministe.
+  void start() => _startedAt ??= clock.now();
+
+  void stop() {
+    final startedAt = _startedAt;
+    if (startedAt == null) return;
+    _accumulated += clock.now().difference(startedAt);
+    _startedAt = null;
+  }
+
+  bool get running => _startedAt != null;
+
+  /// Temps de réponse, arrêté à la VALIDATION et non au premier tap. Choisir
+  /// vite puis délibérer longuement doit produire un temps long : c'est ce qui
+  /// empêche de contourner la contrainte de temps des items chronométrés. Le
+  /// temps passé en pause n'est jamais compté.
+  int get elapsedMs {
+    final startedAt = _startedAt;
+    final live = startedAt == null
+        ? Duration.zero
+        : clock.now().difference(startedAt);
+    return (_accumulated + live).inMilliseconds;
+  }
 }
 
-/// Étapes de transition/overlay qui ne doivent jamais servir de point de
-/// reprise : les réutiliser comme cible ferait boucler la reprise entre les
-/// écrans « Welcome back » et « Progress saved ».
-const _nonResumableDecisionSteps = {
-  DecisionGameplayStep.pause,
-  DecisionGameplayStep.savedProgress,
-  DecisionGameplayStep.resumeJourney,
-};
-
-/// Ramène une étape sauvegardée vers un scénario réellement reprenable.
-DecisionGameplayStep sanitizeDecisionResumeStep(DecisionGameplayStep step) =>
-    _nonResumableDecisionSteps.contains(step)
-    ? DecisionGameplayStep.encouragement
-    : step;
-
-/// Boucle de gameplay mobile des Phases 2–3.
+/// Boucle de gameplay de « Je Décide » — 30 items servis par le backend.
 ///
-/// Les valeurs XP reproduisent uniquement les états visuels des maquettes :
-/// elles ne constituent pas un barème et ne sont jamais soumises au backend.
+/// Le contenu ne vit plus dans ce fichier : la forme de passation
+/// ([DecisionForm]) est tirée serveur à la création de session et récupérée par
+/// `GET /games/sessions/{id}/decision/items`. Aucune option ne porte de qualité
+/// ni de score : la correction reste serveur.
 class DecisionGameplayView extends StatefulWidget {
   const DecisionGameplayView({
     super.key,
+    required this.form,
     required this.onClose,
     required this.onComplete,
-    this.initialStep = DecisionGameplayStep.analytical,
-    this.resumeStepAfterWelcome = DecisionGameplayStep.encouragement,
+    this.initialIndex = 0,
   });
 
+  final DecisionForm form;
   final VoidCallback onClose;
-  final VoidCallback onComplete;
-  final DecisionGameplayStep initialStep;
-  final DecisionGameplayStep resumeStepAfterWelcome;
+
+  /// Appelé avec les réponses des 30 items, prêtes à être soumises.
+  final ValueChanged<List<DecisionItemResponse>> onComplete;
+
+  /// Index de reprise (checkpoint sauvegardé).
+  final int initialIndex;
 
   @override
   State<DecisionGameplayView> createState() => _DecisionGameplayViewState();
 }
 
 class _DecisionGameplayViewState extends State<DecisionGameplayView> {
-  static const _quickChoiceDuration = 7;
   static const _criticalThreshold = 2;
 
-  final Map<DecisionGameplayStep, int> _selections = {};
+  /// Repli si le serveur n'a pas envoyé de temps imparti sur un item chronométré.
+  static const _fallbackTimeLimitMs = 7000;
+
+  final Map<String, _PendingAnswer> _answers = {};
   Timer? _countdown;
   Timer? _timeoutAdvance;
-  late DecisionGameplayStep _step;
-  late DecisionGameplayStep _resumeTarget;
-  int _secondsRemaining = _quickChoiceDuration;
+  bool _timeoutAdvancePending = false;
+
+  int _index = 0;
+  DecisionInterstitial? _interstitial;
+  bool _resuming = false;
+  int _secondsRemaining = 0;
   bool _timedOut = false;
 
   @override
   void initState() {
     super.initState();
-    _step = widget.initialStep;
-    _resumeTarget = widget.resumeStepAfterWelcome;
-    if (_step == DecisionGameplayStep.quickChoice) {
-      _scheduleQuickChoiceTimer();
-    }
+    _index = widget.initialIndex.clamp(0, widget.form.items.length - 1);
+    _resuming = widget.initialIndex > 0;
+    if (!_resuming) _enterItem();
   }
 
   @override
@@ -107,75 +133,50 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
   bool get _reduceMotion =>
       MediaQuery.maybeOf(context)?.disableAnimations ?? false;
 
-  int get _scenarioNumber => switch (_step) {
-    DecisionGameplayStep.analytical => 4,
-    DecisionGameplayStep.riskBalance => 7,
-    DecisionGameplayStep.quickChoice => 13,
-    DecisionGameplayStep.xpFeedback ||
-    DecisionGameplayStep.checkpoint ||
-    DecisionGameplayStep.pause ||
-    DecisionGameplayStep.savedProgress => 15,
-    DecisionGameplayStep.encouragement ||
-    DecisionGameplayStep.resumeJourney ||
-    DecisionGameplayStep.badge ||
-    DecisionGameplayStep.dimensionComplete => 16,
-    DecisionGameplayStep.stabilityFirst => 19,
-    DecisionGameplayStep.stabilitySecond => 20,
-    DecisionGameplayStep.selfControl => 30,
-  };
+  DecisionFormItem get _item => widget.form.items[_index];
 
-  int get _visualXp => switch (_step) {
-    DecisionGameplayStep.analytical => 36,
-    DecisionGameplayStep.riskBalance => 48,
-    DecisionGameplayStep.quickChoice || DecisionGameplayStep.xpFeedback => 48,
-    DecisionGameplayStep.checkpoint ||
-    DecisionGameplayStep.pause ||
-    DecisionGameplayStep.savedProgress => 60,
-    DecisionGameplayStep.encouragement ||
-    DecisionGameplayStep.resumeJourney => 60,
-    DecisionGameplayStep.badge => 72,
-    DecisionGameplayStep.dimensionComplete => 84,
-    DecisionGameplayStep.stabilityFirst => 96,
-    DecisionGameplayStep.stabilitySecond => 108,
-    DecisionGameplayStep.selfControl => 144,
-  };
+  _PendingAnswer get _answer => _answers.putIfAbsent(_item.itemId, _PendingAnswer.new);
 
-  bool get _isChoiceStep => switch (_step) {
-    DecisionGameplayStep.analytical ||
-    DecisionGameplayStep.riskBalance ||
-    DecisionGameplayStep.quickChoice ||
-    DecisionGameplayStep.stabilityFirst ||
-    DecisionGameplayStep.stabilitySecond ||
-    DecisionGameplayStep.selfControl => true,
-    DecisionGameplayStep.xpFeedback ||
-    DecisionGameplayStep.checkpoint ||
-    DecisionGameplayStep.encouragement ||
-    DecisionGameplayStep.pause ||
-    DecisionGameplayStep.savedProgress ||
-    DecisionGameplayStep.resumeJourney ||
-    DecisionGameplayStep.badge ||
-    DecisionGameplayStep.dimensionComplete => false,
-  };
+  int? get _selection => _answer.selectedIndex;
+
+  bool get _isChoiceStep => _interstitial == null && !_resuming;
 
   bool get _usesLightShell => !_isChoiceStep;
 
-  int? get _selection => _selections[_step];
+  /// Numéro affiché : 1-based, sur le total réel de la forme.
+  int get _scenarioNumber => _index + 1;
 
-  void _scheduleQuickChoiceTimer() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || _step != DecisionGameplayStep.quickChoice) return;
-      _startQuickChoiceTimer();
-    });
+  int get _timeLimitSeconds =>
+      ((_item.timeLimitMs ?? _fallbackTimeLimitMs) / 1000).ceil();
+
+  /// XP purement visuel — aucun rapport avec le score, qui est calculé serveur.
+  int get _visualXp => _answers.values.where((a) => a.selectedIndex != null).length * 12;
+
+  // ── Cycle de vie d'un item ──────────────────────────────────────────────
+
+  void _enterItem() {
+    _countdown?.cancel();
+    _timeoutAdvance?.cancel();
+    _timeoutAdvancePending = false;
+    _timedOut = false;
+
+    _answer.start();
+    if (_item.isTimed) {
+      _secondsRemaining = _timeLimitSeconds;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _item.isTimed) _startCountdown(reset: false);
+      });
+    }
   }
 
-  void _startQuickChoiceTimer({bool reset = true}) {
+  void _startCountdown({bool reset = true}) {
     _countdown?.cancel();
     if (reset) {
-      _secondsRemaining = _quickChoiceDuration;
+      _secondsRemaining = _timeLimitSeconds;
       _timedOut = false;
     }
     _countdown = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted || _selection != null) {
+      if (!mounted) {
         timer.cancel();
         return;
       }
@@ -184,87 +185,123 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
         return;
       }
       timer.cancel();
-      setState(() {
-        _secondsRemaining = 0;
-        _timedOut = true;
-      });
-      _timeoutAdvance = Timer(
-        _reduceMotion
-            ? const Duration(milliseconds: 450)
-            : const Duration(milliseconds: 1500),
-        () {
-          if (mounted && _step == DecisionGameplayStep.quickChoice) {
-            _goTo(DecisionGameplayStep.xpFeedback);
-          }
-        },
-      );
+      setState(() => _secondsRemaining = 0);
+      // Temps écoulé : un choix déjà posé est validé tel quel ; sinon l'item est
+      // manqué (`answered: false` → imputation serveur par dimension).
+      if (_selection != null) {
+        _validate();
+        return;
+      }
+      setState(() => _timedOut = true);
+      _scheduleTimeoutAdvance();
     });
+  }
+
+  void _scheduleTimeoutAdvance() {
+    _timeoutAdvance?.cancel();
+    _timeoutAdvancePending = true;
+    _timeoutAdvance = Timer(
+      _reduceMotion
+          ? const Duration(milliseconds: 450)
+          : const Duration(milliseconds: 1500),
+      () {
+        _timeoutAdvancePending = false;
+        if (mounted) _validate();
+      },
+    );
   }
 
   void _select(int index) {
     if (_timedOut) return;
-    // Son générique au choix d'une option (les cartes ne sont pas des
-    // GamePrimaryButton, donc pas de clic automatique).
     SoundService.instance.playSfx(GameSfx.buttonClick);
-    if (_step == DecisionGameplayStep.quickChoice) {
-      _countdown?.cancel();
-    }
-    setState(() => _selections[_step] = index);
+    setState(() {
+      final answer = _answer;
+      // Le chronomètre continue de tourner : le temps de réponse est celui de la
+      // VALIDATION. Changer d'avis reste permis — c'est un indicateur mesuré
+      // (decisionChangesCount), pas une faute.
+      if (answer.selectedIndex != null && answer.selectedIndex != index) {
+        answer.changes++;
+      }
+      answer.selectedIndex = index;
+    });
   }
 
-  void _goTo(DecisionGameplayStep next) {
+  /// Fige la réponse de l'item courant et passe à la suite.
+  void _validate() {
     _countdown?.cancel();
     _timeoutAdvance?.cancel();
-    setState(() {
-      _step = next;
-      _secondsRemaining = _quickChoiceDuration;
-      _timedOut = false;
-    });
-    if (next == DecisionGameplayStep.quickChoice) {
-      _scheduleQuickChoiceTimer();
+    _timeoutAdvancePending = false;
+    _answer.stop();
+
+    final next = _index + 1;
+    if (next >= widget.form.items.length) {
+      widget.onComplete(_collectResponses());
+      return;
     }
+
+    final interstitial = _interstitialBefore(next);
+    setState(() {
+      _index = next;
+      _timedOut = false;
+      _interstitial = interstitial;
+    });
+    if (interstitial == null) _enterItem();
   }
 
-  void _continue() {
-    switch (_step) {
-      case DecisionGameplayStep.analytical:
-        _goTo(DecisionGameplayStep.riskBalance);
-      case DecisionGameplayStep.riskBalance:
-        _goTo(DecisionGameplayStep.quickChoice);
-      case DecisionGameplayStep.quickChoice:
-        _goTo(DecisionGameplayStep.xpFeedback);
-      case DecisionGameplayStep.xpFeedback:
-        _goTo(DecisionGameplayStep.checkpoint);
-      case DecisionGameplayStep.checkpoint:
-        _goTo(DecisionGameplayStep.encouragement);
-      case DecisionGameplayStep.encouragement:
-        _goTo(DecisionGameplayStep.badge);
-      case DecisionGameplayStep.pause:
-        _goTo(DecisionGameplayStep.encouragement);
-      case DecisionGameplayStep.savedProgress:
-        _goTo(DecisionGameplayStep.resumeJourney);
-      case DecisionGameplayStep.resumeJourney:
-        _goTo(_resumeTarget);
-      case DecisionGameplayStep.badge:
-        _goTo(DecisionGameplayStep.dimensionComplete);
-      case DecisionGameplayStep.dimensionComplete:
-        _goTo(DecisionGameplayStep.stabilityFirst);
-      case DecisionGameplayStep.stabilityFirst:
-        _goTo(DecisionGameplayStep.stabilitySecond);
-      case DecisionGameplayStep.stabilitySecond:
-        _goTo(DecisionGameplayStep.selfControl);
-      case DecisionGameplayStep.selfControl:
-        widget.onComplete();
-    }
+  /// Écran de transition à afficher avant l'item [nextIndex], s'il y en a un.
+  ///
+  /// Uniquement aux frontières de dimension : couper une paire CS par un écran
+  /// narratif casserait l'enchaînement des deux cadrages.
+  DecisionInterstitial? _interstitialBefore(int nextIndex) {
+    final perDimension = widget.form.itemsPerDimension;
+    if (perDimension <= 0 || nextIndex % perDimension != 0) return null;
+    final block = nextIndex ~/ perDimension;
+    const rhythm = [
+      DecisionInterstitial.xpFeedback,
+      DecisionInterstitial.checkpoint,
+      DecisionInterstitial.badge,
+      DecisionInterstitial.dimensionComplete,
+      DecisionInterstitial.encouragement,
+    ];
+    return rhythm[(block - 1) % rhythm.length];
   }
+
+  void _leaveInterstitial() {
+    setState(() => _interstitial = null);
+    _enterItem();
+  }
+
+  List<DecisionItemResponse> _collectResponses() {
+    return [
+      for (final item in widget.form.items)
+        () {
+          final answer = _answers[item.itemId];
+          final chosen = answer?.selectedIndex;
+          return DecisionItemResponse(
+            itemId: item.itemId,
+            dimension: item.dimension,
+            selectedOptionId: chosen == null ? null : item.options[chosen].optionId,
+            responseTimeMs: answer?.elapsedMs ?? 0,
+            answered: chosen != null,
+            decisionChangesCount: answer?.changes ?? 0,
+          );
+        }(),
+    ];
+  }
+
+  // ── Pause ───────────────────────────────────────────────────────────────
 
   Future<void> _openPauseMenu() async {
     SoundService.instance.playSfx(GameSfx.pauseClick);
-    final timerWasRunning =
-        _step == DecisionGameplayStep.quickChoice &&
-        _selection == null &&
-        !_timedOut;
+    final countdownWasRunning =
+        _isChoiceStep && _item.isTimed && !_timedOut && _secondsRemaining > 0;
+    // La pause gèle TOUT ce qui court : le compte à rebours, son auto-avance, et
+    // le chronomètre de temps de réponse — sinon le temps de la pause serait
+    // compté comme du temps de délibération.
     _countdown?.cancel();
+    _timeoutAdvance?.cancel();
+    _answer.stop();
+
     final action = await showDialog<DecisionPauseAction>(
       context: context,
       barrierDismissible: false,
@@ -280,36 +317,34 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
         if (mounted) await _openPauseMenu();
         return;
       case DecisionPauseAction.exit:
-        final resumeStep = sanitizeDecisionResumeStep(_step);
-        _resumeTarget = resumeStep;
-        await DecisionProgressStore().saveCheckpoint(stepName: resumeStep.name);
-        // « Save and exit » ramène directement à l'accueil ; la reprise se fera
-        // via l'écran « Welcome back » à la prochaine ouverture.
+        await DecisionProgressStore().saveCheckpoint(itemIndex: _index);
         if (mounted) widget.onClose();
         return;
       case DecisionPauseAction.resume || null:
-        if (timerWasRunning && mounted) {
-          _startQuickChoiceTimer(reset: false);
+        if (!mounted) return;
+        if (_isChoiceStep) _answer.start();
+        if (countdownWasRunning) {
+          _startCountdown(reset: false);
+        } else if (_timeoutAdvancePending) {
+          _scheduleTimeoutAdvance();
         }
     }
   }
 
   Future<void> _saveFromCheckpoint() async {
-    _resumeTarget = DecisionGameplayStep.encouragement;
-    await DecisionProgressStore().saveCheckpoint(
-      stepName: DecisionGameplayStep.encouragement.name,
-    );
-    if (mounted) _goTo(DecisionGameplayStep.savedProgress);
+    await DecisionProgressStore().saveCheckpoint(itemIndex: _index);
+    if (mounted) setState(() => _interstitial = null);
+    if (mounted) widget.onClose();
   }
+
+  // ── Rendu ───────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     final animationDuration = _reduceMotion
         ? Duration.zero
         : const Duration(milliseconds: 250);
-    final shellColor = _usesLightShell
-        ? const Color(0xFFF7F8FE)
-        : _decisionViolet;
+    final shellColor = _usesLightShell ? const Color(0xFFF7F8FE) : _decisionViolet;
     return ColoredBox(
       color: shellColor,
       child: SafeArea(
@@ -325,14 +360,14 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
               ),
               const SizedBox(height: 12),
               _JourneyProgress(
-                value: _scenarioNumber / 30,
+                value: _scenarioNumber / widget.form.totalItems,
                 light: _usesLightShell,
               ),
-              if (_step == DecisionGameplayStep.quickChoice) ...[
+              if (_isChoiceStep && _item.isTimed) ...[
                 const SizedBox(height: 10),
                 _DecisionTimer(
                   secondsRemaining: _secondsRemaining,
-                  totalSeconds: _quickChoiceDuration,
+                  totalSeconds: _timeLimitSeconds,
                   critical: _secondsRemaining <= _criticalThreshold,
                 ),
               ],
@@ -359,7 +394,7 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
                     ),
                   ),
                   child: KeyedSubtree(
-                    key: ValueKey(_step),
+                    key: ValueKey('${_interstitial ?? ''}-$_index-$_resuming'),
                     child: _buildStep(),
                   ),
                 ),
@@ -369,7 +404,7 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
                 GamePrimaryButton(
                   key: const ValueKey('decision-continue'),
                   label: 'Continue',
-                  onPressed: _selection == null ? null : _continue,
+                  onPressed: _selection == null ? null : _validate,
                 ),
               ],
             ],
@@ -380,164 +415,63 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
   }
 
   Widget _buildStep() {
-    if (_step == DecisionGameplayStep.quickChoice && _timedOut) {
-      return const _TimeoutView();
+    if (_resuming) {
+      return _ResumeJourneyView(
+        scenarioNumber: _scenarioNumber,
+        onContinue: () {
+          setState(() => _resuming = false);
+          _enterItem();
+        },
+      );
     }
-    return switch (_step) {
-      DecisionGameplayStep.analytical => _ScenarioView(
-        scenario: const _ScenarioData(
-          label: 'Scenario',
-          title: 'Delivery Bike',
-          description:
-              'You need an electric bike for daily delivery rounds. Your budget is limited. You need at least 40 km of range per day.',
-          options: [
-            _OptionData(title: 'Model A', subtitle: 'High price • 70 km range'),
-            _OptionData(
-              title: 'Model B',
-              subtitle: 'Within budget • 45 km range',
-            ),
-            _OptionData(
-              title: 'Model C',
-              subtitle: 'Lowest price • 25 km range',
-            ),
-          ],
+    if (_interstitial != null) {
+      return switch (_interstitial!) {
+        DecisionInterstitial.xpFeedback => _XpFeedbackView(onContinue: _leaveInterstitial),
+        DecisionInterstitial.checkpoint => _CheckpointView(
+          onContinue: _leaveInterstitial,
+          onPause: _saveFromCheckpoint,
         ),
-        selected: _selection,
-        onSelected: _select,
-      ),
-      DecisionGameplayStep.riskBalance => _ScenarioView(
-        scenario: const _ScenarioData(
-          label: 'Scenario',
-          title: 'A financial choice',
-          description:
-              'You have two possible outcomes. Choose the option you would personally take.',
-          options: [
-            _OptionData(
-              eyebrow: 'Option X',
-              title: '€60',
-              subtitle: 'Guaranteed',
-              tag: 'Certain',
-            ),
-            _OptionData(
-              eyebrow: 'Option Y',
-              title: '50% chance of\n€150',
-              tag: 'Variable',
-            ),
-          ],
-        ),
-        selected: _selection,
-        onSelected: _select,
-      ),
-      DecisionGameplayStep.quickChoice => _ScenarioView(
-        scenario: const _ScenarioData(
-          label: 'Quick choice',
-          title: 'Choose quickly',
-          description:
-              'You need an electric bike for daily delivery rounds. Your budget is limited. You need at least 40 km of range per day.',
-          options: [
-            _OptionData(title: 'Model A', subtitle: 'High price • 70 km range'),
-            _OptionData(
-              title: 'Model B',
-              subtitle: 'Within budget • 45 km range',
-            ),
-            _OptionData(
-              title: 'Model C',
-              subtitle: 'Lowest price • 25 km range',
-            ),
-          ],
-          footer: 'Choose what feels best.',
-        ),
-        selected: _selection,
-        onSelected: _select,
-      ),
-      DecisionGameplayStep.stabilityFirst => _ScenarioView(
-        scenario: const _ScenarioData(
-          label: 'Two-part scenario',
-          part: 'Part 1 of 2',
-          title: 'Company Reorganization',
-          description:
-              'A company of 120 employees must reorganize. Plan A saves 40 jobs for certain. Plan B has a 1 in 3 chance of saving all jobs and a 2 in 3 chance of saving none.',
-          options: [
-            _OptionData(title: 'Plan A', subtitle: '40 jobs saved for certain'),
-            _OptionData(
-              title: 'Plan B',
-              subtitle:
-                  '1 in 3 chance all jobs are saved • 2 in 3 chance none are saved',
-            ),
-          ],
-        ),
-        selected: _selection,
-        onSelected: _select,
-      ),
-      DecisionGameplayStep.stabilitySecond => _ScenarioView(
-        scenario: const _ScenarioData(
-          label: 'Two-part scenario',
-          part: 'Part 2 of 2',
-          title: 'Company Reorganization',
-          description:
-              'Plan A means 80 jobs will be lost for certain. Plan B has a 1 in 3 chance that no jobs are lost and a 2 in 3 chance that all jobs are lost.',
-          options: [
-            _OptionData(title: 'Plan A', subtitle: '80 jobs lost for certain'),
-            _OptionData(
-              title: 'Plan B',
-              subtitle:
-                  '1 in 3 chance no jobs are lost • 2 in 3 chance all jobs are lost',
-            ),
-          ],
-        ),
-        selected: _selection,
-        onSelected: _select,
-      ),
-      DecisionGameplayStep.selfControl => _ScenarioView(
-        scenario: const _ScenarioData(
-          label: 'Scenario',
-          title: 'Reward timing',
-          description: 'Choose the option you would personally prefer.',
-          options: [
-            _OptionData(
-              eyebrow: 'Immediate',
-              title: '€7',
-              subtitle: 'Available today',
-              tag: 'Now',
-            ),
-            _OptionData(
-              eyebrow: 'Later',
-              title: '€18',
-              subtitle: 'Available after waiting',
-              tag: 'In 6 days',
-            ),
-          ],
-          footer: 'Both options are valid personal preferences.',
-        ),
-        selected: _selection,
-        onSelected: _select,
-      ),
-      DecisionGameplayStep.xpFeedback => _XpFeedbackView(onContinue: _continue),
-      DecisionGameplayStep.checkpoint => _CheckpointView(
-        onContinue: _continue,
-        onPause: () => _goTo(DecisionGameplayStep.pause),
-      ),
-      DecisionGameplayStep.encouragement => _EncouragementView(
-        onContinue: _continue,
-      ),
-      DecisionGameplayStep.pause => _JourneyPausedView(
-        onResume: _continue,
-        onExit: _saveFromCheckpoint,
-      ),
-      DecisionGameplayStep.savedProgress => _SavedProgressView(
-        onResume: _continue,
-        onBack: widget.onClose,
-      ),
-      DecisionGameplayStep.resumeJourney => _ResumeJourneyView(
-        onContinue: _continue,
-      ),
-      DecisionGameplayStep.badge => _BadgeView(onContinue: _continue),
-      DecisionGameplayStep.dimensionComplete => _DimensionCompleteView(
-        onContinue: _continue,
-      ),
+        DecisionInterstitial.encouragement =>
+          _EncouragementView(onContinue: _leaveInterstitial),
+        DecisionInterstitial.badge => _BadgeView(onContinue: _leaveInterstitial),
+        DecisionInterstitial.dimensionComplete =>
+          _DimensionCompleteView(onContinue: _leaveInterstitial),
+      };
+    }
+    if (_item.isTimed && _timedOut) return const _TimeoutView();
+
+    return _ScenarioView(
+      scenario: _scenarioData(_item),
+      selected: _selection,
+      onSelected: _select,
+    );
+  }
+
+  /// Projette un item servi par le backend dans le modèle d'affichage.
+  ///
+  /// La consigne (`task`) sert de titre et la situation (`vignette`) de corps :
+  /// aucun libellé de dimension n'est affiché, pour ne pas révéler au candidat ce
+  /// que l'item mesure.
+  _ScenarioData _scenarioData(DecisionFormItem item) {
+    final label = switch (item.format) {
+      DecisionItemFormat.temporalDecision => 'Quick choice',
+      DecisionItemFormat.coherencePair => 'Two-part scenario',
+      DecisionItemFormat.standard => 'Scenario',
     };
+    String? part;
+    if (item.pairId != null) {
+      part = item.itemId.endsWith('b') ? 'Part 2 of 2' : 'Part 1 of 2';
+    }
+    return _ScenarioData(
+      label: label,
+      part: part,
+      title: item.task,
+      description: item.vignette,
+      options: [for (final option in item.options) _OptionData(title: option.label)],
+    );
   }
 }
+
 
 class _DecisionProgressHeader extends StatelessWidget {
   const _DecisionProgressHeader({
@@ -698,7 +632,6 @@ class _ScenarioData {
     required this.description,
     required this.options,
     this.part,
-    this.footer,
   });
 
   final String label;
@@ -706,21 +639,14 @@ class _ScenarioData {
   final String title;
   final String description;
   final List<_OptionData> options;
-  final String? footer;
 }
 
+/// Énoncé d'une option. Les items de la banque n'ont qu'un libellé : pas
+/// d'accroche, pas de sous-titre, pas d'étiquette.
 class _OptionData {
-  const _OptionData({
-    required this.title,
-    this.eyebrow,
-    this.subtitle,
-    this.tag,
-  });
+  const _OptionData({required this.title});
 
-  final String? eyebrow;
   final String title;
-  final String? subtitle;
-  final String? tag;
 }
 
 class _ScenarioView extends StatelessWidget {
@@ -749,16 +675,6 @@ class _ScenarioView extends StatelessWidget {
               onTap: () => onSelected(i),
             ),
             if (i != scenario.options.length - 1) const SizedBox(height: 12),
-          ],
-          if (scenario.footer != null) ...[
-            const SizedBox(height: 18),
-            Text(
-              scenario.footer!,
-              textAlign: TextAlign.center,
-              style: AppTypography.bodySmall.copyWith(
-                color: Colors.white.withValues(alpha: 0.56),
-              ),
-            ),
           ],
         ],
       ),
@@ -851,16 +767,10 @@ class _DecisionChoiceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final reduceMotion =
         MediaQuery.maybeOf(context)?.disableAnimations ?? false;
-    final semanticText = [
-      data.eyebrow,
-      data.title,
-      data.subtitle,
-      data.tag,
-    ].whereType<String>().join('. ');
     return Semantics(
       button: true,
       selected: selected,
-      label: semanticText,
+      label: data.title,
       child: Material(
         color: selected ? _decisionSoftPink : Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -895,41 +805,18 @@ class _DecisionChoiceCard extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (data.eyebrow != null)
-                        Text(
-                          data.eyebrow!,
-                          style: AppTypography.titleSmall.copyWith(
-                            color: _decisionInk,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      if (data.eyebrow != null) const SizedBox(height: 2),
                       Text(
                         data.title,
                         style: AppTypography.titleLarge.copyWith(
                           color: _decisionInk,
-                          fontSize: data.eyebrow == null ? 17 : 25,
+                          fontSize: 17,
                           fontWeight: FontWeight.w800,
-                          height: 1.08,
+                          height: 1.2,
                         ),
                       ),
-                      if (data.subtitle != null) ...[
-                        const SizedBox(height: 6),
-                        Text(
-                          data.subtitle!,
-                          style: AppTypography.bodySmall.copyWith(
-                            color: _decisionMuted,
-                            height: 1.25,
-                          ),
-                        ),
-                      ],
                     ],
                   ),
                 ),
-                if (data.tag != null) ...[
-                  const SizedBox(width: 10),
-                  _OutlinedChip(label: data.tag!, accent: _decisionMuted),
-                ],
                 if (selected) ...[
                   const SizedBox(width: 10),
                   Container(
@@ -1346,116 +1233,12 @@ class _EncouragementView extends StatelessWidget {
   }
 }
 
-class _JourneyPausedView extends StatelessWidget {
-  const _JourneyPausedView({required this.onResume, required this.onExit});
 
-  final VoidCallback onResume;
-  final VoidCallback onExit;
-
-  @override
-  Widget build(BuildContext context) {
-    return _LightStepScroll(
-      children: [
-        const SizedBox(height: 48),
-        const _BadgeMark(label: 'Ⅱ', color: _decisionViolet),
-        const SizedBox(height: 24),
-        Text(
-          'Pause your journey',
-          key: const ValueKey('decision-journey-paused'),
-          textAlign: TextAlign.center,
-          style: AppTypography.headlineMedium.copyWith(
-            color: _decisionInk,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          'Your progress is saved. Come back whenever you’re ready.',
-          textAlign: TextAlign.center,
-          style: AppTypography.bodyMedium.copyWith(
-            color: _decisionMuted,
-            height: 1.4,
-          ),
-        ),
-        const SizedBox(height: 24),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(18),
-          decoration: _lightCardDecoration(),
-          child: const _CompletionLine(
-            label: 'Journey complete',
-            value: '15 / 30',
-          ),
-        ),
-        const SizedBox(height: 28),
-        GamePrimaryButton(
-          key: const ValueKey('decision-pause-resume'),
-          label: 'Resume journey',
-          onPressed: onResume,
-        ),
-        const SizedBox(height: 10),
-        GameOutlineButton(
-          key: const ValueKey('decision-pause-exit'),
-          label: 'Exit for now',
-          onPressed: onExit,
-        ),
-      ],
-    );
-  }
-}
-
-class _SavedProgressView extends StatelessWidget {
-  const _SavedProgressView({required this.onResume, required this.onBack});
-
-  final VoidCallback onResume;
-  final VoidCallback onBack;
-
-  @override
-  Widget build(BuildContext context) {
-    return _LightStepScroll(
-      children: [
-        const SizedBox(height: 28),
-        const _BadgeMark(label: '✓', color: Color(0xFF2BC66D)),
-        const SizedBox(height: 22),
-        Text(
-          'Progress saved',
-          key: const ValueKey('decision-progress-saved'),
-          style: AppTypography.headlineMedium.copyWith(
-            color: _decisionInk,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        const SizedBox(height: 20),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(20),
-          decoration: _lightCardDecoration(),
-          child: const Column(
-            children: [
-              _CompletionLine(label: 'Scenarios complete', value: '15'),
-              Divider(height: 28, color: _decisionBorder),
-              _CompletionLine(label: 'Scenarios remaining', value: '15'),
-              Divider(height: 28, color: _decisionBorder),
-              _CompletionLine(label: 'Estimated time left', value: '7–10 min'),
-            ],
-          ),
-        ),
-        const SizedBox(height: 28),
-        GamePrimaryButton(
-          key: const ValueKey('decision-saved-resume'),
-          label: 'Resume',
-          onPressed: onResume,
-        ),
-        const SizedBox(height: 10),
-        GameOutlineButton(label: 'Back to home', onPressed: onBack),
-      ],
-    );
-  }
-}
 
 class _ResumeJourneyView extends StatelessWidget {
-  const _ResumeJourneyView({required this.onContinue});
+  const _ResumeJourneyView({required this.scenarioNumber, required this.onContinue});
 
+  final int scenarioNumber;
   final VoidCallback onContinue;
 
   @override
@@ -1495,7 +1278,7 @@ class _ResumeJourneyView extends StatelessWidget {
         const SizedBox(height: 28),
         GamePrimaryButton(
           key: const ValueKey('decision-resume-continue'),
-          label: 'Continue from scenario 16',
+          label: 'Continue from scenario $scenarioNumber',
           onPressed: onContinue,
         ),
         const SizedBox(height: 16),
@@ -1778,7 +1561,10 @@ class DecisionRulesDialog extends StatelessWidget {
       actions: [
         TextButton(
           key: const ValueKey('decision-rules-back'),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+                  SoundService.instance.playSfx(GameSfx.buttonClick);
+                  Navigator.of(context).pop();
+                },
           child: const Text('Back'),
         ),
       ],

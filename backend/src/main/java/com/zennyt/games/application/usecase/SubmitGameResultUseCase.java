@@ -1,6 +1,7 @@
 package com.zennyt.games.application.usecase;
 
 import com.zennyt.games.application.command.SubmitGameResultCommand;
+import com.zennyt.games.domain.catalog.DecisionFormCatalog;
 import com.zennyt.games.domain.catalog.DecisionScenarioCatalog;
 import com.zennyt.games.domain.model.GameSession;
 import com.zennyt.games.domain.model.MiniGame;
@@ -20,6 +21,7 @@ import com.zennyt.games.domain.service.MemoryQuestScoringService;
 import com.zennyt.games.domain.service.PlanifikScoringService;
 import com.zennyt.games.domain.service.ReflectivePauseScoringService;
 import com.zennyt.games.domain.service.ScoreBreakdownService;
+import com.zennyt.games.domain.vo.DecisionItemResponse;
 import com.zennyt.games.domain.vo.DecisionMetrics;
 import com.zennyt.games.domain.vo.ContinuousAttentionMetrics;
 import com.zennyt.games.domain.vo.ContinuousAttentionReport;
@@ -55,6 +57,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Use case : soumettre le résultat d'un mini-jeu.
@@ -92,6 +95,7 @@ public class SubmitGameResultUseCase {
     private final ObjectLocationScoringService objectLocation =
         new ObjectLocationScoringService();
     private final DecisionScoringService decision;
+    private final DecisionFormCatalog decisionForms;
 
     public SubmitGameResultUseCase(GameSessionRepository repository,
                                    DeviceCalibrationRepository calibrationRepository,
@@ -100,7 +104,8 @@ public class SubmitGameResultUseCase {
                                    CoordinationMetricsRepository coordinationMetrics,
                                    ObjectLocationMetricsRepository objectLocationMetrics,
                                    ApplicationEventPublisher eventPublisher,
-                                   DecisionScenarioCatalog decisionCatalog) {
+                                   DecisionScenarioCatalog decisionCatalog,
+                                   DecisionFormCatalog decisionForms) {
         this.repository = repository;
         this.calibrationRepository = calibrationRepository;
         this.emotionalRadarAnswers = emotionalRadarAnswers;
@@ -108,9 +113,12 @@ public class SubmitGameResultUseCase {
         this.coordinationMetrics = coordinationMetrics;
         this.objectLocationMetrics = objectLocationMetrics;
         this.eventPublisher = eventPublisher;
-        // « Je Décide » : le catalogue (port) est injecté ; l'impl vivante
-        // (JsonDecisionScenarioCatalog) est désormais remplie par la banque de 120 items.
+        // « Je Décide » : deux ports distincts. Le catalogue de NOTATION fournit la
+        // qualité des options ; le catalogue de FORMES dit quels items la session
+        // avait le droit de recevoir. L'impl vivante des deux est
+        // DatabaseDecisionScenarioCatalog (banque de 120 items, V59).
         this.decision = new DecisionScoringService(decisionCatalog);
+        this.decisionForms = decisionForms;
     }
 
     /**
@@ -162,6 +170,8 @@ public class SubmitGameResultUseCase {
             return executeObjectLocation(command, session);
         }
 
+        assertDecisionItemsMatchAssignedForm(command, session);
+
         Score score = computeScore(command.miniGame(), command);
         session.recordResult(command.miniGame(), score, scoring);
 
@@ -202,6 +212,43 @@ public class SubmitGameResultUseCase {
             previsionPuzzleReport(command), memoryQuestReport(command),
             decisionReport, emotionalRadarReport(command),
             reflectivePauseReport(command), null, null, null, scoreBreakdown);
+    }
+
+    /**
+     * « Je Décide » — les items soumis doivent appartenir à la forme assignée à la
+     * session.
+     *
+     * <p>La forme est relue sur la SESSION, jamais prise dans le payload : sans ce
+     * contrôle, un client pourrait répondre à des items qu'on ne lui a pas servis —
+     * par exemple ne renvoyer que des items d'une dimension où il sait bien
+     * réussir, ou piocher dans les 90 items hors forme. L'imputation par dimension
+     * (≤ 2 manquants) reste, elle, un cas légitime : on n'exige pas les 30 items,
+     * seulement qu'aucun item étranger ne se glisse dans le lot.
+     */
+    private void assertDecisionItemsMatchAssignedForm(
+            SubmitGameResultCommand command, GameSession session) {
+
+        if (command.miniGame() != MiniGame.DECISION_CORE
+            || !(command.metrics() instanceof DecisionMetrics metrics)) {
+            return;
+        }
+        String formCode = session.decisionFormCode();
+        if (formCode == null) {
+            throw new IllegalStateException(
+                "Aucune forme « Je Décide » assignée à la session " + session.id());
+        }
+        Set<String> allowed = decisionForms.form(formCode).stream()
+            .map(DecisionFormCatalog.Content::itemId)
+            .collect(java.util.stream.Collectors.toSet());
+
+        List<String> foreign = metrics.items().stream()
+            .map(DecisionItemResponse::itemId)
+            .filter(id -> !allowed.contains(id))
+            .toList();
+        if (!foreign.isEmpty()) {
+            throw new IllegalArgumentException(
+                "Items hors de la forme " + formCode + " : " + foreign);
+        }
     }
 
     /**

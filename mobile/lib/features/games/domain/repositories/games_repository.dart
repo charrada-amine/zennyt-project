@@ -1,3 +1,4 @@
+import '../entities/decision_form.dart';
 import '../entities/device_calibration.dart';
 import '../entities/emotional_radar.dart';
 import '../entities/game_session.dart';
@@ -23,6 +24,13 @@ abstract class GamesRepository {
     required GameMetrics metrics,
     DeviceCalibration? deviceCalibration,
   });
+
+  /// `GET /games/sessions/{id}/decision/items` — forme « Je Décide » de la session.
+  ///
+  /// Les 30 items sont servis SANS clé de correction : ni qualité d'option, ni
+  /// score, ni réponse attendue. La notation est faite serveur à la soumission,
+  /// à partir de la forme persistée sur la session.
+  Future<DecisionForm> decisionItems(String sessionId, {String language});
 
   /// `GET /games/sessions/{id}/emotional-radar/scenes` — matériel de la session.
   ///

@@ -60,10 +60,7 @@ class CoordinationTrackingScreen extends ConsumerStatefulWidget {
 
 class _CoordinationTrackingScreenState
     extends ConsumerState<CoordinationTrackingScreen>
-    with
-        SingleTickerProviderStateMixin,
-        WidgetsBindingObserver,
-        GameMusicMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late final Ticker _ticker;
   _CoordinationStage _stage = _CoordinationStage.cover;
   int _tutorialPage = 0;
@@ -611,7 +608,7 @@ class _CoordinationTrackingScreenState
       label: 'Preparing your journey…',
     ),
     _CoordinationStage.tutorial => _buildTutorial(),
-    _CoordinationStage.practice || _CoordinationStage.test => _buildGameplay(),
+    _CoordinationStage.practice || _CoordinationStage.test => GameplayMusic(child: _buildGameplay()),
     _CoordinationStage.ready => _buildReady(),
     _CoordinationStage.submitting => const _CenteredProgress(
       label: 'Saving your movement…',

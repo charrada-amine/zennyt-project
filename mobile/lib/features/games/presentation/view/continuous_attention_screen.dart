@@ -123,7 +123,7 @@ class ContinuousAttentionScreen extends ConsumerStatefulWidget {
 
 class _ContinuousAttentionScreenState
     extends ConsumerState<ContinuousAttentionScreen>
-    with WidgetsBindingObserver, GameMusicMixin {
+    with WidgetsBindingObserver {
   _AttentionStage _stage = _AttentionStage.cover;
   GameSession? _session;
   List<ContinuousAttentionBlockSequence> _sequence = const [];
@@ -756,7 +756,7 @@ class _ContinuousAttentionScreenState
               key: ValueKey('continuous-loading'),
               label: 'Preparing your focus stream…',
             ),
-            _AttentionStage.playing => Focus(
+            _AttentionStage.playing => GameplayMusic(child: Focus(
               // La clé reste stable pendant toute la phase : seul le stimulus
               // au centre apparaît/disparaît. Inclure le curseur d'essai
               // relançait la transition de l'AnimatedSwitcher à chaque lettre,
@@ -775,7 +775,7 @@ class _ContinuousAttentionScreenState
                     _registerResponse(ContinuousAttentionInputSource.touch),
                 onPause: _openPause,
               ),
-            ),
+            )),
             _AttentionStage.xTestReady => _ReadyView(
               key: const ValueKey('continuous-x-test-ready'),
               title: 'Practice complete',
@@ -2805,7 +2805,10 @@ class _RulesDialog extends StatelessWidget {
             const SizedBox(height: 18),
             GamePrimaryButton(
               label: 'Got it',
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () {
+                  SoundService.instance.playSfx(GameSfx.buttonClick);
+                  Navigator.of(context).pop();
+                },
             ),
           ],
         ),

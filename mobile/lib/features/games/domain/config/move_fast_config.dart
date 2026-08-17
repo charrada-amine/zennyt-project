@@ -28,10 +28,24 @@ class MoveFastConfig {
   static const MoveFastSessionEndMode sessionEndMode =
       MoveFastSessionEndMode.fixedBudget;
 
-  // ── Mode FIXED_BUDGET — miroir de SESSION_END_CONDITION (12 / 18 / 84 s) ────
-  static const int targetCorrectAnswers = 12;
-  static const int maxResponses = 18;
-  static const int sessionSeconds = 84;
+  // ── Mode FIXED_BUDGET — miroir de SESSION_END_CONDITION (40 / 60 / 600 s) ───
+  //
+  // ⚠️ Ces trois valeurs se tiennent ensemble. Le multiplicateur monte d'un cran
+  // toutes les 4 bonnes réponses consécutives : atteindre [maxMultiplier] (10)
+  // depuis 1 demande 9 montées, donc 9 × 4 = 36 bonnes réponses AU MINIMUM.
+  // Avec l'ancien targetCorrectAnswers = 12, la session s'arrêtait après
+  // 3 montées et le multiplicateur plafonnait mécaniquement à ×4 — le maximum
+  // déclaré était inatteignable. Garder targetCorrectAnswers > 36.
+  /// Bonnes réponses consécutives pour faire monter le multiplicateur d'un cran
+  /// — miroir de `MoveFastConfig.CORRECT_STREAK_FOR_UPGRADE` (backend).
+  static const int correctStreakForUpgrade = 4;
+
+  static const int targetCorrectAnswers = 40;
+  static const int maxResponses = 60;
+
+  /// Budget de temps : 10 minutes. L'ancien budget de 84 s ne laissait pas le
+  /// temps de jouer 36 essais corrects, seconde raison du plafond à ×4.
+  static const int sessionSeconds = 600;
 
   /// Plafond du multiplicateur — condition de fin en mode REACH_MAX_MULTIPLIER
   /// (cœur du barème, miroir de `MAX_MULTIPLIER`, NE PAS modifier).

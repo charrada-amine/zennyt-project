@@ -1,5 +1,6 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
@@ -90,10 +91,25 @@ class SoundService {
   static final SoundService instance = SoundService._();
 
   static const String _bgMusicAsset = 'sounds/bg-music.mp3';
-  // Volume sonore par défaut à 40 %. La musique de fond reste ≤ 40 % du volume
-  // des SFX (fiche « Non-specific ») → 0.4 × 0.4 = 0.16.
+
+  /// Volume des effets sonores — 40 % du volume système.
   static const double _sfxVolume = 0.4;
-  static const double _musicVolume = 0.16;
+
+  /// Volume de la musique de fond.
+  ///
+  /// La fiche « Non-specific » impose que la musique ne dépasse pas **40 % du
+  /// volume des SFX** — c'est un rapport, pas une valeur absolue. D'où
+  /// 0.4 × [_sfxVolume] = 0.16, soit 16 % du volume système. Si l'intention
+  /// était 40 % du volume système, c'est [_musicToSfxRatio] qu'il faut relever
+  /// à 1.0 — mais la contrainte de la fiche ne serait plus respectée.
+  static const double _musicToSfxRatio = 0.4;
+  static const double _musicVolume = _sfxVolume * _musicToSfxRatio;
+
+  /// Sons qui marquent une erreur — ils déclenchent aussi la vibration.
+  static const Set<GameSfx> _errorSfx = {
+    GameSfx.wrongChoice,
+    GameSfx.resetCounter,
+  };
 
   final AudioPlayer _musicPlayer = AudioPlayer(playerId: 'zennyt-bg-music');
   // Lecteur dédié au son du tableau de score : on doit pouvoir le couper
@@ -108,11 +124,15 @@ class SoundService {
 
   bool _musicEnabled = true;
   bool _sfxEnabled = true;
+  bool _hapticsEnabled = true;
   bool _musicPlaying = false;
+  /// Musique chargée puis mise en pause — distinct de « jamais démarrée ».
+  bool _musicPaused = false;
   bool _configured = false;
 
   bool get musicEnabled => _musicEnabled;
   bool get sfxEnabled => _sfxEnabled;
+  bool get hapticsEnabled => _hapticsEnabled;
 
   /// Configure la session audio globale une seule fois : lecture même en mode
   /// silencieux (iOS) et cohabitation avec d'autres sons. Idempotent.
@@ -135,7 +155,9 @@ class SoundService {
   /// Démarre (ou reprend) la musique de fond en boucle. Sans effet si la
   /// musique est désactivée ou déjà en cours.
   Future<void> startMusic() async {
-    if (!_musicEnabled || _musicPlaying) return;
+    if (!_musicEnabled) return;
+    if (_musicPaused) return resumeMusic();
+    if (_musicPlaying) return;
     _musicPlaying = true;
     await _ensureConfigured();
     try {
@@ -154,10 +176,63 @@ class SoundService {
   /// Arrête la musique de fond (par ex. en quittant un jeu).
   Future<void> stopMusic() async {
     _musicPlaying = false;
+    _musicPaused = false;
     try {
       await _musicPlayer.stop();
     } catch (error) {
       _log('stopMusic', error);
+    }
+  }
+
+  /// Met la musique de fond en **pause** (position conservée).
+  ///
+  /// Distinct de [stopMusic] : le toggle du menu pause utilisait `stop`, donc
+  /// réactiver la musique la relançait depuis le début au lieu de reprendre où
+  /// elle en était.
+  Future<void> pauseMusic() async {
+    if (!_musicPlaying || _musicPaused) return;
+    _musicPaused = true;
+    try {
+      await _musicPlayer.pause();
+    } catch (error) {
+      _musicPaused = false;
+      _log('pauseMusic', error);
+    }
+  }
+
+  /// Reprend la musique de fond là où [pauseMusic] l'a laissée.
+  Future<void> resumeMusic() async {
+    if (!_musicEnabled || !_musicPaused) return;
+    _musicPaused = false;
+    try {
+      await _musicPlayer.resume();
+    } catch (error) {
+      _log('resumeMusic', error);
+    }
+  }
+
+  // ── Retour haptique ───────────────────────────────────────────────────
+  // Centralisé ici pour une seule raison : le réglage « Vibration » du menu
+  // pause doit pouvoir tout couper. Un appel direct à HapticFeedback dans un
+  // écran échapperait au réglage — c'était le cas de la seule vibration
+  // existante (case interdite d'Optimal Path).
+
+  /// Erreur : vibration franche.
+  Future<void> vibrateError() => _vibrate(HapticFeedback.heavyImpact);
+
+  /// Réussite / franchissement d'un palier : vibration moyenne.
+  Future<void> vibrateSuccess() => _vibrate(HapticFeedback.mediumImpact);
+
+  /// Sélection, pose d'un élément : vibration discrète.
+  Future<void> vibrateSelection() => _vibrate(HapticFeedback.selectionClick);
+
+  Future<void> _vibrate(Future<void> Function() effect) async {
+    if (!_hapticsEnabled) return;
+    try {
+      await effect();
+    } catch (error) {
+      // Appareil sans moteur haptique, ou plateforme de test sans plugin.
+      _log('_vibrate', error);
     }
   }
 
@@ -166,6 +241,17 @@ class SoundService {
   /// Un lecteur jetable est créé par tir puis libéré à la fin, ce qui autorise
   /// des sons superposés sans se couper mutuellement.
   Future<void> playSfx(GameSfx sfx) async {
+    // Le retour haptique accompagne les sons d'ERREUR, et il est déclenché AVANT
+    // le test sur [_sfxEnabled] : son et vibration sont deux canaux distincts,
+    // avec deux interrupteurs distincts dans le menu pause. Couper le son ne doit
+    // pas couper la vibration.
+    //
+    // Centraliser ici plutôt que dans chaque écran a un avantage décisif : tout
+    // jeu qui signale déjà une erreur par un son gagne la vibration sans une
+    // ligne de plus, et aucun écran ne peut contourner le réglage.
+    if (_errorSfx.contains(sfx)) {
+      vibrateError();
+    }
     if (!_sfxEnabled) return;
     await _ensureConfigured();
     final player = AudioPlayer();
@@ -268,15 +354,22 @@ class SoundService {
     }
   }
 
-  /// Active/coupe la musique de fond (relié aux réglages du menu pause).
+  /// Active/coupe la musique de fond (réglage du menu pause).
+  ///
+  /// Met en **pause** plutôt qu'arrêter : réactiver reprend le morceau où il en
+  /// était. Si la musique n'a jamais démarré (réglage basculé hors gameplay),
+  /// [startMusic] reste sans effet — c'est le plateau qui la lance.
   void setMusicEnabled(bool enabled) {
     _musicEnabled = enabled;
     if (enabled) {
       startMusic();
     } else {
-      stopMusic();
+      pauseMusic();
     }
   }
+
+  /// Active/coupe le retour haptique (réglage du menu pause).
+  void setHapticsEnabled(bool enabled) => _hapticsEnabled = enabled;
 
   /// Active/coupe les effets sonores (relié aux réglages du menu pause).
   void setSfxEnabled(bool enabled) {
@@ -289,9 +382,23 @@ class SoundService {
   }
 }
 
-/// À mélanger dans le `State` d'un écran de jeu : démarre la musique de fond à
-/// l'entrée et l'arrête à la sortie. Fonctionne aussi avec `ConsumerState`.
-mixin GameMusicMixin<T extends StatefulWidget> on State<T> {
+/// Enveloppe le **plateau** d'un jeu : la musique de fond tourne tant que ce
+/// sous-arbre est monté, et s'arrête dès qu'il est démonté.
+///
+/// Remplace l'ancien `GameMusicMixin`, qui démarrait la musique dans `initState`
+/// — donc dès l'écran d'introduction, et jusqu'au tableau de score. En
+/// l'accrochant au seul widget de gameplay, la musique ne peut plus déborder sur
+/// les règles ni sur le score : il n'y a rien à se rappeler d'appeler à la sortie.
+class GameplayMusic extends StatefulWidget {
+  const GameplayMusic({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  State<GameplayMusic> createState() => _GameplayMusicState();
+}
+
+class _GameplayMusicState extends State<GameplayMusic> {
   @override
   void initState() {
     super.initState();
@@ -303,4 +410,7 @@ mixin GameMusicMixin<T extends StatefulWidget> on State<T> {
     SoundService.instance.stopMusic();
     super.dispose();
   }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }

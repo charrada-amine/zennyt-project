@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 
 import '../../../../core/audio/sound_service.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../domain/entities/game_session.dart';
+import '../../domain/entities/score_breakdown.dart';
 import '../widgets/game_system_components.dart';
 
 const _ink = Color(0xFF28234F);
@@ -18,54 +20,127 @@ const _orange = Color(0xFFFF963A);
 const _green = Color(0xFF2BC66D);
 const _softPink = Color(0xFFFFF1F7);
 
-/// Profil d'aperçu reproduisant exactement les valeurs de la maquette Phase 4.
+/// Profil de décision RÉEL, dérivé de la réponse du serveur.
 ///
-/// Il ne s'agit pas d'un résultat psychométrique calculé côté client. Le profil
-/// réel remplacera cet aperçu lorsque le catalogue et le barème serveur auront
-/// été validés.
-class DecisionProfilePreview {
-  const DecisionProfilePreview._();
+/// Rien n'est calculé ici : le SCW /100, le niveau et le détail /18 par dimension
+/// sont notés côté backend (catalogue des 120 items) et arrivent dans la session.
+/// Le client ne fait que projeter. Les libellés et descriptions de dimension sont
+/// du texte de référence — ils expliquent ce que mesure une dimension, ils ne
+/// décrivent pas le candidat.
+class DecisionProfile {
+  const DecisionProfile({
+    required this.score,
+    required this.level,
+    required this.dimensions,
+  });
 
-  static const title = 'Analytical Decision-Maker';
-  static const score = 82;
-  static const labels = [
-    'Analytical Thinking',
-    'Risk Balance',
-    'Quick Choice',
-    'Decision Stability',
-    'Self-Control',
-  ];
-  static const shortLabels = [
-    'Analytical',
-    'Risk',
-    'Quick',
-    'Stability',
-    'Control',
-  ];
-  static const values = [78, 62, 48, 72, 67];
-  static const descriptions = [
-    'You notice important constraints and compare them before choosing.',
-    'You balance guaranteed outcomes and uncertain possibilities with moderate caution.',
-    'You may prefer having a little more time before deciding.',
-    'Your choices stay relatively stable across similar situations.',
-    'You often consider future benefits instead of only immediate rewards.',
-  ];
-  static const strengths = [
-    'You compare several pieces of information before choosing.',
-    'You stay consistent across similar situations.',
-    'You often prefer thoughtful decisions over rushed reactions.',
-  ];
-  static const growth =
-      'Under time pressure, you may benefit from using a simple decision rule before choosing.';
-  static const tip =
-      'Identify the one constraint that matters most, then choose the option that respects it.';
+  /// Score composite standardisé pondéré /100.
+  final int score;
+
+  /// Élevé · Normal · Borderline · Fragile (seuils serveur).
+  final String level;
+
+  final List<DecisionDimensionResult> dimensions;
+
+  List<int> get values => [for (final d in dimensions) d.percent];
+
+  /// Construit le profil à partir de la session soumise.
+  ///
+  /// Le détail par dimension est lu dans `scoreBreakdown` : une ligne critère par
+  /// dimension (II/ER/DT/CS/RE), notée /18. Une dimension non exploitable
+  /// (> 2 items manquants) arrive en ligne `info` et vaut 0 %.
+  factory DecisionProfile.fromSession(GameSession session) {
+    final score = session.lastAttempt?.score;
+    final byCode = <String, ScoreBreakdownLine>{
+      for (final line in session.scoreBreakdown)
+        if (_dimensionOrder.contains(line.label)) line.label: line,
+    };
+    return DecisionProfile(
+      score: score?.rawPoints ?? 0,
+      level: score?.level ?? '—',
+      dimensions: [
+        for (final code in _dimensionOrder)
+          DecisionDimensionResult(
+            code: code,
+            label: _dimensionLabels[code]!,
+            shortLabel: _dimensionShortLabels[code]!,
+            description: _dimensionDescriptions[code]!,
+            points: byCode[code]?.points,
+            maxPoints: byCode[code]?.maxPoints ?? 18,
+            // Le serveur suffixe le détail quand la dimension ne discrimine pas
+            // encore (modèles λ / k / cohérence de paire non implémentés).
+            provisional:
+                byCode[code]?.detail?.contains('notation provisoire') ?? false,
+          ),
+      ],
+    );
+  }
+
+  static const _dimensionOrder = ['II', 'ER', 'DT', 'CS', 'RE'];
+
+  static const _dimensionLabels = {
+    'II': 'Analytical Thinking',
+    'ER': 'Risk Balance',
+    'DT': 'Quick Choice',
+    'CS': 'Decision Stability',
+    'RE': 'Self-Control',
+  };
+
+  static const _dimensionShortLabels = {
+    'II': 'Analytical',
+    'ER': 'Risk',
+    'DT': 'Quick',
+    'CS': 'Stability',
+    'RE': 'Control',
+  };
+
+  static const _dimensionDescriptions = {
+    'II': 'How you identify and compare the constraints of a situation before choosing.',
+    'ER': 'How you weigh a guaranteed outcome against an uncertain one.',
+    'DT': 'How you decide when time is limited.',
+    'CS': 'How stable your choices stay across equivalent situations.',
+    'RE': 'How you weigh an immediate reward against a larger delayed one.',
+  };
+
+  static const shortLabels = ['Analytical', 'Risk', 'Quick', 'Stability', 'Control'];
+}
+
+/// Résultat d'UNE dimension.
+class DecisionDimensionResult {
+  const DecisionDimensionResult({
+    required this.code,
+    required this.label,
+    required this.shortLabel,
+    required this.description,
+    required this.points,
+    required this.maxPoints,
+    required this.provisional,
+  });
+
+  final String code;
+  final String label;
+  final String shortLabel;
+  final String description;
+
+  /// Score /18, ou `null` si le bloc n'est pas exploitable.
+  final int? points;
+  final int maxPoints;
+
+  /// true → tous les items servis sur cette dimension sont en notation neutre :
+  /// le score ne discrimine pas encore, il ne faut pas le lire comme une
+  /// performance.
+  final bool provisional;
+
+  bool get exploitable => points != null;
+
+  int get percent =>
+      points == null || maxPoints == 0 ? 0 : (points! * 100 / maxPoints).round();
 }
 
 enum DecisionResultsStep {
   journeyComplete,
   preparing,
   profile,
-  strengths,
   details,
   export,
 }
@@ -73,11 +148,13 @@ enum DecisionResultsStep {
 class DecisionResultsFlow extends StatefulWidget {
   const DecisionResultsFlow({
     super.key,
+    required this.profile,
     required this.onClose,
     required this.onDone,
     this.initialStep = DecisionResultsStep.journeyComplete,
   });
 
+  final DecisionProfile profile;
   final VoidCallback onClose;
   final VoidCallback onDone;
   final DecisionResultsStep initialStep;
@@ -143,7 +220,6 @@ class _DecisionResultsFlowState extends State<DecisionResultsFlow> {
     DecisionResultsStep.journeyComplete => 'Journey complete',
     DecisionResultsStep.preparing => 'Preparing your profile',
     DecisionResultsStep.profile => 'Decision profile',
-    DecisionResultsStep.strengths => 'Your insights',
     DecisionResultsStep.details => 'Detailed insights',
     DecisionResultsStep.export => 'Export & share',
   };
@@ -154,20 +230,23 @@ class _DecisionResultsFlowState extends State<DecisionResultsFlow> {
       onBack: widget.onClose,
     ),
     DecisionResultsStep.preparing => _PreparingProfileView(
+      profile: widget.profile,
       onReady: () => _go(DecisionResultsStep.profile),
     ),
     DecisionResultsStep.profile => _ProfileView(
-      onInsights: () => _go(DecisionResultsStep.strengths),
+      profile: widget.profile,
+      onInsights: () => _go(DecisionResultsStep.details),
       onShare: () => _go(DecisionResultsStep.export),
     ),
-    DecisionResultsStep.strengths => _StrengthsView(
-      onDetails: () => _go(DecisionResultsStep.details),
-    ),
     DecisionResultsStep.details => _DetailsView(
+      profile: widget.profile,
       onExport: () => _go(DecisionResultsStep.export),
       onBack: () => _go(DecisionResultsStep.profile),
     ),
-    DecisionResultsStep.export => _ExportView(onDone: widget.onDone),
+    DecisionResultsStep.export => _ExportView(
+      profile: widget.profile,
+      onDone: widget.onDone,
+    ),
   };
 }
 
@@ -264,7 +343,9 @@ class _JourneyCompleteView extends StatelessWidget {
 }
 
 class _PreparingProfileView extends StatefulWidget {
-  const _PreparingProfileView({required this.onReady});
+  const _PreparingProfileView({required this.profile, required this.onReady});
+
+  final DecisionProfile profile;
 
   final VoidCallback onReady;
 
@@ -293,10 +374,13 @@ class _PreparingProfileViewState extends State<_PreparingProfileView> {
     return _ScrollableResult(
       children: [
         const SizedBox(height: 20),
-        const SizedBox(
+        SizedBox(
           width: 250,
           height: 250,
-          child: _DecisionRadar(values: DecisionProfilePreview.values),
+          child: _DecisionRadar(
+            values: widget.profile.values,
+            labels: [for (final d in widget.profile.dimensions) d.label],
+          ),
         ),
         const SizedBox(height: 18),
         const _TitleBlock(
@@ -335,7 +419,13 @@ class _PreparingProfileViewState extends State<_PreparingProfileView> {
 }
 
 class _ProfileView extends StatelessWidget {
-  const _ProfileView({required this.onInsights, required this.onShare});
+  const _ProfileView({
+    required this.profile,
+    required this.onInsights,
+    required this.onShare,
+  });
+
+  final DecisionProfile profile;
 
   final VoidCallback onInsights;
   final VoidCallback onShare;
@@ -348,14 +438,14 @@ class _ProfileView extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const _ScoreRing(score: DecisionProfilePreview.score),
+            _ScoreRing(score: profile.score),
             const SizedBox(width: 18),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    DecisionProfilePreview.title,
+                    'Decision profile',
                     key: const ValueKey('decision-profile-title'),
                     style: AppTypography.headlineSmall.copyWith(
                       color: _ink,
@@ -363,22 +453,30 @@ class _ProfileView extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const _Pill(label: 'Balanced profile', color: _green),
+                  // Niveau calculé serveur (seuils de la fiche + couche provisoire).
+                  _Pill(label: profile.level, color: _green),
                 ],
               ),
             ),
           ],
         ),
         const SizedBox(height: 18),
-        const _ResultCard(
+        _ResultCard(
           child: SizedBox(
             height: 280,
-            child: _DecisionRadar(values: DecisionProfilePreview.values),
+            child: _DecisionRadar(
+              values: profile.values,
+              labels: [for (final d in profile.dimensions) d.label],
+            ),
           ),
         ),
         const SizedBox(height: 16),
         Text(
-          'You tend to compare key constraints before choosing, while staying steady across similar situations.',
+          profile.dimensions.any((d) => d.provisional)
+              ? 'Some dimensions are still scored neutrally while their model is '
+                    'being finalised — they do not yet tell you apart.'
+              : 'Each dimension is scored out of 18 by the server, then combined '
+                    'into a single weighted score.',
           textAlign: TextAlign.center,
           style: AppTypography.bodyMedium.copyWith(color: _muted, height: 1.4),
         ),
@@ -395,64 +493,15 @@ class _ProfileView extends StatelessWidget {
   }
 }
 
-class _StrengthsView extends StatelessWidget {
-  const _StrengthsView({required this.onDetails});
-
-  final VoidCallback onDetails;
-
-  @override
-  Widget build(BuildContext context) {
-    return _ScrollableResult(
-      children: [
-        const SizedBox(height: 8),
-        const _SectionTitle(
-          icon: Icons.stars_rounded,
-          title: 'Your strengths',
-          color: _violet,
-        ),
-        const SizedBox(height: 12),
-        for (var i = 0; i < DecisionProfilePreview.strengths.length; i++)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: _InsightCard(
-              number: i + 1,
-              text: DecisionProfilePreview.strengths[i],
-            ),
-          ),
-        const SizedBox(height: 12),
-        const _SectionTitle(
-          icon: Icons.trending_up_rounded,
-          title: 'Growth area',
-          color: _orange,
-        ),
-        const SizedBox(height: 12),
-        const _ResultCard(
-          accent: _orange,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                DecisionProfilePreview.growth,
-                style: TextStyle(color: _ink, height: 1.4),
-              ),
-              SizedBox(height: 14),
-              _TipBox(text: DecisionProfilePreview.tip),
-            ],
-          ),
-        ),
-        const SizedBox(height: 24),
-        GamePrimaryButton(
-          key: const ValueKey('decision-detailed-insights'),
-          label: 'See detailed insights',
-          onPressed: onDetails,
-        ),
-      ],
-    );
-  }
-}
 
 class _DetailsView extends StatelessWidget {
-  const _DetailsView({required this.onExport, required this.onBack});
+  const _DetailsView({
+    required this.profile,
+    required this.onExport,
+    required this.onBack,
+  });
+
+  final DecisionProfile profile;
 
   final VoidCallback onExport;
   final VoidCallback onBack;
@@ -462,13 +511,16 @@ class _DetailsView extends StatelessWidget {
     return _ScrollableResult(
       children: [
         const SizedBox(height: 8),
-        for (var i = 0; i < DecisionProfilePreview.labels.length; i++)
+        for (var i = 0; i < profile.dimensions.length; i++)
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: _DimensionCard(
-              label: DecisionProfilePreview.labels[i],
-              value: DecisionProfilePreview.values[i],
-              description: DecisionProfilePreview.descriptions[i],
+              label: profile.dimensions[i].label,
+              value: profile.dimensions[i].percent,
+              description: profile.dimensions[i].provisional
+                  ? '${profile.dimensions[i].description} '
+                        '(Notation provisoire : cette dimension ne discrimine pas encore.)'
+                  : profile.dimensions[i].description,
               color: const [_violet, _magenta, _orange, _green, _cyan][i],
             ),
           ),
@@ -486,13 +538,15 @@ class _DetailsView extends StatelessWidget {
 }
 
 class _ExportView extends StatelessWidget {
-  const _ExportView({required this.onDone});
+  const _ExportView({required this.profile, required this.onDone});
 
+  final DecisionProfile profile;
   final VoidCallback onDone;
 
   String get _summary =>
-      '${DecisionProfilePreview.title} — ${DecisionProfilePreview.score}/100\n'
-      '${DecisionProfilePreview.labels.asMap().entries.map((entry) => '${entry.value}: ${DecisionProfilePreview.values[entry.key]}/100').join('\n')}';
+      'Decision profile — ${profile.score}/100 (${profile.level})\n'
+      '${profile.dimensions.map((d) => '${d.label}: ${d.percent}/100'
+          '${d.provisional ? ' (provisional)' : ''}').join('\n')}';
 
   Future<void> _copy(BuildContext context, String message) async {
     await Clipboard.setData(ClipboardData(text: _summary));
@@ -826,103 +880,8 @@ class _Pill extends StatelessWidget {
   }
 }
 
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({
-    required this.icon,
-    required this.title,
-    required this.color,
-  });
 
-  final IconData icon;
-  final String title;
-  final Color color;
 
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, color: color),
-        const SizedBox(width: 10),
-        Text(
-          title,
-          style: AppTypography.titleLarge.copyWith(
-            color: _ink,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _InsightCard extends StatelessWidget {
-  const _InsightCard({required this.number, required this.text});
-
-  final int number;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return _ResultCard(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 30,
-            height: 30,
-            alignment: Alignment.center,
-            decoration: const BoxDecoration(
-              color: _magenta,
-              shape: BoxShape.circle,
-            ),
-            child: Text(
-              '$number',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(text, style: const TextStyle(color: _ink, height: 1.4)),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TipBox extends StatelessWidget {
-  const _TipBox({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: _softPink,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.lightbulb_rounded, color: _magenta),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(color: _ink, height: 1.35),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _DimensionCard extends StatelessWidget {
   const _DimensionCard({
@@ -1092,14 +1051,18 @@ class _PrivacyNote extends StatelessWidget {
 }
 
 class _DecisionRadar extends StatelessWidget {
-  const _DecisionRadar({required this.values});
+  const _DecisionRadar({required this.values, required this.labels});
+
+  /// Libellés complets — lus par les lecteurs d'écran. Le tracé, lui, utilise
+  /// les libellés courts, faute de place.
+  final List<String> labels;
 
   final List<int> values;
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: DecisionProfilePreview.labels
+      label: labels
           .asMap()
           .entries
           .map((entry) => '${entry.value} ${values[entry.key]} out of 100')
@@ -1177,7 +1140,7 @@ class _DecisionRadarPainter extends CustomPainter {
       final labelPoint = point(1.28, index);
       final painter = TextPainter(
         text: TextSpan(
-          text: DecisionProfilePreview.shortLabels[index],
+          text: DecisionProfile.shortLabels[index],
           style: const TextStyle(
             color: _ink,
             fontSize: 11,

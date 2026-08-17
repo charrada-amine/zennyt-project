@@ -42,8 +42,7 @@ class EmotionalRadarScreen extends ConsumerStatefulWidget {
       _EmotionalRadarScreenState();
 }
 
-class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen>
-    with GameMusicMixin {
+class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
   _Stage _stage = _Stage.cover;
 
   GameSession? _session;
@@ -304,7 +303,7 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen>
       ),
       _Stage.loading => const _GameScaffold(child: _CenteredSpinner()),
       _Stage.transition => _buildShell(child: const _PreparingCard()),
-      _Stage.gameplay => _buildGameplay(),
+      _Stage.gameplay => GameplayMusic(child: _buildGameplay()),
       _Stage.feedback => _buildFeedback(),
       _Stage.results => _ResultsView(
         session: _session,
@@ -994,7 +993,10 @@ class _HelpDialog extends StatelessWidget {
             const SizedBox(height: 6),
             _MagentaButton(
               label: 'Resume game',
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () {
+                  SoundService.instance.playSfx(GameSfx.buttonClick);
+                  Navigator.of(context).pop();
+                },
             ),
           ],
         ),
@@ -1050,7 +1052,10 @@ class _FullscreenSceneView extends StatelessWidget {
                     button: true,
                     label: 'Close full screen',
                     child: IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
+                      onPressed: () {
+                  SoundService.instance.playSfx(GameSfx.buttonClick);
+                  Navigator.of(context).pop();
+                },
                       icon: const Icon(Icons.close, color: Colors.white),
                       style: IconButton.styleFrom(
                         backgroundColor: Colors.white24,
@@ -1236,7 +1241,10 @@ class _ResultsView extends StatelessWidget {
                 width: double.infinity,
                 height: 52,
                 child: TextButton(
-                  onPressed: () => Navigator.of(context).maybePop(),
+                  onPressed: () {
+                  SoundService.instance.playSfx(GameSfx.buttonClick);
+                  Navigator.of(context).maybePop();
+                },
                   child: const Text(
                     'Back to games',
                     style: TextStyle(
@@ -1372,7 +1380,10 @@ class _ErrorView extends StatelessWidget {
               _MagentaButton(label: 'Try again', onPressed: onRetry),
               const SizedBox(height: 12),
               TextButton(
-                onPressed: () => Navigator.of(context).maybePop(),
+                onPressed: () {
+                  SoundService.instance.playSfx(GameSfx.buttonClick);
+                  Navigator.of(context).maybePop();
+                },
                 child: const Text(
                   'Back to games',
                   style: TextStyle(

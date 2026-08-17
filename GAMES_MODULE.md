@@ -22,7 +22,7 @@ Chaque **jeu** correspond à un `GameType` (un domaine cognitif = une fiche) et 
 | **« Je coordonne » — Sync Square** | `VISUOMOTOR_COORDINATION` | `COORDINATION_TRACKING_CORE` | Coordination visuo-motrice — suivi continu d'une cible sur trajectoire carrée fixe horaire | 🟢 **Complet /100 PROVISOIRE** — 2 segments de pratique + 12 tests ; précision globale seule dans le score, autres indicateurs descriptifs | Flutter custom |
 | **Memory Quest — « J'investigue »** | `MEMORY_QUEST` | `MEMORY_QUEST_CORE` | Mémoire de travail — Mission A (digit span) + B (objets) + distraction | 🟢 **Complet** — 7 niveaux (3→9), calibrage → timeout (score dépend du temps), `session_valid` ; composite **/100** | Flutter custom |
 | **« Je place » — Place & Bind** | `VISUOSPATIAL_MEMORY` | `OBJECT_LOCATION_BINDING_CORE` | Mémoire visuo-spatiale — liaison objet-emplacement sur grille 4×4 | 🟢 **Complet /100 PROVISOIRE** — pratique à 2 objets puis 6 niveaux de 3→8 objets ; layouts reconstruits serveur, indicateurs secondaires descriptifs | Flutter custom |
-| **« Je Décide » — Phases 1–4 mobile** | `DECISION` | `DECISION_CORE` | Prise de décision (II, ER, DT, CS, RE — /18 chacune → /90 → SCW /100) | 🟡 **Parcours UI complet** (aperçu maquette) + 🟢 **moteur backend prêt** : agrégation, règle DT, imputation, interprétations, validité, couche provisoire isolée. **Non jouable end-to-end** tant que le catalogue de 30 scénarios est vide (`DECISION_CORE.isPlayable()=false`) | Flutter (UI) / Java (moteur) |
+| **« Je Décide »** | `DECISION` | `DECISION_CORE` | Prise de décision (II, ER, DT, CS, RE — /18 chacune → /90 → SCW /100) | 🟢 **Jouable end-to-end** (V59) : banque de 120 items en base, forme A de 30 items servie par `GET /decision/items`, notation serveur. ⚠️ CS et RE en **notation neutre provisoire** (modèles λ/k/cohérence non implémentés) ; formes B/C/D différées | Flutter (UI) / Java (moteur + contenu) |
 | **Emotional Radar — « Je gère »** | `EMOTIONAL_REGULATION` | `EMOTIONAL_RADAR_CORE` | Régulation émotionnelle — reconnaissance d'émotion (famille + nuance + intensité) | 🟢 Jouable **9 pts/scène** — 3 scènes rédigées (27), 15 visées (135) ; **contenu servi par le backend** | Flutter custom |
 | **Reflective Pause — « Je gère »** | `EMOTIONAL_REGULATION` | `REFLECTIVE_PAUSE_CORE` | Régulation émotionnelle — contrôle de l'impulsivité sous pression | 🟢 **Complet /10** — 10 moments, pause minimale 3 s, résultats + insights calculés serveur | Flutter custom |
 | **Strategic Choices — preview mobile** | *(rattaché visuellement à `EMOTIONAL_REGULATION`)* | *(aucun mini-jeu contractuel)* | Régulation émotionnelle — pause, lecture d'une situation et choix d'une stratégie | 🟡 **Front-only non scoré** — 10 situations textuelles, réflexion 3 s, aucun appel API/Fit Score | Flutter custom |
@@ -664,7 +664,7 @@ Prise de décision (fiche « JE DÉCIDE »). Architecture **imposée : deux couc
 - **e — multiplicateurs es/it/pt** (estimations sectorielles : 1.22 / 1.18 / 1.22) + **fallback `ar`** documenté (1.20, tracé) plutôt qu'un échec.
 - Seuils « bas/élevé » par dimension (déclencheurs des interprétations) et seuils de qualité de session : provisoires, isolés ici.
 
-**Catalogue — port injectable** : `DecisionScenarioCatalog` (dimension + format + `OptionQuality` par option). Implémentation vivante **vide** `EmptyDecisionScenarioCatalog` (`// EN ATTENTE DU PSYCHOLOGUE — 30 scénarios + étiquetage`). **Aucun contenu de scénario n'est inventé.** `MiniGame.DECISION_CORE.isPlayable()=false` tant que le catalogue est vide (même patron que `TASK_SCHEDULING` avant implémentation).
+**Catalogue — deux ports injectables** : `DecisionScenarioCatalog` (notation : dimension + format + `provisionalScoring` + `OptionQuality` par option) et `DecisionFormCatalog` (présentation : vignette résolue, consigne, énoncés d'options). Implémentation vivante `DatabaseDecisionScenarioCatalog` (V59, 120 items en base) ; `EmptyDecisionScenarioCatalog` reste le repli de test, `JsonDecisionScenarioCatalog` est `@Deprecated`. `MiniGame.DECISION_CORE.isPlayable()=true`.
 
 **À demander au psychologue pour remplacer le provisoire** : (bloquant) **catalogue des 30 scénarios + étiquetage `OptionQuality` des options** ; poids SCW réels ; bornes de niveau hors ≥ 75 ; multiplicateurs es/it/pt/ar ; échelles post-test fatigue/motivation (et age/educationLevel).
 
@@ -779,9 +779,9 @@ sur l'onglet Careers/Progress ; les routes de jeu restent plein écran.
 | **presentation** | `presentation/games_providers.dart` | Bascule mock/backend via `--dart-define=GAMES_MOCK` (défaut `true`). |
 | | `presentation/games_controller.dart` | `AsyncNotifier<GameSession?>` : `start()` / `submit()`. |
 | | `presentation/view/games_hub_screen.dart` | Hub jeux style maquette Progress : header « Play & discover your talent », 5 cartes de domaines cognitifs, illustration de catégorie + logos PNG officiels des jeux (`assets/games icons/`) ; le picker multi-jeux réutilise les mêmes images. `Cognitive Flexibility` propose Move Fast + Je continue + Je coordonne ; `Working Memory` propose Memory Quest + Je place ; `Emotional Regulation` propose Radar + Reflective Pause + la preview Strategic Choices, sans renommer les catégories. |
-| | `presentation/view/je_decide_screen.dart` | **« Je Décide » Phases 1–4** : machine d'états du welcome au profil final, restauration automatique d'un checkpoint local. UI uniquement, sans session backend. |
-| | `presentation/view/je_decide_gameplay.dart` | Gameplay **Phases 2–3** : scénarios représentatifs, timer DT 7 s, paire CS, feedback XP, encouragement, badge/dimension, checkpoint, pause/règles et sauvegarde/reprise. XP visuel uniquement ; aucun score calculé. |
-| | `presentation/view/je_decide_results.dart` | Résultats **Phase 4** : fin de parcours, préparation, radar accessible, score-ring/forces/axe de progression/détails et export-partage placeholder. Valeurs strictement issues de la maquette et marquées `DecisionProfilePreview`, jamais calculées depuis les choix. |
+| | `presentation/view/je_decide_screen.dart` | **« Je Décide »** : welcome → onboarding → entraînement → 30 items servis par `GET /decision/items` → soumission → profil réel. Ouvre la session backend, restaure un checkpoint local (index d'item). |
+| | `presentation/view/je_decide_gameplay.dart` | Gameplay piloté par les **30 items servis** : chrono DT sur le temps imparti renvoyé par le serveur, paires CS enchaînées, écrans de transition aux seules frontières de dimension, pause/règles, checkpoint. Mesure `responseTimeMs` (à la validation, via `package:clock`) et `decisionChangesCount`. XP visuel uniquement ; aucun score calculé. |
+| | `presentation/view/je_decide_results.dart` | Résultats : fin de parcours, préparation, radar accessible, score-ring, détail par dimension, export. `DecisionProfile.fromSession` projette la **réponse serveur** (SCW /100, niveau, /18 par dimension, marqueur de notation provisoire) — rien n'est calculé côté client. |
 | | `presentation/view/planifik_screen.dart` | Flow complet **Optimal Path** (intro Path Mind, How To Play, gameplay **multi-niveaux**, score, comparaison) + HUD stations, **menu pause** (`_PauseDialog`), légende, contrôles + bouton « Continue to scheduling » (→ Planifik #2). Voir [Flow Optimal Path](#-flow-optimal-path-mobile). |
 | | `presentation/view/task_scheduling_screen.dart` | **Planifik #2 « Ordonnancement de tâches »** : tap-to-place d'un lot de tâches (dépendances + échéances affichées), mesure (deps/horaires/cohérence/réajustements), soumet via le repo, `ScoreDetailPanel`, enchaîne vers #3. |
 | | `presentation/view/move_fast_screen.dart` | Écran complet « Je bouge » (intro, tutoriels, gameplay **niveau unique à règle aléatoire**, résultats). Voir [Niveau Move Fast](#-niveau-move-fast-mobile). |
@@ -1032,21 +1032,23 @@ machine d'états locale :
   puis passage automatique au scénario suivant. Aucune notion de réussite/échec.
 - **Feedback** : écran `+12 XP` et badge `Steady Explorer`. Ces valeurs reproduisent seulement les
   états visuels des maquettes ; elles ne constituent pas un barème.
-- **Checkpoint/reprise** : à mi-parcours, pause optionnelle, écran de progression sauvegardée et
-  restauration automatique. `DecisionProgressStore` conserve uniquement le nom de l'étape de
-  reprise dans `SharedPreferences`, jamais les réponses.
+- **Checkpoint/reprise** : pause optionnelle et restauration automatique. `DecisionProgressStore`
+  conserve uniquement l'**index de l'item** de reprise dans `SharedPreferences`, jamais les réponses.
+  ⚠️ Les réponses déjà données sont perdues si la session est interrompue : la soumission est unique
+  et finale (contrairement à Emotional Radar, qui persiste chaque scène côté serveur).
 - **Menu pause** : la croix gameplay ouvre un dialogue avec reprise, son/musique, règles et
   sauvegarde/sortie. Le timer DT est réellement suspendu puis reprend au même nombre de secondes.
-- **Résultats Phase 4** : fin 30/30, préparation, radar avec équivalent textuel accessible, profil,
-  forces, axe de progression, cinq dimensions détaillées et écran export/partage placeholder.
-  Le profil `82/100 — Analytical Decision-Maker` et ses cinq valeurs sont un **aperçu exact de la
-  maquette**, isolé dans `DecisionProfilePreview` ; il n'est pas dérivé des choix.
+- **Résultats** : fin 30/30, préparation, radar avec équivalent textuel accessible, profil, cinq
+  dimensions détaillées et écran export/partage. Le score, le niveau et le détail /18 viennent tous
+  de la réponse de soumission. Une dimension en notation provisoire est **signalée comme telle** :
+  un 12/18 forfaitaire ne doit pas se lire comme une performance.
 - La bottom nav partagée reste visible pendant l'introduction et disparaît pendant la pratique et
   tout le gameplay/résultat.
-- Restent à fournir avant l'intégration backend : `Practice 2/2`, catalogue des 30 scénarios,
-  mapping option→dimension (0–3), seuils de profil, règles XP/badges et règles de randomisation.
-  Tant qu'ils manquent, aucun `MiniGame.DECISION_CORE`, métrique, score, appel backend ni profil
-  psychométrique réel n'est créé côté client.
+- **Hors ligne** : « Je Décide » est le seul jeu du module qui exige le backend. Le mock lève une
+  erreur explicite plutôt que d'embarquer la banque et sa clé de correction — voir l'exception de
+  parité en tête de `games_mock_repository.dart`.
+- Restent à fournir : les modèles d'aversion λ (ER), d'actualisation hyperbolique k (RE) et de
+  cohérence de paire (CS). 66 des 120 items restent en notation neutre en attendant.
 
 La carte `Decision-Making` du hub pointe exclusivement vers `/games/je-decide`. Predictive Puzzle
 reste dans `Executive Planning`.
@@ -1184,7 +1186,7 @@ les agrégats utilisés au résultat.
 | **« J'investigue » — backend (Phase 4)** : mini-jeu `MEMORY_QUEST_CORE`, `MemoryQuestMetrics` (mesures par tâche), `MemoryQuestScoringService` (tâches 0–5 → **composite /100**), indicateurs + détail du score exposés, migration **V12** (CHECK), parité mock ; mobile soumet via le repository (score serveur autoritatif) | 🟢 Fait |
 | **« J'investigue » — système de niveaux** (7 niveaux, longueur 3→9, +1 après 3 tâches réussies ; objets 4→12 ; distraction gatée niveau ≥ 3 ; arrêt à `max_sequence_length`/`max_session_duration_min`) | 🟢 Fait (backend + mobile + parité mock) |
 | **« J'investigue » — calibrage appareil → timeout** (1er module dont le **score dépend du temps**) : `max_task_time_ms + offset` ; tâche dépassant le seuil ajusté = échec voidé ; `session_valid` | 🟢 Fait — socle `DeviceCalibration`/`CalibrationService` **réutilisé** (non modifié) |
-| **« Je Décide » (`DECISION`) — Phases 1–4 mobile** | 🟡 Fait côté UI — parcours complet jusqu'au profil, timer/timeout, transitions, pause/règles, checkpoint/reprise, radar/insights/export placeholder ; **profil maquette uniquement**. Catalogue complet/backend/scoring réel en attente des règles |
+| **« Je Décide » (`DECISION`)** | 🟢 Jouable end-to-end (V59) — banque 120 items en base, forme A de 30 items servie sans clé de correction, notation serveur, profil réel. Reste : modèles λ/k/cohérence pour ER-1..18, CS et RE, puis formes B/C/D |
 | **« Emotional Radar » (`EMOTIONAL_REGULATION`) — 5ᵉ domaine** : `GameType` + `EMOTIONAL_RADAR_CORE`, barème 9 pts/scène, écran Flutter complet (cover, tutoriel, gameplay à révélation progressive, feedback, transition, résultats, pause/aide/plein écran), parité mock | 🟢 **Fait** — jouable sur les 3 scènes rédigées (27 pts) |
 | Emotional Radar — **contenu servi par le backend** (texte/image/vidéo) : catalogue en base, `GamesMediaStoragePort` + adaptateur Cloudinary dédié, endpoint de téléversement | 🟢 Fait — 1ᵉʳ jeu du module dont le matériel n'est pas embarqué |
 | Emotional Radar — **notation par scène côté serveur** (clé de correction jamais envoyée au client ; score reconstruit depuis les réponses persistées) | 🟢 Fait — migration **V25**, table `emotional_radar_answers` |
@@ -1263,7 +1265,7 @@ les agrégats utilisés au résultat.
 | 52 | **Catégorie mobile de « Je place »** | deuxième jeu de **Working Memory**, sans renommer la catégorie ni modifier `MEMORY_QUEST` | Placement produit cohérent avec la mémoire visuo-spatiale, mais taxonomie finale à confirmer | `games_hub_screen.dart` |
 | 53 | **Fit Score / Analytics de « Je place »** | event supprimé même après Attempt valide tant que le barème est provisoire | Aucun mapping vers la matrice Fit Score ni validation psychologue fournis | `SubmitGameResultUseCase.executeObjectLocation` |
 | 54 | **Strategic Choices — frontière de la preview front** | affiché comme 3ᵉ entrée de `Emotional Regulation`, avec scénarios textuels sans vidéo ; aucun `GameType`/`MiniGame`, score, session, Attempt, event ou Fit Score ajouté | Les 10 vidéos/captions/transcriptions, les poids des 8 stratégies, le calcul /100, les 3 indicateurs et la normalisation émotionnelle /30 ne sont pas fournis. La demande parle d'« Emotional Intelligence » mais les maquettes et la taxonomie active utilisent `Emotional Regulation` | `strategic_choices_content.dart` · `strategic_choices_screen.dart` · `games_hub_screen.dart` |
-| 19 | **« Je Décide » — frontière mobile/backend** | Le parcours UI Phases 1–4 est navigable. Le profil final est l'aperçu statique de la maquette (`DecisionProfilePreview`) et ne dépend jamais des choix ; XP purement visuel | `Practice 2/2`, catalogue 30 scénarios, mapping option→dimension, seuils de profil, XP/badges et randomisation non fournis | `je_decide_screen.dart`, `je_decide_gameplay.dart`, `je_decide_results.dart` |
+| 19 | **« Je Décide » — équivalence des formes parallèles** | Forme A seule seedée (V59). Les 4 formes ne peuvent pas être équivalentes tant que ER-1..18, CS et RE sont en notation neutre : la seule forme contenant ER-19..24 serait la seule où ER discrimine, et le Fit Score compare les candidats globalement | Modèles d'aversion λ (ER), d'actualisation hyperbolique k (RE) et de cohérence de paire (CS) — 66 items sur 120 restent en notation neutre en attendant | `V59__games_decision_scenarios.sql`, `DecisionScoringService.java`, `decision_scenarios.json` |
 
 **Conforme à la fiche, NE PAS toucher** : profil global Planifik /30 (`interpretGlobal`), cœur du barème Move Fast (50 × multiplicateur, streak 4, bonus 250), barème catégoriel « Predictive Puzzle » (seule fiche validée), architecture par Domain Events.
 
@@ -1285,6 +1287,73 @@ vous touchez à l'un de ces chemins :
 - [ ] Un barème change → mettre à jour la section **Barème** (backend **et** mock mobile doivent rester identiques).
 - [ ] Un nouveau jeu/mini-jeu devient jouable → mettre à jour le **tableau de statut** et la **roadmap**.
 - [ ] Mettre à jour la ligne ci-dessous.
+
+**Changelog (47) — 2026-08-17** : **« Je Décide » devient jouable end-to-end.** La banque du
+psychologue (120 items, 24 par dimension II·ER·DT·CS·RE) passe de la ressource JSON à la **base**
+(migration **V59**, seed généré depuis `resources/games/decision_scenarios.json` qui reste la source
+tracée par Git). Trois tables : `decision_scenarios` (dont `pair_id`, `vignette_ref`,
+`provisional_scoring` en **colonne**, pas en commentaire), `decision_scenario_options` (`quality`
+seule clé de correction — le score /3 reste porté par `OptionQuality.points()`, une seconde source de
+vérité ne pourrait que diverger) et `decision_form_items`. Colonne `decision_form_code` sur
+**`game_sessions`** — et non sur l'attempt, qui n'est écrit qu'à la soumission alors que la forme doit
+être connue pour servir les items.
+
+**Passation = 30 items sur 120, via une forme parallèle.** La composition d'une forme est une
+**donnée**, pas une règle positionnelle, pour trois raisons établies en lisant la banque :
+(a) les paires CS (`CS-1a`/`CS-1b`) doivent rester groupées, ce qu'un découpage par modulo casserait ;
+(b) `DT-k` **réutilise la vignette de `II-k`**, dont l'option OPTIMAL énonce la réponse en clair — les
+mettre dans la même forme rendrait l'item chronométré trivial ; (c) ER-1..18, CS et RE sont en notation
+neutre, donc un découpage contigu donnerait une seule forme où ER discrimine. **Forme A seule**
+seedée : `II-1..6`, `ER-19..24` (les seuls ER réellement notés), `DT-7..12` (décalés, cf. (b)),
+`CS-1a..3b` (3 paires complètes), `RE-1..6` → **18 des 30 items discriminent** au lieu de 12 avec un
+découpage naïf. B/C/D sont **volontairement différées** : des formes équivalentes sont impossibles tant
+que ER/CS/RE ne sont pas modélisées (λ, k, cohérence de paire). Le mécanisme est complet
+(`DecisionConfig.assignFormCode()`, colonne, relecture à la notation) : les activer ne demandera qu'une
+migration de données. La migration porte ses propres contrôles (`DO $$`) : 120 items, 24/dimension,
+66 provisoires, ≥ 2 options, une OPTIMAL unique par item noté, paires complètes, forme A à 6 items par
+dimension, aucune vignette partagée dans une même forme.
+
+**Deux ports, pas un.** `DecisionScenarioCatalog` (notation : dimension, format, qualité par option)
+est inchangé côté signature métier ; un port de lecture `DecisionFormCatalog` sert le contenu
+(vignette **résolue**, consigne, énoncés d'options). Élargir le port de notation aurait fait entrer de
+la présentation dans le chemin du barème. `DatabaseDecisionScenarioCatalog` implémente les deux ;
+`JsonDecisionScenarioCatalog` est `@Deprecated`, retiré du contexte Spring, conservé une release.
+
+**Endpoint** `GET /games/sessions/{id}/decision/items?language=` → 30 items **sans aucune clé de
+correction**. Le use case renvoie les items complets, le DTO les projette : point de filtrage unique,
+même patron que `GetEmotionalRadarScenesUseCase`. `timeLimitMs` (items DT) = base × multiplicateur de
+langue, **sans** `calibrationOffsetMs` — celui-ci se déduit de la télémétrie appareil, que le serveur ne
+reçoit qu'à la soumission ; le seuil de notation est donc très légèrement plus permissif que le
+chronomètre affiché, toujours en faveur du candidat. À la soumission, `SubmitGameResultUseCase` relit
+la forme **sur la session** et rejette tout item étranger : sans ce contrôle, un client pourrait ne
+renvoyer que des items d'une dimension où il réussit. `formCode` existe au contrat en `readOnly` :
+écho de diagnostic, jamais une entrée. Le report expose `provisionalScoring` **par dimension** (une
+dimension n'est déclarée neutre que si TOUS ses items le sont) et le breakdown l'affiche.
+
+**Mobile — le contenu ne vit plus dans l'app.** Les 6 scénarios anglais codés en dur et
+`DecisionProfilePreview` (score constant 82) ont disparu. `DecisionGameplayView` est piloté par les 30
+items servis, avec écrans de transition aux frontières de dimension uniquement — jamais entre les deux
+cadrages d'une paire. `responseTimeMs` est mesuré **à la validation** via `package:clock` (et non avec
+un `Stopwatch`, non testable) : choisir vite puis délibérer produit un temps long, l'exploit est fermé.
+Le changement d'avis est rouvert et **compté** (`decisionChangesCount`), conformément au contrat. La
+pause gèle le compte à rebours, son auto-avance et le chronomètre de délibération. Le profil final vient
+de la réponse serveur (SCW, niveau, /18 par dimension) ; l'étape « strengths » et ses textes inventés
+sont supprimées.
+
+⚠️ **Exception de parité assumée, écrite en tête de `games_mock_repository.dart`** : « Je Décide » est le
+**seul** jeu du module sans barème miroir côté mock. Noter un item suppose la qualité de chaque option,
+c'est-à-dire la clé de correction des 120 items — l'embarquer la rendrait extractible et ruinerait le
+test en recrutement. Hors ligne, `decisionItems` échoue explicitement et la soumission renvoie un
+attempt **non scoré**. `decision_scoring.dart` reste au dépôt comme miroir documentaire du barème
+serveur, couvert par son test, branché sur aucun chemin d'exécution. Ce n'est pas une régression : c'est
+le seul comportement compatible avec « les scores ne quittent jamais le serveur ».
+
+**Tests** : `DecisionItemsProjectionTest` échoue si une `OptionQuality` apparaît dans le JSON
+**réellement sérialisé** (pas seulement dans les champs du DTO) ; `DecisionSeedParityTest` compare le
+seed SQL à la banque JSON item par item et option par option — si les qualités sont identiques, aucun
+score ne peut changer ; `GameSessionTest` couvre l'assignation de forme. Backend **484 tests verts**,
+mobile **149 verts**, migration validée sur Postgres 16 (62 migrations rejouées à blanc).
+**Reste** : modèles λ (ER) / k (RE) / cohérence de paire (CS), puis activation des formes B/C/D.
 
 **Changelog (46) — 2026-08-12** : intégration **front-only** de **Strategic Choices** dans le
 sélecteur `Emotional Regulation`, sans vidéo pour cette phase. Deux logos PNG RGBA 512×512 ont été

@@ -99,8 +99,17 @@ public final class MoveFastConfig {
     public record SessionEndCondition(int targetCorrectAnswers, int maxResponses, int sessionSeconds) {
     }
 
+    // Budget de session (fiche « Je bouge », mode FIXED_BUDGET).
+    //
+    // ⚠️ Ces trois valeurs se tiennent ensemble. Le multiplicateur monte d'un cran
+    // tous les CORRECT_STREAK_FOR_UPGRADE (4) bonnes réponses consécutives :
+    // atteindre MAX_MULTIPLIER (10) depuis 1 demande 9 montées, donc
+    // 9 × 4 = 36 bonnes réponses AU MINIMUM. Avec l'ancien
+    // targetCorrectAnswers = 12, la session se terminait après 3 montées et le
+    // multiplicateur plafonnait mécaniquement à ×4 — le maximum déclaré était
+    // inatteignable. targetCorrectAnswers doit donc rester > 36.
     public static final SessionEndCondition SESSION_END_CONDITION =
-        new SessionEndCondition(12, 18, 84);
+        new SessionEndCondition(40, 60, 600);
 
     /**
      * true si le mode courant borne le nombre d'essais et la durée (budget fixe).

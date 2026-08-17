@@ -50,7 +50,7 @@ public class GameSessionRepositoryAdapter implements GameSessionRepository {
             .toList();
         return new GameSessionEntity(
             s.id(), s.playerId(), s.gameType(), s.status(),
-            attempts, s.startedAt(), s.completedAt());
+            attempts, s.startedAt(), s.completedAt(), s.decisionFormCode());
     }
 
     private GameSession toDomain(GameSessionEntity e) {
@@ -62,6 +62,6 @@ public class GameSessionRepositoryAdapter implements GameSessionRepository {
             .toList();
         return GameSession.rehydrate(
             e.getId(), e.getPlayerId(), e.getGameType(), e.getStatus(),
-            attempts, e.getStartedAt(), e.getCompletedAt());
+            attempts, e.getStartedAt(), e.getCompletedAt(), e.getDecisionFormCode());
     }
 }

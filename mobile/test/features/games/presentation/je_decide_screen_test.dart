@@ -3,6 +3,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zennyt/core/storage/shared_preferences_provider.dart';
+import 'package:zennyt/features/games/domain/entities/decision_form.dart';
+import 'package:zennyt/features/games/domain/entities/decision_metrics.dart';
+import 'package:zennyt/features/games/domain/entities/device_calibration.dart';
+import 'package:zennyt/features/games/domain/entities/emotional_radar.dart';
+import 'package:zennyt/features/games/domain/entities/game_metrics.dart';
+import 'package:zennyt/features/games/domain/entities/game_score.dart';
+import 'package:zennyt/features/games/domain/entities/game_session.dart';
+import 'package:zennyt/features/games/domain/entities/game_type.dart';
+import 'package:zennyt/features/games/domain/entities/mini_game.dart';
+import 'package:zennyt/features/games/domain/entities/score_breakdown.dart';
+import 'package:zennyt/features/games/domain/repositories/games_repository.dart';
+import 'package:zennyt/features/games/presentation/games_providers.dart';
 import 'package:zennyt/features/games/presentation/view/je_decide_screen.dart';
 import 'package:zennyt/features/navigation/presentation/widgets/app_bottom_nav.dart';
 
@@ -21,6 +33,7 @@ void main() {
     (tester) async {
       SharedPreferences.setMockInitialValues({});
       final preferences = await SharedPreferences.getInstance();
+    final repository = _FakeGamesRepository();
       tester.view.physicalSize = const Size(390, 844);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
@@ -28,7 +41,10 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [sharedPreferencesProvider.overrideWithValue(preferences)],
+          overrides: [
+          sharedPreferencesProvider.overrideWithValue(preferences),
+          gamesRepositoryProvider.overrideWithValue(repository),
+        ],
           child: const MaterialApp(home: JeDecideScreen()),
         ),
       );
@@ -96,8 +112,10 @@ void main() {
 
       await tapVisible(tester, find.byKey(const ValueKey('practice-continue')));
 
-      expect(find.text('Delivery Bike'), findsOneWidget);
-      expect(find.text('Scenario 04 / 30'), findsOneWidget);
+      // Le contenu vient du backend : la vignette servie, pas un scénario codé
+      // en dur, et le compteur part du premier item.
+      expect(find.text('Situation numéro 0.'), findsOneWidget);
+      expect(find.text('Scenario 01 / 30'), findsOneWidget);
       expect(find.byType(AppBottomNav), findsNothing);
     },
   );
@@ -105,8 +123,10 @@ void main() {
   testWidgets('saved checkpoint opens the welcome-back screen', (tester) async {
     SharedPreferences.setMockInitialValues({
       'games.je_decide.saved_checkpoint': true,
+      'games.je_decide.saved_item_index': 15,
     });
     final preferences = await SharedPreferences.getInstance();
+    final repository = _FakeGamesRepository();
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -114,14 +134,18 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [sharedPreferencesProvider.overrideWithValue(preferences)],
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(preferences),
+          gamesRepositoryProvider.overrideWithValue(repository),
+        ],
         child: const MaterialApp(home: JeDecideScreen()),
       ),
     );
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('decision-welcome-back')), findsOneWidget);
-    expect(find.text('Continue from scenario 16'), findsOneWidget);
+    expect(find.text('Continue from scenario 16'), findsOneWidget,
+        reason: 'index 15 sauvegardé → item 16 affiché');
     expect(find.byType(AppBottomNav), findsNothing);
   });
 
@@ -130,6 +154,7 @@ void main() {
   ) async {
     SharedPreferences.setMockInitialValues({});
     final preferences = await SharedPreferences.getInstance();
+    final repository = _FakeGamesRepository();
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -137,7 +162,10 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [sharedPreferencesProvider.overrideWithValue(preferences)],
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(preferences),
+          gamesRepositoryProvider.overrideWithValue(repository),
+        ],
         child: const MaterialApp(home: JeDecideScreen()),
       ),
     );
@@ -158,32 +186,38 @@ void main() {
       await tapVisible(tester, find.byKey(const ValueKey('decision-continue')));
     }
 
-    await choose(1);
-    await choose(0);
-    await choose(2);
-    await tapVisible(
-      tester,
-      find.byKey(const ValueKey('decision-next-scenario')),
+    /// Passe l'écran de transition éventuellement intercalé entre deux blocs.
+    Future<void> skipInterstitial() async {
+      for (final key in const [
+        'decision-next-scenario',
+        'decision-checkpoint-continue',
+        'decision-badge-continue',
+        'decision-dimension-continue',
+        'decision-encouragement-continue',
+      ]) {
+        final finder = find.byKey(ValueKey(key));
+        if (finder.evaluate().isNotEmpty) {
+          await tapVisible(tester, finder);
+          return;
+        }
+      }
+    }
+
+    // Les 30 items de la forme, en alternant les options pour produire des
+    // réponses distinctes.
+    for (var i = 0; i < 30; i++) {
+      await choose(i.isEven ? 0 : 1);
+      await skipInterstitial();
+    }
+
+    // Le client a envoyé une réponse par item, sans jamais calculer de score.
+    expect(repository.submitted, isNotNull);
+    expect(repository.submitted!.items, hasLength(30));
+    expect(
+      repository.submitted!.items.every((item) => item.answered),
+      isTrue,
     );
-    await tapVisible(
-      tester,
-      find.byKey(const ValueKey('decision-checkpoint-continue')),
-    );
-    await tapVisible(
-      tester,
-      find.byKey(const ValueKey('decision-encouragement-continue')),
-    );
-    await tapVisible(
-      tester,
-      find.byKey(const ValueKey('decision-badge-continue')),
-    );
-    await tapVisible(
-      tester,
-      find.byKey(const ValueKey('decision-dimension-continue')),
-    );
-    await choose(1);
-    await choose(0);
-    await choose(1);
+    expect(repository.submitted!.items.first.selectedOptionId, 'IT-0-o1');
 
     expect(
       find.byKey(const ValueKey('decision-journey-complete')),
@@ -204,7 +238,144 @@ void main() {
       find.byKey(const ValueKey('decision-profile-title')),
       findsOneWidget,
     );
-    expect(find.text('Analytical Decision-Maker'), findsOneWidget);
-    expect(find.text('82'), findsOneWidget);
+    expect(find.text('Normal'), findsOneWidget, reason: 'niveau serveur');
+    // Le score s'anime de 0 → 71 : c'est celui renvoyé par le serveur.
+    await tester.pump(const Duration(milliseconds: 1000));
+    expect(find.text('71'), findsOneWidget);
   });
+}
+
+/// Backend simulé : « Je Décide » ne peut pas être joué hors ligne (la banque de
+/// 120 items et sa clé de correction restent serveur), donc les tests d'écran
+/// servent eux-mêmes une forme et un score.
+class _FakeGamesRepository implements GamesRepository {
+  /// Taille de la forme servie — celle de la passation réelle.
+  static const itemCount = 30;
+
+  DecisionMetrics? submitted;
+
+  static const _dimensions = [
+    DecisionDimension.ii,
+    DecisionDimension.er,
+    DecisionDimension.dt,
+    DecisionDimension.cs,
+    DecisionDimension.re,
+  ];
+
+  @override
+  Future<GameSession> startSession(GameType gameType) async => GameSession(
+    id: 'fake-session',
+    gameType: gameType,
+    status: 'IN_PROGRESS',
+    compositeRaw: 0,
+    compositeMax: 100,
+    normalized: 0,
+    attempts: const [],
+    startedAt: DateTime(2026),
+  );
+
+  @override
+  Future<DecisionForm> decisionItems(String sessionId, {String language = 'fr'}) async {
+    final perDimension = itemCount ~/ _dimensions.length;
+    return DecisionForm(
+      formCode: 'A',
+      itemsPerDimension: perDimension,
+      items: [
+        for (var i = 0; i < itemCount; i++)
+          DecisionFormItem(
+            itemId: 'IT-$i',
+            dimension: _dimensions[i ~/ perDimension],
+            format: DecisionItemFormat.standard,
+            vignette: 'Situation numéro $i.',
+            task: 'Consigne numéro $i.',
+            options: [
+              DecisionFormOption(optionId: 'IT-$i-o1', label: 'Option A du $i'),
+              DecisionFormOption(optionId: 'IT-$i-o2', label: 'Option B du $i'),
+            ],
+          ),
+      ],
+    );
+  }
+
+  @override
+  Future<GameSession> submitResult({
+    required String sessionId,
+    required MiniGame miniGame,
+    required GameMetrics metrics,
+    DeviceCalibration? deviceCalibration,
+  }) async {
+    submitted = metrics as DecisionMetrics;
+    return GameSession(
+      id: sessionId,
+      gameType: GameType.decision,
+      status: 'COMPLETED',
+      compositeRaw: 71,
+      compositeMax: 100,
+      normalized: 71,
+      startedAt: DateTime(2026),
+      completedAt: DateTime(2026),
+      attempts: [
+        GameAttempt(
+          miniGame: MiniGame.decisionCore,
+          recordedAt: DateTime(2026),
+          score: const GameScore(
+            rawPoints: 71,
+            maxPoints: 100,
+            normalized: 71,
+            level: 'Normal',
+          ),
+        ),
+      ],
+      scoreBreakdown: const [
+        ScoreBreakdownLine(
+          kind: ScoreBreakdownKind.criterion,
+          label: 'II',
+          detail: '6 items',
+          points: 14,
+          maxPoints: 18,
+        ),
+        ScoreBreakdownLine(
+          kind: ScoreBreakdownKind.criterion,
+          label: 'ER',
+          detail: '6 items',
+          points: 11,
+          maxPoints: 18,
+        ),
+        ScoreBreakdownLine(
+          kind: ScoreBreakdownKind.criterion,
+          label: 'DT',
+          detail: '6 items',
+          points: 15,
+          maxPoints: 18,
+        ),
+        ScoreBreakdownLine(
+          kind: ScoreBreakdownKind.criterion,
+          label: 'CS',
+          detail: '6 items — notation provisoire (ne discrimine pas)',
+          points: 12,
+          maxPoints: 18,
+        ),
+        ScoreBreakdownLine(
+          kind: ScoreBreakdownKind.criterion,
+          label: 'RE',
+          detail: '6 items — notation provisoire (ne discrimine pas)',
+          points: 12,
+          maxPoints: 18,
+        ),
+      ],
+    );
+  }
+
+  @override
+  Future<EmotionalRadarSceneSet> emotionalRadarScenes(String sessionId) =>
+      throw UnimplementedError();
+
+  @override
+  Future<EmotionalRadarFeedback> answerEmotionalRadarScene({
+    required String sessionId,
+    required String sceneId,
+    required BasicEmotion emotion,
+    required String nuanceKey,
+    required int intensity,
+  }) => throw UnimplementedError();
 }

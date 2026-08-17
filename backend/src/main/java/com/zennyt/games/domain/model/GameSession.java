@@ -1,5 +1,6 @@
 package com.zennyt.games.domain.model;
 
+import com.zennyt.games.domain.config.DecisionConfig;
 import com.zennyt.games.domain.event.GameResultRecordedEvent;
 import com.zennyt.games.domain.service.PlanifikScoringService;
 import com.zennyt.games.domain.vo.GameType;
@@ -31,9 +32,11 @@ public class GameSession extends AggregateRoot {
     private final List<Attempt> attempts;
     private final Instant startedAt;
     private Instant completedAt;
+    private final String decisionFormCode;
 
     private GameSession(UUID id, UUID playerId, GameType gameType, SessionStatus status,
-                        List<Attempt> attempts, Instant startedAt, Instant completedAt) {
+                        List<Attempt> attempts, Instant startedAt, Instant completedAt,
+                        String decisionFormCode) {
         this.id = id;
         this.playerId = playerId;
         this.gameType = gameType;
@@ -41,19 +44,37 @@ public class GameSession extends AggregateRoot {
         this.attempts = new ArrayList<>(attempts);
         this.startedAt = startedAt;
         this.completedAt = completedAt;
+        this.decisionFormCode = decisionFormCode;
     }
 
-    /** Fabrique : démarre une nouvelle session en cours. */
+    /**
+     * Fabrique : démarre une nouvelle session en cours.
+     *
+     * <p>Une session {@code DECISION} se voit assigner sa <b>forme de passation</b>
+     * ici, une fois pour toutes. C'est sur la session — et non sur l'attempt — parce
+     * que l'attempt n'est écrit qu'à la soumission, alors que la forme doit déjà
+     * être connue pour servir les items.
+     */
     public static GameSession start(UUID playerId, GameType gameType) {
         return new GameSession(UUID.randomUUID(), playerId, gameType,
-            SessionStatus.IN_PROGRESS, List.of(), Instant.now(), null);
+            SessionStatus.IN_PROGRESS, List.of(), Instant.now(), null,
+            gameType == GameType.DECISION ? DecisionConfig.assignFormCode() : null);
     }
 
     /** Reconstruction depuis la persistance (aucun événement émis). */
     public static GameSession rehydrate(UUID id, UUID playerId, GameType gameType,
                                         SessionStatus status, List<Attempt> attempts,
                                         Instant startedAt, Instant completedAt) {
-        return new GameSession(id, playerId, gameType, status, attempts, startedAt, completedAt);
+        return rehydrate(id, playerId, gameType, status, attempts, startedAt, completedAt, null);
+    }
+
+    /** Reconstruction depuis la persistance, forme « Je Décide » comprise. */
+    public static GameSession rehydrate(UUID id, UUID playerId, GameType gameType,
+                                        SessionStatus status, List<Attempt> attempts,
+                                        Instant startedAt, Instant completedAt,
+                                        String decisionFormCode) {
+        return new GameSession(id, playerId, gameType, status, attempts,
+            startedAt, completedAt, decisionFormCode);
     }
 
     /**
@@ -188,4 +209,11 @@ public class GameSession extends AggregateRoot {
     public List<Attempt> attempts() { return Collections.unmodifiableList(attempts); }
     public Instant startedAt() { return startedAt; }
     public Instant completedAt() { return completedAt; }
+
+    /**
+     * Forme de passation « Je Décide » assignée à cette session (A/B/C/D), ou
+     * {@code null} hors {@code DECISION}. Fait autorité à la notation : une forme
+     * envoyée par le client est ignorée.
+     */
+    public String decisionFormCode() { return decisionFormCode; }
 }

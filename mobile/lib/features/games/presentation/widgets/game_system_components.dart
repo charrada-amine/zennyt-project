@@ -369,8 +369,11 @@ class SeriesRibbon extends StatelessWidget {
   }
 }
 
-/// Multiplicateur qui grossit instantanément (×1.25) quand sa valeur change,
-/// puis redescend à l'échelle 1 sur ~500 ms (fiche « Je bouge »).
+/// Multiplicateur qui double de taille (×2) instantanément quand sa valeur
+/// change, puis redescend à l'échelle 1 sur ~500 ms (fiche « Je bouge »).
+///
+/// Le pic est volontairement franc : c'est la seule récompense visuelle d'une
+/// série de 4 réussies, et à ×1.25 elle passait inaperçue.
 class _AnimatedMultiplier extends StatefulWidget {
   const _AnimatedMultiplier({required this.multiplier, required this.style});
 
@@ -411,7 +414,9 @@ class _AnimatedMultiplierState extends State<_AnimatedMultiplier>
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
-        final scale = 1 + 0.25 * (1 - Curves.easeOut.transform(_controller.value));
+        // 1 → 2 au déclenchement, retour à 1 en fin d'animation.
+        final scale =
+            1 + 1.0 * (1 - Curves.easeOut.transform(_controller.value));
         return Transform.scale(scale: scale, child: child);
       },
       child: Text('x${widget.multiplier}', style: widget.style),
@@ -1008,6 +1013,7 @@ class GamePauseAudioOptions extends StatefulWidget {
 class _GamePauseAudioOptionsState extends State<GamePauseAudioOptions> {
   late bool _soundEffects = SoundService.instance.sfxEnabled;
   late bool _music = SoundService.instance.musicEnabled;
+  late bool _haptics = SoundService.instance.hapticsEnabled;
 
   @override
   Widget build(BuildContext context) {
@@ -1015,7 +1021,7 @@ class _GamePauseAudioOptionsState extends State<GamePauseAudioOptions> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          'Audio options',
+          'Feedback options',
           style: AppTypography.titleMedium.copyWith(
             color: ZennytGamePalette.blue,
             letterSpacing: 0,
@@ -1036,7 +1042,18 @@ class _GamePauseAudioOptionsState extends State<GamePauseAudioOptions> {
           value: _music,
           onChanged: (value) {
             setState(() => _music = value);
+            // Met en pause plutôt qu'arrêter : réactiver reprend le morceau où
+            // il en était, au lieu de le relancer depuis le début.
             SoundService.instance.setMusicEnabled(value);
+          },
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        GamePauseSwitchTile(
+          label: 'Vibration',
+          value: _haptics,
+          onChanged: (value) {
+            setState(() => _haptics = value);
+            SoundService.instance.setHapticsEnabled(value);
           },
         ),
       ],

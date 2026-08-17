@@ -44,10 +44,15 @@ public class GameSessionEntity {
     @Column(name = "completed_at")
     private Instant completedAt;
 
+    /** Forme de passation « Je Décide » (A/B/C/D) ; null hors session DECISION. */
+    @Column(name = "decision_form_code", length = 1)
+    private String decisionFormCode;
+
     protected GameSessionEntity() { } // requis par JPA
 
     public GameSessionEntity(UUID id, UUID playerId, GameType gameType, SessionStatus status,
-                             List<AttemptEmbeddable> attempts, Instant startedAt, Instant completedAt) {
+                             List<AttemptEmbeddable> attempts, Instant startedAt, Instant completedAt,
+                             String decisionFormCode) {
         this.id = id;
         this.playerId = playerId;
         this.gameType = gameType;
@@ -55,6 +60,7 @@ public class GameSessionEntity {
         this.attempts = new ArrayList<>(attempts);
         this.startedAt = startedAt;
         this.completedAt = completedAt;
+        this.decisionFormCode = decisionFormCode;
     }
 
     public UUID getId() { return id; }
@@ -64,4 +70,5 @@ public class GameSessionEntity {
     public List<AttemptEmbeddable> getAttempts() { return attempts; }
     public Instant getStartedAt() { return startedAt; }
     public Instant getCompletedAt() { return completedAt; }
+    public String getDecisionFormCode() { return decisionFormCode; }
 }

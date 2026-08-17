@@ -1,212 +1,165 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zennyt/features/games/domain/entities/decision_form.dart';
+import 'package:zennyt/features/games/domain/entities/decision_metrics.dart';
 import 'package:zennyt/features/games/presentation/view/je_decide_gameplay.dart';
 
+/// Boucle de gameplay « Je Décide » : mesure du temps de réponse, indicateur de
+/// changement d'avis, et gel de l'item chronométré pendant la pause.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  Future<void> tap(WidgetTester tester, String key) async {
-    final finder = find.byKey(ValueKey(key)).last;
-    await tester.ensureVisible(finder);
-    await tester.tap(finder);
-    await tester.pump(const Duration(milliseconds: 350));
-  }
+  DecisionFormItem item(
+    String id,
+    DecisionDimension dimension, {
+    DecisionItemFormat format = DecisionItemFormat.standard,
+    int? timeLimitMs,
+  }) => DecisionFormItem(
+    itemId: id,
+    dimension: dimension,
+    format: format,
+    vignette: 'Situation $id.',
+    task: 'Consigne $id.',
+    timeLimitMs: timeLimitMs,
+    options: [
+      DecisionFormOption(optionId: '$id-o1', label: 'Option 1'),
+      DecisionFormOption(optionId: '$id-o2', label: 'Option 2'),
+      DecisionFormOption(optionId: '$id-o3', label: 'Option 3'),
+    ],
+  );
 
-  Widget subject({
-    DecisionGameplayStep initialStep = DecisionGameplayStep.analytical,
-    VoidCallback? onClose,
-    VoidCallback? onComplete,
-  }) {
-    return MaterialApp(
-      home: DecisionGameplayView(
-        initialStep: initialStep,
-        onClose: onClose ?? () {},
-        onComplete: onComplete ?? () {},
+  /// Forme minimale : un item libre puis un item chronométré à 7 s. On garde
+  /// `itemsPerDimension` à 2 pour qu'aucun écran de transition ne s'intercale.
+  DecisionForm form() => DecisionForm(
+    formCode: 'A',
+    itemsPerDimension: 2,
+    items: [
+      item('II-1', DecisionDimension.ii),
+      item(
+        'DT-7',
+        DecisionDimension.dt,
+        format: DecisionItemFormat.temporalDecision,
+        timeLimitMs: 7000,
+      ),
+    ],
+  );
+
+  Future<List<DecisionItemResponse>?> pumpJourney(WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({});
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    List<DecisionItemResponse>? submitted;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: DecisionGameplayView(
+            form: form(),
+            onClose: () {},
+            onComplete: (responses) => submitted = responses,
+          ),
+        ),
       ),
     );
+    await tester.pump();
+    return submitted;
   }
 
-  testWidgets('phases 2 and 3 follow the supplied flow and keep CS paired', (
+  testWidgets(
+    'le temps de réponse est mesuré à la validation, pas au premier tap',
+    (tester) async {
+      List<DecisionItemResponse>? submitted;
+      SharedPreferences.setMockInitialValues({});
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: DecisionGameplayView(
+              form: form(),
+              onClose: () {},
+              onComplete: (responses) => submitted = responses,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // Item 1 : on choisit tout de suite, puis on délibère 4 s avant de valider.
+      await tester.tap(find.byKey(const ValueKey('decision-option-0')));
+      await tester.pump(const Duration(seconds: 4));
+      // Puis on change d'avis — c'est permis, et compté.
+      await tester.tap(find.byKey(const ValueKey('decision-option-2')));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('decision-continue')));
+      await tester.pump();
+
+      // Item 2 (chronométré) : on ne répond pas, le temps s'écoule.
+      expect(find.text('7 sec'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 7));
+      expect(
+        find.byKey(const ValueKey('decision-timeout-title')),
+        findsOneWidget,
+      );
+      await tester.pump(const Duration(milliseconds: 1600));
+      await tester.pumpAndSettle();
+
+      expect(submitted, isNotNull);
+      final first = submitted!.first;
+      expect(
+        first.selectedOptionId,
+        'II-1-o3',
+        reason: 'la réponse validée est le dernier choix',
+      );
+      expect(
+        first.decisionChangesCount,
+        1,
+        reason: 'le changement d\'avis est un indicateur mesuré, pas une faute',
+      );
+      expect(
+        first.responseTimeMs,
+        greaterThanOrEqualTo(4000),
+        reason:
+            'choisir vite puis délibérer doit produire un temps LONG — sinon la '
+            'contrainte de temps se contourne',
+      );
+
+      final timed = submitted!.last;
+      expect(timed.answered, isFalse, reason: 'item manqué → imputation serveur');
+      expect(timed.selectedOptionId, isNull);
+    },
+  );
+
+  testWidgets('la pause gèle le compte à rebours de l\'item chronométré', (
     tester,
   ) async {
-    SharedPreferences.setMockInitialValues({});
-    tester.view.physicalSize = const Size(390, 844);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    var completed = false;
+    await pumpJourney(tester);
 
-    await tester.pumpWidget(subject(onComplete: () => completed = true));
+    // Passe le premier item pour atteindre l'item chronométré.
+    await tester.tap(find.byKey(const ValueKey('decision-option-0')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('decision-continue')));
     await tester.pump();
 
-    expect(find.text('Delivery Bike'), findsOneWidget);
-    expect(find.text('Scenario 04 / 30'), findsOneWidget);
-    final firstContinue = find.descendant(
-      of: find.byKey(const ValueKey('decision-continue')),
-      matching: find.byType(FilledButton),
-    );
-    expect(tester.widget<FilledButton>(firstContinue).onPressed, isNull);
-
-    await tap(tester, 'decision-option-1');
-    expect(tester.widget<FilledButton>(firstContinue).onPressed, isNotNull);
-    await tap(tester, 'decision-continue');
-
-    expect(find.text('A financial choice'), findsOneWidget);
-    expect(find.text('Scenario 07 / 30'), findsOneWidget);
-    await tap(tester, 'decision-option-0');
-    await tap(tester, 'decision-continue');
-
-    expect(find.text('Choose quickly'), findsOneWidget);
-    expect(find.text('7 sec'), findsOneWidget);
-    await tap(tester, 'decision-option-2');
-    await tap(tester, 'decision-continue');
-
-    expect(find.byKey(const ValueKey('decision-xp-title')), findsOneWidget);
-    expect(find.text('+12 XP'), findsOneWidget);
-    await tap(tester, 'decision-next-scenario');
-
-    expect(
-      find.byKey(const ValueKey('decision-checkpoint-title')),
-      findsOneWidget,
-    );
-    await tap(tester, 'decision-checkpoint-continue');
-
-    expect(
-      find.byKey(const ValueKey('decision-encouragement-title')),
-      findsOneWidget,
-    );
-    await tap(tester, 'decision-encouragement-continue');
-
-    expect(find.byKey(const ValueKey('decision-badge-title')), findsOneWidget);
-    expect(find.text('Steady Explorer'), findsOneWidget);
-    await tap(tester, 'decision-badge-continue');
-
-    expect(
-      find.byKey(const ValueKey('decision-dimension-complete')),
-      findsOneWidget,
-    );
-    await tap(tester, 'decision-dimension-continue');
-
-    expect(find.text('Part 1 of 2'), findsOneWidget);
-    expect(find.text('Scenario 19 / 30'), findsOneWidget);
-    await tap(tester, 'decision-option-1');
-    await tap(tester, 'decision-continue');
-
-    expect(find.text('Part 2 of 2'), findsOneWidget);
-    expect(find.text('Scenario 20 / 30'), findsOneWidget);
-    await tap(tester, 'decision-option-0');
-    await tap(tester, 'decision-continue');
-
-    expect(find.text('Reward timing'), findsOneWidget);
-    expect(find.text('Scenario 30 / 30'), findsOneWidget);
-    await tap(tester, 'decision-option-1');
-    await tap(tester, 'decision-continue');
-
-    expect(completed, isTrue);
-    expect(find.textContaining('correct'), findsNothing);
-    expect(find.textContaining('wrong'), findsNothing);
-  });
-
-  testWidgets('quick choice warns calmly then advances after timeout', (
-    tester,
-  ) async {
-    SharedPreferences.setMockInitialValues({});
-    tester.view.physicalSize = const Size(390, 844);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-
-    await tester.pumpWidget(
-      subject(initialStep: DecisionGameplayStep.quickChoice),
-    );
-    await tester.pump();
-
-    expect(find.text('7 sec'), findsOneWidget);
-    for (var second = 0; second < 5; second++) {
-      await tester.pump(const Duration(seconds: 1));
-    }
-    expect(find.text('2 sec'), findsOneWidget);
-
-    await tester.pump(const Duration(seconds: 2));
-    expect(find.text('0 sec'), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey('decision-timeout-title')),
-      findsOneWidget,
-    );
-    expect(find.text('No worries. The journey continues.'), findsOneWidget);
-
-    await tester.pump(const Duration(milliseconds: 1500));
-    await tester.pump(const Duration(milliseconds: 300));
-    expect(find.byKey(const ValueKey('decision-xp-title')), findsOneWidget);
-    expect(find.text('Scenario 15 / 30'), findsOneWidget);
-  });
-
-  testWidgets('pause freezes quick timer and exposes the rules', (
-    tester,
-  ) async {
-    SharedPreferences.setMockInitialValues({});
-    tester.view.physicalSize = const Size(390, 844);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-
-    await tester.pumpWidget(
-      subject(initialStep: DecisionGameplayStep.quickChoice),
-    );
-    await tester.pump();
-    await tester.pump(const Duration(seconds: 2));
-    expect(find.text('5 sec'), findsOneWidget);
-
-    expect(find.byIcon(Icons.pause_rounded), findsOneWidget);
-    await tap(tester, 'decision-pause-button');
-    expect(find.byKey(const ValueKey('decision-pause-dialog')), findsOneWidget);
-    await tester.pump(const Duration(seconds: 2));
-    expect(find.text('5 sec'), findsOneWidget);
-
-    await tap(tester, 'decision-view-rules');
-    expect(find.text('How to play'), findsOneWidget);
-    expect(find.text('Your individual choices stay private.'), findsOneWidget);
-    await tap(tester, 'decision-rules-back');
-    expect(find.byKey(const ValueKey('decision-pause-dialog')), findsOneWidget);
-    await tap(tester, 'decision-pause-dialog-resume');
-
-    await tester.pump(const Duration(seconds: 1));
+    await tester.pump(const Duration(seconds: 3));
     expect(find.text('4 sec'), findsOneWidget);
-  });
 
-  testWidgets('checkpoint can be saved and resumed locally', (tester) async {
-    SharedPreferences.setMockInitialValues({});
-    tester.view.physicalSize = const Size(390, 844);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-
-    await tester.pumpWidget(
-      subject(initialStep: DecisionGameplayStep.checkpoint),
-    );
-    await tester.pump();
-
-    await tap(tester, 'decision-checkpoint-pause');
-    expect(
-      find.byKey(const ValueKey('decision-journey-paused')),
-      findsOneWidget,
-    );
-    await tap(tester, 'decision-pause-exit');
+    await tester.tap(find.byKey(const ValueKey('decision-pause-button')));
     await tester.pumpAndSettle();
-    expect(
-      find.byKey(const ValueKey('decision-progress-saved')),
-      findsOneWidget,
-    );
-    final preferences = await SharedPreferences.getInstance();
-    expect(preferences.getBool('games.je_decide.saved_checkpoint'), isTrue);
+    expect(find.byKey(const ValueKey('decision-pause-dialog')), findsOneWidget);
 
-    await tap(tester, 'decision-saved-resume');
-    expect(find.byKey(const ValueKey('decision-welcome-back')), findsOneWidget);
-    await tap(tester, 'decision-resume-continue');
-    expect(
-      find.byKey(const ValueKey('decision-encouragement-title')),
-      findsOneWidget,
-    );
+    // Le chrono ne doit pas tourner derrière le dialogue.
+    await tester.pump(const Duration(seconds: 5));
+    expect(find.byKey(const ValueKey('decision-timeout-title')), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('decision-pause-dialog-resume')));
+    await tester.pumpAndSettle();
+    expect(find.text('4 sec'), findsOneWidget, reason: 'reprise là où on en était');
   });
 }

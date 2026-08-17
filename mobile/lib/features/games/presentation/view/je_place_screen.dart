@@ -81,7 +81,7 @@ class JePlaceScreen extends ConsumerStatefulWidget {
 }
 
 class _JePlaceScreenState extends ConsumerState<JePlaceScreen>
-    with WidgetsBindingObserver, GameMusicMixin {
+    with WidgetsBindingObserver {
   _JePlaceStage _stage = _JePlaceStage.cover;
   int _onboardingPage = 0;
   GameSession? _session;
@@ -611,7 +611,10 @@ class _JePlaceScreenState extends ConsumerState<JePlaceScreen>
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () {
+                  SoundService.instance.playSfx(GameSfx.buttonClick);
+                  Navigator.of(context).pop();
+                },
             child: const Text('Got it'),
           ),
         ],
@@ -683,7 +686,7 @@ class _JePlaceScreenState extends ConsumerState<JePlaceScreen>
     _JePlaceStage.onboarding => _buildOnboarding(),
     _JePlaceStage.encoding ||
     _JePlaceStage.retention ||
-    _JePlaceStage.recall => _buildGameplay(),
+    _JePlaceStage.recall => GameplayMusic(child: _buildGameplay()),
     _JePlaceStage.practiceFeedback => _buildPracticeFeedback(),
     _JePlaceStage.measuredReady => _buildMeasuredReady(),
     _JePlaceStage.levelTransition => _buildLevelTransition(),

@@ -3,10 +3,9 @@ import '../domain/config/emotional_radar_provisional_rules.dart';
 import '../domain/config/memory_quest_config.dart';
 import '../domain/config/move_fast_config.dart';
 import '../domain/config/reflective_pause_config.dart';
-import '../domain/decision_scenario_catalog.dart';
 import '../domain/entities/continuous_attention_metrics.dart';
 import '../domain/entities/coordination_tracking_metrics.dart';
-import '../domain/entities/decision_metrics.dart';
+import '../domain/entities/decision_form.dart';
 import '../domain/entities/device_calibration.dart';
 import '../domain/entities/emotional_radar.dart';
 import '../domain/entities/game_score.dart';
@@ -25,7 +24,6 @@ import '../domain/entities/task_scheduling_metrics.dart';
 import '../domain/repositories/games_repository.dart';
 import 'continuous_attention_scoring.dart';
 import 'coordination_tracking_scoring.dart';
-import 'decision_scoring.dart';
 import 'object_location_scoring.dart';
 
 /// [GamesRepository] MOCK — permet de jouer en totale autonomie, sans backend.
@@ -41,17 +39,40 @@ import 'object_location_scoring.dart';
 /// (+ constantes `MoveFastConfig` / `OptimalPathConfig` / `PrevisionPuzzleConfig`).
 /// Toute modification de barème DOIT être répercutée dans les deux fichiers
 /// DANS LA MÊME PR.
+///
+/// ⚠️ EXCEPTION ASSUMÉE — « Je Décide » n'a PAS de barème miroir ici, et n'en
+/// aura pas. Noter un item suppose de connaître la qualité de chaque option :
+/// c'est la clé de correction des 120 items du psychologue. L'embarquer dans le
+/// binaire mobile la rendrait extractible, et le test perdrait toute valeur en
+/// recrutement. Le mock renvoie donc un attempt NON SCORÉ (0/100, niveau
+/// « Non scoré hors ligne ») et `decisionItems` échoue explicitement : « Je
+/// Décide » exige le backend. Ce n'est pas une régression de parité — c'est le
+/// seul comportement compatible avec « les scores ne quittent jamais le
+/// serveur ». Le moteur `decision_scoring.dart` reste dans le dépôt comme
+/// miroir documentaire du barème serveur, couvert par son test ; il n'est
+/// volontairement branché sur aucun chemin d'exécution.
 class GamesMockRepository implements GamesRepository {
   final Map<String, GameSession> _sessions = {};
   int _counter = 0;
 
-  // « Je Décide » — miroir EXACT du barème serveur (moteur + couche provisoire).
-  // Catalogue VIDE tant que le psychologue n'a pas fourni les 30 scénarios : le
-  // scoring lève une erreur si `DECISION_CORE` est soumis (parité backend, non
-  // jouable). Le câblage UI (`je_decide_*.dart`) est un lot séparé.
-  static const _decisionScoring = DecisionScoring(
-    EmptyDecisionScenarioCatalog(),
+  // « Je Décide » — voir l'exception de parité en tête de fichier : aucun barème
+  // local, la notation appartient au serveur.
+  static GameScore _unscoredDecisionAttempt() => const GameScore(
+    rawPoints: 0,
+    maxPoints: 100,
+    normalized: 0,
+    level: 'Non scoré hors ligne',
   );
+
+  static List<ScoreBreakdownLine> _decisionBreakdown() => const [
+    ScoreBreakdownLine(
+      kind: ScoreBreakdownKind.note,
+      label:
+          'Partie enregistrée mais non notée : « Je Décide » est corrigé côté '
+          'serveur. La clé de correction des 120 items n\'est jamais embarquée '
+          'dans l\'application.',
+    ),
+  ];
   static const _continuousAttentionScoring = ContinuousAttentionScoring();
   static const _coordinationTrackingScoring = CoordinationTrackingScoring();
   static const _objectLocationScoring = ObjectLocationScoring();
@@ -247,10 +268,9 @@ class GamesMockRepository implements GamesRepository {
       MiniGame.taskScheduling => _scoreTaskScheduling(
         metrics as TaskSchedulingMetrics,
       ),
-      MiniGame.decisionCore => _decisionScoring.score(
-        metrics as DecisionMetrics,
-        deviceCalibration?.calibrationOffsetMs ?? 0.0,
-      ),
+      // Voir l'exception de parité en tête de fichier : hors ligne, la partie
+      // est enregistrée mais pas notée.
+      MiniGame.decisionCore => _unscoredDecisionAttempt(),
       // Emotional Radar : le score vient des réponses notées à la validation de
       // chaque scène (`_emotionalRadarAnswers`), jamais des métriques reçues —
       // exactement comme le backend. Les métriques n'apportent que les temps.
@@ -549,10 +569,7 @@ class GamesMockRepository implements GamesRepository {
         metrics as MemoryQuestMetrics,
         score,
       ),
-      MiniGame.decisionCore => _decisionScoring.breakdown(
-        metrics as DecisionMetrics,
-        score,
-      ),
+      MiniGame.decisionCore => _decisionBreakdown(),
       MiniGame.emotionalRadarCore => _breakdownEmotionalRadar(sessionId, score),
       MiniGame.reflectivePauseCore => _breakdownReflectivePause(
         metrics as ReflectivePauseMetrics,
@@ -1377,6 +1394,17 @@ class GamesMockRepository implements GamesRepository {
           "than one's own.",
     ),
   ];
+
+  @override
+  Future<DecisionForm> decisionItems(String sessionId, {String language = 'fr'}) {
+    // Servir les 30 items supposerait d'embarquer la banque du psychologue dans
+    // l'application. On échoue clairement plutôt que d'inventer des scénarios :
+    // « Je Décide » est le seul jeu du module qui exige le backend.
+    throw UnsupportedError(
+      '« Je Décide » nécessite le backend : la banque de 120 items et sa clé de '
+      'correction ne sont pas embarquées dans l\'application.',
+    );
+  }
 
   @override
   Future<EmotionalRadarSceneSet> emotionalRadarScenes(String sessionId) async {
