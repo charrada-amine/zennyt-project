@@ -16,9 +16,16 @@ import '../viewmodel/nav_tab_provider.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../../../notifications/presentation/providers/notification_providers.dart';
 
-/// The main app navigation shown after authentication. Hosts the five
+// ── Sidebar dimensions & animation config ──
+const double _kSidebarExpandedWidth = 260;
+const double _kSidebarCollapsedWidth = 78;
+const Duration _kSidebarAnimDuration = Duration(milliseconds: 300);
+const Curve _kSidebarAnimCurve = Curves.easeInOutCubicEmphasized;
+
+/// The main app navigation shown after authentication. Hosts the
 /// destinations in an [IndexedStack] (state is preserved across tab
-/// switches). Renders a left sidebar on Windows/desktop and [AppBottomNav] on mobile.
+/// switches). Renders a collapsible left sidebar on Windows/desktop
+/// and [AppBottomNav] on mobile.
 class MainNavigationScreen extends ConsumerStatefulWidget {
   const MainNavigationScreen({super.key, this.initialTab});
 
@@ -31,6 +38,7 @@ class MainNavigationScreen extends ConsumerStatefulWidget {
 
 class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
   int? _localTab;
+  bool _sidebarExpanded = true;
 
   @override
   void initState() {
@@ -52,6 +60,9 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
     ref.read(navTabProvider.notifier).select(index);
   }
 
+  void _toggleSidebar() =>
+      setState(() => _sidebarExpanded = !_sidebarExpanded);
+
   @override
   Widget build(BuildContext context) {
     final tab = _localTab ?? ref.watch(navTabProvider);
@@ -60,115 +71,156 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
     final isDesktop = Responsive.isDesktop(context);
 
     if (isDesktop) {
+      final isExpanded = _sidebarExpanded;
+      final sidebarWidth =
+          isExpanded ? _kSidebarExpandedWidth : _kSidebarCollapsedWidth;
+
       return Scaffold(
         backgroundColor: colors.scaffoldBg,
-        body: Row(
+        body: Stack(
           children: [
-            // ── Left Sidebar — Windows #F9FBFF via theme sidebarNav ──
-            Container(
-              width: 250,
+            Row(
+              children: [
+                // ── Collapsible Left Sidebar ──────────────────────────────────
+                AnimatedContainer(
+              duration: _kSidebarAnimDuration,
+              curve: _kSidebarAnimCurve,
+              width: sidebarWidth,
+              clipBehavior: Clip.hardEdge,
               decoration: BoxDecoration(
                 color: colors.sidebarNav,
                 border: Border(
-                  right: BorderSide(color: colors.divider),
+                  right: BorderSide(
+                    color: colors.divider.withValues(alpha: 0.6),
+                  ),
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: colors.shadowColor.withValues(alpha: 0.04),
+                    blurRadius: 12,
+                    offset: const Offset(2, 0),
+                  ),
+                ],
               ),
               child: Column(
                 children: [
-                  const SizedBox(height: 32),
-                  // Progress Careers Logo
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Image.asset(
-                      'assets/images/progress_logo.png',
-                      height: 50,
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => const Text(
-                        'PROGRESS',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 48),
+                  const SizedBox(height: 16),
 
-                  // Navigation Tabs
+                  // ── Header: Logo ──
+                  _SidebarHeader(
+                    isExpanded: isExpanded,
+                  ),
+
+                  const SizedBox(height: 28),
+
+                  // ── Navigation Items ──
                   Expanded(
                     child: ListView(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isExpanded ? 14 : 8,
+                      ),
                       children: [
                         _DesktopNavItem(
                           label: 'Progress',
                           iconPath: 'assets/images/progress_unselected.png',
-                          selectedIconPath: 'assets/images/progress_selected.png',
+                          selectedIconPath:
+                              'assets/images/progress_selected.png',
                           isSelected: tab == 2,
+                          isCollapsed: !isExpanded,
                           onTap: () => _onTabSelect(2),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 4),
                         _DesktopNavItem(
                           label: 'Home',
                           iconPath: 'assets/images/home_unselected.png',
                           selectedIconPath: 'assets/images/home_selected.png',
                           isSelected: tab == 0,
+                          isCollapsed: !isExpanded,
                           onTap: () => _onTabSelect(0),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 4),
                         _DesktopNavItem(
                           label: 'Fits',
                           iconPath: 'assets/images/fits_unselected.png',
                           selectedIconPath: 'assets/images/fits_selected.png',
                           isSelected: tab == 1,
+                          isCollapsed: !isExpanded,
                           onTap: () => _onTabSelect(1),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 4),
                         _DesktopNavItem(
                           label: 'Search',
                           iconPath: 'assets/images/search_unselected.png',
-                          selectedIconPath: 'assets/images/search_selected.png',
+                          selectedIconPath:
+                              'assets/images/search_selected.png',
                           isSelected: tab == 3,
+                          isCollapsed: !isExpanded,
                           onTap: () => _onTabSelect(3),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 4),
                         _DesktopNavItem(
                           label: 'Messages',
                           iconPath: 'assets/images/chat.png',
                           selectedIconPath: 'assets/images/chat.png',
                           isSelected: tab == 4,
+                          isCollapsed: !isExpanded,
                           onTap: () => _onTabSelect(4),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 4),
                         _DesktopNavItem(
                           label: 'Notifications',
-                          iconPath: 'assets/images/notification_unselected.png',
-                          selectedIconPath: 'assets/images/notification_selected.png',
+                          iconPath:
+                              'assets/images/notification_unselected.png',
+                          selectedIconPath:
+                              'assets/images/notification_selected.png',
                           isSelected: tab == 7,
+                          isCollapsed: !isExpanded,
                           onTap: () => _onTabSelect(7),
                         ),
                       ],
                     ),
                   ),
 
-                  // Bottom items: Settings and Log out
+                  // ── Divider ──
                   Padding(
-                    padding: const EdgeInsets.all(24),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isExpanded ? 20 : 12,
+                    ),
+                    child: Divider(
+                      color: colors.divider.withValues(alpha: 0.5),
+                      height: 1,
+                      thickness: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // ── Bottom items: Settings and Log out ──
+                  Padding(
+                    padding: EdgeInsets.only(
+                      left: isExpanded ? 14 : 8,
+                      right: isExpanded ? 14 : 8,
+                      bottom: 20,
+                    ),
                     child: Column(
                       children: [
                         _DesktopBottomItem(
                           label: 'Settings',
                           iconData: Icons.settings_outlined,
                           isSelected: tab == 6,
+                          isCollapsed: !isExpanded,
                           onTap: () => _onTabSelect(6),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 4),
                         _DesktopBottomItem(
                           label: 'Log out',
                           iconData: Icons.logout_outlined,
                           isSelected: false,
+                          isCollapsed: !isExpanded,
+                          isDestructive: true,
                           onTap: () {
-                            ref.read(authControllerProvider.notifier).logout();
+                            ref
+                                .read(authControllerProvider.notifier)
+                                .logout();
                           },
                         ),
                       ],
@@ -212,7 +264,8 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
                           else if (tab == 7)
                             Builder(
                               builder: (context) {
-                                final async = ref.watch(notificationsProvider);
+                                final async =
+                                    ref.watch(notificationsProvider);
                                 final count = async.maybeWhen(
                                   data: (list) =>
                                       list.where((n) => !n.isRead).length,
@@ -236,7 +289,8 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
                                             horizontal: 8, vertical: 2),
                                         decoration: BoxDecoration(
                                           color: colors.accent,
-                                          borderRadius: BorderRadius.circular(10),
+                                          borderRadius:
+                                              BorderRadius.circular(10),
                                         ),
                                         child: Text(
                                           '$count new',
@@ -263,9 +317,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
                                 Container(
                                   padding: const EdgeInsets.all(8),
                                   decoration: BoxDecoration(
-                                    color: tab == 7
-                                        ? colors.inputFill
-                                        : colors.inputFill,
+                                    color: colors.inputFill,
                                     shape: BoxShape.circle,
                                   ),
                                   child: Icon(
@@ -276,8 +328,11 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
                                     size: 24,
                                   ),
                                 ),
-                                if (ref.watch(notificationsProvider).maybeWhen(
-                                      data: (list) => list.any((n) => !n.isRead),
+                                if (ref
+                                    .watch(notificationsProvider)
+                                    .maybeWhen(
+                                      data: (list) =>
+                                          list.any((n) => !n.isRead),
                                       orElse: () => false,
                                     ))
                                   Positioned(
@@ -308,13 +363,15 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
                                 CircleAvatar(
                                   radius: 20,
                                   backgroundImage: user != null
-                                      ? NetworkImage(user.effectiveAvatarUrl)
+                                      ? NetworkImage(
+                                          user.effectiveAvatarUrl)
                                       : null,
                                   backgroundColor: colors.border,
                                 ),
                                 const SizedBox(width: 12),
                                 Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Row(
@@ -322,14 +379,16 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
                                       children: [
                                         Text(
                                           user?.fullName ?? 'Millie Brown',
-                                          style: AppTypography.titleSmall.copyWith(
+                                          style: AppTypography.titleSmall
+                                              .copyWith(
                                             color: colors.textPrimary,
                                             fontWeight: FontWeight.w600,
                                           ),
                                         ),
                                         const SizedBox(width: 4),
                                         Icon(
-                                          Icons.keyboard_arrow_down_rounded,
+                                          Icons
+                                              .keyboard_arrow_down_rounded,
                                           size: 16,
                                           color: colors.textSecondary,
                                         ),
@@ -337,8 +396,10 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
                                     ),
                                     Text(
                                       'Online',
-                                      style: AppTypography.bodySmall.copyWith(
-                                        color: colors.textSecondary.withValues(alpha: 0.7),
+                                      style:
+                                          AppTypography.bodySmall.copyWith(
+                                        color: colors.textSecondary
+                                            .withValues(alpha: 0.7),
                                         fontSize: 11,
                                       ),
                                     ),
@@ -356,10 +417,10 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
                     child: IndexedStack(
                       index: tab,
                       children: const [
-                        HomePage(),         // 0
-                        FitsScreen(),       // 1
-                        ProgressScreen(),   // 2
-                        SearchScreen(),     // 3
+                        HomePage(), // 0
+                        FitsScreen(), // 1
+                        ProgressScreen(), // 2
+                        SearchScreen(), // 3
                         DesktopChatsPage(), // 4
                         UserProfileScreen(), // 5
                         DesktopSettingsScreen(), // 6
@@ -372,6 +433,20 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
             ),
           ],
         ),
+        
+        // ── Floating Toggle Arrow ──
+        AnimatedPositioned(
+          duration: _kSidebarAnimDuration,
+          curve: _kSidebarAnimCurve,
+          top: 25, // roughly centered with the logo height
+          left: sidebarWidth - 13, // exactly half the 26 width outside the sidebar
+          child: _SidebarToggleFloating(
+            isExpanded: isExpanded,
+            onToggle: _toggleSidebar,
+          ),
+        ),
+      ],
+    ),
       );
     }
 
@@ -395,13 +470,182 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
   }
 }
 
-class _DesktopNavItem extends StatelessWidget {
+// ─────────────────────────────────────────────────────────────────────────────
+// SIDEBAR HEADER — Logo with crossfade
+// Shows full "progress_logo.png" when expanded, "Logo.png" icon when collapsed.
+// ─────────────────────────────────────────────────────────────────────────────
+class _SidebarHeader extends StatefulWidget {
+  const _SidebarHeader({
+    required this.isExpanded,
+  });
+
+  final bool isExpanded;
+
+  @override
+  State<_SidebarHeader> createState() => _SidebarHeaderState();
+}
+
+class _SidebarHeaderState extends State<_SidebarHeader> {
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final isExpanded = widget.isExpanded;
+
+    return AnimatedPadding(
+      duration: _kSidebarAnimDuration,
+      curve: _kSidebarAnimCurve,
+      padding: EdgeInsets.symmetric(horizontal: isExpanded ? 18 : 10),
+      child: Center(
+        child: ClipRect(
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 250),
+            switchInCurve: Curves.easeOut,
+            switchOutCurve: Curves.easeIn,
+            child: isExpanded
+                ? Padding(
+                    key: const ValueKey('expanded-logo'),
+                    padding: const EdgeInsets.only(left: 4),
+                    child: Image.asset(
+                      'assets/images/progress_logo.png',
+                      height: 44,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => Text(
+                        'PROGRESS',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color: colors.accent,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ),
+                  )
+                : Padding(
+                    key: const ValueKey('collapsed-logo'),
+                    padding: EdgeInsets.zero,
+                    child: Image.asset(
+                      'assets/images/progress_selected.png',
+                      width: 36,
+                      height: 36,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              colors.accent,
+                              colors.primary,
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Center(
+                          child: Text(
+                            'P',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 18,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SIDEBAR FLOATING TOGGLE
+// A floating circular button on the border of the sidebar to expand/collapse.
+// ─────────────────────────────────────────────────────────────────────────────
+class _SidebarToggleFloating extends StatefulWidget {
+  const _SidebarToggleFloating({
+    required this.isExpanded,
+    required this.onToggle,
+  });
+
+  final bool isExpanded;
+  final VoidCallback onToggle;
+
+  @override
+  State<_SidebarToggleFloating> createState() => _SidebarToggleFloatingState();
+}
+
+class _SidebarToggleFloatingState extends State<_SidebarToggleFloating> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: widget.onToggle,
+        child: Tooltip(
+          message: widget.isExpanded ? 'Collapse sidebar' : 'Expand sidebar',
+          waitDuration: const Duration(milliseconds: 600),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 26,
+            height: 26,
+            decoration: BoxDecoration(
+              color: colors.scaffoldBg,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: _hovered ? colors.accent : colors.divider.withValues(alpha: 0.6),
+                width: 1.5,
+              ),
+              boxShadow: [
+                if (_hovered)
+                  BoxShadow(
+                    color: colors.accent.withValues(alpha: 0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  )
+                else
+                  BoxShadow(
+                    color: colors.shadowColor.withValues(alpha: 0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+              ],
+            ),
+            child: Icon(
+              widget.isExpanded ? Icons.chevron_left_rounded : Icons.chevron_right_rounded,
+              size: 18,
+              color: _hovered ? colors.accent : colors.textSecondary,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DESKTOP NAV ITEM — adapts between expanded (icon + label) and collapsed
+// (icon only with tooltip). Includes hover scale + highlight.
+// ─────────────────────────────────────────────────────────────────────────────
+class _DesktopNavItem extends StatefulWidget {
   const _DesktopNavItem({
     required this.label,
     required this.iconPath,
     required this.selectedIconPath,
     required this.isSelected,
     required this.onTap,
+    this.isCollapsed = false,
   });
 
   final String label;
@@ -409,110 +653,235 @@ class _DesktopNavItem extends StatelessWidget {
   final String selectedIconPath;
   final bool isSelected;
   final VoidCallback onTap;
+  final bool isCollapsed;
+
+  @override
+  State<_DesktopNavItem> createState() => _DesktopNavItemState();
+}
+
+class _DesktopNavItemState extends State<_DesktopNavItem> {
+  bool _hovered = false;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        height: 48,
-        decoration: BoxDecoration(
-          color: isSelected ? colors.inputFill : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            if (isSelected)
-              Positioned(
-                left: 0,
-                child: Container(
-                  width: 4,
-                  height: 24,
-                  decoration: BoxDecoration(
-                    color: colors.accent,
-                    borderRadius: const BorderRadius.only(
-                      topRight: Radius.circular(2),
-                      bottomRight: Radius.circular(2),
+    final isCollapsed = widget.isCollapsed;
+    final isSelected = widget.isSelected;
+
+    final content = MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedScale(
+          scale: _hovered && !isSelected ? 1.02 : 1.0,
+          duration: const Duration(milliseconds: 120),
+          child: AnimatedContainer(
+            duration: _kSidebarAnimDuration,
+            curve: _kSidebarAnimCurve,
+            height: 46,
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? colors.accent.withValues(alpha: 0.08)
+                  : _hovered
+                      ? colors.textSecondary.withValues(alpha: 0.06)
+                      : Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // ── Selected accent indicator bar ──
+                if (isSelected)
+                  Positioned(
+                    left: 0,
+                    child: Container(
+                      width: 3.5,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        color: colors.accent,
+                        borderRadius: const BorderRadius.only(
+                          topRight: Radius.circular(3),
+                          bottomRight: Radius.circular(3),
+                        ),
+                      ),
                     ),
+                  ),
+                // ── Icon and label row ──
+                AnimatedPadding(
+                  duration: _kSidebarAnimDuration,
+                  curve: _kSidebarAnimCurve,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isCollapsed ? 0 : 14,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: isCollapsed
+                        ? MainAxisAlignment.center
+                        : MainAxisAlignment.start,
+                    children: [
+                      if (!isCollapsed) const SizedBox(width: 6),
+                      Image.asset(
+                        isSelected
+                            ? widget.selectedIconPath
+                            : widget.iconPath,
+                        width: 22,
+                        height: 22,
+                      ),
+                      if (!isCollapsed) ...[
+                        const SizedBox(width: 14),
+                        Flexible(
+                          child: Text(
+                            widget.label,
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                            style: AppTypography.bodyMedium.copyWith(
+                              color: isSelected
+                                  ? colors.textPrimary
+                                  : _hovered
+                                      ? colors.textPrimary
+                                          .withValues(alpha: 0.85)
+                                      : colors.textSecondary,
+                              fontWeight: isSelected
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-              ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  const SizedBox(width: 8),
-                  Image.asset(
-                    isSelected ? selectedIconPath : iconPath,
-                    width: 22,
-                    height: 22,
-                  ),
-                  const SizedBox(width: 16),
-                  Text(
-                    label,
-                    style: AppTypography.bodyMedium.copyWith(
-                      color: isSelected ? colors.textPrimary : colors.textSecondary,
-                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                    ),
-                  ),
-                ],
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
+
+    if (isCollapsed) {
+      return Tooltip(
+        message: widget.label,
+        preferBelow: false,
+        waitDuration: const Duration(milliseconds: 400),
+        child: content,
+      );
+    }
+
+    return content;
   }
 }
 
-class _DesktopBottomItem extends StatelessWidget {
+// ─────────────────────────────────────────────────────────────────────────────
+// DESKTOP BOTTOM ITEM — Settings, Log out — same collapse logic.
+// Supports isDestructive for logout styling.
+// ─────────────────────────────────────────────────────────────────────────────
+class _DesktopBottomItem extends StatefulWidget {
   const _DesktopBottomItem({
     required this.label,
     required this.iconData,
     required this.isSelected,
     required this.onTap,
+    this.isCollapsed = false,
+    this.isDestructive = false,
   });
 
   final String label;
   final IconData iconData;
   final bool isSelected;
   final VoidCallback onTap;
+  final bool isCollapsed;
+  final bool isDestructive;
+
+  @override
+  State<_DesktopBottomItem> createState() => _DesktopBottomItemState();
+}
+
+class _DesktopBottomItemState extends State<_DesktopBottomItem> {
+  bool _hovered = false;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        decoration: BoxDecoration(
-          color: isSelected ? colors.inputFill : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    final isCollapsed = widget.isCollapsed;
+    final isSelected = widget.isSelected;
+
+    // Destructive items (e.g. Log out) turn red on hover
+    final hoverColor = widget.isDestructive
+        ? colors.error.withValues(alpha: 0.08)
+        : colors.textSecondary.withValues(alpha: 0.06);
+    final iconColor = isSelected
+        ? colors.accent
+        : widget.isDestructive && _hovered
+            ? colors.error
+            : colors.textSecondary;
+    final textColor = isSelected
+        ? colors.textPrimary
+        : widget.isDestructive && _hovered
+            ? colors.error
+            : colors.textSecondary;
+
+    final content = MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: _kSidebarAnimDuration,
+          curve: _kSidebarAnimCurve,
+          height: 44,
+          padding: EdgeInsets.symmetric(
+            horizontal: isCollapsed ? 0 : 14,
+          ),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? colors.accent.withValues(alpha: 0.08)
+                : _hovered
+                    ? hoverColor
+                    : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
           child: Row(
+            mainAxisAlignment: isCollapsed
+                ? MainAxisAlignment.center
+                : MainAxisAlignment.start,
             children: [
               Icon(
-                iconData,
-                size: 22,
-                color: isSelected ? colors.accent : colors.textSecondary,
+                widget.iconData,
+                size: 21,
+                color: iconColor,
               ),
-              const SizedBox(width: 16),
-              Text(
-                label,
-                style: AppTypography.bodyMedium.copyWith(
-                  color: isSelected ? colors.textPrimary : colors.textSecondary,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+              if (!isCollapsed) ...[
+                const SizedBox(width: 14),
+                Flexible(
+                  child: Text(
+                    widget.label,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: textColor,
+                      fontWeight:
+                          isSelected ? FontWeight.w600 : FontWeight.w400,
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         ),
       ),
     );
+
+    if (isCollapsed) {
+      return Tooltip(
+        message: widget.label,
+        preferBelow: false,
+        waitDuration: const Duration(milliseconds: 400),
+        child: content,
+      );
+    }
+
+    return content;
   }
 }
