@@ -31,7 +31,11 @@ class AppNotificationModel {
     switch (value) {
       case 'NEW_JOB':
         return NotificationType.newJob;
+      case 'JOB_MATCH':
+        return NotificationType.newJob;
       case 'INTEREST_CONFIRMED':
+        return NotificationType.interestConfirmed;
+      case 'PROFILE_VIEWED':
         return NotificationType.interestConfirmed;
       case 'NEW_COMMENT':
         return NotificationType.newComment;
@@ -43,6 +47,13 @@ class AppNotificationModel {
         return NotificationType.applicationRejected;
       case 'APPLICATION_APPROVED':
         return NotificationType.applicationApproved;
+      // New contract values — map to closest legacy icon
+      case 'APPLICATION_VIEWED':
+        return NotificationType.applicationApproved;
+      case 'APPLICATION_STATUS_CHANGED':
+        return NotificationType.applicationApproved;
+      case 'NEW_MESSAGE':
+        return NotificationType.newJob;
       case 'IDENTITY_VERIFICATION':
         return NotificationType.identityVerification;
       case 'IDENTITY_VERIFICATION_SUCCESS':
@@ -80,18 +91,20 @@ class AppNotificationModel {
 
     final parsedDate = rawDate is num
         ? (rawDate < 10000000000
-            ? DateTime.fromMillisecondsSinceEpoch((rawDate * 1000).toInt())
-            : DateTime.fromMillisecondsSinceEpoch(rawDate.toInt()))
+              ? DateTime.fromMillisecondsSinceEpoch((rawDate * 1000).toInt())
+              : DateTime.fromMillisecondsSinceEpoch(rawDate.toInt()))
         : DateTime.parse(rawDate as String);
 
     return AppNotificationModel(
       id: json['id'] as String,
       userId: json['userId'] as String? ?? '',
       title: json['title'] as String,
-      subtitle: json['subtitle'] as String?,
+      // Backend contract uses `body` (OpenAPI) — older mock uses `subtitle`. Accept both.
+      subtitle: (json['subtitle'] as String?) ?? (json['body'] as String?),
       createdAt: parsedDate,
       type: _parseType(json['type'] as String?),
-      isRead: json['isRead'] as bool? ?? false,
+      // Backend serialises as `isRead` via @JsonProperty("isRead") — be tolerant to `read`
+      isRead: (json['isRead'] as bool?) ?? (json['read'] as bool?) ?? false,
       contactName: json['contactName'] as String?,
       contactInitials: json['contactInitials'] as String?,
       actionUrl: json['actionUrl'] as String?,
@@ -100,18 +113,18 @@ class AppNotificationModel {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'userId': userId,
-        'title': title,
-        'subtitle': subtitle,
-        'createdAt': createdAt.toIso8601String(),
-        'type': _typeToString(type),
-        'isRead': isRead,
-        'contactName': contactName,
-        'contactInitials': contactInitials,
-        'actionUrl': actionUrl,
-        'chatId': chatId,
-      };
+    'id': id,
+    'userId': userId,
+    'title': title,
+    'subtitle': subtitle,
+    'createdAt': createdAt.toIso8601String(),
+    'type': _typeToString(type),
+    'isRead': isRead,
+    'contactName': contactName,
+    'contactInitials': contactInitials,
+    'actionUrl': actionUrl,
+    'chatId': chatId,
+  };
 
   AppNotificationModel copyWith({
     String? id,
@@ -142,16 +155,16 @@ class AppNotificationModel {
   }
 
   AppNotification toEntity() => AppNotification(
-        id: id,
-        userId: userId,
-        title: title,
-        subtitle: subtitle,
-        createdAt: createdAt,
-        type: type,
-        isRead: isRead,
-        contactName: contactName,
-        contactInitials: contactInitials,
-        actionUrl: actionUrl,
-        chatId: chatId,
-      );
+    id: id,
+    userId: userId,
+    title: title,
+    subtitle: subtitle,
+    createdAt: createdAt,
+    type: type,
+    isRead: isRead,
+    contactName: contactName,
+    contactInitials: contactInitials,
+    actionUrl: actionUrl,
+    chatId: chatId,
+  );
 }

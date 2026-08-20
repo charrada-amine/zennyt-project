@@ -69,7 +69,11 @@ class _AccountCenterScreenState extends ConsumerState<AccountCenterScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      l10n.lastUpdated('Jun 9, 2024'),
+                      l10n.lastUpdated(
+                        Localizations.localeOf(context).languageCode == 'fr'
+                            ? '9 juin 2024'
+                            : 'Jun 9, 2024',
+                      ),
                       style: AppTypography.bodySmall.copyWith(
                         color: colors.textSecondary,
                         fontWeight: FontWeight.w600,

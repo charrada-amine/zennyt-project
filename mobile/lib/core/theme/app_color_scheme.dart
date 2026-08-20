@@ -185,7 +185,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     scaffoldBg: Color(0xFFF9FBFF),             // App Background
     cardSurface: Color(0xFFFFFFFF),            // Surface
     surfaceRaised: Color(0xFFFFFFFF),          // Surface Raised
-    sidebarNav: Color(0xFFFFFFFF),             // Sidebar / Nav
+    sidebarNav: Color(0xFFF9FBFF),             // Sidebar / Nav — requested #F9FBFF for Windows
 
     // Text
     textPrimary: Color(0xFF111827),            // Text Primary
@@ -217,7 +217,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     menuLabelText: Color(0xFF111827),          // Text Primary
 
     // Navigation
-    navBg: Color(0xFFFFFFFF),                  // Sidebar / Nav
+    navBg: Color(0xFFF9FBFF),                  // Sidebar / Nav — requested #F9FBFF for Windows
     navBorder: Color(0xFFF3F4F6),             // Separator
     navLabelSelected: Color(0xFF4F46E5),       // Active Text / Brand Indigo
     navLabelUnselected: Color(0xFF9CA3AF),     // Text Tertiary

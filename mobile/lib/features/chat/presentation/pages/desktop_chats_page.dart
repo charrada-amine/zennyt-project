@@ -115,19 +115,7 @@ class _DesktopChatsPageState extends ConsumerState<DesktopChatsPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Title
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 28, 24, 16),
-                child: Text(
-                  l10n.allChats,
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                    color: colors.textPrimary,
-                  ),
-                ),
-              ),
-
+              const SizedBox(height: 16),
               // Search Bar
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),

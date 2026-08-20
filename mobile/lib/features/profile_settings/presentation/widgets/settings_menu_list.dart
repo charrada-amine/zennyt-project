@@ -134,7 +134,7 @@ class SettingsMenuList extends ConsumerWidget {
           boxColor: AppColors.iconMediumBlue,
           label: l10n.helpCenter,
           trailing: _buildChevron(colors),
-          onTap: () {},
+          onTap: () => context.push(AppRoutes.helpCenter),
         ),
         _buildDivider(colors),
 
@@ -144,7 +144,7 @@ class SettingsMenuList extends ConsumerWidget {
           boxColor: AppColors.iconGrey,
           label: l10n.termsOfServiceAndConditions,
           trailing: _buildChevron(colors),
-          onTap: () {},
+          onTap: () => context.push(AppRoutes.privacyPolicy),
         ),
 
         const SizedBox(height: AppSpacing.sm),

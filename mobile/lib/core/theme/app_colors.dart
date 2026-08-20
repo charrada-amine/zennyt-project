@@ -80,8 +80,8 @@ class AppColors {
   /// Surface Raised — Popovers, modals, elevated
   static const Color surfaceRaised = Color(0xFFFFFFFF);
 
-  /// Sidebar / Nav — Left nav background
-  static const Color sidebarNav = Color(0xFFFFFFFF);
+  /// Sidebar / Nav — Left nav background — #F9FBFF requested for Windows
+  static const Color sidebarNav = Color(0xFFF9FBFF);
 
   // ── Dark mode ──
   /// App Background dark

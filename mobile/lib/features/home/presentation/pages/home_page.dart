@@ -14,6 +14,7 @@ import 'package:zennyt/shared/widgets/platform_scaffold.dart';
 import 'package:zennyt/core/theme/app_typography.dart';
 import 'package:zennyt/features/auth/presentation/auth_controller.dart';
 import 'package:zennyt/features/navigation/presentation/viewmodel/nav_tab_provider.dart';
+import 'package:zennyt/features/notifications/presentation/providers/notification_providers.dart';
 import '../providers/home_providers.dart';
 import '../widgets/profile_row.dart';
 import '../widgets/post_card.dart';
@@ -591,9 +592,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        // Notification icon
+                        // Notification icon — fixed: goes to Notifications (7), dot only if unread
                         GestureDetector(
-                          onTap: () => ref.read(navTabProvider.notifier).select(4),
+                          onTap: () => ref.read(navTabProvider.notifier).select(7),
                           child: Stack(
                             clipBehavior: Clip.none,
                             children: [
@@ -609,18 +610,22 @@ class _HomePageState extends ConsumerState<HomePage> {
                                   size: 24,
                                 ),
                               ),
-                              Positioned(
-                                top: 2,
-                                right: 2,
-                                child: Container(
-                                  width: 8,
-                                  height: 8,
-                                  decoration: BoxDecoration(
-                                    color: colors.accent,
-                                    shape: BoxShape.circle,
+                              if (ref.watch(notificationsProvider).maybeWhen(
+                                    data: (list) => list.any((n) => !n.isRead),
+                                    orElse: () => false,
+                                  ))
+                                Positioned(
+                                  top: 2,
+                                  right: 2,
+                                  child: Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: BoxDecoration(
+                                      color: colors.accent,
+                                      shape: BoxShape.circle,
+                                    ),
                                   ),
                                 ),
-                              ),
                             ],
                           ),
                         ),

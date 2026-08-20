@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../fits/presentation/view/fits_screen.dart';
 import '../../../home/presentation/pages/home_page.dart';
@@ -9,12 +8,13 @@ import '../../../progress/presentation/view/progress_screen.dart';
 import '../../../search/presentation/view/search_screen.dart';
 import '../../../chat/presentation/pages/desktop_chats_page.dart';
 import '../../../profile_settings/presentation/view/user_profile_screen.dart';
+import '../../../profile_settings/presentation/view/desktop_settings_screen.dart';
 import '../../../../core/theme/theme.dart';
 import '../../../../core/utils/responsive.dart';
-import '../../../../core/router/app_routes.dart';
 import '../../../auth/presentation/auth_controller.dart';
 import '../viewmodel/nav_tab_provider.dart';
 import '../widgets/app_bottom_nav.dart';
+import '../../../notifications/presentation/providers/notification_providers.dart';
 
 /// The main app navigation shown after authentication. Hosts the five
 /// destinations in an [IndexedStack] (state is preserved across tab
@@ -64,11 +64,11 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
         backgroundColor: colors.scaffoldBg,
         body: Row(
           children: [
-            // ── Left Sidebar ────────────────────────────────────────────────
+            // ── Left Sidebar — Windows #F9FBFF via theme sidebarNav ──
             Container(
               width: 250,
               decoration: BoxDecoration(
-                color: colors.cardSurface,
+                color: colors.sidebarNav,
                 border: Border(
                   right: BorderSide(color: colors.divider),
                 ),
@@ -139,6 +139,14 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
                           isSelected: tab == 4,
                           onTap: () => _onTabSelect(4),
                         ),
+                        const SizedBox(height: 12),
+                        _DesktopNavItem(
+                          label: 'Notifications',
+                          iconPath: 'assets/images/notification_unselected.png',
+                          selectedIconPath: 'assets/images/notification_selected.png',
+                          isSelected: tab == 7,
+                          onTap: () => _onTabSelect(7),
+                        ),
                       ],
                     ),
                   ),
@@ -151,14 +159,14 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
                         _DesktopBottomItem(
                           label: 'Settings',
                           iconData: Icons.settings_outlined,
-                          onTap: () {
-                            context.push(AppRoutes.profileSettings);
-                          },
+                          isSelected: tab == 6,
+                          onTap: () => _onTabSelect(6),
                         ),
                         const SizedBox(height: 16),
                         _DesktopBottomItem(
                           label: 'Log out',
                           iconData: Icons.logout_outlined,
+                          isSelected: false,
                           onTap: () {
                             ref.read(authControllerProvider.notifier).logout();
                           },
@@ -174,42 +182,118 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
             Expanded(
               child: Column(
                 children: [
-                  // Global Top Bar
+                  // Global Top Bar — Messages (4) & Notifications (7) show title
+                  // on the left at same level as profile (reference design)
                   if (tab != 0)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(40, 24, 40, 0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          // Notification icon
-                          Stack(
-                            clipBehavior: Clip.none,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: colors.inputFill,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  Icons.notifications_none_rounded,
-                                  color: colors.textSecondary,
-                                  size: 24,
-                                ),
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: (tab == 4 || tab == 7) ? 24 : 40,
+                        vertical: 14,
+                      ),
+                      decoration: (tab == 4 || tab == 7)
+                          ? BoxDecoration(
+                              color: colors.cardSurface,
+                              border: Border(
+                                bottom: BorderSide(color: colors.divider),
                               ),
-                              Positioned(
-                                top: 2,
-                                right: 2,
-                                child: Container(
-                                  width: 8,
-                                  height: 8,
+                            )
+                          : null,
+                      child: Row(
+                        children: [
+                          if (tab == 4)
+                            Text(
+                              'Messages',
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w700,
+                                color: colors.textPrimary,
+                              ),
+                            )
+                          else if (tab == 7)
+                            Builder(
+                              builder: (context) {
+                                final async = ref.watch(notificationsProvider);
+                                final count = async.maybeWhen(
+                                  data: (list) =>
+                                      list.where((n) => !n.isRead).length,
+                                  orElse: () => 0,
+                                );
+                                return Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      'Notifications',
+                                      style: TextStyle(
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.w700,
+                                        color: colors.textPrimary,
+                                      ),
+                                    ),
+                                    if (count > 0) ...[
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: colors.accent,
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                        child: Text(
+                                          '$count new',
+                                          style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                );
+                              },
+                            )
+                          else
+                            const Spacer(),
+                          if (tab == 4 || tab == 7) const Spacer(),
+                          // Notification icon — tapping navigates to Notifications tab (7)
+                          GestureDetector(
+                            onTap: () => _onTabSelect(7),
+                            child: Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
                                   decoration: BoxDecoration(
-                                    color: colors.accent,
+                                    color: tab == 7
+                                        ? colors.inputFill
+                                        : colors.inputFill,
                                     shape: BoxShape.circle,
                                   ),
+                                  child: Icon(
+                                    Icons.notifications_none_rounded,
+                                    color: tab == 7
+                                        ? colors.accent
+                                        : colors.textSecondary,
+                                    size: 24,
+                                  ),
                                 ),
-                              ),
-                            ],
+                                if (ref.watch(notificationsProvider).maybeWhen(
+                                      data: (list) => list.any((n) => !n.isRead),
+                                      orElse: () => false,
+                                    ))
+                                  Positioned(
+                                    top: 2,
+                                    right: 2,
+                                    child: Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: BoxDecoration(
+                                        color: colors.accent,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
                           ),
                           const SizedBox(width: 24),
 
@@ -272,12 +356,14 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
                     child: IndexedStack(
                       index: tab,
                       children: const [
-                        HomePage(),
-                        FitsScreen(),
-                        ProgressScreen(),
-                        SearchScreen(),
-                        DesktopChatsPage(),
-                        UserProfileScreen(),
+                        HomePage(),         // 0
+                        FitsScreen(),       // 1
+                        ProgressScreen(),   // 2
+                        SearchScreen(),     // 3
+                        DesktopChatsPage(), // 4
+                        UserProfileScreen(), // 5
+                        DesktopSettingsScreen(), // 6
+                        NotificationsPage(), // 7
                       ],
                     ),
                   ),
@@ -386,11 +472,13 @@ class _DesktopBottomItem extends StatelessWidget {
   const _DesktopBottomItem({
     required this.label,
     required this.iconData,
+    required this.isSelected,
     required this.onTap,
   });
 
   final String label;
   final IconData iconData;
+  final bool isSelected;
   final VoidCallback onTap;
 
   @override
@@ -399,24 +487,30 @@ class _DesktopBottomItem extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Row(
-          children: [
-            Icon(
-              iconData,
-              size: 22,
-              color: colors.textSecondary,
-            ),
-            const SizedBox(width: 16),
-            Text(
-              label,
-              style: AppTypography.bodyMedium.copyWith(
-                color: colors.textSecondary,
-                fontWeight: FontWeight.w400,
+      child: Container(
+        decoration: BoxDecoration(
+          color: isSelected ? colors.inputFill : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            children: [
+              Icon(
+                iconData,
+                size: 22,
+                color: isSelected ? colors.accent : colors.textSecondary,
               ),
-            ),
-          ],
+              const SizedBox(width: 16),
+              Text(
+                label,
+                style: AppTypography.bodyMedium.copyWith(
+                  color: isSelected ? colors.textPrimary : colors.textSecondary,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
