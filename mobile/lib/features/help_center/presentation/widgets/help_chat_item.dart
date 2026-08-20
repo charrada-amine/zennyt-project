@@ -50,7 +50,7 @@ class HelpChatItem extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        chat.time,
+                        _quand(chat.lastMessageAt),
                         style: TextStyle(
                           fontSize: 12,
                           color: context.colors.textMuted,
@@ -76,4 +76,20 @@ class HelpChatItem extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Horodatage court, comme dans une liste de messagerie : l'heure si c'est aujourd'hui,
+/// la date sinon. Vide tant qu'aucun message n'a ete echange — une conversation qui vient
+/// d'etre ouverte n'a pas de « derniere activite » a afficher.
+String _quand(DateTime? moment) {
+  if (moment == null) return '';
+  final local = moment.toLocal();
+  final maintenant = DateTime.now();
+  final memeJour = local.year == maintenant.year &&
+      local.month == maintenant.month &&
+      local.day == maintenant.day;
+  String deuxChiffres(int n) => n.toString().padLeft(2, '0');
+  return memeJour
+      ? '${deuxChiffres(local.hour)}:${deuxChiffres(local.minute)}'
+      : '${deuxChiffres(local.day)}/${deuxChiffres(local.month)}';
 }

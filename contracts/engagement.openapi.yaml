@@ -460,6 +460,47 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/HelpChat' }
+    post:
+      tags: [HelpCenter]
+      operationId: openHelpChat
+      summary: Ouvrir une conversation avec le support
+      description: >
+        Titre et sous-titre sont facultatifs : ils dependent de l'endroit d'ou l'aide est
+        ouverte. Le bouton generique du menu n'en fournit pas, et des valeurs de repli
+        s'appliquent alors.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/HelpChatOpen' }
+      responses:
+        '201':
+          description: Conversation ouverte
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HelpChat' }
+
+  /help-chats/{helpChatId}/rating:
+    parameters:
+      - { name: helpChatId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [HelpCenter]
+      operationId: rateHelpChat
+      summary: Noter l'echange avec le support
+      description: >
+        Noter a nouveau remplace la note precedente : quelqu'un qui se ravise apres une
+        reponse tardive doit pouvoir le dire.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/HelpChatRating' }
+      responses:
+        '200':
+          description: Conversation notee
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HelpChat' }
 
   /help-chats/{helpChatId}/messages:
     parameters:
@@ -699,6 +740,29 @@ components:
         title: { type: string }
         subtitle: { type: string }
         lastMessageAt: { type: string, format: date-time, nullable: true }
+        rating:
+          allOf: [{ $ref: '#/components/schemas/HelpChatRatingValue' }]
+          nullable: true
+          description: Appreciation de l'utilisateur ; null tant que l'echange n'est pas note.
+        ratingComment: { type: string, nullable: true, description: "Commentaire libre facultatif, saisi apres la note" }
+        ratedAt: { type: string, format: date-time, nullable: true }
+
+    HelpChatRatingValue:
+      type: string
+      enum: [POOR, OK, GREAT]
+
+    HelpChatOpen:
+      type: object
+      properties:
+        title: { type: string, nullable: true }
+        subtitle: { type: string, nullable: true }
+
+    HelpChatRating:
+      type: object
+      required: [rating]
+      properties:
+        rating: { $ref: '#/components/schemas/HelpChatRatingValue' }
+        comment: { type: string, nullable: true }
 
     HelpMessage:
       type: object

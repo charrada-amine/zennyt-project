@@ -17,6 +17,7 @@ public class HelpChatRepositoryAdapter implements HelpChatRepository {
         HelpChatEntity entity = jpa.findById(chat.id()).orElseGet(() -> new HelpChatEntity(
             chat.id(), chat.userId(), chat.title(), chat.subtitle(), chat.lastMessageAt()));
         entity.update(chat.lastMessageAt());
+        entity.applyRating(chat.rating(), chat.ratingComment(), chat.ratedAt());
         return toDomain(jpa.save(entity));
     }
     @Override public List<HelpChat> findByUserId(UUID userId) {
@@ -27,6 +28,7 @@ public class HelpChatRepositoryAdapter implements HelpChatRepository {
     }
     private HelpChat toDomain(HelpChatEntity entity) {
         return HelpChat.rehydrate(entity.getId(), entity.getUserId(), entity.getTitle(),
-            entity.getSubtitle(), entity.getLastMessageAt());
+            entity.getSubtitle(), entity.getLastMessageAt(), entity.getRating(),
+            entity.getRatingComment(), entity.getRatedAt());
     }
 }

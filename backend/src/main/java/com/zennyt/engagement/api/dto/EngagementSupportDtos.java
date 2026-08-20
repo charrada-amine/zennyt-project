@@ -3,6 +3,7 @@ package com.zennyt.engagement.api.dto;
 import com.zennyt.engagement.domain.model.CallSession;
 import com.zennyt.engagement.domain.model.HelpChat;
 import com.zennyt.engagement.domain.vo.CallStatus;
+import com.zennyt.engagement.domain.vo.HelpChatRating;
 import com.zennyt.engagement.domain.vo.CallType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -24,9 +25,17 @@ public final class EngagementSupportDtos {
                 value.startedAt(), value.endedAt(), value.durationSeconds());
         }
     }
-    public record HelpChatResponse(UUID id, String title, String subtitle, Instant lastMessageAt) {
-        public static HelpChatResponse from(HelpChat value) { return new HelpChatResponse(value.id(), value.title(), value.subtitle(), value.lastMessageAt()); }
+    /** Titre et sous-titre facultatifs : le menu generique n'en fournit pas. */
+    public record HelpChatOpenRequest(String title, String subtitle) {}
+    public record HelpChatResponse(UUID id, String title, String subtitle, Instant lastMessageAt,
+                                   HelpChatRating rating, String ratingComment, Instant ratedAt) {
+        public static HelpChatResponse from(HelpChat value) {
+            return new HelpChatResponse(value.id(), value.title(), value.subtitle(),
+                value.lastMessageAt(), value.rating(), value.ratingComment(), value.ratedAt());
+        }
     }
+    /** Le commentaire est facultatif : le formulaire s'ouvre apres la note et peut etre ferme. */
+    public record HelpChatRatingRequest(@NotNull HelpChatRating rating, String comment) {}
     public record HelpMessageRequest(@NotBlank String text) {}
     public record HelpMessageResponse(UUID id, UUID helpChatId, String text, Instant timestamp, boolean isFromUser) {
         public static HelpMessageResponse from(HelpChat.HelpMessage value) {

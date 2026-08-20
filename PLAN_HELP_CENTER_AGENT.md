@@ -204,16 +204,26 @@ se code pas.
 
 ## 6. Le plan, étape par étape
 
-### Étape 1 — Rendre le centre d'aide fonctionnel *sans* agent (1 jour)
+### Étape 1 — Rendre le centre d'aide fonctionnel *sans* agent ✅ *faite le 20 août 2026*
 
-Livrer d'abord une conversation qui marche, même sans réponse automatique. Cela met tout le
-circuit en place et se teste seul.
+- [x] `POST /help-chats` — ouvrir une conversation
+- [x] `sendMessage` au datasource mobile et **un bouton d'envoi** dans la barre
+- [x] Migration **V64** : note, commentaire et date sur `help_chats`
+- [x] `POST /help-chats/{id}/rating` — `_selectRating` et `onSubmit` branchés
+- [x] Tests : 8 tests unitaires + vérification bout en bout sur API réelle
+      (`docs/help-center/verif_help_center.py`)
 
-- [ ] `POST /help-chats` — ouvrir une conversation
-- [ ] Ajouter `sendMessage` au datasource mobile et **un bouton d'envoi** dans la barre
-- [ ] Migration **V64** : note et commentaire sur `help_chats`
-- [ ] `POST /help-chats/{id}/rating` — et brancher `_selectRating` et `onSubmit`
-- [ ] Tests : envoi, ouverture, notation, **isolation entre utilisateurs**
+**541 tests, 0 échec · `flutter analyze` 0 erreur · schéma Flyway 64 · 20 vérifications
+vertes sur l'API réelle, dont l'isolation entre utilisateurs.**
+
+**Quatre défauts trouvés en chemin, qu'aucun test ne couvrait :**
+
+| Défaut | Conséquence |
+|---|---|
+| `HelpChatModel` lisait un champ `time` que le serveur n'envoie pas | La liste plantait dès la première conversation réelle — invisible tant que la table était vide |
+| Le message parsait la date comme un nombre | Le serveur émet de l'ISO (`2026-08-20T14:48:55Z`) : `toDouble()` sur une chaîne |
+| Le dialogue de notation émettait le **libellé traduit** | En français il aurait envoyé « Médiocre » — refusé par le serveur |
+| Le routeur fabriquait une conversation `id: '1'` | Identifiant inexistant : tout appel serveur échouait |
 
 ### Étape 2 — Écrire le corpus (3 à 5 jours, non technique)
 

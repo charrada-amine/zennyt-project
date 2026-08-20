@@ -30,8 +30,9 @@ class _HelpChatDetailPageState extends ConsumerState<HelpChatDetailPage> {
   final _scrollController = ScrollController();
 
   bool _showTypingIndicator = false;
+  bool _sending = false;
   _PostChatStage _postChatStage = _PostChatStage.hidden;
-  String? _selectedRating;
+  HelpChatRating? _selectedRating;
 
   @override
   void initState() {
@@ -58,11 +59,58 @@ class _HelpChatDetailPageState extends ConsumerState<HelpChatDetailPage> {
     super.dispose();
   }
 
-  void _selectRating(String rating) {
+  /// La note part au serveur. L'affichage bascule immediatement sur « envoye » — faire
+  /// attendre l'utilisateur devant trois emojis serait absurde — mais un echec est dit,
+  /// et l'etat revient en arriere pour qu'il puisse reessayer.
+  Future<void> _selectRating(HelpChatRating rating) async {
+    final precedent = _selectedRating;
     setState(() {
       _selectedRating = rating;
       _postChatStage = _PostChatStage.sent;
     });
+    try {
+      await ref.read(helpCenterActionsProvider).rate(widget.helpChat.id, rating, null);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _selectedRating = precedent;
+        _postChatStage = _PostChatStage.rating;
+      });
+      _signaler("Votre note n'a pas pu etre envoyee.");
+    }
+  }
+
+  void _signaler(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  /// Envoie le message saisi. Le champ n'est vide qu'apres confirmation du serveur :
+  /// perdre un texte parce que le reseau a laché est la pire facon d'echouer ici.
+  Future<void> _sendMessage() async {
+    final texte = _messageController.text.trim();
+    if (texte.isEmpty || _sending) return;
+
+    setState(() => _sending = true);
+    try {
+      await ref.read(helpCenterActionsProvider).sendMessage(widget.helpChat.id, texte);
+      if (!mounted) return;
+      _messageController.clear();
+      _scrollToBottom();
+    } catch (_) {
+      _signaler("Votre message n'a pas pu etre envoye.");
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  void _scrollToBottom() {
+    if (!_scrollController.hasClients) return;
+    _scrollController.animateTo(
+      _scrollController.position.maxScrollExtent,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+    );
   }
 
   void _dismissOverlay() {
@@ -75,10 +123,17 @@ class _HelpChatDetailPageState extends ConsumerState<HelpChatDetailPage> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => FeedbackBottomSheet(
-        onSubmit: (feedback) {
-          setState(() {
-            _postChatStage = _PostChatStage.thankYou;
-          });
+        onSubmit: (feedback) async {
+          setState(() => _postChatStage = _PostChatStage.thankYou);
+          final rating = _selectedRating;
+          if (rating == null) return;
+          try {
+            await ref
+                .read(helpCenterActionsProvider)
+                .rate(widget.helpChat.id, rating, feedback);
+          } catch (_) {
+            _signaler("Votre commentaire n'a pas pu etre envoye.");
+          }
         },
       ),
     );
@@ -397,11 +452,25 @@ class _HelpChatDetailPageState extends ConsumerState<HelpChatDetailPage> {
               color: AppColors.chipSelected,
             ),
             const SizedBox(width: 12),
-            const Icon(
-              Icons.add_circle_outline_rounded,
-              size: 26,
-              color: AppColors.chipSelected,
-            ),
+            // Il n'y avait ici qu'un micro et un « + » decoratifs : on pouvait ecrire,
+            // jamais envoyer.
+            _sending
+                ? const SizedBox(
+                    width: 26,
+                    height: 26,
+                    child: Padding(
+                      padding: EdgeInsets.all(3),
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  )
+                : GestureDetector(
+                    onTap: _sendMessage,
+                    child: const Icon(
+                      Icons.send_rounded,
+                      size: 26,
+                      color: AppColors.chipSelected,
+                    ),
+                  ),
           ],
         ),
       ),

@@ -49,4 +49,44 @@ class HelpChatRepositoryImpl implements HelpChatRepository {
       return const Left(NetworkFailure());
     }
   }
+
+  @override
+  Future<Either<Failure, HelpChat>> openHelpChat({String? title, String? subtitle}) {
+    return _guard(() async {
+      final model = await remoteDataSource.openHelpChat(title: title, subtitle: subtitle);
+      return model.toEntity();
+    });
+  }
+
+  @override
+  Future<Either<Failure, HelpMessage>> sendHelpMessage(String helpChatId, String text) {
+    return _guard(() async {
+      final model = await remoteDataSource.sendHelpMessage(helpChatId, text);
+      return model.toEntity();
+    });
+  }
+
+  @override
+  Future<Either<Failure, HelpChat>> rateHelpChat(
+      String helpChatId, HelpChatRating rating, String? comment) {
+    return _guard(() async {
+      final model = await remoteDataSource.rateHelpChat(
+          helpChatId, rating.wireValue, comment);
+      return model.toEntity();
+    });
+  }
+
+  /// Les trois nouvelles operations partagent le meme traitement d'erreur : reseau
+  /// absent, erreur serveur, ou reponse illisible. Le repeter trois fois serait trois
+  /// occasions de l'ecrire differemment.
+  Future<Either<Failure, T>> _guard<T>(Future<T> Function() action) async {
+    if (!await networkInfo.isConnected) return const Left(NetworkFailure());
+    try {
+      return Right(await action());
+    } on ServerException catch (e) {
+      return Left(mapStatusCodeToFailure(e.statusCode, e.message));
+    } catch (e) {
+      return Left(DataParsingFailure("Reponse illisible du centre d'aide: $e"));
+    }
+  }
 }

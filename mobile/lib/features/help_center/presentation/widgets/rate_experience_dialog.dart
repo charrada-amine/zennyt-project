@@ -4,9 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:zennyt/l10n/gen/app_localizations.dart';
 import '../../../../core/constants.dart';
+import '../../domain/entities/help_chat.dart';
 
 class RateExperienceDialog extends StatelessWidget {
-  final void Function(String rating) onRatingSelected;
+  /// Emet un jeton stable, pas le libelle affiche : celui-ci est traduit, et envoyer
+  /// « Mediocre » au serveur le ferait rejeter des que l'application passe en francais.
+  final void Function(HelpChatRating rating) onRatingSelected;
   final VoidCallback? onClose;
 
   const RateExperienceDialog({
@@ -72,14 +75,17 @@ class RateExperienceDialog extends StatelessWidget {
               _buildRatingOption(
                 icon: FontAwesomeIcons.thumbsDown,
                 label: l10n.poor,
+                rating: HelpChatRating.poor,
               ),
               _buildRatingOption(
                 icon: FontAwesomeIcons.thumbsUp,
                 label: l10n.ok,
+                rating: HelpChatRating.ok,
               ),
               _buildRatingOption(
                 icon: FontAwesomeIcons.solidThumbsUp,
                 label: l10n.great,
+                rating: HelpChatRating.great,
               ),
             ],
           ),
@@ -91,9 +97,10 @@ class RateExperienceDialog extends StatelessWidget {
   Widget _buildRatingOption({
     required FaIconData icon,
     required String label,
+    required HelpChatRating rating,
   }) {
     return GestureDetector(
-      onTap: () => onRatingSelected(label),
+      onTap: () => onRatingSelected(rating),
       child: Column(
         children: [
           Container(

@@ -293,15 +293,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         name: AppRoutes.nHelpCenterDetail,
         builder: (context, state) {
           final helpChat = state.extra as HelpChat?;
-          return HelpChatDetailPage(
-            helpChat: helpChat ??
-                const HelpChat(
-                  id: '1',
-                  title: 'Help Center',
-                  subtitle: 'Support conversation',
-                  time: '09:08',
-                ),
-          );
+          // Le repli fabriquait une conversation d'identifiant « 1 », qui n'existe dans
+          // aucune base : tout appel au serveur echouait. Sans conversation reelle, on
+          // renvoie vers la liste, d'ou l'on peut en ouvrir une.
+          if (helpChat == null) return const HelpCenterPage();
+          return HelpChatDetailPage(helpChat: helpChat);
         },
       ),
       GoRoute(

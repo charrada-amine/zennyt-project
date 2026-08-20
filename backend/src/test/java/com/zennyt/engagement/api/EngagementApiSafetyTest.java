@@ -34,7 +34,10 @@ class EngagementApiSafetyTest {
             .filter(EngagementApiSafetyTest::isEndpoint)
             .toList();
 
-        assertThat(endpoints).hasSize(31);
+        // 33 depuis le 2026-08-15 : ouverture d'une conversation d'aide et notation de
+        // l'echange (etape 1 du centre d'aide). Ce compte se met a jour deliberement —
+        // c'est ce qui oblige a passer par ici quand une route apparait.
+        assertThat(endpoints).hasSize(33);
         assertThat(endpoints).allSatisfy(method ->
             assertThat(method.isAnnotationPresent(EngagementAuthenticated.class))
                 .as(method.toGenericString()).isTrue());
@@ -55,7 +58,7 @@ class EngagementApiSafetyTest {
         Set<String> contract = contractRoutes();
         Set<String> runtime = runtimeRoutes();
 
-        assertThat(contract).hasSize(31);
+        assertThat(contract).hasSize(33);
         assertThat(runtime).isEqualTo(contract);
     }
 

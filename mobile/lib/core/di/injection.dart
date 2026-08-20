@@ -51,6 +51,9 @@ import '../../features/help_center/data/repositories/help_chat_repository_impl.d
 import '../../features/help_center/domain/repositories/help_chat_repository.dart';
 import '../../features/help_center/domain/usecases/get_help_chats.dart';
 import '../../features/help_center/domain/usecases/get_help_messages.dart';
+import '../../features/help_center/domain/usecases/open_help_chat.dart';
+import '../../features/help_center/domain/usecases/rate_help_chat.dart';
+import '../../features/help_center/domain/usecases/send_help_message.dart';
 
 final sl = GetIt.instance;
 
@@ -150,5 +153,8 @@ Future<void> initDependencies({required String apiBaseUrl}) async {
     HelpChatRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()),
   );
   sl.registerSingleton(GetHelpChats(sl()));
+  sl.registerSingleton(OpenHelpChat(sl()));
+  sl.registerSingleton(SendHelpMessage(sl()));
+  sl.registerSingleton(RateHelpChat(sl()));
   sl.registerSingleton(GetHelpMessages(sl()));
 }

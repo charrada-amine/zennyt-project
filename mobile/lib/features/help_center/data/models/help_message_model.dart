@@ -20,9 +20,13 @@ class HelpMessageModel {
       id: json['id'] as String,
       helpChatId: json['helpChatId'] as String,
       text: json['text'] as String,
-      timestamp: DateTime.fromMillisecondsSinceEpoch(
-        (json['timestamp'].toDouble() * 1000).toInt(),
-      ),
+      // Le serveur sérialise un Instant en ISO-8601 ; certaines réponses plus anciennes
+      // portaient un epoch numérique. Ne gérer que le second faisait planter le parsing
+      // sur une chaîne — même précaution que ChatModel.
+      timestamp: json['timestamp'] is num
+          ? DateTime.fromMillisecondsSinceEpoch(
+              (json['timestamp'] as num).toDouble() ~/ 1 * 1000)
+          : DateTime.parse(json['timestamp'] as String),
       isFromUser: json['isFromUser'] as bool,
     );
   }
