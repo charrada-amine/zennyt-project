@@ -20,6 +20,7 @@ class AuthDesktopShell extends StatelessWidget {
     super.key,
     required this.formContent,
     this.heroImagePath = 'assets/images/bg_office.png',
+    this.isScrollable = true,
   });
 
   /// The scrollable form content displayed in the left panel.
@@ -28,9 +29,88 @@ class AuthDesktopShell extends StatelessWidget {
   /// Path to the hero image shown in the right panel.
   final String heroImagePath;
 
+  /// Whether the left panel should be scrollable.
+  final bool isScrollable;
+
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+
+    final Widget leftPanelContent;
+    if (isScrollable) {
+      leftPanelContent = ScrollConfiguration(
+        behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 48,
+            vertical: 40,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Center(
+                child: ZennytLogo(
+                  size: 48,
+                  showWordmark: true,
+                  showTagline: true,
+                ),
+              ),
+              const SizedBox(height: 48),
+              Container(
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  color: colors.cardSurface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: colors.divider.withValues(alpha: 0.5),
+                  ),
+                ),
+                child: formContent,
+              ),
+            ],
+          ),
+        ),
+      );
+    } else {
+      leftPanelContent = Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 48,
+          vertical: 40,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Center(
+              child: ZennytLogo(
+                size: 48,
+                showWordmark: true,
+                showTagline: true,
+              ),
+            ),
+            const SizedBox(height: 32),
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  color: colors.cardSurface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: colors.divider.withValues(alpha: 0.5),
+                  ),
+                ),
+                child: ScrollConfiguration(
+                  behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+                  child: SingleChildScrollView(
+                    child: formContent,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: colors.scaffoldBg,
@@ -42,40 +122,7 @@ class AuthDesktopShell extends StatelessWidget {
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 520),
-                  child: ScrollConfiguration(
-                    behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 48,
-                        vertical: 40,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Center(
-                            child: ZennytLogo(
-                              size: 48,
-                              showWordmark: true,
-                              showTagline: true,
-                            ),
-                          ),
-                          const SizedBox(height: 48),
-                          Container(
-                            padding: const EdgeInsets.all(32),
-                            decoration: BoxDecoration(
-                              color: colors.cardSurface,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: colors.divider.withValues(alpha: 0.5),
-                              ),
-                            ),
-                            child: formContent,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                  child: leftPanelContent,
                 ),
               ),
             ),

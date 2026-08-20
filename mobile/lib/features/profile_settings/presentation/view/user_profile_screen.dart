@@ -13,6 +13,7 @@ import 'recruiter_profile_view.dart';
 import '../../../auth/presentation/auth_controller.dart';
 import '../../../../core/enums/user_role.dart';
 import '../../cv_autofill/presentation/widgets/cv_source_bottom_sheet.dart';
+import '../../../navigation/presentation/viewmodel/nav_tab_provider.dart';
 
 class UserProfileScreen extends ConsumerStatefulWidget {
   const UserProfileScreen({super.key});
@@ -128,7 +129,13 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
             border: Border.all(color: colors.backButtonBorder, width: 1),
           ),
           child: IconButton(
-            onPressed: () => context.pop(),
+            onPressed: () {
+              if (Responsive.isDesktop(context)) {
+                ref.read(navTabProvider.notifier).select(0); // Go back to Home tab
+              } else {
+                context.pop();
+              }
+            },
             icon: Icon(
               Icons.arrow_back_ios_new_rounded,
               color: colors.backButtonIcon,

@@ -8,15 +8,17 @@ import '../../../../core/constants/app_strings.dart';
 import '../../../../core/enums/user_role.dart';
 import '../../../../core/error/api_exception.dart';
 import '../../../../core/router/app_routes.dart';
+import '../../../../core/theme/theme.dart';
 import '../../../../core/upload/file_picking.dart';
 import '../../../../core/upload/picked_file.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../auth/presentation/auth_controller.dart';
 import '../../../auth/presentation/signup/viewmodel/signup_viewmodel.dart';
+import '../../../auth/presentation/widgets/auth_desktop_shell.dart';
+import '../../data/field_of_work_repository.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/primary_button.dart';
 import '../../../../shared/widgets/role_tabs.dart';
-import '../../../../core/theme/theme.dart';
 import '../viewmodel/profile_setup_viewmodel.dart';
 
 class ProfileSetupScreen extends ConsumerStatefulWidget {
@@ -172,68 +174,81 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     final viewModel = ref.read(profileSetupViewModelProvider.notifier);
     final hPadding = Responsive.horizontalPadding(context);
     final colors = context.colors;
+    final isDesktop = Responsive.isDesktop(context);
 
-    return Scaffold(
-      backgroundColor: colors.scaffoldBg,
-      body: SafeArea(
-        child: CenteredConstrainedBox(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(
-              hPadding,
-              AppSpacing.xxxl,
-              hPadding,
-              AppSpacing.xl,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  AppStrings.addInfoTitle,
-                  textAlign: TextAlign.center,
-                  style: AppTypography.headlineMedium.copyWith(
-                    color: colors.primary,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xl),
-                RoleTabs(selected: state.role, onChanged: viewModel.setRole),
-                const SizedBox(height: AppSpacing.xl),
-                Center(
-                  child: _AvatarPicker(
-                    avatarUrl: _avatarUrl,
-                    pickedImage: _avatarImage,
-                    onTap: _pickAvatar,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xl),
-                for (final item in state.formItems) ...[
-                  _FormRow(
-                    item: item,
-                    controllers: _controllers,
-                    fieldOfWork: state.fieldOfWork,
-                    cvFileName: state.cvFile?.name,
-                    logoFileName: state.companyLogoFile?.name,
-                    onFieldOfWorkTap: () => context.push(AppRoutes.fieldOfWork),
-                    onPickCv: _pickCv,
-                    onPickLogo: _pickCompanyLogo,
-                  ),
-                  const SizedBox(height: AppSpacing.base),
-                ],
-                const SizedBox(height: AppSpacing.md),
-                Center(
-                  child: FractionallySizedBox(
-                    widthFactor: 0.5,
-                    child: PrimaryButton(
-                      label: AppStrings.signUp,
-                      outlined: true,
-                      loading: _submitting,
-                      onPressed: _submit,
-                    ),
-                  ),
-                ),
-              ],
+    final formContent = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          AppStrings.addInfoTitle,
+          textAlign: TextAlign.center,
+          style: AppTypography.headlineMedium.copyWith(
+            color: colors.primary,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        RoleTabs(selected: state.role, onChanged: viewModel.setRole),
+        const SizedBox(height: AppSpacing.xl),
+        Center(
+          child: _AvatarPicker(
+            avatarUrl: _avatarUrl,
+            pickedImage: _avatarImage,
+            onTap: _pickAvatar,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        for (final item in state.formItems) ...[
+          _FormRow(
+            item: item,
+            controllers: _controllers,
+            fieldOfWork: state.fieldOfWork,
+            cvFileName: state.cvFile?.name,
+            logoFileName: state.companyLogoFile?.name,
+            onFieldOfWorkTap: () => context.push(AppRoutes.fieldOfWork),
+            onFieldOfWorkSelected: (field) => viewModel.setFieldOfWork(field),
+            onPickCv: _pickCv,
+            onPickLogo: _pickCompanyLogo,
+          ),
+          const SizedBox(height: AppSpacing.base),
+        ],
+        const SizedBox(height: AppSpacing.md),
+        Center(
+          child: SizedBox(
+            width: isDesktop ? 150 : null,
+            child: FractionallySizedBox(
+              widthFactor: isDesktop ? 1.0 : 0.5,
+              child: PrimaryButton(
+                label: AppStrings.signUp,
+                outlined: isDesktop ? false : true,
+                loading: _submitting,
+                onPressed: _submit,
+              ),
             ),
           ),
         ),
+      ],
+    );
+
+    return ResponsiveBuilder(
+      mobile: (context) => Scaffold(
+        backgroundColor: colors.scaffoldBg,
+        body: SafeArea(
+          child: CenteredConstrainedBox(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(
+                hPadding,
+                AppSpacing.xxl,
+                hPadding,
+                AppSpacing.xl,
+              ),
+              child: formContent,
+            ),
+          ),
+        ),
+      ),
+      desktop: (context) => AuthDesktopShell(
+        isScrollable: false,
+        formContent: formContent,
       ),
     );
   }
@@ -279,6 +294,7 @@ class _FormRow extends StatelessWidget {
     required this.cvFileName,
     required this.logoFileName,
     required this.onFieldOfWorkTap,
+    required this.onFieldOfWorkSelected,
     required this.onPickCv,
     required this.onPickLogo,
   });
@@ -289,27 +305,91 @@ class _FormRow extends StatelessWidget {
   final String? cvFileName;
   final String? logoFileName;
   final VoidCallback onFieldOfWorkTap;
+  final ValueChanged<String> onFieldOfWorkSelected;
   final VoidCallback onPickCv;
   final VoidCallback onPickLogo;
 
   @override
   Widget build(BuildContext context) {
+    final isDesktop = Responsive.isDesktop(context);
+    final colors = context.colors;
+
+    Widget wrapWithLabel(String labelText, Widget child) {
+      if (!isDesktop) return child;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.xs, left: 4),
+            child: Text(
+              labelText,
+              style: AppTypography.bodyMedium.copyWith(
+                color: colors.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          child,
+        ],
+      );
+    }
+
     return switch (item) {
-      TextFormItem(:final hint, :final field) => AppTextField(
-        key: ValueKey('text:$hint'),
-        hint: hint,
-        controller: controllers[field],
-      ),
-      FieldOfWorkFormItem() => _FieldOfWorkSelector(
-        value: fieldOfWork,
-        onTap: onFieldOfWorkTap,
-      ),
+      TextFormItem(:final hint, :final field) => wrapWithLabel(
+          _getDesktopLabel(hint),
+          AppTextField(
+            key: ValueKey('text:$hint'),
+            hint: isDesktop ? _getDesktopHint(hint) : hint,
+            controller: controllers[field],
+          ),
+        ),
+      FieldOfWorkFormItem() => wrapWithLabel(
+          AppStrings.fieldOfWork,
+          _FieldOfWorkSelector(
+            value: fieldOfWork,
+            onTap: onFieldOfWorkTap,
+            onSelected: onFieldOfWorkSelected,
+          ),
+        ),
       UploadFormItem(:final label, :final kind) => _UploadRow(
-        label: label,
-        fileName: kind == UploadItemKind.cv ? cvFileName : logoFileName,
-        onTap: kind == UploadItemKind.cv ? onPickCv : onPickLogo,
-      ),
+          label: label,
+          fileName: kind == UploadItemKind.cv ? cvFileName : logoFileName,
+          onTap: kind == UploadItemKind.cv ? onPickCv : onPickLogo,
+        ),
     };
+  }
+
+  String _getDesktopLabel(String label) {
+    if (label == AppStrings.schoolName || label == AppStrings.universityName) {
+      return 'School / University Name';
+    }
+    if (label == AppStrings.education || label == AppStrings.degree) {
+      return 'Education Level';
+    }
+    if (label == AppStrings.educationLevel || label == AppStrings.masterDegree) {
+      return 'Years of Experience';
+    }
+    if (label == AppStrings.lastPosition) {
+      return 'Last position held';
+    }
+    return label;
+  }
+
+  String _getDesktopHint(String label) {
+    if (label == AppStrings.schoolName || label == AppStrings.universityName) {
+      return 'Enter your school / university name';
+    }
+    if (label == AppStrings.education || label == AppStrings.degree) {
+      return 'Enter your education level';
+    }
+    if (label == AppStrings.educationLevel || label == AppStrings.masterDegree) {
+      return 'Enter your years of experience';
+    }
+    if (label == AppStrings.lastPosition) {
+      return 'Enter your last position held';
+    }
+    return 'Enter your ${label.toLowerCase()}';
   }
 }
 
@@ -369,58 +449,118 @@ class _AvatarPicker extends StatelessWidget {
 }
 
 class _FieldOfWorkSelector extends StatelessWidget {
-  const _FieldOfWorkSelector({required this.value, required this.onTap});
+  const _FieldOfWorkSelector({
+    required this.value,
+    required this.onTap,
+    required this.onSelected,
+  });
 
   final String? value;
   final VoidCallback onTap;
+  final ValueChanged<String> onSelected;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final hasValue = value != null;
+    final isDesktop = Responsive.isDesktop(context);
+
+    final selectorButton = Container(
+      height: AppSpacing.inputFieldHeight,
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.base,
+        0,
+        AppSpacing.sm,
+        0,
+      ),
+      decoration: BoxDecoration(
+        color: colors.inputFill,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+        border: Border.all(color: colors.border, width: 1.4),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              hasValue ? value! : (isDesktop ? 'Choose your field of work' : AppStrings.fieldOfWork),
+              overflow: TextOverflow.ellipsis,
+              style: AppTypography.bodyMedium.copyWith(
+                color: hasValue ? colors.textPrimary : colors.textMuted,
+              ),
+            ),
+          ),
+          Container(
+            width: 26,
+            height: 26,
+            decoration: BoxDecoration(
+              color: colors.primary.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.keyboard_arrow_down_rounded,
+              size: AppSpacing.iconMd,
+              color: colors.primary,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (isDesktop) {
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final fields = const FieldOfWorkRepository().getFields();
+          return PopupMenuButton<String>(
+            tooltip: '',
+            offset: const Offset(0, 48),
+            constraints: BoxConstraints(
+              minWidth: constraints.maxWidth,
+              maxWidth: constraints.maxWidth,
+            ),
+            elevation: 8,
+            shadowColor: Colors.black.withValues(alpha: 0.1),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(color: colors.border, width: 1),
+            ),
+            color: colors.cardSurface,
+            onSelected: onSelected,
+            itemBuilder: (context) {
+              return fields.map((field) {
+                final isSelected = field == value;
+                return PopupMenuItem<String>(
+                  value: field,
+                  padding: EdgeInsets.zero,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isSelected ? colors.accent : Colors.transparent,
+                    ),
+                    child: Text(
+                      field,
+                      style: AppTypography.bodyMedium.copyWith(
+                        color: isSelected ? Colors.white : colors.textPrimary,
+                        fontWeight: isSelected ? FontWeight.w600 : null,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList();
+            },
+            child: selectorButton,
+          );
+        },
+      );
+    }
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-      child: Container(
-        height: AppSpacing.inputFieldHeight,
-        padding: const EdgeInsets.fromLTRB(
-          AppSpacing.base,
-          0,
-          AppSpacing.sm,
-          0,
-        ),
-        decoration: BoxDecoration(
-          color: colors.inputFill,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-          border: Border.all(color: colors.border, width: 1.4),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                hasValue ? value! : AppStrings.fieldOfWork,
-                overflow: TextOverflow.ellipsis,
-                style: AppTypography.bodyMedium.copyWith(
-                  color: hasValue ? colors.textPrimary : colors.textMuted,
-                ),
-              ),
-            ),
-            Container(
-              width: 26,
-              height: 26,
-              decoration: BoxDecoration(
-                color: colors.primary.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.keyboard_arrow_down_rounded,
-                size: AppSpacing.iconMd,
-                color: colors.primary,
-              ),
-            ),
-          ],
-        ),
-      ),
+      child: selectorButton,
     );
   }
 }

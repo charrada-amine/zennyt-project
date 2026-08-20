@@ -6,6 +6,8 @@ import 'package:zennyt/l10n/gen/app_localizations.dart';
 import 'package:zennyt/core/theme/theme.dart';
 import 'package:zennyt/core/avatar/avatar_service.dart';
 import 'package:zennyt/features/auth/presentation/auth_controller.dart';
+import 'package:zennyt/core/utils/responsive.dart';
+import 'package:zennyt/features/home/presentation/pages/create_post_page.dart';
 import '../../../../shared/widgets/initials_avatar.dart';
 
 class ProfileRow extends ConsumerWidget {
@@ -25,7 +27,28 @@ class ProfileRow extends ConsumerWidget {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          onTap: () => context.push('/create-post'),
+          onTap: () {
+            if (Responsive.isDesktop(context)) {
+              showDialog(
+                context: context,
+                builder: (context) => Dialog(
+                  backgroundColor: Colors.transparent,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: 600,
+                      maxHeight: 700,
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: const CreatePostPage(),
+                    ),
+                  ),
+                ),
+              );
+            } else {
+              context.push('/create-post');
+            }
+          },
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             child: Row(
