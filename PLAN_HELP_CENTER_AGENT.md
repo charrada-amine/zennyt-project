@@ -225,11 +225,40 @@ vertes sur l'API réelle, dont l'isolation entre utilisateurs.**
 | Le dialogue de notation émettait le **libellé traduit** | En français il aurait envoyé « Médiocre » — refusé par le serveur |
 | Le routeur fabriquait une conversation `id: '1'` | Identifiant inexistant : tout appel serveur échouait |
 
-### Étape 2 — Écrire le corpus (3 à 5 jours, non technique)
+### Étape 2 — Écrire le corpus ✅ *faite le 20 août 2026*
 
-- [ ] Rédiger les 25 à 40 articles
-- [ ] Les stocker en base, versionnés, avec une date de mise à jour
-- [ ] **Ne pas** partir des documents internes
+- [x] **35 articles** rédigés — 3 450 mots, 8 thèmes
+- [x] Stockés en base (`engagement.help_articles`, migration **V65**), avec empreinte et
+      date de mise à jour
+- [x] Écrits depuis le code, **jamais** depuis les documents internes
+
+**Répartition :** 18 articles candidat · 11 communs · 6 recruteur.
+
+**Le choix de conception :** les articles vivent dans des fichiers de ressources
+(`resources/help/fr/*.md`) et sont projetés en base au démarrage. Un texte se relit et se
+corrige en revue, ce qu'une longue suite d'`INSERT` rendrait pénible. La table existe parce
+que l'étape 3 doit attacher une empreinte numérique à chaque fragment, et ne la recalculer
+que lorsque le texte change — l'empreinte du contenu sert exactement à cela.
+
+La synchronisation gère **trois** cas, et le troisième est le plus facile à oublier : un
+article *retiré des fichiers* est supprimé de la base. Sans cela, un article écarté parce
+qu'il était faux continuerait d'être servi par l'agent.
+
+**Deux garde-fous inhabituels, parce que la matière première est du texte :**
+
+- un test refuse tout **vocabulaire interne** dans le corpus — 18 termes surveillés, dont
+  ceux qui trahiraient l'architecture ou les défauts connus ;
+- un autre refuse toute **fonctionnalité inexistante**, à commencer par le « Wallet » de la
+  maquette d'origine.
+
+**Une correction de fond au passage :** la note de passage des tests techniques est de
+**70 %**, pas 60 %, et elle n'est plus réglable par offre. Les articles disent 70.
+
+**555 tests, 0 échec · schéma Flyway 65 · corpus chargé et vérifié au démarrage.**
+
+⚠️ **Le corpus est en français uniquement.** Le schéma porte une colonne `locale` et
+l'anglais s'ajoutera sans migration, mais doubler le corpus double le coût de rédaction :
+c'est l'arbitrage n° 5 restant.
 
 ### Étape 3 — Le volet documentaire (2 jours)
 
