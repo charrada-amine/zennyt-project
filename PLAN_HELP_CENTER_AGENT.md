@@ -227,12 +227,18 @@ vertes sur l'API réelle, dont l'isolation entre utilisateurs.**
 
 ### Étape 2 — Écrire le corpus ✅ *faite le 20 août 2026*
 
-- [x] **35 articles** rédigés — 3 450 mots, 8 thèmes
+- [x] **69 articles** rédigés — 5 900 mots, 18 catégories
 - [x] Stockés en base (`engagement.help_articles`, migration **V65**), avec empreinte et
       date de mise à jour
 - [x] Écrits depuis le code, **jamais** depuis les documents internes
 
-**Répartition :** 18 articles candidat · 11 communs · 6 recruteur.
+**Répartition :** 30 articles candidat · 25 communs · 14 recruteur, sur 18 catégories.
+
+Une première version s'était arrêtée à 35 articles, dans la fourchette annoncée plus haut.
+Cette fourchette avait été estimée **avant** de connaître l'étendue réelle du produit :
+17 modules mobiles et 29 contrôleurs. La moitié des fonctionnalités n'était pas couverte —
+inscription, recherche, messagerie, appels, publications, vérification d'identité, résumé de
+compétences, suivi de progression, gestion des tests côté recruteur. Le corpus a été doublé.
 
 **Le choix de conception :** les articles vivent dans des fichiers de ressources
 (`resources/help/fr/*.md`) et sont projetés en base au démarrage. Un texte se relit et se

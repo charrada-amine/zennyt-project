@@ -98,11 +98,16 @@ class HelpArticleCorpusTest {
      * Le corpus décrit le produit à des utilisateurs : il ne doit pas leur promettre des
      * fonctionnalités qui n'existent pas. Le « Wallet » de la maquette d'origine en est
      * l'exemple — aucune trace de portefeuille dans la plateforme.
+     *
+     * <p><b>« Paiement » et « abonnement » figuraient ici par erreur.</b> La liste avait été
+     * écrite en supposant qu'aucun règlement n'existait ; le paiement de la visioconférence
+     * existe bel et bien. Une liste d'interdits trop large est un piège : elle empêche de
+     * documenter une fonctionnalité réelle, et l'utilisateur reste sans réponse.
      */
     @Test
     @DisplayName("Le corpus ne parle pas de fonctionnalités inexistantes")
     void pasDeFonctionnaliteImaginaire() {
-        List<String> inexistantes = List.of("wallet", "portefeuille", "paiement", "abonnement");
+        List<String> inexistantes = List.of("wallet", "portefeuille");
 
         for (HelpArticle article : CORPUS) {
             String texte = (article.title() + ' ' + article.body()).toLowerCase(Locale.FRENCH);
