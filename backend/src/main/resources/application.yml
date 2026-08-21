@@ -47,9 +47,21 @@ identity:
 
 groq:
   api-key: ${GROQ_API_KEY:}
-  # llama-3.3-70b-versatile a ete retire par Groq : l'API repondait 404
-  # « model_not_found » (constate le 2026-08-21), ce qui cassait silencieusement la
-  # generation de tests, les resumes IA et les reponses du centre d'aide.
+  # llama-3.3-70b-versatile a ete mis hors service par Groq le 2026-08-16. L'API
+  # repondait 404 « model_not_found », ce qui cassait SILENCIEUSEMENT la generation de
+  # tests, les resumes IA, l'analyse de CV et les reponses du centre d'aide : aucun de
+  # ces appels ne journalisait le statut recu.
+  #
+  # Groq proposait deux remplacants. Compares le 2026-08-21 sur les taches reelles du
+  # projet (voir docs/help-center/compare_modeles.py) :
+  #
+  #   openai/gpt-oss-120b   3 epreuves sur 3, 3,3 s au total
+  #   qwen/qwen3.6-27b      1 epreuve sur 3, 9,7 s au total
+  #
+  # Qwen a echoue la ou le projet en a le plus besoin : JSON invalide sur la generation
+  # de QCM, et blocs de raisonnement <think> deverses dans une reponse d'aide censee
+  # faire trois phrases. C'est un modele de raisonnement, mal adapte a des sorties
+  # courtes et structurees.
   model: ${GROQ_MODEL:openai/gpt-oss-120b}
   connect-timeout-ms: ${GROQ_CONNECT_TIMEOUT_MS:5000}
   read-timeout-ms: ${GROQ_READ_TIMEOUT_MS:20000}

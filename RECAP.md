@@ -11,7 +11,7 @@ on our branch, then aligning the other squad's integration branch on those rules
 - **Zennyt** = school recruitment app, two squads. Our scope = **backend only** (recruitment bounded context), hexagonal architecture (domain pure, ports in application, adapters in infrastructure). ArchUnit `ArchitectureTest` enforces it.
 - **Our repo/remote:** `origin` = github.com/Ghassenboussalem/recruitment_zennyt
 - **Other squad's repo/remote:** `amine` = github.com/charrada-amine/zennyt-project
-- **Stack:** Spring Boot, PostgreSQL, Flyway/`ddl-auto` (dev = `ddl-auto: update`, no migrations), Groq (`llama-3.3-70b-versatile`) for AI, JWT (RS256) auth, Bruno API collection in `tooling/bruno` (Demo folder = regression suite).
+- **Stack:** Spring Boot, PostgreSQL, Flyway/`ddl-auto` (dev = `ddl-auto: update`, no migrations), Groq (`openai/gpt-oss-120b`) for AI, JWT (RS256) auth, Bruno API collection in `tooling/bruno` (Demo folder = regression suite).
 - **Source of decisions:** `notes.md` (critique parts 1–3) + 13 design mockups pasted in chat + explicit user confirmations.
 
 ## 1. Réunion de cadrage decisions (16/07) — what was locked

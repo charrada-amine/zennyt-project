@@ -30,7 +30,7 @@ public class GroqCvParser implements CvParserPort {
 
     public GroqCvParser(ObjectMapper objectMapper,
                         @Value("${groq.api-key:}") String apiKey,
-                        @Value("${groq.model:llama-3.3-70b-versatile}") String modelName,
+                        @Value("${groq.model:openai/gpt-oss-120b}") String modelName,
                         @Value("${groq.connect-timeout-ms:5000}") int connectTimeoutMs,
                         @Value("${groq.read-timeout-ms:20000}") int readTimeoutMs) {
         this.objectMapper = objectMapper;
