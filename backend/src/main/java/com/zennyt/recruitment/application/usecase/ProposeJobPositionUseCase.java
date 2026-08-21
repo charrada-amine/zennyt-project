@@ -1,8 +1,8 @@
 package com.zennyt.recruitment.application.usecase;
 
-import com.zennyt.recruitment.application.EmbeddingCodec;
+import com.zennyt.shared.application.EmbeddingCodec;
 import com.zennyt.recruitment.application.JobProfileTypeClassifier;
-import com.zennyt.recruitment.application.port.EmbeddingPort;
+import com.zennyt.shared.application.port.EmbeddingPort;
 import com.zennyt.recruitment.domain.model.JobPosition;
 import com.zennyt.recruitment.domain.repository.JobPositionRepository;
 import com.zennyt.shared.application.exception.ConflictException;

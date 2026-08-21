@@ -1,4 +1,4 @@
-package com.zennyt.recruitment.application.port;
+package com.zennyt.shared.application.port;
 
 /**
  * Empreinte numérique d'un texte ("embedding") — deux textes proches en sens

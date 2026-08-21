@@ -1,8 +1,8 @@
 package com.zennyt.recruitment.application;
 
-import com.zennyt.recruitment.application.port.EmbeddingPort;
+import com.zennyt.shared.application.port.EmbeddingPort;
 import com.zennyt.recruitment.domain.vo.JobProfileType;
-import com.zennyt.recruitment.infrastructure.ai.NoOpEmbeddingPort;
+import com.zennyt.shared.infrastructure.ai.NoOpEmbeddingPort;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;

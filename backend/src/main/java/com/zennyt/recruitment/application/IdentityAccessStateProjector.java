@@ -1,7 +1,9 @@
 package com.zennyt.recruitment.application;
 
+import com.zennyt.shared.application.EmbeddingCodec;
+
 import com.zennyt.identity.domain.event.UserAccessStateChangedEvent;
-import com.zennyt.recruitment.application.port.EmbeddingPort;
+import com.zennyt.shared.application.port.EmbeddingPort;
 import com.zennyt.recruitment.domain.model.RecruitmentActor;
 import com.zennyt.recruitment.domain.repository.RecruitmentActorRepository;
 import org.springframework.stereotype.Service;

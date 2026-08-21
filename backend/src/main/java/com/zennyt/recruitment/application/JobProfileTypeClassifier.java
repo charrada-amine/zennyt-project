@@ -1,6 +1,8 @@
 package com.zennyt.recruitment.application;
 
-import com.zennyt.recruitment.application.port.EmbeddingPort;
+import com.zennyt.shared.application.EmbeddingCodec;
+
+import com.zennyt.shared.application.port.EmbeddingPort;
 import com.zennyt.recruitment.domain.vo.JobProfileType;
 import org.springframework.stereotype.Component;
 

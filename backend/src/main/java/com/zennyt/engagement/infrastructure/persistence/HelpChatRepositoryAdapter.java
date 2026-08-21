@@ -23,6 +23,9 @@ public class HelpChatRepositoryAdapter implements HelpChatRepository {
     @Override public List<HelpChat> findByUserId(UUID userId) {
         return jpa.findByUserIdOrderByLastMessageAtDesc(userId).stream().map(this::toDomain).toList();
     }
+    @Override public Optional<HelpChat> findById(UUID id) {
+        return jpa.findById(id).map(this::toDomain);
+    }
     @Override public Optional<HelpChat> findByIdAndUserId(UUID id, UUID userId) {
         return jpa.findByIdAndUserId(id, userId).map(this::toDomain);
     }

@@ -266,13 +266,42 @@ qu'il était faux continuerait d'être servi par l'agent.
 l'anglais s'ajoutera sans migration, mais doubler le corpus double le coût de rédaction :
 c'est l'arbitrage n° 5 restant.
 
-### Étape 3 — Le volet documentaire (2 jours)
+### Étape 3 — Le volet documentaire ✅ *faite le 21 août 2026*
 
-- [ ] **Configurer la clé d'embeddings** — aujourd'hui `NoOpEmbeddingPort` répond
-- [ ] Découper les articles, calculer et stocker les empreintes
-- [ ] Recherche des fragments proches, en mémoire, sur le modèle d'`EmbeddingCodec`
-- [ ] L'agent répond **avec citation de l'article**, ou dit qu'il ne sait pas
-- [ ] Test : une question hors corpus doit produire un aveu d'ignorance, pas une invention
+- [x] Clé d'embeddings : elle **était configurée**, mais dans le `.env` de la racine alors
+      que Maven tourne depuis `backend/` — d'où un `NoOpEmbeddingPort` silencieux
+- [x] **114 fragments** découpés par paragraphes, empreintes calculées et stockées (V66)
+- [x] Recherche en mémoire, sur le modèle d'`EmbeddingCodec`
+- [x] L'agent répond **en citant l'article**, ou avoue son ignorance
+- [x] Vérifié en conditions réelles : `docs/help-center/verif_agent.py`, tout vert
+
+**572 tests, 0 échec · schéma Flyway 66 · 114 empreintes réutilisées au redémarrage,
+aucun appel réseau inutile.**
+
+#### Le seuil sémantique ne peut pas trancher seul — mesuré
+
+| | Score |
+|---|---|
+| Vraie correspondance | **0,92** |
+| Meilleur résultat d'une question sans rapport | **0,80** |
+
+Six centièmes d'écart. Les préfixes « query: » / « passage: » recommandés pour ce modèle ne
+l'élargissent pas. Un seuil seul laissait donc passer « quelle est la recette de la tarte
+aux pommes ? » à **0,91** contre l'article sur le mot de passe oublié.
+
+**La correction :** le sens **classe**, les mots **gardent la porte**. Un fragment doit
+partager un quart des mots de la question pour être éligible ; parmi les éligibles, la
+proximité sémantique ordonne. Une reformulation garde ses chances, une question étrangère
+au produit ne partage rien.
+
+#### Quatre défauts trouvés en chemin
+
+| Défaut | Portée |
+|---|---|
+| Le modèle Groq configuré **n'existe plus** (`404 model_not_found`) | Cassait aussi la génération de tests et les résumés IA, **silencieusement** |
+| Une réponse non-2xx du service d'empreintes repartait **sans aucun journal** | Clé invalide, quota ou modèle froid étaient indiscernables d'un service non configuré |
+| « quelle » comptait comme un mot porteur de sens | Suffisait à faire passer une question hors sujet — c'est ce qui a fait échouer le test |
+| Deux violations de couches (`EmbeddingCodec`, puis la recherche) | Rattrapées par `ArchitectureTest`, corrigées par un port |
 
 ### Étape 4 — Le volet dynamique (2 à 3 jours)
 

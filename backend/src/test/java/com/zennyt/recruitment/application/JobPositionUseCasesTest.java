@@ -6,7 +6,7 @@ import com.zennyt.recruitment.domain.model.JobPosition;
 import com.zennyt.recruitment.domain.repository.JobPositionRepository;
 import com.zennyt.recruitment.domain.vo.JobPositionStatus;
 import com.zennyt.recruitment.domain.vo.JobProfileType;
-import com.zennyt.recruitment.infrastructure.ai.NoOpEmbeddingPort;
+import com.zennyt.shared.infrastructure.ai.NoOpEmbeddingPort;
 import com.zennyt.shared.application.exception.ConflictException;
 import com.zennyt.shared.application.exception.NotFoundException;
 import org.junit.jupiter.api.BeforeEach;

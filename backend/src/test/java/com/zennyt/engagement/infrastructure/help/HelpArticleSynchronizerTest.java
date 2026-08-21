@@ -1,6 +1,8 @@
 package com.zennyt.engagement.infrastructure.help;
 
 import com.zennyt.engagement.domain.model.HelpArticle;
+import com.zennyt.engagement.domain.model.HelpArticleChunk;
+import com.zennyt.engagement.domain.repository.HelpArticleChunkRepository;
 import com.zennyt.engagement.domain.repository.HelpArticleRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -62,8 +64,25 @@ class HelpArticleSynchronizerTest {
 
     private final DepotEnMemoire depot = new DepotEnMemoire();
     private final LecteurFige lecteur = new LecteurFige();
-    private final HelpArticleSynchronizer synchroniseur =
-        new HelpArticleSynchronizer(lecteur, depot);
+    /** Dépôt de fragments en mémoire — l'indexation n'est pas l'objet de ce fichier. */
+    private final HelpArticleChunkRepository fragments = new HelpArticleChunkRepository() {
+        final Map<UUID, List<HelpArticleChunk>> parArticle = new LinkedHashMap<>();
+        @Override public HelpArticleChunk save(HelpArticleChunk chunk) {
+            parArticle.computeIfAbsent(chunk.articleId(), k -> new ArrayList<>()).add(chunk);
+            return chunk;
+        }
+        @Override public List<HelpArticleChunk> findByArticleId(UUID articleId) {
+            return parArticle.getOrDefault(articleId, List.of());
+        }
+        @Override public List<HelpArticleChunk> findAll() {
+            return parArticle.values().stream().flatMap(List::stream).toList();
+        }
+        @Override public void deleteByArticleId(UUID articleId) { parArticle.remove(articleId); }
+    };
+
+    private final HelpArticleSynchronizer synchroniseur = new HelpArticleSynchronizer(
+        lecteur, depot,
+        new HelpArticleIndexer(depot, fragments, new HelpArticleChunker(), texte -> null));
 
     @Test
     @DisplayName("Un article nouveau est inséré")

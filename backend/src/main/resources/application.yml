@@ -47,7 +47,10 @@ identity:
 
 groq:
   api-key: ${GROQ_API_KEY:}
-  model: llama-3.3-70b-versatile
+  # llama-3.3-70b-versatile a ete retire par Groq : l'API repondait 404
+  # « model_not_found » (constate le 2026-08-21), ce qui cassait silencieusement la
+  # generation de tests, les resumes IA et les reponses du centre d'aide.
+  model: ${GROQ_MODEL:openai/gpt-oss-120b}
   connect-timeout-ms: ${GROQ_CONNECT_TIMEOUT_MS:5000}
   read-timeout-ms: ${GROQ_READ_TIMEOUT_MS:20000}
 

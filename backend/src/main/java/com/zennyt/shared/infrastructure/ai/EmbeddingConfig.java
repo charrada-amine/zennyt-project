@@ -1,7 +1,7 @@
-package com.zennyt.recruitment.infrastructure.ai;
+package com.zennyt.shared.infrastructure.ai;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.zennyt.recruitment.application.port.EmbeddingPort;
+import com.zennyt.shared.application.port.EmbeddingPort;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

@@ -1,4 +1,4 @@
-package com.zennyt.recruitment.application;
+package com.zennyt.shared.application;
 
 /**
  * Encodage/comparaison des empreintes numériques (embeddings) stockées en

@@ -43,6 +43,7 @@ public class HelpArticleSynchronizer {
 
     private final HelpArticleFileReader lecteur;
     private final HelpArticleRepository articles;
+    private final HelpArticleIndexer indexeur;
 
     @EventListener(ApplicationReadyEvent.class)
     @Transactional
@@ -80,6 +81,10 @@ public class HelpArticleSynchronizer {
         log.info("[Aide] Corpus synchronisé : {} article(s) — {} ajouté(s), {} mis à jour, "
             + "{} inchangé(s), {} supprimé(s)",
             desFichiers.size(), ajoutes, misAJour, inchanges, supprimes);
+
+        // Les fragments dérivent des articles : les réindexer ici garantit qu'ils ne
+        // décrivent jamais une version périmée du corpus.
+        indexeur.indexer();
     }
 
     private static String cle(String slug, String locale) {

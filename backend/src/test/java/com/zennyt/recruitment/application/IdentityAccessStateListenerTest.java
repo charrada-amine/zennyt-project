@@ -3,7 +3,7 @@ package com.zennyt.recruitment.application;
 import com.zennyt.identity.domain.event.UserAccessStateChangedEvent;
 import com.zennyt.recruitment.domain.model.RecruitmentActor;
 import com.zennyt.recruitment.domain.repository.RecruitmentActorRepository;
-import com.zennyt.recruitment.infrastructure.ai.NoOpEmbeddingPort;
+import com.zennyt.shared.infrastructure.ai.NoOpEmbeddingPort;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.event.EventListener;
 import org.springframework.transaction.annotation.Propagation;

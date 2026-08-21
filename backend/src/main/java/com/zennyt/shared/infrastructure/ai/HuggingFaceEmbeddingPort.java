@@ -1,8 +1,8 @@
-package com.zennyt.recruitment.infrastructure.ai;
+package com.zennyt.shared.infrastructure.ai;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.zennyt.recruitment.application.port.EmbeddingPort;
+import com.zennyt.shared.application.port.EmbeddingPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpEntity;
@@ -66,8 +66,24 @@ public class HuggingFaceEmbeddingPort implements EmbeddingPort {
             headers.setBearerAuth(apiKey);
             Map<String, Object> body = Map.of("inputs", text);
             var response = restTemplate.postForEntity(apiUrl, new HttpEntity<>(body, headers), String.class);
-            if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) return null;
-            return parse(response.getBody());
+            // Une reponse non-2xx repartait en silence : cle invalide, quota depasse ou
+            // modele en cours de chargement produisaient exactement le meme resultat qu'un
+            // service non configure — aucune trace, et des empreintes manquantes que rien
+            // n'expliquait. Constate le 2026-08-21 sur un corpus reste sans empreinte.
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                log.warn("[Embedding] HuggingFace a repondu {} — signal semantique indisponible",
+                    response.getStatusCode());
+                return null;
+            }
+            if (response.getBody() == null) {
+                log.warn("[Embedding] HuggingFace a repondu 2xx sans corps — reponse inexploitable");
+                return null;
+            }
+            float[] empreinte = parse(response.getBody());
+            if (empreinte == null) {
+                log.warn("[Embedding] Reponse HuggingFace illisible — format inattendu");
+            }
+            return empreinte;
         } catch (Exception exception) {
             log.warn("[Embedding] Appel HuggingFace échoué, signal sémantique désactivé pour ce texte", exception);
             return null;
