@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -137,6 +138,27 @@ class SettingsMenuList extends ConsumerWidget {
           onTap: () => context.push(AppRoutes.helpCenter),
         ),
         _buildDivider(colors),
+
+        // ── Banc d'essai — build de debogage uniquement ──
+        //
+        // `messaging_test_page` ouvre `/call` sans exiger de mise en relation prealable.
+        // C'est le seul moyen d'atteindre l'ecran d'appel — et donc d'eprouver le
+        // consentement et la derivation audio — sans derouler tout le parcours de match.
+        // La page existait deja mais n'etait reliee a rien (voir chat_detail_page.dart,
+        // ou son lien est commente).
+        //
+        // `kDebugMode` : l'entree disparait des builds de production, elle n'ouvre donc
+        // aucune surface nouvelle a l'utilisateur final.
+        if (kDebugMode) ...[
+          _SettingsMenuItem(
+            iconAsset: 'assets/images/help_center.png',
+            boxColor: AppColors.iconGrey,
+            label: "Banc d'essai (debug)",
+            trailing: _buildChevron(colors),
+            onTap: () => context.push(AppRoutes.testFeatures),
+          ),
+          _buildDivider(colors),
+        ],
 
         // ── Terms of Service & Conditions ──
         _SettingsMenuItem(
