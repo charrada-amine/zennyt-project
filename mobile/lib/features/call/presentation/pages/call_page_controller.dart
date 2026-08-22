@@ -8,6 +8,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
+
+import '../services/fraud_detection_service.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:zennyt/features/call/domain/entities/call.dart';
@@ -69,6 +71,16 @@ class CallPageController {
       dotenv.env['AGORA_TEST_CHANNEL'] ??
       conversationId ??
       'call_${DateTime.now().millisecondsSinceEpoch}';
+
+  /// Reponse de la personne a l'ecran de consentement, posee par CallPage avant `init()`.
+  ///
+  /// Faux ne coupe pas l'appel : il coupe l'enregistrement et la detection. Refuser ne
+  /// doit jamais couter un entretien.
+  bool consentementEnregistrement = false;
+
+  // ─── Detection de fraude ───────────────────────────────────────────────────
+  FraudDetectionService? _fraudService;
+  FraudDetectionService? get fraudService => _fraudService;
 
   // ─── Recording ─────────────────────────────────────────────────────────────
   CallRecordingService? _recordingService;
@@ -171,6 +183,12 @@ class CallPageController {
   /// Call after channel join (from onJoinChannelSuccess or onUserJoined) to
   /// start recording the call.
   void _startRecordingIfNeeded() {
+    // Sans accord explicite, rien n'est ni enregistre ni analyse. L'appel, lui, continue.
+    if (!consentementEnregistrement) {
+      debugPrint('🎥 Enregistrement et detection desactives : consentement refuse');
+      return;
+    }
+    _demarrerDetectionFraude();
     if (!isVideoCall) {
       debugPrint('🎥 Recording skipped (audio call, isVideoCall=false)');
       return;
@@ -202,6 +220,33 @@ class CallPageController {
     service.startRetryService();
 
     _recordingService = service;
+  }
+
+  /// Derive le micro local vers le module de detection.
+  ///
+  /// Volontairement sans `await` : une panne du module — eteint, injoignable, lent — ne
+  /// doit pas retarder d'une milliseconde le debut de l'entretien. La detection observe,
+  /// elle ne conditionne rien.
+  void _demarrerDetectionFraude() {
+    if (_fraudService != null || _engine == null) return;
+    final base = dotenv.env['FRAUD_WS_URL'];
+    if (base == null || base.isEmpty) {
+      debugPrint('[Fraude] FRAUD_WS_URL absent : detection non configuree');
+      return;
+    }
+
+    final service = FraudDetectionService(
+      engine: _engine!,
+      baseUrl: base,
+      // L'identifiant de l'appel, pas le canal Agora : le canal peut etre partage par
+      // plusieurs entretiens (voir AGORA_TEST_CHANNEL), l'appel non.
+      sessionId: currentCallId ?? channelName,
+      // « candidate » / « recruiter » : les seuls roles que le module accepte
+      // (app/sessions.py, ROLES). En francais il repondrait « role inconnu ».
+      role: isOutgoing ? 'recruiter' : 'candidate',
+    );
+    _fraudService = service;
+    service.demarrer();
   }
 
   Future<void> _joinAgoraChannel() async {
@@ -449,6 +494,18 @@ class CallPageController {
   Future<void> cleanup({bool navigateBack = false}) async {
     if (isCallEnded) return;
     isCallEnded = true;
+
+    // La detection s'arrete avant le moteur : `arreter()` desenregistre l'observateur
+    // audio et envoie la derniere phrase, qui peut etre celle qui compte.
+    final fraude = _fraudService;
+    _fraudService = null;
+    if (fraude != null) {
+      try {
+        await fraude.arreter();
+      } catch (e) {
+        debugPrint('[Fraude] arret imparfait : $e');
+      }
+    }
 
     // Stop recording before anything else
     _recordingService?.stopRecording();

@@ -23,8 +23,12 @@ Future<void> main() async {
   await Hive.initFlutter();
 
   // Initialize dependency injection container
-  final apiBaseUrl = dotenv.env['API_BASE_URL'];
-  await initDependencies(apiBaseUrl: apiBaseUrl!);
+  // Passe par AppConfig plutot que de lire dotenv directement. La lecture brute etait
+  // suivie d'un `!` : `mobile/.env` peut ne pas porter la cle — le fichier d'exemple dit
+  // lui-meme qu'il est normalement vide et qu'AppConfig fournit les valeurs par defaut —
+  // et l'application s'arretait alors au demarrage, avant le premier ecran. AppConfig sait
+  // deja retomber sur 10.0.2.2 sur emulateur Android et localhost ailleurs.
+  await initDependencies(apiBaseUrl: AppConfig.baseUrl);
 
   final prefs = await SharedPreferences.getInstance();
 

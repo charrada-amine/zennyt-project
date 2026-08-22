@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/call_ui_providers.dart';
 import '../providers/call_recording_provider.dart';
 import '../widgets/call_background.dart';
+import '../widgets/call_consent_gate.dart';
 import '../widgets/call_bottom_sheet.dart';
 import '../widgets/call_local_pip.dart';
 import '../widgets/call_overlays.dart';
@@ -39,6 +40,13 @@ class CallPage extends ConsumerStatefulWidget {
 
 class _CallPageState extends ConsumerState<CallPage> {
   late final CallPageController _ctrl;
+
+  /// Null tant que la personne n'a pas repondu : l'appel n'a alors pas commence.
+  ///
+  /// L'ecran de consentement passe AVANT `init()`, donc avant qu'Agora ne soit
+  /// initialise et avant toute demande d'acces au micro. C'est la difference entre
+  /// demander la permission et demander l'accord.
+  bool? _consentement;
   final DraggableScrollableController _draggableController =
       DraggableScrollableController();
 
@@ -59,6 +67,12 @@ class _CallPageState extends ConsumerState<CallPage> {
         if (mounted) setState(() {});
       },
     );
+  }
+
+  /// Demarre reellement l'appel, une fois la personne informee.
+  void _demarrer({required bool enregistre}) {
+    setState(() => _consentement = enregistre);
+    _ctrl.consentementEnregistrement = enregistre;
     WidgetsBinding.instance.addPostFrameCallback((_) => _ctrl.init());
   }
 
@@ -82,6 +96,13 @@ class _CallPageState extends ConsumerState<CallPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_consentement == null) {
+      return CallConsentGate(
+        onAccepte: () => _demarrer(enregistre: true),
+        onRefuse: () => _demarrer(enregistre: false),
+      );
+    }
+
     final showAlert = ref.watch(showAlertProvider);
     final isCameraOff = ref.watch(isCameraOffProvider);
     final isFrontCamera = ref.watch(isFrontCameraProvider);
