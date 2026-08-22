@@ -3,17 +3,29 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:stomp_dart_client/stomp_dart_client.dart';
 import '../constants/app_constants.dart';
 import '../storage/token_storage.dart';
+import '../config/app_config.dart';
 
 class WebSocketService {
   static final WebSocketService _instance = WebSocketService._internal();
   factory WebSocketService() => _instance;
   WebSocketService._internal();
 
+  /// L'adresse du temps reel, derivee de celle de l'API.
+  ///
+  /// Elle etait codee en dur sur `ws://192.168.100.4:8080` — l'adresse locale d'une
+  /// machine de developpement. Sur toute autre machine, et en production, le temps reel
+  /// tentait donc de joindre une adresse qui n'existe pas : messagerie, appels entrants
+  /// et notifications tombaient ensemble, sans autre signe qu'un « Connection reset by
+  /// peer » dans les journaux. La derivation correcte etait commentee juste au-dessus.
+  ///
+  /// `AppConfig.baseUrl` sait deja retomber sur 10.0.2.2 pour l'emulateur Android et sur
+  /// localhost ailleurs ; il suffit d'en retirer le prefixe `/api/v1`, le point d'entree
+  /// STOMP etant a la racine.
   static String get _websocketUrl {
-    //final baseUrl = dotenv.env['API_BASE_URL'] ?? AppConstants.jsonServerBaseUrl;
-    // Remove /api/v1 prefix for WebSocket (it's at root level)
-    //final wsBase = baseUrl.replaceFirst(RegExp(r'^http'), 'ws').replaceFirst(RegExp(r'/api/v1/?$'), '');
-    return "ws://192.168.100.4:8080/ws-engagement";
+    return AppConfig.baseUrl
+        .replaceFirst(RegExp(r'^http'), 'ws')
+        .replaceFirst(RegExp(r'/api/v1/?$'), '') +
+        '/ws-engagement';
   }
 
   StompClient? _stompClient;
