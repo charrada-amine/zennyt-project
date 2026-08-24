@@ -37,6 +37,18 @@ public class RecruiterOnboardingEntity {
     private String companyRegistrationNumber;
     @Column(name = "about_me")
     private String aboutMe;
+    @Column(name = "about", columnDefinition = "TEXT")
+    private String about;
+    @Column(name = "mission", columnDefinition = "TEXT")
+    private String mission;
+    @Column(name = "vision", columnDefinition = "TEXT")
+    private String vision;
+    @Column(name = "key_differentiators", columnDefinition = "TEXT")
+    private String keyDifferentiators;
+    @Column(name = "culture_work_environment", columnDefinition = "TEXT")
+    private String cultureWorkEnvironment;
+    @Column(name = "why_join_us", columnDefinition = "TEXT")
+    private String whyJoinUs;
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
     @Column(name = "updated_at", nullable = false)

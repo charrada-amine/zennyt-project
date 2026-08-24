@@ -227,6 +227,12 @@ class AuthRepositoryImpl implements AuthRepository {
     required String companyRegistrationNumber,
     String? companyLogoUrl,
     String? aboutMe,
+    String? about,
+    String? mission,
+    String? vision,
+    String? keyDifferentiators,
+    String? cultureWorkEnvironment,
+    String? whyJoinUs,
   }) async {
     return _guard(() async {
       final body = <String, dynamic>{
@@ -237,12 +243,18 @@ class AuthRepositoryImpl implements AuthRepository {
         'companyLocation': companyLocation,
         'companyRegistrationNumber': companyRegistrationNumber,
       };
-      if (companyLogoUrl != null && companyLogoUrl.isNotEmpty) {
-        body['companyLogoUrl'] = companyLogoUrl;
+      void putIfNotEmpty(String key, String? value) {
+        if (value != null && value.isNotEmpty) body[key] = value;
       }
-      if (aboutMe != null && aboutMe.isNotEmpty) {
-        body['aboutMe'] = aboutMe;
-      }
+
+      putIfNotEmpty('companyLogoUrl', companyLogoUrl);
+      putIfNotEmpty('aboutMe', aboutMe);
+      putIfNotEmpty('about', about);
+      putIfNotEmpty('mission', mission);
+      putIfNotEmpty('vision', vision);
+      putIfNotEmpty('keyDifferentiators', keyDifferentiators);
+      putIfNotEmpty('cultureWorkEnvironment', cultureWorkEnvironment);
+      putIfNotEmpty('whyJoinUs', whyJoinUs);
       await _dio.post<void>('/onboarding/recruiter', data: body);
     });
   }
@@ -266,6 +278,31 @@ class AuthRepositoryImpl implements AuthRepository {
       final body = profile.toJson();
       final res = await _dio.put<Map<String, dynamic>>('/onboarding/recruiter/me', data: body);
       return RecruiterProfile.fromJson(res.data!);
+    });
+  }
+
+  @override
+  Future<RecruiterProfile> getCompanyByRecruiterId(String recruiterId) async {
+    return _guard(() async {
+      final res = await _dio.get<Map<String, dynamic>>('/onboarding/company/$recruiterId');
+      final data = res.data!;
+      return RecruiterProfile.fromJson({
+        'jobTitle': data['jobTitle'] ?? '',
+        'companyName': data['companyName'] ?? '',
+        'companySize': data['companySize'] ?? '',
+        'fieldOfWork': data['fieldOfWork'] ?? '',
+        'companyLocation': data['companyLocation'] ?? '',
+        'companyRegistrationNumber': data['companyRegistrationNumber'] ?? '',
+        'companyLogoUrl': data['companyLogoUrl'],
+        'aboutMe': data['aboutMe'],
+        'about': data['about'],
+        'mission': data['mission'],
+        'vision': data['vision'],
+        'missionVision': data['missionVision'],
+        'keyDifferentiators': data['keyDifferentiators'],
+        'cultureWorkEnvironment': data['cultureWorkEnvironment'],
+        'whyJoinUs': data['whyJoinUs'],
+      });
     });
   }
 

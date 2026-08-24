@@ -100,6 +100,12 @@ class AuthController extends AsyncNotifier<AppUser?> {
     String? companyLocation,
     String? companyRegistrationNumber,
     PickedFile? companyLogoFile,
+    String? about,
+    String? mission,
+    String? vision,
+    String? keyDifferentiators,
+    String? cultureWorkEnvironment,
+    String? whyJoinUs,
   }) async {
     final repo = ref.read(authRepositoryProvider);
 
@@ -151,6 +157,12 @@ class AuthController extends AsyncNotifier<AppUser?> {
           companyLocation: companyLocation ?? '',
           companyRegistrationNumber: companyRegistrationNumber ?? '',
           companyLogoUrl: null, // uploaded below
+          about: about,
+          mission: mission,
+          vision: vision,
+          keyDifferentiators: keyDifferentiators,
+          cultureWorkEnvironment: cultureWorkEnvironment,
+          whyJoinUs: whyJoinUs,
         );
         if (companyLogoFile != null) {
           await upload.upload(companyLogoFile, kind: UploadKind.companyLogo);

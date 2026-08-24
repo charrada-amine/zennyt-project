@@ -33,6 +33,12 @@ class _RecruiterEditProfileScreenState extends ConsumerState<RecruiterEditProfil
   late final TextEditingController _locationCtrl;
   late final TextEditingController _einCtrl;
   late final TextEditingController _aboutMeCtrl;
+  late final TextEditingController _aboutCtrl;
+  late final TextEditingController _missionCtrl;
+  late final TextEditingController _visionCtrl;
+  late final TextEditingController _keyDiffCtrl;
+  late final TextEditingController _cultureCtrl;
+  late final TextEditingController _whyJoinCtrl;
 
   bool _isLoading = false;
   bool _isUploadingAvatar = false;
@@ -49,6 +55,12 @@ class _RecruiterEditProfileScreenState extends ConsumerState<RecruiterEditProfil
     _locationCtrl = TextEditingController(text: profile?.companyLocation ?? '');
     _einCtrl = TextEditingController(text: profile?.companyRegistrationNumber ?? '');
     _aboutMeCtrl = TextEditingController(text: profile?.aboutMe ?? '');
+    _aboutCtrl = TextEditingController(text: profile?.about ?? '');
+    _missionCtrl = TextEditingController(text: profile?.mission ?? '');
+    _visionCtrl = TextEditingController(text: profile?.vision ?? '');
+    _keyDiffCtrl = TextEditingController(text: profile?.keyDifferentiators ?? '');
+    _cultureCtrl = TextEditingController(text: profile?.cultureWorkEnvironment ?? '');
+    _whyJoinCtrl = TextEditingController(text: profile?.whyJoinUs ?? '');
   }
 
   @override
@@ -60,6 +72,12 @@ class _RecruiterEditProfileScreenState extends ConsumerState<RecruiterEditProfil
     _locationCtrl.dispose();
     _einCtrl.dispose();
     _aboutMeCtrl.dispose();
+    _aboutCtrl.dispose();
+    _missionCtrl.dispose();
+    _visionCtrl.dispose();
+    _keyDiffCtrl.dispose();
+    _cultureCtrl.dispose();
+    _whyJoinCtrl.dispose();
     super.dispose();
   }
 
@@ -76,6 +94,12 @@ class _RecruiterEditProfileScreenState extends ConsumerState<RecruiterEditProfil
             companyLocation: _locationCtrl.text,
             companyRegistrationNumber: _einCtrl.text,
             aboutMe: _aboutMeCtrl.text,
+            about: _aboutCtrl.text,
+            mission: _missionCtrl.text,
+            vision: _visionCtrl.text,
+            keyDifferentiators: _keyDiffCtrl.text,
+            cultureWorkEnvironment: _cultureCtrl.text,
+            whyJoinUs: _whyJoinCtrl.text,
           );
 
       if (mounted) {
@@ -156,6 +180,12 @@ class _RecruiterEditProfileScreenState extends ConsumerState<RecruiterEditProfil
                 companyRegistrationNumber: profile.companyRegistrationNumber,
                 companyLogoUrl: logoUrl,
                 aboutMe: profile.aboutMe,
+                about: profile.about,
+                mission: profile.mission,
+                vision: profile.vision,
+                keyDifferentiators: profile.keyDifferentiators,
+                cultureWorkEnvironment: profile.cultureWorkEnvironment,
+                whyJoinUs: profile.whyJoinUs,
               );
         }
       }
@@ -387,7 +417,11 @@ class _RecruiterEditProfileScreenState extends ConsumerState<RecruiterEditProfil
                       ),
                       const SizedBox(height: AppSpacing.xl),
 
-                      // ── Form Fields ──
+                      // ── Recruiter Information — fieldOfWork belongs to recruiter ──
+                      Text('Recruiter Information',
+                          style: AppTypography.titleMedium.copyWith(
+                              color: colors.primary, fontWeight: FontWeight.w700)),
+                      const SizedBox(height: AppSpacing.lg),
                       _buildTextField(
                         controller: _jobTitleCtrl,
                         label: 'Job title',
@@ -395,6 +429,26 @@ class _RecruiterEditProfileScreenState extends ConsumerState<RecruiterEditProfil
                         validator: (v) =>
                             v == null || v.isEmpty ? 'Required' : null,
                       ),
+                      const SizedBox(height: AppSpacing.lg),
+                      _buildTextField(
+                        controller: _fieldOfWorkCtrl,
+                        label: 'Field of work',
+                        hintText: 'e.g., IT / Software',
+                        validator: (v) =>
+                            v == null || v.isEmpty ? 'Required' : null,
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      _buildTextField(
+                        controller: _aboutMeCtrl,
+                        label: 'About me',
+                        hintText: 'Write a short bio...',
+                        maxLines: 4,
+                      ),
+                      const SizedBox(height: AppSpacing.xl),
+                      // ── Company Information ──
+                      Text('Company Information',
+                          style: AppTypography.titleMedium.copyWith(
+                              color: colors.primary, fontWeight: FontWeight.w700)),
                       const SizedBox(height: AppSpacing.lg),
                       _buildTextField(
                         controller: _companyNameCtrl,
@@ -408,14 +462,6 @@ class _RecruiterEditProfileScreenState extends ConsumerState<RecruiterEditProfil
                         controller: _companySizeCtrl,
                         label: 'Company size',
                         hintText: 'e.g., 50-200 employees',
-                        validator: (v) =>
-                            v == null || v.isEmpty ? 'Required' : null,
-                      ),
-                      const SizedBox(height: AppSpacing.lg),
-                      _buildTextField(
-                        controller: _fieldOfWorkCtrl,
-                        label: 'Field of work',
-                        hintText: 'e.g., IT / Software',
                         validator: (v) =>
                             v == null || v.isEmpty ? 'Required' : null,
                       ),
@@ -437,10 +483,45 @@ class _RecruiterEditProfileScreenState extends ConsumerState<RecruiterEditProfil
                       ),
                       const SizedBox(height: AppSpacing.lg),
                       _buildTextField(
-                        controller: _aboutMeCtrl,
-                        label: 'About me',
-                        hintText: 'Write a short bio...',
+                        controller: _aboutCtrl,
+                        label: 'About — Who we are?',
+                        hintText: 'Describe your company...',
                         maxLines: 4,
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      _buildTextField(
+                        controller: _missionCtrl,
+                        label: 'Mission',
+                        hintText: 'Company mission...',
+                        maxLines: 3,
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      _buildTextField(
+                        controller: _visionCtrl,
+                        label: 'Vision',
+                        hintText: 'Company vision...',
+                        maxLines: 3,
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      _buildTextField(
+                        controller: _keyDiffCtrl,
+                        label: 'What makes us different?',
+                        hintText: 'Key differentiators...',
+                        maxLines: 3,
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      _buildTextField(
+                        controller: _cultureCtrl,
+                        label: 'Culture & work environment',
+                        hintText: 'Describe culture...',
+                        maxLines: 3,
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      _buildTextField(
+                        controller: _whyJoinCtrl,
+                        label: 'Why join us?',
+                        hintText: 'Why candidates should join...',
+                        maxLines: 3,
                       ),
                       const SizedBox(height: AppSpacing.xxl),
                       PrimaryButton(

@@ -86,6 +86,12 @@ abstract class AuthRepository {
     required String companyRegistrationNumber,
     String? companyLogoUrl,
     String? aboutMe,
+    String? about,
+    String? mission,
+    String? vision,
+    String? keyDifferentiators,
+    String? cultureWorkEnvironment,
+    String? whyJoinUs,
   });
 
   /// `GET /onboarding/recruiter/me`
@@ -93,4 +99,7 @@ abstract class AuthRepository {
 
   /// `PUT /onboarding/recruiter/me`
   Future<RecruiterProfile> updateRecruiterProfile(RecruiterProfile profile);
+
+  /// `GET /onboarding/company/{recruiterId}` — all company infos by recruiter id
+  Future<RecruiterProfile> getCompanyByRecruiterId(String recruiterId);
 }

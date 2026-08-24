@@ -37,6 +37,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   late String _avatarUrl;
   PickedFile? _avatarImage;
   bool _submitting = false;
+  int _recruiterStep = 0; // 0 = recruiter info, 1 = company info
 
   @override
   void initState() {
@@ -97,18 +98,39 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     }
   }
 
-  String? _validate(ProfileSetupState setup) {
+  String? _validateStep(ProfileSetupState setup, int step) {
     if (setup.role == UserRole.recruiter) {
-      final missing =
-          _value(ProfileField.jobTitle) == null ||
-          _value(ProfileField.companyName) == null ||
+      if (step == 0) {
+        // Recruiter itself: jobTitle + fieldOfWork (for recruiter)
+        if (_value(ProfileField.jobTitle) == null ||
+            (setup.fieldOfWork == null || setup.fieldOfWork!.isEmpty)) {
+          return AppStrings.fillRequiredFields;
+        }
+        return null;
+      }
+      final missing = _value(ProfileField.companyName) == null ||
           _value(ProfileField.companySize) == null ||
           _value(ProfileField.companyLocation) == null ||
-          _value(ProfileField.companyRegistrationNumber) == null ||
-          (setup.fieldOfWork == null || setup.fieldOfWork!.isEmpty);
+          _value(ProfileField.companyRegistrationNumber) == null;
       if (missing) return AppStrings.fillRequiredFields;
     }
     return null;
+  }
+
+  String? _validate(ProfileSetupState setup) => _validateStep(setup, _recruiterStep);
+
+  Future<void> _handleNextOrSubmit() async {
+    final setup = ref.read(profileSetupViewModelProvider);
+    if (setup.role == UserRole.recruiter && _recruiterStep == 0) {
+      final err = _validateStep(setup, 0);
+      if (err != null) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
+        return;
+      }
+      setState(() => _recruiterStep = 1);
+      return;
+    }
+    await _submit();
   }
 
   Future<void> _submit() async {
@@ -156,6 +178,12 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
               ProfileField.companyRegistrationNumber,
             ),
             companyLogoFile: setup.companyLogoFile,
+            about: _value(ProfileField.about),
+            mission: _value(ProfileField.mission),
+            vision: _value(ProfileField.vision),
+            keyDifferentiators: _value(ProfileField.keyDifferentiators),
+            cultureWorkEnvironment: _value(ProfileField.cultureWorkEnvironment),
+            whyJoinUs: _value(ProfileField.whyJoinUs),
           );
       if (mounted) context.go(AppRoutes.home);
     } on ApiException catch (e) {
@@ -176,6 +204,13 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     final colors = context.colors;
     final isDesktop = Responsive.isDesktop(context);
 
+    final bool isRecruiter = state.role == UserRole.recruiter;
+    final List<ProfileFormItem> currentItems = isRecruiter
+        ? (_recruiterStep == 0 ? state.recruiterStep1Items : state.recruiterCompanyStep2Items)
+        : state.formItems;
+    final String buttonLabel = isRecruiter && _recruiterStep == 0 ? 'Next' : AppStrings.signUp;
+    final VoidCallback buttonAction = isRecruiter && _recruiterStep == 0 ? _handleNextOrSubmit : _submit;
+
     final formContent = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -187,8 +222,27 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
           ),
         ),
         const SizedBox(height: AppSpacing.xl),
-        RoleTabs(selected: state.role, onChanged: viewModel.setRole),
-        const SizedBox(height: AppSpacing.xl),
+        RoleTabs(
+          selected: state.role,
+          onChanged: (r) {
+            viewModel.setRole(r);
+            if (r == UserRole.recruiter) {
+              setState(() => _recruiterStep = 0);
+            }
+          },
+        ),
+        const SizedBox(height: AppSpacing.md),
+        if (isRecruiter)
+          Center(
+            child: Text(
+              _recruiterStep == 0 ? 'Step 1 of 2 — Recruiter' : 'Step 2 of 2 — Company',
+              style: AppTypography.bodySmall.copyWith(
+                color: colors.textSecondary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        if (isRecruiter) const SizedBox(height: AppSpacing.md),
         Center(
           child: _AvatarPicker(
             avatarUrl: _avatarUrl,
@@ -197,7 +251,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
           ),
         ),
         const SizedBox(height: AppSpacing.xl),
-        for (final item in state.formItems) ...[
+        for (final item in currentItems) ...[
           _FormRow(
             item: item,
             controllers: _controllers,
@@ -212,16 +266,25 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
           const SizedBox(height: AppSpacing.base),
         ],
         const SizedBox(height: AppSpacing.md),
+        if (isRecruiter && _recruiterStep == 1)
+          Center(
+            child: TextButton(
+              onPressed: () => setState(() => _recruiterStep = 0),
+              child: Text('Back to recruiter info',
+                  style: TextStyle(color: colors.primary)),
+            ),
+          ),
+        if (isRecruiter && _recruiterStep == 1) const SizedBox(height: AppSpacing.sm),
         Center(
           child: SizedBox(
             width: isDesktop ? 150 : null,
             child: FractionallySizedBox(
               widthFactor: isDesktop ? 1.0 : 0.5,
               child: PrimaryButton(
-                label: AppStrings.signUp,
+                label: buttonLabel,
                 outlined: isDesktop ? false : true,
                 loading: _submitting,
-                onPressed: _submit,
+                onPressed: buttonAction,
               ),
             ),
           ),

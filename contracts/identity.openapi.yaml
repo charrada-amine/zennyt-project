@@ -406,6 +406,24 @@ paths:
               schema: { $ref: '#/components/schemas/RecruiterOnboarding' }
         '404': { $ref: './common.openapi.yaml#/components/responses/NotFound' }
 
+  /onboarding/company/{recruiterId}:
+    get:
+      operationId: getCompanyByRecruiterId
+      tags: [Onboarding]
+      summary: Get all company informations by recruiter id
+      parameters:
+        - name: recruiterId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Company informations
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Company' }
+        '404': { $ref: './common.openapi.yaml#/components/responses/NotFound' }
+
   /profiles:
     post:
       operationId: postProfiles
@@ -923,6 +941,12 @@ components:
         companyLocation: { type: string, maxLength: 150 }
         companyRegistrationNumber: { type: string, maxLength: 100 }
         aboutMe: { type: string, maxLength: 1000 }
+        about: { type: string, maxLength: 5000, description: "Who we are?" }
+        mission: { type: string, maxLength: 5000 }
+        vision: { type: string, maxLength: 5000 }
+        keyDifferentiators: { type: string, maxLength: 5000, description: "What makes us different?" }
+        cultureWorkEnvironment: { type: string, maxLength: 5000, description: "Culture & work environment" }
+        whyJoinUs: { type: string, maxLength: 5000, description: "Why join us?" }
 
     RecruiterOnboarding:
       allOf:
@@ -932,6 +956,25 @@ components:
           properties:
             # Le logo est en lecture seule : il se gère via POST/DELETE /onboarding/recruiter/me/logo.
             companyLogoUrl: { type: string, maxLength: 500, readOnly: true }
+            missionVision: { type: string, maxLength: 10000, readOnly: true, description: "Combined Mission & Vision" }
+
+    Company:
+      type: object
+      required: [userId, companyName]
+      properties:
+        userId: { type: integer, format: int64 }
+        companyName: { type: string, maxLength: 150 }
+        companyLogoUrl: { type: string, maxLength: 500 }
+        about: { type: string, maxLength: 5000 }
+        mission: { type: string, maxLength: 5000 }
+        vision: { type: string, maxLength: 5000 }
+        missionVision: { type: string, maxLength: 10000 }
+        keyDifferentiators: { type: string, maxLength: 5000 }
+        cultureWorkEnvironment: { type: string, maxLength: 5000 }
+        whyJoinUs: { type: string, maxLength: 5000 }
+        companySize: { type: string, maxLength: 100 }
+        fieldOfWork: { type: string, maxLength: 150 }
+        companyLocation: { type: string, maxLength: 150 }
 
     ProfileInput:
       type: object

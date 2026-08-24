@@ -111,19 +111,44 @@ public final class IdentityDtos {
         @NotBlank @Size(max = 150) String fieldOfWork,
         @NotBlank @Size(max = 150) String companyLocation,
         @NotBlank @Size(max = 100) String companyRegistrationNumber,
-        @Size(max = 1000) String aboutMe
+        @Size(max = 1000) String aboutMe,
+        @Size(max = 5000) String about,
+        @Size(max = 5000) String mission,
+        @Size(max = 5000) String vision,
+        @Size(max = 5000) String keyDifferentiators,
+        @Size(max = 5000) String cultureWorkEnvironment,
+        @Size(max = 5000) String whyJoinUs
     ) {}
 
     public record RecruiterOnboardingResponse(
         Long id, Long userId, String jobTitle, String companyName, String companySize,
         String companyLogoUrl, String fieldOfWork, String companyLocation,
-        String companyRegistrationNumber, String aboutMe, Instant createdAt, Instant updatedAt
+        String companyRegistrationNumber, String aboutMe,
+        String about, String mission, String vision, String missionVision,
+        String keyDifferentiators, String cultureWorkEnvironment, String whyJoinUs,
+        Instant createdAt, Instant updatedAt
     ) {
         static RecruiterOnboardingResponse from(RecruiterOnboarding value) {
             return new RecruiterOnboardingResponse(value.id(), value.userId(), value.jobTitle(),
                 value.companyName(), value.companySize(), value.companyLogoUrl(), value.fieldOfWork(),
-                value.companyLocation(), value.companyRegistrationNumber(), value.aboutMe(), value.createdAt(),
-                value.updatedAt());
+                value.companyLocation(), value.companyRegistrationNumber(), value.aboutMe(),
+                value.about(), value.mission(), value.vision(), value.missionVision(),
+                value.keyDifferentiators(), value.cultureWorkEnvironment(), value.whyJoinUs(),
+                value.createdAt(), value.updatedAt());
+        }
+    }
+
+    public record CompanyResponse(
+        Long userId, String companyName, String companyLogoUrl,
+        String about, String mission, String vision, String missionVision,
+        String keyDifferentiators, String cultureWorkEnvironment, String whyJoinUs,
+        String companySize, String fieldOfWork, String companyLocation
+    ) {
+        static CompanyResponse from(RecruiterOnboarding value) {
+            return new CompanyResponse(value.userId(), value.companyName(), value.companyLogoUrl(),
+                value.about(), value.mission(), value.vision(), value.missionVision(),
+                value.keyDifferentiators(), value.cultureWorkEnvironment(), value.whyJoinUs(),
+                value.companySize(), value.fieldOfWork(), value.companyLocation());
         }
     }
 

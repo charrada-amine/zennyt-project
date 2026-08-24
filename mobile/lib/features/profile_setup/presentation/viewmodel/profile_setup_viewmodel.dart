@@ -21,6 +21,12 @@ enum ProfileField {
   companySize,
   companyLocation,
   companyRegistrationNumber,
+  about,
+  mission,
+  vision,
+  keyDifferentiators,
+  cultureWorkEnvironment,
+  whyJoinUs,
   ignored,
 }
 
@@ -89,13 +95,13 @@ class ProfileSetupState {
       case UserRole.recruiter:
         return const [
           TextFormItem(AppStrings.jobTitle, ProfileField.jobTitle),
+          FieldOfWorkFormItem(),
           TextFormItem(AppStrings.companyName, ProfileField.companyName),
           TextFormItem(AppStrings.companySize, ProfileField.companySize),
           UploadFormItem(
             AppStrings.uploadCompanyLogo,
             UploadItemKind.companyLogo,
           ),
-          FieldOfWorkFormItem(),
           TextFormItem(
             AppStrings.companyLocation,
             ProfileField.companyLocation,
@@ -104,9 +110,38 @@ class ProfileSetupState {
             AppStrings.companyRegistrationNumber,
             ProfileField.companyRegistrationNumber,
           ),
+          // ── Company detail (second step) — still in single list for backward compat,
+          // but split UI will use recruiterCompanyDetailItems
+          TextFormItem('About — Who we are?', ProfileField.about),
+          TextFormItem('Mission', ProfileField.mission),
+          TextFormItem('Vision', ProfileField.vision),
+          TextFormItem('What makes us different?', ProfileField.keyDifferentiators),
+          TextFormItem('Culture & work environment', ProfileField.cultureWorkEnvironment),
+          TextFormItem('Why join us?', ProfileField.whyJoinUs),
         ];
     }
   }
+
+  /// Step 1 — Recruiter itself (personal info) — fieldOfWork belongs to recruiter
+  List<ProfileFormItem> get recruiterStep1Items => const [
+        TextFormItem(AppStrings.jobTitle, ProfileField.jobTitle),
+        FieldOfWorkFormItem(),
+      ];
+
+  /// Step 2 — Company information (all company fields + new detail fields)
+  List<ProfileFormItem> get recruiterCompanyStep2Items => const [
+        TextFormItem(AppStrings.companyName, ProfileField.companyName),
+        TextFormItem(AppStrings.companySize, ProfileField.companySize),
+        UploadFormItem(AppStrings.uploadCompanyLogo, UploadItemKind.companyLogo),
+        TextFormItem(AppStrings.companyLocation, ProfileField.companyLocation),
+        TextFormItem(AppStrings.companyRegistrationNumber, ProfileField.companyRegistrationNumber),
+        TextFormItem('About — Who we are?', ProfileField.about),
+        TextFormItem('Mission', ProfileField.mission),
+        TextFormItem('Vision', ProfileField.vision),
+        TextFormItem('What makes us different?', ProfileField.keyDifferentiators),
+        TextFormItem('Culture & work environment', ProfileField.cultureWorkEnvironment),
+        TextFormItem('Why join us?', ProfileField.whyJoinUs),
+      ];
 
   ProfileSetupState copyWith({
     UserRole? role,

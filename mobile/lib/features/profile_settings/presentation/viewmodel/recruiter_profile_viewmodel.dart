@@ -35,6 +35,12 @@ class RecruiterProfileViewModel
     required String companyRegistrationNumber,
     String? companyLogoUrl,
     String? aboutMe,
+    String? about,
+    String? mission,
+    String? vision,
+    String? keyDifferentiators,
+    String? cultureWorkEnvironment,
+    String? whyJoinUs,
   }) async {
     final prev = state;
     state = const AsyncLoading();
@@ -55,6 +61,12 @@ class RecruiterProfileViewModel
           companyRegistrationNumber: companyRegistrationNumber,
           companyLogoUrl: companyLogoUrl ?? currentProfile.companyLogoUrl,
           aboutMe: aboutMe,
+          about: about,
+          mission: mission,
+          vision: vision,
+          keyDifferentiators: keyDifferentiators,
+          cultureWorkEnvironment: cultureWorkEnvironment,
+          whyJoinUs: whyJoinUs,
         );
         final result = await repo.updateRecruiterProfile(updated);
         state = AsyncData(result);
@@ -69,6 +81,12 @@ class RecruiterProfileViewModel
           companyRegistrationNumber: companyRegistrationNumber,
           companyLogoUrl: companyLogoUrl,
           aboutMe: aboutMe,
+          about: about,
+          mission: mission,
+          vision: vision,
+          keyDifferentiators: keyDifferentiators,
+          cultureWorkEnvironment: cultureWorkEnvironment,
+          whyJoinUs: whyJoinUs,
         );
         state = AsyncData(await _fetchProfile());
       }

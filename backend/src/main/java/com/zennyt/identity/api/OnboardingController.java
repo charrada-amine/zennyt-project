@@ -64,7 +64,10 @@ public class OnboardingController {
             RecruiterOnboardingResponse.from(identity.saveRecruiter(userId,
                 request.jobTitle(), request.companyName(), request.companySize(),
                 request.fieldOfWork(), request.companyLocation(),
-                request.companyRegistrationNumber(), request.aboutMe(), true)));
+                request.companyRegistrationNumber(), request.aboutMe(),
+                request.about(), request.mission(), request.vision(),
+                request.keyDifferentiators(), request.cultureWorkEnvironment(),
+                request.whyJoinUs(), true)));
     }
 
     @GetMapping("/recruiter/me")
@@ -80,7 +83,15 @@ public class OnboardingController {
         return RecruiterOnboardingResponse.from(identity.saveRecruiter(userId,
             request.jobTitle(), request.companyName(), request.companySize(),
             request.fieldOfWork(), request.companyLocation(),
-            request.companyRegistrationNumber(), request.aboutMe(), false));
+            request.companyRegistrationNumber(), request.aboutMe(),
+            request.about(), request.mission(), request.vision(),
+            request.keyDifferentiators(), request.cultureWorkEnvironment(),
+            request.whyJoinUs(), false));
+    }
+
+    @GetMapping("/company/{recruiterId}")
+    public CompanyResponse getCompanyByRecruiter(@PathVariable UUID recruiterId) {
+        return CompanyResponse.from(identity.companyByRecruiterId(recruiterId));
     }
 
     @PostMapping(value = "/recruiter/me/logo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

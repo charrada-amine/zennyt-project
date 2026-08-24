@@ -164,6 +164,19 @@ public class IdentityService {
         UUID publicId, String jobTitle, String companyName, String companySize,
         String fieldOfWork, String companyLocation,
         String companyRegistrationNumber, String aboutMe, boolean createOnly) {
+        return saveRecruiter(publicId, jobTitle, companyName, companySize, fieldOfWork,
+            companyLocation, companyRegistrationNumber, aboutMe,
+            null, null, null, null, null, null, createOnly);
+    }
+
+    @Transactional
+    public RecruiterOnboarding saveRecruiter(
+        UUID publicId, String jobTitle, String companyName, String companySize,
+        String fieldOfWork, String companyLocation,
+        String companyRegistrationNumber, String aboutMe,
+        String about, String mission, String vision,
+        String keyDifferentiators, String cultureWorkEnvironment, String whyJoinUs,
+        boolean createOnly) {
         User user = requireRole(publicId, Role.RECRUITER);
         RecruiterOnboarding existing = onboarding.findRecruiterByUserId(user.id()).orElse(null);
         if (createOnly && existing != null) {
@@ -173,11 +186,26 @@ public class IdentityService {
         // Le logo est géré par des endpoints dédiés : on préserve l'existant lors d'une édition texte.
         RecruiterOnboarding value = existing == null
             ? RecruiterOnboarding.create(user.id(), jobTitle, companyName, companySize,
-                null, null, fieldOfWork, companyLocation, companyRegistrationNumber, aboutMe)
+                null, null, fieldOfWork, companyLocation, companyRegistrationNumber, aboutMe,
+                about, mission, vision, keyDifferentiators, cultureWorkEnvironment, whyJoinUs)
             : new RecruiterOnboarding(existing.id(), user.id(), jobTitle, companyName, companySize,
                 existing.companyLogoUrl(), existing.companyLogoPublicId(), fieldOfWork,
-                companyLocation, companyRegistrationNumber, aboutMe, existing.createdAt(), now);
+                companyLocation, companyRegistrationNumber, aboutMe,
+                about, mission, vision, keyDifferentiators, cultureWorkEnvironment, whyJoinUs,
+                existing.createdAt(), now);
         return onboarding.saveRecruiter(value);
+    }
+
+    @Transactional(readOnly = true)
+    public RecruiterOnboarding companyByRecruiterId(UUID recruiterPublicId) {
+        User recruiter = users.findByPublicId(recruiterPublicId)
+            .filter(User::active)
+            .orElseThrow(() -> new NotFoundException("Recruteur introuvable"));
+        if (recruiter.role() != Role.RECRUITER) {
+            throw new NotFoundException("Recruteur introuvable");
+        }
+        return onboarding.findRecruiterByUserId(recruiter.id())
+            .orElseThrow(() -> new NotFoundException("Informations d'entreprise introuvables"));
     }
 
     @Transactional
