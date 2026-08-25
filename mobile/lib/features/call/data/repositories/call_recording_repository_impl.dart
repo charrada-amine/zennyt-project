@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:dartz/dartz.dart';
 import '../../../../core/error/failures.dart';
 import '../../domain/entities/recording_chunk.dart';
@@ -100,6 +101,11 @@ class CallRecordingRepositoryImpl implements CallRecordingRepository {
   }
 
   Future<Directory> _getBaseDir() async {
+    if (kIsWeb) {
+      // Web has no filesystem HOME; return temp stub (caller wraps in try/catch,
+      // actual recording on web uses browser storage via Agora Web SDK)
+      return Directory('/tmp/.call_records');
+    }
     // Use app documents directory via path_provider
     return Directory('${Platform.environment['HOME']}/.call_records');
   }

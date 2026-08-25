@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 /// The three layout tiers used to serve different designs per screen size.
@@ -24,21 +25,30 @@ class Responsive {
   static const double maxContentWidth = 480;
 
   /// Returns the current [DeviceType] based on screen width.
+  /// On web we always return [DeviceType.desktop] so the UI matches the
+  /// Windows/desktop design (user request: web = same as Windows).
   static DeviceType deviceType(BuildContext context) {
+    if (kIsWeb) return DeviceType.desktop;
     final width = MediaQuery.sizeOf(context).width;
     if (width >= desktopBreakpoint) return DeviceType.desktop;
     if (width >= tabletBreakpoint) return DeviceType.tablet;
     return DeviceType.mobile;
   }
 
-  static bool isDesktop(BuildContext context) =>
-      deviceType(context) == DeviceType.desktop;
+  static bool isDesktop(BuildContext context) {
+    if (kIsWeb) return true;
+    return deviceType(context) == DeviceType.desktop;
+  }
 
-  static bool isTablet(BuildContext context) =>
-      MediaQuery.sizeOf(context).width >= tabletBreakpoint;
+  static bool isTablet(BuildContext context) {
+    if (kIsWeb) return false;
+    return MediaQuery.sizeOf(context).width >= tabletBreakpoint;
+  }
 
-  static bool isMobile(BuildContext context) =>
-      deviceType(context) == DeviceType.mobile;
+  static bool isMobile(BuildContext context) {
+    if (kIsWeb) return false;
+    return deviceType(context) == DeviceType.mobile;
+  }
 
   /// Horizontal padding that grows slightly on larger screens.
   static double horizontalPadding(BuildContext context) {

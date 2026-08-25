@@ -2,6 +2,7 @@
 
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:path_provider/path_provider.dart';
@@ -21,6 +22,10 @@ import '../providers/call_ui_providers.dart';
 
 // Platform-specific permission handling
 Future<void> _requestCallPermissions(bool isVideoCall) async {
+  if (kIsWeb) {
+    // Web: browser handles permission prompts via getUserMedia, skip
+    return;
+  }
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
     // Desktop platforms handle permissions differently, skip explicit request
     return;

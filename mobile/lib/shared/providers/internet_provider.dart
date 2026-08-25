@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -15,6 +16,8 @@ Future<bool> checkInternet() async {
           onTimeout: () => false,
         );
     if (hasInternet) return true;
+
+    if (kIsWeb) return hasInternet;
 
     final baseUrlStr = AppConfig.baseUrl;
     if (baseUrlStr.isNotEmpty) {

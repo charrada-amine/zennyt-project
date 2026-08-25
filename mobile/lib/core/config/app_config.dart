@@ -17,16 +17,30 @@ class AppConfig {
   const AppConfig._();
 
   static String get _envBaseUrl {
+    const defineVal = String.fromEnvironment('API_BASE_URL');
+    if (defineVal.isNotEmpty) return defineVal;
     final dotEnvVal = dotenv.env['API_BASE_URL'];
     if (dotEnvVal != null && dotEnvVal.isNotEmpty) {
       return dotEnvVal;
     }
-    return const String.fromEnvironment('API_BASE_URL');
+    return '';
   }
 
   /// Fully-qualified API base URL including the `/api/v1` prefix.
+  /// Supports absolute (http://host:port/api/v1), relative (/api/v1 for same-origin proxy),
+  /// and env/dart-define overrides.
   static String get baseUrl {
-    if (_envBaseUrl.isNotEmpty) return _envBaseUrl;
+    if (_envBaseUrl.isNotEmpty) {
+      // Relative URL = same-origin proxy → resolve against current page origin (web)
+      if (_envBaseUrl.startsWith('/')) {
+        if (kIsWeb) {
+          final origin = Uri.base.origin;
+          return '$origin$_envBaseUrl';
+        }
+        return _envBaseUrl;
+      }
+      return _envBaseUrl;
+    }
     return _defaultBaseUrl;
   }
 

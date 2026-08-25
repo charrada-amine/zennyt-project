@@ -7,6 +7,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 class NavTabNotifier extends Notifier<int> {
   @override
   int build() {
+    if (kIsWeb) {
+      return 2; // Web uses same default as Windows (desktop)
+    }
     if (!kIsWeb && Platform.isWindows) {
       return 2; // Default to Progress tab on Windows
     }

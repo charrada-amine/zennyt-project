@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:device_preview/device_preview.dart';
-
 import 'core/localization/l10n_extension.dart';
 import 'core/localization/locale_controller.dart';
 import 'core/router/app_router.dart';
@@ -27,20 +25,19 @@ class ZennytApp extends ConsumerWidget {
 
     return MaterialApp.router(
       builder: (context, child) {
-        final previewChild = DevicePreview.appBuilder(context, child);
         return DefaultTextStyle(
           style: TextStyle(
             color: Theme.of(context).colorScheme.onSurface,
             decoration: TextDecoration.none,
           ),
           child: NoConnectionOverlay(
-            child: IncomingCallOverlay(child: previewChild),
+            child: IncomingCallOverlay(child: child ?? const SizedBox.shrink()),
           ),
         );
       },
       onGenerateTitle: (context) => context.l10n.appName,
       debugShowCheckedModeBanner: false,
-      locale: DevicePreview.locale(context) ?? locale,
+      locale: locale,
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       theme: AppTheme.light,
