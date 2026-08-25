@@ -60,10 +60,17 @@ void main() {
       'assets/games icons/Je Coordonne.png',
     );
     expect(find.text('2–25 min'), findsOneWidget);
-    expect(find.text('3 games'), findsOneWidget);
 
     final flexibilityCard = find.byKey(
       const ValueKey('game-category-cognitive-flexibility'),
+    );
+    // Portée à la carte visée : « 3 games » n'est pas unique dans le hub —
+    // plusieurs catégories comptent trois jeux. L'assertion globale ne tenait
+    // que parce que la police de remplacement des tests, plus large que la
+    // vraie, empêchait la seconde carte de se peindre.
+    expect(
+      find.descendant(of: flexibilityCard, matching: find.text('3 games')),
+      findsOneWidget,
     );
     await tester.tap(flexibilityCard);
     await tester.pumpAndSettle();
@@ -83,11 +90,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.byKey(const ValueKey('category-game-logo-Memory Quest')),
+      find.byKey(const ValueKey('category-game-logo-Memory Quest · Digits')),
       findsOneWidget,
     );
     expectAssetLogo(
-      'category-game-logo-Memory Quest',
+      'category-game-logo-Memory Quest · Digits',
       'assets/games icons/Memory Quest transparent.png',
     );
     expectAssetLogo(
@@ -101,7 +108,7 @@ void main() {
     await tester.tap(memoryCard);
     await tester.pumpAndSettle();
     expect(
-      find.byKey(const ValueKey('picker-game-logo-Memory Quest')),
+      find.byKey(const ValueKey('picker-game-logo-Memory Quest · Digits')),
       findsOneWidget,
     );
     expectAssetLogo(

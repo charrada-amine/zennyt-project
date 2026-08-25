@@ -111,14 +111,24 @@ class GamesHubScreen extends ConsumerWidget {
                     title: 'Working Memory',
                     iconAsset: _iconMemory,
                     durationLabel: '5–13 min',
-                    aptitudeLabel: '2 games',
+                    aptitudeLabel: '3 games',
                     games: const [
+                      // « J'investigue » scindé en deux jeux sur retour client :
+                      // l'empan de chiffres et la mémoire des images se jouent
+                      // et se valident séparément.
                       _GameEntry(
-                        label: 'Memory Quest',
-                        subtitle: 'Digit & object span · J\'investigue',
-                        route: AppRoutes.gamesInvestigate,
+                        label: 'Memory Quest · Digits',
+                        subtitle: 'Digit span · J\'investigue',
+                        route: AppRoutes.gamesInvestigateDigits,
                         logoAsset: _logoMemoryQuest,
-                        fallbackIcon: Icons.apps_rounded,
+                        fallbackIcon: Icons.pin_rounded,
+                      ),
+                      _GameEntry(
+                        label: 'Memory Quest · Images',
+                        subtitle: 'Object span · J\'investigue',
+                        route: AppRoutes.gamesInvestigateImages,
+                        logoAsset: _logoMemoryQuest,
+                        fallbackIcon: Icons.image_rounded,
                       ),
                       _GameEntry(
                         label: 'Je place',

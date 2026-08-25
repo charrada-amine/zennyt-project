@@ -29,7 +29,13 @@ class MemoryQuestConfig {
   static const bool resetSequenceOnError = true;
   static const int minObjectCount = 4;
   static const int maxObjectCount = 12;
-  static const int distractionMinLevel = 3; // gating : niveaux 1-2 sans distraction
+  /// Niveau à partir duquel la phase de distraction est jouée.
+  ///
+  /// Était à 3 (« gating » : niveaux 1-2 sans distraction). Le client a signalé
+  /// deux fois son absence en début de partie — sur une session de test on
+  /// dépasse rarement le niveau 2, donc le distracteur ne se voyait jamais.
+  /// Actif dès le premier niveau.
+  static const int distractionMinLevel = 1;
   static const bool hintsEnabled = false;
   static const bool partialCreditEnabled = true;
   static const int maxSessionDurationMin = 30;
@@ -48,7 +54,7 @@ class MemoryQuestConfig {
     return minObjectCount + (span * (clamped - 1) / (totalLevels - 1)).round();
   }
 
-  /// Distraction gatée : active à partir du niveau 3.
+  /// Distraction active à partir de [distractionMinLevel].
   static bool distractionActiveAtLevel(int level) => level >= distractionMinLevel;
 
   // ── Temps d'observation des objets (Mission B) ─────────────────────────────

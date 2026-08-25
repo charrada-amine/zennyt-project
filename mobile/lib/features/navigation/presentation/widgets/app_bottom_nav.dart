@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/enums/user_role.dart';
 import '../../../../core/theme/theme.dart';
+import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/theme_provider.dart';
 import '../../../auth/presentation/current_user_provider.dart';
 import '../viewmodel/nav_tab_provider.dart';
@@ -26,6 +27,14 @@ class AppBottomNav extends ConsumerWidget {
     final thirdTabLabel = isRecruiter ? AppStrings.tabCareers : AppStrings.tabProgress;
 
     void select(int i) {
+      // Build de démo « Lot 1 » : seul l'onglet qui porte les jeux répond.
+      // Les autres restent VISIBLES (la barre doit rester celle du vrai
+      // produit, c'est ce qu'on fait valider) mais inertes : le livrable sert
+      // à valider l'UI et le gameplay des jeux, pas des écrans encore en
+      // chantier. Verrou posé ici, au point de passage unique, pour qu'aucun
+      // item de la barre ne puisse le contourner.
+      if (kLot1DemoBuild && i != kLot1DemoTabIndex) return;
+
       final overrideSelect = onSelect;
       if (overrideSelect != null) {
         overrideSelect(i);

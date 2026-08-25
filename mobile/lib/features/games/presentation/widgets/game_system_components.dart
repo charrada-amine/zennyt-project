@@ -24,15 +24,22 @@ class ZennytGamePalette {
 }
 
 enum GameDirection {
-  up(Icons.arrow_upward, 'haut'),
-  right(Icons.arrow_forward, 'droite'),
-  down(Icons.arrow_downward, 'bas'),
-  left(Icons.arrow_back, 'gauche');
+  up(Icons.arrow_upward, 'haut', 'Up'),
+  right(Icons.arrow_forward, 'droite', 'Right'),
+  down(Icons.arrow_downward, 'bas', 'Down'),
+  left(Icons.arrow_back, 'gauche', 'Left');
 
-  const GameDirection(this.icon, this.label);
+  const GameDirection(this.icon, this.label, this.shortLabel);
 
   final IconData icon;
+
+  /// Libellé français, utilisé par les annonces d'accessibilité
+  /// (« Répondre droite »).
   final String label;
+
+  /// Libellé court AFFICHÉ sous la flèche du bouton directionnel. En anglais,
+  /// comme le reste du HUD des jeux (Score / Timer / Series).
+  final String shortLabel;
 }
 
 class GamePrimaryButton extends StatelessWidget {
@@ -64,7 +71,13 @@ class GamePrimaryButton extends StatelessWidget {
             children: [
               Icon(icon, size: AppSpacing.iconMd),
               const SizedBox(width: AppSpacing.sm),
-              Text(label),
+              // Le libellé doit pouvoir se rétrécir : à sa largeur naturelle,
+              // icône + texte dépassaient le bouton (débordement observé de
+              // 7,2 px) dès que l'intitulé s'allongeait ou que la police
+              // grossissait.
+              Flexible(
+                child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+              ),
             ],
           );
 
@@ -345,13 +358,18 @@ class SeriesRibbon extends StatelessWidget {
           const Spacer(),
           if (statusLabel != null)
             Flexible(
+              // Deux lignes plutôt qu'une ellipse : « 0/4 streak » se réduisait
+              // à « 0/4 str… », soit exactement le compteur que le client dit
+              // mal affiché. La maquette l'empile — « 1/4 » puis « streak ».
               child: Text(
                 statusLabel!,
                 textAlign: TextAlign.right,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: AppTypography.labelSmall.copyWith(
                   color: color,
                   letterSpacing: 0,
+                  height: 1.15,
                 ),
               ),
             ),
@@ -596,7 +614,36 @@ class _DirectionButton extends StatelessWidget {
               borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
               border: Border.all(color: border, width: 2),
             ),
-            child: Icon(direction.icon, size: 34, color: iconColor),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // La flèche rétrécit (34 → 26) pour dégager la place du
+                // libellé sans agrandir le bouton : la croix directionnelle
+                // garde exactement l'encombrement de la maquette.
+                Icon(direction.icon, size: size * 0.36, color: iconColor),
+                const SizedBox(height: 2),
+                // Libellé demandé sous chaque bouton, volontairement petit :
+                // il nomme l'action sans concurrencer la flèche.
+                Text(
+                  direction.shortLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.clip,
+                  textAlign: TextAlign.center,
+                  // Le libellé ne suit pas le textScale système : à 200 % il
+                  // ferait éclater la croix, alors que la flèche porte déjà
+                  // l'information — l'annonce Semantics reste, elle, complète.
+                  textScaler: TextScaler.noScaling,
+                  style: AppTypography.labelSmall.copyWith(
+                    color: iconColor,
+                    fontSize: 10,
+                    height: 1,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -798,11 +845,20 @@ class ResultStatTile extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.xs),
-          _AnimatedStatValue(
-            value: value,
-            style: AppTypography.titleLarge.copyWith(
-              color: valueColor,
-              letterSpacing: 0,
+          // La VALEUR ne doit jamais être tronquée : c'est l'information de la
+          // tuile. Trois tuiles côte à côte n'accordent qu'une centaine de
+          // pixels chacune, et les valeurs longues (« 2 missions »,
+          // « Flexibility », « 8-10 min ») s'y affichaient « 2 missi… ».
+          // `scaleDown` rétrécit le texte juste assez pour tenir, et ne fait
+          // rien quand la place suffit — donc aucun rendu existant ne change.
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: _AnimatedStatValue(
+              value: value,
+              style: AppTypography.titleLarge.copyWith(
+                color: valueColor,
+                letterSpacing: 0,
+              ),
             ),
           ),
         ],
@@ -939,16 +995,29 @@ class GamePauseScaffold extends StatelessWidget {
   /// Boutons d'action, dans l'ordre (Resume, Restart, View rules, Exit…).
   final List<Widget> buttons;
 
+  /// Hauteur d'écran sous laquelle le menu se resserre.
+  ///
+  /// Sur un iPhone SE (568 px), la carte à espacements pleins dépassait la
+  /// hauteur disponible : « View rules / Help » et « Exit mission » tombaient
+  /// sous la ligne de flottaison. Le menu défilait bien, mais rien ne le
+  /// laissait deviner — d'où un menu pause perçu comme « non fonctionnel ».
+  static const double _compactHeight = 700;
+
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).height < _compactHeight;
+    final gapLarge = compact ? AppSpacing.md : AppSpacing.xl;
+    final gapMedium = compact ? AppSpacing.sm : AppSpacing.lg;
+    final gapButtons = compact ? AppSpacing.sm : AppSpacing.md;
+
     return Dialog(
       backgroundColor: Colors.white,
-      insetPadding: const EdgeInsets.all(32),
+      insetPadding: EdgeInsets.all(compact ? 16 : 32),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppSpacing.radiusXxl),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
+        padding: EdgeInsets.all(compact ? AppSpacing.base : AppSpacing.xl),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -957,19 +1026,21 @@ class GamePauseScaffold extends StatelessWidget {
                 title,
                 key: titleKey,
                 textAlign: TextAlign.center,
-                style: AppTypography.displayMedium.copyWith(
-                  color: ZennytGamePalette.blue,
-                  letterSpacing: 0,
-                ),
+                style:
+                    (compact
+                            ? AppTypography.headlineLarge
+                            : AppTypography.displayMedium)
+                        .copyWith(
+                          color: ZennytGamePalette.blue,
+                          letterSpacing: 0,
+                        ),
               ),
               if (inputMode != null) ...[
-                const SizedBox(height: AppSpacing.xl),
+                SizedBox(height: gapLarge),
                 inputMode!,
               ],
               if (description != null) ...[
-                SizedBox(
-                  height: inputMode != null ? AppSpacing.lg : AppSpacing.xl,
-                ),
+                SizedBox(height: inputMode != null ? gapMedium : gapLarge),
                 Text(
                   description!,
                   textAlign: TextAlign.center,
@@ -982,14 +1053,14 @@ class GamePauseScaffold extends StatelessWidget {
               if (showAudioOptions) ...[
                 SizedBox(
                   height: (inputMode != null || description != null)
-                      ? AppSpacing.lg
-                      : AppSpacing.xl,
+                      ? gapMedium
+                      : gapLarge,
                 ),
-                const GamePauseAudioOptions(),
+                GamePauseAudioOptions(compact: compact),
               ],
-              const SizedBox(height: AppSpacing.md),
+              SizedBox(height: gapButtons),
               for (var i = 0; i < buttons.length; i++) ...[
-                if (i > 0) const SizedBox(height: AppSpacing.md),
+                if (i > 0) SizedBox(height: gapButtons),
                 buttons[i],
               ],
             ],
@@ -1004,7 +1075,10 @@ class GamePauseScaffold extends StatelessWidget {
 /// musique) reliés **directement** au [SoundService]. Auto-géré : aucun état à
 /// tenir côté écran, l'état initial reflète le service.
 class GamePauseAudioOptions extends StatefulWidget {
-  const GamePauseAudioOptions({super.key});
+  const GamePauseAudioOptions({super.key, this.compact = false});
+
+  /// Resserre les interlignes sur les écrans courts (voir [GamePauseScaffold]).
+  final bool compact;
 
   @override
   State<GamePauseAudioOptions> createState() => _GamePauseAudioOptionsState();
@@ -1017,6 +1091,7 @@ class _GamePauseAudioOptionsState extends State<GamePauseAudioOptions> {
 
   @override
   Widget build(BuildContext context) {
+    final gap = widget.compact ? AppSpacing.xs : AppSpacing.sm;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -1027,19 +1102,21 @@ class _GamePauseAudioOptionsState extends State<GamePauseAudioOptions> {
             letterSpacing: 0,
           ),
         ),
-        const SizedBox(height: AppSpacing.sm),
+        SizedBox(height: gap),
         GamePauseSwitchTile(
           label: 'Sound effects',
           value: _soundEffects,
+          compact: widget.compact,
           onChanged: (value) {
             setState(() => _soundEffects = value);
             SoundService.instance.setSfxEnabled(value);
           },
         ),
-        const SizedBox(height: AppSpacing.sm),
+        SizedBox(height: gap),
         GamePauseSwitchTile(
           label: 'Music',
           value: _music,
+          compact: widget.compact,
           onChanged: (value) {
             setState(() => _music = value);
             // Met en pause plutôt qu'arrêter : réactiver reprend le morceau où
@@ -1047,10 +1124,11 @@ class _GamePauseAudioOptionsState extends State<GamePauseAudioOptions> {
             SoundService.instance.setMusicEnabled(value);
           },
         ),
-        const SizedBox(height: AppSpacing.sm),
+        SizedBox(height: gap),
         GamePauseSwitchTile(
           label: 'Vibration',
           value: _haptics,
+          compact: widget.compact,
           onChanged: (value) {
             setState(() => _haptics = value);
             SoundService.instance.setHapticsEnabled(value);
@@ -1068,18 +1146,20 @@ class GamePauseSwitchTile extends StatelessWidget {
     required this.label,
     required this.value,
     required this.onChanged,
+    this.compact = false,
   });
 
   final String label;
   final bool value;
   final ValueChanged<bool> onChanged;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.base,
-        vertical: AppSpacing.sm,
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? AppSpacing.md : AppSpacing.base,
+        vertical: compact ? AppSpacing.xxs : AppSpacing.sm,
       ),
       decoration: BoxDecoration(
         border: Border.all(color: ZennytGamePalette.border),
@@ -1167,7 +1247,13 @@ class GamePauseExitButton extends StatelessWidget {
     return SizedBox(
       width: double.infinity,
       child: OutlinedButton(
-        onPressed: onPressed,
+        // Seul bouton du menu pause qui n'était pas sonorisé : il n'utilise pas
+        // [GameOutlineButton] (rouge sur fond rosé), donc il n'héritait pas du
+        // clic générique.
+        onPressed: () {
+          SoundService.instance.playSfx(GameSfx.buttonClick);
+          onPressed();
+        },
         style: OutlinedButton.styleFrom(
           foregroundColor: ZennytGamePalette.error,
           side: const BorderSide(color: ZennytGamePalette.error),

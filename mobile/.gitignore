@@ -43,3 +43,8 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Artefacts de comparaison des captures golden (`flutter test`) : régénérés à
+# chaque échec, ils n'ont rien à faire dans le dépôt. Les références, elles,
+# vivent dans `test/**/goldens/` et sont bien versionnées.
+test/**/failures/

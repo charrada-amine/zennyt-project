@@ -27,7 +27,7 @@ void main() {
   }
 
   testWidgets(
-      'un tour au niveau 1 → niveau 2 (longueur 4) ; distraction absente au niveau 1',
+      'un tour au niveau 1 joue la distraction (active dès le niveau 1)',
       (tester) async {
     tester.view.physicalSize = const Size(1200, 2400);
     tester.view.devicePixelRatio = 1.0;
@@ -88,15 +88,22 @@ void main() {
     await tester.tap(find.text('Validate'));
     await tester.pump();
 
-    // Niveau 1 : PAS de distraction (gatée au niveau ≥ 3) — on enchaîne le niveau 2.
-    expect(find.textContaining('Quick check'), findsNothing);
-    // Montée de niveau : niveau 2, longueur de séquence = 4.
-    expect(find.text('Level 2'), findsOneWidget);
-    expect(MemoryQuestConfig.sequenceLengthForLevel(2), 4);
-
-    // Laisse l'observation du niveau 2 se dérouler (4 chiffres × (900+1000)
-    // + amorce 350 ≈ 7950 ms) — évite les timers en attente.
+    // La distraction est désormais jouée DÈS le niveau 1 (retour client : elle
+    // ne se voyait jamais quand elle était gatée au niveau ≥ 3).
+    expect(MemoryQuestConfig.distractionActiveAtLevel(1), isTrue);
+    // Sa phase d'encodage précède la question : amorce 350 ms puis, pour chacun
+    // des 4 chiffres, 900 ms d'affichage + 1000 ms d'intervalle.
     await tester.pump(const Duration(milliseconds: 8200));
-    expect(find.textContaining('SAME order'), findsOneWidget);
+    expect(find.textContaining('Quick check'), findsOneWidget);
+
+    // Ce test s'arrête ici : il verrouille la PRÉSENCE de la distraction au
+    // niveau 1. La suite du parcours (réponse à la question, rappel après
+    // distraction, montée au niveau 2) est couverte par le déroulé complet du
+    // jeu, pas par ce garde-fou.
+    //
+    // Démonter l'arbre annule les timers de la phase de distraction ; les
+    // laisser en vol ferait échouer le teardown.
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
   });
 }

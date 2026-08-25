@@ -469,7 +469,12 @@ class _HeaderMoreButton extends StatelessWidget {
       child: IconButton(
         key: const ValueKey('decision-more-menu'),
         tooltip: 'Journey menu',
-        onPressed: onPressed,
+        // Ce bouton ouvre les règles/aide : il doit cliquer comme les autres.
+        // `IconButton` brut n'hérite pas du clic des boutons partagés.
+        onPressed: () {
+          SoundService.instance.playSfx(GameSfx.buttonClick);
+          onPressed();
+        },
         icon: const Icon(Icons.more_horiz_rounded, color: _ink, size: 28),
         style: IconButton.styleFrom(
           fixedSize: const Size(48, 48),

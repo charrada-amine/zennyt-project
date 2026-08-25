@@ -240,6 +240,13 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
     }
 
     final interstitial = _interstitialBefore(next);
+    // Le déverrouillage de badge est l'interstitiel le plus gratifiant du
+    // parcours : il s'affichait en silence. Le son avait bien été ajouté, mais
+    // sur l'écran de RÉSULTATS (révélation du profil) — pas ici, alors que
+    // c'est cet écran-ci qui affiche « Badge unlocked ».
+    if (interstitial == DecisionInterstitial.badge) {
+      SoundService.instance.playSfx(GameSfx.badgeUnlocked);
+    }
     setState(() {
       _index = next;
       _timedOut = false;

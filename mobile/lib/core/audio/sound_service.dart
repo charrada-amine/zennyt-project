@@ -14,8 +14,16 @@ enum GameSfx {
   /// Mauvais choix / mauvaise réponse.
   wrongChoice('sounds/wrong-choice-sfx.mp3'),
 
-  /// Félicitations / affichage d'un badge.
+  /// Félicitations / fin de parcours réussie.
   congrats('sounds/congrats-sfx.mp3'),
+
+  /// Déverrouillage d'un badge / révélation d'un niveau de profil.
+  ///
+  /// ⚠️ Pas d'asset dédié à ce jour : pointe volontairement sur le même fichier
+  /// que [congrats]. L'entrée existe pour que les écrans nomment le bon moment
+  /// — brancher un vrai son « badge unlocked » ne coûtera qu'un changement de
+  /// chemin ici, sans toucher aux appelants.
+  badgeUnlocked('sounds/congrats-sfx.mp3'),
 
   /// Clic générique de bouton (menus) — quand aucun son spécifique.
   buttonClick('sounds/in-game-button-click-sfx.mp3'),
@@ -83,8 +91,8 @@ enum GameSfx {
 /// Service audio central des jeux : musique de fond en boucle + effets sonores
 /// ponctuels. Singleton pour un accès simple depuis les widgets partagés.
 ///
-/// Contrainte fiche « Non-specific » : la musique de fond ne dépasse pas 40 %
-/// du volume des SFX ([_musicVolume] = 0.4 × [_sfxVolume]).
+/// Volume de la musique de fond : [_musicVolume] (25 % du volume système),
+/// réglé par le client après écoute — voir le commentaire de la constante.
 class SoundService {
   SoundService._();
 
@@ -95,15 +103,17 @@ class SoundService {
   /// Volume des effets sonores — 40 % du volume système.
   static const double _sfxVolume = 0.4;
 
-  /// Volume de la musique de fond.
+  /// Volume de la musique de fond — **25 % du volume système**.
   ///
-  /// La fiche « Non-specific » impose que la musique ne dépasse pas **40 % du
-  /// volume des SFX** — c'est un rapport, pas une valeur absolue. D'où
-  /// 0.4 × [_sfxVolume] = 0.16, soit 16 % du volume système. Si l'intention
-  /// était 40 % du volume système, c'est [_musicToSfxRatio] qu'il faut relever
-  /// à 1.0 — mais la contrainte de la fiche ne serait plus respectée.
-  static const double _musicToSfxRatio = 0.4;
-  static const double _musicVolume = _sfxVolume * _musicToSfxRatio;
+  /// Valeur fixée par le client à l'écoute, en deux temps : la version d'abord
+  /// livrée à 16 % (la fiche « Non-specific » exprimait un RAPPORT — musique
+  /// ≤ 40 % des SFX) a été jugée inaudible, celle à 40 % trop forte. 25 % est
+  /// l'arbitrage retenu.
+  ///
+  /// Exprimé en valeur ABSOLUE, et non plus en fraction de [_sfxVolume] :
+  /// c'est ainsi que le client raisonne (« le volume passe à 25 % »), et un
+  /// ratio rendait le réglage dépendant du volume des effets.
+  static const double _musicVolume = 0.25;
 
   /// Sons qui marquent une erreur — ils déclenchent aussi la vibration.
   static const Set<GameSfx> _errorSfx = {

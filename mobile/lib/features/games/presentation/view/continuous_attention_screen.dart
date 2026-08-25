@@ -988,7 +988,11 @@ class _SquareButton extends StatelessWidget {
       height: 50,
       child: IconButton.outlined(
         tooltip: tooltip,
-        onPressed: onTap,
+        // Porte notamment « Rules and help » : clic sonore comme partout.
+        onPressed: () {
+          SoundService.instance.playSfx(GameSfx.buttonClick);
+          onTap();
+        },
         style: IconButton.styleFrom(
           foregroundColor: onDark ? Colors.white : _navy,
           side: BorderSide(
@@ -2804,11 +2808,10 @@ class _RulesDialog extends StatelessWidget {
             ),
             const SizedBox(height: 18),
             GamePrimaryButton(
+              // [GamePrimaryButton] joue déjà le clic : le rejouer ici
+              // superposait deux fois le même son.
               label: 'Got it',
-              onPressed: () {
-                  SoundService.instance.playSfx(GameSfx.buttonClick);
-                  Navigator.of(context).pop();
-                },
+              onPressed: () => Navigator.of(context).pop(),
             ),
           ],
         ),

@@ -16,7 +16,6 @@ import '../../domain/entities/game_type.dart';
 import '../../domain/entities/memory_object.dart';
 import '../../domain/entities/memory_quest_metrics.dart';
 import '../../domain/entities/mini_game.dart';
-import '../../domain/entities/score_breakdown.dart';
 import '../device_calibration_probe.dart';
 import '../games_providers.dart';
 import '../widgets/game_system_components.dart';
@@ -35,10 +34,14 @@ import '../widgets/game_system_components.dart';
 class InvestigateScreen extends ConsumerStatefulWidget {
   const InvestigateScreen({
     super.key,
+    this.mode = InvestigateMode.full,
     @visibleForTesting this.seed,
     @visibleForTesting this.onMissionBReady,
     @visibleForTesting this.onDistractionReady,
   });
+
+  /// Missions jouées par cette partie (voir [InvestigateMode]).
+  final InvestigateMode mode;
 
   /// Graine RNG déterministe pour les tests (séquences reproductibles).
   final int? seed;
@@ -52,6 +55,31 @@ class InvestigateScreen extends ConsumerStatefulWidget {
 
   @override
   ConsumerState<InvestigateScreen> createState() => _InvestigateScreenState();
+}
+
+/// Découpage de « J'investigue » en deux jeux distincts.
+///
+/// Le jeu enchaînait deux missions dans une seule partie : mémorisation de
+/// CHIFFRES (empan direct, inverse, résistance à l'interférence) puis
+/// mémorisation d'IMAGES (ordre des objets). Le client demande de les séparer,
+/// pour les valider — et les faire jouer — indépendamment.
+///
+/// Le mode ne touche QUE l'enchaînement des phases : le barème, la session et
+/// les métriques envoyées au serveur restent ceux de `memoryQuestCore`. Les
+/// tâches non jouées sont simplement absentes du composite, exactement comme
+/// une partie écourtée.
+enum InvestigateMode {
+  /// Les deux missions à la suite — comportement historique.
+  full,
+
+  /// Chiffres uniquement : empan direct, inverse et distraction.
+  digits,
+
+  /// Images uniquement : observation, manipulation, restauration de l'ordre.
+  images;
+
+  bool get playsDigits => this != InvestigateMode.images;
+  bool get playsImages => this != InvestigateMode.digits;
 }
 
 enum _Stage {
@@ -207,6 +235,12 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
   }
 
   void _beginRound() {
+    // Mode « images seules » : aucune séquence de chiffres n'est jouée, la
+    // manche commence directement par la mission d'objets.
+    if (!widget.mode.playsDigits) {
+      _beginMissionB();
+      return;
+    }
     _length = MemoryQuestConfig.sequenceLengthForLevel(_level);
     _sequence = List<int>.generate(_length, (_) => _random.nextInt(10));
     _entry.clear();
@@ -272,11 +306,19 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
 
   void _onKey(int digit) {
     if (_inputLocked || _entry.length >= _recallLength) return;
+    // SFX de SAISIE. Les sons `numberClick` existaient déjà, mais uniquement
+    // dans la boucle de RÉVÉLATION (quand l'app montre les chiffres) : taper
+    // sur le pavé ne produisait rien. On alterne les deux variantes selon la
+    // position saisie, comme à la révélation, pour éviter la répétition.
+    SoundService.instance.playSfx(
+      _entry.length.isEven ? GameSfx.numberClick : GameSfx.numberClickV2,
+    );
     setState(() => _entry.add(digit));
   }
 
   void _onBackspace() {
     if (_inputLocked || _entry.isEmpty) return;
+    SoundService.instance.playSfx(GameSfx.buttonClick);
     setState(() => _entry.removeLast());
   }
 
@@ -322,6 +364,12 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
     setState(() => _stage = _Stage.feedback);
     Future<void>.delayed(const Duration(milliseconds: _feedbackMs + 550), () {
       if (!mounted) return;
+      // Mode « chiffres seuls » : le tour s'arrête à la fin de la mission A,
+      // sans enchaîner sur la manipulation d'objets.
+      if (!widget.mode.playsImages) {
+        _endLevel();
+        return;
+      }
       _beginMissionB(); // Mission A terminée → manipulation d'objets
     });
   }
@@ -463,7 +511,7 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
           ? GameSfx.correctChoice
           : GameSfx.wrongChoice,
     );
-    // Distraction GATÉE : jouée seulement à partir du niveau 3.
+    // Distraction jouée à partir de MemoryQuestConfig.distractionMinLevel.
     if (MemoryQuestConfig.distractionActiveAtLevel(_level)) {
       _beginDistraction();
     } else {
@@ -798,6 +846,7 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
       _Stage.tutorial => _TutorialView(
           onStart: _startMission,
           onBack: () => setState(() => _stage = _Stage.intro),
+          mode: widget.mode,
         ),
       _Stage.observeSequence ||
       _Stage.recallSameOrder ||
@@ -815,7 +864,6 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
           composite:
               _serverSession?.lastAttempt?.score.normalized.round() ?? _compositeScore,
           submitting: _submitting,
-          breakdown: _serverSession?.scoreBreakdown ?? const [],
           sameScore: _sameTaskScore,
           reverseScore: _reverseTaskScore,
           restoreScore: _missionBDone ? _restoreTaskScore : null,
@@ -867,16 +915,20 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
         children: [
           _GameHeader(onPause: _openPause),
           const SizedBox(height: AppSpacing.base),
-          Row(
+          // Trois pastilles de largeur variable (phase / charge / niveau) : en
+          // [Row] elles débordaient de ~96 px sur un écran de 320. Un [Wrap]
+          // les fait passer à la ligne au lieu de les rogner.
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               GameRuleChip(
                 label: phaseLabel,
                 color: Colors.white,
                 filled: true,
               ),
-              const SizedBox(width: AppSpacing.sm),
               _DarkChip(label: loadChip),
-              const Spacer(),
               _DarkChip(label: rightChip),
             ],
           ),
@@ -961,26 +1013,35 @@ class _GameHeader extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Investigate',
-              style: AppTypography.headlineLarge.copyWith(
-                color: Colors.white,
-                letterSpacing: 0,
+        // [Expanded] et non [Spacer] : le titre doit CÉDER de la place au
+        // bouton pause. Sur un écran de 320 px, « Working Memory Mission » à sa
+        // largeur naturelle poussait le bouton hors du cadre (débordement 14 px).
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Investigate',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.headlineLarge.copyWith(
+                  color: Colors.white,
+                  letterSpacing: 0,
+                ),
               ),
-            ),
-            Text(
-              'Working Memory Mission',
-              style: AppTypography.bodyMedium.copyWith(
-                color: Colors.white.withValues(alpha: 0.85),
-                letterSpacing: 0,
+              Text(
+                'Working Memory Mission',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.bodyMedium.copyWith(
+                  color: Colors.white.withValues(alpha: 0.85),
+                  letterSpacing: 0,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-        const Spacer(),
+        const SizedBox(width: AppSpacing.sm),
         // Cible tactile ≥ 48×48 (WCAG).
         Semantics(
           button: true,
@@ -1091,14 +1152,20 @@ class _ObserveView extends StatelessWidget {
         const SizedBox(height: AppSpacing.sm),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(Icons.lock_outline_rounded, color: Colors.white, size: 18),
             const SizedBox(width: 8),
-            Text(
-              'Watch carefully. Input is locked.',
-              style: AppTypography.bodyMedium.copyWith(
-                color: Colors.white,
-                letterSpacing: 0,
+            // Le texte doit pouvoir se rétrécir : à sa largeur naturelle il
+            // débordait de 146 px sur un écran de 320.
+            Flexible(
+              child: Text(
+                'Watch carefully. Input is locked.',
+                textAlign: TextAlign.center,
+                style: AppTypography.bodyMedium.copyWith(
+                  color: Colors.white,
+                  letterSpacing: 0,
+                ),
               ),
             ),
           ],
@@ -1132,7 +1199,23 @@ class _RecallView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final full = entry.length == length;
+    // Titre + slots + pavé + Valider dépassent la hauteur utile d'un petit
+    // écran (débordement de 130 px sur 320×568). On garde la répartition
+    // aérée quand la place existe, et on défile quand elle manque : le
+    // [Spacer] d'origine, lui, ne pouvait qu'écraser ou déborder.
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: IntrinsicHeight(child: _content(full)),
+        ),
+      ),
+    );
+  }
+
+  Widget _content(bool full) {
     return Column(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           afterDistraction
@@ -1173,7 +1256,7 @@ class _RecallView extends StatelessWidget {
             );
           }),
         ),
-        const Spacer(),
+        const SizedBox(height: AppSpacing.lg),
         _Keypad(onKey: onKey, onBackspace: onBackspace),
         const SizedBox(height: AppSpacing.base),
         GamePrimaryButton(
@@ -1406,84 +1489,70 @@ class _RestoreView extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppSpacing.lg),
-        // Zone défilable (emplacements + réserve) : évite tout débordement même
-        // avec beaucoup d'objets (jusqu'à 12 selon le niveau). Le titre et le
-        // bouton Valider restent fixes.
+        // Emplacements et réserve CÔTE À CÔTE : glisser de droite à gauche est
+        // plus court et laisse les deux zones visibles en même temps, alors que
+        // l'empilement haut/bas obligeait à faire défiler entre chaque dépôt.
+        // Sous [_sideBySideMinWidth], l'empilement reste le seul lisible.
         Expanded(
-          child: SingleChildScrollView(
-            child: Column(
-              children: [
-                // Emplacements cibles (ordre à reconstruire) — cibles de dépôt.
-                Wrap(
-                  alignment: WrapAlignment.center,
-                  spacing: 12 * scale,
-                  runSpacing: 12 * scale,
-                  children: [
-                    for (var i = 0; i < slots.length; i++)
-                      DragTarget<MemoryObject>(
-                        onWillAcceptWithDetails: (_) => enabled,
-                        onAcceptWithDetails: (details) =>
-                            onPlaceInSlot(details.data, i),
-                        builder: (context, candidate, rejected) {
-                          final tile = _ObjectTile(
-                            object: slots[i],
-                            position: i + 1,
-                            languageCode: languageCode,
-                            highlight: candidate.isNotEmpty,
-                            onTap: slots[i] == null ? null : () => onRemove(i),
-                            scale: scale,
-                          );
-                          // Un objet déjà placé peut être re-glissé (échange/retour).
-                          final obj = slots[i];
-                          if (obj == null || !enabled) return tile;
-                          return _DraggableObject(
-                            object: obj,
-                            languageCode: languageCode,
-                            scale: scale,
-                            child: tile,
-                          );
-                        },
-                      ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                // Réserve d'objets (mélangée) — sources à glisser.
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.10),
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-                  ),
-                  child: Wrap(
-                    alignment: WrapAlignment.center,
-                    spacing: 12 * scale,
-                    runSpacing: 12 * scale,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final sideBySide = constraints.maxWidth >= _sideBySideMinWidth;
+              // Deux colonnes ⇒ chaque zone n'a plus que ~la moitié de la
+              // largeur : les cartes sont resserrées d'autant.
+              final tileScale = sideBySide ? scale * 0.82 : scale;
+              final slotsZone = _SlotsZone(
+                slots: slots,
+                languageCode: languageCode,
+                enabled: enabled,
+                onPlaceInSlot: onPlaceInSlot,
+                onRemove: onRemove,
+                scale: tileScale,
+              );
+              final poolZone = _PoolZone(
+                pool: pool,
+                languageCode: languageCode,
+                enabled: enabled,
+                onPlace: onPlace,
+                scale: tileScale,
+              );
+
+              if (!sideBySide) {
+                return SingleChildScrollView(
+                  child: Column(
                     children: [
-                      for (final obj in pool)
-                        enabled
-                            ? _DraggableObject(
-                                object: obj,
-                                languageCode: languageCode,
-                                scale: scale,
-                                child: _ObjectTile(
-                                  object: obj,
-                                  languageCode: languageCode,
-                                  onTap: () => onPlace(obj),
-                                  scale: scale,
-                                ),
-                              )
-                            : _ObjectTile(
-                                object: obj,
-                                languageCode: languageCode,
-                                onTap: () => onPlace(obj),
-                                scale: scale,
-                              ),
+                      slotsZone,
+                      const SizedBox(height: AppSpacing.lg),
+                      poolZone,
                     ],
                   ),
-                ),
-              ],
-            ),
+                );
+              }
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Réserve (source) à GAUCHE, emplacements (cible) à DROITE.
+                  //
+                  // ⚠️ AMBIGUÏTÉ ASSUMÉE. Le retour client dit : « le drag &
+                  // drop se fait de gauche à droite plutôt que de droite à
+                  // gauche ». Or la disposition précédente plaçait la réserve à
+                  // DROITE et les emplacements à GAUCHE : le geste allait donc
+                  // déjà de droite à gauche. La description ne correspond pas à
+                  // ce que faisait le build testé.
+                  //
+                  // Interprétation retenue : le client décrit la DISPOSITION
+                  // (on prend à gauche, on dépose à droite), pas le vecteur du
+                  // geste. On inverse donc les deux colonnes. Repasser à
+                  // l'autre sens = échanger ces deux `Expanded`.
+                  Expanded(
+                    child: SingleChildScrollView(child: poolZone),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: SingleChildScrollView(child: slotsZone),
+                  ),
+                ],
+              );
+            },
           ),
         ),
         const SizedBox(height: AppSpacing.base),
@@ -1492,6 +1561,126 @@ class _RestoreView extends StatelessWidget {
           onPressed: full ? onValidate : null,
         ),
       ],
+    );
+  }
+}
+
+/// Largeur en dessous de laquelle deux colonnes deviennent illisibles : on
+/// retombe alors sur l'empilement vertical d'origine.
+///
+/// Calibré sur la largeur RÉELLEMENT disponible, pas sur celle de l'écran : la
+/// vue est encadrée de 24 px de marge de chaque côté, donc un iPhone SE de
+/// 320 px n'offre que 272 px ici. Un seuil à 320 aurait donc désactivé le côte
+/// à côte précisément sur les écrans où éviter le défilement compte le plus.
+/// À 250, chaque colonne reçoit ~120 px — de quoi loger une carte de 69 px
+/// (84 × 0,82) avec sa gouttière.
+const double _sideBySideMinWidth = 250;
+
+/// Emplacements cibles (ordre à reconstruire) — cibles de dépôt.
+class _SlotsZone extends StatelessWidget {
+  const _SlotsZone({
+    required this.slots,
+    required this.languageCode,
+    required this.enabled,
+    required this.onPlaceInSlot,
+    required this.onRemove,
+    required this.scale,
+  });
+
+  final List<MemoryObject?> slots;
+  final String languageCode;
+  final bool enabled;
+  final void Function(MemoryObject object, int slotIndex) onPlaceInSlot;
+  final ValueChanged<int> onRemove;
+  final double scale;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 10 * scale,
+      runSpacing: 10 * scale,
+      children: [
+        for (var i = 0; i < slots.length; i++)
+          DragTarget<MemoryObject>(
+            onWillAcceptWithDetails: (_) => enabled,
+            onAcceptWithDetails: (details) => onPlaceInSlot(details.data, i),
+            builder: (context, candidate, rejected) {
+              final tile = _ObjectTile(
+                object: slots[i],
+                position: i + 1,
+                languageCode: languageCode,
+                highlight: candidate.isNotEmpty,
+                onTap: slots[i] == null ? null : () => onRemove(i),
+                scale: scale,
+              );
+              // Un objet déjà placé peut être re-glissé (échange/retour).
+              final obj = slots[i];
+              if (obj == null || !enabled) return tile;
+              return _DraggableObject(
+                object: obj,
+                languageCode: languageCode,
+                scale: scale,
+                child: tile,
+              );
+            },
+          ),
+      ],
+    );
+  }
+}
+
+/// Réserve d'objets (mélangée) — sources à glisser.
+class _PoolZone extends StatelessWidget {
+  const _PoolZone({
+    required this.pool,
+    required this.languageCode,
+    required this.enabled,
+    required this.onPlace,
+    required this.scale,
+  });
+
+  final List<MemoryObject> pool;
+  final String languageCode;
+  final bool enabled;
+  final ValueChanged<MemoryObject> onPlace;
+  final double scale;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+      ),
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 10 * scale,
+        runSpacing: 10 * scale,
+        children: [
+          for (final obj in pool)
+            enabled
+                ? _DraggableObject(
+                    object: obj,
+                    languageCode: languageCode,
+                    scale: scale,
+                    child: _ObjectTile(
+                      object: obj,
+                      languageCode: languageCode,
+                      onTap: () => onPlace(obj),
+                      scale: scale,
+                    ),
+                  )
+                : _ObjectTile(
+                    object: obj,
+                    languageCode: languageCode,
+                    onTap: () => onPlace(obj),
+                    scale: scale,
+                  ),
+        ],
+      ),
     );
   }
 }
@@ -1559,15 +1748,34 @@ class _ObjectTile extends StatelessWidget {
   /// des cartes pour tout faire tenir à l'écran sans défilement pénible.
   final double scale;
 
+  /// Dimensions de référence d'une carte (échelle 1).
+  ///
+  /// Réduites sur retour client (« diminuer la taille des cartes images ») :
+  /// 104×136 → 84×120, image 64 → 52. Assez petit pour que la réserve et les
+  /// emplacements tiennent CÔTE À CÔTE, assez grand pour rester une cible de
+  /// dépôt confortable (≥ 48 px même à l'échelle la plus basse).
+  ///
+  /// ⚠️ [_baseHeight] doit garder de la marge sur la hauteur RÉELLE du contenu
+  /// (padding + n° + image + libellé ≈ 108 px) : la carte a une taille fixe,
+  /// donc tout rognage se paie en `RenderFlex overflow` — d'autant plus aux
+  /// échelles réduites, où les arrondis jouent contre nous.
+  static const double _baseWidth = 84;
+  static const double _baseHeight = 120;
+  static const double _baseImage = 52;
+  static const double _basePadding = 6;
+
   @override
   Widget build(BuildContext context) {
     final obj = object;
     // Carte translucide « givrée » (plus de fond blanc plein) : les objets 2.5D
-    // ressortent, plus grands, directement sur le fond violet.
+    // ressortent directement sur le fond violet.
     final tile = Container(
-      width: 104 * scale,
-      height: 136 * scale,
-      padding: EdgeInsets.symmetric(vertical: 8 * scale, horizontal: 8 * scale),
+      width: _baseWidth * scale,
+      height: _baseHeight * scale,
+      padding: EdgeInsets.symmetric(
+        vertical: _basePadding * scale,
+        horizontal: _basePadding * scale,
+      ),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: obj == null ? 0.08 : 0.16),
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
@@ -1594,20 +1802,24 @@ class _ObjectTile extends StatelessWidget {
           if (obj != null)
             Image.asset(
               obj.assetPath,
-              width: 64 * scale,
-              height: 64 * scale,
+              width: _baseImage * scale,
+              height: _baseImage * scale,
               fit: BoxFit.contain,
             )
           else
-            SizedBox(height: 64 * scale),
+            SizedBox(height: _baseImage * scale),
           SizedBox(height: 6 * scale),
           Text(
             obj?.label(languageCode) ?? '—',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
+            // Sur une carte à taille fixe, laisser le libellé suivre le
+            // textScale système le ferait déborder ; la carte reste lisible car
+            // l'image porte l'essentiel, et Semantics annonce le nom complet.
+            textScaler: TextScaler.noScaling,
             style: TextStyle(
               color: Colors.white,
-              fontSize: 13 * scale,
+              fontSize: 12 * scale,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -1800,13 +2012,14 @@ class _IntroView extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(
-                  width: 150,
-                  child: GameRuleChip(
-                    label: 'Working Memory',
-                    color: Colors.white,
-                    filled: true,
-                  ),
+                // Largeur INTRINSÈQUE, pas 150 px figés : à cette largeur
+                // « Working Memory » se tronquait en « Working Me… » sur un
+                // écran de téléphone. La pastille se dimensionne désormais sur
+                // son texte, comme elle le fait déjà ailleurs.
+                const GameRuleChip(
+                  label: 'Working Memory',
+                  color: Colors.white,
+                  filled: true,
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 Text(
@@ -1841,7 +2054,8 @@ class _IntroView extends StatelessWidget {
               ),
               SizedBox(width: AppSpacing.sm),
               Expanded(
-                  child: ResultStatTile(label: 'Format', value: '2 missions')),
+                child: ResultStatTile(label: 'Format', value: '2 missions'),
+              ),
             ],
           ),
           const SizedBox(height: AppSpacing.xl),
@@ -1903,10 +2117,15 @@ class _IntroView extends StatelessWidget {
 // ── Tutorial (instructions avant le test) ────────────────────────────────────
 
 class _TutorialView extends StatelessWidget {
-  const _TutorialView({required this.onStart, required this.onBack});
+  const _TutorialView({
+    required this.onStart,
+    required this.onBack,
+    required this.mode,
+  });
 
   final VoidCallback onStart;
   final VoidCallback onBack;
+  final InvestigateMode mode;
 
   @override
   Widget build(BuildContext context) {
@@ -1963,14 +2182,26 @@ class _TutorialView extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
-          step(Icons.visibility_outlined, 'Observe',
-              'Digits appear one at a time for a short moment. Just watch.'),
-          step(Icons.keyboard_alt_outlined, 'Recall',
-              'Type the digits back in the same order, then in reverse order.'),
-          step(Icons.swap_horiz_rounded, 'Objects',
-              'Then memorize objects, watch them get moved, and restore the STARTING order.'),
-          step(Icons.psychology_outlined, 'Distraction',
-              'Sometimes a quick question interrupts you — keep the answer in mind and recall after.'),
+          // Les étapes suivent le MODE : décrire le rappel de chiffres dans le
+          // jeu « Images » (ou l'inverse) annoncerait des phases qui ne seront
+          // jamais jouées.
+          if (mode.playsDigits) ...[
+            step(Icons.visibility_outlined, 'Observe',
+                'Digits appear one at a time for a short moment. Just watch.'),
+            step(Icons.keyboard_alt_outlined, 'Recall',
+                'Type the digits back in the same order, then in reverse order.'),
+          ],
+          if (mode.playsImages)
+            step(
+              Icons.swap_horiz_rounded,
+              'Objects',
+              mode.playsDigits
+                  ? 'Then memorize objects, watch them get moved, and restore the STARTING order.'
+                  : 'Memorize the objects, watch them get moved, then restore the STARTING order.',
+            ),
+          if (mode.playsDigits)
+            step(Icons.psychology_outlined, 'Distraction',
+                'Sometimes a quick question interrupts you — keep the answer in mind and recall after.'),
           step(Icons.lock_outline_rounded, 'Input lock',
               'You cannot answer while stimuli are shown — it keeps the test fair.'),
           const SizedBox(height: AppSpacing.lg),
@@ -1987,7 +2218,6 @@ class _ResultsView extends StatelessWidget {
   const _ResultsView({
     required this.composite,
     required this.submitting,
-    required this.breakdown,
     required this.sameScore,
     required this.reverseScore,
     required this.restoreScore,
@@ -2000,7 +2230,6 @@ class _ResultsView extends StatelessWidget {
 
   final int composite;
   final bool submitting;
-  final List<ScoreBreakdownLine> breakdown;
   final int sameScore;
   final int reverseScore;
   final int? restoreScore; // null si la Mission B n'a pas été jouée

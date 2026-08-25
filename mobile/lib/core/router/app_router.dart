@@ -73,6 +73,10 @@ const _publicRoutes = <String>{
 /// de production normal (démarrage sur le splash + flux d'auth).
 const bool kLot1DemoBuild = true;
 
+/// Onglet de [MainNavigationScreen] qui porte le hub des jeux (« Progress »).
+/// Seul onglet actif quand [kLot1DemoBuild] vaut `true`.
+const int kLot1DemoTabIndex = 2;
+
 /// Routes a signed-in user should be bounced away from (back to home).
 const _authOnlyEntryRoutes = <String>{
   AppRoutes.login,
@@ -230,6 +234,19 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.gamesInvestigate,
         name: AppRoutes.nGamesInvestigate,
         builder: (context, state) => const InvestigateScreen(),
+      ),
+      // Les deux moitiés de « J'investigue », jouables séparément.
+      GoRoute(
+        path: AppRoutes.gamesInvestigateDigits,
+        name: AppRoutes.nGamesInvestigateDigits,
+        builder: (context, state) =>
+            const InvestigateScreen(mode: InvestigateMode.digits),
+      ),
+      GoRoute(
+        path: AppRoutes.gamesInvestigateImages,
+        name: AppRoutes.nGamesInvestigateImages,
+        builder: (context, state) =>
+            const InvestigateScreen(mode: InvestigateMode.images),
       ),
       GoRoute(
         path: AppRoutes.gamesJePlace,

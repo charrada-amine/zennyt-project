@@ -507,7 +507,13 @@ class _HelpPill extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
-          onTap: onTap,
+          // Pastille « ? Help » : c'est un bouton de règles, il doit cliquer
+          // comme les autres (elle passait à côté du son car elle n'utilise pas
+          // les boutons partagés).
+          onTap: () {
+            SoundService.instance.playSfx(GameSfx.buttonClick);
+            onTap();
+          },
           child: Container(
             constraints: const BoxConstraints(minHeight: 40, minWidth: 64),
             alignment: Alignment.center,
@@ -569,7 +575,12 @@ class _WhiteOutlineButton extends StatelessWidget {
       width: double.infinity,
       height: 56,
       child: OutlinedButton(
-        onPressed: onPressed,
+        // Porte « View rules » sur la cover : même clic que les boutons
+        // partagés, dont ce bouton reprend seulement le style clair.
+        onPressed: () {
+          SoundService.instance.playSfx(GameSfx.buttonClick);
+          onPressed();
+        },
         style: OutlinedButton.styleFrom(
           foregroundColor: EmotionalRadarPalette.ink,
           side: const BorderSide(color: EmotionalRadarPalette.border),
@@ -1230,10 +1241,9 @@ class _ResultsView extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 18),
-              // Le détail vient du serveur : le client n'en recalcule aucune ligne.
-              if (session?.scoreBreakdown.isNotEmpty ?? false)
-                _BreakdownPanel(lines: session!.scoreBreakdown),
+              // Le détail de la formule de calcul du score a été retiré du
+              // tableau de score sur retour client. Le barème reste calculé et
+              // exposé côté serveur — seul son AFFICHAGE disparaît ici.
               const SizedBox(height: 22),
               _MagentaButton(label: 'Play again', onPressed: onReplay),
               const SizedBox(height: 12),
@@ -1263,81 +1273,6 @@ class _ResultsView extends StatelessWidget {
   }
 }
 
-class _BreakdownPanel extends StatelessWidget {
-  const _BreakdownPanel({required this.lines});
-
-  final List<dynamic> lines;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1B1B4B),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Score detail',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 12),
-          for (final line in lines) ...[
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${line.label}',
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: Colors.white,
-                            fontFamily: 'monospace',
-                          ),
-                        ),
-                        if (line.detail != null)
-                          Text(
-                            '${line.detail}',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: Colors.white60,
-                              fontFamily: 'monospace',
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  if (line.points != null)
-                    Text(
-                      '${line.points}/${line.maxPoints}',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                        fontFamily: 'monospace',
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
 
 class _ErrorView extends StatelessWidget {
   const _ErrorView({required this.message, required this.onRetry});

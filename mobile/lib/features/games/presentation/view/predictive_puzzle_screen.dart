@@ -677,7 +677,10 @@ class _PredictiveIntroView extends StatelessWidget {
                     ),
                     const SizedBox(height: AppSpacing.base),
                     const Text(
-                      'Predict\nive\nPuzzle',
+                      // Le saut de ligne était placé AU MILIEU du mot
+                      // (« Predict / ive / Puzzle ») : la coupure se voit sur
+                      // n'importe quel appareil. On coupe entre les deux mots.
+                      'Predictive\nPuzzle',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 40,
@@ -745,7 +748,7 @@ class _PredictiveIntroView extends StatelessWidget {
                   ),
                   TextSpan(
                     text:
-                        'Sophie moves a growing stack of discs from Tower A to Tower C across 6 levels (3 discs up to 8 discs). Plan the entire sequence upfront - the machine executes exactly what she planned, no corrections allowed.',
+                        'Sophie moves a growing stack of discs from Tower A to Tower C across 8 levels (3 discs up to 10 discs). Plan the entire sequence upfront - the machine executes exactly what she planned, no corrections allowed.',
                     style: AppTypography.bodyLarge.copyWith(
                       color: ZennytGamePalette.muted,
                       height: 1.25,
@@ -839,7 +842,7 @@ class _HowToRuleViewState extends State<_HowToRuleView> {
             child: Text(
               _page == 0
                   ? 'Sophie can never place a larger disc on top of a smaller one. She uses Tower B as a relay. Each move takes the top disc from one tower and places it on another valid tower.'
-                  : 'Sophie fills in the entire sequence before execution. Once launched, no corrections are possible. Difficulty scales each level (3 → 8 discs), the last level needing 255 optimal moves.',
+                  : 'Sophie fills in the entire sequence before execution. Once launched, no corrections are possible. Difficulty scales each level (3 → 10 discs), the last level needing 1023 optimal moves.',
               style: AppTypography.bodyLarge.copyWith(
                 color: ZennytGamePalette.muted,
                 height: 1.28,

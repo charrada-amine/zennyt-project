@@ -170,14 +170,24 @@ class _DecisionResultsFlowState extends State<DecisionResultsFlow> {
   void initState() {
     super.initState();
     _step = widget.initialStep;
+    // Le flux peut DÉMARRER directement sur le profil (deep link, restauration,
+    // test). `initState` posait alors `_step` sans passer par [_go], donc le
+    // badge se révélait en silence — c'est le « SFX Badge unlocked manquant ».
+    _announce(_step);
   }
 
   void _go(DecisionResultsStep step) {
-    // Révélation du profil (badge/score) → son de félicitations.
-    if (step == DecisionResultsStep.profile) {
-      SoundService.instance.playSfx(GameSfx.congrats);
-    }
+    _announce(step);
     setState(() => _step = step);
+  }
+
+  /// Joue le son attaché à l'entrée dans [step], quel que soit le chemin
+  /// emprunté pour y arriver (navigation interne ou pas d'entrée initial).
+  void _announce(DecisionResultsStep step) {
+    // Révélation du profil = déverrouillage du badge de niveau.
+    if (step == DecisionResultsStep.profile) {
+      SoundService.instance.playSfx(GameSfx.badgeUnlocked);
+    }
   }
 
   @override

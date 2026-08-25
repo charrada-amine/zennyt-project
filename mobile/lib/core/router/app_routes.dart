@@ -32,6 +32,11 @@ class AppRoutes {
   static const String gamesPredictivePuzzle = '/games/predictive-puzzle';
   static const String gamesTaskScheduling = '/games/task-scheduling';
   static const String gamesInvestigate = '/games/investigate';
+
+  /// « J'investigue » scindé en deux jeux (retour client) : chiffres d'un côté,
+  /// images de l'autre. [gamesInvestigate] garde l'enchaînement complet.
+  static const String gamesInvestigateDigits = '/games/investigate/digits';
+  static const String gamesInvestigateImages = '/games/investigate/images';
   static const String gamesJePlace = '/games/je-place';
   static const String gamesJeDecide = '/games/je-decide';
   static const String gamesEmotionalRadar = '/games/emotional-radar';
@@ -87,6 +92,8 @@ class AppRoutes {
   static const String nGamesPredictivePuzzle = 'gamesPredictivePuzzle';
   static const String nGamesTaskScheduling = 'gamesTaskScheduling';
   static const String nGamesInvestigate = 'gamesInvestigate';
+  static const String nGamesInvestigateDigits = 'gamesInvestigateDigits';
+  static const String nGamesInvestigateImages = 'gamesInvestigateImages';
   static const String nGamesJePlace = 'gamesJePlace';
   static const String nGamesJeDecide = 'gamesJeDecide';
   static const String nGamesEmotionalRadar = 'gamesEmotionalRadar';

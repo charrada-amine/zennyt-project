@@ -15,7 +15,6 @@ import '../../domain/entities/game_session.dart';
 import '../../domain/entities/game_type.dart';
 import '../../domain/entities/mini_game.dart';
 import '../../domain/entities/move_fast_metrics.dart';
-import '../../domain/entities/score_breakdown.dart';
 import '../device_calibration_probe.dart';
 import '../games_providers.dart';
 import '../widgets/game_system_components.dart';
@@ -36,7 +35,12 @@ enum _MoveFastFeedback { none, correct, error }
 enum _MoveFastInputMode { buttons, tactile }
 
 class MoveFastScreen extends ConsumerStatefulWidget {
-  const MoveFastScreen({super.key});
+  const MoveFastScreen({super.key, @visibleForTesting this.seed});
+
+  /// Graine RNG déterministe pour les tests — même rôle que sur
+  /// `InvestigateScreen`. Sans elle, les avions tirés au hasard changent à
+  /// chaque exécution et aucune capture de référence ne peut être comparée.
+  final int? seed;
 
   @override
   ConsumerState<MoveFastScreen> createState() => _MoveFastScreenState();
@@ -59,7 +63,7 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
   /// Temps d'affichage de 00:00 avant la bascule vers le tableau de score.
   static const Duration _timeUpHold = Duration(milliseconds: 1400);
 
-  final math.Random _random = math.Random();
+  late final math.Random _random = math.Random(widget.seed);
   final Stopwatch _reactionWatch = Stopwatch();
   Timer? _timer;
 
@@ -70,6 +74,13 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
   _MoveFastStimulus _stimulus = _MoveFastStimulus.demoOrientation;
 
   bool _paused = false;
+  /// Consigne du mode tactile encore à l'écran (maquette « Gameplay Waiting »).
+  ///
+  /// Passe à false à la PREMIÈRE réponse donnée au tactile, et le plateau se
+  /// retrouve nu comme dans « 04C Gameplay – Tactile Mode ». Repasse à true si
+  /// le joueur revient au tactile depuis le mode boutons : la consigne se
+  /// re-présente à chaque entrée dans le mode, pas une seule fois par partie.
+  bool _tactilePromptVisible = true;
   // Niveau unique à règle aléatoire : la règle est imprévisible dès le départ.
   bool _randomRule = false;
   int _secondsLeft = _sessionSeconds;
@@ -167,6 +178,8 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
         .startSession(GameType.moveFast);
     _startTimer();
     _startReactionTimer();
+    // Le tout premier avion annonce sa règle, comme tous les suivants.
+    _playActiveRuleSfx();
   }
 
   void _startTimer() {
@@ -317,6 +330,13 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
     // Chrono à 00:00 : la partie est finie, on n'enregistre plus rien.
     if (_timeExpired) return;
 
+    // Première réponse au doigt : la consigne a fait son office, le plateau se
+    // découvre. Placé avant tout `return` de tutoriel pour que la consigne
+    // s'efface aussi quand on apprend à jouer au tactile.
+    if (_inputMode == _MoveFastInputMode.tactile && _tactilePromptVisible) {
+      setState(() => _tactilePromptVisible = false);
+    }
+
     if (_stage == _MoveFastStage.tutorialOrientation) {
       if (direction == GameDirection.right) {
         setState(() {
@@ -443,15 +463,9 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
         _chosenDirection = null;
         _correctDirection = null;
         // Niveau unique : la règle change de façon imprévisible à chaque avion.
-        final previousRule = _rule;
         if (_randomRule) _rule = _nextRandomRule();
-        final previousStimulus = _stimulus;
         _stimulus = _buildStimulus();
-        _playStimulusChangeSfx(
-          previousStimulus,
-          _stimulus,
-          ruleChanged: previousRule != _rule,
-        );
+        _playActiveRuleSfx();
       });
       _startReactionTimer();
     });
@@ -464,34 +478,23 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
   /// que la RÈGLE a basculé : le joueur voyait la couleur changer sans aucun son,
   /// ce qui rendait le retour audio erratique. Chaque nouvel essai a désormais
   /// son son, dans cet ordre de priorité.
-  void _playStimulusChangeSfx(
-    _MoveFastStimulus previous,
-    _MoveFastStimulus next, {
-    required bool ruleChanged,
-  }) {
-    // 1. Le nez a tourné : c'est le changement le plus saillant.
-    if (previous.noseDirection != next.noseDirection) {
-      SoundService.instance.playSfx(GameSfx.planeOrientationChange);
-      return;
-    }
-    // 2. La trajectoire a changé.
-    if (previous.movementDirection != next.movementDirection) {
-      SoundService.instance.playSfx(GameSfx.planeMovementChange);
-      return;
-    }
-    // 3. Avion identique mais règle basculée : on joue le son de la règle qui
-    //    devient active, puisque c'est la seule chose à signaler.
-    if (ruleChanged) {
-      SoundService.instance.playSfx(
-        _rule == _MoveFastRule.orientation
-            ? GameSfx.planeOrientationChange
-            : GameSfx.planeMovementChange,
-      );
-      return;
-    }
-    // 4. Rien ne distingue cet essai du précédent : on marque au moins la
-    //    transition, pour que l'absence de son ne soit jamais ambiguë.
-    SoundService.instance.playSfx(GameSfx.blankInterval);
+  /// Retour sonore du nouvel avion — **toujours celui de la règle active**.
+  ///
+  /// L'implémentation précédente choisissait le son d'après ce qui avait changé
+  /// À L'IMAGE (nez tourné → son d'orientation, trajectoire modifiée → son de
+  /// mouvement), et retombait sur un son neutre quand le tirage reproduisait le
+  /// même avion. Deux conséquences : le son pouvait annoncer « orientation »
+  /// alors que la règle active était « mouvement », et le premier avion d'une
+  /// manche était muet (aucun stimulus précédent à comparer).
+  ///
+  /// Les deux SFX portent le nom des deux RÈGLES : ils doivent donc dire au
+  /// joueur quelle règle appliquer, pas ce qui a bougé à l'écran.
+  void _playActiveRuleSfx() {
+    SoundService.instance.playSfx(
+      _rule == _MoveFastRule.orientation
+          ? GameSfx.planeOrientationChange
+          : GameSfx.planeMovementChange,
+    );
   }
 
   /// Choisit la prochaine règle en mode aléatoire : bascule le plus souvent
@@ -524,6 +527,12 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
                     ? _MoveFastInputMode.buttons
                     : _MoveFastInputMode.tactile);
                 _inputMode = mode;
+                // Entrer (ou revenir) dans le tactile re-présente la consigne :
+                // le joueur qui change de mode en cours de partie doit revoir
+                // comment on joue au doigt.
+                if (mode == _MoveFastInputMode.tactile) {
+                  _tactilePromptVisible = true;
+                }
               },
             ),
             buttons: [
@@ -694,6 +703,8 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
         streakCounter: _streakCounter,
         multiplier: _multiplier,
         inputMode: _inputMode,
+        tactilePromptVisible: _tactilePromptVisible,
+        paused: _paused,
         timeCritical:
             MoveFastConfig.sessionEndMode ==
                 MoveFastSessionEndMode.fixedBudget &&
@@ -704,7 +715,6 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
       _MoveFastStage.results => _ResultsView(
         cognitiveScore: _cognitiveScore,
         rawScore: _serverSession?.lastAttempt?.score.rawPoints,
-        breakdown: _serverSession?.scoreBreakdown ?? const [],
         resultPending: _submittingResult,
         accuracy: _accuracy,
         averageReactionMs: _averageReactionMs,
@@ -763,64 +773,87 @@ class _IntroView extends StatelessWidget {
               color: ZennytGamePalette.gameBlue,
               borderRadius: BorderRadius.circular(AppSpacing.radiusXxl),
             ),
-            child: Stack(
-              children: [
-                Positioned(
-                  right: -22,
-                  top: 22,
-                  child: Container(
-                    width: 176,
-                    height: 176,
-                    decoration: BoxDecoration(
-                      color: ZennytGamePalette.cyan.withValues(alpha: 0.22),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            // Les largeurs de cette bannière étaient figées (chip 170, sous-titre
+            // 210, avion 162) alors que l'avion est posé en absolu par-dessus :
+            // sur un écran de 320 px la carte n'offre plus que ~240 px, l'avion
+            // en mangeait 154 et le titre passait DESSOUS. On dimensionne donc
+            // l'avion et la colonne de texte à partir de la largeur réelle.
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final width = constraints.maxWidth;
+                final planeSize = (width * 0.52).clamp(96.0, 162.0);
+                // L'avion a des marges transparentes : le texte peut empiéter
+                // un peu sur son cadre sans jamais toucher le dessin.
+                final textWidth = math.max(120.0, width - planeSize * 0.72);
+                final haloSize = planeSize * 1.09;
+
+                return Stack(
                   children: [
-                    const SizedBox(height: AppSpacing.xs),
-                    const SizedBox(
-                      width: 170,
-                      child: GameRuleChip(
-                        label: 'Cognitive Flexibility',
-                        color: Colors.white,
-                        filled: true,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.xl),
-                    Text(
-                      'Move\nFast',
-                      style: AppTypography.displayLarge.copyWith(
-                        color: Colors.white,
-                        letterSpacing: 0,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.base),
-                    SizedBox(
-                      width: 210,
-                      child: Text(
-                        'Rules change. Respond fast. Keep the right cue.',
-                        style: AppTypography.titleMedium.copyWith(
-                          color: Colors.white,
-                          letterSpacing: 0,
+                    Positioned(
+                      right: -22,
+                      top: 22,
+                      child: Container(
+                        width: haloSize,
+                        height: haloSize,
+                        decoration: BoxDecoration(
+                          color: ZennytGamePalette.cyan.withValues(alpha: 0.22),
+                          shape: BoxShape.circle,
                         ),
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.xl),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: AppSpacing.xs),
+                        SizedBox(
+                          // 170 px suffisent à « Cognitive Flexibility » quand
+                          // la police a sa taille pleine ; sur un écran étroit
+                          // le texte y était tronqué, alors que la carte offre
+                          // la place — on lui donne toute la largeur.
+                          width: width < 340 ? width : 170,
+                          child: const GameRuleChip(
+                            label: 'Cognitive Flexibility',
+                            color: Colors.white,
+                            filled: true,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.xl),
+                        SizedBox(
+                          width: textWidth,
+                          child: Text(
+                            'Move\nFast',
+                            style: AppTypography.displayLarge.copyWith(
+                              color: Colors.white,
+                              letterSpacing: 0,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.base),
+                        SizedBox(
+                          width: textWidth,
+                          child: Text(
+                            'Rules change. Respond fast. Keep the right cue.',
+                            style: AppTypography.titleMedium.copyWith(
+                              color: Colors.white,
+                              letterSpacing: 0,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.xl),
+                      ],
+                    ),
+                    Positioned(
+                      right: -8,
+                      top: 48,
+                      child: MoveFastPlane(
+                        noseDirection: GameDirection.down,
+                        color: ZennytGamePalette.magenta,
+                        size: planeSize,
+                      ),
+                    ),
                   ],
-                ),
-                const Positioned(
-                  right: -8,
-                  top: 48,
-                  child: MoveFastPlane(
-                    noseDirection: GameDirection.down,
-                    color: ZennytGamePalette.magenta,
-                    size: 162,
-                  ),
-                ),
-              ],
+                );
+              },
             ),
           ),
           const SizedBox(height: AppSpacing.xl),
@@ -1101,6 +1134,8 @@ class _GameplayView extends StatelessWidget {
     required this.streakCounter,
     required this.multiplier,
     required this.inputMode,
+    required this.tactilePromptVisible,
+    required this.paused,
     required this.timeCritical,
     required this.onPause,
     required this.onDirection,
@@ -1119,6 +1154,13 @@ class _GameplayView extends StatelessWidget {
   final int streakCounter;
   final int multiplier;
   final _MoveFastInputMode inputMode;
+
+  /// Consigne tactile encore visible (voir `_tactilePromptVisible`).
+  final bool tactilePromptVisible;
+
+  /// Menu pause ouvert : gèle le défilement des avions.
+  final bool paused;
+
   /// Dix dernières secondes : barre rouge, en écho au tic sonore.
   final bool timeCritical;
   final VoidCallback onPause;
@@ -1161,6 +1203,8 @@ class _GameplayView extends StatelessWidget {
                     streakCounter: streakCounter,
                     multiplier: multiplier,
                     inputMode: inputMode,
+                    tactilePromptVisible: tactilePromptVisible,
+                    paused: paused,
                     onDirection: isFeedback ? null : onDirection,
                   ),
                 ),
@@ -1226,6 +1270,8 @@ class _GameplayBoard extends StatelessWidget {
     required this.streakCounter,
     required this.multiplier,
     required this.inputMode,
+    required this.tactilePromptVisible,
+    required this.paused,
     required this.onDirection,
   });
 
@@ -1236,6 +1282,8 @@ class _GameplayBoard extends StatelessWidget {
   final int streakCounter;
   final int multiplier;
   final _MoveFastInputMode inputMode;
+  final bool tactilePromptVisible;
+  final bool paused;
   final ValueChanged<GameDirection>? onDirection;
 
   @override
@@ -1290,6 +1338,7 @@ class _GameplayBoard extends StatelessWidget {
                   child: AnimatedSwitcher(
                     duration: const Duration(milliseconds: 220),
                     child: _PlaneCluster(
+                      paused: paused,
                       key: ValueKey(
                         '${stimulus.noseDirection}-${stimulus.movementDirection}-$planeColor',
                       ),
@@ -1301,7 +1350,10 @@ class _GameplayBoard extends StatelessWidget {
                 // En mode boutons, la consigne est rendue par _GameplayView SOUS
                 // la croix directionnelle — la dessiner ici la superposerait aux
                 // flèches.
-                if (inputMode == _MoveFastInputMode.tactile)
+                // Consigne tactile : présente tant que le joueur n'a pas
+                // répondu au doigt, puis le plateau se découvre.
+                if (inputMode == _MoveFastInputMode.tactile &&
+                    tactilePromptVisible)
                   const Positioned.fill(child: _TactileOverlay()),
                 if (feedback != _MoveFastFeedback.none)
                   Positioned(
@@ -1330,10 +1382,12 @@ class _PlaneCluster extends StatelessWidget {
     super.key,
     required this.stimulus,
     required this.planeColor,
+    required this.paused,
   });
 
   final _MoveFastStimulus stimulus;
   final Color planeColor;
+  final bool paused;
 
   @override
   Widget build(BuildContext context) {
@@ -1367,6 +1421,7 @@ class _PlaneCluster extends StatelessWidget {
             children: [
               for (final lane in lanes)
                 _ScrollingPlane(
+                  paused: paused,
                   stimulus: stimulus,
                   color: planeColor,
                   size: lane.size,
@@ -1393,6 +1448,7 @@ class _ScrollingPlane extends StatefulWidget {
     required this.cross,
     required this.phase,
     required this.board,
+    required this.paused,
   });
 
   final _MoveFastStimulus stimulus;
@@ -1401,6 +1457,9 @@ class _ScrollingPlane extends StatefulWidget {
   final double cross; // position sur l'axe transverse, fraction [-1, 1]
   final double phase; // décalage de départ dans la boucle [0, 1)
   final Size board;
+
+  /// Menu pause ouvert : le défilement doit s'arrêter net (time scale = 0).
+  final bool paused;
 
   @override
   State<_ScrollingPlane> createState() => _ScrollingPlaneState();
@@ -1416,7 +1475,23 @@ class _ScrollingPlaneState extends State<_ScrollingPlane>
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 3400),
-    )..repeat();
+    );
+    if (!widget.paused) _controller.repeat();
+  }
+
+  @override
+  void didUpdateWidget(_ScrollingPlane oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Le menu pause doit VRAIMENT figer le jeu : le compte à rebours était
+    // déjà gelé, mais les avions continuaient de défiler derrière la carte.
+    // On stoppe la boucle sur place (`stop`, pas `reset`) pour qu'elle
+    // reprenne exactement où elle en était.
+    if (widget.paused == oldWidget.paused) return;
+    if (widget.paused) {
+      _controller.stop();
+    } else {
+      _controller.repeat();
+    }
   }
 
   @override
@@ -1467,65 +1542,73 @@ class _ScrollingPlaneState extends State<_ScrollingPlane>
   }
 }
 
+/// Amorce du mode tactile — maquette « 04B Gameplay Waiting – Tactile ».
+///
+/// Les quatre flèches et le libellé « Tactile mode » ne sont qu'une CONSIGNE :
+/// ils se montrent tant que le joueur n'a pas encore répondu au tactile, puis
+/// s'effacent pour laisser le plateau nu de la planche « 04C Gameplay – Tactile
+/// Mode ». Auparavant l'overlay restait affiché toute la partie et les flèches
+/// se superposaient en permanence aux avions.
 class _TactileOverlay extends StatelessWidget {
   const _TactileOverlay();
 
-  /// Rayon de la zone morte centrale — miroir du seuil de `_GameplayBoard`
-  /// (`delta.distance < 32` ignore le geste). L'afficher évite au joueur de
-  /// taper au centre sans comprendre pourquoi rien ne se passe.
-  static const double _deadZoneRadius = 32;
-
   @override
   Widget build(BuildContext context) {
-    // L'entrée tactile se lit par rapport au CENTRE du plateau : on dispose donc
-    // les repères en croix autour d'un centre matérialisé, au lieu de les aligner
-    // côte à côte comme avant — quatre icônes en ligne ne disaient rien de la
-    // géométrie réellement utilisée.
     return IgnorePointer(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 84, 20, 20),
-        child: Stack(
+        // Colonne — et non un Stack unique : la flèche « bas » et le bloc de
+        // texte visaient tous deux `bottomCenter`/`bottomLeft` et se
+        // chevauchaient. Le texte réserve d'abord sa place, les flèches se
+        // répartissent dans ce qui reste.
+        child: Column(
           children: [
-            const Align(
-              alignment: Alignment.topCenter,
-              child: _TactileHint(direction: GameDirection.up),
-            ),
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: _TactileHint(direction: GameDirection.left),
-            ),
-            const Align(
-              alignment: Alignment.centerRight,
-              child: _TactileHint(direction: GameDirection.right),
-            ),
-            const Align(
-              alignment: Alignment.bottomCenter,
-              child: _TactileHint(direction: GameDirection.down),
-            ),
-            Center(
-              child: Container(
-                width: _deadZoneRadius * 2,
-                height: _deadZoneRadius * 2,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.22),
+            const Expanded(
+              child: Stack(
+                children: [
+                  Align(
+                    alignment: Alignment.topCenter,
+                    child: _TactileHint(direction: GameDirection.up),
                   ),
-                ),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: _TactileHint(direction: GameDirection.left),
+                  ),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: _TactileHint(direction: GameDirection.right),
+                  ),
+                  Align(
+                    alignment: Alignment.bottomCenter,
+                    child: _TactileHint(direction: GameDirection.down),
+                  ),
+                ],
               ),
             ),
+            const SizedBox(height: AppSpacing.sm),
             Align(
-              alignment: Alignment.bottomCenter,
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.xs),
-                child: Text(
-                  'Tap or swipe outwards from the centre.',
-                  textAlign: TextAlign.center,
-                  style: AppTypography.bodySmall.copyWith(
-                    color: Colors.white.withValues(alpha: 0.82),
-                    letterSpacing: 0,
+              alignment: Alignment.centerLeft,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Tactile mode',
+                    style: AppTypography.titleMedium.copyWith(
+                      color: Colors.white,
+                      letterSpacing: 0,
+                    ),
                   ),
-                ),
+                  const SizedBox(height: AppSpacing.xxs),
+                  Text(
+                    'Swipe in the direction you deduce from the active rule.',
+                    style: AppTypography.bodySmall.copyWith(
+                      color: Colors.white.withValues(alpha: 0.86),
+                      letterSpacing: 0,
+                      height: 1.35,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -1544,18 +1627,17 @@ class _TactileHint extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    // Flèche nue, sans pastille ni cercle : la maquette « 04B Gameplay Waiting »
+    // ne montre que les quatre flèches sur le plateau. Le disque translucide
+    // ajoutait un bouton là où il n'y a rien à toucher — l'entrée tactile se
+    // fait n'importe où, par rapport au centre.
+    return SizedBox(
       width: 52,
       height: 52,
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.12),
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.32)),
-      ),
       child: Icon(
         direction.icon,
-        color: Colors.white.withValues(alpha: 0.9),
-        size: 26,
+        color: Colors.white.withValues(alpha: 0.92),
+        size: 30,
       ),
     );
   }
@@ -1622,7 +1704,6 @@ class _ResultsView extends StatelessWidget {
   const _ResultsView({
     required this.cognitiveScore,
     required this.rawScore,
-    required this.breakdown,
     required this.resultPending,
     required this.accuracy,
     required this.averageReactionMs,
@@ -1634,7 +1715,6 @@ class _ResultsView extends StatelessWidget {
 
   final int cognitiveScore;
   final int? rawScore;
-  final List<ScoreBreakdownLine> breakdown;
   final bool resultPending;
   final double accuracy;
   final int averageReactionMs;

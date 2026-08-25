@@ -16,9 +16,12 @@ void main() {
       expect(MemoryQuestConfig.objectCountForLevel(7), 12);
     });
 
-    test('distraction gatée au niveau ≥ 3', () {
-      expect(MemoryQuestConfig.distractionActiveAtLevel(1), isFalse);
-      expect(MemoryQuestConfig.distractionActiveAtLevel(2), isFalse);
+    // Le gating au niveau ≥ 3 a été levé sur retour client : la distraction ne
+    // se voyait jamais en test, une session de démonstration dépassant rarement
+    // le niveau 2.
+    test('distraction active dès le premier niveau', () {
+      expect(MemoryQuestConfig.distractionMinLevel, 1);
+      expect(MemoryQuestConfig.distractionActiveAtLevel(1), isTrue);
       expect(MemoryQuestConfig.distractionActiveAtLevel(3), isTrue);
     });
   });

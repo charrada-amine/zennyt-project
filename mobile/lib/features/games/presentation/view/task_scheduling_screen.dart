@@ -9,7 +9,6 @@ import '../../../../core/theme/app_typography.dart';
 import '../../domain/entities/game_session.dart';
 import '../../domain/entities/game_type.dart';
 import '../../domain/entities/mini_game.dart';
-import '../../domain/entities/score_breakdown.dart';
 import '../../domain/entities/task_scheduling_metrics.dart';
 import '../games_providers.dart';
 import '../widgets/game_system_components.dart';
@@ -275,7 +274,6 @@ class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen> {
           rawScore: _serverSession?.lastAttempt?.score.rawPoints,
           level: _serverSession?.lastAttempt?.score.level,
           busy: _busy,
-          breakdown: _serverSession?.scoreBreakdown ?? const [],
           onReplay: _beginGame,
           onNext: () => context.go(AppRoutes.gamesPredictivePuzzle),
           onBack: () => context.go(AppRoutes.games),
@@ -675,14 +673,13 @@ class _HowToPlayView extends StatelessWidget {
   }
 }
 
-// ── Score (réutilise ScoreDetailPanel) ──────────────────────────────────────
+// ── Score ───────────────────────────────────────────────────────────────────
 
 class _ScoreView extends StatelessWidget {
   const _ScoreView({
     required this.rawScore,
     required this.level,
     required this.busy,
-    required this.breakdown,
     required this.onReplay,
     required this.onNext,
     required this.onBack,
@@ -691,7 +688,6 @@ class _ScoreView extends StatelessWidget {
   final int? rawScore;
   final String? level;
   final bool busy;
-  final List<ScoreBreakdownLine> breakdown;
   final VoidCallback onReplay;
   final VoidCallback onNext;
   final VoidCallback onBack;
