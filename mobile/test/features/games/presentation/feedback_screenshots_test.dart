@@ -288,9 +288,10 @@ void main() {
       await shoot(tester, 'j-investigue-restore-${entry.key}');
 
       // Un objet posé : montre l'emplacement rempli ET la réserve amputée,
-      // côte à côte.
-      await tester.tap(find.text(initialObjects.first.labelEn).first);
-      await tester.pump();
+      // côte à côte. `tapVisible` fait défiler jusqu'à la tuile : sur le petit
+      // gabarit la réserve peut tomber sous la ligne de flottaison, et un `tap`
+      // brut viserait alors hors de l'écran.
+      await tapVisible(tester, find.text(initialObjects.first.labelEn).first);
       await shoot(tester, 'j-investigue-restore-${entry.key}-place');
     });
   }

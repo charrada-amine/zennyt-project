@@ -84,6 +84,7 @@ class _PlanifikScreenState extends ConsumerState<PlanifikScreen> {
       _game = PlanifikGame(
         config: _levelConfigs[_level],
         onWrongCell: _onWrongCell,
+        onBlockedTap: _onBlockedTap,
         onPointAdded: _onPointAdded,
       );
       _stage = _PlanifikStage.gameplay;
@@ -113,13 +114,22 @@ class _PlanifikScreenState extends ConsumerState<PlanifikScreen> {
     );
   }
 
-  /// Clic sur une case interdite (rouge) : vibration d'erreur + pénalité
-  /// incrémentale (le jeu dessine puis efface le faux segment de son côté).
-  void _onWrongCell() {
-    // La vibration est déclenchée par SoundService avec le son d'erreur : un
-    // appel direct à HapticFeedback ici échapperait au réglage « Vibration »
-    // du menu pause.
+  /// Appui sur une case interdite (rouge), **où qu'elle soit** : retour d'erreur
+  /// sonore et haptique.
+  ///
+  /// La vibration est déclenchée par SoundService avec le son d'erreur : un
+  /// appel direct à HapticFeedback ici échapperait au réglage « Vibration » du
+  /// menu pause.
+  void _onBlockedTap() {
     SoundService.instance.playSfx(GameSfx.wrongChoice);
+  }
+
+  /// Case interdite touchée **en prolongement du tracé** : erreur de
+  /// planification, donc pénalité de score (le jeu dessine puis efface le faux
+  /// segment de son côté).
+  ///
+  /// Ne joue pas le son : [_onBlockedTap] vient de le faire pour ce même appui.
+  void _onWrongCell() {
     setState(() {
       _levelCellFaults++; // sanctionne le score /10 du niveau (compté en essais)
       // Sanction visuelle claire : chaque case interdite retire 3 points.
@@ -166,6 +176,7 @@ class _PlanifikScreenState extends ConsumerState<PlanifikScreen> {
         _game = PlanifikGame(
           config: _levelConfigs[_level],
           onWrongCell: _onWrongCell,
+          onBlockedTap: _onBlockedTap,
           onPointAdded: _onPointAdded,
         );
       });
@@ -471,7 +482,12 @@ class _StartButton extends StatelessWidget {
     return SizedBox(
       height: 58,
       child: FilledButton(
-        onPressed: onPressed,
+        // Ce CTA n'utilise pas [GamePrimaryButton] (capsule magenta propre à la
+        // couverture d'Optimal Path), donc il n'héritait pas du clic générique.
+        onPressed: () {
+          SoundService.instance.playSfx(GameSfx.buttonClick);
+          onPressed();
+        },
         style: FilledButton.styleFrom(
           backgroundColor: ZennytGamePalette.magenta,
           foregroundColor: Colors.white,
@@ -757,7 +773,13 @@ class _TrailingArrowButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FilledButton(
-      onPressed: onPressed,
+      // Bouton « Next » des pages de RÈGLES : style propre à la maquette, donc
+      // hors [GamePrimaryButton] — c'était l'un des « boutons de règles » sans
+      // son signalés par le client.
+      onPressed: () {
+        SoundService.instance.playSfx(GameSfx.buttonClick);
+        onPressed();
+      },
       style: FilledButton.styleFrom(
         backgroundColor: ZennytGamePalette.magenta,
         foregroundColor: Colors.white,

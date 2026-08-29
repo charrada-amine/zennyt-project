@@ -74,6 +74,66 @@ void main() {
     expect(game.isComplete, isTrue);
   });
 
+  // ── Retour d'erreur sur case interdite ────────────────────────────────────
+
+  /// Le client signalait ne sentir **aucune vibration** sur erreur. Le câblage
+  /// haptique était pourtant bon : le retour d'erreur n'était simplement émis que
+  /// si la case rouge touchée jouxtait la fin du tracé. Ailleurs sur la grille,
+  /// l'appui ne produisait rien du tout.
+  ///
+  /// Le son porte la vibration (via `SoundService`), donc verrouiller l'émission
+  /// de [PlanifikGame.onBlockedTap] verrouille les deux.
+  testWidgets('toute case interdite signale une erreur, adjacente ou non', (
+    tester,
+  ) async {
+    // Grille 1×5 : départ (0,0), arrivée (0,4), murs en (0,2) — adjacent au pas
+    // (0,1) — et en (0,3), hors de portée du tracé.
+    const walled = GridConfig(
+      cols: 5,
+      rows: 1,
+      start: 0,
+      end: 4,
+      obstacles: {2, 3},
+      costlyZones: {},
+      objectives: {},
+      optimalLength: 4,
+    );
+
+    var blockedTaps = 0;
+    var penalties = 0;
+    final game = PlanifikGame(
+      config: walled,
+      onBlockedTap: () => blockedTaps++,
+      onWrongCell: () => penalties++,
+    );
+    await tester.pumpWidget(
+      MaterialApp(home: Scaffold(body: GameWidget(game: game))),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 16));
+
+    // Un pas depuis le départ : le tracé s'arrête en (0,1).
+    game.tapCell(0, 1);
+
+    // Mur NON adjacent au tracé : c'était le cas muet.
+    game.tapCell(0, 3);
+    expect(
+      blockedTaps,
+      1,
+      reason: 'une case rouge hors du tracé doit quand même signaler l\'erreur',
+    );
+    expect(
+      penalties,
+      0,
+      reason: 'sans prolonger le tracé, ce n\'est pas une faute de plan',
+    );
+
+    // Mur adjacent au tracé : erreur de planification → retour ET pénalité.
+    game.tapCell(0, 2);
+    expect(blockedTaps, 2);
+    expect(penalties, 1);
+  });
+
   // ── Limite dure d'essais : 3 mauvais chemins → niveau échoué (1/10) ────────
 
   test('buildFailedLevelMetrics produit des métriques d\'échec = 1/10', () {

@@ -280,7 +280,11 @@ class _ResultsHeader extends StatelessWidget {
           IconButton(
             key: const ValueKey('decision-results-close'),
             tooltip: 'Close',
-            onPressed: onClose,
+            // `IconButton` brut : n'hérite pas du clic des boutons partagés.
+            onPressed: () {
+              SoundService.instance.playSfx(GameSfx.buttonClick);
+              onClose();
+            },
             icon: const Icon(Icons.close_rounded),
             style: IconButton.styleFrom(
               fixedSize: const Size(48, 48),
@@ -980,7 +984,12 @@ class _ExportOption extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         child: InkWell(
-          onTap: onTap,
+          // Options d'export / retour : ce sont des boutons pleins, ils doivent
+          // cliquer comme les boutons partagés qu'ils côtoient.
+          onTap: () {
+            SoundService.instance.playSfx(GameSfx.buttonClick);
+            onTap();
+          },
           borderRadius: BorderRadius.circular(20),
           child: Container(
             width: double.infinity,

@@ -385,23 +385,38 @@ public record GameSessionResponse(
     /** Indicateurs « J'investigue » (calculés serveur ; notes par tâche + composite). */
     public record MemoryQuestIndicatorsResponse(
         int compositeScore,
-        int sameOrderScore,
-        int reverseOrderScore,
+        /** Nul quand la partie ne joue pas les chiffres (MemoryQuest · Images). */
+        Integer sameOrderScore,
+        /** Nul quand la partie ne joue pas les chiffres (MemoryQuest · Images). */
+        Integer reverseOrderScore,
         Integer restoreScore,
         Integer afterDistractionScore,
+        /** Note des tâches parasites visuelles ; nul si aucune n'a été jouée. */
+        Integer distractionChallengeScore,
         int highestSequenceLength,
         boolean distractionQuestionCorrect,
         boolean missionBPlayed,
         boolean distractionPlayed,
+        int distractionChallengesPlayed,
+        int distractionChallengesSolved,
+        int distractionTimeouts,
+        String mode,
         int finalLevel,
         boolean sessionValid,
         int timeoutTaskCount
     ) {
         static MemoryQuestIndicatorsResponse from(MemoryQuestReport r) {
+            // Les notes de chiffres restent NULLES pour une partie d'images :
+            // les publier à 0 laisserait croire à un échec sur une épreuve qui
+            // n'a jamais été présentée. Le type doit donc être `Integer` — en
+            // `int`, l'auto-unboxing d'un null ferait planter la réponse.
             return new MemoryQuestIndicatorsResponse(
                 r.compositeScore(), r.sameOrderScore(), r.reverseOrderScore(),
-                r.restoreScore(), r.afterDistractionScore(), r.highestSequenceLength(),
+                r.restoreScore(), r.afterDistractionScore(), r.distractionChallengeScore(),
+                r.highestSequenceLength(),
                 r.distractionQuestionCorrect(), r.missionBPlayed(), r.distractionPlayed(),
+                r.distractionChallengesPlayed(), r.distractionChallengesSolved(),
+                r.distractionTimeouts(), r.mode().name(),
                 r.finalLevel(), r.sessionValid(), r.timeoutTaskCount());
         }
     }

@@ -33,6 +33,7 @@ import java.util.List;
  * @param tasks                        tâches par instance (avec timing) ; vide = mode agrégat
  */
 public record MemoryQuestMetrics(
+    MemoryQuestMode mode,
     int observedDigits,
     int correctSameDigits,
     int correctReverseDigits,
@@ -44,12 +45,16 @@ public record MemoryQuestMetrics(
     int afterDistractionObserved,
     int afterDistractionCorrect,
     boolean distractionQuestionCorrect,
+    int distractionChallengesPlayed,
+    int distractionChallengesSolved,
+    int distractionTimeouts,
     int finalLevel,
     boolean sessionCompleted,
     List<MemoryTaskResult> tasks
 ) implements GameMetrics {
 
     public MemoryQuestMetrics {
+        mode = mode == null ? MemoryQuestMode.FULL : mode;
         requireNonNegative(observedDigits, "observedDigits");
         requireRange(correctSameDigits, observedDigits, "correctSameDigits");
         requireRange(correctReverseDigits, observedDigits, "correctReverseDigits");
@@ -59,8 +64,26 @@ public record MemoryQuestMetrics(
         requireNonNegative(manipulationCount, "manipulationCount");
         requireNonNegative(afterDistractionObserved, "afterDistractionObserved");
         requireRange(afterDistractionCorrect, afterDistractionObserved, "afterDistractionCorrect");
-        if (observedDigits == 0) {
-            throw new IllegalArgumentException("observedDigits doit être > 0 (Mission A jouée)");
+        requireNonNegative(distractionChallengesPlayed, "distractionChallengesPlayed");
+        requireRange(distractionChallengesSolved, distractionChallengesPlayed,
+            "distractionChallengesSolved");
+        requireRange(distractionTimeouts, distractionChallengesPlayed, "distractionTimeouts");
+        // La preuve qu'une mission a été jouée dépend du MODE : le jeu des
+        // images n'observe aucun chiffre, celui des chiffres aucun objet.
+        // Exiger `observedDigits > 0` sans condition rejetait toute partie
+        // d'images à la soumission.
+        if (mode.playsDigits() && observedDigits == 0) {
+            throw new IllegalArgumentException(
+                "observedDigits doit être > 0 quand le mode joue les chiffres");
+        }
+        if (!mode.playsDigits() && objectCount == 0) {
+            throw new IllegalArgumentException(
+                "objectCount doit être > 0 quand le mode joue les images");
+        }
+        if (!mode.playsDigits() && (correctSameDigits > 0 || correctReverseDigits > 0
+            || highestSequenceLength > 0)) {
+            throw new IllegalArgumentException(
+                "le mode IMAGES ne peut porter aucune mesure de chiffres");
         }
         if (distractionPlayed && afterDistractionObserved == 0) {
             throw new IllegalArgumentException(
@@ -70,6 +93,22 @@ public record MemoryQuestMetrics(
             throw new IllegalArgumentException("finalLevel doit être >= 1");
         }
         tasks = tasks == null ? List.of() : List.copyOf(tasks);
+    }
+
+    /** Mesures d'une partie d'IMAGES (aucune mesure de chiffres). */
+    public static MemoryQuestMetrics images(int objectCount, int restoreCorrect,
+                                            boolean distractionPlayed,
+                                            int afterDistractionObserved,
+                                            int afterDistractionCorrect,
+                                            int challengesPlayed, int challengesSolved,
+                                            int challengeTimeouts, int finalLevel,
+                                            boolean sessionCompleted,
+                                            List<MemoryTaskResult> tasks) {
+        return new MemoryQuestMetrics(MemoryQuestMode.IMAGES, 0, 0, 0, 0,
+            objectCount, restoreCorrect, 0, distractionPlayed,
+            afterDistractionObserved, afterDistractionCorrect, false,
+            challengesPlayed, challengesSolved, challengeTimeouts,
+            finalLevel, sessionCompleted, tasks);
     }
 
     /**
@@ -82,10 +121,23 @@ public record MemoryQuestMetrics(
                               int manipulationCount, boolean distractionPlayed,
                               int afterDistractionObserved, int afterDistractionCorrect,
                               boolean distractionQuestionCorrect) {
-        this(observedDigits, correctSameDigits, correctReverseDigits, highestSequenceLength,
-            objectCount, restoreCorrect, manipulationCount, distractionPlayed,
-            afterDistractionObserved, afterDistractionCorrect, distractionQuestionCorrect,
-            1, true, List.of());
+        this(MemoryQuestMode.FULL, observedDigits, correctSameDigits, correctReverseDigits,
+            highestSequenceLength, objectCount, restoreCorrect, manipulationCount,
+            distractionPlayed, afterDistractionObserved, afterDistractionCorrect,
+            distractionQuestionCorrect, 0, 0, 0, 1, true, List.of());
+    }
+
+    /** Compatibilité : mesures complètes sans mode ni compteurs de distraction. */
+    public MemoryQuestMetrics(int observedDigits, int correctSameDigits, int correctReverseDigits,
+                              int highestSequenceLength, int objectCount, int restoreCorrect,
+                              int manipulationCount, boolean distractionPlayed,
+                              int afterDistractionObserved, int afterDistractionCorrect,
+                              boolean distractionQuestionCorrect, int finalLevel,
+                              boolean sessionCompleted, List<MemoryTaskResult> tasks) {
+        this(MemoryQuestMode.FULL, observedDigits, correctSameDigits, correctReverseDigits,
+            highestSequenceLength, objectCount, restoreCorrect, manipulationCount,
+            distractionPlayed, afterDistractionObserved, afterDistractionCorrect,
+            distractionQuestionCorrect, 0, 0, 0, finalLevel, sessionCompleted, tasks);
     }
 
     private static void requireNonNegative(int v, String field) {
@@ -120,6 +172,13 @@ public record MemoryQuestMetrics(
         return afterDistractionObserved == 0 ? 0.0 : afterDistractionCorrect / (double) afterDistractionObserved;
     }
 
+    /** Part des tâches parasites résolues dans les temps. */
+    public double distractionSolveRate() {
+        return distractionChallengesPlayed == 0
+            ? 0.0
+            : distractionChallengesSolved / (double) distractionChallengesPlayed;
+    }
+
     /** true si des timings par tâche sont fournis (active l'ajustement timeout). */
     public boolean hasTaskTimings() {
         return !tasks.isEmpty();
@@ -131,8 +190,24 @@ public record MemoryQuestMetrics(
      */
     public int timeoutTaskCount(double calibrationOffsetMs) {
         return (int) tasks.stream()
-            .filter(t -> t.responseTimeMs()
-                > com.zennyt.games.domain.config.MemoryQuestConfig.adjustedTaskTimeoutMs(calibrationOffsetMs))
+            .filter(t -> isTimedOut(t, calibrationOffsetMs))
             .count();
+    }
+
+    /**
+     * Une tâche a-t-elle dépassé SON délai ?
+     *
+     * <p>Une tâche parasite est jugée sur le budget de son niveau, pas sur
+     * {@code MAX_TASK_TIME_MS} : sans cette distinction, une épreuve résolue en
+     * 8 s — dans les temps vis-à-vis de son chronomètre de 12 s — serait voidée
+     * par le seuil générique de 6 s, punissant deux fois un essai réussi.
+     */
+    public static boolean isTimedOut(MemoryTaskResult t, double calibrationOffsetMs) {
+        if (t.kind() == MemoryTaskKind.DISTRACTION_CHALLENGE) {
+            return com.zennyt.games.domain.config.MemoryQuestConfig
+                .isDistractionTimedOut(t.responseTimeMs(), t.level(), calibrationOffsetMs);
+        }
+        return com.zennyt.games.domain.config.MemoryQuestConfig
+            .isTaskTimedOut(t.responseTimeMs(), calibrationOffsetMs);
     }
 }

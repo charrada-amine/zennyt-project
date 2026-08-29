@@ -93,6 +93,7 @@ class GamesHubScreen extends ConsumerWidget {
                         label: 'Je continue',
                         subtitle: 'Sustained attention · 25 min',
                         route: AppRoutes.gamesJeContinue,
+                        enabled: false,
                         logoAsset: _logoJeContinue,
                         fallbackIcon: Icons.all_inclusive_rounded,
                       ),
@@ -100,6 +101,7 @@ class GamesHubScreen extends ConsumerWidget {
                         label: 'Je coordonne',
                         subtitle: 'Eye-hand tracking · 3 min',
                         route: AppRoutes.gamesJeCoordonne,
+                        enabled: false,
                         logoAsset: _logoJeCoordonne,
                         fallbackIcon: Icons.track_changes_rounded,
                       ),
@@ -134,6 +136,7 @@ class GamesHubScreen extends ConsumerWidget {
                         label: 'Je place',
                         subtitle: 'Object-location memory · 5 min',
                         route: AppRoutes.gamesJePlace,
+                        enabled: false,
                         logoAsset: _logoJePlace,
                         fallbackIcon: Icons.grid_view_rounded,
                       ),
@@ -174,6 +177,7 @@ class GamesHubScreen extends ConsumerWidget {
                         label: 'Task Scheduling',
                         subtitle: 'Dependencies & deadlines',
                         route: AppRoutes.gamesTaskScheduling,
+                        enabled: false,
                         logoAsset: _logoTaskScheduling,
                         fallbackIcon: Icons.event_note_rounded,
                       ),
@@ -197,6 +201,7 @@ class GamesHubScreen extends ConsumerWidget {
                         label: 'Emotional Radar',
                         subtitle: 'Recognize emotions in real situations',
                         route: AppRoutes.gamesEmotionalRadar,
+                        enabled: false,
                         logoAsset: _logoEmotionalRadar,
                         fallbackIcon: Icons.favorite_rounded,
                       ),
@@ -204,6 +209,7 @@ class GamesHubScreen extends ConsumerWidget {
                         label: 'Reflective Pause',
                         subtitle: 'Impulse control · pressure moments',
                         route: AppRoutes.gamesReflectivePause,
+                        enabled: false,
                         logoAsset: _logoReflectivePause,
                         fallbackIcon: Icons.timer_outlined,
                       ),
@@ -211,6 +217,7 @@ class GamesHubScreen extends ConsumerWidget {
                         label: 'Strategic Choices',
                         subtitle: 'Reflect · choose · respond',
                         route: AppRoutes.gamesStrategicChoices,
+                        enabled: false,
                         logoAsset: _logoStrategicChoices,
                         fallbackIcon: Icons.call_split_rounded,
                       ),
@@ -375,7 +382,7 @@ class _ProfileBadge extends StatelessWidget {
   }
 }
 
-/// Un jeu jouable au sein d'une catégorie (une carte peut en regrouper plusieurs).
+/// Un jeu au sein d'une catégorie (une carte peut en regrouper plusieurs).
 class _GameEntry {
   const _GameEntry({
     required this.label,
@@ -383,6 +390,7 @@ class _GameEntry {
     required this.logoAsset,
     required this.fallbackIcon,
     this.subtitle,
+    this.enabled = true,
   });
 
   final String label;
@@ -390,6 +398,13 @@ class _GameEntry {
   final String logoAsset;
   final IconData fallbackIcon;
   final String? subtitle;
+
+  /// Jeu ouvert à ce build de test.
+  ///
+  /// Les jeux désactivés restent **visibles et à leur place** : le menu qu'on
+  /// fait valider doit être celui du produit, avec ses catégories complètes.
+  /// Ils sont seulement grisés et inertes, le temps que leur contenu soit validé.
+  final bool enabled;
 }
 
 class _GameCategoryCard extends StatelessWidget {
@@ -411,10 +426,18 @@ class _GameCategoryCard extends StatelessWidget {
   /// 1 jeu → navigation directe. Plusieurs → petit menu de sélection.
   final List<_GameEntry> games;
 
+  /// Jeux ouverts à ce build. Une catégorie dont aucun jeu n'est ouvert reste
+  /// affichée, mais inactive.
+  List<_GameEntry> get _playable =>
+      games.where((g) => g.enabled).toList(growable: false);
+
   void _handleTap(BuildContext context) {
-    if (games.isEmpty) return;
+    final playable = _playable;
+    if (playable.isEmpty) return;
+    // Un seul jeu ouvert dans une catégorie qui en compte plusieurs : on montre
+    // quand même le sélecteur, pour que le joueur voie ce qui arrive.
     if (games.length == 1) {
-      context.push(games.first.route);
+      context.push(playable.first.route);
       return;
     }
     _showGamePicker(context, title: title, games: games);
@@ -422,8 +445,8 @@ class _GameCategoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Une carte sans jeu = module non implémenté → visuellement inactive.
-    final enabled = games.isNotEmpty;
+    // Carte inactive quand la catégorie n'a aucun jeu, ou aucun jeu ouvert.
+    final enabled = _playable.isNotEmpty;
     final onTap = enabled ? () => _handleTap(context) : null;
     final largeText = MediaQuery.textScalerOf(context).scale(1) > 1.5;
     final titleRow = _CategoryTitleRow(title: title, enabled: enabled);
@@ -721,26 +744,35 @@ class _GamePickerTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
+    final on = game.enabled;
+    // Grisé et inerte, mais toujours lisible : le joueur voit ce que la
+    // catégorie contiendra, sans pouvoir l'ouvrir.
+    final tile = Material(
+      color: on ? Colors.white : _softGray,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
-        onTap: onTap,
+        onTap: on ? onTap : null,
         borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: _blue, width: 1.2),
+            border: Border.all(
+              color: on ? _blue : _muted.withValues(alpha: 0.35),
+              width: 1.2,
+            ),
           ),
           child: Row(
             children: [
-              _GameLogoBadge(
-                game: game,
-                contextName: 'picker',
-                size: 56,
-                iconSize: 27,
-                radius: 13,
+              Opacity(
+                opacity: on ? 1 : 0.45,
+                child: _GameLogoBadge(
+                  game: game,
+                  contextName: 'picker',
+                  size: 56,
+                  iconSize: 27,
+                  radius: 13,
+                ),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -751,7 +783,7 @@ class _GamePickerTile extends StatelessWidget {
                     Text(
                       game.label,
                       style: AppTypography.titleLarge.copyWith(
-                        color: _blue,
+                        color: on ? _blue : _muted,
                         fontSize: 17,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 0,
@@ -774,11 +806,23 @@ class _GamePickerTile extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              const Icon(Icons.chevron_right_rounded, color: _blue, size: 24),
+              if (on)
+                const Icon(Icons.chevron_right_rounded, color: _blue, size: 24)
+              else
+                const _ComingSoonBadge(),
             ],
           ),
         ),
       ),
+    );
+
+    // L'état est annoncé aux lecteurs d'écran : un simple gris ne se « voit »
+    // pas en synthèse vocale.
+    return Semantics(
+      enabled: on,
+      button: on,
+      label: on ? game.label : '${game.label}, bientôt disponible',
+      child: tile,
     );
   }
 }

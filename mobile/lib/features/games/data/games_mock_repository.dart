@@ -386,19 +386,36 @@ class GamesMockRepository implements GamesRepository {
       // Avec timings : une tâche dépassant le timeout ajusté du calibrage est
       // voidée (note 0) ; le calibrage remonte le seuil (miroir backend).
       for (final t in m.tasks) {
-        final timedOut = MemoryQuestConfig.isTaskTimedOut(
-          t.responseTimeMs,
-          calibrationOffsetMs,
-        );
+        // Une tâche PARASITE est jugée sur SON budget, qui dépend du niveau —
+        // le seuil générique la voiderait alors qu'elle a été résolue dans les
+        // temps.
+        final timedOut = t.kind == MemoryTaskKind.distractionChallenge
+            ? MemoryQuestConfig.isDistractionTimedOut(
+                t.responseTimeMs,
+                t.level,
+                calibrationOffsetMs,
+              )
+            : MemoryQuestConfig.isTaskTimedOut(
+                t.responseTimeMs,
+                calibrationOffsetMs,
+              );
         tasks.add(timedOut ? 0 : _taskScore(t.accuracy));
       }
     } else {
-      tasks
-        ..add(_taskScore(m.sameAccuracy))
-        ..add(_taskScore(m.reverseAccuracy));
+      // Repli sur les agrégats plats : on ne note que les tâches que le mode a
+      // réellement fait jouer. Une partie d'images n'a ni rappel direct ni
+      // rappel inverse — les compter à 0 écraserait le composite.
+      if (m.mode.playsDigits) {
+        tasks
+          ..add(_taskScore(m.sameAccuracy))
+          ..add(_taskScore(m.reverseAccuracy));
+      }
       if (m.missionBPlayed) tasks.add(_taskScore(m.restoreAccuracy));
       if (m.distractionPlayed) {
         tasks.add(_taskScore(m.afterDistractionAccuracy));
+      }
+      if (m.distractionChallengesPlayed > 0) {
+        tasks.add(_taskScore(m.distractionSolveRate));
       }
     }
     final avg = tasks.isEmpty

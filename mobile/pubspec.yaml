@@ -110,6 +110,7 @@ flutter:
     - assets/04 Je Décide/08 Mobile/Tutorial Intro/
     - assets/J’investigue/memoryobject/
     - assets/J’investigue/MemoryObject/svg/
+    - assets/J’investigue/distractors/
     - assets/games icons/
     - assets/sounds/
     - .env

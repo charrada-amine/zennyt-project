@@ -220,23 +220,16 @@ void main() {
 
     await tester.tapAt(const Offset(10, 10));
     await tester.pumpAndSettle();
+
+    // Emotional Regulation n'a plus aucun jeu ouvert sur ce build de test : la
+    // carte reste affichée avec ses logos (vérifiés plus haut) mais n'ouvre
+    // plus de sélecteur.
     await tester.tap(emotionCard);
     await tester.pumpAndSettle();
     expect(
       find.byKey(const ValueKey('picker-game-logo-Emotional Radar')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey('picker-game-logo-Reflective Pause')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey('picker-game-logo-Strategic Choices')),
-      findsOneWidget,
-    );
-    expectAssetLogo(
-      'picker-game-logo-Strategic Choices',
-      'assets/games icons/Strategic Choices.png',
+      findsNothing,
+      reason: 'catégorie entièrement fermée : la carte est inerte',
     );
   });
 

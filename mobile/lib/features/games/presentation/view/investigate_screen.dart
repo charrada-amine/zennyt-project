@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/audio/sound_service.dart';
@@ -13,9 +14,11 @@ import '../../domain/config/memory_quest_config.dart';
 import '../../domain/entities/device_calibration.dart';
 import '../../domain/entities/game_session.dart';
 import '../../domain/entities/game_type.dart';
+import '../../domain/entities/memory_distraction.dart';
 import '../../domain/entities/memory_object.dart';
 import '../../domain/entities/memory_quest_metrics.dart';
 import '../../domain/entities/mini_game.dart';
+import '../../domain/service/memory_distraction_factory.dart';
 import '../device_calibration_probe.dart';
 import '../games_providers.dart';
 import '../widgets/game_system_components.dart';
@@ -91,9 +94,12 @@ enum _Stage {
   observeObjects,
   manipulateObjects,
   restoreOrder,
-  distractionEncode,
+
+  /// Question d'interférence intercalée ENTRE la mémorisation et le rappel.
+  ///
+  /// Elle ne fait mémoriser aucune séquence supplémentaire : la séquence à
+  /// protéger est celle du niveau, déjà observée.
   distraction,
-  recallAfterDistraction,
   feedback,
   results,
 }
@@ -110,20 +116,32 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
   static const int _feedbackMs = 250;
 
   // ── Système de niveaux (fiche Tableau 1, via MemoryQuestConfig) ───────────
-  late final math.Random _random =
-      widget.seed == null ? math.Random() : math.Random(widget.seed!);
+  late final math.Random _random = widget.seed == null
+      ? math.Random()
+      : math.Random(widget.seed!);
 
   _Stage _stage = _Stage.intro;
   bool _paused = false;
 
   // Niveau courant (1-based). Un seul tour par niveau, puis incrémentation.
   int _level = 1;
-  // Erreurs cumulées sur toute la partie : au-delà de [maxMistakes], fin de jeu.
-  int _mistakes = 0;
+  // Échecs enchaînés sur le niveau COURANT : au [maxFailuresPerLevel]ᵉ, fin de
+  // partie. Remis à zéro à chaque montée de niveau.
+  int _levelFailures = 0;
+
+  /// Toutes les tâches du tour en cours ont-elles été parfaites ?
+  ///
+  /// C'est ce qui décide de la montée de niveau : un tour est réussi quand le
+  /// rappel direct, le rappel inverse et — à partir du niveau
+  /// [MemoryQuestConfig.distractionMinLevel] — le rappel après distraction sont
+  /// tous exacts.
+  bool _roundPerfect = true;
   // Tâches par instance (avec timing) — active l'ajustement timeout du calibrage.
   final List<MemoryTaskResult> _tasks = [];
-  final Stopwatch _taskWatch = Stopwatch(); // temps de la tâche de rappel courante
-  final Stopwatch _sessionWatch = Stopwatch(); // durée de session (max_session_duration_min)
+  final Stopwatch _taskWatch =
+      Stopwatch(); // temps de la tâche de rappel courante
+  final Stopwatch _sessionWatch =
+      Stopwatch(); // durée de session (max_session_duration_min)
   final DeviceCalibrationProbe _calibrationProbe = DeviceCalibrationProbe();
 
   // Round courant.
@@ -146,10 +164,12 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
   // ── Mission B — manipulation d'objets (nb d'objets selon le niveau) ──────
   static const int _bManipulations = 2; // 2 manipulations automatiques
   static const int _manipStepMs = 750;
-  static const int _preRecallMs = 3000; // pause 3 s après manipulation, avant rappel
+  static const int _preRecallMs =
+      3000; // pause 3 s après manipulation, avant rappel
 
   List<MemoryObject> _objects = const []; // ordre INITIAL à restaurer
-  List<MemoryObject> _shownOrder = const []; // ordre affiché (observe/manipulation)
+  List<MemoryObject> _shownOrder =
+      const []; // ordre affiché (observe/manipulation)
   int _highlightA = -1;
   int _highlightB = -1;
   List<MemoryObject?> _slots = const []; // restauration (tap-to-place)
@@ -159,10 +179,8 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
   int _objToken = 0; // annule une phase objet en cours (pause/dispose)
 
   // ── Phase de distraction (résistance à l'interférence) ────────────────────
-  static const int _distractLength = 4; // séquence à protéger
   static const int _distractSeconds = 8; // 5–10 s (question rapide)
 
-  List<int> _distractSeq = const []; // séquence encodée avant la distraction
   String _distractQuestionText = '';
   int _distractQuestionAnswer = 0; // réponse correcte de la question
   List<int> _distractChoices = const [];
@@ -173,6 +191,15 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
   int _afterDistractCorrect = 0;
   bool _distractionDone = false;
 
+  /// Le tour en cours a-t-il été coupé par la question d'interférence ?
+  /// C'est ce qui fait du rappel direct un rappel « après distraction ».
+  bool _roundHadDistraction = false;
+
+  /// Épreuve visuelle du jeu des images, fabriquée à la volée.
+  final _distractionSequencer = MemoryDistractionSequencer();
+  MemoryDistractionChallenge? _objectChallenge;
+  bool _challengeAnswered = false;
+
   bool get _reduceMotion =>
       MediaQuery.maybeOf(context)?.disableAnimations ?? false;
 
@@ -181,12 +208,10 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
       _stage == _Stage.observeSequence ||
       _stage == _Stage.observeObjects ||
       _stage == _Stage.manipulateObjects ||
-      _stage == _Stage.distractionEncode ||
       _stage == _Stage.feedback;
 
-  /// Longueur du rappel courant (Mission A vs rappel après distraction).
-  int get _recallLength =>
-      _stage == _Stage.recallAfterDistraction ? _distractSeq.length : _length;
+  /// Longueur du rappel courant — toujours celle de la séquence du niveau.
+  int get _recallLength => _length;
 
   @override
   void initState() {
@@ -207,7 +232,7 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
   void _startMission() {
     setState(() {
       _level = 1;
-      _mistakes = 0;
+      _levelFailures = 0;
       _length = MemoryQuestConfig.sequenceLengthForLevel(_level);
       _observedDigits = 0;
       _correctSameDigits = 0;
@@ -217,6 +242,7 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
       _restoreCorrect = 0;
       _objects = const [];
       _distractionDone = false;
+      _roundHadDistraction = false;
       _afterDistractObserved = 0;
       _afterDistractCorrect = 0;
       _distractQuestionCorrect = false;
@@ -230,11 +256,17 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
       ..reset()
       ..start();
     // Démarre la session côté repo (mock hors-ligne / backend online).
-    _sessionStart = ref.read(gamesRepositoryProvider).startSession(GameType.memoryQuest);
+    _sessionStart = ref
+        .read(gamesRepositoryProvider)
+        .startSession(GameType.memoryQuest);
     _beginRound();
   }
 
   void _beginRound() {
+    // Nouveau tour : il est parfait jusqu'à preuve du contraire, et l'éventuelle
+    // interférence est à rejouer.
+    _roundPerfect = true;
+    _roundHadDistraction = false;
     // Mode « images seules » : aucune séquence de chiffres n'est jouée, la
     // manche commence directement par la mission d'objets.
     if (!widget.mode.playsDigits) {
@@ -257,22 +289,27 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
     final ms = _taskWatch.isRunning ? _taskWatch.elapsedMilliseconds : 0;
     _taskWatch.stop();
     _calibrationProbe.sampleInputLatency();
-    _tasks.add(MemoryTaskResult(
-      kind: kind,
-      correct: correct,
-      total: total,
-      responseTimeMs: ms,
-    ));
-    // Erreur = tâche non parfaite ; compte pour le budget global d'erreurs.
-    if (total > 0 && correct < total) _mistakes++;
+    _tasks.add(
+      MemoryTaskResult(
+        kind: kind,
+        correct: correct,
+        total: total,
+        responseTimeMs: ms,
+      ),
+    );
+    // Une seule tâche imparfaite suffit à rater le tour — donc à rejouer le
+    // niveau au lieu de monter.
+    if (total > 0 && correct < total) _roundPerfect = false;
   }
 
   bool get _sessionTimeExhausted =>
-      _sessionWatch.elapsed.inMinutes >= MemoryQuestConfig.maxSessionDurationMin;
+      _sessionWatch.elapsed.inMinutes >=
+      MemoryQuestConfig.maxSessionDurationMin;
 
   Future<void> _runObservation() async {
     final token = ++_seqToken;
-    final lang = _lang; // langue capturée pour la voix (le context reste stable)
+    final lang =
+        _lang; // langue capturée pour la voix (le context reste stable)
     // Court délai avant le 1er chiffre (état calme, pas de flash).
     await Future<void>.delayed(const Duration(milliseconds: 350));
     for (var i = 0; i < _sequence.length; i++) {
@@ -294,8 +331,27 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
       await Future<void>.delayed(const Duration(milliseconds: _isiMs));
     }
     if (!mounted || token != _seqToken) return;
+    setState(() => _observedDigits += _sequence.length);
+    _afterObservation();
+  }
+
+  /// Ce qui suit immédiatement la mémorisation.
+  ///
+  /// À partir du niveau [MemoryQuestConfig.distractionMinLevel], une question
+  /// d'interférence s'intercale ici, **entre la mémorisation et le rappel** :
+  /// c'est tout l'objet de la phase (protéger la séquence malgré une tâche
+  /// parasite). Sinon on passe directement au rappel.
+  void _afterObservation() {
+    if (widget.mode.playsDigits &&
+        MemoryQuestConfig.distractionActiveAtLevel(_level)) {
+      _beginDistraction();
+      return;
+    }
+    _toRecallSameOrder();
+  }
+
+  void _toRecallSameOrder() {
     setState(() {
-      _observedDigits += _sequence.length;
       _entry.clear();
       _stage = _Stage.recallSameOrder;
     });
@@ -325,20 +381,21 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
   void _onValidate() {
     if (_inputLocked || _entry.length != _recallLength) return;
 
-    if (_stage == _Stage.recallAfterDistraction) {
-      final correct = _matchingDigits(_entry, _distractSeq);
-      _afterDistractObserved += _distractSeq.length;
-      _afterDistractCorrect += correct;
-      _distractionDone = true;
-      _recordTask(MemoryTaskKind.afterDistraction, correct, _distractSeq.length);
-      _endLevel(); // fin des phases du niveau
-      return;
-    }
-
     if (_stage == _Stage.recallSameOrder) {
       final correct = _matchingDigits(_entry, _sequence);
       _correctSameDigits += correct;
-      _recordTask(MemoryTaskKind.sameOrder, correct, _sequence.length);
+      // Quand une question d'interférence s'est intercalée, ce rappel EST le
+      // rappel « après distraction » — c'est la séquence du niveau qu'il a
+      // fallu protéger. On ne journalise qu'UNE tâche, sinon le même rappel
+      // pèserait deux fois dans le composite (moyenne des tâches).
+      if (_roundHadDistraction) {
+        _afterDistractObserved += _sequence.length;
+        _afterDistractCorrect += correct;
+        _distractionDone = true;
+        _recordTask(MemoryTaskKind.afterDistraction, correct, _sequence.length);
+      } else {
+        _recordTask(MemoryTaskKind.sameOrder, correct, _sequence.length);
+      }
       setState(() {
         _stage = _Stage.recallReverseOrder;
         _entry.clear();
@@ -353,12 +410,15 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
     final reversed = _sequence.reversed.toList();
     final correctRev = _matchingDigits(_entry, reversed);
     _correctReverseDigits += correctRev;
-    final roundPerfect = correctRev == reversed.length;
-    if (roundPerfect) _highestLength = math.max(_highestLength, _length);
-    _lastCorrect = roundPerfect;
+    final reversePerfect = correctRev == reversed.length;
+    if (reversePerfect) _highestLength = math.max(_highestLength, _length);
     _recordTask(MemoryTaskKind.reverseOrder, correctRev, reversed.length);
+    // Le retour porte sur les DEUX rappels : se tromper à l'endroit puis réussir
+    // à l'envers n'est pas un tour réussi, et c'est le tour qui décide de la
+    // montée de niveau. `_recordTask` vient de mettre `_roundPerfect` à jour.
+    _lastCorrect = _roundPerfect;
     SoundService.instance.playSfx(
-      roundPerfect ? GameSfx.correctChoice : GameSfx.wrongChoice,
+      _roundPerfect ? GameSfx.correctChoice : GameSfx.wrongChoice,
     );
 
     setState(() => _stage = _Stage.feedback);
@@ -367,6 +427,7 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
       // Mode « chiffres seuls » : le tour s'arrête à la fin de la mission A,
       // sans enchaîner sur la manipulation d'objets.
       if (!widget.mode.playsImages) {
+        // La distraction a déjà eu lieu avant le rappel : le tour est complet.
         _endLevel();
         return;
       }
@@ -374,21 +435,44 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
     });
   }
 
-  /// Fin des phases d'un tour : **un seul tour par niveau**. On monte d'un
-  /// niveau à chaque tour (séquence plus longue + plus d'objets), jusqu'au
-  /// dernier niveau ; puis on affiche le score.
+  /// Fin des phases d'un tour. C'est ici que se joue la progression :
   ///
-  /// La partie s'arrête aussi (écran de score) dès que le **budget global
-  /// d'erreurs** est dépassé (> [maxMistakes] sur l'ensemble des niveaux), ou si
-  /// le temps de session est écoulé.
+  /// * **tour réussi** → niveau suivant (un chiffre de plus), compteur d'échecs
+  ///   remis à zéro ; au dernier niveau, la partie se termine par une réussite ;
+  /// * **tour raté** → on REJOUE le même niveau avec une nouvelle séquence, et
+  ///   au [MemoryQuestConfig.maxFailuresPerLevel]ᵉ échec sur ce niveau la partie
+  ///   s'arrête (écran de score).
+  ///
+  /// La version précédente montait d'un niveau **à chaque tour**, réussi ou non,
+  /// et comptait les erreurs dans un budget global de 3 tous niveaux confondus :
+  /// la séquence s'allongeait donc même quand le joueur venait d'échouer.
+  ///
+  /// Le temps de session reste une borne haute indépendante.
   void _endLevel() {
-    if (_mistakes > MemoryQuestConfig.maxMistakes ||
-        _sessionTimeExhausted ||
-        _level >= MemoryQuestConfig.totalLevels) {
+    if (_sessionTimeExhausted) {
       _finishAndSubmit();
       return;
     }
-    setState(() => _level++); // niveau suivant : un tour de plus
+
+    if (!_roundPerfect) {
+      _levelFailures++;
+      if (_levelFailures >= MemoryQuestConfig.maxFailuresPerLevel) {
+        _finishAndSubmit();
+        return;
+      }
+      // Même niveau, nouvelle séquence (resetSequenceOnError).
+      _beginRound();
+      return;
+    }
+
+    if (_level >= MemoryQuestConfig.totalLevels) {
+      _finishAndSubmit(); // dernier niveau réussi : parcours terminé
+      return;
+    }
+    setState(() {
+      _level++;
+      _levelFailures = 0; // le compteur d'échecs est propre à un niveau
+    });
     _beginRound();
   }
 
@@ -397,7 +481,9 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
   void _beginMissionB() {
     final count = MemoryQuestConfig.objectCountForLevel(_level);
     final pool = List<MemoryObject>.of(kMemoryObjectLibrary)..shuffle(_random);
-    _objects = pool.take(count).toList(); // ordre INITIAL à mémoriser (nb selon niveau)
+    _objects = pool
+        .take(count)
+        .toList(); // ordre INITIAL à mémoriser (nb selon niveau)
     _shownOrder = List<MemoryObject>.of(_objects);
     _highlightA = -1;
     _highlightB = -1;
@@ -411,7 +497,9 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
     // Phase d'observation (ordre initial visible, saisie verrouillée). Le temps
     // de mémorisation croît avec le nombre d'objets (≈ 1.25 s / objet).
     await Future<void>.delayed(
-      Duration(milliseconds: MemoryQuestConfig.objectObservationMs(_objects.length)),
+      Duration(
+        milliseconds: MemoryQuestConfig.objectObservationMs(_objects.length),
+      ),
     );
     if (!mounted || token != _objToken) return;
     setState(() => _stage = _Stage.manipulateObjects);
@@ -447,7 +535,22 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
     });
     await Future<void>.delayed(const Duration(milliseconds: _preRecallMs));
     if (!mounted || token != _objToken) return;
-    // Restauration : l'utilisateur reconstruit l'ORDRE INITIAL (pas l'état final).
+    // À partir du niveau [distractionMinLevel], une tâche parasite s'intercale
+    // ici — entre la mémorisation et la restauration —, exactement comme la
+    // question d'interférence du jeu de chiffres.
+    // `!playsDigits` : dans le mode historique qui enchaîne les deux missions,
+    // l'interférence a déjà eu lieu avant le rappel des chiffres — la rejouer
+    // ici en ferait deux par tour.
+    if (!widget.mode.playsDigits &&
+        MemoryQuestConfig.imagesDistractionActiveAtLevel(_level)) {
+      _beginObjectDistraction();
+      return;
+    }
+    _toRestoreOrder();
+  }
+
+  /// Restauration : l'utilisateur reconstruit l'ORDRE INITIAL (pas l'état final).
+  void _toRestoreOrder() {
     setState(() {
       _slots = List<MemoryObject?>.filled(_objects.length, null);
       _pool = List<MemoryObject>.of(_objects)..shuffle(_random);
@@ -458,18 +561,64 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
       ..start(); // chronomètre la tâche de restauration
   }
 
+  /// Interférence du jeu d'IMAGES : **une épreuve par niveau**, tirée au hasard
+  /// entre « trouver l'intrus » et « pièce manquante ».
+  ///
+  /// L'épreuve est fabriquée à la volée par [MemoryDistractionFactory] : rien
+  /// n'est stocké, deux parties au même niveau ne voient pas la même grille.
+  ///
+  /// Aucun chiffre n'y apparaît, à aucun moment — c'est la règle du jeu des
+  /// images, tâche parasite comprise.
+  void _beginObjectDistraction() {
+    _roundHadDistraction = true;
+    _objectChallenge = _distractionSequencer.next(_level, _random);
+    _challengeAnswered = false;
+    _startDistractionCountdown();
+  }
+
+  /// Réponse du joueur à l'épreuve visuelle.
+  void _answerObjectChallenge(int optionIndex) {
+    final challenge = _objectChallenge;
+    if (challenge == null || _challengeAnswered) return;
+    _challengeAnswered = true;
+    final correct = optionIndex == challenge.solutionIndex;
+    _distractQuestionCorrect = correct;
+    SoundService.instance.playSfx(
+      correct ? GameSfx.correctChoice : GameSfx.wrongChoice,
+    );
+    // Court instant pour que le retour visuel soit lu avant l'enchaînement.
+    Future<void>.delayed(const Duration(milliseconds: 450), () {
+      if (!mounted || _stage != _Stage.distraction) return;
+      _endDistraction();
+    });
+    setState(() {});
+  }
+
+  /// Appui sur un objet de la réserve : il file dans le premier emplacement
+  /// libre.
+  ///
+  /// Même son de dépôt que le glisser-déposer : le geste au doigt produit
+  /// exactement le même effet, il doit donc s'entendre pareil. Il était muet,
+  /// alors que le glissé sonnait — le joueur qui joue au tap n'avait aucun
+  /// retour.
   void _placeFromPool(MemoryObject obj) {
     if (_inputLocked) return;
     final slot = _slots.indexOf(null);
     if (slot < 0) return;
+    SoundService.instance.playSfx(GameSfx.imageDrop);
     setState(() {
       _slots[slot] = obj;
       _pool.remove(obj);
     });
   }
 
+  /// Appui sur un emplacement occupé : l'objet repart à la réserve.
+  ///
+  /// Geste inverse du dépôt, donc son de PRISE en main — et non de dépôt :
+  /// laisser ce retour muet à côté d'un placement sonorisé serait incohérent.
   void _removeFromSlot(int slot) {
     if (_inputLocked || _slots[slot] == null) return;
+    SoundService.instance.playSfx(GameSfx.imageDrag);
     setState(() {
       _pool.add(_slots[slot]!);
       _slots[slot] = null;
@@ -505,24 +654,38 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
     }
     _restoreCorrect += correct;
     _missionBDone = true;
-    _recordTask(MemoryTaskKind.restore, correct, _objects.length);
-    SoundService.instance.playSfx(
-      correct == _objects.length
-          ? GameSfx.correctChoice
-          : GameSfx.wrongChoice,
-    );
-    // Distraction jouée à partir de MemoryQuestConfig.distractionMinLevel.
-    if (MemoryQuestConfig.distractionActiveAtLevel(_level)) {
-      _beginDistraction();
+    // Quand une tâche parasite s'est intercalée, cette restauration EST la
+    // restitution « après distraction ». Une seule tâche est journalisée, sinon
+    // le même essai pèserait deux fois dans la moyenne du composite.
+    if (_roundHadDistraction) {
+      _afterDistractObserved += _objects.length;
+      _afterDistractCorrect += correct;
+      _distractionDone = true;
+      _recordTask(MemoryTaskKind.afterDistraction, correct, _objects.length);
     } else {
-      _endLevel();
+      _recordTask(MemoryTaskKind.restore, correct, _objects.length);
     }
+    SoundService.instance.playSfx(
+      correct == _objects.length ? GameSfx.correctChoice : GameSfx.wrongChoice,
+    );
+    _endLevel();
   }
 
   // ── Phase de distraction ─────────────────────────────────────────────────
 
+  /// Intercale la question d'interférence **entre la mémorisation et le rappel**.
+  ///
+  /// La phase faisait auparavant mémoriser une SECONDE séquence, distincte de
+  /// celle du niveau, avant de poser la question. Deux défauts en découlaient,
+  /// tous deux remontés par le client : la partie semblait « refaire le niveau »
+  /// (une seconde mémorisation sous le même intitulé « Level 3 »), et cette
+  /// séquence était figée à 4 chiffres — donc plus courte que le niveau atteint.
+  ///
+  /// Le paradigme est celui de l'interférence : on mémorise, on subit une tâche
+  /// parasite, puis on restitue **la même** séquence. Il n'y a donc qu'une seule
+  /// mémorisation par tour, quel que soit le niveau.
   void _beginDistraction() {
-    _distractSeq = List<int>.generate(_distractLength, (_) => _random.nextInt(10));
+    _roundHadDistraction = true;
     _entry.clear();
     // Question d'interférence rapide, variée : addition, soustraction ou
     // multiplication (fiche « J'investigue » — résistance à l'interférence).
@@ -531,13 +694,8 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
     _distractQuestionText = text;
     _distractChoices = _buildChoices(_distractQuestionAnswer);
     _distractQuestionCorrect = false;
-    widget.onDistractionReady?.call(_distractSeq, _distractQuestionAnswer);
-    setState(() {
-      _stage = _Stage.distractionEncode;
-      _revealIndex = 0;
-      _showingDigit = false;
-    });
-    _runDistractionEncode();
+    widget.onDistractionReady?.call(_sequence, _distractQuestionAnswer);
+    _startDistractionCountdown();
   }
 
   /// Génère une opération simple au résultat positif — tirée aléatoirement
@@ -572,31 +730,6 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
     return list;
   }
 
-  Future<void> _runDistractionEncode() async {
-    final token = ++_seqToken;
-    final lang = _lang;
-    await Future<void>.delayed(const Duration(milliseconds: 350));
-    for (var i = 0; i < _distractSeq.length; i++) {
-      if (!mounted || token != _seqToken) return;
-      setState(() {
-        _revealIndex = i;
-        _showingDigit = true;
-      });
-      SoundService.instance.playSfx(
-        i.isEven ? GameSfx.numberClick : GameSfx.numberClickV2,
-      );
-      // Voix native qui énonce le chiffre affiché, dans la langue du jeu.
-      SoundService.instance.speakNumber(_distractSeq[i], languageCode: lang);
-      await Future<void>.delayed(const Duration(milliseconds: _digitVisibleMs));
-      if (!mounted || token != _seqToken) return;
-      setState(() => _showingDigit = false);
-      SoundService.instance.playSfx(GameSfx.blankInterval);
-      await Future<void>.delayed(const Duration(milliseconds: _isiMs));
-    }
-    if (!mounted || token != _seqToken) return;
-    _startDistractionCountdown();
-  }
-
   void _startDistractionCountdown() {
     _distractTimer?.cancel();
     setState(() {
@@ -613,19 +746,32 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
     });
   }
 
+  /// Réponse à la question d'interférence du jeu des CHIFFRES.
+  ///
+  /// Sonorisée comme l'épreuve visuelle du jeu des images : les deux tâches
+  /// parasites jouent le même rôle, elles doivent donner le même retour. Seule
+  /// celle des images en avait un.
   void _pickDistraction(int choice) {
     if (_stage != _Stage.distraction) return;
-    _distractQuestionCorrect = choice == _distractQuestionAnswer;
+    final correct = choice == _distractQuestionAnswer;
+    _distractQuestionCorrect = correct;
+    SoundService.instance.playSfx(
+      correct ? GameSfx.correctChoice : GameSfx.wrongChoice,
+    );
     _endDistraction();
   }
 
+  /// Fin de l'interférence → restitution de ce qu'il fallait protéger : la
+  /// séquence de chiffres, ou l'ordre des objets selon le jeu.
   void _endDistraction() {
     _distractTimer?.cancel();
-    _entry.clear();
-    setState(() => _stage = _Stage.recallAfterDistraction);
-    _taskWatch
-      ..reset()
-      ..start();
+    // Le mode tranche : pendant la phase de distraction, `_stage` ne dit plus de
+    // quelle mission on vient.
+    if (!widget.mode.playsDigits) {
+      _toRestoreOrder();
+      return;
+    }
+    _toRecallSameOrder();
   }
 
   // ── Fin de mission : soumission au repository (score serveur/mock) ────────
@@ -644,7 +790,8 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
       afterDistractionCorrect: _afterDistractCorrect,
       distractionQuestionCorrect: _distractQuestionCorrect,
       finalLevel: _level,
-      sessionCompleted: true, // soumission = fin naturelle (abandon = pas de soumission)
+      sessionCompleted:
+          true, // soumission = fin naturelle (abandon = pas de soumission)
       tasks: List<MemoryTaskResult>.unmodifiable(_tasks),
     );
   }
@@ -657,11 +804,14 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
     });
     SoundService.instance.playScoreboard();
     try {
-      final session = await (_sessionStart ??=
-          ref.read(gamesRepositoryProvider).startSession(GameType.memoryQuest));
+      final session = await (_sessionStart ??= ref
+          .read(gamesRepositoryProvider)
+          .startSession(GameType.memoryQuest));
       // Calibrage appareil : le SCORE dépend enfin du temps (timeout par tâche).
       final calibration = _calibrationProbe.build(inputMode: InputMode.touch);
-      final updated = await ref.read(gamesRepositoryProvider).submitResult(
+      final updated = await ref
+          .read(gamesRepositoryProvider)
+          .submitResult(
             sessionId: session.id,
             miniGame: MiniGame.memoryQuestCore,
             metrics: _buildMetrics(),
@@ -773,8 +923,9 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
     } else if (_stage == _Stage.observeObjects ||
         _stage == _Stage.manipulateObjects) {
       _beginMissionB();
-    } else if (_stage == _Stage.distractionEncode ||
-        _stage == _Stage.distraction) {
+    } else if (_stage == _Stage.distraction) {
+      // La séquence est déjà mémorisée : on repose seulement une question et on
+      // relance le compte à rebours.
       _beginDistraction();
     }
   }
@@ -790,21 +941,34 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _RulesLine(Icons.visibility_outlined,
-                  'Digits appear one at a time — just watch and listen.'),
-              _RulesLine(Icons.keyboard_alt_outlined,
-                  'Type them back in the same order, then in reverse.'),
-              _RulesLine(Icons.swap_horiz_rounded,
-                  'Then memorize objects and restore their starting order.'),
-              _RulesLine(Icons.lock_outline_rounded,
-                  'You cannot answer while stimuli are shown — it keeps the '
-                      'test fair.'),
+              _RulesLine(
+                Icons.visibility_outlined,
+                'Digits appear one at a time — just watch and listen.',
+              ),
+              _RulesLine(
+                Icons.keyboard_alt_outlined,
+                'Type them back in the same order, then in reverse.',
+              ),
+              _RulesLine(
+                Icons.swap_horiz_rounded,
+                'Then memorize objects and restore their starting order.',
+              ),
+              _RulesLine(
+                Icons.lock_outline_rounded,
+                'You cannot answer while stimuli are shown — it keeps the '
+                'test fair.',
+              ),
             ],
           ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            // Bouton de la boîte « Rules / Help » : sonorisé comme tous les
+            // autres boutons de règles.
+            onPressed: () {
+              SoundService.instance.playSfx(GameSfx.buttonClick);
+              Navigator.of(context).pop();
+            },
             child: const Text('Back'),
           ),
         ],
@@ -822,8 +986,7 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: _stage == _Stage.intro ||
-          _stage == _Stage.results,
+      canPop: _stage == _Stage.intro || _stage == _Stage.results,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop && _stage != _Stage.intro) {
           _seqToken++;
@@ -840,39 +1003,37 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
   Widget _buildStage() {
     return switch (_stage) {
       _Stage.intro => _IntroView(
-          onStart: () => setState(() => _stage = _Stage.tutorial),
-          onBack: () => context.go(AppRoutes.games),
-        ),
+        onStart: () => setState(() => _stage = _Stage.tutorial),
+        onBack: () => context.go(AppRoutes.games),
+      ),
       _Stage.tutorial => _TutorialView(
-          onStart: _startMission,
-          onBack: () => setState(() => _stage = _Stage.intro),
-          mode: widget.mode,
-        ),
+        onStart: _startMission,
+        onBack: () => setState(() => _stage = _Stage.intro),
+        mode: widget.mode,
+      ),
       _Stage.observeSequence ||
       _Stage.recallSameOrder ||
       _Stage.recallReverseOrder ||
       _Stage.observeObjects ||
       _Stage.manipulateObjects ||
       _Stage.restoreOrder ||
-      _Stage.distractionEncode ||
       _Stage.distraction ||
-      _Stage.recallAfterDistraction ||
-      _Stage.feedback =>
-        GameplayMusic(child: _buildGameplay()),
+      _Stage.feedback => GameplayMusic(child: _buildGameplay()),
       _Stage.results => _ResultsView(
-          // Le composite fait autorité côté repo (mock/backend) ; repli local.
-          composite:
-              _serverSession?.lastAttempt?.score.normalized.round() ?? _compositeScore,
-          submitting: _submitting,
-          sameScore: _sameTaskScore,
-          reverseScore: _reverseTaskScore,
-          restoreScore: _missionBDone ? _restoreTaskScore : null,
-          distractionScore: _distractionDone ? _distractionTaskScore : null,
-          distractionQuestionCorrect: _distractQuestionCorrect,
-          highestLength: _highestLength,
-          onReplay: _startMission,
-          onBack: () => context.go(AppRoutes.games),
-        ),
+        // Le composite fait autorité côté repo (mock/backend) ; repli local.
+        composite:
+            _serverSession?.lastAttempt?.score.normalized.round() ??
+            _compositeScore,
+        submitting: _submitting,
+        sameScore: _sameTaskScore,
+        reverseScore: _reverseTaskScore,
+        restoreScore: _missionBDone ? _restoreTaskScore : null,
+        distractionScore: _distractionDone ? _distractionTaskScore : null,
+        distractionQuestionCorrect: _distractQuestionCorrect,
+        highestLength: _highestLength,
+        onReplay: _startMission,
+        onBack: () => context.go(AppRoutes.games),
+      ),
     };
   }
 
@@ -884,10 +1045,7 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
       _stage == _Stage.manipulateObjects ||
       _stage == _Stage.restoreOrder;
 
-  bool get _isDistraction =>
-      _stage == _Stage.distractionEncode ||
-      _stage == _Stage.distraction ||
-      _stage == _Stage.recallAfterDistraction;
+  bool get _isDistraction => _stage == _Stage.distraction;
 
   Widget _buildGameplay() {
     final phaseLabel = switch (_stage) {
@@ -897,16 +1055,19 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
       _Stage.observeObjects => 'Observation',
       _Stage.manipulateObjects => 'Manipulation',
       _Stage.restoreOrder => 'Restore',
-      _Stage.distractionEncode => 'Memorize',
       _Stage.distraction => 'Distraction',
-      _Stage.recallAfterDistraction => 'Recall',
       _ => 'Check',
     };
-    final loadChip = _isMissionB
+    // Le bandeau de charge annonce ce que le joueur doit tenir en mémoire. En
+    // mode images il compte des OBJETS, y compris pendant l'interférence :
+    // sinon il affichait « 0 digits », la séquence de chiffres n'existant pas.
+    final loadChip = !widget.mode.playsDigits
+        ? '${_objects.length} objects'
+        : _isMissionB
         ? '${_objects.length} objects'
         : _isDistraction
-            ? '${_distractSeq.length} digits'
-            : '$_length digits';
+        ? '${_sequence.length} digits'
+        : '$_length digits';
     final rightChip = 'Level $_level';
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 20),
@@ -936,62 +1097,67 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
           Expanded(
             child: switch (_stage) {
               _Stage.observeSequence => _ObserveView(
-                  digit: _showingDigit ? _sequence[_revealIndex] : null,
-                  index: _revealIndex,
-                  total: _sequence.length,
-                  reduceMotion: _reduceMotion,
-                ),
-              _Stage.distractionEncode => _ObserveView(
-                  digit: _showingDigit ? _distractSeq[_revealIndex] : null,
-                  index: _revealIndex,
-                  total: _distractSeq.length,
-                  reduceMotion: _reduceMotion,
+                digit: _showingDigit ? _sequence[_revealIndex] : null,
+                index: _revealIndex,
+                total: _sequence.length,
+                reduceMotion: _reduceMotion,
+              ),
+              // Le jeu des IMAGES ne montre jamais de chiffres — la question
+              // arithmétique appartient au seul jeu des chiffres.
+              _Stage.distraction when !widget.mode.playsDigits =>
+                _ObjectDistractionView(
+                  challenge: _objectChallenge,
+                  objectCount: _objects.length,
+                  secondsLeft: _distractSecondsLeft,
+                  answered: _challengeAnswered,
+                  onPick: _answerObjectChallenge,
                 ),
               _Stage.distraction => _DistractionView(
-                  question: _distractQuestionText,
-                  choices: _distractChoices,
-                  secondsLeft: _distractSecondsLeft,
-                  reminder: 'Hold the ${_distractSeq.length} digits in mind',
-                  onPick: _pickDistraction,
-                ),
+                question: _distractQuestionText,
+                choices: _distractChoices,
+                secondsLeft: _distractSecondsLeft,
+                reminder: 'Hold the ${_sequence.length} digits in mind',
+                onPick: _pickDistraction,
+              ),
               _Stage.recallSameOrder ||
-              _Stage.recallReverseOrder ||
-              _Stage.recallAfterDistraction =>
-                _RecallView(
-                  entry: _entry,
-                  length: _recallLength,
-                  reverse: _stage == _Stage.recallReverseOrder,
-                  afterDistraction: _stage == _Stage.recallAfterDistraction,
-                  onKey: _onKey,
-                  onBackspace: _onBackspace,
-                  onValidate: _onValidate,
-                ),
+              _Stage.recallReverseOrder => _RecallView(
+                entry: _entry,
+                length: _recallLength,
+                reverse: _stage == _Stage.recallReverseOrder,
+                // Le rappel direct qui suit l'interférence EST le rappel
+                // « après distraction » : c'est la consigne à afficher.
+                afterDistraction:
+                    _roundHadDistraction && _stage == _Stage.recallSameOrder,
+                onKey: _onKey,
+                onBackspace: _onBackspace,
+                onValidate: _onValidate,
+              ),
               _Stage.observeObjects => _ObjectsPhaseView(
-                  order: _shownOrder,
-                  languageCode: _lang,
-                  title: 'Memorize the starting order',
-                  subtitle:
-                      'Watch the objects carefully. You will restore this order later.',
-                ),
+                order: _shownOrder,
+                languageCode: _lang,
+                title: 'Memorize the starting order',
+                subtitle:
+                    'Watch the objects carefully. You will restore this order later.',
+              ),
               _Stage.manipulateObjects => _ObjectsPhaseView(
-                  order: _shownOrder,
-                  languageCode: _lang,
-                  highlightA: _highlightA,
-                  highlightB: _highlightB,
-                  title: 'Watch the manipulations',
-                  subtitle:
-                      'Objects are moving. Keep the STARTING order in mind, not the new one.',
-                ),
+                order: _shownOrder,
+                languageCode: _lang,
+                highlightA: _highlightA,
+                highlightB: _highlightB,
+                title: 'Watch the manipulations',
+                subtitle:
+                    'Objects are moving. Keep the STARTING order in mind, not the new one.',
+              ),
               _Stage.restoreOrder => _RestoreView(
-                  slots: _slots,
-                  pool: _pool,
-                  languageCode: _lang,
-                  enabled: !_inputLocked,
-                  onPlace: _placeFromPool,
-                  onPlaceInSlot: _placeInSlot,
-                  onRemove: _removeFromSlot,
-                  onValidate: _validateRestore,
-                ),
+                slots: _slots,
+                pool: _pool,
+                languageCode: _lang,
+                enabled: !_inputLocked,
+                onPlace: _placeFromPool,
+                onPlaceInSlot: _placeInSlot,
+                onRemove: _removeFromSlot,
+                onValidate: _validateRestore,
+              ),
               _ => _FeedbackView(correct: _lastCorrect),
             },
           ),
@@ -1154,7 +1320,11 @@ class _ObserveView extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.lock_outline_rounded, color: Colors.white, size: 18),
+            const Icon(
+              Icons.lock_outline_rounded,
+              color: Colors.white,
+              size: 18,
+            ),
             const SizedBox(width: 8),
             // Le texte doit pouvoir se rétrécir : à sa largeur naturelle il
             // débordait de 146 px sur un écran de 320.
@@ -1221,8 +1391,8 @@ class _RecallView extends StatelessWidget {
           afterDistraction
               ? 'Now recall the digits you memorized'
               : reverse
-                  ? 'Type the sequence in REVERSE order'
-                  : 'Type the sequence in the SAME order',
+              ? 'Type the sequence in REVERSE order'
+              : 'Type the sequence in the SAME order',
           textAlign: TextAlign.center,
           style: AppTypography.titleMedium.copyWith(
             color: Colors.white,
@@ -1311,8 +1481,7 @@ class _Keypad extends StatelessWidget {
       );
     }
 
-    Widget row(List<Widget> children) =>
-        Row(children: children);
+    Widget row(List<Widget> children) => Row(children: children);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -1321,7 +1490,12 @@ class _Keypad extends StatelessWidget {
         row([for (var d = 4; d <= 6; d++) key('$d', digit: d)]),
         row([for (var d = 7; d <= 9; d++) key('$d', digit: d)]),
         row([
-          Expanded(child: Padding(padding: const EdgeInsets.all(5), child: const SizedBox())),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(5),
+              child: const SizedBox(),
+            ),
+          ),
           key('0', digit: 0),
           key('⌫', onTap: onBackspace),
         ]),
@@ -1543,13 +1717,9 @@ class _RestoreView extends StatelessWidget {
                   // (on prend à gauche, on dépose à droite), pas le vecteur du
                   // geste. On inverse donc les deux colonnes. Repasser à
                   // l'autre sens = échanger ces deux `Expanded`.
-                  Expanded(
-                    child: SingleChildScrollView(child: poolZone),
-                  ),
+                  Expanded(child: SingleChildScrollView(child: poolZone)),
                   const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: SingleChildScrollView(child: slotsZone),
-                  ),
+                  Expanded(child: SingleChildScrollView(child: slotsZone)),
                 ],
               );
             },
@@ -1705,8 +1875,7 @@ class _DraggableObject extends StatelessWidget {
     return Draggable<MemoryObject>(
       data: object,
       dragAnchorStrategy: pointerDragAnchorStrategy,
-      onDragStarted: () =>
-          SoundService.instance.playSfx(GameSfx.imageDrag),
+      onDragStarted: () => SoundService.instance.playSfx(GameSfx.imageDrag),
       feedback: Transform.translate(
         // Ancre l'aperçu sous le doigt (moitié de la carte, échelle comprise).
         offset: Offset(-52 * scale, -64 * scale),
@@ -1873,6 +2042,320 @@ class _LockedBar extends StatelessWidget {
 
 // ── Phase de distraction (calme, fond assombri, rappel mémoire visible) ─────
 
+/// Interférence du jeu d'IMAGES — **une épreuve par niveau, tirée au hasard**
+/// entre « trouver l'intrus » et « pièce manquante ».
+///
+/// Les visuels sont des glyphes monochromes dédiés
+/// (`assets/J’investigue/distractors/`), teintés avec la palette des jeux : les
+/// objets 2.5D du catalogue sont multicolores et ne peuvent pas être reteintés,
+/// donc ne permettent pas de faire varier la COULEUR — l'un des quatre traits
+/// sur lesquels l'intrus doit pouvoir se distinguer.
+///
+/// **Aucun chiffre** n'apparaît ici : c'est la règle du jeu des images.
+class _ObjectDistractionView extends StatelessWidget {
+  const _ObjectDistractionView({
+    required this.challenge,
+    required this.objectCount,
+    required this.secondsLeft,
+    required this.answered,
+    required this.onPick,
+  });
+
+  final MemoryDistractionChallenge? challenge;
+  final int objectCount;
+  final int secondsLeft;
+  final bool answered;
+  final ValueChanged<int> onPick;
+
+  /// Teintes des glyphes, prises dans la palette des jeux.
+  ///
+  /// Aucune ne doit être proche du fond du plateau (`gameBlue`, un bleu-violet) :
+  /// un glyphe de la couleur du fond disparaît, et l'épreuve devient
+  /// indéchiffrable. C'est pourquoi `gameBlue` et le violet voisin en sont
+  /// exclus au profit d'un ambre et d'un lilas clair, qui ressortent tous deux.
+  static const List<Color> palette = [
+    ZennytGamePalette.magenta,
+    ZennytGamePalette.cyan,
+    ZennytGamePalette.success,
+    ZennytGamePalette.ruleOrange,
+    Color(0xFFFBC02D), // ambre
+    Color(0xFFC9A6FF), // lilas clair
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final c = challenge;
+    if (c == null) return const SizedBox.shrink();
+    return Column(
+      children: [
+        Text(
+          c.kind == MemoryDistractionKind.oddOneOut
+              ? 'Find the odd one out'
+              : 'Complete the pattern',
+          textAlign: TextAlign.center,
+          style: AppTypography.titleLarge.copyWith(
+            color: Colors.white,
+            letterSpacing: 0,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          'Hold the $objectCount objects in mind — ${secondsLeft}s',
+          textAlign: TextAlign.center,
+          style: AppTypography.bodyMedium.copyWith(
+            color: Colors.white.withValues(alpha: 0.75),
+            letterSpacing: 0,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        Expanded(
+          child: switch (c) {
+            OddOneOutChallenge() => _OddOneOutBoard(
+              challenge: c,
+              answered: answered,
+              onPick: onPick,
+            ),
+            PuzzlePieceChallenge() => _PuzzleBoard(
+              challenge: c,
+              answered: answered,
+              onPick: onPick,
+            ),
+          },
+        ),
+      ],
+    );
+  }
+}
+
+/// Grille d'éléments presque identiques : une seule case diffère.
+class _OddOneOutBoard extends StatelessWidget {
+  const _OddOneOutBoard({
+    required this.challenge,
+    required this.answered,
+    required this.onPick,
+  });
+
+  final OddOneOutChallenge challenge;
+  final bool answered;
+  final ValueChanged<int> onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: SingleChildScrollView(
+        // Grille bornée en largeur : sans contrainte, les cases s'étirent sur
+        // toute la largeur et la troisième rangée sort de l'écran.
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 280),
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+            itemCount: challenge.cells.length,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: challenge.columns,
+              crossAxisSpacing: AppSpacing.sm,
+              mainAxisSpacing: AppSpacing.sm,
+            ),
+            itemBuilder: (context, i) {
+              final cell = challenge.cells[i];
+              return _GlyphTile(
+                key: ValueKey('odd-cell-$i'),
+                glyph: cell.glyph,
+                pattern: cell.pattern,
+                colorIndex: cell.colorIndex,
+                quarterTurns: cell.quarterTurns,
+                scale: cell.scale,
+                // Le retour n'apparaît qu'APRÈS la réponse : le souligner avant
+                // donnerait l'épreuve.
+                revealed: answered && cell.isOdd,
+                onTap: answered ? null : () => onPick(i),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Motif régulier troué : il faut désigner la pièce qui le complète.
+class _PuzzleBoard extends StatelessWidget {
+  const _PuzzleBoard({
+    required this.challenge,
+    required this.answered,
+    required this.onPick,
+  });
+
+  final PuzzlePieceChallenge challenge;
+  final bool answered;
+  final ValueChanged<int> onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          // Le motif, avec son trou.
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 260),
+            child: GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: challenge.tiles.length,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: challenge.gridSide,
+                crossAxisSpacing: AppSpacing.sm,
+                mainAxisSpacing: AppSpacing.sm,
+              ),
+              itemBuilder: (context, i) {
+                if (i == challenge.missingIndex) {
+                  return DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.55),
+                        width: 2,
+                      ),
+                    ),
+                    child: Center(
+                      child: Icon(
+                        Icons.help_outline_rounded,
+                        color: Colors.white.withValues(alpha: 0.7),
+                        size: 26,
+                      ),
+                    ),
+                  );
+                }
+                final tile = challenge.tiles[i];
+                return _GlyphTile(
+                  glyph: tile.glyph,
+                  pattern: MemoryPattern.none,
+                  colorIndex: tile.colorIndex,
+                  quarterTurns: tile.quarterTurns,
+                  scale: 1,
+                  revealed: false,
+                  onTap: null,
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Text(
+            'Pick the missing piece',
+            style: AppTypography.bodyMedium.copyWith(
+              color: Colors.white.withValues(alpha: 0.8),
+              letterSpacing: 0,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
+            children: [
+              for (var i = 0; i < challenge.options.length; i++)
+                SizedBox(
+                  width: 68,
+                  height: 68,
+                  child: _GlyphTile(
+                    key: ValueKey('puzzle-option-$i'),
+                    glyph: challenge.options[i].glyph,
+                    pattern: MemoryPattern.none,
+                    colorIndex: challenge.options[i].colorIndex,
+                    quarterTurns: challenge.options[i].quarterTurns,
+                    scale: 1,
+                    revealed: answered && challenge.options[i].isCorrect,
+                    onTap: answered ? null : () => onPick(i),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Une case d'épreuve : glyphe teinté, motif éventuel, rotation, échelle.
+class _GlyphTile extends StatelessWidget {
+  const _GlyphTile({
+    super.key,
+    required this.glyph,
+    required this.pattern,
+    required this.colorIndex,
+    required this.quarterTurns,
+    required this.scale,
+    required this.revealed,
+    required this.onTap,
+  });
+
+  final MemoryGlyph glyph;
+  final MemoryPattern pattern;
+  final int colorIndex;
+  final int quarterTurns;
+  final double scale;
+  final bool revealed;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _ObjectDistractionView
+        .palette[colorIndex % _ObjectDistractionView.palette.length];
+    final patternAsset = pattern.assetPath;
+    return Semantics(
+      button: onTap != null,
+      label: '${glyph.name} tile',
+      child: Material(
+        color: Colors.white.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+              border: Border.all(
+                color: revealed
+                    ? Colors.white
+                    : Colors.white.withValues(alpha: 0.22),
+                width: revealed ? 3 : 1.5,
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.sm),
+              child: Transform.scale(
+                scale: scale,
+                child: RotatedBox(
+                  quarterTurns: quarterTurns,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      SvgPicture.asset(
+                        glyph.assetPath,
+                        colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+                      ),
+                      if (patternAsset != null)
+                        SvgPicture.asset(
+                          patternAsset,
+                          colorFilter: ColorFilter.mode(
+                            Colors.white.withValues(alpha: 0.85),
+                            BlendMode.srcIn,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _DistractionView extends StatelessWidget {
   const _DistractionView({
     required this.question,
@@ -1902,7 +2385,11 @@ class _DistractionView extends StatelessWidget {
           ),
           child: Row(
             children: [
-              const Icon(Icons.psychology_outlined, color: Colors.white, size: 20),
+              const Icon(
+                Icons.psychology_outlined,
+                color: Colors.white,
+                size: 20,
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -1961,7 +2448,9 @@ class _DistractionView extends StatelessWidget {
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.16),
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                          borderRadius: BorderRadius.circular(
+                            AppSpacing.radiusLg,
+                          ),
                         ),
                         child: Text(
                           '$c',
@@ -2043,7 +2532,9 @@ class _IntroView extends StatelessWidget {
           const SizedBox(height: AppSpacing.xl),
           const Row(
             children: [
-              Expanded(child: ResultStatTile(label: 'Goal', value: 'Memory')),
+              Expanded(
+                child: ResultStatTile(label: 'Goal', value: 'Memory'),
+              ),
               SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: ResultStatTile(
@@ -2186,10 +2677,16 @@ class _TutorialView extends StatelessWidget {
           // jeu « Images » (ou l'inverse) annoncerait des phases qui ne seront
           // jamais jouées.
           if (mode.playsDigits) ...[
-            step(Icons.visibility_outlined, 'Observe',
-                'Digits appear one at a time for a short moment. Just watch.'),
-            step(Icons.keyboard_alt_outlined, 'Recall',
-                'Type the digits back in the same order, then in reverse order.'),
+            step(
+              Icons.visibility_outlined,
+              'Observe',
+              'Digits appear one at a time for a short moment. Just watch.',
+            ),
+            step(
+              Icons.keyboard_alt_outlined,
+              'Recall',
+              'Type the digits back in the same order, then in reverse order.',
+            ),
           ],
           if (mode.playsImages)
             step(
@@ -2200,10 +2697,16 @@ class _TutorialView extends StatelessWidget {
                   : 'Memorize the objects, watch them get moved, then restore the STARTING order.',
             ),
           if (mode.playsDigits)
-            step(Icons.psychology_outlined, 'Distraction',
-                'Sometimes a quick question interrupts you — keep the answer in mind and recall after.'),
-          step(Icons.lock_outline_rounded, 'Input lock',
-              'You cannot answer while stimuli are shown — it keeps the test fair.'),
+            step(
+              Icons.psychology_outlined,
+              'Distraction',
+              'Sometimes a quick question interrupts you — keep the answer in mind and recall after.',
+            ),
+          step(
+            Icons.lock_outline_rounded,
+            'Input lock',
+            'You cannot answer while stimuli are shown — it keeps the test fair.',
+          ),
           const SizedBox(height: AppSpacing.lg),
           GamePrimaryButton(label: 'I am ready', onPressed: onStart),
         ],
@@ -2305,7 +2808,10 @@ class _ResultsView extends StatelessWidget {
               ),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
-                child: ResultStatTile(label: 'Reverse', value: '$reverseScore/5'),
+                child: ResultStatTile(
+                  label: 'Reverse',
+                  value: '$reverseScore/5',
+                ),
               ),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
@@ -2371,9 +2877,9 @@ class _ResultsView extends StatelessWidget {
                   'Same-order recall is usually easier than reverse recall, '
                   'which loads working memory more.'
                   '${restoreScore == null ? '' : ' In the object task you restored '
-                      'the starting order despite the manipulations you watched.'}'
+                            'the starting order despite the manipulations you watched.'}'
                   '${distractionScore == null ? '' : ' You then held digits in mind '
-                      'while answering a quick question — a measure of distraction resistance.'}',
+                            'while answering a quick question — a measure of distraction resistance.'}',
                   style: AppTypography.bodyLarge.copyWith(
                     color: ZennytGamePalette.muted,
                     letterSpacing: 0,
@@ -2442,3 +2948,21 @@ class _RulesLine extends StatelessWidget {
     );
   }
 }
+
+/// Rendu isolé d'une tâche parasite — **relecture visuelle uniquement**.
+///
+/// Les deux épreuves ne sont atteignables en jeu qu'au niveau 3, après deux
+/// niveaux joués : les capturer par ce point d'entrée évite de dérouler toute
+/// une partie pour relire un écran.
+@visibleForTesting
+Widget debugObjectDistractionView({
+  required MemoryDistractionChallenge challenge,
+  required int objectCount,
+  required int secondsLeft,
+}) => _ObjectDistractionView(
+  challenge: challenge,
+  objectCount: objectCount,
+  secondsLeft: secondsLeft,
+  answered: false,
+  onPick: (_) {},
+);

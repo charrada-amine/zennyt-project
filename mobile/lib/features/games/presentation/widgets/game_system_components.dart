@@ -318,67 +318,126 @@ class _HudTile extends StatelessWidget {
   }
 }
 
+/// Bandeau de série : « Series ① ② ③ ④ — 4/4 upgrade — ×5 ».
+///
+/// Calé sur la maquette Figma, où pastilles, compteur et multiplicateur sont
+/// nettement plus grands que dans la première implémentation : les chiffres des
+/// pastilles y étaient illisibles (10 px dans un cercle de 20).
+///
+/// La rangée de pastilles occupe l'espace restant et se réduit d'elle-même via
+/// un [FittedBox] : à pleine largeur elle rend les tailles de la maquette, et
+/// sur un écran étroit elle rétrécit au lieu de déborder — c'est la seule partie
+/// élastique du bandeau, le reste garde ses proportions.
 class SeriesRibbon extends StatelessWidget {
   const SeriesRibbon({
     super.key,
     required this.current,
     required this.multiplier,
     required this.color,
-    this.statusLabel,
+    this.statusValue,
+    this.statusCaption,
   });
 
   final int current;
   final int multiplier;
   final Color color;
-  final String? statusLabel;
+
+  /// Compteur mis en avant (« 4/4 »).
+  final String? statusValue;
+
+  /// Légende sous le compteur (« upgrade », « reset »…).
+  final String? statusCaption;
+
+  /// Diamètre d'une pastille dans la maquette.
+  ///
+  /// Les libellés qui l'entourent sont volontairement modestes : à 390 px de
+  /// large, la rangée n'a qu'une petite centaine de pixels, et chaque point de
+  /// police pris par « Series » ou le multiplicateur est un point retiré aux
+  /// pastilles par le [FittedBox].
+  static const double _dotSize = 32;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 48,
+      height: 64,
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
       decoration: BoxDecoration(
         color: ZennytGamePalette.mist,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
       ),
       child: Row(
         children: [
           Text(
             'Series',
-            style: AppTypography.labelSmall.copyWith(
+            textScaler: TextScaler.noScaling,
+            style: AppTypography.bodyLarge.copyWith(
               color: ZennytGamePalette.muted,
+              fontWeight: FontWeight.w700,
               letterSpacing: 0,
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
-          for (var i = 1; i <= 4; i++) ...[
-            _SeriesDot(index: i, active: i <= current, color: color),
-            const SizedBox(width: AppSpacing.xs),
-          ],
-          const Spacer(),
-          if (statusLabel != null)
-            Flexible(
-              // Deux lignes plutôt qu'une ellipse : « 0/4 streak » se réduisait
-              // à « 0/4 str… », soit exactement le compteur que le client dit
-              // mal affiché. La maquette l'empile — « 1/4 » puis « streak ».
-              child: Text(
-                statusLabel!,
-                textAlign: TextAlign.right,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: AppTypography.labelSmall.copyWith(
-                  color: color,
-                  letterSpacing: 0,
-                  height: 1.15,
-                ),
+          // Les pastilles prennent la place restante et ne rétrécissent que si
+          // l'écran l'impose — jamais de débordement, jamais de troncature.
+          Expanded(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.center,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (var i = 1; i <= 4; i++) ...[
+                    if (i > 1) const SizedBox(width: AppSpacing.sm),
+                    _SeriesDot(index: i, active: i <= current, color: color),
+                  ],
+                ],
               ),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          if (statusValue != null)
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Le compteur est l'information, la légende la commente : la
+                // maquette les empile et hiérarchise nettement leurs tailles.
+                Text(
+                  statusValue!,
+                  maxLines: 1,
+                  textScaler: TextScaler.noScaling,
+                  style: AppTypography.titleMedium.copyWith(
+                    color: color,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0,
+                    height: 1.1,
+                  ),
+                ),
+                if (statusCaption != null)
+                  Text(
+                    statusCaption!,
+                    maxLines: 1,
+                    textScaler: TextScaler.noScaling,
+                    style: AppTypography.labelSmall.copyWith(
+                      color: color,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0,
+                      height: 1.2,
+                    ),
+                  ),
+              ],
             ),
           const SizedBox(width: AppSpacing.sm),
           _AnimatedMultiplier(
             multiplier: multiplier,
             style: AppTypography.headlineLarge.copyWith(
               color: ZennytGamePalette.blue,
+              fontSize: 30,
+              fontWeight: FontWeight.w800,
               letterSpacing: 0,
+              height: 1,
             ),
           ),
         ],
@@ -456,20 +515,29 @@ class _SeriesDot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 20,
-      height: 20,
+      width: SeriesRibbon._dotSize,
+      height: SeriesRibbon._dotSize,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: active ? color : Colors.transparent,
         shape: BoxShape.circle,
-        border: Border.all(color: active ? color : ZennytGamePalette.border),
+        border: Border.all(
+          color: active ? color : ZennytGamePalette.border,
+          width: 1.5,
+        ),
       ),
       child: Text(
         '$index',
-        style: AppTypography.labelSmall.copyWith(
+        // Le chiffre ne suit pas le textScale système : la pastille est un
+        // cercle de taille fixe, un texte agrandi en déborderait. Sa lisibilité
+        // vient de sa taille de base, portée de 10 à 18 px d'après la maquette.
+        textScaler: TextScaler.noScaling,
+        style: AppTypography.titleMedium.copyWith(
           color: active ? Colors.white : ZennytGamePalette.muted,
-          fontSize: 10,
+          fontSize: 18,
+          fontWeight: FontWeight.w800,
           letterSpacing: 0,
+          height: 1,
         ),
       ),
     );

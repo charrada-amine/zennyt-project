@@ -2720,7 +2720,12 @@ class _CenteredActionView extends StatelessWidget {
             if (tertiaryLabel != null && onTertiary != null) ...[
               const SizedBox(height: 11),
               TextButton(
-                onPressed: onTertiary,
+                // Action tertiaire des panneaux (règles, fin de manche) : elle
+                // n'hérite pas du clic de [GameOutlineButton].
+                onPressed: () {
+                  SoundService.instance.playSfx(GameSfx.buttonClick);
+                  onTertiary!();
+                },
                 child: Text(
                   tertiaryLabel!,
                   style: const TextStyle(

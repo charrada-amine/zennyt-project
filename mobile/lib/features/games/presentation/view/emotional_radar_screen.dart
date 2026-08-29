@@ -545,7 +545,12 @@ class _MagentaButton extends StatelessWidget {
       width: double.infinity,
       height: 56,
       child: ElevatedButton(
-        onPressed: onPressed,
+        // Porte « Start tutorial », « Start game », « Play again »… : même clic
+        // que les boutons partagés, dont il ne reprend que le style magenta.
+        onPressed: () {
+          SoundService.instance.playSfx(GameSfx.buttonClick);
+          onPressed();
+        },
         style: ElevatedButton.styleFrom(
           backgroundColor: EmotionalRadarPalette.magenta,
           foregroundColor: Colors.white,

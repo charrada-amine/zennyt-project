@@ -1,5 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Retour haptique des jeux (erreurs). `HapticFeedback` de Flutter passe
+         par View.performHapticFeedback et ne l'exige pas, mais la permission
+         est requise dès qu'un appareil ou une surcouche route l'effet vers le
+         Vibrator ; sans elle la vibration est silencieusement ignorée. -->
+    <uses-permission android:name="android.permission.VIBRATE"/>
     <application
         android:label="Zennyt"
         android:name="${applicationName}"

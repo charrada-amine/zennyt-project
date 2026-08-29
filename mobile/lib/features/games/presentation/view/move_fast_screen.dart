@@ -337,6 +337,19 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
       setState(() => _tactilePromptVisible = false);
     }
 
+    // Les deux écrans de règles attendent une réponse comme le jeu : ils
+    // doivent sonner comme lui. Ils sortaient en silence, si bien que le tout
+    // premier geste du joueur — celui qui lui apprend la mécanique — était le
+    // seul sans retour sonore.
+    if (_stage == _MoveFastStage.tutorialOrientation ||
+        _stage == _MoveFastStage.tutorialMovement) {
+      SoundService.instance.playSfx(
+        direction == GameDirection.right
+            ? GameSfx.correctChoice
+            : GameSfx.wrongChoice,
+      );
+    }
+
     if (_stage == _MoveFastStage.tutorialOrientation) {
       if (direction == GameDirection.right) {
         setState(() {
@@ -1322,19 +1335,29 @@ class _GameplayBoard extends StatelessWidget {
               children: [
                 Positioned(
                   top: 10,
-                  left: 34,
-                  right: 20,
+                  // Marges resserrées et symétriques : chaque pixel gagné va aux
+                  // pastilles, qui sont l'élément que la maquette agrandit.
+                  left: 16,
+                  right: 16,
                   child: SeriesRibbon(
                     current: streakCounter,
                     multiplier: multiplier,
                     color: ruleColor,
-                    statusLabel: feedback == _MoveFastFeedback.error
-                        ? '0/4 reset'
-                        : '$streakCounter/4 streak',
+                    // Maquette : le compteur au-dessus, sa légende en dessous.
+                    // « upgrade » nomme ce que la série déclenche — la montée du
+                    // multiplicateur.
+                    statusValue: feedback == _MoveFastFeedback.error
+                        ? '0/4'
+                        : '$streakCounter/4',
+                    statusCaption: feedback == _MoveFastFeedback.error
+                        ? 'reset'
+                        : 'upgrade',
                   ),
                 ),
                 Positioned.fill(
-                  top: 70,
+                  // Sous le bandeau : 10 (marge haute) + 64 (hauteur du bandeau,
+                  // portée de 48 à la taille de la maquette) + 12 de respiration.
+                  top: 86,
                   child: AnimatedSwitcher(
                     duration: const Duration(milliseconds: 220),
                     child: _PlaneCluster(

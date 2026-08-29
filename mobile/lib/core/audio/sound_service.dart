@@ -228,7 +228,17 @@ class SoundService {
   // existante (case interdite d'Optimal Path).
 
   /// Erreur : vibration franche.
-  Future<void> vibrateError() => _vibrate(HapticFeedback.heavyImpact);
+  ///
+  /// [HapticFeedback.vibrate] et non `heavyImpact` : le client signalait que la
+  /// vibration d'erreur d'Optimal Path « ne fonctionne pas » alors que le
+  /// câblage était bon. La cause est le mapping Android de Flutter —
+  /// `heavyImpact` y devient `HapticFeedbackConstants.CONTEXT_CLICK`, l'effet le
+  /// plus discret du système, souvent imperceptible voire ignoré selon les
+  /// réglages du téléphone. `vibrate` mappe sur `LONG_PRESS`, le plus franc.
+  ///
+  /// ⚠️ Aucun retour haptique n'existe sur simulateur iOS ni sur la plupart des
+  /// émulateurs Android : ce point ne peut se valider que sur appareil réel.
+  Future<void> vibrateError() => _vibrate(HapticFeedback.vibrate);
 
   /// Réussite / franchissement d'un palier : vibration moyenne.
   Future<void> vibrateSuccess() => _vibrate(HapticFeedback.mediumImpact);

@@ -28,15 +28,29 @@ class PlanifikGame extends FlameGame {
   PlanifikGame({
     this.config = GridConfig.level1,
     this.onWrongCell,
+    this.onBlockedTap,
     this.onPointAdded,
   });
 
   final GridConfig config;
 
-  /// Notifié quand le joueur touche une case interdite (rouge) adjacente au
-  /// tracé : la présentation déclenche le retour haptique et la pénalité de
-  /// score. Le jeu, lui, dessine puis efface le « faux » segment (flash rouge).
+  /// Notifié quand le joueur touche une case interdite (rouge) **adjacente au
+  /// tracé** : c'est une erreur de planification, la présentation applique la
+  /// pénalité de score. Le jeu, lui, dessine puis efface le « faux » segment.
   final void Function()? onWrongCell;
+
+  /// Notifié à **chaque** appui sur une case interdite, adjacente ou non : la
+  /// présentation joue le retour d'erreur (son + vibration).
+  ///
+  /// Distinct de [onWrongCell], et c'est le fond du correctif : le retour
+  /// d'erreur était porté par le seul cas adjacent, si bien qu'appuyer sur une
+  /// case rouge ailleurs sur la grille ne produisait **rien** — ni son, ni
+  /// vibration, ni flash. Le client ne sentait donc aucune vibration, sans que
+  /// le câblage haptique soit en cause.
+  ///
+  /// La pénalité, elle, reste sur le cas adjacent : sanctionner une case rouge
+  /// touchée à l'autre bout de la grille punirait l'exploration, pas une faute.
+  final void Function()? onBlockedTap;
 
   /// Notifié à chaque point ajouté au tracé. `isGoal` vaut `true` quand le point
   /// posé est la case d'arrivée (son « goal-point »), sinon c'est un point
@@ -119,8 +133,11 @@ class PlanifikGame extends FlameGame {
   void _handleTap(int row, int col) {
     final index = config.index(row, col);
     if (!config.isWalkable(index)) {
-      // Case interdite (rouge) : si elle jouxte la fin du tracé, on montre un
-      // faux segment qui s'efface + on notifie l'écran (vibration, −score).
+      // Toute tentative sur une case interdite est une erreur du point de vue du
+      // joueur : elle doit s'entendre et se sentir, où qu'elle se produise.
+      onBlockedTap?.call();
+      // Si en plus elle jouxte la fin du tracé, c'est une erreur de
+      // planification : faux segment qui s'efface + pénalité de score.
       if (_path.isNotEmpty && _adjacent(index, _path.last)) {
         _flashError(index);
       }

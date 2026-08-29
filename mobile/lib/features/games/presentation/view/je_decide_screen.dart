@@ -507,7 +507,13 @@ class _HeaderButton extends StatelessWidget {
       label: tooltip,
       child: IconButton(
         tooltip: tooltip,
-        onPressed: onPressed,
+        // Flèche retour de l'en-tête, présente sur presque tous les écrans du
+        // parcours : `IconButton` brut n'hérite pas du clic des boutons
+        // partagés, elle était donc muette partout.
+        onPressed: () {
+          SoundService.instance.playSfx(GameSfx.buttonClick);
+          onPressed();
+        },
         icon: Icon(icon, color: _ink, size: 28),
         style: IconButton.styleFrom(
           fixedSize: const Size(48, 48),
@@ -982,7 +988,12 @@ class _PlayerCardView extends StatelessWidget {
                       selected: index == selectedTheme,
                       label: 'Color theme ${index + 1}',
                       child: InkWell(
-                        onTap: () => onThemeSelected(index),
+                        // Pastille de couleur : c'est un choix, il doit
+                        // s'entendre comme les autres sélections.
+                        onTap: () {
+                          SoundService.instance.playSfx(GameSfx.buttonClick);
+                          onThemeSelected(index);
+                        },
                         customBorder: const CircleBorder(),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 160),
@@ -1191,7 +1202,11 @@ class _AvatarCard extends StatelessWidget {
         color: selected ? _softPink : Colors.white,
         borderRadius: BorderRadius.circular(20),
         child: InkWell(
-          onTap: onTap,
+          // Choix d'avatar : sélection sonorisée comme le reste du parcours.
+          onTap: () {
+            SoundService.instance.playSfx(GameSfx.buttonClick);
+            onTap();
+          },
           borderRadius: BorderRadius.circular(20),
           child: Stack(
             fit: StackFit.expand,
@@ -1515,7 +1530,12 @@ class _ChoiceCard extends StatelessWidget {
         color: selected ? _softPink : Colors.white,
         borderRadius: BorderRadius.circular(22),
         child: InkWell(
-          onTap: onTap,
+          // Carte de choix (mode de jeu / consentement) : même clic que les
+          // boutons partagés.
+          onTap: () {
+            SoundService.instance.playSfx(GameSfx.buttonClick);
+            onTap();
+          },
           borderRadius: BorderRadius.circular(22),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 160),

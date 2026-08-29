@@ -782,7 +782,17 @@ class _DecisionChoiceCard extends StatelessWidget {
         color: selected ? _decisionSoftPink : Colors.white,
         borderRadius: BorderRadius.circular(20),
         child: InkWell(
-          onTap: onTap,
+          // Sélection d'une option : c'est le geste le plus fréquent du jeu, et
+          // il était muet.
+          //
+          // Le son est NEUTRE (clic générique) et le restera : « Je Décide » ne
+          // dit jamais si un choix est bon — les scores ne quittent pas le
+          // backend. Un son de réussite ou d'erreur ici divulguerait la clé de
+          // correction que la projection s'applique justement à retirer.
+          onTap: () {
+            SoundService.instance.playSfx(GameSfx.buttonClick);
+            onTap();
+          },
           borderRadius: BorderRadius.circular(20),
           child: AnimatedContainer(
             duration: reduceMotion

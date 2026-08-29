@@ -1932,7 +1932,7 @@ components:
     MemoryTaskKind:
       type: string
       description: Type de tâche notée « J'investigue ».
-      enum: [SAME_ORDER, REVERSE_ORDER, RESTORE, AFTER_DISTRACTION]
+      enum: [SAME_ORDER, REVERSE_ORDER, RESTORE, AFTER_DISTRACTION, DISTRACTION_CHALLENGE]
 
     MemoryTaskResult:
       type: object
@@ -1948,6 +1948,14 @@ components:
         correct: { type: integer, minimum: 0, description: "Éléments rappelés correctement" }
         total: { type: integer, minimum: 0, description: "Éléments à rappeler" }
         responseTimeMs: { type: integer, minimum: 0, description: "Temps brut de la tâche (timeout appliqué serveur)" }
+        level:
+          type: integer
+          minimum: 1
+          default: 1
+          description: >
+            Niveau d'origine de la tâche. Fixe le délai applicable à une tâche
+            DISTRACTION_CHALLENGE, dont le budget dépend du niveau, alors que les
+            tâches de rappel partagent un seuil unique.
 
     MemoryQuestMetrics:
       type: object
@@ -1959,9 +1967,30 @@ components:
         Le score dépend du TEMPS via le timeout par tâche (calibrage appareil) :
         envoyer `tasks` (par instance) permet l'ajustement. Sans `tasks`, le
         composite est calculé sur les agrégats plats (compatibilité, sans timeout).
-      required: [observedDigits, correctSameDigits, correctReverseDigits, highestSequenceLength]
+        Le champ `memoryQuestMode` dit quelle moitié du jeu a été jouée : le jeu a
+        été scindé en deux mini-jeux (chiffres / images). Une partie IMAGES
+        n'observe aucun chiffre et ne joue aucune restitution inversée — ses
+        mesures de chiffres doivent rester à 0 et `objectCount` être > 0.
+      required: []
       properties:
-        observedDigits: { type: integer, minimum: 1, description: "Chiffres observés (Mission A)" }
+        memoryQuestMode:
+          type: string
+          enum: [DIGITS, IMAGES, FULL]
+          default: FULL
+          description: "Moitié jouée. Absent = FULL (clients antérieurs à la scission)."
+        distractionChallengesPlayed:
+          type: integer
+          minimum: 0
+          description: "Tâches parasites visuelles présentées (intrus / pièce manquante)."
+        distractionChallengesSolved:
+          type: integer
+          minimum: 0
+          description: "Tâches parasites résolues dans les temps."
+        distractionTimeouts:
+          type: integer
+          minimum: 0
+          description: "Tâches parasites perdues par expiration du chronomètre."
+        observedDigits: { type: integer, minimum: 0, description: "Chiffres observés (Mission A ; requis si le mode joue les chiffres)" }
         correctSameDigits: { type: integer, minimum: 0, description: "Chiffres corrects, rappel même ordre" }
         correctReverseDigits: { type: integer, minimum: 0, description: "Chiffres corrects, rappel inverse" }
         highestSequenceLength: { type: integer, minimum: 0, description: "Empan maximal atteint" }

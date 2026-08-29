@@ -11,18 +11,36 @@ void main() {
       expect(MemoryQuestConfig.sequenceLengthForLevel(20), 9); // plafonné
     });
 
-    test('nombre d\'objets : 4 (niveau 1) → 12 (niveau 7)', () {
-      expect(MemoryQuestConfig.objectCountForLevel(1), 4);
-      expect(MemoryQuestConfig.objectCountForLevel(7), 12);
+    // Pas CONSTANT d'un objet par niveau, comme le chiffre supplémentaire du
+    // jeu de chiffres. L'interpolation 4→12 sur 7 niveaux donnait 4, 5, 7, 8, 9,
+    // 11, 12 : la charge sautait de deux objets à certains paliers.
+    test('nombre d\'objets : un de plus à chaque niveau', () {
+      expect(
+        [for (var l = 1; l <= MemoryQuestConfig.totalLevels; l++)
+          MemoryQuestConfig.objectCountForLevel(l)],
+        [3, 4, 5, 6, 7, 8, 9],
+      );
+      expect(
+        MemoryQuestConfig.objectCountForLevel(50),
+        MemoryQuestConfig.maxObjectCount,
+        reason: 'plafonné à la taille du catalogue',
+      );
     });
 
-    // Le gating au niveau ≥ 3 a été levé sur retour client : la distraction ne
-    // se voyait jamais en test, une session de démonstration dépassant rarement
-    // le niveau 2.
-    test('distraction active dès le premier niveau', () {
-      expect(MemoryQuestConfig.distractionMinLevel, 1);
-      expect(MemoryQuestConfig.distractionActiveAtLevel(1), isTrue);
+    // Le gating avait été levé à 1 pour rendre la distraction visible : elle
+    // n'apparaissait jamais. La cause réelle était son accrochage à la mission
+    // d'objets (voir `investigate_screen_test.dart`), pas le gating — qui garde
+    // donc sa valeur de fiche, celle du backend.
+    test('distraction absente aux niveaux 1-2, puis à CHAQUE niveau', () {
+      expect(MemoryQuestConfig.distractionMinLevel, 3);
+      expect(MemoryQuestConfig.distractionActiveAtLevel(1), isFalse);
+      expect(MemoryQuestConfig.distractionActiveAtLevel(2), isFalse);
       expect(MemoryQuestConfig.distractionActiveAtLevel(3), isTrue);
+      expect(MemoryQuestConfig.distractionActiveAtLevel(7), isTrue);
+    });
+
+    test('deux échecs sur un même niveau terminent la partie', () {
+      expect(MemoryQuestConfig.maxFailuresPerLevel, 2);
     });
   });
 
