@@ -2,6 +2,7 @@ package com.zennyt.games.application.usecase;
 
 import com.zennyt.games.application.command.SubmitGameResultCommand;
 import com.zennyt.games.domain.catalog.DecisionScenarioCatalog;
+import com.zennyt.games.domain.catalog.DecisionFormCatalog;
 import com.zennyt.games.domain.event.GameResultRecordedEvent;
 import com.zennyt.games.domain.model.GameSession;
 import com.zennyt.games.domain.model.MiniGame;
@@ -269,7 +270,8 @@ class EmotionalRadarV2SessionUseCaseTest {
             mock(CoordinationMetricsRepository.class),
             mock(ObjectLocationMetricsRepository.class),
             publisher,
-            mock(DecisionScenarioCatalog.class));
+            mock(DecisionScenarioCatalog.class),
+            mock(DecisionFormCatalog.class));
 
         submit.execute(new SubmitGameResultCommand(
             SESSION_ID, PLAYER_ID, MiniGame.REFLECTIVE_PAUSE_CORE,

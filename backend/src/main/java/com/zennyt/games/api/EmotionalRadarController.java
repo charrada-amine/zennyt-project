@@ -10,6 +10,7 @@ import com.zennyt.games.application.usecase.UploadEmotionalRadarMediaUseCase;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -73,13 +74,11 @@ public class EmotionalRadarController {
     /**
      * Téléverse le média d'une scène.
      *
-     * <p>⚠️ Aucun rôle d'administration n'existe dans le contexte {@code games} :
-     * l'accès est pour l'instant limité aux utilisateurs authentifiés (règle de
-     * sécurité globale). Restreindre davantage suppose un arbitrage produit —
-     * tracé dans GAMES_MODULE.md, section « Décisions à valider ».
+     * <p>Opération éditoriale réservée au rôle {@code ADMIN}.
      */
     @PostMapping(value = "/emotional-radar/scenes/{sceneId}/media",
                  consumes = "multipart/form-data")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<SceneResponse> uploadMedia(
             @PathVariable UUID sceneId,
             @RequestPart("file") MultipartFile file,

@@ -68,16 +68,27 @@ Contexte **indépendant** : ne dépend que de `shared`, s'intègre au reste **un
 | Couche | Fichier | Rôle |
 |--------|---------|------|
 | **api** | `api/GamesController.java` | Contrôleur REST `/api/v1/games`. Traduit HTTP → commande, délègue au use case. Aucune logique métier. |
+| | `api/GamesAdminController.java` | API `/api/v1/games/admin/**` réservée à `ROLE_ADMIN` : questions éditoriales, banques versionnées, paramètres hors scoring, assets et audit. |
 | | `api/GamesExceptionHandler.java` | Traduit localement payload/état invalide, propriété étrangère et ressource absente vers le format d'erreur commun en **400/403/404**, sans modifier `shared`. |
 | | `api/dto/StartSessionRequest.java` | Body `POST /sessions` — `gameType` (le joueur vient du JWT). |
 | | `api/dto/SubmitResultRequest.java` | Body `POST /sessions/{id}/results` — `miniGame` + payload union `Metrics` → `toMetrics()`. |
 | | `api/dto/GameSessionResponse.java` | Réponse : état complet de la session + score composite + attempts + indicateurs propres au mini-jeu, dont **`reflectivePauseIndicators`**, **`continuousAttentionIndicators`**, **`coordinationIndicators`** et **`objectLocationIndicators`**. |
 | | `api/dto/ScoreResponse.java` | Sérialisation d'un `Score`. |
 | **application** | `application/usecase/StartGameSessionUseCase.java` | Crée l'agrégat `GameSession.start(...)` et le persiste. |
+| | `application/usecase/ManageGamesAdminUseCase.java` | Orchestre les brouillons, publications atomiques et uploads de la console ; ne dépend d'aucun service de scoring. |
 | | `application/usecase/SubmitGameResultUseCase.java` | Charge la session avec verrou d'écriture, vérifie le propriétaire JWT, calcule le `Score` (domaine), enregistre et persiste. Il publie les Domain Events depuis **l'agrégat muté** (la copie réhydratée n'en contient pas), puis les listeners transactionnels agissent après commit. Pour « Je continue », « Je coordonne » et « Je place », une capture techniquement invalide reste audit-only (`IN_PROGRESS`, aucun `Attempt`/event) ; une structure ou séquence invalide est refusée sans écriture. Pour « Je place », même l'Attempt valide ne publie provisoirement aucun event Fit Score tant que le barème n'est pas validé. |
 | | `application/command/StartGameSessionCommand.java` | `(playerId, gameType)`. |
 | | `application/command/SubmitGameResultCommand.java` | `(sessionId, playerId issu du JWT, miniGame, GameMetrics, deviceCalibration?)`. |
 | **domain / model** | `domain/model/GameSession.java` | **Racine d'agrégat**. Invariants : 1 résultat/mini-jeu, refus d'un mini-jeu étranger au type, complétion auto + émission d'event au dernier mini-jeu. Java pur. |
+| | `domain/model/AdminModels.java` · `domain/repository/GameAdminRepository.java` | Modèle Java pur et port de persistance de l'administration. Rejette les clés de scoring dans les configurations modifiables. |
+| **infrastructure / admin** | `infrastructure/persistence/JdbcGameAdminRepository.java` | Projection unifiée des catalogues Je Décide / Emotional Radar, versions, rotations et audit via JDBC. |
+| **migration / admin** | `V65__games_admin_console.sql` | Tables de brouillons, banques/items, configurations hors scoring, assets et audit ; seed des catalogues existants, sans modifier les tables de score. |
+| | `V66__games_admin_full_control.sql` | Sépare SETTINGS/MODIFIERS, garantit une seule version publiée par jeu/type et une seule version publiée par code de question. |
+| **web admin** | `admin/apps/web/src/features/admin/admin-app.tsx` | Shell TanStack Start responsive : authentification JWT ADMIN, navigation, rafraîchissement et gestion d'erreurs. |
+| | `admin/apps/web/src/features/admin/admin-pages.tsx` | Dashboard réel, catalogue paginé, banques, settings, modifiers, médiathèque et audit. |
+| | `admin/apps/web/src/features/admin/admin-editor.tsx` | Éditeurs complets : création/modification/clonage, composition ordonnée, publication, archivage et suppression sûre des brouillons. |
+| | `admin/apps/web/src/features/admin/admin-api.ts` | Client Spring unique ; chargement parallèle des ressources, aucune donnée de démonstration. |
+| | `admin/apps/web/public/assets/**` | Copies web des PNG de jeux, du logo splash et des 21 objets SVG originaux ; les assets Flutter sources ne sont pas modifiés. |
 | | `domain/model/MiniGame.java` | Enum des mini-jeux + `maxPoints` du barème + `belongsTo(gameType)` + `isPlayable()` (exclut les mini-jeux sans barème de la complétion). |
 | | `domain/model/Attempt.java` | Résultat immuable d'un mini-jeu (`miniGame`, `score`, `recordedAt`). |
 | **domain / vo** | `domain/vo/GameType.java` | `PLANIFIK`, `MOVE_FAST`, `MEMORY_QUEST`, `DECISION`, `EMOTIONAL_REGULATION`, `CONTINUOUS_ATTENTION`, `VISUOMOTOR_COORDINATION`, `VISUOSPATIAL_MEMORY`. |
@@ -1203,6 +1214,8 @@ les agrégats utilisés au résultat.
 | Calibrage — table `games.device_calibrations` (V11) + fallback fiabilité réduite | 🟢 Fait |
 | **Panneau « détail du score »** (dont Move Fast, Planifik, Reflective Pause, Je continue, Je coordonne et Je place) | 🟢 Fait côté serveur/mock (`ScoreBreakdownService`) ; affichage `ScoreDetailPanel` sur les écrans qui l'exposent |
 | Intégration Analytics (event) | 🟢 Listener en place (log ; à brancher au vrai dashboard) |
+| **Console web d'administration Games** (`admin/`, Better T Stack + TanStack Start) | 🟢 **Control plane complet** : UI responsive Flutter-like, JWT `ADMIN`, CRUD/versioning/publication/archivage, composition ordonnée des banques, rotation, settings et modifiers séparés, uploads PNG/SVG, audit immuable ; aucune donnée de démonstration |
+| **Application runtime des configurations administrées** | 🟠 Publication et versioning prêts ; consommation mobile des paramètres de présentation à brancher dans un lot séparé contract-first |
 
 ---
 
@@ -1237,7 +1250,7 @@ les agrégats utilisés au résultat.
 | 24 | **Emotional Radar — nuances ANGER / DISGUST / SURPRISE** | sous-catégories **d'Ekman**, marquées `PROVISIONAL`, isolées dans la couche provisoire | **Absentes de toutes les planches** alors que les 6 familles sont sélectionnables | `EmotionalRadarProvisionalRules` + colonne `source` |
 | 25 | **Emotional Radar — `total_scenes` = 3** | 3 scènes rédigées ; l'UI annonce « / 15 » | Planche « Phase 2 QA notes » : les 15 scènes sont en Phase 3 | `EmotionalRadarConfig.TOTAL_SCENES` |
 | 26 | **Emotional Radar — bandes d'interprétation** (/100) | <40/<60/<75/<90 — alignées sur les autres jeux | Aucune fiche | `EmotionalRadarProvisionalRules.interpret` |
-| 27 | **Emotional Radar — autorisation de l'upload média** | endpoint **authentifié seulement** — aucun rôle admin n'existe dans `games` | Non spécifié — **arbitrage produit attendu** | `EmotionalRadarController.uploadMedia` |
+| 27 | **Emotional Radar — autorisation de l'upload média** | endpoint historique désormais **réservé à `ROLE_ADMIN`** ; médiathèque générique également protégée | Arbitrage résolu par la création de la console d'administration | `EmotionalRadarController.uploadMedia` · `GamesAdminController` |
 | 28 | **Reflective Pause — barème 3/4/3** | temps contrôlé /3 + non-impulsivité /4 + prise de recul /3 ; sous-scores à 0,1, somme arrondie une fois | Le handoff nomme les dimensions et le score /10 mais ne fixe pas explicitement les poids | `ReflectivePauseConfig` / miroir Dart |
 | 29 | **Reflective Pause — moment 3** | `WAIT` **ou** `REFORMULATE_CALMLY` comptent comme prise de recul | Content map : « Wait, then reformulate calmly » sans préférence entre les deux choix UI | `ReflectivePauseConfig.RECOMMENDED` |
 | 30 | **Profil émotionnel provisoire /37** | session complétée avec Radar actuel /27 + Reflective /10 | La planche globale prévoit 3 jeux ×10 = /30, mais Strategic Choices et la normalisation Radar /10 ne sont pas fournis | `MiniGame.EMOTIONAL_RADAR_CORE` + `REFLECTIVE_PAUSE_CORE` |
@@ -1287,6 +1300,38 @@ vous touchez à l'un de ces chemins :
 - [ ] Un barème change → mettre à jour la section **Barème** (backend **et** mock mobile doivent rester identiques).
 - [ ] Un nouveau jeu/mini-jeu devient jouable → mettre à jour le **tableau de statut** et la **roadmap**.
 - [ ] Mettre à jour la ligne ci-dessous.
+
+**Changelog (49) — 2026-08-29** : la console Games passe du premier lot au **control plane complet**.
+Le contrat `v1.5.0` couvre désormais la modification et suppression sûre des brouillons de questions,
+le clonage, la publication et l'archivage ; les banques disposent du CRUD versionné, d'une composition
+ordonnée par question, de poids de rotation, d'une publication atomique et d'un archivage ; les
+configurations sont séparées en `SETTINGS` et `MODIFIERS`, versionnées par jeu/type et disposent du
+cycle brouillon → publié → archivé ; les assets PNG/SVG ont métadonnées, publication, archivage et
+suppression du brouillon avec purge du fichier Cloudinary ;
+l'audit restitue les opérations réelles. V66 ajoute les contraintes d'unicité des publications sans
+modifier une migration existante. Le front a été scindé en client API, modèles, pages, composants et
+éditeurs ; toutes les pages consomment Spring, les questions sont filtrables et paginées, la composition
+de banque permet ajout/retrait/réordonnancement, et chaque mutation possède états loading/error/empty,
+confirmation destructive et feedback. Les 34 PNG/SVG Flutter sont servis localement par le web.
+En profil `dev`, l'adaptateur média games utilise automatiquement un stockage local temporaire si les
+identifiants Cloudinary sont absents ; l'upload, l'aperçu authentifié et la purge restent donc testables
+dans Docker, tandis que tout autre profil continue d'exiger Cloudinary.
+Vérifications : compilation Spring principale, génération OpenAPI, smoke API authentifié, lint/typecheck/
+build SSR web et parcours Playwright desktop/mobile. **Aucun barème, service de scoring, Domain Event,
+`pom.xml`, `pubspec.yaml`, module `identity`, `shared` ou `core` modifié.**
+
+**Changelog (48) — 2026-08-28** : ajout de la **console web Games** dans `admin/`, scaffoldée avec
+**create-better-t-stack** (TanStack Start, React, TypeScript, Tailwind, Turborepo/Bun) et inspirée de
+`web-app-template`, tout en conservant Spring comme unique backend. Design aligné sur le langage
+Flutter Zennyt (palette navy/magenta, rayons, contrôles 48–54 px, splash/login responsive), avec copies
+web des PNG officiels, du logo splash et des 21 SVG de `J'investigue` — aucun asset mobile ni
+`pubspec.yaml` modifié. API contract-first `v1.4.0` sous `/games/admin/**`, protégée par
+`ROLE_ADMIN`; V65 ajoute brouillons éditoriaux, banques versionnées/clonables, poids de rotation,
+configurations hors scoring, assets et audit immuable. Les catalogues Je Décide A et Emotional Radar
+Core sont seedés comme versions publiées. Les publications restent atomiques et les sessions déjà
+démarrées ne sont pas mutées. Le modèle rejette les clés de scoring, et l'upload historique Radar est
+désormais ADMIN-only. Tests domaine ajoutés ; TypeScript et build web verts. **Aucun barème, service
+de scoring, Domain Event, `pom.xml`, `pubspec.yaml`, module `identity`, `shared` ou `core` modifié.**
 
 **Changelog (47) — 2026-08-17** : **« Je Décide » devient jouable end-to-end.** La banque du
 psychologue (120 items, 24 par dimension II·ER·DT·CS·RE) passe de la ressource JSON à la **base**
@@ -1641,7 +1686,6 @@ Je Décide, Optimal Path, Task Scheduling, Predictive Puzzle), affichés à l'id
 les cartes de catégorie et le sélecteur. Contrôle qualité : fichiers nets et transparents,
 aucune régénération nécessaire. Aucun barème, contrat, endpoint ou event modifié.
 
-**Dernière mise à jour** : 2026-08-12 — **(46)** intégration front-only de Strategic Choices sans
-vidéo ni scoring : double logo PNG, hub/picker Emotional Regulation, parcours textuel complet,
-pause/règles, résultats non scorés, route et tests. Aucun contrat/backend ni manifest de dépendances
-modifié.
+**Dernière mise à jour** : 2026-08-29 — **(49)** control plane Games complet, contrat v1.5.0,
+V66, cycle de vie intégral questions/banques/settings/modifiers/assets/audit et console live
+responsive ; zones de scoring protégées inchangées.

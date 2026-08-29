@@ -61,7 +61,7 @@ public class EmotionalRadarV2SessionUseCase {
         this.referential = referential;
         this.sceneFactory = new EmotionalRadarV2SceneFactory(referential, distanceModel);
         this.reports = new EmotionalRadarV2ReportService(
-            gameScore, new ThetaIrtService());
+            referential, gameScore, new ThetaIrtService());
     }
 
     @Transactional(readOnly = true)

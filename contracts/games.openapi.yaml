@@ -9,7 +9,7 @@ info:
     des MÉTRIQUES objectives ; le score déterministe est calculé côté serveur.
     Ce contexte est indépendant : il n'expose et ne consomme aucun autre
     contexte, et publie son résultat via l'événement games.result.recorded.
-  version: 1.3.0
+  version: 1.5.0
 
 servers:
   - url: https://api.zennyt.com/api/v1
@@ -20,6 +20,8 @@ servers:
 tags:
   - name: Games
     description: Sessions de jeux sérieux et scoring
+  - name: Games Admin
+    description: Console d'administration des contenus, rotations, configurations et assets
 
 security:
   - bearerAuth: []
@@ -179,8 +181,8 @@ paths:
       summary: Téléverser le média (image ou vidéo) d'une scène
       description: >
         Gestion de contenu : stocke le fichier et rattache son URL à la scène.
-        ⚠️ Aucun rôle d'administration n'existe encore dans le contexte games —
-        l'accès est pour l'instant restreint aux utilisateurs authentifiés.
+        Endpoint historique conservé pour compatibilité, protégé par le rôle ADMIN.
+        La nouvelle médiathèque utilise les endpoints /games/admin.
       requestBody:
         required: true
         content:
@@ -201,11 +203,549 @@ paths:
         '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
         '404': { $ref: './common.openapi.yaml#/components/responses/NotFound' }
 
+  /games/admin/overview:
+    get:
+      tags: [Games Admin]
+      summary: Indicateurs de la console d'administration
+      description: Réservé au rôle ADMIN. Les barèmes protégés ne sont jamais exposés en écriture.
+      responses:
+        '200':
+          description: Compteurs et activité récente
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminOverview' }
+        '403': { $ref: './common.openapi.yaml#/components/responses/Forbidden' }
+
+  /games/admin/questions:
+    get:
+      tags: [Games Admin]
+      summary: Lister les questions administrables
+      parameters:
+        - { name: contentType, in: query, schema: { $ref: '#/components/schemas/AdminContentType' } }
+        - { name: query, in: query, schema: { type: string, maxLength: 120 } }
+      responses:
+        '200':
+          description: Questions Je Décide et scènes Emotional Radar
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/AdminQuestion' } }
+    post:
+      tags: [Games Admin]
+      summary: Créer une question en brouillon
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AdminQuestionWrite' }
+      responses:
+        '201':
+          description: Brouillon créé
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminQuestion' }
+        '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
+
+  /games/admin/questions/{questionId}:
+    parameters:
+      - { name: questionId, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      tags: [Games Admin]
+      summary: Modifier un brouillon de question administré
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AdminQuestionWrite' }
+      responses:
+        '200':
+          description: Brouillon mis à jour
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminQuestion' }
+        '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
+    delete:
+      tags: [Games Admin]
+      summary: Supprimer définitivement un brouillon de question administré
+      responses:
+        '204': { description: Brouillon supprimé }
+        '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
+
+  /games/admin/questions/{questionId}/draft:
+    parameters:
+      - { name: questionId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Games Admin]
+      summary: Cloner une question système ou publiée dans un nouveau brouillon
+      responses:
+        '201':
+          description: Brouillon éditable créé
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminQuestion' }
+
+  /games/admin/questions/{questionId}/publish:
+    parameters:
+      - { name: questionId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Games Admin]
+      summary: Publier un brouillon de question
+      responses:
+        '200':
+          description: Question publiée
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminQuestion' }
+
+  /games/admin/questions/{questionId}/archive:
+    parameters:
+      - { name: questionId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Games Admin]
+      summary: Archiver une question administrée
+      responses:
+        '200':
+          description: Question archivée
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminQuestion' }
+
+  /games/admin/banks:
+    get:
+      tags: [Games Admin]
+      summary: Lister les banques et leurs poids de rotation
+      responses:
+        '200':
+          description: Banques versionnées
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/AdminBank' } }
+    post:
+      tags: [Games Admin]
+      summary: Créer une banque en brouillon
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AdminBankWrite' }
+      responses:
+        '201':
+          description: Banque créée
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminBank' }
+
+  /games/admin/banks/{bankId}:
+    parameters:
+      - { name: bankId, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      tags: [Games Admin]
+      summary: Modifier les métadonnées et le poids d'un brouillon de banque
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AdminBankUpdate' }
+      responses:
+        '200':
+          description: Banque mise à jour
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminBank' }
+    delete:
+      tags: [Games Admin]
+      summary: Supprimer un brouillon de banque
+      responses:
+        '204': { description: Brouillon supprimé }
+
+  /games/admin/banks/{bankId}/items:
+    parameters:
+      - { name: bankId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Games Admin]
+      summary: Lire la composition ordonnée d'une banque
+      responses:
+        '200':
+          description: Identifiants des questions dans l'ordre de jeu
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminBankItems' }
+    put:
+      tags: [Games Admin]
+      summary: Remplacer atomiquement la composition d'un brouillon de banque
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AdminBankItems' }
+      responses:
+        '200':
+          description: Composition enregistrée
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminBank' }
+
+  /games/admin/banks/{bankId}/publish:
+    parameters:
+      - { name: bankId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Games Admin]
+      summary: Valider et publier atomiquement une banque
+      description: Les sessions déjà démarrées restent épinglées sur leur version.
+      responses:
+        '200':
+          description: Banque publiée
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminBank' }
+        '400':
+          description: Banque invalide, vide ou déjà publiée
+
+  /games/admin/banks/{bankId}/archive:
+    parameters:
+      - { name: bankId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Games Admin]
+      summary: Archiver une banque
+      responses:
+        '200':
+          description: Banque archivée
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminBank' }
+
+  /games/admin/configurations:
+    get:
+      tags: [Games Admin]
+      summary: Lister les paramètres et modificateurs versionnés
+      parameters:
+        - { name: kind, in: query, schema: { $ref: '#/components/schemas/AdminConfigurationKind' } }
+      responses:
+        '200':
+          description: Configurations administrables et valeurs protégées en lecture seule
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/AdminConfiguration' } }
+    post:
+      tags: [Games Admin]
+      summary: Enregistrer une configuration en brouillon
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AdminConfigurationWrite' }
+      responses:
+        '201':
+          description: Configuration créée
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminConfiguration' }
+
+  /games/admin/configurations/{configurationId}:
+    parameters:
+      - { name: configurationId, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      tags: [Games Admin]
+      summary: Modifier un brouillon de configuration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AdminConfigurationWrite' }
+      responses:
+        '200':
+          description: Configuration mise à jour
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminConfiguration' }
+    delete:
+      tags: [Games Admin]
+      summary: Supprimer un brouillon de configuration
+      responses:
+        '204': { description: Brouillon supprimé }
+
+  /games/admin/configurations/{configurationId}/publish:
+    parameters:
+      - { name: configurationId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Games Admin]
+      summary: Publier une configuration non scoring
+      responses:
+        '200':
+          description: Configuration publiée
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminConfiguration' }
+
+  /games/admin/configurations/{configurationId}/archive:
+    parameters:
+      - { name: configurationId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Games Admin]
+      summary: Archiver une configuration publiée ou en brouillon
+      responses:
+        '200':
+          description: Configuration archivée
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminConfiguration' }
+
+  /games/admin/assets:
+    get:
+      tags: [Games Admin]
+      summary: Lister la médiathèque des jeux
+      responses:
+        '200':
+          description: Assets administrés
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/AdminAsset' } }
+    post:
+      tags: [Games Admin]
+      summary: Téléverser un PNG ou SVG en brouillon
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, gameType, altText]
+              properties:
+                file: { type: string, format: binary }
+                gameType: { type: string }
+                altText: { type: string, minLength: 1 }
+      responses:
+        '201':
+          description: Asset téléversé
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminAsset' }
+
+  /games/admin/assets/{assetId}:
+    parameters:
+      - { name: assetId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Games Admin]
+      summary: Lire le contenu d'un asset stocké par le fallback de développement
+      responses:
+        '200':
+          description: Contenu binaire de l'asset
+          content:
+            image/png:
+              schema: { type: string, format: binary }
+            image/svg+xml:
+              schema: { type: string, format: binary }
+    put:
+      tags: [Games Admin]
+      summary: Modifier l'affectation et le texte alternatif d'un asset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AdminAssetUpdate' }
+      responses:
+        '200':
+          description: Asset mis à jour
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminAsset' }
+    delete:
+      tags: [Games Admin]
+      summary: Supprimer un asset en brouillon et son fichier distant
+      responses:
+        '204': { description: Brouillon et fichier supprimés }
+
+  /games/admin/assets/{assetId}/publish:
+    parameters:
+      - { name: assetId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Games Admin]
+      summary: Publier un asset
+      responses:
+        '200':
+          description: Asset publié
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminAsset' }
+
+  /games/admin/assets/{assetId}/archive:
+    parameters:
+      - { name: assetId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Games Admin]
+      summary: Archiver un asset sans supprimer le fichier distant
+      responses:
+        '200':
+          description: Asset archivé
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminAsset' }
+
+  /games/admin/releases:
+    get:
+      tags: [Games Admin]
+      summary: Journal des publications et actions d'administration
+      responses:
+        '200':
+          description: Audit immuable
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/AdminAuditEntry' } }
+
 components:
   securitySchemes:
     bearerAuth: { $ref: './common.openapi.yaml#/components/securitySchemes/bearerAuth' }
 
   schemas:
+    AdminStatus:
+      type: string
+      enum: [DRAFT, PUBLISHED, ARCHIVED]
+
+    AdminContentType:
+      type: string
+      enum: [DECISION_SCENARIO, EMOTIONAL_RADAR_SCENE]
+
+    AdminConfigurationKind:
+      type: string
+      enum: [SETTINGS, MODIFIERS]
+
+    AdminOverview:
+      type: object
+      required: [questionCount, publishedBankCount, draftCount, assetCount]
+      properties:
+        questionCount: { type: integer, minimum: 0 }
+        publishedBankCount: { type: integer, minimum: 0 }
+        draftCount: { type: integer, minimum: 0 }
+        assetCount: { type: integer, minimum: 0 }
+
+    AdminQuestion:
+      type: object
+      required: [id, externalCode, contentType, prompt, payload, status, managed, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        externalCode: { type: string }
+        contentType: { $ref: '#/components/schemas/AdminContentType' }
+        prompt: { type: string }
+        bankName: { type: string, nullable: true }
+        payload: { type: object, additionalProperties: true }
+        sourceId: { type: string, format: uuid, nullable: true }
+        managed:
+          type: boolean
+          description: true pour un contenu versionné modifiable, false pour un catalogue système en lecture seule
+        status: { $ref: '#/components/schemas/AdminStatus' }
+        updatedAt: { type: string, format: date-time }
+
+    AdminQuestionWrite:
+      type: object
+      required: [externalCode, contentType, prompt, payload]
+      properties:
+        externalCode: { type: string, minLength: 1, maxLength: 64 }
+        contentType: { $ref: '#/components/schemas/AdminContentType' }
+        prompt: { type: string, minLength: 1 }
+        payload:
+          type: object
+          additionalProperties: true
+          description: Données éditoriales versionnées. Aucune clé de score n'est acceptée.
+
+    AdminBank:
+      type: object
+      required: [id, code, name, contentType, itemCount, rotationWeight, version, status, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        code: { type: string }
+        name: { type: string }
+        contentType: { $ref: '#/components/schemas/AdminContentType' }
+        itemCount: { type: integer, minimum: 0 }
+        rotationWeight: { type: integer, minimum: 0, maximum: 100 }
+        version: { type: integer, minimum: 1 }
+        status: { $ref: '#/components/schemas/AdminStatus' }
+        updatedAt: { type: string, format: date-time }
+
+    AdminBankWrite:
+      type: object
+      required: [code, name, contentType, rotationWeight]
+      properties:
+        code: { type: string, pattern: '^[A-Z0-9_-]+$' }
+        name: { type: string, minLength: 1 }
+        contentType: { $ref: '#/components/schemas/AdminContentType' }
+        rotationWeight: { type: integer, minimum: 0, maximum: 100 }
+        sourceBankId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Banque à cloner pour composer immédiatement une nouvelle version.
+
+    AdminBankUpdate:
+      type: object
+      required: [name, rotationWeight]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        rotationWeight: { type: integer, minimum: 0, maximum: 100 }
+
+    AdminBankItems:
+      type: object
+      required: [questionIds]
+      properties:
+        questionIds:
+          type: array
+          uniqueItems: true
+          items: { type: string, format: uuid }
+
+    AdminConfiguration:
+      type: object
+      required: [id, gameType, kind, version, values, protectedScoring, status, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        gameType: { type: string }
+        kind: { $ref: '#/components/schemas/AdminConfigurationKind' }
+        version: { type: integer, minimum: 1 }
+        values: { type: object, additionalProperties: true }
+        protectedScoring: { type: boolean, description: Toujours false pour une ressource modifiable }
+        status: { $ref: '#/components/schemas/AdminStatus' }
+        updatedAt: { type: string, format: date-time }
+
+    AdminConfigurationWrite:
+      type: object
+      required: [gameType, kind, values]
+      properties:
+        gameType: { type: string }
+        kind: { $ref: '#/components/schemas/AdminConfigurationKind' }
+        values:
+          type: object
+          additionalProperties: true
+          description: Paramètres de déroulé, accessibilité et présentation uniquement.
+
+    AdminAsset:
+      type: object
+      required: [id, gameType, filename, mediaType, url, altText, status, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        gameType: { type: string }
+        filename: { type: string }
+        mediaType: { type: string, enum: [PNG, SVG] }
+        url: { type: string, format: uri }
+        altText: { type: string }
+        status: { $ref: '#/components/schemas/AdminStatus' }
+        createdAt: { type: string, format: date-time }
+
+    AdminAssetUpdate:
+      type: object
+      required: [gameType, altText]
+      properties:
+        gameType: { type: string, minLength: 1, maxLength: 48 }
+        altText: { type: string, minLength: 1, maxLength: 2000 }
+
+    AdminAuditEntry:
+      type: object
+      required: [id, action, entityType, entityId, actorId, details, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        action: { type: string }
+        entityType: { type: string }
+        entityId: { type: string, format: uuid }
+        actorId: { type: string, format: uuid }
+        details: { type: object, additionalProperties: true }
+        createdAt: { type: string, format: date-time }
+
     GameType:
       type: string
       description: >
