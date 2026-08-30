@@ -6,6 +6,7 @@ import com.zennyt.games.domain.vo.OptionQuality;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Port (interface) — catalogue des scénarios « Je Décide ».
@@ -58,6 +59,11 @@ public interface DecisionScenarioCatalog {
 
     /** Métadonnées + qualités d'un item, ou {@code empty} si l'item est inconnu. */
     Optional<Item> item(String itemId);
+
+    /** Session-bank-aware lookup; old catalogs keep their historical behavior. */
+    default Optional<Item> item(String itemId, UUID bankId) {
+        return item(itemId);
+    }
 
     /** true si le catalogue ne contient aucun scénario (gate de jouabilité). */
     boolean isEmpty();

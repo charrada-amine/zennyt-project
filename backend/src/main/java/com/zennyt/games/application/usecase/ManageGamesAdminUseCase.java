@@ -3,6 +3,7 @@ package com.zennyt.games.application.usecase;
 import com.zennyt.games.application.port.GamesMediaStoragePort;
 import com.zennyt.games.domain.model.AdminModels.*;
 import com.zennyt.games.domain.repository.GameAdminRepository;
+import com.zennyt.shared.application.exception.NotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -206,6 +207,17 @@ public class ManageGamesAdminUseCase {
     public AssetContent assetContent(UUID assetId) {
         Asset asset = repository.findAsset(assetId)
             .orElseThrow(() -> new IllegalArgumentException("Asset introuvable"));
+        if (!asset.publicId().startsWith("local/")) {
+            throw new IllegalStateException("Le contenu distant est servi directement par le CDN");
+        }
+        return new AssetContent(asset, storage.read(asset.publicId()));
+    }
+
+    @Transactional(readOnly = true)
+    public AssetContent publishedAssetContent(UUID assetId) {
+        Asset asset = repository.findAsset(assetId)
+            .filter(candidate -> candidate.status() == Status.PUBLISHED)
+            .orElseThrow(() -> new NotFoundException("Asset publié introuvable"));
         if (!asset.publicId().startsWith("local/")) {
             throw new IllegalStateException("Le contenu distant est servi directement par le CDN");
         }

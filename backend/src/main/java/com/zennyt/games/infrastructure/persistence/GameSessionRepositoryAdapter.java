@@ -1,6 +1,10 @@
 package com.zennyt.games.infrastructure.persistence;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zennyt.games.domain.model.Attempt;
+import com.zennyt.games.domain.model.GameRuntimeSnapshot;
 import com.zennyt.games.domain.model.GameSession;
 import com.zennyt.games.domain.repository.GameSessionRepository;
 import com.zennyt.games.domain.vo.Score;
@@ -21,9 +25,11 @@ import java.util.UUID;
 public class GameSessionRepositoryAdapter implements GameSessionRepository {
 
     private final JpaGameSessionRepository jpa;
+    private final ObjectMapper objectMapper;
 
-    public GameSessionRepositoryAdapter(JpaGameSessionRepository jpa) {
+    public GameSessionRepositoryAdapter(JpaGameSessionRepository jpa, ObjectMapper objectMapper) {
         this.jpa = jpa;
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -50,7 +56,11 @@ public class GameSessionRepositoryAdapter implements GameSessionRepository {
             .toList();
         return new GameSessionEntity(
             s.id(), s.playerId(), s.gameType(), s.status(),
-            attempts, s.startedAt(), s.completedAt(), s.decisionFormCode());
+            attempts, s.startedAt(), s.completedAt(), s.decisionFormCode(),
+            s.runtimeSnapshot().settingsVersion(), s.runtimeSnapshot().modifiersVersion(),
+            writeJson(s.runtimeSnapshot().settings()), writeJson(s.runtimeSnapshot().modifiers()),
+            s.runtimeSnapshot().bankId(), s.runtimeSnapshot().bankCode(),
+            s.runtimeSnapshot().bankVersion(), s.runtimeSnapshot().bankContentType());
     }
 
     private GameSession toDomain(GameSessionEntity e) {
@@ -62,6 +72,26 @@ public class GameSessionRepositoryAdapter implements GameSessionRepository {
             .toList();
         return GameSession.rehydrate(
             e.getId(), e.getPlayerId(), e.getGameType(), e.getStatus(),
-            attempts, e.getStartedAt(), e.getCompletedAt(), e.getDecisionFormCode());
+            attempts, e.getStartedAt(), e.getCompletedAt(), e.getDecisionFormCode(),
+            new GameRuntimeSnapshot(e.getRuntimeBankId(), e.getRuntimeBankCode(),
+                e.getRuntimeBankVersion(), e.getRuntimeBankContentType(),
+                e.getRuntimeSettingsVersion(), e.getRuntimeModifiersVersion(),
+                readJson(e.getRuntimeSettings()), readJson(e.getRuntimeModifiers())));
+    }
+
+    private String writeJson(java.util.Map<String, Object> value) {
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (JsonProcessingException exception) {
+            throw new IllegalStateException("Configuration runtime non sérialisable", exception);
+        }
+    }
+
+    private java.util.Map<String, Object> readJson(String value) {
+        try {
+            return objectMapper.readValue(value == null ? "{}" : value, new TypeReference<>() {});
+        } catch (JsonProcessingException exception) {
+            throw new IllegalStateException("Configuration runtime persistée invalide", exception);
+        }
     }
 }

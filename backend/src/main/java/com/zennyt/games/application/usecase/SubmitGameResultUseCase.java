@@ -172,7 +172,7 @@ public class SubmitGameResultUseCase {
 
         assertDecisionItemsMatchAssignedForm(command, session);
 
-        Score score = computeScore(command.miniGame(), command);
+        Score score = computeScore(command.miniGame(), command, session);
         session.recordResult(command.miniGame(), score, scoring);
 
         GameSession saved = repository.save(session);
@@ -194,7 +194,7 @@ public class SubmitGameResultUseCase {
 
         // « Je Décide » : le détail par dimension vient du report (catalogue), pas
         // des seules métriques — on le calcule une fois et le réutilise.
-        DecisionReport decisionReport = decisionReport(command);
+        DecisionReport decisionReport = decisionReport(command, session);
 
         // Détail du score (panneau) : mêmes données + même barème que le score.
         // Emotional Radar et « Je Décide » ont une signature dédiée car leur détail
@@ -237,7 +237,8 @@ public class SubmitGameResultUseCase {
             throw new IllegalStateException(
                 "Aucune forme « Je Décide » assignée à la session " + session.id());
         }
-        Set<String> allowed = decisionForms.form(formCode).stream()
+        Set<String> allowed = decisionForms.bank(
+                session.runtimeSnapshot().bankId(), formCode).stream()
             .map(DecisionFormCatalog.Content::itemId)
             .collect(java.util.stream.Collectors.toSet());
 
@@ -456,13 +457,14 @@ public class SubmitGameResultUseCase {
     }
 
     /** Dérive les indicateurs pour « Je Décide » (dimensions, SCW, validité) ; null sinon. */
-    private DecisionReport decisionReport(SubmitGameResultCommand command) {
+    private DecisionReport decisionReport(SubmitGameResultCommand command, GameSession session) {
         if (command.miniGame() != MiniGame.DECISION_CORE
             || !(command.metrics() instanceof DecisionMetrics metrics)) {
             return null;
         }
         // Le calibrage appareil ajuste le temps imparti DT (double ajustement langue + calibrage).
-        return decision.report(metrics, calibration.offsetMs(command.deviceCalibration()));
+        return decision.report(metrics, calibration.offsetMs(command.deviceCalibration()),
+            session.runtimeSnapshot().bankId());
     }
 
     /** Dérive les indicateurs qualitatifs pour « Predictive Puzzle » ; null sinon. */
@@ -496,7 +498,8 @@ public class SubmitGameResultUseCase {
     }
 
     /** Sélectionne le barème selon le mini-jeu. */
-    private Score computeScore(MiniGame miniGame, SubmitGameResultCommand command) {
+    private Score computeScore(MiniGame miniGame, SubmitGameResultCommand command,
+                               GameSession session) {
         return switch (miniGame) {
             case OPTIMAL_PATH -> scoring.scoreOptimalPath(expectMetrics(command, PlanifikMetrics.class));
             case TASK_SCHEDULING -> scoring.scoreTaskScheduling(expectMetrics(command, TaskSchedulingMetrics.class));
@@ -507,7 +510,8 @@ public class SubmitGameResultUseCase {
                 calibration.offsetMs(command.deviceCalibration()));
             case DECISION_CORE -> decision.score(
                 expectMetrics(command, DecisionMetrics.class),
-                calibration.offsetMs(command.deviceCalibration()));
+                calibration.offsetMs(command.deviceCalibration()),
+                session.runtimeSnapshot().bankId());
             // ⚠️ Seul mini-jeu dont le score NE dérive PAS des métriques reçues : il
             // est reconstruit depuis les réponses que le serveur a notées scène par
             // scène. Les métriques ne servent qu'aux indicateurs comportementaux.

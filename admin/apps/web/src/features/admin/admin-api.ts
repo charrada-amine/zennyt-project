@@ -21,7 +21,8 @@ export async function adminApi<T>(path: string, init?: RequestInit): Promise<T> 
   const token = sessionStorage.getItem("zennyt.admin.token");
   const headers = new Headers(init?.headers);
   if (token) headers.set("Authorization", `Bearer ${token}`);
-  if (init?.body && !(init.body instanceof FormData)) headers.set("Content-Type", "application/json");
+  if (init?.body && !(init.body instanceof FormData))
+    headers.set("Content-Type", "application/json");
   const response = await fetch(`/api/v1/games/admin${path}`, { ...init, headers });
   if (response.status === 401) {
     sessionStorage.removeItem("zennyt.admin.auth");
@@ -29,7 +30,10 @@ export async function adminApi<T>(path: string, init?: RequestInit): Promise<T> 
   }
   if (!response.ok) {
     const error = (await response.json().catch(() => null)) as { message?: string } | null;
-    throw new AdminApiError(error?.message ?? `La requête a échoué (${response.status})`, response.status);
+    throw new AdminApiError(
+      error?.message ?? `La requête a échoué (${response.status})`,
+      response.status,
+    );
   }
   if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
@@ -66,7 +70,9 @@ export async function login(email: string, password: string) {
   const encodedPayload = body.accessToken.split(".")[1];
   if (!encodedPayload) throw new Error("Jeton d'authentification invalide");
   const normalized = encodedPayload.replaceAll("-", "+").replaceAll("_", "/");
-  const payload = JSON.parse(atob(normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "="))) as {
+  const payload = JSON.parse(
+    atob(normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=")),
+  ) as {
     role?: string;
   };
   if (payload.role !== "ADMIN") throw new Error("Ce compte ne possède pas le rôle administrateur");

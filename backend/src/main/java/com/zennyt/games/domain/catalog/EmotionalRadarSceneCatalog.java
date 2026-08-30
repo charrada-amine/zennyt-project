@@ -22,6 +22,11 @@ public interface EmotionalRadarSceneCatalog {
     /** Scènes actives, triées par {@code sceneOrder}. */
     List<EmotionalRadarScene> scenes();
 
+    /** Published administration bank, with active-catalog fallback for old sessions. */
+    default List<EmotionalRadarScene> scenes(UUID bankId) {
+        return scenes();
+    }
+
     /** Une scène par identifiant, si elle existe et est active. */
     Optional<EmotionalRadarScene> findById(UUID sceneId);
 

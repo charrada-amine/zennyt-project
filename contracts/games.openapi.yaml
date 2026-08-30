@@ -9,7 +9,7 @@ info:
     des MÉTRIQUES objectives ; le score déterministe est calculé côté serveur.
     Ce contexte est indépendant : il n'expose et ne consomme aucun autre
     contexte, et publie son résultat via l'événement games.result.recorded.
-  version: 1.5.0
+  version: 1.6.0
 
 servers:
   - url: https://api.zennyt.com/api/v1
@@ -580,6 +580,26 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/AdminAsset' }
 
+  /games/assets/{assetId}:
+    parameters:
+      - { name: assetId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Games]
+      summary: Lire un asset de jeu publié
+      description: >
+        Route de livraison authentifiée utilisée par les clients de jeu lorsque
+        le stockage local de développement est actif. Les brouillons et les
+        assets archivés ne sont jamais servis par cette route.
+      responses:
+        '200':
+          description: Contenu binaire de l'asset publié
+          content:
+            image/png:
+              schema: { type: string, format: binary }
+            image/svg+xml:
+              schema: { type: string, format: binary }
+        '404': { description: Asset publié introuvable }
+
   /games/admin/releases:
     get:
       tags: [Games Admin]
@@ -722,7 +742,12 @@ components:
         gameType: { type: string }
         filename: { type: string }
         mediaType: { type: string, enum: [PNG, SVG] }
-        url: { type: string, format: uri }
+        url:
+          type: string
+          format: uri-reference
+          description: >
+            URL CDN absolue, ou route Games authentifiée relative lorsque le
+            stockage local de développement est actif.
         altText: { type: string }
         status: { $ref: '#/components/schemas/AdminStatus' }
         createdAt: { type: string, format: date-time }
@@ -2538,6 +2563,7 @@ components:
 
     GameSession:
       type: object
+      required: [id, playerId, gameType, status, compositeRaw, compositeMax, normalized, attempts, startedAt, runtime]
       properties:
         id: { type: string, format: uuid }
         playerId: { type: string, format: uuid }
@@ -2551,6 +2577,8 @@ components:
           items: { $ref: '#/components/schemas/Attempt' }
         startedAt: { type: string, format: date-time }
         completedAt: { type: string, format: date-time, nullable: true }
+        runtime:
+          $ref: '#/components/schemas/GameRuntimeSnapshot'
         moveFastIndicators:
           allOf: [ { $ref: '#/components/schemas/MoveFastIndicators' } ]
           nullable: true
@@ -2598,3 +2626,41 @@ components:
           nullable: true
           items: { $ref: '#/components/schemas/ScoreBreakdownLine' }
           description: "Détail ligne par ligne du calcul du score (panneau de résultats)."
+
+    GameRuntimeSnapshot:
+      type: object
+      description: >
+        Copie immuable des SETTINGS et MODIFIERS publiés au démarrage de la
+        session. Une publication ultérieure ne modifie jamais une passation en
+        cours. Les règles de scoring ne sont pas admises dans ces objets.
+      required: [settings, modifiers]
+      properties:
+        bankId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Banque publiée sélectionnée pour cette session.
+        bankCode:
+          type: string
+          nullable: true
+        bankVersion:
+          type: integer
+          minimum: 1
+          nullable: true
+        bankContentType:
+          allOf: [ { $ref: '#/components/schemas/AdminContentType' } ]
+          nullable: true
+        settingsVersion:
+          type: integer
+          minimum: 1
+          nullable: true
+        modifiersVersion:
+          type: integer
+          minimum: 1
+          nullable: true
+        settings:
+          type: object
+          additionalProperties: true
+        modifiers:
+          type: object
+          additionalProperties: true

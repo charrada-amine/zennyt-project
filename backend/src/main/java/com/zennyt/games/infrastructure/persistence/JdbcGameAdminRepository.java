@@ -1,7 +1,12 @@
 package com.zennyt.games.infrastructure.persistence;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zennyt.games.domain.model.AdminModels.*;
+import com.zennyt.games.domain.model.GameRuntimeSnapshot;
 import com.zennyt.games.domain.repository.GameAdminRepository;
+import com.zennyt.games.domain.vo.GameType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -10,8 +15,10 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Repository
 public class JdbcGameAdminRepository implements GameAdminRepository {
@@ -19,7 +26,21 @@ public class JdbcGameAdminRepository implements GameAdminRepository {
         SELECT * FROM (
           SELECT s.id, s.item_id AS external_code, 'DECISION_SCENARIO'::varchar AS content_type,
                  concat_ws(E'\n', s.vignette, s.task) AS prompt,
-                 jsonb_build_object('vignette', s.vignette, 'task', s.task)::text AS payload_json,
+                 jsonb_build_object(
+                    'dimension', s.dimension,
+                    'format', s.format,
+                    'pairId', s.pair_id,
+                    'vignette', s.vignette,
+                    'vignetteRef', s.vignette_ref,
+                    'task', s.task,
+                    'provisionalScoring', s.provisional_scoring,
+                    'options', (SELECT jsonb_agg(jsonb_build_object(
+                        'optionId', o.option_id,
+                        'label', o.label,
+                        'quality', o.quality
+                    ) ORDER BY o.position)
+                    FROM games.decision_scenario_options o WHERE o.scenario_id=s.id)
+                 )::text AS payload_json,
                  'PUBLISHED'::varchar AS status, 'Je Décide - Forme A'::varchar AS bank_name,
                  NULL::uuid AS source_id, false AS managed, s.updated_at
             FROM games.decision_scenarios s
@@ -27,12 +48,16 @@ public class JdbcGameAdminRepository implements GameAdminRepository {
           SELECT s.id, concat('ER-', lpad(s.scene_order::text, 3, '0')),
                  'EMOTIONAL_RADAR_SCENE'::varchar, s.prompt_text,
                  jsonb_build_object(
+                    'sceneOrder', s.scene_order,
                     'instructionText', s.instruction_text,
                     'mediaType', s.media_type,
                     'mediaUrl', s.media_url,
                     'altText', s.alt_text,
                     'transcript', s.transcript,
-                    'explanation', s.explanation
+                    'explanation', s.explanation,
+                    'expectedEmotion', s.expected_emotion,
+                    'expectedNuance', s.expected_nuance,
+                    'expectedIntensity', s.expected_intensity
                  )::text,
                  CASE WHEN s.active THEN 'PUBLISHED' ELSE 'ARCHIVED' END::varchar,
                  'Radar émotionnel - Core'::varchar, NULL::uuid, false,
@@ -51,8 +76,56 @@ public class JdbcGameAdminRepository implements GameAdminRepository {
         """;
 
     private final JdbcTemplate jdbc;
+    private final ObjectMapper objectMapper;
 
-    public JdbcGameAdminRepository(JdbcTemplate jdbc) { this.jdbc = jdbc; }
+    public JdbcGameAdminRepository(JdbcTemplate jdbc, ObjectMapper objectMapper) {
+        this.jdbc = jdbc;
+        this.objectMapper = objectMapper;
+    }
+
+    @Override
+    public GameRuntimeSnapshot runtimeSnapshot(GameType gameType) {
+        List<Configuration> published = jdbc.query("""
+            SELECT * FROM games.admin_configurations
+             WHERE game_type=? AND status='PUBLISHED'
+             ORDER BY configuration_kind
+            """, (rs, row) -> configuration(rs, row), gameType.name());
+        Configuration settings = published.stream()
+            .filter(value -> value.kind() == ConfigurationKind.SETTINGS).findFirst().orElse(null);
+        Configuration modifiers = published.stream()
+            .filter(value -> value.kind() == ConfigurationKind.MODIFIERS).findFirst().orElse(null);
+        Bank bank = selectPublishedBank(gameType);
+        return new GameRuntimeSnapshot(
+            bank == null ? null : bank.id(),
+            bank == null ? null : bank.code(),
+            bank == null ? null : bank.version(),
+            bank == null ? null : bank.contentType().name(),
+            settings == null ? null : settings.version(),
+            modifiers == null ? null : modifiers.version(),
+            settings == null ? Map.of() : jsonMap(settings.valuesJson()),
+            modifiers == null ? Map.of() : jsonMap(modifiers.valuesJson()));
+    }
+
+    private Bank selectPublishedBank(GameType gameType) {
+        ContentType type = switch (gameType) {
+            case DECISION -> ContentType.DECISION_SCENARIO;
+            case EMOTIONAL_REGULATION -> ContentType.EMOTIONAL_RADAR_SCENE;
+            default -> null;
+        };
+        if (type == null) return null;
+        List<Bank> candidates = banks().stream()
+            .filter(bank -> bank.status() == Status.PUBLISHED && bank.contentType() == type)
+            .toList();
+        if (candidates.isEmpty()) return null;
+        int totalWeight = candidates.stream().mapToInt(Bank::rotationWeight).sum();
+        if (totalWeight <= 0) return candidates.getFirst();
+        int draw = ThreadLocalRandom.current().nextInt(totalWeight);
+        for (Bank candidate : candidates) {
+            draw -= candidate.rotationWeight();
+            if (draw < 0) return candidate;
+        }
+        return candidates.getLast();
+    }
 
     @Override
     public Overview overview() {
@@ -243,11 +316,55 @@ public class JdbcGameAdminRepository implements GameAdminRepository {
     @Override
     public Bank publishBank(UUID bankId, UUID actorId) {
         Bank selected = findBank(bankId).orElseThrow();
+        validateRuntimeBank(selected);
         jdbc.update("UPDATE games.admin_banks SET status='ARCHIVED', updated_at=now() WHERE code=? AND status='PUBLISHED' AND id<>?", selected.code(), bankId);
         int updated = jdbc.update("UPDATE games.admin_banks SET status='PUBLISHED', published_at=now(), updated_at=now() WHERE id=? AND status='DRAFT'", bankId);
         if (updated != 1) throw new IllegalStateException("Seule une banque en brouillon peut être publiée");
         audit("BANK_PUBLISHED", "BANK", bankId, actorId);
         return findBank(bankId).orElseThrow();
+    }
+
+    private void validateRuntimeBank(Bank bank) {
+        String eligibility = bank.contentType() == ContentType.DECISION_SCENARIO ? """
+            SELECT count(*) FROM games.admin_bank_items items
+              LEFT JOIN games.decision_scenarios content ON content.id=items.content_id
+              LEFT JOIN games.admin_questions managed ON managed.id=items.content_id
+             WHERE items.bank_id=? AND (
+               content.id IS NOT NULL OR (
+                 managed.status='PUBLISHED' AND managed.content_type='DECISION_SCENARIO'
+                 AND jsonb_exists_all(managed.payload, ARRAY['dimension','format','task','options'])
+                 AND managed.payload->>'dimension' IN ('II','ER','DT','CS','RE')
+                 AND managed.payload->>'format' IN ('STANDARD','TEMPORAL_DECISION','COHERENCE_PAIR')
+                 AND jsonb_array_length(managed.payload->'options') >= 2
+                 AND NOT EXISTS (
+                   SELECT 1 FROM jsonb_array_elements(managed.payload->'options') option
+                    WHERE NOT jsonb_exists_all(option, ARRAY['optionId','label','quality'])
+                       OR option->>'quality' NOT IN
+                         ('OPTIMAL','SATISFACTORY','PARTIAL','DEFICIENT'))))
+            """ : """
+            SELECT count(*) FROM games.admin_bank_items items
+              LEFT JOIN games.emotional_radar_scenes content
+                ON content.id=items.content_id AND content.active=TRUE
+              LEFT JOIN games.admin_questions managed ON managed.id=items.content_id
+             WHERE items.bank_id=? AND (
+               content.id IS NOT NULL OR (
+                 managed.status='PUBLISHED' AND managed.content_type='EMOTIONAL_RADAR_SCENE'
+                 AND jsonb_exists_all(managed.payload, ARRAY['sceneOrder','mediaType','instructionText',
+                   'expectedEmotion','expectedNuance','expectedIntensity','explanation'])
+                 AND managed.payload->>'mediaType' IN ('DIALOGUE','TEXT','IMAGE','VIDEO')
+                 AND managed.payload->>'expectedEmotion' IN
+                   ('JOY','SADNESS','ANGER','FEAR','DISGUST','SURPRISE')
+                 AND managed.payload->>'expectedIntensity' IN ('1','2','3','4','5')))
+            """;
+        Integer eligible = jdbc.queryForObject(eligibility, Integer.class, bank.id());
+        if (eligible == null || eligible != bank.itemCount()) {
+            throw new IllegalStateException(
+                "La banque contient une question non publiée ou un payload runtime incomplet");
+        }
+        if (bank.contentType() == ContentType.DECISION_SCENARIO
+                && bank.itemCount() != com.zennyt.games.domain.config.DecisionConfig.TOTAL_ITEMS) {
+            throw new IllegalStateException("Une forme Je Décide doit contenir exactement 30 items");
+        }
     }
 
     @Override
@@ -431,6 +548,14 @@ public class JdbcGameAdminRepository implements GameAdminRepository {
     private void audit(String action, String entityType, UUID entityId, UUID actorId, String detailsJson) {
         jdbc.update("INSERT INTO games.admin_audit_log (id, action, entity_type, entity_id, actor_id, details) VALUES (?, ?, ?, ?, ?, CAST(? AS jsonb))",
             UUID.randomUUID(), action, entityType, entityId, actorId, detailsJson);
+    }
+
+    private Map<String, Object> jsonMap(String json) {
+        try {
+            return objectMapper.readValue(json, new TypeReference<>() {});
+        } catch (JsonProcessingException exception) {
+            throw new IllegalStateException("Configuration administrée persistée invalide", exception);
+        }
     }
 
     private static UUID uuid(ResultSet rs, String column) throws SQLException { return rs.getObject(column, UUID.class); }

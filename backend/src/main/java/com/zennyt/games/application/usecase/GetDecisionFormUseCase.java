@@ -51,7 +51,8 @@ public class GetDecisionFormUseCase {
                 "Aucune forme « Je Décide » assignée à la session " + sessionId);
         }
 
-        List<DecisionFormCatalog.Content> items = catalog.form(formCode);
+        List<DecisionFormCatalog.Content> items = catalog.bank(
+            session.runtimeSnapshot().bankId(), formCode);
         if (items.isEmpty()) {
             throw new IllegalStateException(
                 "Forme « Je Décide » " + formCode + " absente du catalogue.");

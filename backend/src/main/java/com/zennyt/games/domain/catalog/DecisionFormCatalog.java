@@ -5,6 +5,7 @@ import com.zennyt.games.domain.vo.DecisionItemFormat;
 import com.zennyt.games.domain.vo.OptionQuality;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Port de <b>lecture</b> — contenu d'une forme de passation « Je Décide ».
@@ -30,6 +31,11 @@ public interface DecisionFormCatalog {
      *         forme n'est pas seedée
      */
     List<Content> form(String formCode);
+
+    /** Published administration bank, with legacy form fallback for old sessions. */
+    default List<Content> bank(UUID bankId, String fallbackFormCode) {
+        return form(fallbackFormCode);
+    }
 
     /**
      * Un item prêt à être présenté.

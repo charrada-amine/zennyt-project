@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * Service de domaine : barème de « Je Décide » (prise de décision).
@@ -51,7 +52,11 @@ public class DecisionScoringService {
 
     /** Score agrégé du mini-jeu : SCW /100 + niveau. Le détail par dimension va dans le report. */
     public Score score(DecisionMetrics m, double calibrationOffsetMs) {
-        Map<DecisionDimension, DimensionOutcome> dims = computeDimensions(m, calibrationOffsetMs);
+        return score(m, calibrationOffsetMs, null);
+    }
+
+    public Score score(DecisionMetrics m, double calibrationOffsetMs, UUID bankId) {
+        Map<DecisionDimension, DimensionOutcome> dims = computeDimensions(m, calibrationOffsetMs, bankId);
         int scw = (int) Math.round(scw(dims));
         // Score agrégé = SCW /100 (le détail /18 par dimension vit dans le report/API).
         return new Score(scw, SCW_MAX, DecisionProvisionalRules.levelForScw(scw));
@@ -59,7 +64,11 @@ public class DecisionScoringService {
 
     /** Indicateurs détaillés (dimensions, interprétations, validité, temporels). */
     public DecisionReport report(DecisionMetrics m, double calibrationOffsetMs) {
-        Map<DecisionDimension, DimensionOutcome> dims = computeDimensions(m, calibrationOffsetMs);
+        return report(m, calibrationOffsetMs, null);
+    }
+
+    public DecisionReport report(DecisionMetrics m, double calibrationOffsetMs, UUID bankId) {
+        Map<DecisionDimension, DimensionOutcome> dims = computeDimensions(m, calibrationOffsetMs, bankId);
 
         int raw = dims.values().stream()
             .filter(o -> o.score() != null)
@@ -98,6 +107,11 @@ public class DecisionScoringService {
     /** Score /18 (ou non exploitable) de chaque dimension, imputation comprise. */
     private Map<DecisionDimension, DimensionOutcome> computeDimensions(
             DecisionMetrics m, double calibrationOffsetMs) {
+        return computeDimensions(m, calibrationOffsetMs, null);
+    }
+
+    private Map<DecisionDimension, DimensionOutcome> computeDimensions(
+            DecisionMetrics m, double calibrationOffsetMs, UUID bankId) {
         double languageMultiplier = resolveLanguageMultiplier(m.sessionLanguage());
 
         Map<DecisionDimension, List<Integer>> byDimension = new EnumMap<>(DecisionDimension.class);
@@ -112,7 +126,7 @@ public class DecisionScoringService {
             if (!r.answered()) {
                 continue; // item manquant → imputation par dimension
             }
-            DecisionScenarioCatalog.Item item = catalog.item(r.itemId())
+            DecisionScenarioCatalog.Item item = catalog.item(r.itemId(), bankId)
                 .orElseThrow(() -> new IllegalArgumentException(
                     "Item absent du catalogue « Je Décide » : " + r.itemId()));
             OptionQuality quality = item.qualityOf(r.selectedOptionId());

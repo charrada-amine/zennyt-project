@@ -3,6 +3,7 @@ package com.zennyt.games.application.usecase;
 import com.zennyt.games.application.command.StartGameSessionCommand;
 import com.zennyt.games.domain.model.GameSession;
 import com.zennyt.games.domain.repository.GameSessionRepository;
+import com.zennyt.games.domain.repository.GameAdminRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,14 +17,18 @@ import org.springframework.transaction.annotation.Transactional;
 public class StartGameSessionUseCase {
 
     private final GameSessionRepository repository;
+    private final GameAdminRepository adminRepository;
 
-    public StartGameSessionUseCase(GameSessionRepository repository) {
+    public StartGameSessionUseCase(GameSessionRepository repository,
+                                   GameAdminRepository adminRepository) {
         this.repository = repository;
+        this.adminRepository = adminRepository;
     }
 
     @Transactional
     public GameSession execute(StartGameSessionCommand command) {
-        GameSession session = GameSession.start(command.playerId(), command.gameType());
+        GameSession session = GameSession.start(command.playerId(), command.gameType(),
+            adminRepository.runtimeSnapshot(command.gameType()));
         return repository.save(session);
     }
 }

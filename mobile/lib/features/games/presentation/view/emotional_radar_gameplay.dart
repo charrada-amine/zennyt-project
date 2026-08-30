@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../domain/config/emotional_radar_config.dart';
 import '../../domain/entities/emotional_radar.dart';
@@ -70,7 +71,6 @@ class _ScenePreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final url = scene.mediaUrl;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -85,15 +85,11 @@ class _ScenePreview extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               child: AspectRatio(
                 aspectRatio: 16 / 10,
-                child: url == null
-                    ? const _MediaPlaceholder()
-                    : Image.network(
-                        url,
-                        fit: BoxFit.cover,
-                        // Le média peut manquer hors-ligne : la scène reste
-                        // jouable grâce à son équivalent textuel.
-                        errorBuilder: (_, _, _) => const _MediaPlaceholder(),
-                      ),
+                child: EmotionalRadarSceneImage(
+                  scene: scene,
+                  fit: BoxFit.cover,
+                  fallback: const _MediaPlaceholder(),
+                ),
               ),
             ),
           ),
@@ -109,6 +105,46 @@ class _ScenePreview extends StatelessWidget {
           ),
         ],
       ],
+    );
+  }
+}
+
+/// Renders authenticated admin assets already hydrated by the Games repository.
+class EmotionalRadarSceneImage extends StatelessWidget {
+  const EmotionalRadarSceneImage({
+    super.key,
+    required this.scene,
+    required this.fit,
+    required this.fallback,
+    this.width,
+  });
+
+  final EmotionalRadarScene scene;
+  final BoxFit fit;
+  final Widget fallback;
+  final double? width;
+
+  @override
+  Widget build(BuildContext context) {
+    final bytes = scene.mediaBytes;
+    if (bytes != null) {
+      if (scene.mediaMimeType?.contains('svg') ?? false) {
+        return SvgPicture.memory(bytes, fit: fit, width: width);
+      }
+      return Image.memory(
+        bytes,
+        fit: fit,
+        width: width,
+        errorBuilder: (_, _, _) => fallback,
+      );
+    }
+    final url = scene.mediaUrl;
+    if (url == null || url.startsWith('/api/v1/games/assets/')) return fallback;
+    return Image.network(
+      url,
+      fit: fit,
+      width: width,
+      errorBuilder: (_, _, _) => fallback,
     );
   }
 }
@@ -161,7 +197,9 @@ class AnswerPanel extends StatelessWidget {
   final VoidCallback onValidate;
 
   bool get _canValidate =>
-      selectedEmotion != null && selectedNuance != null && selectedIntensity != null;
+      selectedEmotion != null &&
+      selectedNuance != null &&
+      selectedIntensity != null;
 
   @override
   Widget build(BuildContext context) {
@@ -232,7 +270,8 @@ class AnswerPanel extends StatelessWidget {
             if (selectedIntensity != null)
               _StepHeader(
                 title: '3 Intensity',
-                hint: 'Level $selectedIntensity, '
+                hint:
+                    'Level $selectedIntensity, '
                     '${EmotionalRadarConfig.intensityLabel(selectedIntensity!)}, '
                     'is selected.',
               ),
@@ -256,7 +295,11 @@ class AnswerPanel extends StatelessWidget {
 }
 
 class _StepHeader extends StatelessWidget {
-  const _StepHeader({required this.title, required this.hint, this.inline = false});
+  const _StepHeader({
+    required this.title,
+    required this.hint,
+    this.inline = false,
+  });
 
   final String title;
   final String hint;
@@ -404,7 +447,9 @@ class _ValidateButton extends StatelessWidget {
             disabledBackgroundColor: const Color(0xFFEAEFF7),
             disabledForegroundColor: EmotionalRadarPalette.muted,
             elevation: 0,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
           ),
           child: Text(
             validating ? 'Validating…' : 'Validate my answer',
@@ -506,8 +551,8 @@ class FeedbackCard extends StatelessWidget {
                         correct
                             ? 'You identified the emotional pattern accurately.'
                             : 'The best match is '
-                                '${feedback.expectedEmotion.label.toLowerCase()} with '
-                                '${_pretty(feedback.expectedNuance).toLowerCase()}.',
+                                  '${feedback.expectedEmotion.label.toLowerCase()} with '
+                                  '${_pretty(feedback.expectedNuance).toLowerCase()}.',
                         style: const TextStyle(
                           fontSize: 14,
                           height: 1.35,
@@ -532,19 +577,22 @@ class FeedbackCard extends StatelessWidget {
             ] else ...[
               FeedbackDetailRow(
                 label: 'Your answer',
-                value: '${selectedEmotion.label} / ${selectedNuance.label} '
+                value:
+                    '${selectedEmotion.label} / ${selectedNuance.label} '
                     '/ $selectedIntensity',
               ),
               FeedbackDetailRow(
                 label: 'Best answer',
-                value: '${feedback.expectedEmotion.label} / '
+                value:
+                    '${feedback.expectedEmotion.label} / '
                     '${_pretty(feedback.expectedNuance)} / '
                     '${feedback.suggestedIntensity}',
               ),
             ],
             FeedbackDetailRow(
               label: 'Suggested intensity',
-              value: '${feedback.suggestedIntensity} '
+              value:
+                  '${feedback.suggestedIntensity} '
                   '${EmotionalRadarConfig.intensityLabel(feedback.suggestedIntensity)}',
             ),
             const SizedBox(height: 10),

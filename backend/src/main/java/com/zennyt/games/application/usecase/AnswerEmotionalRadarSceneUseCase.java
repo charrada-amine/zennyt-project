@@ -1,6 +1,7 @@
 package com.zennyt.games.application.usecase;
 
 import com.zennyt.games.domain.catalog.EmotionalRadarSceneCatalog;
+import com.zennyt.games.domain.model.GameSession;
 import com.zennyt.games.domain.repository.EmotionalRadarAnswerRepository;
 import com.zennyt.games.domain.repository.GameSessionRepository;
 import com.zennyt.games.domain.service.EmotionalRadarScoringService;
@@ -43,10 +44,12 @@ public class AnswerEmotionalRadarSceneUseCase {
     public Result execute(UUID sessionId, UUID sceneId, BasicEmotion emotion,
                           String nuance, int intensity) {
 
-        sessions.findById(sessionId)
+        GameSession session = sessions.findById(sessionId)
             .orElseThrow(() -> new NotFoundException("Session introuvable : " + sessionId));
 
-        EmotionalRadarScene scene = catalog.findById(sceneId)
+        EmotionalRadarScene scene = EmotionalRadarRuntimeSelection.select(session,
+            catalog.scenes(session.runtimeSnapshot().bankId()))
+            .stream().filter(candidate -> candidate.id().equals(sceneId)).findFirst()
             .orElseThrow(() -> new NotFoundException("Scène introuvable : " + sceneId));
 
         EmotionalRadarAnswer graded = scoring.grade(

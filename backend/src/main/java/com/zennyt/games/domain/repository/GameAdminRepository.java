@@ -1,12 +1,15 @@
 package com.zennyt.games.domain.repository;
 
 import com.zennyt.games.domain.model.AdminModels.*;
+import com.zennyt.games.domain.model.GameRuntimeSnapshot;
+import com.zennyt.games.domain.vo.GameType;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 public interface GameAdminRepository {
+    GameRuntimeSnapshot runtimeSnapshot(GameType gameType);
     Overview overview();
     List<Question> questions(ContentType contentType, String query);
     Optional<Question> findQuestion(UUID questionId);

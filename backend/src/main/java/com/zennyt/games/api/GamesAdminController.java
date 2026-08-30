@@ -300,7 +300,10 @@ public class GamesAdminController {
                                 String url, String altText, Status status, Instant createdAt) {
         static AssetResponse from(Asset asset) {
             String deliveryUrl = asset.url().startsWith("local://")
-                ? "/api/v1/games/admin/assets/" + asset.id() : asset.url();
+                ? (asset.status() == Status.PUBLISHED
+                    ? "/api/v1/games/assets/" + asset.id()
+                    : "/api/v1/games/admin/assets/" + asset.id())
+                : asset.url();
             return new AssetResponse(asset.id(), asset.gameType(), asset.filename(), asset.mediaType(),
                 deliveryUrl, asset.altText(), asset.status(), asset.createdAt());
         }

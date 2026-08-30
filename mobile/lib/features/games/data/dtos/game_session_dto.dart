@@ -1,6 +1,7 @@
 import '../../domain/entities/continuous_attention_metrics.dart';
 import '../../domain/entities/coordination_tracking_metrics.dart';
 import '../../domain/entities/game_score.dart';
+import '../../domain/entities/game_runtime_snapshot.dart';
 import '../../domain/entities/game_session.dart';
 import '../../domain/entities/game_type.dart';
 import '../../domain/entities/mini_game.dart';
@@ -21,6 +22,7 @@ class GameSessionDto {
     required this.normalized,
     required this.attempts,
     required this.startedAt,
+    this.runtime = const GameRuntimeSnapshot(),
     this.completedAt,
     this.scoreBreakdown = const [],
     this.reflectivePauseIndicators,
@@ -37,6 +39,7 @@ class GameSessionDto {
   final double normalized;
   final List<GameAttempt> attempts;
   final DateTime startedAt;
+  final GameRuntimeSnapshot runtime;
   final DateTime? completedAt;
   final List<ScoreBreakdownLine> scoreBreakdown;
   final ReflectivePauseIndicators? reflectivePauseIndicators;
@@ -58,6 +61,9 @@ class GameSessionDto {
               .toList() ??
           const [],
       startedAt: DateTime.parse(json['startedAt'] as String),
+      runtime: GameRuntimeSnapshot.fromJson(
+        json['runtime'] as Map<String, dynamic>?,
+      ),
       completedAt: json['completedAt'] == null
           ? null
           : DateTime.parse(json['completedAt'] as String),
@@ -101,6 +107,7 @@ class GameSessionDto {
     normalized: normalized,
     attempts: attempts,
     startedAt: startedAt,
+    runtime: runtime,
     completedAt: completedAt,
     scoreBreakdown: scoreBreakdown,
     reflectivePauseIndicators: reflectivePauseIndicators,

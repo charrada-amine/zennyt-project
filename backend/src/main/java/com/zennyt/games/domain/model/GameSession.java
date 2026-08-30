@@ -33,10 +33,11 @@ public class GameSession extends AggregateRoot {
     private final Instant startedAt;
     private Instant completedAt;
     private final String decisionFormCode;
+    private final GameRuntimeSnapshot runtimeSnapshot;
 
     private GameSession(UUID id, UUID playerId, GameType gameType, SessionStatus status,
                         List<Attempt> attempts, Instant startedAt, Instant completedAt,
-                        String decisionFormCode) {
+                        String decisionFormCode, GameRuntimeSnapshot runtimeSnapshot) {
         this.id = id;
         this.playerId = playerId;
         this.gameType = gameType;
@@ -45,6 +46,7 @@ public class GameSession extends AggregateRoot {
         this.startedAt = startedAt;
         this.completedAt = completedAt;
         this.decisionFormCode = decisionFormCode;
+        this.runtimeSnapshot = runtimeSnapshot == null ? GameRuntimeSnapshot.empty() : runtimeSnapshot;
     }
 
     /**
@@ -56,9 +58,16 @@ public class GameSession extends AggregateRoot {
      * être connue pour servir les items.
      */
     public static GameSession start(UUID playerId, GameType gameType) {
+        return start(playerId, gameType, GameRuntimeSnapshot.empty());
+    }
+
+    /** Starts a session with an immutable snapshot of published non-scoring controls. */
+    public static GameSession start(UUID playerId, GameType gameType,
+                                    GameRuntimeSnapshot runtimeSnapshot) {
         return new GameSession(UUID.randomUUID(), playerId, gameType,
             SessionStatus.IN_PROGRESS, List.of(), Instant.now(), null,
-            gameType == GameType.DECISION ? DecisionConfig.assignFormCode() : null);
+            gameType == GameType.DECISION ? DecisionConfig.assignFormCode() : null,
+            runtimeSnapshot);
     }
 
     /** Reconstruction depuis la persistance (aucun événement émis). */
@@ -74,7 +83,17 @@ public class GameSession extends AggregateRoot {
                                         Instant startedAt, Instant completedAt,
                                         String decisionFormCode) {
         return new GameSession(id, playerId, gameType, status, attempts,
-            startedAt, completedAt, decisionFormCode);
+            startedAt, completedAt, decisionFormCode, GameRuntimeSnapshot.empty());
+    }
+
+    /** Reconstruction including the runtime snapshot captured at session creation. */
+    public static GameSession rehydrate(UUID id, UUID playerId, GameType gameType,
+                                        SessionStatus status, List<Attempt> attempts,
+                                        Instant startedAt, Instant completedAt,
+                                        String decisionFormCode,
+                                        GameRuntimeSnapshot runtimeSnapshot) {
+        return new GameSession(id, playerId, gameType, status, attempts,
+            startedAt, completedAt, decisionFormCode, runtimeSnapshot);
     }
 
     /**
@@ -216,4 +235,5 @@ public class GameSession extends AggregateRoot {
      * envoyée par le client est ignorée.
      */
     public String decisionFormCode() { return decisionFormCode; }
+    public GameRuntimeSnapshot runtimeSnapshot() { return runtimeSnapshot; }
 }

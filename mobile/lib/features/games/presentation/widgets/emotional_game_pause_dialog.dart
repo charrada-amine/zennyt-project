@@ -14,10 +14,12 @@ class EmotionalGamePauseDialog extends StatefulWidget {
     super.key,
     required this.buttonsInput,
     required this.onInputMode,
+    this.showRules = true,
   });
 
   final bool buttonsInput;
   final ValueChanged<bool> onInputMode;
+  final bool showRules;
 
   @override
   State<EmotionalGamePauseDialog> createState() =>
@@ -43,11 +45,12 @@ class _EmotionalGamePauseDialogState extends State<EmotionalGamePauseDialog> {
           onPressed: () =>
               Navigator.of(context).pop(EmotionalGamePauseAction.resume),
         ),
-        GameOutlineButton(
-          label: 'View rules / Help',
-          onPressed: () =>
-              Navigator.of(context).pop(EmotionalGamePauseAction.rules),
-        ),
+        if (widget.showRules)
+          GameOutlineButton(
+            label: 'View rules / Help',
+            onPressed: () =>
+                Navigator.of(context).pop(EmotionalGamePauseAction.rules),
+          ),
         GamePauseExitButton(
           label: 'Exit mission',
           onPressed: () =>
