@@ -3,6 +3,7 @@ import type {
   AuditEntry,
   Bank,
   Configuration,
+  ConfigurationSchema,
   ManagedAsset,
   Overview,
   Question,
@@ -48,15 +49,17 @@ export async function authenticatedAssetUrl(url: string): Promise<string> {
 }
 
 export async function loadAdminData(): Promise<AdminData> {
-  const [overview, questions, banks, configurations, assets, audit] = await Promise.all([
-    adminApi<Overview>("/overview"),
-    adminApi<Question[]>("/questions"),
-    adminApi<Bank[]>("/banks"),
-    adminApi<Configuration[]>("/configurations"),
-    adminApi<ManagedAsset[]>("/assets"),
-    adminApi<AuditEntry[]>("/releases"),
-  ]);
-  return { overview, questions, banks, configurations, assets, audit };
+  const [overview, questions, banks, configurations, configurationSchemas, assets, audit] =
+    await Promise.all([
+      adminApi<Overview>("/overview"),
+      adminApi<Question[]>("/questions"),
+      adminApi<Bank[]>("/banks"),
+      adminApi<Configuration[]>("/configurations"),
+      adminApi<ConfigurationSchema[]>("/configuration-schemas"),
+      adminApi<ManagedAsset[]>("/assets"),
+      adminApi<AuditEntry[]>("/releases"),
+    ]);
+  return { overview, questions, banks, configurations, configurationSchemas, assets, audit };
 }
 
 export async function login(email: string, password: string) {

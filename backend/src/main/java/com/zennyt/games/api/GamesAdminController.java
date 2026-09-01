@@ -4,7 +4,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zennyt.games.application.usecase.ManageGamesAdminUseCase;
+import com.zennyt.games.domain.model.AdminConfigurationSchemaRegistry;
+import com.zennyt.games.domain.model.AdminConfigurationSchemaRegistry.ValueType;
 import com.zennyt.games.domain.model.AdminModels.*;
+import com.zennyt.games.domain.vo.GameType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -140,6 +143,11 @@ public class GamesAdminController {
     public List<ConfigurationResponse> configurations(
             @RequestParam(required = false) ConfigurationKind kind) {
         return admin.configurations(kind).stream().map(this::configurationResponse).toList();
+    }
+
+    @GetMapping("/configuration-schemas")
+    public List<ConfigurationSchemaResponse> configurationSchemas() {
+        return admin.configurationSchemas().stream().map(ConfigurationSchemaResponse::from).toList();
     }
 
     @PostMapping("/configurations")
@@ -295,6 +303,23 @@ public class GamesAdminController {
     public record ConfigurationResponse(UUID id, String gameType, ConfigurationKind kind,
                                         int version, JsonNode values,
                                         boolean protectedScoring, Status status, Instant updatedAt) {}
+    public record ConfigurationFieldResponse(String key, String label, String description,
+                                             ValueType valueType, boolean required,
+                                             Object defaultValue, Integer minimum, Integer maximum,
+                                             List<String> options) {
+        static ConfigurationFieldResponse from(AdminConfigurationSchemaRegistry.Field field) {
+            return new ConfigurationFieldResponse(field.key(), field.label(), field.description(),
+                field.valueType(), field.required(), field.defaultValue(), field.minimum(),
+                field.maximum(), field.options());
+        }
+    }
+    public record ConfigurationSchemaResponse(GameType gameType, ConfigurationKind kind,
+                                              List<ConfigurationFieldResponse> fields) {
+        static ConfigurationSchemaResponse from(AdminConfigurationSchemaRegistry.Schema schema) {
+            return new ConfigurationSchemaResponse(schema.gameType(), schema.kind(),
+                schema.fields().stream().map(ConfigurationFieldResponse::from).toList());
+        }
+    }
     public record AssetUpdate(@NotBlank String gameType, @NotBlank String altText) {}
     public record AssetResponse(UUID id, String gameType, String filename, String mediaType,
                                 String url, String altText, Status status, Instant createdAt) {

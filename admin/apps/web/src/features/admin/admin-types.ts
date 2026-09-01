@@ -10,6 +10,7 @@ export type Page =
 export type Status = "PUBLISHED" | "DRAFT" | "ARCHIVED";
 export type ContentType = "DECISION_SCENARIO" | "EMOTIONAL_RADAR_SCENE";
 export type ConfigurationKind = "SETTINGS" | "MODIFIERS";
+export type ConfigurationValueType = "BOOLEAN" | "INTEGER" | "ENUM";
 
 export type GameId =
   | "move-fast"
@@ -89,6 +90,24 @@ export interface Configuration {
   updatedAt: string;
 }
 
+export interface ConfigurationField {
+  key: string;
+  label: string;
+  description: string;
+  valueType: ConfigurationValueType;
+  required: boolean;
+  defaultValue: boolean | number | string;
+  minimum: number | null;
+  maximum: number | null;
+  options: string[];
+}
+
+export interface ConfigurationSchema {
+  gameType: (typeof GAME_TYPES)[number];
+  kind: ConfigurationKind;
+  fields: ConfigurationField[];
+}
+
 export interface ManagedAsset {
   id: string;
   gameType: string;
@@ -115,6 +134,7 @@ export interface AdminData {
   questions: Question[];
   banks: Bank[];
   configurations: Configuration[];
+  configurationSchemas: ConfigurationSchema[];
   assets: ManagedAsset[];
   audit: AuditEntry[];
 }
@@ -127,6 +147,7 @@ export type EditorState =
       kind: "configuration";
       configurationKind: ConfigurationKind;
       value?: Configuration;
+      source?: Configuration;
       gameType?: string;
     }
   | { kind: "asset"; value?: ManagedAsset; gameType?: string };

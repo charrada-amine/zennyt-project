@@ -27,8 +27,11 @@ public class StartGameSessionUseCase {
 
     @Transactional
     public GameSession execute(StartGameSessionCommand command) {
-        GameSession session = GameSession.start(command.playerId(), command.gameType(),
-            adminRepository.runtimeSnapshot(command.gameType()));
+        var runtimeSnapshot = adminRepository.runtimeSnapshot(command.gameType());
+        if (!runtimeSnapshot.settingBool("sessionEnabled", true)) {
+            throw new IllegalStateException("Ce jeu est temporairement indisponible");
+        }
+        GameSession session = GameSession.start(command.playerId(), command.gameType(), runtimeSnapshot);
         return repository.save(session);
     }
 }

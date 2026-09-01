@@ -40,6 +40,11 @@ public record GameRuntimeSnapshot(
         return Math.max(minimum, Math.min(maximum, number.intValue()));
     }
 
+    public boolean settingBool(String key, boolean fallback) {
+        Object value = settings.get(key);
+        return value instanceof Boolean flag ? flag : fallback;
+    }
+
     public String settingString(String key, String fallback) {
         Object value = settings.get(key);
         return value instanceof String text && !text.isBlank() ? text : fallback;

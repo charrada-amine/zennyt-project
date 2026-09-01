@@ -9,7 +9,7 @@ info:
     des MÉTRIQUES objectives ; le score déterministe est calculé côté serveur.
     Ce contexte est indépendant : il n'expose et ne consomme aucun autre
     contexte, et publie son résultat via l'événement games.result.recorded.
-  version: 1.6.0
+  version: 1.7.0
 
 servers:
   - url: https://api.zennyt.com/api/v1
@@ -440,6 +440,19 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/AdminConfiguration' }
 
+  /games/admin/configuration-schemas:
+    get:
+      tags: [Games Admin]
+      summary: Lister les contrôles non scoring disponibles par jeu
+      responses:
+        '200':
+          description: Schémas typés utilisés par la console et validés par le serveur
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/AdminConfigurationSchema' }
+
   /games/admin/configurations/{configurationId}:
     parameters:
       - { name: configurationId, in: path, required: true, schema: { type: string, format: uuid } }
@@ -628,6 +641,10 @@ components:
       type: string
       enum: [SETTINGS, MODIFIERS]
 
+    AdminConfigurationValueType:
+      type: string
+      enum: [BOOLEAN, INTEGER, ENUM]
+
     AdminOverview:
       type: object
       required: [questionCount, publishedBankCount, draftCount, assetCount]
@@ -733,6 +750,38 @@ components:
           type: object
           additionalProperties: true
           description: Paramètres de déroulé, accessibilité et présentation uniquement.
+
+    AdminConfigurationField:
+      type: object
+      required: [key, label, description, valueType, required, defaultValue, options]
+      properties:
+        key: { type: string }
+        label: { type: string }
+        description: { type: string }
+        valueType: { $ref: '#/components/schemas/AdminConfigurationValueType' }
+        required: { type: boolean }
+        defaultValue:
+          description: Valeur appliquée lorsque la première version est créée.
+          oneOf:
+            - { type: boolean }
+            - { type: integer }
+            - { type: string }
+        minimum: { type: integer, nullable: true }
+        maximum: { type: integer, nullable: true }
+        options:
+          type: array
+          items: { type: string }
+
+    AdminConfigurationSchema:
+      type: object
+      required: [gameType, kind, fields]
+      properties:
+        gameType: { $ref: '#/components/schemas/GameType' }
+        kind: { $ref: '#/components/schemas/AdminConfigurationKind' }
+        fields:
+          type: array
+          minItems: 1
+          items: { $ref: '#/components/schemas/AdminConfigurationField' }
 
     AdminAsset:
       type: object

@@ -1,6 +1,10 @@
 package com.zennyt.games.application.usecase;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zennyt.games.application.port.GamesMediaStoragePort;
+import com.zennyt.games.domain.model.AdminConfigurationSchemaRegistry;
 import com.zennyt.games.domain.model.AdminModels.*;
 import com.zennyt.games.domain.repository.GameAdminRepository;
 import com.zennyt.shared.application.exception.NotFoundException;
@@ -10,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 
 /** Application boundary for games administration. Scoring is intentionally absent. */
@@ -17,10 +22,13 @@ import java.util.UUID;
 public class ManageGamesAdminUseCase {
     private final GameAdminRepository repository;
     private final GamesMediaStoragePort storage;
+    private final ObjectMapper objectMapper;
 
-    public ManageGamesAdminUseCase(GameAdminRepository repository, GamesMediaStoragePort storage) {
+    public ManageGamesAdminUseCase(GameAdminRepository repository, GamesMediaStoragePort storage,
+                                   ObjectMapper objectMapper) {
         this.repository = repository;
         this.storage = storage;
+        this.objectMapper = objectMapper;
     }
 
     @Transactional(readOnly = true)
@@ -128,9 +136,15 @@ public class ManageGamesAdminUseCase {
     @Transactional(readOnly = true)
     public List<Configuration> configurations(ConfigurationKind kind) { return repository.configurations(kind); }
 
+    @Transactional(readOnly = true)
+    public List<AdminConfigurationSchemaRegistry.Schema> configurationSchemas() {
+        return AdminConfigurationSchemaRegistry.all();
+    }
+
     @Transactional
     public Configuration createConfiguration(String gameType, ConfigurationKind kind,
                                              String valuesJson, UUID actorId) {
+        validateConfiguration(gameType, kind, valuesJson);
         return repository.createConfiguration(new Configuration(UUID.randomUUID(), gameType,
             kind, 1, valuesJson, Status.DRAFT, Instant.now()), actorId);
     }
@@ -139,12 +153,16 @@ public class ManageGamesAdminUseCase {
     public Configuration updateConfiguration(UUID configurationId, String gameType,
                                              ConfigurationKind kind, String valuesJson,
                                              UUID actorId) {
+        validateConfiguration(gameType, kind, valuesJson);
         return repository.updateConfiguration(new Configuration(configurationId, gameType,
             kind, 1, valuesJson, Status.DRAFT, Instant.now()), actorId);
     }
 
     @Transactional
     public Configuration publishConfiguration(UUID configurationId, UUID actorId) {
+        Configuration configuration = repository.findConfiguration(configurationId)
+            .orElseThrow(() -> new IllegalArgumentException("Configuration introuvable : " + configurationId));
+        validateConfiguration(configuration.gameType(), configuration.kind(), configuration.valuesJson());
         return repository.publishConfiguration(configurationId, actorId);
     }
 
@@ -156,6 +174,15 @@ public class ManageGamesAdminUseCase {
     @Transactional
     public void deleteConfigurationDraft(UUID configurationId, UUID actorId) {
         repository.deleteConfigurationDraft(configurationId, actorId);
+    }
+
+    private void validateConfiguration(String gameType, ConfigurationKind kind, String valuesJson) {
+        try {
+            Map<String, Object> values = objectMapper.readValue(valuesJson, new TypeReference<>() {});
+            AdminConfigurationSchemaRegistry.validate(gameType, kind, values);
+        } catch (JsonProcessingException exception) {
+            throw new IllegalArgumentException("Valeurs de configuration invalides", exception);
+        }
     }
 
     @Transactional(readOnly = true)

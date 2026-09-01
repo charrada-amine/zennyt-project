@@ -156,7 +156,12 @@ class _ContinuousAttentionScreenState
   String? _errorMessage;
 
   bool get _reducedMotion =>
-      MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+      (MediaQuery.maybeDisableAnimationsOf(context) ?? false) ||
+      (_session?.runtime.modifierBool(
+            'reducedMotionDefault',
+            fallback: false,
+          ) ??
+          false);
 
   /// Tempo effectif : le raccourci de test manuel remplace le tempo injecté
   /// sans jamais toucher aux constantes de production.
@@ -756,26 +761,28 @@ class _ContinuousAttentionScreenState
               key: ValueKey('continuous-loading'),
               label: 'Preparing your focus stream…',
             ),
-            _AttentionStage.playing => GameplayMusic(child: Focus(
-              // La clé reste stable pendant toute la phase : seul le stimulus
-              // au centre apparaît/disparaît. Inclure le curseur d'essai
-              // relançait la transition de l'AnimatedSwitcher à chaque lettre,
-              // faisant clignoter tout l'écran.
-              key: ValueKey('continuous-playing-${_activePhase?.wire}'),
-              autofocus: true,
-              onKeyEvent: _handleKeyEvent,
-              child: _GameplayView(
-                phase: _activePhase!,
-                reference: _phaseTrials[_trialCursor],
-                phaseTrialIndex: _trialCursor,
-                phaseTrialCount: _phaseTrials.length,
-                stimulusVisible: _stimulusVisible,
-                practiceFeedback: _practiceFeedback,
-                onRespond: () =>
-                    _registerResponse(ContinuousAttentionInputSource.touch),
-                onPause: _openPause,
+            _AttentionStage.playing => GameplayMusic(
+              child: Focus(
+                // La clé reste stable pendant toute la phase : seul le stimulus
+                // au centre apparaît/disparaît. Inclure le curseur d'essai
+                // relançait la transition de l'AnimatedSwitcher à chaque lettre,
+                // faisant clignoter tout l'écran.
+                key: ValueKey('continuous-playing-${_activePhase?.wire}'),
+                autofocus: true,
+                onKeyEvent: _handleKeyEvent,
+                child: _GameplayView(
+                  phase: _activePhase!,
+                  reference: _phaseTrials[_trialCursor],
+                  phaseTrialIndex: _trialCursor,
+                  phaseTrialCount: _phaseTrials.length,
+                  stimulusVisible: _stimulusVisible,
+                  practiceFeedback: _practiceFeedback,
+                  onRespond: () =>
+                      _registerResponse(ContinuousAttentionInputSource.touch),
+                  onPause: _openPause,
+                ),
               ),
-            )),
+            ),
             _AttentionStage.xTestReady => _ReadyView(
               key: const ValueKey('continuous-x-test-ready'),
               title: 'Practice complete',

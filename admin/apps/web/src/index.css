@@ -1600,6 +1600,337 @@ tr:last-child td {
 .configuration-json {
   min-height: 360px !important;
 }
+.drawer-configuration {
+  width: min(620px, 100%);
+}
+.configuration-form-intro {
+  margin-top: 20px;
+  padding: 16px 18px;
+  border: 1px solid color-mix(in srgb, var(--indigo) 16%, var(--border));
+  border-radius: 16px;
+  background: linear-gradient(135deg, #f8f8ff 0%, #f2f0ff 100%);
+}
+.configuration-form-intro strong {
+  color: var(--navy);
+  font-size: 13px;
+}
+.configuration-form-intro p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.configuration-controls {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+.configuration-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  min-height: 94px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(38, 34, 77, 0.04);
+}
+.configuration-control-copy > div {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.configuration-control-copy strong {
+  color: var(--navy);
+  font-size: 13px;
+}
+.configuration-control-copy code {
+  padding: 3px 7px;
+  border-radius: 7px;
+  background: #f0f2f8;
+  color: #5c6682;
+  font-size: 10px;
+}
+.configuration-control-copy p {
+  max-width: 390px;
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.configuration-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 116px;
+  min-height: 40px;
+  padding: 6px 10px 6px 7px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted);
+  background: #f4f6fb;
+  font-size: 11px;
+  font-weight: 750;
+}
+.configuration-switch span {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(38, 34, 77, 0.18);
+}
+.configuration-switch.active {
+  border-color: color-mix(in srgb, var(--indigo) 28%, transparent);
+  color: #fff;
+  background: var(--indigo);
+}
+.configuration-number {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+}
+.configuration-number .field {
+  width: 104px;
+  text-align: right;
+}
+.configuration-number small {
+  color: var(--muted);
+  font-size: 10px;
+}
+.configuration-select {
+  width: 160px;
+}
+.configuration-protection {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  color: #6a4661;
+  background: #fff3f8;
+  font-size: 11px;
+  line-height: 1.45;
+}
+.configuration-change-review {
+  margin-top: 14px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--indigo) 18%, var(--border));
+  border-radius: 16px;
+  background: #fbfbff;
+}
+.configuration-change-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.configuration-change-head > div {
+  display: grid;
+  gap: 3px;
+}
+.configuration-change-head span,
+.configuration-card-review span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.configuration-change-head strong {
+  color: var(--navy);
+  font-size: 13px;
+}
+.configuration-change-head small {
+  padding: 5px 8px;
+  border-radius: 8px;
+  color: var(--indigo);
+  background: #efefff;
+  font-size: 10px;
+  font-weight: 800;
+}
+.configuration-change-list,
+.release-review-list {
+  margin: 0;
+}
+.configuration-change-list > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.configuration-change-list > div:last-child {
+  border-bottom: 0;
+}
+.configuration-change-list dt {
+  color: var(--navy);
+  font-size: 11px;
+  font-weight: 750;
+}
+.configuration-change-list dd,
+.release-review-list dd {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 11px;
+}
+.configuration-change-list dd span,
+.release-review-list dd span {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+.configuration-change-list dd b,
+.release-review-list dd b {
+  color: #98a0b5;
+  font-weight: 500;
+}
+.configuration-change-list dd strong,
+.release-review-list dd strong {
+  color: var(--indigo);
+}
+.configuration-change-empty {
+  margin: 0;
+  padding: 14px 16px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+.configuration-card-review {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: -7px 0 17px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #f5f5ff;
+}
+.configuration-card-review > div {
+  display: grid;
+  gap: 3px;
+}
+.configuration-card-review strong {
+  color: var(--indigo);
+  font-size: 12px;
+}
+.configuration-card-review p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 10px;
+  text-align: right;
+}
+.release-review-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 22px;
+  background: rgba(7, 19, 51, 0.38);
+  backdrop-filter: blur(5px);
+}
+.release-review-dialog {
+  width: min(680px, 100%);
+  max-height: min(760px, calc(100dvh - 44px));
+  overflow-y: auto;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 30px 90px rgba(28, 26, 64, 0.3);
+}
+.release-review-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 22px;
+  padding: 24px 26px 18px;
+}
+.release-review-head h2 {
+  margin: 4px 0 5px;
+  color: var(--navy);
+  font-size: 22px;
+  letter-spacing: -0.03em;
+}
+.release-review-head > div > span {
+  color: var(--muted);
+  font-size: 12px;
+}
+.release-review-impact {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 14px;
+  margin: 0 26px 18px;
+  padding: 16px;
+  border-radius: 16px;
+  color: var(--indigo);
+  background: #f3f2ff;
+}
+.release-review-impact > svg {
+  width: 22px;
+}
+.release-review-impact strong {
+  color: var(--navy);
+  font-size: 13px;
+}
+.release-review-impact p {
+  margin: 5px 0 0;
+  color: #5a6380;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.release-review-list {
+  display: grid;
+  margin-inline: 26px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+.release-review-list > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 20px;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.release-review-list > div:last-child {
+  border-bottom: 0;
+}
+.release-review-list dt {
+  display: grid;
+  gap: 3px;
+}
+.release-review-list dt strong {
+  color: var(--navy);
+  font-size: 12px;
+}
+.release-review-list dt code {
+  color: var(--muted);
+  font-size: 9px;
+}
+.release-review-unchanged {
+  display: block !important;
+  color: var(--muted);
+}
+.release-review-unchanged dt {
+  color: var(--navy);
+  font-size: 12px;
+  font-weight: 750;
+}
+.release-review-unchanged dd {
+  margin-top: 5px;
+  line-height: 1.45;
+}
+.release-review-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 20px 26px 26px;
+}
 .file-field {
   padding: 10px;
 }
@@ -1875,6 +2206,52 @@ tr:last-child td {
   }
 }
 @media (max-width: 560px) {
+  .release-review-backdrop {
+    align-items: end;
+    padding: 0;
+  }
+  .release-review-dialog {
+    max-height: 92dvh;
+    border-radius: 24px 24px 0 0;
+  }
+  .release-review-head,
+  .release-review-actions {
+    padding-inline: 18px;
+  }
+  .release-review-impact,
+  .release-review-list {
+    margin-inline: 18px;
+  }
+  .release-review-list > div,
+  .configuration-change-list > div {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .release-review-actions {
+    flex-direction: column-reverse;
+  }
+  .release-review-actions button {
+    width: 100%;
+  }
+  .configuration-card-review {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .configuration-card-review p {
+    text-align: left;
+  }
+  .configuration-control {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+  .configuration-switch,
+  .configuration-select,
+  .configuration-number .field {
+    width: 100%;
+  }
+  .configuration-number {
+    justify-items: stretch;
+  }
   .toolbar-fields {
     display: grid;
     width: 100%;

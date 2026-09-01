@@ -38,4 +38,13 @@ class GameRuntimeSnapshotTest {
 
         assertEquals(15, snapshot.settingInt("sceneCount", 3, 1, 15));
     }
+
+    @Test
+    void readsAvailabilityWithSafeFallback() {
+        GameRuntimeSnapshot disabled = new GameRuntimeSnapshot(1, null,
+            Map.of("sessionEnabled", false), Map.of());
+
+        assertEquals(false, disabled.settingBool("sessionEnabled", true));
+        assertEquals(true, GameRuntimeSnapshot.empty().settingBool("sessionEnabled", true));
+    }
 }

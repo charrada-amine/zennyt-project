@@ -78,7 +78,15 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
 
   bool get _reducedMotion =>
       (MediaQuery.maybeDisableAnimationsOf(context) ?? false) ||
-      (_session?.runtime.settingBool('reducedMotionDefault', fallback: false) ??
+      (_session?.runtime.modifierBool(
+            'reducedMotionDefault',
+            fallback:
+                _session?.runtime.settingBool(
+                  'reducedMotionDefault',
+                  fallback: false,
+                ) ??
+                false,
+          ) ??
           false);
 
   bool get _helpEnabled =>

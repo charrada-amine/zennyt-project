@@ -4,7 +4,14 @@ import { toast } from "sonner";
 
 import { adminApi } from "./admin-api";
 import { StatusPill } from "./admin-components";
-import type { AdminData, Bank, EditorState, Question } from "./admin-types";
+import type {
+  AdminData,
+  Bank,
+  Configuration,
+  ConfigurationSchema,
+  EditorState,
+  Question,
+} from "./admin-types";
 import { GAME_TYPES, gamePresentation } from "./admin-types";
 
 export function AdminEditor({
@@ -32,7 +39,9 @@ export function AdminEditor({
           : editor.kind === "configuration"
             ? editor.value
               ? "Modifier la configuration"
-              : "Nouvelle configuration"
+              : editor.source
+                ? "Créer la version suivante"
+                : "Nouvelle configuration"
             : editor.value
               ? "Modifier l'asset"
               : "Importer un asset";
@@ -45,7 +54,7 @@ export function AdminEditor({
       }}
     >
       <aside
-        className={`drawer ${editor.kind === "bank-items" ? "drawer-wide" : ""}`}
+        className={`drawer ${editor.kind === "bank-items" ? "drawer-wide" : ""} ${editor.kind === "configuration" ? "drawer-configuration" : ""}`}
         aria-modal="true"
         aria-label={title}
       >
@@ -87,7 +96,10 @@ export function AdminEditor({
           <ConfigurationForm
             kind={editor.configurationKind}
             value={editor.value}
+            source={editor.source}
             gameType={editor.gameType}
+            schemas={data.configurationSchemas}
+            configurations={data.configurations}
             close={close}
             refresh={refresh}
           />
@@ -491,32 +503,85 @@ function BankComposer({
 function ConfigurationForm({
   kind,
   value,
+  source,
   gameType,
+  schemas,
+  configurations,
   close,
   refresh,
 }: {
   kind: "SETTINGS" | "MODIFIERS";
-  value?: import("./admin-types").Configuration;
+  value?: Configuration;
+  source?: Configuration;
   gameType?: string;
+  schemas: ConfigurationSchema[];
+  configurations: Configuration[];
   close: () => void;
   refresh: () => Promise<void>;
 }) {
   const { saving, submit } = useSubmit(close, refresh);
-  const defaultValues =
-    kind === "SETTINGS"
-      ? { sceneCount: 12, orderMode: "SHUFFLED", helpEnabled: true, reducedMotionDefault: false }
-      : { compactMode: false, answerFeedback: true, transitionDurationMs: 450 };
+  const initialGameType = value?.gameType ?? source?.gameType ?? gameType ?? GAME_TYPES[0];
+  const [selectedGameType, setSelectedGameType] = useState(initialGameType);
+  const schema = useMemo(
+    () =>
+      schemas.find(
+        (candidate) => candidate.gameType === selectedGameType && candidate.kind === kind,
+      ),
+    [kind, schemas, selectedGameType],
+  );
+  const baseline = useMemo(() => {
+    if (value) return value;
+    if (source) return source;
+    return configurations
+      .filter(
+        (configuration) =>
+          configuration.gameType === selectedGameType &&
+          configuration.kind === kind &&
+          configuration.status === "PUBLISHED",
+      )
+      .sort((left, right) => right.version - left.version)[0];
+  }, [configurations, kind, selectedGameType, source, value]);
+  const [values, setValues] = useState<Record<string, boolean | number | string>>({});
+
+  useEffect(() => {
+    if (!schema) return;
+    const existing = baseline?.gameType === selectedGameType ? baseline.values : {};
+    setValues(
+      Object.fromEntries(
+        schema.fields.map((field) => [
+          field.key,
+          typeof existing[field.key] === typeof field.defaultValue
+            ? (existing[field.key] as boolean | number | string)
+            : field.defaultValue,
+        ]),
+      ),
+    );
+  }, [baseline, schema, selectedGameType]);
+
+  const changes = useMemo(
+    () =>
+      schema?.fields
+        .filter((field) => baseline && baseline.values[field.key] !== values[field.key])
+        .map((field) => ({
+          key: field.key,
+          label: field.label,
+          before: baseline?.values[field.key],
+          after: values[field.key],
+        })) ?? [],
+    [baseline, schema, values],
+  );
+
+  const updateValue = (key: string, nextValue: boolean | number | string) => {
+    setValues((current) => ({ ...current, [key]: nextValue }));
+  };
+
   const onSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    let values: Record<string, unknown>;
-    try {
-      values = JSON.parse(String(form.get("values"))) as Record<string, unknown>;
-    } catch {
-      toast.error("Les valeurs doivent former un objet JSON valide");
+    if (!schema) {
+      toast.error("Aucun schéma de contrôle disponible pour ce jeu");
       return;
     }
-    const body = JSON.stringify({ gameType: form.get("gameType"), kind, values });
+    const body = JSON.stringify({ gameType: selectedGameType, kind, values });
     void submit(
       () =>
         adminApi(value ? `/configurations/${value.id}` : "/configurations", {
@@ -532,11 +597,9 @@ function ConfigurationForm({
         <select
           className="field"
           name="gameType"
-          defaultValue={
-            value?.gameType ??
-            gameType ??
-            (kind === "SETTINGS" ? "EMOTIONAL_REGULATION" : "DECISION")
-          }
+          value={selectedGameType}
+          disabled={Boolean(value || source)}
+          onChange={(event) => setSelectedGameType(event.target.value)}
         >
           {GAME_TYPES.map((game) => (
             <option value={game} key={game}>
@@ -545,21 +608,127 @@ function ConfigurationForm({
           ))}
         </select>
       </Field>
-      <Field
-        label="Valeurs JSON"
-        helper="Vous pouvez gérer tout paramètre non lié au score. Le serveur bloque les clés protégées."
-      >
-        <textarea
-          className="field code-field configuration-json"
-          name="values"
-          defaultValue={JSON.stringify(value?.values ?? defaultValues, null, 2)}
-          spellCheck={false}
-          required
-        />
-      </Field>
-      <DrawerActions saving={saving} close={close} />
+      <div className="configuration-form-intro">
+        <strong>{kind === "SETTINGS" ? "Déroulé opérationnel" : "Expérience joueur"}</strong>
+        <p>
+          {baseline && !value
+            ? `Les valeurs publiées de la v${baseline.version} sont reprises comme point de départ.`
+            : "Ces valeurs sont validées par Spring puis figées au démarrage de chaque nouvelle session."}
+        </p>
+      </div>
+      <div className="configuration-controls">
+        {schema?.fields.map((field) => {
+          const current = values[field.key] ?? field.defaultValue;
+          return (
+            <section className="configuration-control" key={field.key}>
+              <div className="configuration-control-copy">
+                <div>
+                  <strong>{field.label}</strong>
+                  <code>{field.key}</code>
+                </div>
+                <p>{field.description}</p>
+              </div>
+              {field.valueType === "BOOLEAN" && (
+                <button
+                  aria-checked={Boolean(current)}
+                  className={`configuration-switch ${current ? "active" : ""}`}
+                  onClick={() => updateValue(field.key, !current)}
+                  role="switch"
+                  type="button"
+                >
+                  <span />
+                  {current ? "Activé" : "Désactivé"}
+                </button>
+              )}
+              {field.valueType === "INTEGER" && (
+                <div className="configuration-number">
+                  <input
+                    aria-label={field.label}
+                    className="field"
+                    max={field.maximum ?? undefined}
+                    min={field.minimum ?? undefined}
+                    onChange={(event) => updateValue(field.key, Number(event.target.value))}
+                    type="number"
+                    value={Number(current)}
+                  />
+                  <small>
+                    {field.minimum}–{field.maximum}
+                  </small>
+                </div>
+              )}
+              {field.valueType === "ENUM" && (
+                <select
+                  aria-label={field.label}
+                  className="field configuration-select"
+                  onChange={(event) => updateValue(field.key, event.target.value)}
+                  value={String(current)}
+                >
+                  {field.options.map((option) => (
+                    <option key={option} value={option}>
+                      {option.replaceAll("_", " ")}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </section>
+          );
+        })}
+      </div>
+      {baseline && (
+        <section className="configuration-change-review" aria-live="polite">
+          <div className="configuration-change-head">
+            <div>
+              <span>Revue avant enregistrement</span>
+              <strong>
+                {changes.length === 0
+                  ? "Aucune valeur modifiée"
+                  : `${changes.length} ${changes.length > 1 ? "valeurs modifiées" : "valeur modifiée"}`}
+              </strong>
+            </div>
+            <small>Base v{baseline.version}</small>
+          </div>
+          {changes.length > 0 ? (
+            <dl className="configuration-change-list">
+              {changes.map((change) => (
+                <div key={change.key}>
+                  <dt>{change.label}</dt>
+                  <dd>
+                    <span>{formatConfigurationValue(change.before)}</span>
+                    <b aria-hidden="true">→</b>
+                    <strong>{formatConfigurationValue(change.after)}</strong>
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          ) : (
+            <p className="configuration-change-empty">
+              Modifiez un contrôle ci-dessus pour préparer la prochaine version.
+            </p>
+          )}
+        </section>
+      )}
+      <div className="configuration-protection">
+        Les constantes de score, barèmes, multiplicateurs et bonus ne font pas partie de ce schéma.
+      </div>
+      <DrawerActions
+        saving={saving}
+        close={close}
+        label={
+          value
+            ? "Enregistrer"
+            : baseline
+              ? `Créer la version ${baseline.version + 1}`
+              : "Créer la configuration"
+        }
+      />
     </form>
   );
+}
+
+function formatConfigurationValue(value: unknown) {
+  if (typeof value === "boolean") return value ? "Activé" : "Désactivé";
+  if (value === undefined || value === null) return "Non défini";
+  return String(value).replaceAll("_", " ");
 }
 
 function AssetForm({

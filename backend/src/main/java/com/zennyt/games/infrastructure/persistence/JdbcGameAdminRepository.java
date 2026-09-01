@@ -393,6 +393,12 @@ public class JdbcGameAdminRepository implements GameAdminRepository {
     }
 
     @Override
+    public Optional<Configuration> findConfiguration(UUID configurationId) {
+        return jdbc.query("SELECT * FROM games.admin_configurations WHERE id=?",
+            (rs, row) -> configuration(rs, row), configurationId).stream().findFirst();
+    }
+
+    @Override
     public Configuration createConfiguration(Configuration configuration, UUID actorId) {
         Integer version = jdbc.queryForObject("SELECT COALESCE(max(version),0)+1 FROM games.admin_configurations WHERE game_type=? AND configuration_kind=?", Integer.class, configuration.gameType(), configuration.kind().name());
         int nextVersion = version == null ? 1 : version;

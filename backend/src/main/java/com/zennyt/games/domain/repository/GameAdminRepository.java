@@ -27,6 +27,7 @@ public interface GameAdminRepository {
     Bank archiveBank(UUID bankId, UUID actorId);
     void deleteBankDraft(UUID bankId, UUID actorId);
     List<Configuration> configurations(ConfigurationKind kind);
+    Optional<Configuration> findConfiguration(UUID configurationId);
     Configuration createConfiguration(Configuration configuration, UUID actorId);
     Configuration updateConfiguration(Configuration configuration, UUID actorId);
     Configuration publishConfiguration(UUID configurationId, UUID actorId);

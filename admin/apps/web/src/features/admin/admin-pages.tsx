@@ -65,8 +65,10 @@ async function action(
     await request();
     await refresh();
     toast.success(message);
+    return true;
   } catch (error) {
     toast.error(error instanceof Error ? error.message : "Action impossible");
+    return false;
   }
 }
 
@@ -870,7 +872,23 @@ export function ConfigurationsPage({
       configuration.kind === kind && (!game?.gameType || configuration.gameType === game.gameType),
   );
   const settings = kind === "SETTINGS";
-  const mutate = (configuration: Configuration, operation: "publish" | "archive" | "delete") => {
+  const [publishReview, setPublishReview] = useState<Configuration | null>(null);
+  const [publishing, setPublishing] = useState(false);
+  const publishedForGame = (gameType: string) =>
+    configurations
+      .filter(
+        (configuration) =>
+          configuration.gameType === gameType && configuration.status === "PUBLISHED",
+      )
+      .sort((left, right) => right.version - left.version)[0];
+  const schemaForGame = (gameType: string) =>
+    data.configurationSchemas.find(
+      (schema) => schema.gameType === gameType && schema.kind === kind,
+    );
+  const mutate = async (
+    configuration: Configuration,
+    operation: "publish" | "archive" | "delete",
+  ) => {
     if (
       (operation === "delete" || operation === "archive") &&
       !window.confirm(
@@ -879,12 +897,12 @@ export function ConfigurationsPage({
           : "Archiver cette configuration ?",
       )
     )
-      return;
+      return false;
     const request =
       operation === "delete"
         ? () => adminApi(`/configurations/${configuration.id}`, { method: "DELETE" })
         : () => adminApi(`/configurations/${configuration.id}/${operation}`, { method: "POST" });
-    void action(
+    return action(
       request,
       operation === "publish"
         ? "Configuration publiée"
@@ -894,6 +912,7 @@ export function ConfigurationsPage({
       refresh,
     );
   };
+  const gamePublishedConfiguration = game?.gameType ? publishedForGame(game.gameType) : undefined;
   return (
     <>
       <PageHeading
@@ -917,6 +936,7 @@ export function ConfigurationsPage({
               openEditor({
                 kind: "configuration",
                 configurationKind: kind,
+                source: gamePublishedConfiguration,
                 gameType: game?.gameType,
               })
             }
@@ -936,82 +956,272 @@ export function ConfigurationsPage({
             description="Créez une première version pour ce type de configuration."
           />
         ) : (
-          configurations.map((configuration) => (
-            <article className="configuration-card" key={configuration.id}>
-              <div className="configuration-title">
-                <span className="configuration-icon">
-                  {settings ? <Settings2 /> : <SlidersHorizontal />}
-                </span>
-                <div>
-                  <h2>{humanize(configuration.gameType)}</h2>
-                  <p>
-                    {settings ? "Paramètres" : "Modificateurs"} v{configuration.version}
-                  </p>
+          configurations.map((configuration) => {
+            const activePublished = publishedForGame(configuration.gameType);
+            const schema = schemaForGame(configuration.gameType);
+            const changes = configurationChanges(configuration, activePublished, schema);
+            return (
+              <article className="configuration-card" key={configuration.id}>
+                <div className="configuration-title">
+                  <span className="configuration-icon">
+                    {settings ? <Settings2 /> : <SlidersHorizontal />}
+                  </span>
+                  <div>
+                    <h2>{humanize(configuration.gameType)}</h2>
+                    <p>
+                      {settings ? "Paramètres" : "Modificateurs"} v{configuration.version}
+                    </p>
+                  </div>
+                  <StatusPill status={configuration.status} />
                 </div>
-                <StatusPill status={configuration.status} />
-              </div>
-              <dl className="json-summary">
-                {Object.entries(configuration.values)
-                  .slice(0, 8)
-                  .map(([key, value]) => (
-                    <div key={key}>
-                      <dt>{humanize(key)}</dt>
-                      <dd>{formatValue(value)}</dd>
-                    </div>
-                  ))}
-              </dl>
-              <div className="card-actions">
+                <dl className="json-summary">
+                  {Object.entries(configuration.values)
+                    .slice(0, 8)
+                    .map(([key, value]) => (
+                      <div key={key}>
+                        <dt>
+                          {data.configurationSchemas
+                            .find(
+                              (schema) =>
+                                schema.gameType === configuration.gameType && schema.kind === kind,
+                            )
+                            ?.fields.find((field) => field.key === key)?.label ?? humanize(key)}
+                        </dt>
+                        <dd>{formatValue(value)}</dd>
+                      </div>
+                    ))}
+                </dl>
                 {configuration.status === "DRAFT" && (
-                  <>
-                    <button
-                      className="secondary-button"
-                      onClick={() =>
-                        openEditor({
-                          kind: "configuration",
-                          configurationKind: kind,
-                          value: configuration,
-                        })
-                      }
-                      type="button"
-                    >
-                      <Edit3 />
-                      Modifier
-                    </button>
-                    <button
-                      className="primary-button"
-                      onClick={() => mutate(configuration, "publish")}
-                      type="button"
-                    >
-                      <Rocket />
-                      Publier
-                    </button>
-                    <button
-                      className="icon-button danger"
-                      aria-label="Supprimer le brouillon"
-                      onClick={() => mutate(configuration, "delete")}
-                      type="button"
-                    >
-                      <Trash2 />
-                    </button>
-                  </>
+                  <section className="configuration-card-review">
+                    <div>
+                      <span>Écart de publication</span>
+                      <strong>
+                        {changes.length} {changes.length > 1 ? "changements" : "changement"}
+                      </strong>
+                    </div>
+                    <p>
+                      {activePublished
+                        ? `Comparé à la version publiée v${activePublished.version}`
+                        : "Première version publiée de ce jeu"}
+                    </p>
+                  </section>
                 )}
-                {configuration.status !== "ARCHIVED" && configuration.status !== "DRAFT" && (
-                  <button
-                    className="secondary-button"
-                    onClick={() => mutate(configuration, "archive")}
-                    type="button"
-                  >
-                    <Archive />
-                    Archiver
-                  </button>
-                )}
-              </div>
-            </article>
-          ))
+                <div className="card-actions">
+                  {configuration.status === "DRAFT" && (
+                    <>
+                      <button
+                        className="secondary-button"
+                        onClick={() =>
+                          openEditor({
+                            kind: "configuration",
+                            configurationKind: kind,
+                            value: configuration,
+                          })
+                        }
+                        type="button"
+                      >
+                        <Edit3 />
+                        Modifier
+                      </button>
+                      <button
+                        className="primary-button"
+                        onClick={() => setPublishReview(configuration)}
+                        type="button"
+                      >
+                        <Rocket />
+                        Publier
+                      </button>
+                      <button
+                        className="icon-button danger"
+                        aria-label="Supprimer le brouillon"
+                        onClick={() => mutate(configuration, "delete")}
+                        type="button"
+                      >
+                        <Trash2 />
+                      </button>
+                    </>
+                  )}
+                  {configuration.status !== "ARCHIVED" && configuration.status !== "DRAFT" && (
+                    <>
+                      <button
+                        className="primary-button"
+                        onClick={() =>
+                          openEditor({
+                            kind: "configuration",
+                            configurationKind: kind,
+                            source: configuration,
+                          })
+                        }
+                        type="button"
+                      >
+                        <Copy />
+                        Créer v{configuration.version + 1}
+                      </button>
+                      <button
+                        className="secondary-button"
+                        onClick={() => void mutate(configuration, "archive")}
+                        type="button"
+                      >
+                        <Archive />
+                        Archiver
+                      </button>
+                    </>
+                  )}
+                </div>
+              </article>
+            );
+          })
         )}
       </div>
+      {publishReview && (
+        <ConfigurationPublishReview
+          configuration={publishReview}
+          published={publishedForGame(publishReview.gameType)}
+          schema={schemaForGame(publishReview.gameType)}
+          publishing={publishing}
+          close={() => setPublishReview(null)}
+          publish={async () => {
+            setPublishing(true);
+            const succeeded = await mutate(publishReview, "publish");
+            setPublishing(false);
+            if (succeeded) setPublishReview(null);
+          }}
+        />
+      )}
     </>
   );
+}
+
+function ConfigurationPublishReview({
+  configuration,
+  published,
+  schema,
+  publishing,
+  close,
+  publish,
+}: {
+  configuration: Configuration;
+  published?: Configuration;
+  schema?: AdminData["configurationSchemas"][number];
+  publishing: boolean;
+  close: () => void;
+  publish: () => Promise<void>;
+}) {
+  const changes = configurationChanges(configuration, published, schema);
+  return (
+    <div
+      className="release-review-backdrop"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget && !publishing) close();
+      }}
+    >
+      <section
+        aria-labelledby="configuration-publish-title"
+        aria-modal="true"
+        className="release-review-dialog"
+        role="dialog"
+      >
+        <header className="release-review-head">
+          <div>
+            <p className="eyebrow">Contrôle de publication</p>
+            <h2 id="configuration-publish-title">
+              Publier {configuration.kind === "SETTINGS" ? "les paramètres" : "les modificateurs"} v
+              {configuration.version}
+            </h2>
+            <span>{humanize(configuration.gameType)}</span>
+          </div>
+          <button
+            aria-label="Fermer"
+            className="icon-button"
+            disabled={publishing}
+            onClick={close}
+            type="button"
+          >
+            ×
+          </button>
+        </header>
+        <div className="release-review-impact">
+          <ListChecks />
+          <div>
+            <strong>
+              {changes.length === 0
+                ? "Aucune valeur ne change"
+                : `${changes.length} ${changes.length > 1 ? "valeurs vont changer" : "valeur va changer"}`}
+            </strong>
+            <p>
+              {published
+                ? `La version publiée v${published.version} sera archivée. Les sessions en cours conservent leur snapshot.`
+                : "Cette version deviendra la première configuration active. Les sessions déjà lancées ne changent pas."}
+            </p>
+          </div>
+        </div>
+        <dl className="release-review-list">
+          {changes.length > 0 ? (
+            changes.map((change) => (
+              <div key={change.key}>
+                <dt>
+                  <strong>{change.label}</strong>
+                  <code>{change.key}</code>
+                </dt>
+                <dd>
+                  <span>{formatReleaseValue(change.before)}</span>
+                  <b aria-hidden="true">→</b>
+                  <strong>{formatReleaseValue(change.after)}</strong>
+                </dd>
+              </div>
+            ))
+          ) : (
+            <div className="release-review-unchanged">
+              <dt>Version sans modification fonctionnelle</dt>
+              <dd>Les valeurs correspondent exactement à la version actuellement publiée.</dd>
+            </div>
+          )}
+        </dl>
+        <footer className="release-review-actions">
+          <button className="secondary-button" disabled={publishing} onClick={close} type="button">
+            Retour au brouillon
+          </button>
+          <button
+            className="primary-button"
+            disabled={publishing}
+            onClick={() => void publish()}
+            type="button"
+          >
+            <Rocket />
+            {publishing ? "Publication..." : "Confirmer la publication"}
+          </button>
+        </footer>
+      </section>
+    </div>
+  );
+}
+
+function configurationChanges(
+  configuration: Configuration,
+  published?: Configuration,
+  schema?: AdminData["configurationSchemas"][number],
+) {
+  const orderedKeys = [
+    ...(schema?.fields.map((field) => field.key) ?? []),
+    ...Object.keys(configuration.values).filter(
+      (key) => !schema?.fields.some((field) => field.key === key),
+    ),
+  ];
+  return orderedKeys
+    .filter((key) => !published || published.values[key] !== configuration.values[key])
+    .map((key) => ({
+      key,
+      label: schema?.fields.find((field) => field.key === key)?.label ?? humanize(key),
+      before: published?.values[key],
+      after: configuration.values[key],
+    }));
+}
+
+function formatReleaseValue(value: unknown) {
+  if (typeof value === "boolean") return value ? "Activé" : "Désactivé";
+  if (value === undefined || value === null) return "Non défini";
+  return String(value).replaceAll("_", " ");
 }
 
 const bundledAssets = [

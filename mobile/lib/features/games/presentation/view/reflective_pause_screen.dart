@@ -160,7 +160,12 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
       _elapsedMs >= ReflectivePauseConfig.minimumPauseMs;
 
   bool get _reducedMotion =>
-      MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+      (MediaQuery.maybeDisableAnimationsOf(context) ?? false) ||
+      (_session?.runtime.modifierBool(
+            'reducedMotionDefault',
+            fallback: false,
+          ) ??
+          false);
 
   DateTime _now() => widget.now?.call() ?? DateTime.now();
 
@@ -396,18 +401,20 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
             _ReflectiveStage.loading => const _LoadingView(
               key: ValueKey('reflective-loading'),
             ),
-            _ReflectiveStage.gameplay => GameplayMusic(child: _GameplayView(
-              key: ValueKey('reflective-gameplay-$_momentIndex'),
-              moment: _moments[_momentIndex],
-              momentNumber: _momentIndex + 1,
-              elapsedMs: _elapsedMs,
-              minimumReached: _minimumReached,
-              selectedResponse: _selectedResponse,
-              onSelect: (response) =>
-                  setState(() => _selectedResponse = response),
-              onValidate: _validateResponse,
-              onPause: _openPause,
-            )),
+            _ReflectiveStage.gameplay => GameplayMusic(
+              child: _GameplayView(
+                key: ValueKey('reflective-gameplay-$_momentIndex'),
+                moment: _moments[_momentIndex],
+                momentNumber: _momentIndex + 1,
+                elapsedMs: _elapsedMs,
+                minimumReached: _minimumReached,
+                selectedResponse: _selectedResponse,
+                onSelect: (response) =>
+                    setState(() => _selectedResponse = response),
+                onValidate: _validateResponse,
+                onPause: _openPause,
+              ),
+            ),
             _ReflectiveStage.saved => _SavedView(
               key: ValueKey('reflective-saved-$_momentIndex'),
               momentNumber: _momentIndex + 1,

@@ -201,7 +201,12 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
   bool _challengeAnswered = false;
 
   bool get _reduceMotion =>
-      MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+      (MediaQuery.maybeOf(context)?.disableAnimations ?? false) ||
+      (_serverSession?.runtime.modifierBool(
+            'reducedMotionDefault',
+            fallback: false,
+          ) ??
+          false);
 
   bool get _inputLocked =>
       _paused ||
