@@ -10,6 +10,7 @@ import '../../domain/entities/mini_game.dart';
 import '../emotional_regulation_session_provider.dart';
 import '../games_providers.dart';
 import '../widgets/emotional_game_pause_dialog.dart';
+import '../widgets/game_system_components.dart';
 import '../widgets/emotional_radar_components.dart';
 import 'emotional_radar_gameplay.dart';
 
@@ -106,7 +107,12 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
 
   // ── Cycle de jeu ──────────────────────────────────────────────────────────
 
+  /// Droit de pause de la partie : une ouverture, 30 s (CdC pause §2-3).
+  final GamePauseAllowance _pauseAllowance = GamePauseAllowance();
+
   Future<void> _startGame() async {
+    // Nouvelle partie = nouveau droit de pause.
+    _pauseAllowance.reset();
     setState(() {
       _stage = _Stage.loading;
       _errorMessage = null;
@@ -274,21 +280,53 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
 
   // ── Overlays ──────────────────────────────────────────────────────────────
 
-  Future<void> _openPause() async {
+  /// Bouton unique du bandeau : menu de pause tant que la fenêtre est ouverte,
+  /// confirmation de sortie ensuite. Voir [GameMenuAffordance].
+  Future<void> _openMenu() async {
+    if (_pauseAllowance.canOpen) return _openPause();
+    if (await GameExitConfirmDialog.show(context)) {
+      if (mounted) Navigator.of(context).maybePop();
+    }
+  }
+
+  /// [reopen] : réaffichage interne (retour de l'aide, sortie annulée) sur le
+  /// temps restant d'une fenêtre déjà ouverte.
+  Future<void> _openPause({bool reopen = false}) async {
+    if (!reopen) {
+      // Une seule fenêtre de pause par partie (CdC pause §2-3).
+      if (!_pauseAllowance.canOpen) return;
+      _pauseAllowance.open();
+    }
     final action = await showDialog<EmotionalGamePauseAction>(
       context: context,
       barrierColor: const Color(0xCC1B1B4B),
-      builder: (context) => EmotionalGamePauseDialog(
+      builder: (dialogCtx) => EmotionalGamePauseDialog(
         buttonsInput: _buttonsInput,
         onInputMode: (buttons) => setState(() => _buttonsInput = buttons),
         showRules: _helpEnabled,
+        countdown: _pauseAllowance.remaining,
+        onCountdownExpired: () =>
+            Navigator.of(dialogCtx).pop(EmotionalGamePauseAction.resume),
       ),
     );
+    if (!mounted) return;
     if (action == EmotionalGamePauseAction.rules) {
       await _openHelp();
-    } else if (action == EmotionalGamePauseAction.exit && mounted) {
-      Navigator.of(context).maybePop();
+      if (!mounted) return;
+      if (_pauseAllowance.canReopen) return _openPause(reopen: true);
+    } else if (action == EmotionalGamePauseAction.exit) {
+      // Quitter annule la tentative : confirmation explicite d'abord.
+      if (await GameExitConfirmDialog.show(context)) {
+        if (mounted) Navigator.of(context).maybePop();
+        return;
+      }
+      if (!mounted) return;
+      if (_pauseAllowance.canReopen) return _openPause(reopen: true);
     }
+    // La partie repart : le temps passé en pause rejoint le budget consommé, et
+    // le bouton reste « Pause » tant qu'il en reste.
+    _pauseAllowance.close();
+    if (mounted) setState(() {});
   }
 
   Future<void> _openHelp() async {
@@ -377,13 +415,17 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
               ],
               // La pause est une action explicite et étiquetée : la planche
               // d'accessibilité interdit un contrôle uniquement iconique.
-              IconButton(
-                onPressed: _openPause,
-                icon: const Icon(
-                  Icons.pause_circle_outline,
-                  color: Colors.white,
+              Semantics(
+                button: true,
+                label: _pauseAllowance.affordance.semanticsLabel,
+                child: IconButton(
+                  onPressed: _openMenu,
+                  icon: Icon(
+                    _pauseAllowance.affordance.icon,
+                    color: Colors.white,
+                  ),
+                  tooltip: _pauseAllowance.affordance.tooltip,
                 ),
-                tooltip: 'Pause',
               ),
             ],
           ),

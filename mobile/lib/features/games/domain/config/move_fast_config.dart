@@ -28,7 +28,7 @@ class MoveFastConfig {
   static const MoveFastSessionEndMode sessionEndMode =
       MoveFastSessionEndMode.fixedBudget;
 
-  // ── Mode FIXED_BUDGET — miroir de SESSION_END_CONDITION (40 / 60 / 600 s) ───
+  // ── Mode FIXED_BUDGET — miroir de SESSION_END_CONDITION (40 / 60 / 900 s) ───
   //
   // ⚠️ Ces trois valeurs se tiennent ensemble. Le multiplicateur monte d'un cran
   // toutes les 4 bonnes réponses consécutives : atteindre [maxMultiplier] (10)
@@ -43,9 +43,19 @@ class MoveFastConfig {
   static const int targetCorrectAnswers = 40;
   static const int maxResponses = 60;
 
-  /// Budget de temps : 10 minutes. L'ancien budget de 84 s ne laissait pas le
-  /// temps de jouer 36 essais corrects, seconde raison du plafond à ×4.
-  static const int sessionSeconds = 600;
+  /// Budget de temps : **15 minutes**.
+  ///
+  /// Valeur fixée par le cahier des charges « Harmonisation des règles de pause
+  /// et de scoring » (§5) : « dans "Je bouge", le psychologue fixe une limite de
+  /// 15 minutes ». Le code était à 10 minutes, écart relevé et arbitré en faveur
+  /// du document.
+  ///
+  /// Historique : l'ancien budget de 84 s ne laissait pas le temps de jouer les
+  /// 36 essais corrects nécessaires, seconde raison du plafond à ×4.
+  ///
+  /// Miroir de `MoveFastConfig.SESSION_END_CONDITION.sessionSeconds` (backend) :
+  /// les deux valeurs doivent changer ensemble.
+  static const int sessionSeconds = 900;
 
   /// Plafond du multiplicateur — condition de fin en mode REACH_MAX_MULTIPLIER
   /// (cœur du barème, miroir de `MAX_MULTIPLIER`, NE PAS modifier).
@@ -53,6 +63,20 @@ class MoveFastConfig {
 
   /// Essais d'échauffement (warm-up) — miroir de `PRACTICE_TRIAL_COUNT`.
   static const int practiceTrialCount = 3;
+
+  /// Fenêtre de réponse d'un essai, en millisecondes.
+  ///
+  /// Au-delà, l'avion change TOUT SEUL et l'essai est compté faux — même
+  /// pénalité qu'une mauvaise flèche (série brisée, multiplicateur qui
+  /// redescend). L'écran envoie alors `reactionTimeMs = trialTimeoutMs` et
+  /// `correct = false` : rien de nouveau à valider côté serveur.
+  ///
+  /// La valeur reprend `MoveFastConfig.MAX_RESPONSE_TIME_MS` (backend), qui
+  /// posait déjà 2 000 ms comme la limite au-delà de laquelle une réponse est
+  /// « lente ». Ce seuil descriptif devient ici une échéance ferme : sans elle,
+  /// un candidat pouvait rester indéfiniment sur le même avion et la
+  /// flexibilité mesurée n'était plus sous contrainte de temps.
+  static const int trialTimeoutMs = 2000;
 
   /// Bandes d'interprétation du score normalisé (/100).
   ///

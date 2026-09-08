@@ -4,12 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zennyt/core/audio/sound_service.dart';
 import 'package:zennyt/features/games/data/games_mock_repository.dart';
 import 'package:zennyt/features/games/domain/config/memory_quest_config.dart';
+import 'package:zennyt/features/games/domain/entities/decision_form.dart';
+import 'package:zennyt/features/games/domain/entities/decision_metrics.dart';
 import 'package:zennyt/features/games/domain/entities/memory_object.dart';
 import 'package:zennyt/features/games/presentation/games_providers.dart';
 import 'package:zennyt/features/games/presentation/view/investigate_screen.dart';
+import 'package:zennyt/features/games/presentation/view/je_decide_gameplay.dart';
 import 'package:zennyt/features/games/presentation/view/move_fast_screen.dart';
 import 'package:zennyt/features/games/presentation/widgets/game_system_components.dart';
 
@@ -154,6 +158,50 @@ void main() {
     await shoot(tester, 'menu-pause-small');
   });
 
+  // ── Nouvelles règles de pause (CdC « Harmonisation ») ─────────────────────
+  //
+  // Deux captures à montrer au client : la fenêtre unique avec son compte à
+  // rebours de 30 s, puis la confirmation qui prévient qu'une sortie annule la
+  // tentative.
+  testWidgets('capture — menu pause avec compte à rebours 30 s', (tester) async {
+    await sized(tester, small);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          backgroundColor: ZennytGamePalette.blue,
+          body: GamePauseScaffold(
+            countdown: kGamePauseWindow,
+            inputMode: GamePauseInputModeToggle(
+              buttonsSelected: true,
+              onChanged: (_) {},
+            ),
+            buttons: [
+              GamePrimaryButton(label: 'Resume', onPressed: () {}),
+              GameOutlineButton(label: 'View rules / Help', onPressed: () {}),
+              GamePauseExitButton(onPressed: () {}),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await shoot(tester, 'menu-pause-compte-a-rebours');
+  });
+
+  testWidgets('capture — confirmation avant Exit mission', (tester) async {
+    await sized(tester, small);
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          backgroundColor: ZennytGamePalette.blue,
+          body: GameExitConfirmDialog(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await shoot(tester, 'confirmation-exit-mission');
+  });
+
   // ── « Je bouge » : écran d'intro (mode d'entrée + HUD) ────────────────────
   testWidgets('capture — Je bouge intro (small)', (tester) async {
     await sized(tester, small);
@@ -206,7 +254,10 @@ void main() {
     await settle();
 
     // Bascule en tactile via le menu pause.
-    await tapVisible(tester, find.byTooltip('Mettre en pause'));
+    // « Pause » et non plus « Mettre en pause » : l'infobulle était le dernier
+    // libellé français d'une interface entièrement anglaise, et elle vient d'un
+    // enum partagé qui porte aussi « Exit mission ».
+    await tapVisible(tester, find.byTooltip('Pause'));
     await settle();
     await tapVisible(tester, find.text('Tactile'));
     await settle();
@@ -224,11 +275,8 @@ void main() {
     expect(find.text('Tactile mode'), findsNothing);
     await shoot(tester, 'je-bouge-tactile-plateau');
 
-    // Ménage de fin. La réponse a armé un `Future.delayed` de 650 ms (feedback
-    // → stimulus suivant) qu'aucun `dispose` n'annule : on le laisse échoir.
-    // Ensuite seulement on démonte l'arbre, ce qui annule le Timer.periodic de
-    // la session — sans quoi le teardown échoue sur un timer en vol.
-    await tester.pump(const Duration(milliseconds: 700));
+    // Ménage de fin : le démontage annule toutes les minuteries de l'écran —
+    // chrono de session, échéance de l'essai, passage à l'avion suivant.
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
   });
@@ -287,14 +335,156 @@ void main() {
 
       await shoot(tester, 'j-investigue-restore-${entry.key}');
 
-      // Un objet posé : montre l'emplacement rempli ET la réserve amputée,
-      // côte à côte. `tapVisible` fait défiler jusqu'à la tuile : sur le petit
-      // gabarit la réserve peut tomber sous la ligne de flottaison, et un `tap`
-      // brut viserait alors hors de l'écran.
+      // Un objet classé : montre la pastille de rang et la carte mise en avant.
+      // `tapVisible` fait défiler jusqu'à la carte : sur le petit gabarit la
+      // grille peut tomber sous la ligne de flottaison, et un `tap` brut
+      // viserait alors hors de l'écran.
       await tapVisible(tester, find.text(initialObjects.first.labelEn).first);
       await shoot(tester, 'j-investigue-restore-${entry.key}-place');
     });
   }
+
+  // ── « Je décide » : mise en page selon la taille de l'écran ───────────────
+  //
+  // Retour client : « il faut adapter le UI selon la taille de l'écran afin que
+  // le scénario et les choix s'affichent entièrement sans défilement ».
+  //
+  // Ces captures existent pour trancher à l'œil ce qu'aucun test ne dit : le
+  // texte reste-t-il agréable à lire une fois compacté ? Elles montrent aussi la
+  // limite honnête du travail — le dernier gabarit porte un item de la dimension
+  // Intégration d'Information, qui ne tient sur aucun téléphone.
+  group('Je décide — mise en page', () {
+    /// Item représentatif : 240 caractères, deux options. C'est le profil des
+    /// 66 items sur 96 qui doivent tenir partout.
+    DecisionFormItem courant() => DecisionFormItem(
+      itemId: 'CS-12b',
+      dimension: DecisionDimension.cs,
+      format: DecisionItemFormat.standard,
+      vignette:
+          'Une panne touche votre réseau. Plan A : 200 000 foyers sur 300 000 '
+          'subiront une coupure de façon certaine. Plan B : 1 chance sur 3 '
+          'qu\'aucun foyer ne subisse de coupure, 2 chances sur 3 que les '
+          '300 000 la subissent.',
+      task: 'Choisissez le Plan A ou le Plan B.',
+      options: [
+        DecisionFormOption(optionId: 'a', label: 'Plan / Option A'),
+        DecisionFormOption(optionId: 'b', label: 'Plan / Option B'),
+      ],
+    );
+
+    /// Le pire item réel de la banque : 1167 caractères, quatre justifications.
+    DecisionFormItem long() => DecisionFormItem(
+      itemId: 'II-18',
+      dimension: DecisionDimension.ii,
+      format: DecisionItemFormat.standard,
+      vignette:
+          'Vous choisissez un ordinateur portable pour un graphiste de votre '
+          'équipe (travail sur logiciels de retouche photo et montage vidéo). '
+          'Trois options : A (moins cher, RAM 8 Go, GPU intégré, performances '
+          'insuffisantes pour le montage vidéo 4K), B (dans le budget, RAM 16 '
+          'Go, GPU dédié 4 Go, compatible avec les logiciels métiers), C (cher, '
+          'hors budget, RAM 32 Go, GPU dédié 8 Go, performances maximales). '
+          'Budget plafonné ; performances compatibles avec les logiciels '
+          'métiers obligatoires.',
+      task:
+          'Classez les trois options du plus au moins adapté, puis choisissez '
+          'la justification qui reflète le mieux votre raisonnement.',
+      options: [
+        DecisionFormOption(
+          optionId: 'a',
+          label:
+              'Je choisis B : le tarif est dans le budget et les '
+              'spécifications (16 Go RAM, GPU 4 Go) sont suffisantes pour les '
+              'logiciels de retouche et montage utilisés.',
+        ),
+        DecisionFormOption(
+          optionId: 'b',
+          label:
+              'Je choisis B car les performances couvrent les besoins '
+              'professionnels du graphiste.',
+        ),
+        DecisionFormOption(
+          optionId: 'c',
+          label:
+              'Je choisis C : investir dans la meilleure configuration réduit '
+              'les risques de lenteur.',
+        ),
+        DecisionFormOption(
+          optionId: 'd',
+          label:
+              'Je choisis A car le design est plus léger, pratique pour les '
+              'déplacements.',
+        ),
+      ],
+    );
+
+    Future<void> pumpScenario(
+      WidgetTester tester,
+      DecisionFormItem item,
+      Size size,
+    ) async {
+      SharedPreferences.setMockInitialValues({});
+      await sized(tester, size);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: DecisionGameplayView(
+              form: DecisionForm(
+                formCode: 'A',
+                itemsPerDimension: 1,
+                items: [item],
+              ),
+              onClose: () {},
+              onComplete: (_) {},
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+    }
+
+    // Quatre gabarits, du plus petit encore supporté au grand format courant.
+    const gabarits = {
+      '320': Size(320, 568),
+      '360': Size(360, 740),
+      '390': Size(390, 844),
+      '412': Size(412, 915),
+    };
+
+    for (final entry in gabarits.entries) {
+      testWidgets('capture — scénario courant (${entry.key})', (tester) async {
+        await pumpScenario(tester, courant(), entry.value);
+        await shoot(tester, 'je-decide-scenario-${entry.key}');
+      });
+    }
+
+    for (final entry in {'320': gabarits['320']!, '412': gabarits['412']!}
+        .entries) {
+      testWidgets('capture — scénario long, dimension II (${entry.key})', (
+        tester,
+      ) async {
+        await pumpScenario(tester, long(), entry.value);
+        await shoot(tester, 'je-decide-scenario-long-${entry.key}');
+      });
+
+      /// Second temps du même item : la consigne rappelée et les quatre choix,
+      /// sans la situation. C'est l'écran que le découpage rend possible — et
+      /// celui qu'il faut regarder pour juger si le rappel suffit à choisir.
+      testWidgets('capture — scénario long, écran de choix (${entry.key})', (
+        tester,
+      ) async {
+        await pumpScenario(tester, long(), entry.value);
+        final reveal = find.byKey(const ValueKey('decision-reveal-choices'));
+        if (reveal.evaluate().isNotEmpty) {
+          await tester.tap(reveal);
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 300));
+        }
+        await shoot(tester, 'je-decide-scenario-long-choix-${entry.key}');
+      });
+    }
+  });
+
 }
 
 /// Flux d'événements audio vide : le lecteur s'abonne, rien n'arrive, aucune

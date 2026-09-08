@@ -15,11 +15,17 @@ class EmotionalGamePauseDialog extends StatefulWidget {
     required this.buttonsInput,
     required this.onInputMode,
     this.showRules = true,
+    this.countdown,
+    this.onCountdownExpired,
   });
 
   final bool buttonsInput;
   final ValueChanged<bool> onInputMode;
   final bool showRules;
+
+  /// Temps restant sur la fenêtre unique de pause (CdC pause §2-3).
+  final Duration? countdown;
+  final VoidCallback? onCountdownExpired;
 
   @override
   State<EmotionalGamePauseDialog> createState() =>
@@ -32,6 +38,8 @@ class _EmotionalGamePauseDialogState extends State<EmotionalGamePauseDialog> {
   @override
   Widget build(BuildContext context) {
     return GamePauseScaffold(
+      countdown: widget.countdown,
+      onCountdownExpired: widget.onCountdownExpired,
       inputMode: GamePauseInputModeToggle(
         buttonsSelected: _buttons,
         onChanged: (value) {

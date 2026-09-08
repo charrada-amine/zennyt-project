@@ -108,8 +108,16 @@ public final class MoveFastConfig {
     // targetCorrectAnswers = 12, la session se terminait après 3 montées et le
     // multiplicateur plafonnait mécaniquement à ×4 — le maximum déclaré était
     // inatteignable. targetCorrectAnswers doit donc rester > 36.
+    //
+    // Durée : 15 minutes (900 s), fixée par le cahier des charges
+    // « Harmonisation des règles de pause et de scoring » (§5) — « dans
+    // "Je bouge", le psychologue fixe une limite de 15 minutes ». Le code était
+    // à 10 minutes, écart relevé et arbitré en faveur du document.
+    //
+    // Miroir de `MoveFastConfig.sessionSeconds` (mobile) : les deux valeurs
+    // doivent changer ensemble.
     public static final SessionEndCondition SESSION_END_CONDITION =
-        new SessionEndCondition(40, 60, 600);
+        new SessionEndCondition(40, 60, 900);
 
     /**
      * true si le mode courant borne le nombre d'essais et la durée (budget fixe).

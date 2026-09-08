@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:zennyt/features/games/domain/config/memory_quest_config.dart';
 import 'package:zennyt/features/games/domain/entities/memory_object.dart';
 import 'package:zennyt/features/games/presentation/view/investigate_screen.dart';
+import 'package:zennyt/features/games/presentation/widgets/game_system_components.dart';
 
 /// « J'investigue » — déroulé validé avec le client :
 ///
@@ -491,5 +492,488 @@ void main() {
     await watchSequence(tester, MemoryQuestConfig.sequenceLengthForLevel(2));
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
+  });
+
+  /// Retour client : « faire clignoter le chiffre lui-même, et non le cadre ».
+  ///
+  /// Le cadre blanc portait la clé de l'`AnimatedSwitcher` : il était détruit et
+  /// rejoué à chaque chiffre, donc il fondait et se remettait à l'échelle en
+  /// même temps que le nombre. Or c'est ce cadre qui dit au candidat OÙ
+  /// regarder pendant tout l'encodage : il doit rester posé, immobile.
+  testWidgets('Digits : le cadre reste fixe, seul le chiffre clignote', (
+    tester,
+  ) async {
+    useLargeSurface(tester);
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(
+          home: InvestigateScreen(seed: seed, mode: InvestigateMode.digits),
+        ),
+      ),
+    );
+    await startGame(tester);
+
+    const frame = ValueKey('digit-frame');
+
+    // t = 400 ms : amorce de 350 ms passée, le premier chiffre est à l'écran.
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byKey(frame), findsOneWidget);
+    expect(find.text('${level1Seq[0]}'), findsOneWidget);
+    final render = tester.renderObject(find.byKey(frame));
+    final rect = tester.getRect(find.byKey(frame));
+
+    // t = 1390 ms : le chiffre s'est éteint à 1250 ms, on est à 140 ms d'une
+    // transition qui en dure 180. C'est l'instant précis où l'ancienne version
+    // empilait DEUX cadres — un qui sortait, un qui entrait.
+    await tester.pump(const Duration(milliseconds: 900));
+    await tester.pump(const Duration(milliseconds: 90));
+    expect(
+      find.byKey(frame),
+      findsOneWidget,
+      reason: 'un seul cadre, jamais deux en fondu croisé',
+    );
+    expect(
+      tester.renderObject(find.byKey(frame)),
+      same(render),
+      reason: 'le cadre n\'est pas reconstruit : c\'est le même objet de rendu',
+    );
+    expect(tester.getRect(find.byKey(frame)), rect, reason: 'ni déplacé');
+
+    // Chiffre suivant : toujours ce cadre-là.
+    await tester.pump(const Duration(milliseconds: 1000));
+    expect(find.text('${level1Seq[1]}'), findsOneWidget);
+    expect(tester.renderObject(find.byKey(frame)), same(render));
+    expect(tester.getRect(find.byKey(frame)), rect);
+
+    // On laisse l'observation aller à son terme — état sans minuterie en vol —
+    // avant de démonter.
+    await tester.pump(const Duration(milliseconds: 4200));
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
+  // ── Restauration : classement au clic (le drag & drop est retiré) ─────────
+  //
+  // Retour client : « supprimer le drag and drop — le classement se fait au
+  // clic, avec un petit numéro (1, 2, 3…) affiché en haut de l'objet ; un
+  // deuxième clic sur un objet ayant un rang va annuler son rang ; et un bouton
+  // Validate ». Le glisser-déposer imposait deux zones (réserve +
+  // emplacements) qui se partageaient l'écran : d'où des cartes de 84 px que le
+  // client trouvait trop petites.
+
+  /// Mène une partie d'IMAGES jusqu'à l'écran de restauration du niveau 1.
+  Future<List<MemoryObject>> toRestore(WidgetTester tester) async {
+    List<MemoryObject> initial = const [];
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: InvestigateScreen(
+            seed: seed,
+            mode: InvestigateMode.images,
+            onMissionBReady: (order) => initial = order,
+          ),
+        ),
+      ),
+    );
+    await startGame(tester);
+    // Mémorisation, manipulations, rétention.
+    await tester.pump(const Duration(milliseconds: 5200));
+    await tester.pump(const Duration(milliseconds: 6200));
+    expect(find.text('Restore the STARTING order'), findsOneWidget);
+    return initial;
+  }
+
+  Future<void> tapObject(WidgetTester tester, MemoryObject obj) async {
+    await tester.tap(find.text(obj.labelEn));
+    await tester.pump();
+  }
+
+  testWidgets('Images : plus aucun glisser-déposer sur l\'écran de restauration',
+      (tester) async {
+    useLargeSurface(tester);
+    await toRestore(tester);
+
+    expect(find.byType(Draggable<MemoryObject>), findsNothing);
+    expect(find.byType(DragTarget<MemoryObject>), findsNothing);
+    expect(
+      find.textContaining('Drag'),
+      findsNothing,
+      reason: 'la consigne ne doit plus parler d\'un geste qui n\'existe plus',
+    );
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
+  testWidgets('Images : un clic pose un rang, un second l\'annule et '
+      'renumérote la suite', (tester) async {
+    useLargeSurface(tester);
+    final initial = await toRestore(tester);
+    expect(initial, hasLength(3));
+
+    // Aucun rang au départ, et Validate est fermé.
+    expect(find.text('1'), findsNothing);
+    final validate = find.widgetWithText(GamePrimaryButton, 'Validate');
+    expect(tester.widget<GamePrimaryButton>(validate).onPressed, isNull);
+
+    // Trois clics, trois rangs.
+    for (final obj in initial) {
+      await tapObject(tester, obj);
+    }
+    for (final rank in ['1', '2', '3']) {
+      expect(find.text(rank), findsOneWidget, reason: 'un rang $rank et un seul');
+    }
+    expect(
+      tester.widget<GamePrimaryButton>(validate).onPressed,
+      isNotNull,
+      reason: 'tous les objets sont classés : on peut valider',
+    );
+
+    // Deuxième clic sur le rang 2 : il disparaît, et le 3 devient 2.
+    await tapObject(tester, initial[1]);
+    expect(find.text('3'), findsNothing, reason: 'un classement sans trou');
+    expect(find.text('1'), findsOneWidget);
+    expect(find.text('2'), findsOneWidget);
+    expect(
+      tester.widget<GamePrimaryButton>(validate).onPressed,
+      isNull,
+      reason: 'le classement est redevenu incomplet',
+    );
+
+    // On reclasse l'objet retiré : il repart en dernier.
+    await tapObject(tester, initial[1]);
+    expect(find.text('3'), findsOneWidget);
+
+    // Le rang lu par le jeu reste bien celui des clics, pas celui de la grille :
+    // l'ordre initial a été reconstitué 1, 3, 2 — donc un seul objet en place.
+    await tester.tap(validate);
+    await tester.pump(const Duration(milliseconds: 900));
+    expect(find.text('Restore the STARTING order'), findsNothing);
+
+    // Le niveau 2 relance une mémorisation d'objets ; on la laisse atteindre la
+    // restauration — état sans minuterie en vol — avant de démonter.
+    await tester.pump(const Duration(milliseconds: 5200));
+    await tester.pump(const Duration(milliseconds: 6200));
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
+  // Retour client : « le vert est le plus adapté ; on peut le faire clignoter
+  // une seule fois, c'est-à-dire disparaître et réapparaître, pour attirer
+  // l'attention. »
+  group('consigne clignotante', () {
+    /// Opacité réellement appliquée à la consigne.
+    double opacityOf(WidgetTester tester) {
+      final fade = tester.widgetList<FadeTransition>(
+        find.descendant(
+          of: find.byType(MemoryPrompt),
+          matching: find.byType(FadeTransition),
+        ),
+      );
+      return fade.isEmpty ? 1.0 : fade.first.opacity.value;
+    }
+
+    Future<void> mount(WidgetTester tester, String text) => tester.pumpWidget(
+      MaterialApp(home: Scaffold(body: Center(child: MemoryPrompt(text)))),
+    );
+
+    testWidgets('elle disparaît puis revient, une fois et une seule', (
+      tester,
+    ) async {
+      await mount(tester, 'Memorize the starting order');
+
+      // Échantillonnage image par image sur toute la durée annoncée, plus une
+      // marge : c'est la marge qui prouve le « une seule fois ».
+      const frame = Duration(milliseconds: 16);
+      final track = <double>[opacityOf(tester)];
+      for (
+        var t = Duration.zero;
+        t < MemoryPrompt.blinkDuration * 3;
+        t += frame
+      ) {
+        await tester.pump(frame);
+        track.add(opacityOf(tester));
+      }
+
+      expect(track.first, closeTo(1, 0.001), reason: 'elle part pleine');
+      expect(
+        track.reduce(math.min),
+        lessThan(0.02),
+        reason: 'elle disparaît vraiment — un simple estompage ne suffit pas',
+      );
+      expect(track.last, closeTo(1, 0.001), reason: 'et elle revient pleine');
+
+      // Un seul aller-retour : l'opacité ne redescend plus après être remontée.
+      final bottom = track.indexOf(track.reduce(math.min));
+      final after = track.sublist(bottom);
+      for (var i = 1; i < after.length; i++) {
+        expect(
+          after[i],
+          greaterThanOrEqualTo(after[i - 1] - 0.001),
+          reason:
+              'la consigne re-clignote : un clignotement qui se répète devient '
+              'un décor qu\'on cesse de voir',
+        );
+      }
+    });
+
+    testWidgets('chaque nouvelle consigne rejoue le clignotement', (
+      tester,
+    ) async {
+      // Les phases d'observation et de manipulation partagent la même vue :
+      // sans cela, la seconde consigne arriverait sans se signaler.
+      await mount(tester, 'Memorize the starting order');
+      await tester.pump(MemoryPrompt.blinkDuration * 2);
+      expect(opacityOf(tester), closeTo(1, 0.001));
+
+      await mount(tester, 'Watch the manipulations');
+      await tester.pump(MemoryPrompt.blinkDuration ~/ 4);
+      expect(
+        opacityOf(tester),
+        lessThan(0.9),
+        reason: 'la consigne a changé sans que rien ne l\'annonce',
+      );
+
+      await tester.pump(MemoryPrompt.blinkDuration);
+      expect(opacityOf(tester), closeTo(1, 0.001));
+    });
+
+    testWidgets('animations coupées : elle se pose, pleine', (tester) async {
+      await tester.pumpWidget(
+        const MediaQuery(
+          data: MediaQueryData(disableAnimations: true),
+          child: MaterialApp(
+            home: Scaffold(
+              body: Center(child: MemoryPrompt('Restore the STARTING order')),
+            ),
+          ),
+        ),
+      );
+
+      // Aucun `FadeTransition` du tout : le texte n'a jamais à s'effacer pour
+      // un joueur qui a demandé moins de mouvement.
+      expect(
+        find.descendant(
+          of: find.byType(MemoryPrompt),
+          matching: find.byType(FadeTransition),
+        ),
+        findsNothing,
+      );
+      await tester.pump(MemoryPrompt.blinkDuration);
+      expect(find.text('Restore the STARTING order'), findsOneWidget);
+    });
+
+    testWidgets('elle porte bien la couleur retenue', (tester) async {
+      await mount(tester, 'Memorize the starting order');
+      final label = tester.widget<Text>(
+        find.descendant(
+          of: find.byType(MemoryPrompt),
+          matching: find.byType(Text),
+        ),
+      );
+      expect(label.style?.color, kMemoryPromptColor);
+      await tester.pump(MemoryPrompt.blinkDuration);
+    });
+  });
+
+  group('taille des cartes', () {
+    /// L'échelle était une constante par palier (1,0 jusqu'à 6 objets, puis
+    /// 0,82, puis 0,68) : elle ignorait la place disponible et rapetissait les
+    /// cartes même là où il y avait de quoi les agrandir.
+    test('les cartes remplissent la place disponible sans la déborder', () {
+      const viewports = <String, Size>{
+        '320 × 568 (petit)': Size(272, 300),
+        '360 × 800 (courant)': Size(312, 430),
+        '390 × 844 (grand)': Size(342, 470),
+      };
+
+      for (final entry in viewports.entries) {
+        for (var count = 3; count <= 12; count++) {
+          final scale = memoryObjectTileScaleFor(
+            count: count,
+            available: entry.value,
+          );
+          expect(
+            scale,
+            greaterThan(0),
+            reason: '${entry.key}, $count objets',
+          );
+
+          // Le meilleur découpage à cette échelle doit tenir en largeur ; en
+          // hauteur, le plancher de lisibilité peut imposer un défilement, on
+          // ne l'exige donc que tant que l'échelle n'est pas au plancher.
+          final tileW = kMemoryObjectTileWidth * scale;
+          final columns = ((entry.value.width + 12) / (tileW + 12)).floor();
+          expect(
+            columns,
+            greaterThanOrEqualTo(1),
+            reason:
+                '${entry.key}, $count objets : une carte de $tileW px ne tient '
+                'même pas seule sur une ligne',
+          );
+        }
+      }
+    });
+
+    test('trois objets sur un écran courant donnent des cartes PLUS GRANDES '
+        'qu\'avant', () {
+      // Avant : échelle 1,0 figée, soit une carte de 84 × 120 — et 0,82 dès que
+      // les deux zones du glisser-déposer se partageaient la largeur.
+      final scale = memoryObjectTileScaleFor(
+        count: 3,
+        available: const Size(312, 430),
+      );
+      expect(
+        scale,
+        greaterThan(1.2),
+        reason: 'c\'est la demande : « agrandir la taille des cartes »',
+      );
+    });
+
+    test('douze objets restent lisibles au lieu de disparaître', () {
+      final scale = memoryObjectTileScaleFor(
+        count: 12,
+        available: const Size(272, 300),
+      );
+      expect(
+        kMemoryObjectTileWidth * scale,
+        greaterThan(50),
+        reason: 'plancher de lisibilité : en dessous, l\'objet n\'est plus '
+            'identifiable et il vaut mieux faire défiler',
+      );
+    });
+  });
+
+  /// La restitution avait un temps ILLIMITÉ : le joueur pouvait rester sur le
+  /// plateau indéfiniment, ce qui vidait de son sens la mesure de mémoire.
+  testWidgets(
+      'Images : la restitution est chronométrée et se valide d\'office',
+      (tester) async {
+    useLargeSurface(tester);
+
+    List<MemoryObject> objects = const [];
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: InvestigateScreen(
+            seed: seed,
+            mode: InvestigateMode.images,
+            onMissionBReady: (order) => objects = order,
+          ),
+        ),
+      ),
+    );
+    await startGame(tester);
+    await watchObjects(tester, MemoryQuestConfig.objectCountForLevel(1));
+
+    expect(find.text('Restore the STARTING order'), findsOneWidget);
+
+    final limitMs = MemoryQuestConfig.restoreTimeLimitMs(objects.length);
+    final startSeconds = (limitMs / 1000).ceil();
+    expect(find.text('${startSeconds}s left'), findsOneWidget);
+
+    // Le rebours descend réellement.
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.text('${startSeconds - 1}s left'), findsOneWidget);
+
+    // Un seul rang posé, puis on laisse le temps filer : le tour se clôt sans
+    // que le joueur touche « Validate ».
+    await tester.tap(find.text(objects.first.labelEn).first);
+    await tester.pump();
+    await tester.pump(Duration(milliseconds: limitMs + 300));
+    await tester.pump(const Duration(milliseconds: 1200)); // feedback
+
+    expect(find.text('Restore the STARTING order'), findsNothing,
+        reason: 'le temps écoulé clôt la restitution');
+
+    // Un tour expiré compte comme raté : le MÊME niveau est rejoué. On laisse
+    // filer la seconde tentative aussi, ce qui doit terminer la partie
+    // (maxFailuresPerLevel = 2).
+    await watchObjects(tester, MemoryQuestConfig.objectCountForLevel(1));
+    expect(find.text('Restore the STARTING order'), findsOneWidget);
+    await tester.pump(
+      Duration(
+        milliseconds:
+            MemoryQuestConfig.restoreTimeLimitMs(objects.length) + 300,
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 1200));
+
+    expect(find.text('Results'), findsOneWidget);
+    await tester.pumpAndSettle();
+  });
+
+  /// Le temps restant se lisait en texte seul. Les autres mini-jeux (« Je
+  /// bouge ») le montrent par une barre qui se vide : c'est la même information,
+  /// elle doit se lire de la même façon d'un jeu à l'autre.
+  testWidgets('Images : chaque phase chronométrée montre une barre de temps',
+      (tester) async {
+    useLargeSurface(tester);
+
+    List<MemoryObject> objects = const [];
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: InvestigateScreen(
+            seed: seed,
+            mode: InvestigateMode.images,
+            onMissionBReady: (order) => objects = order,
+          ),
+        ),
+      ),
+    );
+    await startGame(tester);
+
+    double barValue() => tester
+        .widget<LinearProgressIndicator>(
+          find.descendant(
+            of: find.byType(GameTimerBar),
+            matching: find.byType(LinearProgressIndicator),
+          ),
+        )
+        .value!;
+
+    // 1. Mémorisation — la barre part pleine et se vide.
+    expect(find.byType(GameTimerBar), findsOneWidget);
+    final memoStart = barValue();
+    expect(memoStart, closeTo(1, 0.05));
+    await tester.pump(
+      Duration(
+        milliseconds:
+            MemoryQuestConfig.objectObservationMs(objects.length) ~/ 2,
+      ),
+    );
+    expect(barValue(), lessThan(memoStart));
+
+    // 2. Restitution — même barre, et elle se vide aussi.
+    await watchObjects(tester, MemoryQuestConfig.objectCountForLevel(1));
+    expect(find.text('Restore the STARTING order'), findsOneWidget);
+    expect(find.byType(GameTimerBar), findsOneWidget);
+
+    // `watchObjects` avance en gros blocs, le rebours a donc déjà tourné : on
+    // vérifie qu'il DESCEND, pas qu'il parte de 1.
+    final restoreStart = barValue();
+    expect(restoreStart, inExclusiveRange(0, 1));
+    await tester.pump(const Duration(seconds: 1));
+    final drained = barValue();
+    expect(drained, lessThan(restoreStart));
+    expect(drained, greaterThan(0));
+
+    await tester.pump(
+      Duration(
+        milliseconds:
+            MemoryQuestConfig.restoreTimeLimitMs(objects.length) + 300,
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 1200));
+    await watchObjects(tester, MemoryQuestConfig.objectCountForLevel(1));
+    await tester.pump(
+      Duration(
+        milliseconds:
+            MemoryQuestConfig.restoreTimeLimitMs(objects.length) + 300,
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 1200));
+    await tester.pumpAndSettle();
   });
 }

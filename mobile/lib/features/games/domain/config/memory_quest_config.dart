@@ -2,6 +2,8 @@
 // le système de niveaux, le timeout par tâche (calibrage) et la validité de
 // session. L'écran et le mock lisent ces valeurs pour rester alignés backend ⇄ mock.
 
+import 'dart:math' as math;
+
 /// Configuration « J'investigue » (mémoire de travail) côté mobile.
 class MemoryQuestConfig {
   MemoryQuestConfig._();
@@ -87,19 +89,162 @@ class MemoryQuestConfig {
   static bool distractionActiveAtLevel(int level) => level >= distractionMinLevel;
 
   // ── Temps d'observation des objets (Mission B) ─────────────────────────────
-  /// Temps de mémorisation par objet (ms). Calé sur les 5 s initiales du plus
-  /// petit lot (5000 / 4 objets ≈ 1250 ms) : le temps de réflexion croît donc
-  /// proportionnellement au nombre d'objets à mémoriser.
-  static const int objectObservationMsPerItem = 1250;
+  //
+  // MODÈLE : le temps accordé n'est PAS proportionnel au nombre d'objets. Il
+  // suit une droite brisée au seuil de la mémoire de travail visuelle, estimée
+  // à 4 ± 1 objets (Cowan, 2001) :
+  //
+  //   T(n) = base + perItem·n + rehearsal·max(0, n − capacity)
+  //
+  //   • `base`      — coût perceptif fixe : première saccade, lecture globale
+  //                   de la grille, indépendant du nombre d'objets ;
+  //   • `perItem`   — encodage d'une image. La littérature situe l'encodage
+  //                   fiable d'une image entre 0,5 et 1 s (Potter, 1976 ;
+  //                   Brady et al., PNAS 2008) ; le coût croît linéairement
+  //                   avec le nombre d'éléments (Sternberg, Science 1966) ;
+  //   • `rehearsal` — surcoût au-delà de la capacité : le joueur ne peut plus
+  //                   tout tenir d'un coup et doit regrouper puis répéter
+  //                   (Miller, 1956). C'est ce terme, absent d'un modèle
+  //                   linéaire, qui rend les niveaux hauts jouables.
+  //
+  // Remplace un barème strictement proportionnel (1,25 s × n, plancher 5 s) qui
+  // sur-dotait les petits lots — 5 s pour 3 objets, alors qu'ils tiennent en
+  // mémoire de travail sans répétition — et sous-dotait les grands.
 
-  /// Plancher du temps d'observation des objets (identique à l'ancien 5 s fixe).
-  static const int objectObservationMinMs = 5000;
+  /// Coût perceptif fixe, indépendant du nombre d'objets (ms).
+  static const int objectObservationBaseMs = 2000;
 
-  /// Temps d'observation des objets à un niveau : ~1.25 s × nombre d'objets,
-  /// jamais sous [objectObservationMinMs]. Ex. 4 objets → 5 s, 8 → 10 s, 12 → 15 s.
-  static int objectObservationMs(int objectCount) {
-    final total = objectObservationMsPerItem * objectCount;
-    return total < objectObservationMinMs ? objectObservationMinMs : total;
+  /// Encodage d'une image (ms), tant qu'on reste sous [workingMemoryCapacity].
+  static const int objectObservationMsPerItem = 800;
+
+  /// Surcoût de regroupement/répétition par objet AU-DELÀ de la capacité (ms).
+  static const int objectObservationRehearsalMsPerItem = 500;
+
+  /// Capacité de la mémoire de travail visuelle (Cowan, 2001) : le point où la
+  /// pente change.
+  static const int workingMemoryCapacity = 4;
+
+  /// Plancher physiologique par objet (ms) : une fixation oculaire dure
+  /// ~250-300 ms, donc en deçà le joueur n'a pas même le temps de poser les
+  /// yeux sur chaque image. Ce plancher borne aussi l'ajustement individuel :
+  /// sans lui, un joueur performant finirait par recevoir des niveaux
+  /// littéralement infaisables.
+  static const int objectObservationMinMsPerItem = 300;
+
+  /// Plancher absolu du temps d'observation (ms).
+  static const int objectObservationMinMs = 1500;
+
+  /// Plafond du temps d'observation (ms). Au-delà, l'attention retombe : le
+  /// joueur ne retient pas mieux, il s'ennuie.
+  static const int objectObservationMaxMs = 30000;
+
+  /// Temps d'observation des objets, en ms.
+  ///
+  /// [playerFactor] est le coefficient d'allure du joueur ([playerPaceNeutral]
+  /// par défaut) — voir [nextPlayerFactor].
+  ///
+  /// Ex. à allure neutre : 3 objets → 4,4 s · 4 → 5,2 s · 6 → 7,8 s ·
+  /// 9 → 11,7 s · 12 → 15,6 s.
+  static int objectObservationMs(
+    int objectCount, {
+    double playerFactor = playerPaceNeutral,
+  }) {
+    final n = objectCount < 0 ? 0 : objectCount;
+    final over = n - workingMemoryCapacity;
+    final base = objectObservationBaseMs +
+        objectObservationMsPerItem * n +
+        objectObservationRehearsalMsPerItem * (over < 0 ? 0 : over);
+
+    final scaled = (base * playerFactor).round();
+
+    final fixationFloor = objectObservationMinMsPerItem * n;
+    final floor = fixationFloor > objectObservationMinMs
+        ? fixationFloor
+        : objectObservationMinMs;
+
+    if (scaled < floor) return floor;
+    return scaled > objectObservationMaxMs ? objectObservationMaxMs : scaled;
+  }
+
+  // ── Temps de restitution (loi de Hick) ─────────────────────────────────────
+  //
+  // La restitution ne suit PAS la même loi que la mémorisation. Le joueur n'a
+  // plus rien à encoder : il choisit, parmi les cartes affichées, laquelle
+  // placer. Le temps de décision croît alors en logarithme du nombre d'options
+  // (Hick, 1952 ; Hyman, 1953) :
+  //
+  //   T(n) = base + perDoubling · log2(n + 1)
+  //
+  // Réutiliser ici la droite de la mémorisation serait la faute classique : elle
+  // rend les grands niveaux très généreux et les petits étouffants, alors que
+  // c'est l'inverse qu'il faut. Ex. 3 objets → 5,9 s · 6 → 7,7 s · 9 → 8,8 s :
+  // trois fois plus de cartes ne demandent pas trois fois plus de temps.
+
+  /// Part fixe du temps de restitution (ms) : lecture de la consigne, premier
+  /// balayage du plateau.
+  static const int restoreBaseMs = 1500;
+
+  /// Temps ajouté chaque fois que le nombre d'options double (ms).
+  static const int restoreMsPerDoubling = 2200;
+
+  /// Plancher absolu du temps de restitution (ms).
+  static const int restoreMinMs = 4000;
+
+  /// Plafond du temps de restitution (ms).
+  static const int restoreMaxMs = 25000;
+
+  /// Temps accordé pour reconstituer l'ordre, en ms.
+  ///
+  /// [playerFactor] est le même coefficient d'allure que la mémorisation : un
+  /// joueur lent doit l'être sur les deux phases, sinon on lui rend d'un côté
+  /// ce qu'on lui retire de l'autre.
+  static int restoreTimeLimitMs(
+    int objectCount, {
+    double playerFactor = playerPaceNeutral,
+  }) {
+    final n = objectCount < 0 ? 0 : objectCount;
+    final base =
+        restoreBaseMs + restoreMsPerDoubling * (math.log(n + 1) / math.ln2);
+    final scaled = (base * playerFactor).round();
+    if (scaled < restoreMinMs) return restoreMinMs;
+    return scaled > restoreMaxMs ? restoreMaxMs : scaled;
+  }
+
+  // ── Allure individuelle (escalier adaptatif) ───────────────────────────────
+  //
+  // Les constantes ci-dessus sont des moyennes de population ; un joueur donné
+  // s'en écarte facilement de ±40 %. Le coefficient d'allure les recale, partie
+  // après partie, par un escalier pondéré (Kaernbach, 1991) : le temps se réduit
+  // d'un petit pas après un niveau réussi, et remonte d'un pas nettement plus
+  // grand après un échec. Le rapport des deux pas fixe le point d'équilibre, ici
+  // [targetSuccessRate] — le taux de réussite auquel l'apprentissage et
+  // l'engagement sont maximaux (Wilson et al., Nature Communications, 2019).
+
+  /// Coefficient neutre : le joueur reçoit exactement le barème de référence.
+  static const double playerPaceNeutral = 1.0;
+
+  /// Taux de réussite visé par l'escalier.
+  static const double targetSuccessRate = 0.85;
+
+  /// Pas de remontée après un échec, en log-temps. Règle la vitesse de
+  /// convergence : plus haut = adaptation plus rapide mais plus instable.
+  static const double playerPaceStepUp = 0.12;
+
+  /// Bornes du coefficient. Elles garantissent qu'aucune série de réussites ne
+  /// rende un niveau infaisable, ni qu'une série d'échecs ne le rende gratuit.
+  static const double playerPaceMin = 0.6;
+  static const double playerPaceMax = 1.8;
+
+  /// Coefficient d'allure après un niveau, selon qu'il est réussi ou raté.
+  ///
+  /// Le pas de descente vaut `stepUp × (1 − p) / p` : c'est ce rapport qui fait
+  /// converger l'escalier vers [targetSuccessRate] plutôt que vers 50 %.
+  static double nextPlayerFactor(double current, {required bool success}) {
+    final stepDown =
+        playerPaceStepUp * (1 - targetSuccessRate) / targetSuccessRate;
+    final next = current * math.exp(success ? -stepDown : playerPaceStepUp);
+    if (next < playerPaceMin) return playerPaceMin;
+    return next > playerPaceMax ? playerPaceMax : next;
   }
 
   // ── Difficulté des distractions visuelles (jeu des IMAGES) ────────────────

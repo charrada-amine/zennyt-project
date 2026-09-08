@@ -491,4 +491,54 @@ void main() {
       expect(game.level, 4);
     });
   });
+
+  group('Temps de mémorisation', () {
+    test('suit le barème du niveau courant', () {
+      final game = MemoryImagesGame(random: math.Random(7))..start();
+      expect(
+        game.memorizeMs,
+        MemoryQuestConfig.objectObservationMs(game.objects.length),
+      );
+    });
+
+    test('un niveau réussi raccourcit la mémorisation du suivant', () {
+      final game = MemoryImagesGame(random: math.Random(7))..start();
+      // Sans distraction au niveau 1, la phase suivante est la restitution.
+      final count = game.objects.length;
+      final before = game.memorizeMs;
+      final solution = List.of(game.objects);
+      game.endMemorization();
+      expect(game.submitOrder(solution), isTrue);
+
+      // À nombre d'objets égal, l'allure recalée doit donner strictement moins.
+      expect(
+        MemoryQuestConfig.objectObservationMs(
+          count,
+          playerFactor: game.playerFactor,
+        ),
+        lessThan(before),
+      );
+      expect(game.playerFactor, lessThan(MemoryQuestConfig.playerPaceNeutral));
+    });
+
+    test('une nouvelle partie repart de l\'allure fournie', () {
+      final game = MemoryImagesGame(random: math.Random(7), playerFactor: 1.3)
+        ..start();
+      expect(game.playerFactor, 1.3);
+      expect(
+        game.memorizeMs,
+        MemoryQuestConfig.objectObservationMs(
+          game.objects.length,
+          playerFactor: 1.3,
+        ),
+      );
+
+      game.endMemorization();
+      game.submitOrder(List.of(game.objects));
+      expect(game.playerFactor, lessThan(1.3));
+
+      game.start();
+      expect(game.playerFactor, 1.3, reason: 'l\'allure du profil, pas la dérive');
+    });
+  });
 }

@@ -50,8 +50,11 @@ class MemoryImagesGame {
     math.Random? random,
     MemoryDistractionFactory? factory,
     List<MemoryObject> catalog = kMemoryObjectLibrary,
+    double playerFactor = MemoryQuestConfig.playerPaceNeutral,
   })  : _random = random ?? math.Random(),
         _catalog = catalog,
+        _initialPlayerFactor = playerFactor,
+        _playerFactor = playerFactor,
         _sequencer = MemoryDistractionSequencer(
           factory: factory ?? const MemoryDistractionFactory(),
         );
@@ -62,6 +65,9 @@ class MemoryImagesGame {
   /// brut donnait « intrus » cinq fois d'affilée sur une partie.
   final MemoryDistractionSequencer _sequencer;
 
+  /// Allure du joueur à l'ouverture de la partie — celle restaurée du profil.
+  final double _initialPlayerFactor;
+
   // ── État ────────────────────────────────────────────────────────────────
   int _level = 1;
   int _levelAttempts = 0;
@@ -71,6 +77,9 @@ class MemoryImagesGame {
   MemoryDistractionChallenge? _challenge;
   DateTime? _distractionStartedAt;
   DateTime? _answerStartedAt;
+
+  /// Allure courante, recalée après chaque niveau (cf. [MemoryQuestConfig.nextPlayerFactor]).
+  double _playerFactor;
 
   final List<MemoryTaskResult> _tasks = [];
   int _restoreCorrectTotal = 0;
@@ -104,9 +113,34 @@ class MemoryImagesGame {
   double get progress =>
       ((_level - 1) / MemoryQuestConfig.totalLevels).clamp(0.0, 1.0);
 
-  /// Durée de mémorisation du niveau courant.
-  int get memorizeMs =>
-      MemoryQuestConfig.objectObservationMs(_objects.length);
+  /// Durée de mémorisation du niveau courant, allure du joueur comprise.
+  int get memorizeMs => MemoryQuestConfig.objectObservationMs(
+        _objects.length,
+        playerFactor: _playerFactor,
+      );
+
+  /// Allure du joueur à cet instant. À persister en fin de partie pour que la
+  /// prochaine reparte du niveau atteint plutôt que du barème moyen.
+  double get playerFactor => _playerFactor;
+
+  /// Budget de temps de la restitution au niveau courant.
+  int get restoreTimeLimitMs => MemoryQuestConfig.restoreTimeLimitMs(
+        _objects.length,
+        playerFactor: _playerFactor,
+      );
+
+  /// Millisecondes restantes pour restituer (0 hors de la phase de réponse, ou
+  /// une fois le budget épuisé).
+  int get restoreRemainingMs {
+    final startedAt = _answerStartedAt;
+    if (startedAt == null || _phase != MemoryImagesPhase.answer) return 0;
+    final left = restoreTimeLimitMs -
+        clock.now().difference(startedAt).inMilliseconds;
+    return left < 0 ? 0 : left;
+  }
+
+  bool get restoreExpired =>
+      _phase == MemoryImagesPhase.answer && restoreRemainingMs <= 0;
 
   /// La tâche parasite est-elle due à ce niveau ?
   bool get distractionDue =>
@@ -128,6 +162,7 @@ class MemoryImagesGame {
     _afterDistractionObserved = 0;
     _afterDistractionCorrect = 0;
     _distractionPlayed = false;
+    _playerFactor = _initialPlayerFactor;
     _sequencer.reset();
     _beginLevel();
   }
@@ -260,6 +295,11 @@ class MemoryImagesGame {
     ));
 
     final perfect = correct == _objects.length;
+    // L'escalier se met à jour sur CHAQUE niveau, réussi ou non : c'est le
+    // rapport entre les deux pas qui fait converger l'allure vers le taux de
+    // réussite visé.
+    _playerFactor =
+        MemoryQuestConfig.nextPlayerFactor(_playerFactor, success: perfect);
     if (!perfect) {
       _errors++;
       _levelAttempts++;

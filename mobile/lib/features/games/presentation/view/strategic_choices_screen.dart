@@ -106,7 +106,7 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
         !_pauseOpen) {
       _resumePauseAfterLifecycle = false;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _openPause();
+        if (mounted) _openPause(afterLifecycle: true);
       });
     }
   }
@@ -126,9 +126,14 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
     setState(() => _stage = stage);
   }
 
+  /// Droit de pause de la partie : une ouverture, 30 s (CdC pause §2-3).
+  final GamePauseAllowance _pauseAllowance = GamePauseAllowance();
+
   void _startJourney() {
     _reflectionTimer?.cancel();
     _savedTimer?.cancel();
+    // Nouvelle partie = nouveau droit de pause.
+    _pauseAllowance.reset();
     setState(() {
       _stage = _StrategicStage.gameplay;
       _scenarioPhase = _ScenarioPhase.reading;
@@ -224,16 +229,40 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
     });
   }
 
-  Future<void> _openPause() async {
+  /// Flèche « retour » : le menu tant que la fenêtre est ouverte, sinon la
+  /// seule issue restante — quitter, donc renoncer au score.
+  Future<void> _backOrExit() async {
+    if (_pauseAllowance.canOpen) return _openPause();
+    if (!await GameExitConfirmDialog.show(context, missionLabel: 'journey')) {
+      return;
+    }
+    if (mounted) context.go(AppRoutes.games);
+  }
+
+  /// [afterLifecycle] : retour d'arrière-plan, donc interruption SUBIE — elle ne
+  /// consomme pas la fenêtre unique et n'affiche aucun compte à rebours.
+  /// [reopen] : réaffichage interne (retour des règles, sortie annulée) sur le
+  /// temps restant d'une fenêtre déjà ouverte.
+  Future<void> _openPause({
+    bool afterLifecycle = false,
+    bool reopen = false,
+  }) async {
     if (_stage != _StrategicStage.gameplay || _pauseOpen) return;
+    if (!afterLifecycle && !reopen) {
+      if (!_pauseAllowance.canOpen) return;
+      _pauseAllowance.open();
+    }
     _pauseReflectionTimer();
     _pauseOpen = true;
     final action = await showDialog<EmotionalGamePauseAction>(
       context: context,
       barrierDismissible: false,
-      builder: (context) => EmotionalGamePauseDialog(
+      builder: (dialogCtx) => EmotionalGamePauseDialog(
         buttonsInput: _buttonsInput,
         onInputMode: (value) => _buttonsInput = value,
+        countdown: afterLifecycle ? null : _pauseAllowance.remaining,
+        onCountdownExpired: () =>
+            Navigator.of(dialogCtx).pop(EmotionalGamePauseAction.resume),
       ),
     );
     _pauseOpen = false;
@@ -241,14 +270,33 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
     switch (action) {
       case EmotionalGamePauseAction.rules:
         await _showRules();
-        if (mounted) _resumeReflectionTimer();
+        if (!mounted) return;
+        if (_pauseAllowance.canReopen) return _openPauseAgain();
       case EmotionalGamePauseAction.exit:
-        context.go(AppRoutes.games);
+        // Quitter annule la tentative : confirmation explicite d'abord.
+        if (await GameExitConfirmDialog.show(
+          context,
+          missionLabel: 'journey',
+        )) {
+          if (mounted) context.go(AppRoutes.games);
+          return;
+        }
+        if (!mounted) return;
+        if (_pauseAllowance.canReopen) return _openPauseAgain();
       case EmotionalGamePauseAction.resume:
       case null:
-        _resumeReflectionTimer();
+        break;
     }
+    if (!mounted) return;
+    // La partie repart : le temps passé en pause rejoint le budget consommé, et
+    // le bouton reste « Pause » tant qu'il en reste.
+    _pauseAllowance.close();
+    setState(_resumeReflectionTimer);
   }
+
+  /// Réouverture interne (retour des règles / sortie annulée) : la fenêtre est
+  /// déjà consommée, on repart sur son temps restant.
+  Future<void> _openPauseAgain() => _openPause(reopen: true);
 
   Future<void> _showRules() => showDialog<void>(
     context: context,
@@ -292,7 +340,7 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
       case _StrategicStage.tutorial:
         _setStage(_StrategicStage.intro);
       case _StrategicStage.gameplay:
-        _openPause();
+        _backOrExit();
       case _StrategicStage.saved:
         break;
       case _StrategicStage.results:
@@ -360,7 +408,8 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
                 onStartReflection: _startReflection,
                 onSelect: _selectStrategy,
                 onValidate: _validateChoice,
-                onPause: _openPause,
+                onPause: _backOrExit,
+                affordance: _pauseAllowance.affordance,
               )),
               _StrategicStage.saved => _SavedView(
                 key: ValueKey('strategic-saved-$_situationIndex'),
@@ -709,6 +758,7 @@ class _GameplayView extends StatelessWidget {
     required this.onSelect,
     required this.onValidate,
     required this.onPause,
+    required this.affordance,
   });
 
   final StrategicChoiceSituation situation;
@@ -720,6 +770,10 @@ class _GameplayView extends StatelessWidget {
   final ValueChanged<StrategicChoiceStrategy> onSelect;
   final VoidCallback onValidate;
   final VoidCallback onPause;
+
+  /// Pause ou sortie : le bouton change d'icône une fois la fenêtre consommée,
+  /// il ne disparaît plus. Voir [GameMenuAffordance].
+  final GameMenuAffordance affordance;
 
   String get _modeLabel => switch (phase) {
     _ScenarioPhase.reading => 'Read the situation',
@@ -774,8 +828,8 @@ class _GameplayView extends StatelessWidget {
                 ),
               ),
               _PurpleIconButton(
-                icon: Icons.pause_rounded,
-                tooltip: 'Pause',
+                icon: affordance.icon,
+                tooltip: affordance.tooltip,
                 onTap: onPause,
               ),
             ],

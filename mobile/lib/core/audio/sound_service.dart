@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
+import 'native_haptics.dart';
+
 /// Effets sonores généralisés des jeux (dossier `assets/sounds/`).
 ///
 /// Les chemins sont relatifs à `assets/` (convention `AssetSource` d'audioplayers).
@@ -91,29 +93,59 @@ enum GameSfx {
 /// Service audio central des jeux : musique de fond en boucle + effets sonores
 /// ponctuels. Singleton pour un accès simple depuis les widgets partagés.
 ///
-/// Volume de la musique de fond : [_musicVolume] (25 % du volume système),
-/// réglé par le client après écoute — voir le commentaire de la constante.
+/// Volumes réglés par le client après écoute : musique de fond à 40 %
+/// ([_musicVolume]), effets sonores à 100 % ([_sfxVolume]). Voir le commentaire
+/// de chaque constante pour l'historique des arbitrages.
 class SoundService {
   SoundService._();
 
   static final SoundService instance = SoundService._();
 
+  /// Prise de test : reçoit chaque effet réellement émis.
+  ///
+  /// Sans elle, aucun test ne pouvait vérifier QUAND un jeu joue un son : le
+  /// plugin audio est absent sous `flutter test`, et [playSfx] avale ses erreurs
+  /// en silence — un son manquant s'y lit donc exactement comme un son joué.
+  ///
+  /// Appelée APRÈS le test de coupure du son : elle reflète ce que le candidat
+  /// entend, pas ce que le code a demandé.
+  @visibleForTesting
+  static void Function(GameSfx sfx)? debugOnSfx;
+
   static const String _bgMusicAsset = 'sounds/bg-music.mp3';
 
-  /// Volume des effets sonores — 40 % du volume système.
-  static const double _sfxVolume = 0.4;
-
-  /// Volume de la musique de fond — **25 % du volume système**.
+  /// Volume des effets sonores — **100 % du volume système**.
   ///
-  /// Valeur fixée par le client à l'écoute, en deux temps : la version d'abord
+  /// Les effets ne sont plus atténués : ils portent le retour d'erreur et de
+  /// réussite, qui doit trancher sur la musique. Le candidat garde la main sur
+  /// le niveau absolu par les touches de volume de son téléphone ; c'est le
+  /// RAPPORT musique/effets qui est réglé ici, et lui seul.
+  ///
+  /// Passé de 40 % à 100 % sur demande du client. Reste cohérent avec la règle
+  /// d'origine de la fiche « Non-specific » — musique ≤ 40 % des effets — que le
+  /// couple 20 / 100 respecte largement.
+  static const double _sfxVolume = 1.0;
+
+  /// Volume de la musique de fond — **40 % du volume système**.
+  ///
+  /// Valeur fixée par le client à l'écoute, en quatre temps : la version d'abord
   /// livrée à 16 % (la fiche « Non-specific » exprimait un RAPPORT — musique
-  /// ≤ 40 % des SFX) a été jugée inaudible, celle à 40 % trop forte. 25 % est
-  /// l'arbitrage retenu.
+  /// ≤ 40 % des SFX) a été jugée inaudible, celle à 40 % trop forte, 25 % encore
+  /// un peu haute, puis 20 % retenue. Ce 20 % a ensuite été jugé trop bas UNE
+  /// FOIS les effets remontés de 40 % à 100 % : ce n'est pas la musique qui
+  /// avait changé, mais l'écart entre les deux canaux, passé de 1:2 à 1:5.
+  /// Le client demande 40 % pour ramener cet écart à 1:2,5.
+  ///
+  /// Le couple 40 / 100 reste exactement à la limite de la règle d'origine
+  /// (musique ≤ 40 % des effets) ; toute hausse ultérieure la franchirait.
+  ///
+  /// Ne concerne QUE la musique : les effets sont à [_sfxVolume]. Ce sont deux
+  /// canaux distincts, avec deux réglages distincts dans le menu pause.
   ///
   /// Exprimé en valeur ABSOLUE, et non plus en fraction de [_sfxVolume] :
-  /// c'est ainsi que le client raisonne (« le volume passe à 25 % »), et un
+  /// c'est ainsi que le client raisonne (« le volume passe à 40 % »), et un
   /// ratio rendait le réglage dépendant du volume des effets.
-  static const double _musicVolume = 0.25;
+  static const double _musicVolume = 0.4;
 
   /// Sons qui marquent une erreur — ils déclenchent aussi la vibration.
   static const Set<GameSfx> _errorSfx = {
@@ -222,34 +254,47 @@ class SoundService {
   }
 
   // ── Retour haptique ───────────────────────────────────────────────────
-  // Centralisé ici pour une seule raison : le réglage « Vibration » du menu
-  // pause doit pouvoir tout couper. Un appel direct à HapticFeedback dans un
-  // écran échapperait au réglage — c'était le cas de la seule vibration
-  // existante (case interdite d'Optimal Path).
+  // Centralisé ici pour deux raisons : le réglage « Vibration » du menu pause
+  // doit pouvoir tout couper — un appel direct dans un écran y échapperait,
+  // c'était le cas de la seule vibration existante (case interdite d'Optimal
+  // Path) — et le choix du chemin natif ou standard ne doit être écrit qu'une
+  // fois.
 
   /// Erreur : vibration franche.
   ///
-  /// [HapticFeedback.vibrate] et non `heavyImpact` : le client signalait que la
-  /// vibration d'erreur d'Optimal Path « ne fonctionne pas » alors que le
-  /// câblage était bon. La cause est le mapping Android de Flutter —
-  /// `heavyImpact` y devient `HapticFeedbackConstants.CONTEXT_CLICK`, l'effet le
-  /// plus discret du système, souvent imperceptible voire ignoré selon les
-  /// réglages du téléphone. `vibrate` mappe sur `LONG_PRESS`, le plus franc.
-  ///
   /// ⚠️ Aucun retour haptique n'existe sur simulateur iOS ni sur la plupart des
   /// émulateurs Android : ce point ne peut se valider que sur appareil réel.
-  Future<void> vibrateError() => _vibrate(HapticFeedback.vibrate);
+  Future<void> vibrateError() =>
+      _vibrate(HapticShot.error, HapticFeedback.vibrate);
 
   /// Réussite / franchissement d'un palier : vibration moyenne.
-  Future<void> vibrateSuccess() => _vibrate(HapticFeedback.mediumImpact);
+  Future<void> vibrateSuccess() =>
+      _vibrate(HapticShot.success, HapticFeedback.mediumImpact);
 
   /// Sélection, pose d'un élément : vibration discrète.
-  Future<void> vibrateSelection() => _vibrate(HapticFeedback.selectionClick);
+  Future<void> vibrateSelection() =>
+      _vibrate(HapticShot.selection, HapticFeedback.selectionClick);
 
-  Future<void> _vibrate(Future<void> Function() effect) async {
+  /// Joue [shot] par le moteur natif, et ne retombe sur [fallback] que si le
+  /// canal natif n'a rien pu jouer.
+  ///
+  /// L'ordre compte. [HapticFeedback] demande un *retour tactile*, qu'Android
+  /// n'exécute que si « Vibration au toucher » est actif dans les réglages —
+  /// désactivé par défaut sur beaucoup de Xiaomi/Redmi, et alors ignoré sans la
+  /// moindre erreur. C'est ce silence qui faisait passer la vibration d'erreur
+  /// d'Optimal Path pour non branchée alors qu'elle l'était. [NativeHaptics]
+  /// commande le moteur directement et ne dépend que de la permission `VIBRATE`.
+  ///
+  /// Le repli reste utile : il couvre iOS, où le chemin standard suffit et où le
+  /// canal natif n'existe pas.
+  Future<void> _vibrate(
+    HapticShot shot,
+    Future<void> Function() fallback,
+  ) async {
     if (!_hapticsEnabled) return;
     try {
-      await effect();
+      if (await NativeHaptics.vibrate(shot)) return;
+      await fallback();
     } catch (error) {
       // Appareil sans moteur haptique, ou plateforme de test sans plugin.
       _log('_vibrate', error);
@@ -273,6 +318,7 @@ class SoundService {
       vibrateError();
     }
     if (!_sfxEnabled) return;
+    debugOnSfx?.call(sfx);
     await _ensureConfigured();
     final player = AudioPlayer();
     try {

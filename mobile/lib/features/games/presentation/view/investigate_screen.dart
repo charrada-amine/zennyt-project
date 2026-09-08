@@ -10,6 +10,7 @@ import '../../../../core/audio/sound_service.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../data/memory_pace_store.dart';
 import '../../domain/config/memory_quest_config.dart';
 import '../../domain/entities/device_calibration.dart';
 import '../../domain/entities/game_session.dart';
@@ -123,11 +124,18 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
   _Stage _stage = _Stage.intro;
   bool _paused = false;
 
+  /// Droit de pause de la partie : une ouverture, 30 s (CdC pause §2-3).
+  final GamePauseAllowance _pauseAllowance = GamePauseAllowance();
+
   // Niveau courant (1-based). Un seul tour par niveau, puis incrémentation.
   int _level = 1;
   // Échecs enchaînés sur le niveau COURANT : au [maxFailuresPerLevel]ᵉ, fin de
   // partie. Remis à zéro à chaque montée de niveau.
   int _levelFailures = 0;
+
+  /// Allure du joueur — recalée à chaque niveau, restaurée du profil au
+  /// lancement. Voir [MemoryQuestConfig.nextPlayerFactor].
+  double _playerFactor = MemoryQuestConfig.playerPaceNeutral;
 
   /// Toutes les tâches du tour en cours ont-elles été parfaites ?
   ///
@@ -172,14 +180,22 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
       const []; // ordre affiché (observe/manipulation)
   int _highlightA = -1;
   int _highlightB = -1;
-  List<MemoryObject?> _slots = const []; // restauration (tap-to-place)
-  List<MemoryObject> _pool = const [];
+  /// Grille de restauration : tous les objets, dans un ordre mélangé qui ne
+  /// bouge plus. Les cartes restent en place, c'est le RANG qu'on leur attribue.
+  List<MemoryObject> _board = const [];
+
+  /// Objets classés, dans l'ordre des appuis. Le rang d'un objet est sa position
+  /// dans cette liste (+1) ; absent = pas encore classé.
+  List<MemoryObject> _ranking = const [];
   int _restoreCorrect = 0;
   bool _missionBDone = false;
   int _objToken = 0; // annule une phase objet en cours (pause/dispose)
 
   // ── Phase de distraction (résistance à l'interférence) ────────────────────
-  static const int _distractSeconds = 8; // 5–10 s (question rapide)
+
+  /// Battement du rebours de restitution. Assez fin pour que la barre glisse,
+  /// assez large pour ne pas reconstruire le plateau à chaque image.
+  static const Duration _restoreTickInterval = Duration(milliseconds: 100);
 
   String _distractQuestionText = '';
   int _distractQuestionAnswer = 0; // réponse correcte de la question
@@ -187,6 +203,19 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
   bool _distractQuestionCorrect = false;
   int _distractSecondsLeft = 0;
   Timer? _distractTimer;
+
+  /// Compte à rebours de la restitution — la phase avait un temps illimité.
+  ///
+  /// Suivi en MILLISECONDES et non en secondes : la barre de temps se vide en
+  /// continu, un pas d'une seconde la ferait sauter par quarts sur une phase
+  /// qui n'en dure que six.
+  int _restoreLimitMs = 0;
+  int _restoreMsLeft = 0;
+  Timer? _restoreTimer;
+
+  /// Fraction de temps restante pour la restitution, dans [0, 1].
+  double get _restoreProgress =>
+      _restoreLimitMs <= 0 ? 0 : _restoreMsLeft / _restoreLimitMs;
   int _afterDistractObserved = 0;
   int _afterDistractCorrect = 0;
   bool _distractionDone = false;
@@ -221,6 +250,8 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
   @override
   void initState() {
     super.initState();
+    // Lecture synchrone : les préférences sont déjà résolues dans main().
+    _playerFactor = ref.read(memoryPaceStoreProvider).read();
   }
 
   @override
@@ -228,6 +259,7 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
     _seqToken++; // stoppe toute observation planifiée
     _objToken++;
     _distractTimer?.cancel();
+    _restoreTimer?.cancel();
     SoundService.instance.stopSpeaking();
     super.dispose();
   }
@@ -256,7 +288,10 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
       _tasks.clear();
     });
     _distractTimer?.cancel();
+    _restoreTimer?.cancel();
     _calibrationProbe.reset();
+    // Nouvelle partie = nouveau droit de pause.
+    _pauseAllowance.reset();
     _sessionWatch
       ..reset()
       ..start();
@@ -454,6 +489,7 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
   ///
   /// Le temps de session reste une borne haute indépendante.
   void _endLevel() {
+    _recordPace(success: _roundPerfect);
     if (_sessionTimeExhausted) {
       _finishAndSubmit();
       return;
@@ -481,6 +517,22 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
     _beginRound();
   }
 
+  /// Recale l'allure du joueur sur l'issue du niveau, et la persiste.
+  ///
+  /// Volontairement appelé sur chaque niveau, réussi ou raté : c'est le rapport
+  /// entre le petit pas de descente et le grand pas de remontée qui fait
+  /// converger l'allure vers [MemoryQuestConfig.targetSuccessRate]. N'en garder
+  /// qu'un des deux ferait dériver le temps dans une seule direction.
+  void _recordPace({required bool success}) {
+    final next =
+        MemoryQuestConfig.nextPlayerFactor(_playerFactor, success: success);
+    if (next == _playerFactor) return;
+    _playerFactor = next;
+    // L'écriture est asynchrone mais n'influe sur rien à l'écran : le tour
+    // suivant lit `_playerFactor`, pas les préférences.
+    unawaited(ref.read(memoryPaceStoreProvider).write(next));
+  }
+
   // ── Mission B — manipulation d'objets ────────────────────────────────────
 
   void _beginMissionB() {
@@ -500,10 +552,14 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
   Future<void> _runObserveThenManipulate() async {
     final token = ++_objToken;
     // Phase d'observation (ordre initial visible, saisie verrouillée). Le temps
-    // de mémorisation croît avec le nombre d'objets (≈ 1.25 s / objet).
+    // de mémorisation croît avec le nombre d'objets, plus vite au-delà de la
+    // capacité de la mémoire de travail — cf. MemoryQuestConfig.
     await Future<void>.delayed(
       Duration(
-        milliseconds: MemoryQuestConfig.objectObservationMs(_objects.length),
+        milliseconds: MemoryQuestConfig.objectObservationMs(
+          _objects.length,
+          playerFactor: _playerFactor,
+        ),
       ),
     );
     if (!mounted || token != _objToken) return;
@@ -556,14 +612,36 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
 
   /// Restauration : l'utilisateur reconstruit l'ORDRE INITIAL (pas l'état final).
   void _toRestoreOrder() {
+    _restoreTimer?.cancel();
+    final limitMs = MemoryQuestConfig.restoreTimeLimitMs(
+      _objects.length,
+      playerFactor: _playerFactor,
+    );
     setState(() {
-      _slots = List<MemoryObject?>.filled(_objects.length, null);
-      _pool = List<MemoryObject>.of(_objects)..shuffle(_random);
+      _board = List<MemoryObject>.of(_objects)..shuffle(_random);
+      _ranking = <MemoryObject>[];
+      _restoreLimitMs = limitMs;
+      _restoreMsLeft = limitMs;
       _stage = _Stage.restoreOrder;
     });
     _taskWatch
       ..reset()
       ..start(); // chronomètre la tâche de restauration
+    _restoreTimer = Timer.periodic(_restoreTickInterval, (_) {
+      if (!mounted) return;
+      // La phase a pu changer entre deux battements (validation, pause quittée,
+      // fin de session) : le rebours ne doit alors plus rien décider.
+      if (_stage != _Stage.restoreOrder) {
+        _restoreTimer?.cancel();
+        return;
+      }
+      if (_restoreMsLeft <= _restoreTickInterval.inMilliseconds) {
+        setState(() => _restoreMsLeft = 0);
+        _settleRestore(); // temps écoulé → on valide en l'état
+        return;
+      }
+      setState(() => _restoreMsLeft -= _restoreTickInterval.inMilliseconds);
+    });
   }
 
   /// Interférence du jeu d'IMAGES : **une épreuve par niveau**, tirée au hasard
@@ -599,63 +677,52 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
     setState(() {});
   }
 
-  /// Appui sur un objet de la réserve : il file dans le premier emplacement
-  /// libre.
+  /// Appui sur une carte : elle prend le rang suivant, ou perd le sien.
   ///
-  /// Même son de dépôt que le glisser-déposer : le geste au doigt produit
-  /// exactement le même effet, il doit donc s'entendre pareil. Il était muet,
-  /// alors que le glissé sonnait — le joueur qui joue au tap n'avait aucun
-  /// retour.
-  void _placeFromPool(MemoryObject obj) {
-    if (_inputLocked) return;
-    final slot = _slots.indexOf(null);
-    if (slot < 0) return;
-    SoundService.instance.playSfx(GameSfx.imageDrop);
-    setState(() {
-      _slots[slot] = obj;
-      _pool.remove(obj);
-    });
-  }
-
-  /// Appui sur un emplacement occupé : l'objet repart à la réserve.
+  /// Retour client : « supprimer le drag and drop — le classement se fait au
+  /// clic, avec un petit numéro (1, 2, 3…) affiché en haut de l'objet ». Le
+  /// glisser-déposer imposait deux zones (réserve + emplacements) qui mangeaient
+  /// tout l'écran et forçaient des cartes minuscules ; une seule grille laisse
+  /// la place de les agrandir.
   ///
-  /// Geste inverse du dépôt, donc son de PRISE en main — et non de dépôt :
-  /// laisser ce retour muet à côté d'un placement sonorisé serait incohérent.
-  void _removeFromSlot(int slot) {
-    if (_inputLocked || _slots[slot] == null) return;
-    SoundService.instance.playSfx(GameSfx.imageDrag);
-    setState(() {
-      _pool.add(_slots[slot]!);
-      _slots[slot] = null;
-    });
-  }
-
-  /// Dépose [obj] (glissé depuis la réserve ou depuis un autre emplacement) dans
-  /// l'emplacement [slotIndex]. Réserve → emplacement : l'ancien occupant repart
-  /// à la réserve. Emplacement → emplacement : échange des deux objets.
-  void _placeInSlot(MemoryObject obj, int slotIndex) {
+  /// Reclasser est SANS TROU : retirer le rang 2 fait remonter 3 → 2, 4 → 3…
+  /// Un classement à trous (1, _, 3) serait invalide et il faudrait alors
+  /// interdire la validation en plein milieu du geste, sans que le joueur
+  /// comprenne pourquoi.
+  ///
+  /// Les deux sons restent ceux du glisser-déposer : dépôt quand on classe,
+  /// prise en main quand on déclasse. Le geste change, pas ce qu'il fait.
+  void _toggleRank(MemoryObject obj) {
     if (_inputLocked) return;
-    SoundService.instance.playSfx(GameSfx.imageDrop);
+    final at = _ranking.indexWhere((o) => o.id == obj.id);
+    SoundService.instance.playSfx(
+      at >= 0 ? GameSfx.imageDrag : GameSfx.imageDrop,
+    );
     setState(() {
-      final fromSlot = _slots.indexWhere((o) => o?.id == obj.id);
-      if (fromSlot == slotIndex) return;
-      final target = _slots[slotIndex];
-      if (fromSlot >= 0) {
-        _slots[fromSlot] = target; // échange (target peut être null)
-        _slots[slotIndex] = obj;
+      if (at >= 0) {
+        _ranking.removeAt(at);
       } else {
-        _pool.remove(obj);
-        if (target != null) _pool.add(target);
-        _slots[slotIndex] = obj;
+        _ranking.add(obj);
       }
     });
   }
 
   void _validateRestore() {
-    if (_inputLocked || _slots.contains(null)) return;
+    if (_inputLocked || _ranking.length != _objects.length) return;
+    _settleRestore();
+  }
+
+  /// Clôt la restitution avec le classement tel qu'il est.
+  ///
+  /// Appelée par le bouton *Validate* — classement complet — et par l'expiration
+  /// du rebours, où il peut être partiel ou vide. Les rangs posés comptent quand
+  /// même ([MemoryQuestConfig.partialCreditEnabled]) : annuler tout au coup de
+  /// sifflet effacerait ce que le joueur avait bel et bien retenu.
+  void _settleRestore() {
+    _restoreTimer?.cancel();
     var correct = 0;
-    for (var i = 0; i < _objects.length; i++) {
-      if (_slots[i]?.id == _objects[i].id) correct++;
+    for (var i = 0; i < _objects.length && i < _ranking.length; i++) {
+      if (_ranking[i].id == _objects[i].id) correct++;
     }
     _restoreCorrect += correct;
     _missionBDone = true;
@@ -877,22 +944,43 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
 
   // ── Pause ────────────────────────────────────────────────────────────────
 
+  /// Bouton unique de l'en-tête : menu de pause tant que la fenêtre est
+  /// ouverte, confirmation de sortie ensuite. Voir [GameMenuAffordance].
+  Future<void> _openMenu() async {
+    if (_pauseAllowance.canOpen) return _openPause();
+    if (await GameExitConfirmDialog.show(context)) {
+      if (mounted) context.go(AppRoutes.games);
+    }
+  }
+
   Future<void> _openPause() async {
     if (_stage == _Stage.intro ||
         _stage == _Stage.tutorial ||
         _stage == _Stage.results) {
       return;
     }
+    // Une seule fenêtre de pause par partie (CdC pause §2-3).
+    if (!_pauseAllowance.canOpen) return;
     SoundService.instance.playSfx(GameSfx.pauseClick);
     SoundService.instance.stopSpeaking(); // coupe la voix des chiffres
     _seqToken++; // gèle les phases verrouillées en cours
     _objToken++;
     _distractTimer?.cancel();
+    _pauseAllowance.open();
     setState(() => _paused = true);
+    await _showPauseMenu();
+  }
+
+  /// Menu de pause, réaffiché après les règles sur le **temps restant** de la
+  /// fenêtre — sinon l'aller-retour la relancerait indéfiniment.
+  Future<void> _showPauseMenu() async {
     final action = await showDialog<GamePauseAction>(
       context: context,
       barrierColor: ZennytGamePalette.ink.withValues(alpha: 0.82),
       builder: (context) => GamePauseScaffold(
+        countdown: _pauseAllowance.remaining,
+        onCountdownExpired: () =>
+            Navigator.of(context).pop(GamePauseAction.resume),
         description: 'The game timer and the sequence are frozen.',
         buttons: [
           GamePrimaryButton(
@@ -912,15 +1000,21 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
     );
     if (!mounted) return;
     if (action == GamePauseAction.exit) {
-      context.go(AppRoutes.games);
-      return;
-    }
-    if (action == GamePauseAction.help) {
+      // Quitter annule la tentative : confirmation explicite d'abord.
+      if (await GameExitConfirmDialog.show(context)) {
+        if (mounted) context.go(AppRoutes.games);
+        return;
+      }
+      if (!mounted) return;
+      if (_pauseAllowance.canReopen) return _showPauseMenu();
+    } else if (action == GamePauseAction.help) {
       await _showRulesHelp();
       if (!mounted) return;
-      await _openPause(); // revenir au menu pause après l'aide
-      return;
+      if (_pauseAllowance.canReopen) return _showPauseMenu();
     }
+    if (!mounted) return;
+    // La partie repart : le temps passé en pause rejoint le budget consommé.
+    _pauseAllowance.close();
     setState(() => _paused = false);
     // Reprise : on rejoue la phase (verrouillée) courante depuis son début.
     if (_stage == _Stage.observeSequence) {
@@ -1079,7 +1173,10 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _GameHeader(onPause: _openPause),
+          _GameHeader(
+            onPause: _openMenu,
+            affordance: _pauseAllowance.affordance,
+          ),
           const SizedBox(height: AppSpacing.base),
           // Trois pastilles de largeur variable (phase / charge / niveau) : en
           // [Row] elles débordaient de ~96 px sur un écran de 320. Un [Wrap]
@@ -1114,6 +1211,7 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
                   challenge: _objectChallenge,
                   objectCount: _objects.length,
                   secondsLeft: _distractSecondsLeft,
+                  totalSeconds: _distractSeconds,
                   answered: _challengeAnswered,
                   onPick: _answerObjectChallenge,
                 ),
@@ -1121,6 +1219,7 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
                 question: _distractQuestionText,
                 choices: _distractChoices,
                 secondsLeft: _distractSecondsLeft,
+                totalSeconds: _distractSeconds,
                 reminder: 'Hold the ${_sequence.length} digits in mind',
                 onPick: _pickDistraction,
               ),
@@ -1140,6 +1239,12 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
               _Stage.observeObjects => _ObjectsPhaseView(
                 order: _shownOrder,
                 languageCode: _lang,
+                countdown: Duration(
+                  milliseconds: MemoryQuestConfig.objectObservationMs(
+                    _objects.length,
+                    playerFactor: _playerFactor,
+                  ),
+                ),
                 title: 'Memorize the starting order',
                 subtitle:
                     'Watch the objects carefully. You will restore this order later.',
@@ -1154,13 +1259,13 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
                     'Objects are moving. Keep the STARTING order in mind, not the new one.',
               ),
               _Stage.restoreOrder => _RestoreView(
-                slots: _slots,
-                pool: _pool,
+                board: _board,
+                ranking: _ranking,
                 languageCode: _lang,
+                secondsLeft: (_restoreMsLeft / 1000).ceil(),
+                progress: _restoreProgress,
                 enabled: !_inputLocked,
-                onPlace: _placeFromPool,
-                onPlaceInSlot: _placeInSlot,
-                onRemove: _removeFromSlot,
+                onToggleRank: _toggleRank,
                 onValidate: _validateRestore,
               ),
               _ => _FeedbackView(correct: _lastCorrect),
@@ -1175,9 +1280,15 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
 // ── Header + chips ──────────────────────────────────────────────────────────
 
 class _GameHeader extends StatelessWidget {
-  const _GameHeader({required this.onPause});
+  const _GameHeader({required this.onPause, required this.affordance});
 
   final VoidCallback onPause;
+
+  /// Fenêtre de pause encore disponible : sinon le bouton disparaît, la règle
+  /// étant qu'il n'y a plus de pause du tout jusqu'à la fin de la partie.
+  /// Pause ou sortie : le bouton change d'icône une fois la fenêtre consommée,
+  /// il ne disparaît plus. Voir [GameMenuAffordance].
+  final GameMenuAffordance affordance;
 
   @override
   Widget build(BuildContext context) {
@@ -1216,20 +1327,20 @@ class _GameHeader extends StatelessWidget {
         // Cible tactile ≥ 48×48 (WCAG).
         Semantics(
           button: true,
-          label: 'Pause',
-          child: InkWell(
-            onTap: onPause,
-            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-            child: Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.18),
-                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          label: affordance.semanticsLabel,
+            child: InkWell(
+              onTap: onPause,
+              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+              child: Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                ),
+                child: Icon(affordance.icon, color: Colors.white),
               ),
-              child: const Icon(Icons.pause_rounded, color: Colors.white),
             ),
-          ),
         ),
       ],
     );
@@ -1277,41 +1388,47 @@ class _ObserveView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final card = Container(
+    // Seul le chiffre apparaît et disparaît ; le cadre blanc, lui, ne bouge
+    // jamais. Auparavant c'était la carte entière qui portait la clé de
+    // l'AnimatedSwitcher : le fond était rejoué à chaque chiffre, si bien que le
+    // cadre clignotait en même temps que le nombre. Le repère visuel doit rester
+    // fixe — c'est lui qui dit au candidat où regarder pendant tout l'encodage.
+    final glyph = Text(
+      digit?.toString() ?? '',
       key: ValueKey(digit == null ? 'isi-$index' : 'digit-$index'),
+      style: const TextStyle(
+        color: ZennytGamePalette.ink,
+        fontSize: 96,
+        fontWeight: FontWeight.w800,
+      ),
+    );
+
+    final card = Container(
+      key: const ValueKey('digit-frame'),
       width: double.infinity,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(AppSpacing.radiusXxl),
       ),
-      child: Text(
-        digit?.toString() ?? '',
-        style: const TextStyle(
-          color: ZennytGamePalette.ink,
-          fontSize: 96,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
+      child: reduceMotion
+          ? glyph
+          : AnimatedSwitcher(
+              duration: const Duration(milliseconds: 180),
+              transitionBuilder: (child, anim) => FadeTransition(
+                opacity: anim,
+                child: ScaleTransition(
+                  scale: Tween(begin: 0.94, end: 1.0).animate(anim),
+                  child: child,
+                ),
+              ),
+              child: glyph,
+            ),
     );
 
     return Column(
       children: [
-        Expanded(
-          child: reduceMotion
-              ? card
-              : AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 180),
-                  transitionBuilder: (child, anim) => FadeTransition(
-                    opacity: anim,
-                    child: ScaleTransition(
-                      scale: Tween(begin: 0.94, end: 1.0).animate(anim),
-                      child: child,
-                    ),
-                  ),
-                  child: card,
-                ),
-        ),
+        Expanded(child: card),
         const SizedBox(height: AppSpacing.base),
         Text(
           'Digit ${index + 1} of $total',
@@ -1543,14 +1660,174 @@ class _FeedbackView extends StatelessWidget {
 
 // ── Mission B — objets : observation / manipulation ─────────────────────────
 
-/// Échelle des cartes d'objets selon leur nombre : pleine taille jusqu'à 6,
-/// puis réduite progressivement pour tout faire tenir sans défilement pénible
-/// (utile pour le glisser-déposer quand il y a beaucoup d'objets).
-double _objectTileScale(int count) {
-  if (count <= 6) return 1.0;
-  if (count <= 9) return 0.82;
-  return 0.68;
+/// Couleur des trois consignes qui portent l'enjeu de la manche : « Memorize
+/// the starting order » à l'observation, « Watch the manipulations » pendant la
+/// distraction, « Restore the STARTING order » au rappel.
+///
+/// Retour client : les faire ressortir « pour que le joueur fasse attention ».
+/// Une seule constante pour les trois écrans — les consignes qui se répondent
+/// doivent se ressembler, et c'est ici qu'on essaie d'autres teintes.
+///
+/// Vert retenu par le client, l'ambre et le rouge ayant été écartés à l'essai.
+/// Sur l'indigo du plateau (#5B4FE8) il tient 3,2:1, au-dessus du seuil de 3:1
+/// qu'un titre demande — le rouge, lui, plafonnait à 2,0:1.
+/// Budget des tâches parasites (s) — 5–10 s pour une question rapide.
+///
+/// Au niveau du fichier et non dans l'état de l'écran : les vues en ont besoin
+/// pour dessiner la barre de temps, et deux valeurs qui divergeraient
+/// donneraient une barre qui ne correspond plus au rebours.
+const int _distractSeconds = 8;
+
+const Color kMemoryPromptColor = Color(0xFF4ADE80);
+
+/// Consigne de manche, qui cligne une fois à son arrivée.
+///
+/// Retour client : « on peut le faire clignoter une seule fois, c'est-à-dire
+/// disparaître et réapparaître, pour attirer l'attention ». Une fois, et une
+/// seule : un clignotement qui se répète devient un décor qu'on cesse de voir,
+/// et il tomberait ici en pleine mémorisation — le moment où le joueur a le
+/// plus besoin de calme.
+///
+/// Le clignotement se rejoue à CHAQUE nouvelle consigne, pas à chaque montage :
+/// les phases d'observation et de manipulation partagent la même vue, et c'est
+/// le passage de l'une à l'autre qui doit se remarquer.
+class MemoryPrompt extends StatefulWidget {
+  const MemoryPrompt(this.text, {super.key});
+
+  final String text;
+
+  /// Durée d'un clignotement complet — effacement, silence, retour.
+  ///
+  /// Assez court pour ne pas retarder la lecture, assez long pour qu'un
+  /// clignement d'œil ne le manque pas.
+  static const Duration blinkDuration = Duration(milliseconds: 460);
+
+  @override
+  State<MemoryPrompt> createState() => _MemoryPromptState();
 }
+
+class _MemoryPromptState extends State<MemoryPrompt>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _opacity;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: MemoryPrompt.blinkDuration,
+    );
+    // Sortie franche, absence brève, retour un peu plus lent : c'est le RETOUR
+    // qu'on regarde. L'inverse — disparition lente — se lirait comme un bug
+    // d'affichage plutôt que comme un appel.
+    _opacity = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween<double>(
+          begin: 1,
+          end: 0,
+        ).chain(CurveTween(curve: Curves.easeOut)),
+        weight: 34,
+      ),
+      TweenSequenceItem(tween: ConstantTween<double>(0), weight: 16),
+      TweenSequenceItem(
+        tween: Tween<double>(
+          begin: 0,
+          end: 1,
+        ).chain(CurveTween(curve: Curves.easeIn)),
+        weight: 50,
+      ),
+    ]).animate(_controller);
+    _controller.forward();
+  }
+
+  @override
+  void didUpdateWidget(MemoryPrompt oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.text != oldWidget.text) _controller.forward(from: 0);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final label = Text(
+      widget.text,
+      textAlign: TextAlign.center,
+      style: AppTypography.titleLarge.copyWith(
+        color: kMemoryPromptColor,
+        letterSpacing: 0,
+      ),
+    );
+    // Animations coupées : la consigne se pose, pleine. Un joueur qui a demandé
+    // moins de mouvement ne doit pas voir son texte s'effacer.
+    if (MediaQuery.maybeOf(context)?.disableAnimations ?? false) return label;
+    return FadeTransition(opacity: _opacity, child: label);
+  }
+}
+
+/// Dimensions de référence d'une carte d'objet (échelle 1).
+///
+/// Publiques parce que [memoryObjectTileScaleFor] l'est : sans elles, un test
+/// ne peut pas vérifier que la grille tient dans la place annoncée.
+const double kMemoryObjectTileWidth = 84;
+const double kMemoryObjectTileHeight = 120;
+
+/// Gouttière entre deux cartes d'objets. Ne suit PAS l'échelle : c'est
+/// l'espace minimal pour que deux cartes se distinguent, il n'a aucune raison
+/// de rétrécir avec elles.
+const double _objectTileGap = 12;
+
+/// Plus grande échelle de carte permettant d'afficher [count] cartes dans
+/// [available], sans défilement.
+///
+/// Retour client : « on veut simplement agrandir la taille des cartes des
+/// images ». L'échelle était une constante par palier (1,0 jusqu'à 6 objets,
+/// puis 0,82, puis 0,68) — elle ignorait donc la place disponible et rapetissait
+/// les cartes même sur un grand écran. Ici on essaie chaque découpage en
+/// colonnes et on garde celui qui donne les plus grandes cartes.
+///
+/// Le plafond [_maxObjectTileScale] existe pour qu'un niveau à 3 objets ne
+/// produise pas trois cartes démesurées : au-delà, l'image ne gagne plus rien en
+/// lisibilité et la grille perd son air de grille.
+double memoryObjectTileScaleFor({
+  required int count,
+  required Size available,
+  double gap = _objectTileGap,
+}) {
+  if (count <= 0 || available.width <= 0 || available.height <= 0) return 1;
+  var best = _minObjectTileScale;
+  var bestRows = count;
+  for (var columns = 1; columns <= count; columns++) {
+    final rows = (count / columns).ceil();
+    final byWidth =
+        (available.width - gap * (columns - 1)) /
+        (columns * kMemoryObjectTileWidth);
+    final byHeight =
+        (available.height - gap * (rows - 1)) /
+        (rows * kMemoryObjectTileHeight);
+    final fit = math
+        .min(byWidth, byHeight)
+        .clamp(_minObjectTileScale, _maxObjectTileScale);
+    // À taille égale — le cas dès que le plafond est atteint — on préfère le
+    // découpage qui tient en moins de rangées : plus large, plus compact, et
+    // sans rangée orpheline.
+    if (fit > best + 0.001 || ((fit - best).abs() <= 0.001 && rows < bestRows)) {
+      best = fit;
+      bestRows = rows;
+    }
+  }
+  return best;
+}
+
+/// En dessous, l'image d'un objet (52 × 0,62 ≈ 32 px) cesse d'être
+/// identifiable : mieux vaut faire défiler que montrer des vignettes illisibles.
+const double _minObjectTileScale = 0.62;
+const double _maxObjectTileScale = 1.9;
 
 class _ObjectsPhaseView extends StatelessWidget {
   const _ObjectsPhaseView({
@@ -1560,6 +1837,7 @@ class _ObjectsPhaseView extends StatelessWidget {
     required this.subtitle,
     this.highlightA = -1,
     this.highlightB = -1,
+    this.countdown,
   });
 
   final List<MemoryObject> order;
@@ -1569,19 +1847,17 @@ class _ObjectsPhaseView extends StatelessWidget {
   final int highlightA;
   final int highlightB;
 
+  /// Durée de la phase quand elle est chronométrée (mémorisation). `null` pour
+  /// les phases dont la fin ne dépend pas du joueur — les manipulations, qu'il
+  /// n'a qu'à regarder : leur donner un rebours suggérerait une échéance à
+  /// tenir alors qu'il n'y a rien à faire.
+  final Duration? countdown;
+
   @override
   Widget build(BuildContext context) {
-    final scale = _objectTileScale(order.length);
     return Column(
       children: [
-        Text(
-          title,
-          textAlign: TextAlign.center,
-          style: AppTypography.titleLarge.copyWith(
-            color: Colors.white,
-            letterSpacing: 0,
-          ),
-        ),
+        MemoryPrompt(title),
         const SizedBox(height: AppSpacing.sm),
         Text(
           subtitle,
@@ -1591,27 +1867,51 @@ class _ObjectsPhaseView extends StatelessWidget {
             letterSpacing: 0,
           ),
         ),
+        if (countdown != null) ...[
+          const SizedBox(height: AppSpacing.md),
+          // Animée sur la durée exacte de la phase plutôt que pilotée par un
+          // Timer : l'attente est déjà un `Future.delayed`, un second compteur
+          // pourrait en diverger et montrer une barre pleine sur un écran qui
+          // vient de basculer.
+          TweenAnimationBuilder<double>(
+            key: ValueKey(order.length),
+            tween: Tween<double>(begin: 1, end: 0),
+            duration: countdown!,
+            builder: (context, value, _) => GameTimerBar(
+              progress: value,
+              color: ZennytGamePalette.cyan,
+            ),
+          ),
+        ],
         const SizedBox(height: AppSpacing.lg),
         // Centré quand ça tient, défilable au-delà (jusqu'à 12 objets).
         Expanded(
-          child: Center(
-            child: SingleChildScrollView(
-              child: Wrap(
-                alignment: WrapAlignment.center,
-                spacing: 12 * scale,
-                runSpacing: 12 * scale,
-                children: [
-                  for (var i = 0; i < order.length; i++)
-                    _ObjectTile(
-                      object: order[i],
-                      position: i + 1,
-                      languageCode: languageCode,
-                      highlight: i == highlightA || i == highlightB,
-                      scale: scale,
-                    ),
-                ],
-              ),
-            ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final scale = memoryObjectTileScaleFor(
+                count: order.length,
+                available: constraints.biggest,
+              );
+              return Center(
+                child: SingleChildScrollView(
+                  child: Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: _objectTileGap,
+                    runSpacing: _objectTileGap,
+                    children: [
+                      for (var i = 0; i < order.length; i++)
+                        _ObjectTile(
+                          object: order[i],
+                          position: i + 1,
+                          languageCode: languageCode,
+                          highlight: i == highlightA || i == highlightB,
+                          scale: scale,
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
         ),
         const SizedBox(height: AppSpacing.base),
@@ -1621,111 +1921,96 @@ class _ObjectsPhaseView extends StatelessWidget {
   }
 }
 
-// ── Mission B — restauration (tap-to-place) ─────────────────────────────────
+// ── Mission B — restauration (classement au clic) ──────────────────────────
 
+/// Reconstruction de l'ordre initial : **une seule grille, un rang par appui**.
+///
+/// Le glisser-déposer a été retiré (retour client). Il imposait deux zones —
+/// réserve et emplacements — qui se partageaient l'écran, donc des cartes
+/// réduites à 84 px et, sur petit gabarit, un empilement à faire défiler. Ici
+/// les cartes ne bougent plus : elles reçoivent un rang, et occupent toute la
+/// place disponible.
 class _RestoreView extends StatelessWidget {
   const _RestoreView({
-    required this.slots,
-    required this.pool,
+    required this.board,
+    required this.ranking,
     required this.languageCode,
+    required this.secondsLeft,
+    required this.progress,
     required this.enabled,
-    required this.onPlace,
-    required this.onPlaceInSlot,
-    required this.onRemove,
+    required this.onToggleRank,
     required this.onValidate,
   });
 
-  final List<MemoryObject?> slots;
-  final List<MemoryObject> pool;
+  final List<MemoryObject> board;
+  final List<MemoryObject> ranking;
   final String languageCode;
+
+  /// Secondes restantes avant la validation d'office.
+  final int secondsLeft;
+
+  /// Fraction de temps restante, pour la barre.
+  final double progress;
+
   final bool enabled;
-  final ValueChanged<MemoryObject> onPlace;
-  final void Function(MemoryObject object, int slotIndex) onPlaceInSlot;
-  final ValueChanged<int> onRemove;
+  final ValueChanged<MemoryObject> onToggleRank;
   final VoidCallback onValidate;
 
   @override
   Widget build(BuildContext context) {
-    final full = !slots.contains(null);
-    final scale = _objectTileScale(slots.length);
+    final complete = ranking.length == board.length;
     return Column(
       children: [
-        Text(
-          'Restore the STARTING order',
-          textAlign: TextAlign.center,
-          style: AppTypography.titleLarge.copyWith(
-            color: Colors.white,
-            letterSpacing: 0,
-          ),
-        ),
+        const MemoryPrompt('Restore the STARTING order'),
         const SizedBox(height: AppSpacing.sm),
         Text(
-          'Drag each object into its slot. Tap a slot to send it back.',
+          'Tap the objects in their starting order. Tap a numbered object '
+          'again to clear its rank.',
           textAlign: TextAlign.center,
           style: AppTypography.bodyMedium.copyWith(
             color: Colors.white.withValues(alpha: 0.9),
             letterSpacing: 0,
           ),
         ),
+        const SizedBox(height: AppSpacing.md),
+        GameTimerBar(
+          progress: progress,
+          label: '${secondsLeft}s left',
+          // Les dernières secondes se signalent : le rebours valide d'office,
+          // le joueur doit pouvoir l'anticiper plutôt que le subir.
+          color: secondsLeft <= 3
+              ? ZennytGamePalette.error
+              : ZennytGamePalette.success,
+        ),
         const SizedBox(height: AppSpacing.lg),
-        // Emplacements et réserve CÔTE À CÔTE : glisser de droite à gauche est
-        // plus court et laisse les deux zones visibles en même temps, alors que
-        // l'empilement haut/bas obligeait à faire défiler entre chaque dépôt.
-        // Sous [_sideBySideMinWidth], l'empilement reste le seul lisible.
         Expanded(
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final sideBySide = constraints.maxWidth >= _sideBySideMinWidth;
-              // Deux colonnes ⇒ chaque zone n'a plus que ~la moitié de la
-              // largeur : les cartes sont resserrées d'autant.
-              final tileScale = sideBySide ? scale * 0.82 : scale;
-              final slotsZone = _SlotsZone(
-                slots: slots,
-                languageCode: languageCode,
-                enabled: enabled,
-                onPlaceInSlot: onPlaceInSlot,
-                onRemove: onRemove,
-                scale: tileScale,
+              final scale = memoryObjectTileScaleFor(
+                count: board.length,
+                available: constraints.biggest,
               );
-              final poolZone = _PoolZone(
-                pool: pool,
-                languageCode: languageCode,
-                enabled: enabled,
-                onPlace: onPlace,
-                scale: tileScale,
-              );
-
-              if (!sideBySide) {
-                return SingleChildScrollView(
-                  child: Column(
+              return Center(
+                child: SingleChildScrollView(
+                  child: Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: _objectTileGap,
+                    runSpacing: _objectTileGap,
                     children: [
-                      slotsZone,
-                      const SizedBox(height: AppSpacing.lg),
-                      poolZone,
+                      for (final obj in board)
+                        _ObjectTile(
+                          object: obj,
+                          languageCode: languageCode,
+                          // Rang choisi par le joueur, ou rien s'il ne l'a pas
+                          // encore classé.
+                          position: _rankOf(obj),
+                          ranked: true,
+                          scale: scale,
+                          onTap: enabled ? () => onToggleRank(obj) : null,
+                        ),
                     ],
                   ),
-                );
-              }
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Réserve (source) à GAUCHE, emplacements (cible) à DROITE.
-                  //
-                  // ⚠️ AMBIGUÏTÉ ASSUMÉE. Le retour client dit : « le drag &
-                  // drop se fait de gauche à droite plutôt que de droite à
-                  // gauche ». Or la disposition précédente plaçait la réserve à
-                  // DROITE et les emplacements à GAUCHE : le geste allait donc
-                  // déjà de droite à gauche. La description ne correspond pas à
-                  // ce que faisait le build testé.
-                  //
-                  // Interprétation retenue : le client décrit la DISPOSITION
-                  // (on prend à gauche, on dépose à droite), pas le vecteur du
-                  // geste. On inverse donc les deux colonnes. Repasser à
-                  // l'autre sens = échanger ces deux `Expanded`.
-                  Expanded(child: SingleChildScrollView(child: poolZone)),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(child: SingleChildScrollView(child: slotsZone)),
-                ],
+                ),
               );
             },
           ),
@@ -1733,172 +2018,15 @@ class _RestoreView extends StatelessWidget {
         const SizedBox(height: AppSpacing.base),
         GamePrimaryButton(
           label: 'Validate',
-          onPressed: full ? onValidate : null,
+          onPressed: complete && enabled ? onValidate : null,
         ),
       ],
     );
   }
-}
 
-/// Largeur en dessous de laquelle deux colonnes deviennent illisibles : on
-/// retombe alors sur l'empilement vertical d'origine.
-///
-/// Calibré sur la largeur RÉELLEMENT disponible, pas sur celle de l'écran : la
-/// vue est encadrée de 24 px de marge de chaque côté, donc un iPhone SE de
-/// 320 px n'offre que 272 px ici. Un seuil à 320 aurait donc désactivé le côte
-/// à côte précisément sur les écrans où éviter le défilement compte le plus.
-/// À 250, chaque colonne reçoit ~120 px — de quoi loger une carte de 69 px
-/// (84 × 0,82) avec sa gouttière.
-const double _sideBySideMinWidth = 250;
-
-/// Emplacements cibles (ordre à reconstruire) — cibles de dépôt.
-class _SlotsZone extends StatelessWidget {
-  const _SlotsZone({
-    required this.slots,
-    required this.languageCode,
-    required this.enabled,
-    required this.onPlaceInSlot,
-    required this.onRemove,
-    required this.scale,
-  });
-
-  final List<MemoryObject?> slots;
-  final String languageCode;
-  final bool enabled;
-  final void Function(MemoryObject object, int slotIndex) onPlaceInSlot;
-  final ValueChanged<int> onRemove;
-  final double scale;
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      alignment: WrapAlignment.center,
-      spacing: 10 * scale,
-      runSpacing: 10 * scale,
-      children: [
-        for (var i = 0; i < slots.length; i++)
-          DragTarget<MemoryObject>(
-            onWillAcceptWithDetails: (_) => enabled,
-            onAcceptWithDetails: (details) => onPlaceInSlot(details.data, i),
-            builder: (context, candidate, rejected) {
-              final tile = _ObjectTile(
-                object: slots[i],
-                position: i + 1,
-                languageCode: languageCode,
-                highlight: candidate.isNotEmpty,
-                onTap: slots[i] == null ? null : () => onRemove(i),
-                scale: scale,
-              );
-              // Un objet déjà placé peut être re-glissé (échange/retour).
-              final obj = slots[i];
-              if (obj == null || !enabled) return tile;
-              return _DraggableObject(
-                object: obj,
-                languageCode: languageCode,
-                scale: scale,
-                child: tile,
-              );
-            },
-          ),
-      ],
-    );
-  }
-}
-
-/// Réserve d'objets (mélangée) — sources à glisser.
-class _PoolZone extends StatelessWidget {
-  const _PoolZone({
-    required this.pool,
-    required this.languageCode,
-    required this.enabled,
-    required this.onPlace,
-    required this.scale,
-  });
-
-  final List<MemoryObject> pool;
-  final String languageCode;
-  final bool enabled;
-  final ValueChanged<MemoryObject> onPlace;
-  final double scale;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.sm),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-      ),
-      child: Wrap(
-        alignment: WrapAlignment.center,
-        spacing: 10 * scale,
-        runSpacing: 10 * scale,
-        children: [
-          for (final obj in pool)
-            enabled
-                ? _DraggableObject(
-                    object: obj,
-                    languageCode: languageCode,
-                    scale: scale,
-                    child: _ObjectTile(
-                      object: obj,
-                      languageCode: languageCode,
-                      onTap: () => onPlace(obj),
-                      scale: scale,
-                    ),
-                  )
-                : _ObjectTile(
-                    object: obj,
-                    languageCode: languageCode,
-                    onTap: () => onPlace(obj),
-                    scale: scale,
-                  ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Enveloppe un objet mémoire en [Draggable] : aperçu agrandi pendant le
-/// glissé, source estompée. La donnée transportée est le [MemoryObject].
-class _DraggableObject extends StatelessWidget {
-  const _DraggableObject({
-    required this.object,
-    required this.languageCode,
-    required this.child,
-    this.scale = 1.0,
-  });
-
-  final MemoryObject object;
-  final String languageCode;
-  final Widget child;
-  final double scale;
-
-  @override
-  Widget build(BuildContext context) {
-    return Draggable<MemoryObject>(
-      data: object,
-      dragAnchorStrategy: pointerDragAnchorStrategy,
-      onDragStarted: () => SoundService.instance.playSfx(GameSfx.imageDrag),
-      feedback: Transform.translate(
-        // Ancre l'aperçu sous le doigt (moitié de la carte, échelle comprise).
-        offset: Offset(-52 * scale, -64 * scale),
-        child: Transform.scale(
-          scale: 1.1,
-          child: Material(
-            color: Colors.transparent,
-            child: _ObjectTile(
-              object: object,
-              languageCode: languageCode,
-              scale: scale,
-            ),
-          ),
-        ),
-      ),
-      childWhenDragging: Opacity(opacity: 0.35, child: child),
-      child: child,
-    );
+  int? _rankOf(MemoryObject obj) {
+    final at = ranking.indexWhere((o) => o.id == obj.id);
+    return at < 0 ? null : at + 1;
   }
 }
 
@@ -1907,40 +2035,45 @@ class _ObjectTile extends StatelessWidget {
     required this.object,
     required this.languageCode,
     this.position,
+    this.ranked = false,
     this.highlight = false,
     this.onTap,
     this.scale = 1.0,
   });
 
-  final MemoryObject? object; // null = emplacement vide
+  final MemoryObject object;
   final String languageCode;
+
+  /// Numéro affiché en haut de la carte : le rang réel pendant l'observation,
+  /// le rang CHOISI par le joueur pendant la restauration. `null` = aucun.
   final int? position;
+
+  /// Le numéro est un choix du joueur (restauration) et non une donnée de
+  /// l'énoncé (observation) : la pastille se colore pour le dire.
+  final bool ranked;
+
   final bool highlight;
   final VoidCallback? onTap;
 
-  /// Facteur d'échelle (< 1 quand il y a beaucoup d'objets) : réduit la taille
-  /// des cartes pour tout faire tenir à l'écran sans défilement pénible.
+  /// Facteur d'échelle appliqué à toute la carte, calculé par
+  /// [_objectTileScaleFor] d'après la place réellement disponible.
   final double scale;
 
   /// Dimensions de référence d'une carte (échelle 1).
   ///
-  /// Réduites sur retour client (« diminuer la taille des cartes images ») :
-  /// 104×136 → 84×120, image 64 → 52. Assez petit pour que la réserve et les
-  /// emplacements tiennent CÔTE À CÔTE, assez grand pour rester une cible de
-  /// dépôt confortable (≥ 48 px même à l'échelle la plus basse).
-  ///
   /// ⚠️ [_baseHeight] doit garder de la marge sur la hauteur RÉELLE du contenu
-  /// (padding + n° + image + libellé ≈ 108 px) : la carte a une taille fixe,
-  /// donc tout rognage se paie en `RenderFlex overflow` — d'autant plus aux
-  /// échelles réduites, où les arrondis jouent contre nous.
-  static const double _baseWidth = 84;
-  static const double _baseHeight = 120;
+  /// (padding + pastille + image + libellé) : la carte a une taille fixe, donc
+  /// tout rognage se paie en `RenderFlex overflow` — d'autant plus aux échelles
+  /// réduites, où les arrondis jouent contre nous.
+  static const double _baseWidth = kMemoryObjectTileWidth;
+  static const double _baseHeight = kMemoryObjectTileHeight;
   static const double _baseImage = 52;
   static const double _basePadding = 6;
+  static const double _baseBadge = 20;
 
   @override
   Widget build(BuildContext context) {
-    final obj = object;
+    final rank = position;
     // Carte translucide « givrée » (plus de fond blanc plein) : les objets 2.5D
     // ressortent directement sur le fond violet.
     final tile = Container(
@@ -1951,40 +2084,37 @@ class _ObjectTile extends StatelessWidget {
         horizontal: _basePadding * scale,
       ),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: obj == null ? 0.08 : 0.16),
+        color: Colors.white.withValues(alpha: rank != null && ranked ? 0.24 : 0.16),
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
         border: Border.all(
-          color: highlight
+          color: highlight || (rank != null && ranked)
               ? ZennytGamePalette.magenta
               : Colors.white.withValues(alpha: 0.28),
-          width: highlight ? 3 : 1,
+          width: highlight || (rank != null && ranked) ? 3 : 1,
         ),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          if (position != null)
-            Text(
-              '$position',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.85),
-                fontSize: 12 * scale,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
+          // La gouttière du numéro est TOUJOURS réservée : sans cela, classer un
+          // objet ferait sauter son image et son libellé d'une vingtaine de
+          // pixels sous le doigt qui vient de le toucher.
+          SizedBox(
+            height: _baseBadge * scale,
+            child: rank == null
+                ? null
+                : Center(child: _RankBadge(rank: rank, ranked: ranked, scale: scale)),
+          ),
+          SizedBox(height: 2 * scale),
+          Image.asset(
+            object.assetPath,
+            width: _baseImage * scale,
+            height: _baseImage * scale,
+            fit: BoxFit.contain,
+          ),
           SizedBox(height: 4 * scale),
-          if (obj != null)
-            Image.asset(
-              obj.assetPath,
-              width: _baseImage * scale,
-              height: _baseImage * scale,
-              fit: BoxFit.contain,
-            )
-          else
-            SizedBox(height: _baseImage * scale),
-          SizedBox(height: 6 * scale),
           Text(
-            obj?.label(languageCode) ?? '—',
+            object.label(languageCode),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             // Sur une carte à taille fixe, laisser le libellé suivre le
@@ -2001,16 +2131,55 @@ class _ObjectTile extends StatelessWidget {
       ),
     );
 
+    final label = object.label(languageCode);
     if (onTap == null) {
-      return Semantics(label: obj?.label(languageCode), child: tile);
+      return Semantics(label: label, child: tile);
     }
     return Semantics(
       button: true,
-      label: obj?.label(languageCode) ?? 'Empty slot',
+      label: rank == null ? label : '$label, rank $rank',
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
         child: tile,
+      ),
+    );
+  }
+}
+
+/// Le « petit numéro affiché en haut de l'objet » demandé par le client.
+class _RankBadge extends StatelessWidget {
+  const _RankBadge({
+    required this.rank,
+    required this.ranked,
+    required this.scale,
+  });
+
+  final int rank;
+  final bool ranked;
+  final double scale;
+
+  @override
+  Widget build(BuildContext context) {
+    final size = _ObjectTile._baseBadge * scale;
+    return Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: ranked
+            ? ZennytGamePalette.magenta
+            : Colors.white.withValues(alpha: 0.22),
+        shape: BoxShape.circle,
+      ),
+      child: Text(
+        '$rank',
+        textScaler: TextScaler.noScaling,
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 12 * scale,
+          fontWeight: FontWeight.w800,
+        ),
       ),
     );
   }
@@ -2062,6 +2231,7 @@ class _ObjectDistractionView extends StatelessWidget {
     required this.challenge,
     required this.objectCount,
     required this.secondsLeft,
+    required this.totalSeconds,
     required this.answered,
     required this.onPick,
   });
@@ -2069,6 +2239,14 @@ class _ObjectDistractionView extends StatelessWidget {
   final MemoryDistractionChallenge? challenge;
   final int objectCount;
   final int secondsLeft;
+
+  /// Budget total de l'épreuve, en secondes — la barre a besoin du dénominateur.
+  ///
+  /// Passé par l'appelant et non lu sur une constante de l'écran : la vue est
+  /// aussi montée avec d'autres budgets (captures), et une barre calculée sur le
+  /// mauvais total reste bloquée à plein.
+  final int totalSeconds;
+
   final bool answered;
   final ValueChanged<int> onPick;
 
@@ -2105,12 +2283,20 @@ class _ObjectDistractionView extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.xs),
         Text(
-          'Hold the $objectCount objects in mind — ${secondsLeft}s',
+          'Hold the $objectCount objects in mind',
           textAlign: TextAlign.center,
           style: AppTypography.bodyMedium.copyWith(
             color: Colors.white.withValues(alpha: 0.75),
             letterSpacing: 0,
           ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        GameTimerBar(
+          progress: totalSeconds <= 0 ? 0 : secondsLeft / totalSeconds,
+          label: '${secondsLeft}s',
+          color: secondsLeft <= 3
+              ? ZennytGamePalette.error
+              : ZennytGamePalette.success,
         ),
         const SizedBox(height: AppSpacing.lg),
         Expanded(
@@ -2366,6 +2552,7 @@ class _DistractionView extends StatelessWidget {
     required this.question,
     required this.choices,
     required this.secondsLeft,
+    required this.totalSeconds,
     required this.reminder,
     required this.onPick,
   });
@@ -2373,6 +2560,10 @@ class _DistractionView extends StatelessWidget {
   final String question;
   final List<int> choices;
   final int secondsLeft;
+
+  /// Budget total de la question, en secondes — dénominateur de la barre.
+  final int totalSeconds;
+
   final String reminder;
   final ValueChanged<int> onPick;
 
@@ -2410,11 +2601,19 @@ class _DistractionView extends StatelessWidget {
         ),
         const Spacer(),
         Text(
-          'Quick check · ${secondsLeft}s',
+          'Quick check',
           style: AppTypography.bodyMedium.copyWith(
             color: Colors.white.withValues(alpha: 0.85),
             letterSpacing: 0,
           ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        GameTimerBar(
+          progress: totalSeconds <= 0 ? 0 : secondsLeft / totalSeconds,
+          label: '${secondsLeft}s',
+          color: secondsLeft <= 3
+              ? ZennytGamePalette.error
+              : ZennytGamePalette.success,
         ),
         const SizedBox(height: AppSpacing.sm),
         Container(
@@ -2964,10 +3163,12 @@ Widget debugObjectDistractionView({
   required MemoryDistractionChallenge challenge,
   required int objectCount,
   required int secondsLeft,
+  int? totalSeconds,
 }) => _ObjectDistractionView(
   challenge: challenge,
   objectCount: objectCount,
   secondsLeft: secondsLeft,
+  totalSeconds: totalSeconds ?? secondsLeft,
   answered: false,
   onPick: (_) {},
 );

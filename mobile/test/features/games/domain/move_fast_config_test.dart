@@ -9,7 +9,9 @@ void main() {
     expect(MoveFastConfig.sessionEndMode, MoveFastSessionEndMode.fixedBudget);
     expect(MoveFastConfig.targetCorrectAnswers, 40);
     expect(MoveFastConfig.maxResponses, 60);
-    expect(MoveFastConfig.sessionSeconds, 600);
+    // 15 minutes : valeur du cahier des charges « Harmonisation » (§5), qui
+    // remplace les 10 minutes du code. Miroir du backend.
+    expect(MoveFastConfig.sessionSeconds, 900);
   });
 
   test('bandes d\'interprétation centralisées — seuils <40/<60/<75/<90/sinon', () {

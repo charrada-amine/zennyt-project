@@ -11,15 +11,26 @@ enum JePlacePauseAction { resume, rules, restartRun, exit }
 /// mesurée invalide ce run mesuré : « Resume » disparaît alors au profit d'un
 /// redémarrage, pour garder un parcours comparable.
 class JePlacePauseDialog extends StatelessWidget {
-  const JePlacePauseDialog({super.key, required this.measuredRunInterrupted});
+  const JePlacePauseDialog({
+    super.key,
+    required this.measuredRunInterrupted,
+    this.countdown,
+    this.onCountdownExpired,
+  });
 
   final bool measuredRunInterrupted;
+
+  /// Temps restant sur la fenêtre unique de pause (CdC pause §2-3).
+  final Duration? countdown;
+  final VoidCallback? onCountdownExpired;
 
   @override
   Widget build(BuildContext context) {
     return PopScope(
       canPop: false,
       child: GamePauseScaffold(
+        countdown: countdown,
+        onCountdownExpired: onCountdownExpired,
         description: measuredRunInterrupted
             ? 'This measured round was interrupted. Restart from level 1 to '
                   'keep one comparable journey.'

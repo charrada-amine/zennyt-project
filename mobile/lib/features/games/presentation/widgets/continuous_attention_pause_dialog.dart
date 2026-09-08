@@ -14,16 +14,24 @@ class ContinuousAttentionPauseDialog extends StatelessWidget {
     super.key,
     required this.restartRequired,
     this.canRestartPhase = true,
+    this.countdown,
+    this.onCountdownExpired,
   });
 
   final bool restartRequired;
   final bool canRestartPhase;
+
+  /// Temps restant sur la fenêtre unique de pause (CdC pause §2-3).
+  final Duration? countdown;
+  final VoidCallback? onCountdownExpired;
 
   @override
   Widget build(BuildContext context) {
     return PopScope(
       canPop: false,
       child: GamePauseScaffold(
+        countdown: countdown,
+        onCountdownExpired: onCountdownExpired,
         description: restartRequired
             ? 'This measured phase was interrupted. Restart it from the '
                   'beginning to keep the result comparable.'

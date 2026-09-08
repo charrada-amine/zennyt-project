@@ -80,6 +80,9 @@ class _CoordinationTrackingScreenState
   bool _running = false;
   bool _finishing = false;
   bool _pauseOpen = false;
+
+  /// Droit de pause de la partie : une ouverture, 30 s (CdC pause §2-3).
+  final GamePauseAllowance _pauseAllowance = GamePauseAllowance();
   bool _practicePausedByLifecycle = false;
 
   CoordinationPoint? _pointer;
@@ -201,6 +204,10 @@ class _CoordinationTrackingScreenState
       setState(() => _tutorialPage++);
       return;
     }
+    // Nouveau parcours = nouveau droit de pause. Le reset est ici et non dans
+    // `_preparePractice`, que « Restart phase » rappelle depuis le menu pause :
+    // sinon un redémarrage rendrait une pause supplémentaire.
+    _pauseAllowance.reset();
     _preparePractice();
   }
 
@@ -516,8 +523,18 @@ class _CoordinationTrackingScreenState
     });
   }
 
+  /// Ouvre le menu pause.
+  ///
+  /// [resumeFrozenPractice] signale un retour d'arrière-plan pendant
+  /// l'entraînement : c'est une interruption SUBIE, pas un choix du joueur, donc
+  /// elle ne consomme pas la fenêtre unique de 30 s et n'affiche pas de compte
+  /// à rebours.
   Future<void> _openPause({bool resumeFrozenPractice = false}) async {
     if (_pauseOpen || !_isGameplay) return;
+    if (!resumeFrozenPractice) {
+      if (!_pauseAllowance.canOpen) return;
+      _pauseAllowance.open();
+    }
     _pauseOpen = true;
     final wasRunning = _running || resumeFrozenPractice;
     final measuredInterrupted = _isTest && _running;
@@ -532,8 +549,11 @@ class _CoordinationTrackingScreenState
         context: context,
         barrierDismissible: false,
         barrierColor: const Color(0xCC171642),
-        builder: (_) => ContinuousAttentionPauseDialog(
+        builder: (dialogCtx) => ContinuousAttentionPauseDialog(
           restartRequired: measuredInterrupted,
+          countdown: resumeFrozenPractice ? null : _pauseAllowance.remaining,
+          onCountdownExpired: () =>
+              Navigator.of(dialogCtx).pop(ContinuousAttentionPauseAction.resume),
         ),
       );
       if (!mounted) break;
@@ -561,15 +581,25 @@ class _CoordinationTrackingScreenState
             barrierColor: const Color(0xCC171642),
             builder: (_) => const _CoordinationRulesDialog(),
           );
+          // Retour au menu seulement s'il reste du temps sur la fenêtre.
+          showAgain = resumeFrozenPractice || _pauseAllowance.canReopen;
         case ContinuousAttentionPauseAction.exit:
+          // Quitter annule la tentative : confirmation explicite d'abord.
+          if (!await GameExitConfirmDialog.show(context, missionLabel: 'run')) {
+            showAgain = _pauseAllowance.canReopen;
+            break;
+          }
           interruptionResolved = true;
-          context.go(AppRoutes.games);
+          if (mounted) context.go(AppRoutes.games);
           showAgain = false;
         case null:
           showAgain = false;
       }
     }
     _pauseOpen = false;
+    // La partie repart : le temps passé en pause rejoint le budget consommé, et
+    // le bouton reste « Pause » tant qu'il en reste.
+    _pauseAllowance.close();
     if (mounted &&
         measuredInterrupted &&
         !interruptionResolved &&
@@ -578,9 +608,19 @@ class _CoordinationTrackingScreenState
     }
   }
 
+  /// Flèche « retour » : le menu tant que la fenêtre est ouverte, sinon la
+  /// seule issue restante — quitter, donc renoncer au score.
+  Future<void> _backOrExit() async {
+    if (_pauseAllowance.canOpen || !_isGameplay) return _openPause();
+    if (!await GameExitConfirmDialog.show(context, missionLabel: 'run')) return;
+    if (!mounted) return;
+    if (_isTest) _invalidateMeasured('Player left the run.');
+    if (mounted) context.go(AppRoutes.games);
+  }
+
   void _handleBack() {
     if (_isGameplay) {
-      unawaited(_openPause());
+      unawaited(_backOrExit());
       return;
     }
     if (context.canPop()) {
@@ -829,11 +869,14 @@ class _CoordinationTrackingScreenState
                 ? 'Je coordonne · Practice'
                 : 'Je coordonne · Test',
             title: title,
-            onBack: _openPause,
+            onBack: _backOrExit,
             onDark: true,
-            menuIcon: Icons.pause_rounded,
-            menuTooltip: 'Pause',
-            onMenu: _openPause,
+            // Même routeur que la flèche de retour : pause tant que la fenêtre
+            // est ouverte, confirmation de sortie ensuite. Le bouton ne
+            // disparaît plus une fois la fenêtre consommée, il change d'icône.
+            menuIcon: _pauseAllowance.affordance.icon,
+            menuTooltip: _pauseAllowance.affordance.tooltip,
+            onMenu: _backOrExit,
           ),
         ),
         Padding(

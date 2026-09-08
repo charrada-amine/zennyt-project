@@ -16,7 +16,6 @@ import '../../domain/entities/game_session.dart';
 import '../../domain/entities/game_type.dart';
 import '../../domain/entities/mini_game.dart';
 import '../games_providers.dart';
-import '../widgets/continuous_attention_pause_dialog.dart';
 import '../widgets/game_system_components.dart';
 
 const _navy = Color(0xFF28234F);
@@ -627,62 +626,23 @@ class _ContinuousAttentionScreenState
     _setStage(_AttentionStage.xTutorial);
   }
 
-  Future<void> _openPause() async {
-    final phase = _activePhase;
-    final measured = _stage == _AttentionStage.playing && phase?.isTest == true;
-    if (measured) {
-      _interruptActivePhase('Pause requested during a measured phase.');
-    } else if (_stage == _AttentionStage.playing) {
-      _timelineTimer?.cancel();
-      _phaseClock?.stop();
-    }
-
-    ContinuousAttentionPauseAction? action;
-    do {
-      if (!mounted) return;
-      action = await showDialog<ContinuousAttentionPauseAction>(
-        context: context,
-        barrierDismissible: false,
-        barrierColor: const Color(0xCC1B1B4B),
-        builder: (_) => ContinuousAttentionPauseDialog(
-          restartRequired: measured,
-          canRestartPhase: phase != null,
-        ),
-      );
-      if (action == ContinuousAttentionPauseAction.rules && mounted) {
-        await _showRules(phase);
-      }
-    } while (action == ContinuousAttentionPauseAction.rules && mounted);
-
-    if (!mounted) return;
-    switch (action) {
-      case ContinuousAttentionPauseAction.resume:
-        _resumePracticeTimeline();
-      case ContinuousAttentionPauseAction.restartPhase:
-        if (phase != null) _beginPhase(phase);
-      case ContinuousAttentionPauseAction.exit:
-        context.go(AppRoutes.games);
-      case ContinuousAttentionPauseAction.rules || null:
-        break;
-    }
-  }
-
-  void _resumePracticeTimeline() {
-    if (_stage != _AttentionStage.playing || _activePhase?.isPractice != true) {
+  /// Attention Continue n'a **pas** de menu pause — CdC pause §3-4, point
+  /// signalé comme le plus important.
+  ///
+  /// Le jeu mesure le maintien de la vigilance **dans la durée** : une pause,
+  /// même brève, remet le candidat à niveau et efface précisément le signal que
+  /// la tâche cherche à capter. Il n'y a donc ni reprise, ni redémarrage de
+  /// phase, ni fenêtre de 30 s ici — seulement une sortie, qui annule la
+  /// session comme n'importe quel abandon.
+  Future<void> _exitJourney() async {
+    if (!await GameExitConfirmDialog.show(context, missionLabel: 'journey')) {
       return;
     }
-    final clock = _phaseClock;
-    if (clock == null) return;
-    clock.start();
-    if (_stimulusVisible) {
-      _scheduleAt(
-        (_trialCursor * _cycleUs) + _stimulusUs,
-        _hideCurrentStimulus,
-      );
-    } else {
-      _scheduleAt((_trialCursor + 1) * _cycleUs, _advanceAfterIsi);
+    if (!mounted) return;
+    if (_stage == _AttentionStage.playing) {
+      _interruptActivePhase('Player left the journey.');
     }
-    setState(() {});
+    if (mounted) context.go(AppRoutes.games);
   }
 
   Future<void> _showRules([ContinuousAttentionPhase? phase]) {
@@ -710,7 +670,8 @@ class _ContinuousAttentionScreenState
       case _AttentionStage.error:
         _setStage(_AttentionStage.cover);
       case _AttentionStage.playing:
-        unawaited(_openPause());
+        // Pas de pause ici : le retour propose seulement de quitter.
+        unawaited(_exitJourney());
       case _AttentionStage.loading ||
           _AttentionStage.xTestReady ||
           _AttentionStage.rest ||
@@ -779,7 +740,7 @@ class _ContinuousAttentionScreenState
                   practiceFeedback: _practiceFeedback,
                   onRespond: () =>
                       _registerResponse(ContinuousAttentionInputSource.touch),
-                  onPause: _openPause,
+                  onExit: _exitJourney,
                 ),
               ),
             ),
@@ -1651,7 +1612,7 @@ class _GameplayView extends StatelessWidget {
     required this.stimulusVisible,
     required this.practiceFeedback,
     required this.onRespond,
-    required this.onPause,
+    required this.onExit,
   });
 
   final ContinuousAttentionPhase phase;
@@ -1661,7 +1622,10 @@ class _GameplayView extends StatelessWidget {
   final bool stimulusVisible;
   final String? practiceFeedback;
   final VoidCallback onRespond;
-  final VoidCallback onPause;
+
+  /// Sortie de la passation. Ce n'est PAS une pause : Attention Continue n'en
+  /// a aucune (voir `_exitJourney`).
+  final VoidCallback onExit;
 
   @override
   Widget build(BuildContext context) {
@@ -1734,11 +1698,9 @@ class _GameplayView extends StatelessWidget {
                     ),
                     const SizedBox(width: 10),
                     _SquareButton(
-                      tooltip: phase.isTest
-                          ? 'Pause and restart phase'
-                          : 'Pause',
-                      icon: Icons.pause_rounded,
-                      onTap: onPause,
+                      tooltip: 'Exit journey',
+                      icon: Icons.close_rounded,
+                      onTap: onExit,
                       onDark: true,
                     ),
                   ],

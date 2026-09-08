@@ -4,9 +4,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zennyt/features/games/domain/entities/decision_form.dart';
 import 'package:zennyt/features/games/domain/entities/decision_metrics.dart';
 import 'package:zennyt/features/games/presentation/view/je_decide_gameplay.dart';
+import 'package:zennyt/features/games/presentation/widgets/game_system_components.dart';
 
 /// Boucle de gameplay « Je Décide » : mesure du temps de réponse, indicateur de
-/// changement d'avis, et gel de l'item chronométré pendant la pause.
+/// changement d'avis, et règles de pause du cahier des charges (fenêtre unique
+/// de 30 s, aucune pause dans le module chronométré).
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -67,6 +69,527 @@ void main() {
     await tester.pump();
     return submitted;
   }
+
+  /// Item COURT à deux options — un cas favorable, pas un cas représentatif.
+  ///
+  /// La version précédente de ce commentaire le présentait comme « la médiane
+  /// des 96 scénarios ». C'était faux et ça a coûté cher : les 30 items du build
+  /// de démo ont TOUS quatre options, et la banque serveur n'a d'items à deux
+  /// options que dans trois dimensions sur cinq. Les tests bâtis sur cette
+  /// fixture passaient au vert pendant que le client voyait 27 items sur 27
+  /// défiler.
+  ///
+  /// Le réalisme est désormais couvert par `je_decide_no_scroll_test.dart`, qui
+  /// parcourt les banques réellement servies. Cette fixture ne sert plus qu'aux
+  /// tests de comportement, où le contenu n'est pas le sujet.
+  DecisionFormItem typicalItem() => DecisionFormItem(
+    itemId: 'RE-3',
+    dimension: DecisionDimension.re,
+    format: DecisionItemFormat.standard,
+    vignette:
+        'Un collègue vous reproche publiquement une erreur que vous n\'avez '
+        'pas commise, pendant la réunion hebdomadaire de service.',
+    task: 'Que faites-vous dans l\'immédiat ?',
+    options: [
+      DecisionFormOption(
+        optionId: 'RE-3-o1',
+        label: 'Je réponds calmement et propose d\'en reparler après.',
+      ),
+      DecisionFormOption(
+        optionId: 'RE-3-o2',
+        label: 'Je rectifie immédiatement devant tout le monde.',
+      ),
+    ],
+  );
+
+  /// Le pire cas réel de la banque (item II-18) : 1167 caractères, quatre
+  /// justifications dont une de 273. La dimension « Intégration d'Information »
+  /// est longue par construction — c'est ce qu'elle mesure.
+  DecisionFormItem worstCaseItem() => DecisionFormItem(
+    itemId: 'II-18',
+    dimension: DecisionDimension.ii,
+    format: DecisionItemFormat.standard,
+    vignette:
+        'Vous choisissez un ordinateur portable pour un graphiste de votre '
+        'équipe (travail sur logiciels de retouche photo et montage vidéo). '
+        'Trois options : A (moins cher, RAM 8 Go, GPU intégré, performances '
+        'insuffisantes pour le montage vidéo 4K), B (dans le budget, RAM 16 '
+        'Go, GPU dédié 4 Go, compatible avec les logiciels métiers), C (cher, '
+        'hors budget, RAM 32 Go, GPU dédié 8 Go, performances maximales). '
+        'Budget plafonné ; performances compatibles avec les logiciels métiers '
+        'obligatoires.',
+    task:
+        'Classez les trois options du plus au moins adapté, puis choisissez la '
+        'justification qui reflète le mieux votre raisonnement.',
+    options: [
+      DecisionFormOption(
+        optionId: 'II-18-o1',
+        label:
+            'Je choisis B : le tarif est dans le budget et les spécifications '
+            '(16 Go RAM, GPU 4 Go) sont suffisantes pour les logiciels de '
+            'retouche et montage utilisés. A est éliminé par des performances '
+            'insuffisantes pour le montage 4K, C par le dépassement budgétaire.',
+      ),
+      DecisionFormOption(
+        optionId: 'II-18-o2',
+        label:
+            'Je choisis B car les performances couvrent les besoins '
+            'professionnels du graphiste.',
+      ),
+      DecisionFormOption(
+        optionId: 'II-18-o3',
+        label:
+            'Je choisis C : investir dans la meilleure configuration réduit '
+            'les risques de lenteur et prolonge la durée de vie utile de la '
+            'machine.',
+      ),
+      DecisionFormOption(
+        optionId: 'II-18-o4',
+        label:
+            'Je choisis A car le design est plus léger, ce qui est pratique '
+            'pour les déplacements.',
+      ),
+    ],
+  );
+
+  /// Monte une passation entière. La densité étant gelée SUR LE FORMULAIRE, tout
+  /// test qui compare deux scénarios entre eux doit les mettre dans le même.
+  Future<void> pumpForm(
+    WidgetTester tester,
+    List<DecisionFormItem> items, {
+    required Size screen,
+  }) async {
+    SharedPreferences.setMockInitialValues({});
+    tester.view.physicalSize = screen;
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    // Repompe-t-on le même écran à une autre taille dans le même test ? Alors
+    // il faut d'abord vider l'arbre : sans cela le `MediaQuery` conserve les
+    // dimensions du pompage précédent et la mesure porte sur le mauvais écran.
+    await tester.pumpWidget(const SizedBox.shrink());
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: DecisionGameplayView(
+            form: DecisionForm(
+              formCode: 'A',
+              // Assez grand pour qu'aucun écran intercalaire ne s'intercale.
+              itemsPerDimension: items.length + 1,
+              items: items,
+            ),
+            onClose: () {},
+            onComplete: (_) {},
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+  }
+
+  /// Monte un item seul. À réserver aux tests où le contenu des AUTRES items
+  /// n'entre pas en jeu : la densité est calibrée sur le formulaire, donc deux
+  /// appels successifs produisent deux calibrages indépendants.
+  Future<void> pumpItem(
+    WidgetTester tester,
+    DecisionFormItem single, {
+    required Size screen,
+  }) => pumpForm(tester, [single], screen: screen);
+
+  /// Choisit la première option et valide, pour arriver à l'item suivant.
+  Future<void> goToNextItem(WidgetTester tester) async {
+    await tester.tap(find.byKey(const ValueKey('decision-option-0')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('decision-continue')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+  }
+
+  /// Ce que le client mesure des yeux : y a-t-il quelque chose à faire défiler ?
+  ///
+  /// On n'assène pas « aucun widget défilable » : le conteneur reste défilable
+  /// par sécurité, pour qu'une erreur de prédiction de quelques pixels coûte un
+  /// défilement plutôt qu'un débordement. Ce qui compte est qu'il n'ait rien à
+  /// faire défiler.
+  double scrollExtent(WidgetTester tester) {
+    final scrollables = find.byType(Scrollable);
+    if (scrollables.evaluate().isEmpty) return 0;
+    return tester
+        .state<ScrollableState>(scrollables.first)
+        .position
+        .maxScrollExtent;
+  }
+
+  /// Retour client : « il faut adapter le UI selon la taille de l'écran afin
+  /// que le scénario et les choix s'affichent entièrement sans défilement. Le
+  /// défilement ajoute de la friction et une perte de temps ».
+  ///
+  /// Sur un jeu qui mesure le temps de réponse, ce n'est pas qu'une question de
+  /// confort : le temps passé à faire défiler l'écran pour découvrir une option
+  /// entre dans la mesure.
+  group('mise en page sans défilement', () {
+    testWidgets('un item courant tient entièrement, sans zone défilante', (
+      tester,
+    ) async {
+      await pumpItem(tester, typicalItem(), screen: const Size(390, 844));
+
+      expect(
+        scrollExtent(tester),
+        0,
+        reason: 'rien à faire défiler : tout tient d\'un coup d\'œil',
+      );
+
+      // Les deux choix ET le bouton de validation sont dans l'écran.
+      for (final key in ['decision-option-0', 'decision-option-1']) {
+        expect(tester.getRect(find.byKey(ValueKey(key))).bottom, lessThan(844));
+      }
+      expect(
+        tester.getRect(find.byKey(const ValueKey('decision-continue'))).bottom,
+        lessThanOrEqualTo(844.0),
+      );
+    });
+
+    testWidgets('le même item se compacte au lieu de déborder sur petit écran', (
+      tester,
+    ) async {
+      await pumpItem(tester, typicalItem(), screen: const Size(390, 844));
+      final roomy = tester
+          .getSize(find.byKey(const ValueKey('decision-option-0')))
+          .height;
+
+      await pumpItem(tester, typicalItem(), screen: const Size(320, 568));
+      final tight = tester
+          .getSize(find.byKey(const ValueKey('decision-option-0')))
+          .height;
+
+      expect(
+        tight,
+        lessThan(roomy),
+        reason:
+            'le plancher fixe de 92 px réservait 300 px aux choix avant même '
+            'que l\'énoncé ait sa place — c\'était la cause du défilement',
+      );
+      expect(scrollExtent(tester), 0);
+      expect(tester.takeException(), isNull);
+    });
+
+    /// Les 24 items d'Intégration d'Information — 1167 caractères, quatre
+    /// justifications — ne tiennent pas d'un seul tenant sur un écran étroit.
+    ///
+    /// Ce test disait autrefois : « ce qu'on verrouille n'est pas l'absence de
+    /// défilement — impossible ici — mais l'absence de DÉBORDEMENT ». Il
+    /// entérinait précisément ce que le client refuse. Le repli n'est plus le
+    /// défilement mais le découpage : l'item se lit en deux temps, et ses quatre
+    /// choix restent tous atteignables.
+    testWidgets('le pire item de la banque se lit en deux temps', (
+      tester,
+    ) async {
+      for (final screen in const [
+        Size(320, 568),
+        Size(360, 740),
+        Size(390, 844),
+        Size(412, 915),
+      ]) {
+        await pumpItem(tester, worstCaseItem(), screen: screen);
+        final where = '${screen.width}x${screen.height}';
+        expect(
+          tester.takeException(),
+          isNull,
+          reason: 'aucun débordement de rendu en $where',
+        );
+
+        final reveal = find.byKey(const ValueKey('decision-reveal-choices'));
+        if (reveal.evaluate().isNotEmpty) {
+          expect(
+            find.byKey(const ValueKey('decision-situation-card')),
+            findsOneWidget,
+            reason: 'l\'écran 1 montre la situation seule en $where',
+          );
+          await tester.tap(reveal);
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 300));
+        }
+
+        for (var i = 0; i < 4; i++) {
+          expect(
+            find.byKey(ValueKey('decision-option-$i')),
+            findsOneWidget,
+            reason: 'les quatre choix sont rendus en $where',
+          );
+        }
+      }
+    });
+
+    /// La compaction a une limite : quand le candidat a agrandi la police de son
+    /// téléphone, plus rien ne tient. Le comportement attendu n'est alors pas de
+    /// rétrécir le texte — ce serait annuler son réglage d'accessibilité — mais
+    /// de défiler proprement.
+    testWidgets('à 200 % de taille de police, on défile sans rien tronquer', (
+      tester,
+    ) async {
+      SharedPreferences.setMockInitialValues({});
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MediaQuery(
+            data: const MediaQueryData(
+              size: Size(390, 844),
+              textScaler: TextScaler.linear(2),
+            ),
+            child: Scaffold(
+              body: DecisionGameplayView(
+                form: DecisionForm(
+                  formCode: 'A',
+                  itemsPerDimension: 1,
+                  items: [worstCaseItem()],
+                ),
+                onClose: () {},
+                onComplete: (_) {},
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(tester.takeException(), isNull, reason: 'aucun débordement');
+      expect(
+        scrollExtent(tester),
+        greaterThan(0),
+        reason: 'le contenu dépasse : il doit être atteignable en défilant',
+      );
+    });
+
+    /// La taille du texte est GELÉE sur la banque, pas ajustée à chaque
+    /// scénario.
+    ///
+    /// « Je décide » mesure des temps de réponse. Si le corps de texte passait
+    /// de 15,5 px sur un scénario court à 13,3 px sur un scénario long, la
+    /// vitesse de lecture varierait avec lui, et cette variation entrerait dans
+    /// le temps mesuré sans rien mesurer de la décision. C'est un biais de
+    /// mesure, pas un détail d'esthétique.
+    /// Le gel vaut à l'intérieur d'UNE passation, sur le contenu réellement
+    /// servi. Les deux items doivent donc appartenir au même formulaire : monter
+    /// deux formulaires distincts, comme le faisait la version précédente de ce
+    /// test, revient à calibrer deux fois et ne prouve rien.
+    testWidgets('la taille du texte ne change pas d\'un scénario à l\'autre', (
+      tester,
+    ) async {
+      double optionFontSize() => tester
+          .widget<Text>(
+            find
+                .descendant(
+                  of: find.byKey(const ValueKey('decision-option-0')),
+                  matching: find.byType(Text),
+                )
+                .first,
+          )
+          .style!
+          .fontSize!;
+
+      await pumpForm(tester, [
+        typicalItem(),
+        worstCaseItem(),
+      ], screen: const Size(390, 844));
+      final onShort = optionFontSize();
+
+      await goToNextItem(tester);
+      final reveal = find.byKey(const ValueKey('decision-reveal-choices'));
+      if (reveal.evaluate().isNotEmpty) {
+        await tester.tap(reveal);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+      }
+      final onLong = optionFontSize();
+
+      expect(
+        onLong,
+        onShort,
+        reason:
+            'le scénario le plus long et le plus court doivent se lire à la '
+            'même taille — sinon la présentation devient une variable',
+      );
+    });
+
+    /// Le chronomètre du module « Décision sous Contrainte Temporelle » ne doit
+    /// pas non plus changer la taille du texte.
+    ///
+    /// Il occupe une bande en haut de l'écran, donc réduit la place offerte au
+    /// scénario. Sans réservation permanente de cette bande, un item chronométré
+    /// se lisait plus petit qu'un item libre sur le même téléphone — 16,4 px
+    /// contre 16,7 px sur un 360×640 — ce qui rétablissait par la bande ce que
+    /// le gel supprime par ailleurs.
+    testWidgets('un item chronométré se lit à la même taille qu\'un item libre', (
+      tester,
+    ) async {
+      double optionFontSize() => tester
+          .widget<Text>(
+            find
+                .descendant(
+                  of: find.byKey(const ValueKey('decision-option-0')),
+                  matching: find.byType(Text),
+                )
+                .first,
+          )
+          .style!
+          .fontSize!;
+
+      DecisionFormItem chronometre() => DecisionFormItem(
+        itemId: 'DT-1',
+        dimension: DecisionDimension.dt,
+        format: DecisionItemFormat.temporalDecision,
+        timeLimitMs: 7000,
+        vignette: typicalItem().vignette,
+        task: typicalItem().task,
+        options: typicalItem().options,
+      );
+
+      // 360×640 : le gabarit où l'écart se manifestait. Les deux items sont
+      // dans le MÊME formulaire — c'est là que le gel doit tenir.
+      await pumpForm(tester, [
+        typicalItem(),
+        chronometre(),
+      ], screen: const Size(360, 640));
+      final libre = optionFontSize();
+
+      await goToNextItem(tester);
+      expect(optionFontSize(), libre);
+    });
+
+    /// Le client ne distingue pas « défiler sur un scénario » de « défiler dans
+    /// Je décide ». Ce test parcourt donc TOUT le jeu sur les deux plus petits
+    /// gabarits — écrans intercalaires compris — et vérifie qu'aucun n'a quoi
+    /// que ce soit à faire défiler.
+    ///
+    /// Les intercalaires n'étaient pas couverts par la refonte : l'écran de
+    /// récompense défilait de 52 px et le checkpoint de 86 px sur un 320×568.
+    for (final screen in const [Size(320, 568), Size(360, 640)]) {
+      testWidgets(
+        'aucun écran du parcours ne défile en ${screen.width.toInt()}x${screen.height.toInt()}',
+        (tester) async {
+          DecisionFormItem item(int i, DecisionDimension d) => DecisionFormItem(
+            itemId: 'X$i',
+            dimension: d,
+            format: DecisionItemFormat.standard,
+            vignette: typicalItem().vignette,
+            task: typicalItem().task,
+            options: typicalItem().options,
+          );
+
+          SharedPreferences.setMockInitialValues({});
+          tester.view.physicalSize = screen;
+          tester.view.devicePixelRatio = 1;
+          addTearDown(tester.view.resetPhysicalSize);
+          addTearDown(tester.view.resetDevicePixelRatio);
+
+          await tester.pumpWidget(
+            MaterialApp(
+              home: Scaffold(
+                body: DecisionGameplayView(
+                  form: DecisionForm(
+                    formCode: 'A',
+                    itemsPerDimension: 8,
+                    items: [
+                      for (var i = 0; i < 8; i++) item(i, DecisionDimension.re),
+                      for (var i = 8; i < 16; i++) item(i, DecisionDimension.cs),
+                      for (var i = 16; i < 24; i++)
+                        item(i, DecisionDimension.ii),
+                      for (var i = 24; i < 32; i++)
+                        item(i, DecisionDimension.dt),
+                    ],
+                  ),
+                  onClose: () {},
+                  onComplete: (_) {},
+                ),
+              ),
+            ),
+          );
+          await tester.pump();
+
+          for (var step = 0; step < 90; step++) {
+            expect(scrollExtent(tester), 0, reason: 'étape $step');
+            expect(tester.takeException(), isNull, reason: 'étape $step');
+
+            final option = find.byKey(const ValueKey('decision-option-0'));
+            if (option.evaluate().isNotEmpty) {
+              await tester.tap(option.first);
+              await tester.pump();
+              await tester.tap(
+                find.byKey(const ValueKey('decision-continue')).first,
+              );
+            } else {
+              // Écran intercalaire : un seul bouton principal fait avancer.
+              final suivant = find.byType(FilledButton);
+              if (suivant.evaluate().isEmpty) break;
+              await tester.tap(suivant.first, warnIfMissed: false);
+            }
+            await tester.pump(const Duration(milliseconds: 400));
+            await tester.pump(const Duration(milliseconds: 400));
+          }
+        },
+      );
+    }
+
+    /// Écran d'expiration du module chronométré : atteint par tout candidat qui
+    /// laisse filer les 7 secondes. Il défilait de 87 px sur un 320×568 et de
+    /// 15 px sur un 360×640 — un gabarit très courant.
+    for (final screen in const [Size(320, 568), Size(360, 640)]) {
+      testWidgets(
+        'l\'écran d\'expiration tient en ${screen.width.toInt()}x${screen.height.toInt()}',
+        (tester) async {
+          await pumpItem(
+            tester,
+            DecisionFormItem(
+              itemId: 'DT-1',
+              dimension: DecisionDimension.dt,
+              format: DecisionItemFormat.temporalDecision,
+              timeLimitMs: 7000,
+              vignette: 'Une décision doit être prise immédiatement.',
+              task: 'Choisissez sans attendre.',
+              options: [
+                DecisionFormOption(optionId: 'a', label: 'Option A'),
+                DecisionFormOption(optionId: 'b', label: 'Option B'),
+              ],
+            ),
+            screen: screen,
+          );
+          await tester.pump(const Duration(seconds: 7));
+          await tester.pump();
+
+          expect(
+            find.byKey(const ValueKey('decision-timeout-title')),
+            findsOneWidget,
+          );
+          expect(scrollExtent(tester), 0);
+        },
+      );
+    }
+
+    /// Le pire item n'est ni rapetissé jusqu'à l'illisible, ni rendu défilant :
+    /// il est découpé. Aucun de ses deux écrans ne défile.
+    testWidgets('le pire item ne défile sur aucun de ses deux écrans', (
+      tester,
+    ) async {
+      await pumpItem(tester, worstCaseItem(), screen: const Size(412, 915));
+
+      expect(scrollExtent(tester), 0, reason: 'écran de lecture');
+      final reveal = find.byKey(const ValueKey('decision-reveal-choices'));
+      if (reveal.evaluate().isNotEmpty) {
+        await tester.tap(reveal);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+      }
+      expect(scrollExtent(tester), 0, reason: 'écran de choix');
+      expect(find.byKey(const ValueKey('decision-option-3')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  });
 
   testWidgets(
     'le temps de réponse est mesuré à la validation, pas au premier tap',
@@ -136,10 +659,23 @@ void main() {
     },
   );
 
-  testWidgets('la pause gèle le compte à rebours de l\'item chronométré', (
+  /// « Décision sous Contrainte Temporelle » : aucune pause, sans exception.
+  ///
+  /// C'est l'un des deux cas déjà tranchés du cahier des charges « pause »
+  /// (§3-4). La contrainte de 7 s **est** la mesure de ce module : pouvoir la
+  /// suspendre reviendrait à la supprimer. Le test précédent verrouillait
+  /// l'inverse — il vérifiait que la pause gelait bien le compte à rebours.
+  testWidgets('aucune pause n\'est offerte sur un item chronométré', (
     tester,
   ) async {
     await pumpJourney(tester);
+
+    // Item libre : le bouton pause est bien là.
+    expect(
+      find.byKey(const ValueKey('decision-pause-button')),
+      findsOneWidget,
+      reason: 'hors module chronométré, la fenêtre de pause reste offerte',
+    );
 
     // Passe le premier item pour atteindre l'item chronométré.
     await tester.tap(find.byKey(const ValueKey('decision-option-0')));
@@ -150,16 +686,85 @@ void main() {
     await tester.pump(const Duration(seconds: 3));
     expect(find.text('4 sec'), findsOneWidget);
 
+    expect(
+      find.byKey(const ValueKey('decision-pause-button')),
+      findsNothing,
+      reason:
+          'le module chronométré ne propose NI pause NI sortie : c\'est le seul '
+          'endroit où le bouton disparaît encore complètement. Une boîte de '
+          'dialogue modale, fût-elle une confirmation de sortie, offrirait un '
+          'temps de réflexion pendant les 7 s — il suffirait de l\'ouvrir puis '
+          'de l\'annuler. L\'absence dure sept secondes, pas toute la partie.',
+    );
+
+    // Et le compte à rebours continue de courir : rien ne le gèle.
+    await tester.pump(const Duration(seconds: 5));
+    expect(
+      find.byKey(const ValueKey('decision-timeout-title')),
+      findsOneWidget,
+      reason: 'les 7 s s\'écoulent jusqu\'au bout',
+    );
+  });
+
+  /// La fenêtre de pause ne s'ouvre qu'UNE fois par passation (CdC §2-3).
+  testWidgets('« Resume » éteint le droit de pause, même après 2 secondes', (
+    tester,
+  ) async {
+    await pumpJourney(tester);
+
+    final pauseButton = find.byKey(const ValueKey('decision-pause-button'));
+    await tester.tap(pauseButton);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('decision-pause-dialog')), findsOneWidget);
+    expect(find.textContaining('Menu closes in'), findsOneWidget);
+
+    // Deux secondes suffisent : la durée de la pause n'entre pas en compte,
+    // c'est l'OUVERTURE qui consomme le droit.
+    await tester.pump(const Duration(seconds: 2));
+    await tester.tap(find.byKey(const ValueKey('decision-pause-dialog-resume')));
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.widget<IconButton>(pauseButton).tooltip,
+      'Exit mission',
+      reason:
+          'une seule ouverture par partie : le menu ne doit plus rester '
+          'disponible après « Resume »',
+    );
+
+    // Et il ouvre bien la confirmation de sortie, pas le menu de pause.
+    await tester.tap(pauseButton);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('decision-pause-dialog')), findsNothing);
+    expect(find.text('Leave journey?'), findsOneWidget);
+  });
+
+  /// À l'expiration des 30 s, le menu se referme tout seul et la partie repart.
+  testWidgets('la fenêtre de pause se referme d\'elle-même au bout de 30 s', (
+    tester,
+  ) async {
+    await pumpJourney(tester);
+
     await tester.tap(find.byKey(const ValueKey('decision-pause-button')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('decision-pause-dialog')), findsOneWidget);
 
-    // Le chrono ne doit pas tourner derrière le dialogue.
-    await tester.pump(const Duration(seconds: 5));
-    expect(find.byKey(const ValueKey('decision-timeout-title')), findsNothing);
-
-    await tester.tap(find.byKey(const ValueKey('decision-pause-dialog-resume')));
+    await tester.pump(kGamePauseWindow);
     await tester.pumpAndSettle();
-    expect(find.text('4 sec'), findsOneWidget, reason: 'reprise là où on en était');
+
+    expect(
+      find.byKey(const ValueKey('decision-pause-dialog')),
+      findsNothing,
+      reason: 'délai écoulé : le menu disparaît sans action du joueur',
+    );
+    expect(
+      tester
+          .widget<IconButton>(
+            find.byKey(const ValueKey('decision-pause-button')),
+          )
+          .tooltip,
+      'Exit mission',
+      reason: 'la fenêtre est consommée : le bouton bascule sur la sortie',
+    );
   });
 }

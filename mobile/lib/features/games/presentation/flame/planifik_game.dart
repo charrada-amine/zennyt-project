@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flame/components.dart';
+import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -24,7 +25,7 @@ import 'grid_config.dart';
 /// Valider s'active sur [stepCount] (>= 1), volontairement, pour que valider un
 /// chemin INCOMPLET compte comme un essai raté (barème « essais ». Voir
 /// GAMES_MODULE.md § Décisions à valider).
-class PlanifikGame extends FlameGame {
+class PlanifikGame extends FlameGame with DragCallbacks {
   PlanifikGame({
     this.config = GridConfig.level1,
     this.onWrongCell,
@@ -129,6 +130,146 @@ class PlanifikGame extends FlameGame {
   /// identique à un appui réel via [CellComponent.onCellTap]).
   @visibleForTesting
   void tapCell(int row, int col) => _handleTap(row, col);
+
+  // ── Tracé au glissement ────────────────────────────────────────────────────
+  //
+  // Retour client : « dans le trajet je peux avoir un glissement — tracer le
+  // trajet par glissement (swipe) le long du parcours ». Poser le doigt sur la
+  // tête du tracé et le faire glisser de station en station étend la route ;
+  // rebrousser chemin l'efface. L'appui station par station reste possible : les
+  // deux gestes passent par les mêmes règles (adjacence, obstacles, pas de
+  // boucle) et produisent exactement le même tracé.
+
+  /// Un glissement traçant est en cours (le doigt a bien été posé sur la tête).
+  bool _dragging = false;
+
+  /// Dernière case passée sous le doigt, déjà traitée. Évite qu'un doigt
+  /// immobile sur une case interdite ne rejoue le retour d'erreur à chaque frame.
+  int? _lastDragCell;
+
+  /// Position du doigt à l'événement précédent, dans le repère du plateau.
+  ///
+  /// On la suit nous-mêmes, en cumulant les deltas, plutôt que de lire le couple
+  /// début/fin de l'événement : Flame le construit à partir de
+  /// `DragUpdateDetails.globalPosition`, or Flutter n'y met pas la même chose
+  /// selon l'événement — la position d'AVANT le mouvement pour le premier
+  /// (synthétisé par `MultiDragPointerState._startDrag`), celle d'APRÈS pour les
+  /// suivants. Le couple est donc décalé d'un mouvement une fois sur deux.
+  /// `canvasDelta`, lui, est toujours le déplacement réel de l'événement.
+  Vector2? _dragFrom;
+
+  @override
+  void onDragStart(DragStartEvent event) {
+    super.onDragStart(event);
+    final at = event.canvasPosition;
+    final index = _indexAt(at);
+    // Le glissement ne peut saisir que la TÊTE du tracé — la seule prise qui ne
+    // détruise rien. Posé ailleurs, le doigt ne trace pas : on ne veut pas
+    // qu'un geste de travers réécrive une route déjà posée.
+    if (index == null || _path.isEmpty || index != _path.last) return;
+    _dragging = true;
+    _lastDragCell = index;
+    _dragFrom = at.clone();
+  }
+
+  @override
+  void onDragUpdate(DragUpdateEvent event) {
+    final from = _dragFrom;
+    if (!_dragging || from == null) return;
+    final to = from + event.canvasDelta;
+    _dragFrom = to;
+    _walkSegment(from, to);
+  }
+
+  @override
+  void onDragEnd(DragEndEvent event) {
+    super.onDragEnd(event);
+    _dragging = false;
+    _lastDragCell = null;
+    _dragFrom = null;
+  }
+
+  /// Parcourt les cases traversées par le segment [from] → [to], dans l'ordre.
+  ///
+  /// On échantillonne le segment au lieu de ne regarder que son extrémité : un
+  /// swipe rapide franchit plusieurs cases entre deux frames, et sauter les
+  /// intermédiaires couperait la route — elles ne seraient plus adjacentes.
+  void _walkSegment(Vector2 from, Vector2 to) {
+    final step = math.max(1.0, _cellSize / 3);
+    final samples = math.max(1, (from.distanceTo(to) / step).ceil());
+    for (var i = 1; i <= samples; i++) {
+      final at = from + (to - from) * (i / samples);
+      final index = _indexAt(at);
+      if (index == null || index == _lastDragCell) continue;
+      _lastDragCell = index;
+      _extendByDrag(index);
+    }
+  }
+
+  /// Case sous un point exprimé dans le repère du plateau, ou `null` hors grille.
+  int? _indexAt(Vector2 point) {
+    if (size.x <= 0 || size.y <= 0) return null;
+    final col = (point.x / (size.x / config.cols)).floor();
+    final row = (point.y / (size.y / config.rows)).floor();
+    if (row < 0 || row >= config.rows || col < 0 || col >= config.cols) {
+      return null;
+    }
+    return config.index(row, col);
+  }
+
+  void _extendByDrag(int index) {
+    final last = _path.last;
+    if (index == last) return;
+
+    // Rebrousser chemin sur l'avant-dernière case efface le dernier pas : c'est
+    // la correction naturelle du glissement, sans lever le doigt.
+    if (_path.length >= 2 && index == _path[_path.length - 2]) {
+      undo();
+      return;
+    }
+
+    // Le doigt s'est éloigné du tracé (diagonale, sortie de route) : on ne
+    // raccroche pas, on attend qu'il revienne sur une case adjacente.
+    if (!_adjacent(index, last)) return;
+
+    if (!config.isWalkable(index)) {
+      // Même sanction qu'à l'appui : traverser un obstacle EST une erreur de
+      // planification. Le filtre d'adjacence suffit à ne pas punir un doigt qui
+      // balaie le plateau à distance du tracé.
+      onBlockedTap?.call();
+      _flashError(index);
+      return;
+    }
+
+    if (_path.contains(index)) return; // pas de boucle
+    _cellAt(index).pulse();
+    _addToPath(index);
+  }
+
+  /// Simule un glissement passant par le centre de chaque case de [cells] —
+  /// seam de test. Emprunte le même chemin de code qu'un vrai swipe : mêmes
+  /// règles de saisie, même échantillonnage du segment.
+  @visibleForTesting
+  void dragThrough(List<(int row, int col)> cells) {
+    if (cells.isEmpty) return;
+    Vector2 centerOf((int, int) c) => Vector2(
+      (c.$2 + 0.5) * size.x / config.cols,
+      (c.$1 + 0.5) * size.y / config.rows,
+    );
+    var at = centerOf(cells.first);
+    final start = _indexAt(at);
+    if (start == null || _path.isEmpty || start != _path.last) return;
+    _dragging = true;
+    _lastDragCell = start;
+    for (var i = 1; i < cells.length; i++) {
+      final next = centerOf(cells[i]);
+      _walkSegment(at, next);
+      at = next;
+    }
+    _dragging = false;
+    _lastDragCell = null;
+    _dragFrom = null;
+  }
 
   void _handleTap(int row, int col) {
     final index = config.index(row, col);

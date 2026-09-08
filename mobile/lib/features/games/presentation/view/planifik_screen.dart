@@ -65,6 +65,13 @@ class _PlanifikScreenState extends ConsumerState<PlanifikScreen> {
   // au dernier niveau (le backend note chaque niveau /10 puis fait la moyenne).
   final List<PlanifikLevelMetrics> _levelMetrics = [];
 
+  /// Droit de pause de la PARTIE — une ouverture, 30 s (CdC pause §2-3).
+  ///
+  /// Porté par l'écran et non par `_GameplayView` : celui-ci est reconstruit à
+  /// chaque niveau (`key: ValueKey(_level)`), ce qui aurait rendu un droit de
+  /// pause par niveau au lieu d'un par session.
+  final GamePauseAllowance _pauseAllowance = GamePauseAllowance();
+
   @override
   void initState() {
     super.initState();
@@ -76,6 +83,8 @@ class _PlanifikScreenState extends ConsumerState<PlanifikScreen> {
   }
 
   Future<void> _beginGame() async {
+    // Nouvelle partie = nouveau droit de pause.
+    _pauseAllowance.reset();
     setState(() {
       _levelConfigs = GridConfig.randomLevels();
       _level = 0;
@@ -263,6 +272,7 @@ class _PlanifikScreenState extends ConsumerState<PlanifikScreen> {
         level: _level + 1,
         totalLevels: _levelConfigs.length,
         levelFailed: _levelFailed,
+        pauseAllowance: _pauseAllowance,
         onCorrect: _onCorrectRoute,
         onWrong: _onWrongRoute,
         onExit: () => context.go(AppRoutes.games),
@@ -872,7 +882,8 @@ class _HowToPlayPage1 extends StatelessWidget {
           const SizedBox(height: AppSpacing.sm),
           Text(
             'Leila starts at the Lab (green) and needs to reach the Meeting '
-            'Room (pink). Tap stations to trace your path — each segment costs '
+            'Room (pink). Slide your finger along the stations — or tap them one '
+            'by one — to trace your path. Each segment costs '
             '1 move. Avoid red zones (under construction) to save moves. '
             'You can only move right and left, up and down.',
             style: AppTypography.bodyMedium.copyWith(
@@ -1220,10 +1231,14 @@ class _GameplayView extends StatefulWidget {
     required this.level,
     required this.totalLevels,
     required this.levelFailed,
+    required this.pauseAllowance,
     required this.onCorrect,
     required this.onWrong,
     required this.onExit,
   });
+
+  /// Droit de pause de la session, détenu par l'écran (voir sa déclaration).
+  final GamePauseAllowance pauseAllowance;
 
   final PlanifikGame game;
   final bool busy;
@@ -1299,6 +1314,15 @@ class _GameplayViewState extends State<_GameplayView> {
   void _expireLevel() {
     _timer?.cancel();
     SoundService.instance.playSfx(GameSfx.timerEnd);
+    // Le temps écoulé EST un échec de niveau — même chemin qu'un 3ᵉ essai raté —
+    // et doit donc vibrer comme lui. La vibration est demandée explicitement
+    // ici, et non en ajoutant `timerEnd` aux sons d'erreur de SoundService :
+    // Move Fast joue le MÊME son à la fin normale de sa session, où une
+    // vibration d'échec serait un contresens.
+    //
+    // Passe par SoundService et non par HapticFeedback : le réglage
+    // « Vibration » du menu pause doit continuer de tout couper.
+    SoundService.instance.vibrateError();
     if (_feedback != _Feedback.none) return;
     setState(() {
       _feedback = _Feedback.wrong;
@@ -1308,15 +1332,36 @@ class _GameplayViewState extends State<_GameplayView> {
     widget.onWrong();
   }
 
+  /// Bouton unique du HUD : menu de pause tant que la fenêtre est ouverte,
+  /// confirmation de sortie ensuite. Voir [GameMenuAffordance].
+  Future<void> _openMenu() async {
+    if (widget.pauseAllowance.canOpen) return _openPause();
+    // Fenêtre consommée : on ne met PAS le jeu en pause. Geler le chronomètre
+    // ici rendrait la pause renouvelable à volonté par simple ouverture de la
+    // boîte, ce que la fenêtre unique existe pour empêcher.
+    if (await GameExitConfirmDialog.show(context)) widget.onExit();
+  }
+
   /// Menu pause (comme Move Fast) : pause le timer, propose Reprendre / Règles /
   /// Quitter, et des options audio.
   Future<void> _openPause() async {
+    // Une seule fenêtre de pause par partie (CdC pause §2-3).
+    if (!widget.pauseAllowance.canOpen) return;
     SoundService.instance.playSfx(GameSfx.pauseClick);
+    widget.pauseAllowance.open();
     setState(() => _paused = true);
+    await _showPauseMenu();
+  }
+
+  /// Réaffiché après les règles sur le **temps restant** de la fenêtre.
+  Future<void> _showPauseMenu() async {
     final action = await showDialog<GamePauseAction>(
       context: context,
       barrierColor: ZennytGamePalette.ink.withValues(alpha: 0.82),
       builder: (context) => GamePauseScaffold(
+        countdown: widget.pauseAllowance.remaining,
+        onCountdownExpired: () =>
+            Navigator.of(context).pop(GamePauseAction.resume),
         buttons: [
           GamePrimaryButton(
             label: 'Resume',
@@ -1335,17 +1380,25 @@ class _GameplayViewState extends State<_GameplayView> {
     );
     if (!mounted) return;
     if (action == GamePauseAction.exit) {
-      widget.onExit();
-      return;
-    }
-    if (action == GamePauseAction.help) {
+      // Quitter annule la tentative : confirmation explicite d'abord.
+      if (await GameExitConfirmDialog.show(context)) {
+        widget.onExit();
+        return;
+      }
+      if (!mounted) return;
+      if (widget.pauseAllowance.canReopen) return _showPauseMenu();
+    } else if (action == GamePauseAction.help) {
       await showDialog<void>(
         context: context,
         barrierColor: ZennytGamePalette.ink.withValues(alpha: 0.82),
         builder: (context) => const _OptimalRulesDialog(),
       );
+      if (!mounted) return;
+      if (widget.pauseAllowance.canReopen) return _showPauseMenu();
     }
     if (!mounted) return;
+    // La partie repart : le temps passé en pause rejoint le budget consommé.
+    widget.pauseAllowance.close();
     setState(() => _paused = false);
   }
 
@@ -1432,7 +1485,8 @@ class _GameplayViewState extends State<_GameplayView> {
                   (_feedback == _Feedback.wrong || _timeIsUrgent)
                   ? ZennytGamePalette.error
                   : ZennytGamePalette.success,
-              onPause: _openPause,
+              onPause: _openMenu,
+              affordance: widget.pauseAllowance.affordance,
             ),
           ),
           const SizedBox(height: AppSpacing.md),
@@ -1464,8 +1518,8 @@ class _GameplayViewState extends State<_GameplayView> {
                   Expanded(child: GameWidget(game: game)),
                   const SizedBox(height: AppSpacing.md),
                   Text(
-                    'Level ${widget.level}/${widget.totalLevels} — tap stations '
-                    'to trace Leila\'s route.',
+                    'Level ${widget.level}/${widget.totalLevels} — swipe or tap '
+                    'stations to trace Leila\'s route.',
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: Colors.white,
@@ -1526,6 +1580,7 @@ class _OptimalHud extends StatelessWidget {
     required this.progress,
     required this.progressColor,
     required this.onPause,
+    required this.affordance,
   });
 
   final int score;
@@ -1534,6 +1589,10 @@ class _OptimalHud extends StatelessWidget {
   final double progress;
   final Color progressColor;
   final VoidCallback onPause;
+
+  /// Pause ou sortie : le bouton change d'icône une fois la fenêtre consommée,
+  /// il ne disparaît plus. Voir [GameMenuAffordance].
+  final GameMenuAffordance affordance;
 
   @override
   Widget build(BuildContext context) {
@@ -1554,7 +1613,12 @@ class _OptimalHud extends StatelessWidget {
               child: _HudStatPill(label: 'Tries', value: '${tries > 3 ? 3 : tries}/3'),
             ),
             const SizedBox(width: AppSpacing.sm),
-            _HudIconButton(icon: Icons.pause_rounded, onTap: onPause),
+            _HudIconButton(
+              icon: affordance.icon,
+              tooltip: affordance.tooltip,
+              semanticsLabel: affordance.semanticsLabel,
+              onTap: onPause,
+            ),
           ],
         ),
         const SizedBox(height: AppSpacing.md),
@@ -1611,24 +1675,38 @@ class _HudStatPill extends StatelessWidget {
 }
 
 class _HudIconButton extends StatelessWidget {
-  const _HudIconButton({required this.icon, required this.onTap});
+  const _HudIconButton({
+    required this.icon,
+    required this.onTap,
+    required this.tooltip,
+    required this.semanticsLabel,
+  });
 
   final IconData icon;
   final VoidCallback onTap;
+  final String tooltip;
+  final String semanticsLabel;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white.withValues(alpha: 0.14),
-      borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        child: Container(
-          width: 52,
-          height: 52,
-          alignment: Alignment.center,
-          child: Icon(icon, color: Colors.white, size: 24),
+    return Semantics(
+      button: true,
+      label: semanticsLabel,
+      child: Tooltip(
+        message: tooltip,
+        child: Material(
+          color: Colors.white.withValues(alpha: 0.14),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+            child: Container(
+              width: 52,
+              height: 52,
+              alignment: Alignment.center,
+              child: Icon(icon, color: Colors.white, size: 24),
+            ),
+          ),
         ),
       ),
     );
@@ -1872,8 +1950,10 @@ class _OptimalRulesDialog extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.lg),
             _RuleLine(
-              icon: Icons.touch_app_rounded,
-              text: 'Tap adjacent stations from LAB to trace your route.',
+              icon: Icons.swipe_rounded,
+              text: 'Slide your finger from LAB across adjacent stations to '
+                  'trace your route — or tap them one by one. Slide back to '
+                  'erase the last step.',
             ),
             _RuleLine(
               icon: Icons.flag_rounded,

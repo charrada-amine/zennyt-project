@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/audio/sound_service.dart';
@@ -76,7 +78,11 @@ class GamePrimaryButton extends StatelessWidget {
               // 7,2 px) dès que l'intitulé s'allongeait ou que la police
               // grossissait.
               Flexible(
-                child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           );
@@ -224,6 +230,7 @@ class GameHud extends StatelessWidget {
     required this.progress,
     required this.onPause,
     this.progressColor = ZennytGamePalette.success,
+    this.affordance = GameMenuAffordance.pause,
   });
 
   final int score;
@@ -231,6 +238,12 @@ class GameHud extends StatelessWidget {
   final double progress;
   final VoidCallback onPause;
   final Color progressColor;
+
+  /// Ce que le bouton propose : mettre en pause, ou quitter.
+  ///
+  /// Le bouton ne disparaît plus une fois la fenêtre de pause consommée — il
+  /// devient « Exit mission ». Voir [GameMenuAffordance] pour la raison.
+  final GameMenuAffordance affordance;
 
   @override
   Widget build(BuildContext context) {
@@ -249,29 +262,83 @@ class GameHud extends StatelessWidget {
             SizedBox(
               width: 56,
               height: 52,
-              child: IconButton.filled(
-                tooltip: 'Mettre en pause',
-                onPressed: onPause,
-                style: IconButton.styleFrom(
-                  backgroundColor: Colors.white.withValues(alpha: 0.16),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+              child: Semantics(
+                button: true,
+                label: affordance.semanticsLabel,
+                child: IconButton.filled(
+                  tooltip: affordance.tooltip,
+                  onPressed: onPause,
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.white.withValues(alpha: 0.16),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                    ),
                   ),
+                  icon: Icon(affordance.icon),
                 ),
-                icon: const Icon(Icons.pause),
               ),
             ),
           ],
         ),
         const SizedBox(height: AppSpacing.base),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
-          child: LinearProgressIndicator(
-            minHeight: 7,
-            value: progress.clamp(0, 1),
-            backgroundColor: Colors.white.withValues(alpha: 0.2),
-            valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+        GameTimerBar(progress: progress, color: progressColor),
+      ],
+    );
+  }
+}
+
+/// Bandeau de temps restant des mini-jeux — la barre du HUD de « Je bouge »,
+/// sortie de [GameHud] pour que les phases chronométrées des autres jeux
+/// montrent le temps de la MÊME façon. Un joueur qui passe d'un jeu à l'autre
+/// n'a pas à réapprendre à lire le temps qu'il lui reste.
+///
+/// [progress] est la fraction de temps RESTANTE, dans [0, 1] : la barre se vide.
+/// Passer la fraction écoulée la remplirait — l'inverse de ce que le joueur
+/// attend d'un compte à rebours.
+class GameTimerBar extends StatelessWidget {
+  const GameTimerBar({
+    super.key,
+    required this.progress,
+    this.color = ZennytGamePalette.success,
+    this.label,
+  });
+
+  final double progress;
+  final Color color;
+
+  /// Texte facultatif posé au-dessus de la barre (ex. « 6s »). La barre seule
+  /// donne l'ordre de grandeur, le texte donne la valeur : les deux ensemble
+  /// servent aussi les joueurs qui distinguent mal les couleurs.
+  final String? label;
+
+  @override
+  Widget build(BuildContext context) {
+    final safe = progress.isNaN ? 0.0 : progress.clamp(0.0, 1.0);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (label != null) ...[
+          Text(
+            label!,
+            textAlign: TextAlign.center,
+            style: AppTypography.labelSmall.copyWith(
+              color: color,
+              letterSpacing: 0.4,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+        ],
+        Semantics(
+          label: label == null ? 'Time remaining' : 'Time remaining, $label',
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+            child: LinearProgressIndicator(
+              minHeight: 7,
+              value: safe,
+              backgroundColor: Colors.white.withValues(alpha: 0.2),
+              valueColor: AlwaysStoppedAnimation<Color>(color),
+            ),
           ),
         ),
       ],
@@ -726,6 +793,9 @@ class MoveFastPlane extends StatelessWidget {
     required this.color,
     this.size = 120,
     this.opacity = 1,
+    this.turnFrom,
+    this.heading,
+    this.roll = 0,
   });
 
   final GameDirection noseDirection;
@@ -733,19 +803,272 @@ class MoveFastPlane extends StatelessWidget {
   final double size;
   final double opacity;
 
+  /// Direction que l'avion regardait à l'essai précédent.
+  ///
+  /// Purement DESCRIPTIF : l'avion n'anime plus rien tout seul. Ce champ dit
+  /// « celui-ci est en train de manœuvrer, il vient de là » — ce dont les
+  /// tests, et un futur libellé d'accessibilité, ont besoin. La figure
+  /// elle-même est conduite par le plateau, qui seul survit d'un essai à
+  /// l'autre et peut donc l'enchaîner sans couture.
+  final GameDirection? turnFrom;
+
+  /// Cap affiché, en radians. Nul : l'angle nominal de [noseDirection].
+  final double? heading;
+
+  /// Roulis affiché, en radians. Zéro : l'avion est à plat.
+  final double roll;
+
+  /// Durée du tonneau, une fois qu'il démarre.
+  ///
+  /// Une révolution complète expédiée en 400 ms se lit comme un scintillement,
+  /// pas comme une figure. 900 ms laisse voir l'élan, le tour et la sortie —
+  /// c'est le raffinement demandé, et ça reste sous la moitié de la fenêtre de
+  /// réponse.
+  static const Duration turnDuration = Duration(milliseconds: 900);
+
+  /// Décalage d'une voie à la suivante dans la vague.
+  ///
+  /// Assez pour que l'œil suive la vague le long de la formation, assez peu
+  /// pour que les avions n'affichent pas des caps contradictoires trop
+  /// longtemps — ils convergent tous vers la même direction, donc un joueur
+  /// pressé ne peut pas se tromper à cause du décalage, il attend juste un peu.
+  static const Duration laneStagger = Duration(milliseconds: 55);
+
+  /// Fin du contre-roulis d'élan, en part de figure.
+  ///
+  /// L'avion s'incline d'abord À L'ENVERS du tour qu'il va faire, comme un
+  /// gymnaste qui se ramasse avant de sauter. C'est le principe d'anticipation :
+  /// sans lui, la rotation démarre de nulle part et paraît subie.
+  static const double _windUpEnd = 0.14;
+
+  /// Amplitude de ce contre-roulis, en radians (≈ 11°).
+  static const double _windUp = 0.2;
+
+  /// Fenêtre pendant laquelle le CAP change, en part de figure.
+  ///
+  /// Le cap démarre APRÈS le roulis et se pose AVANT lui : l'avion s'incline,
+  /// donc il vire, puis il achève son tour sur son nouveau cap. Cet ordre est
+  /// ce qui fait lire une cause plutôt qu'un mouvement rigide — et il rend la
+  /// réponse lisible avant la fin de la figure.
+  static const double _headingStart = 0.12;
+  static const double _headingEnd = 0.75;
+
+  /// Part d'envergure toujours visible, même à la tranche (0 = l'avion se
+  /// réduit à un trait).
+  ///
+  /// À mi-roulis, une rotation rigide met l'avion parfaitement de profil : il
+  /// s'efface. C'est précisément ce que le client avait signalé sur l'ancienne
+  /// bascule 3D — « une disparition très très rapide ». On triche donc de
+  /// quelques degrés autour du couteau : la silhouette reste lisible, la
+  /// figure garde son relief, et personne ne compte les degrés.
+  static const double minWingspan = 0.32;
+
+  /// Profondeur de la perspective appliquée à la figure.
+  ///
+  /// C'est elle qui fait la 3D : sans elle, tourner autour du fuselage ne
+  /// serait qu'un écrasement vertical. Avec, l'aile qui vient vers l'œil
+  /// grossit pendant que l'autre s'éloigne — le tour se voit comme un tour.
+  static const double _perspective = 0.004;
+
   @override
   Widget build(BuildContext context) {
+    final plane = CustomPaint(
+      size: Size.square(size),
+      painter: _PlanePainter(color),
+    );
+    final angle = heading ?? _angleFor(noseDirection);
+
+    // À plat, une rotation plane suffit — et évite la matrice à perspective sur
+    // tous les écrans fixes (intro, règles, indices).
+    if (roll == 0) {
+      return Opacity(
+        opacity: opacity,
+        child: Transform.rotate(angle: angle, child: plane),
+      );
+    }
+
     return Opacity(
       opacity: opacity,
-      child: Transform.rotate(
-        angle: _angleFor(noseDirection),
-        child: CustomPaint(
-          size: Size.square(size),
-          painter: _PlanePainter(color),
-        ),
+      child: Transform(
+        alignment: Alignment.center,
+        transform: Matrix4.identity()
+          ..setEntry(3, 2, _perspective)
+          ..rotateZ(angle)
+          // Le roulis s'applique APRÈS le cap dans l'écriture, donc AVANT lui
+          // sur le dessin (`Matrix4` post-multiplie) : il tourne bien autour de
+          // l'axe longitudinal de l'avion, quel que soit son cap.
+          ..multiply(_rollMatrix(roll)),
+        child: plane,
       ),
     );
   }
+
+  /// Rotation autour du fuselage, à l'envergure bornée.
+  ///
+  /// C'est un `rotateX` — dans le dessin, X est le fuselage et Y l'envergure,
+  /// donc tourner autour de X est bien un roulis et non un tangage — à ceci
+  /// près que l'écrasement de l'envergure ne descend jamais sous
+  /// [minWingspan]. La profondeur, elle, reste celle de la vraie rotation :
+  /// c'est elle qui, avec la perspective, donne son relief à la figure.
+  static Matrix4 _rollMatrix(double roll) {
+    final cos = math.cos(roll);
+    final wingspan =
+        (cos.isNegative ? -1.0 : 1.0) * math.max(cos.abs(), minWingspan);
+    return Matrix4.identity()
+      ..setEntry(1, 1, wingspan)
+      ..setEntry(2, 1, math.sin(roll));
+  }
+
+  /// Où en est la FIGURE quand l'horloge de l'avion en est à [raw], sachant
+  /// qu'il attend [delay] avant de commencer.
+  ///
+  /// Vaut 0 pendant toute l'attente, puis court de 0 à 1 sur [turnDuration].
+  static double figureProgress(double raw, Duration delay) {
+    final total = (delay + turnDuration).inMicroseconds;
+    final elapsed = raw * total - delay.inMicroseconds;
+    return (elapsed / turnDuration.inMicroseconds).clamp(0.0, 1.0);
+  }
+
+  /// Retard de la voie [slot] dans la vague.
+  static Duration staggerFor(int slot) => laneStagger * slot;
+
+  /// Temps au bout duquel une formation de [lanes] avions est ENTIÈREMENT
+  /// posée : le dernier de la vague a fini sa figure.
+  ///
+  /// C'est de ce moment-là que part la fenêtre de réponse. Le client demande
+  /// « toujours 2 000 ms pour répondre » : si le chronomètre partait avec la
+  /// figure, l'acrobatie mangerait plus de la moitié du temps accordé — et,
+  /// pire pour la mesure, chaque temps de réaction serait gonflé de la durée de
+  /// l'animation, ce qui les rendrait incomparables aux normes du barème.
+  /// Élan d'entrée du tout premier plateau d'une partie.
+  ///
+  /// C'est l'attente qui précède la fenêtre de réponse quand il n'y a AUCUNE
+  /// acrobatie à jouer : au premier avion, il n'existe pas de direction
+  /// précédente à quitter.
+  static const Duration entryDuration = Duration(milliseconds: 620);
+
+  static Duration formationSettle(int lanes, {bool manoeuvring = true}) =>
+      manoeuvring ? staggerFor(lanes - 1) + turnDuration : entryDuration;
+
+  /// Part du virage déjà parcourue par le CAP à l'instant [f] de la figure.
+  ///
+  /// Nulle tant que l'avion n'a fait que s'incliner, pleine avant la fin du
+  /// tonneau : la direction — la réponse — se pose avant que la figure ne
+  /// s'achève, et l'avion termine son tour sur son nouveau cap.
+  static double headingProgress(double f) {
+    if (f <= _headingStart) return 0;
+    if (f >= _headingEnd) return 1;
+    return Curves.easeInOutCubic.transform(
+      (f - _headingStart) / (_headingEnd - _headingStart),
+    );
+  }
+
+  /// Part du trajet d'ARRIVÉE (ou de départ) parcourue à l'instant [f].
+  ///
+  /// Distincte de [headingProgress], et c'est tout l'objet de cette fonction.
+  /// Le cap est plat avant `_headingStart` et après `_headingEnd` : brancher
+  /// l'entrée d'un avion dessus lui laissait 567 ms des 900 de la figure pour
+  /// couvrir plus d'une longueur de plateau — près de 1 500 px/s en moyenne et
+  /// 2 200 au pic de la cubique. L'avion ne « rejoignait » pas la formation, il
+  /// y apparaissait d'un coup.
+  ///
+  /// Ce trajet-là n'a aucune raison d'être calé sur le cap : il ne porte pas la
+  /// réponse, il porte l'arrivée. Il occupe donc la figure ENTIÈRE, et décélère
+  /// à la fin plutôt qu'au milieu — un avion qui se range dans une formation
+  /// ralentit en s'y insérant, il ne freine pas à mi-chemin.
+  ///
+  /// Sinus et non cubique : les deux décélèrent, mais la cubique se jette dans
+  /// le cadre. Sur un plateau de 700 px, elle y entre à 5 500 px/s — plus vite
+  /// que le défaut qu'on corrige. Le sinus entre à 2 700 et finit à zéro, ce qui
+  /// donne l'entrée la plus longue des deux À VITESSE TENUE. Une rampe linéaire
+  /// serait plus douce encore, mais elle s'arrête net à l'arrivée : l'avion se
+  /// poserait dans la formation comme une image qu'on repose.
+  static double joinProgress(double f) =>
+      Curves.easeOutSine.transform(f.clamp(0.0, 1.0));
+
+  /// Échelle d'un avion selon la part d'arrivée déjà faite.
+  ///
+  /// Il ne se contente pas de glisser jusqu'à sa place : il GROSSIT en
+  /// s'approchant, et rétrécit en s'éloignant. Sans cela, un avion qui rejoint
+  /// la formation traverse le plateau à sa taille définitive, ce qui le fait
+  /// lire comme un objet posé sur l'image plutôt que comme un avion qui arrive.
+  ///
+  /// Vaut exactement 1 à [presence] = 1 : un avion qui reste dans la formation
+  /// n'est pas touché.
+  static double approachScale(double presence) =>
+      _minApproachScale + (1 - _minApproachScale) * presence.clamp(0.0, 1.0);
+
+  /// Taille d'un avion au plus loin de son approche, en part de sa taille de
+  /// croisière.
+  static const double _minApproachScale = 0.62;
+
+  /// Élan de la figure à l'instant [f] : 0 aux deux bouts, 1 au sommet.
+  ///
+  /// Le plateau s'en sert pour pousser l'avion dans son axe de vol et le
+  /// grossir un peu au passage. Un avion qui enroule un tonneau accélère ; sans
+  /// cette poussée, la rotation a l'air posée sur un objet immobile.
+  static double surgeAt(double f) => math.sin(math.pi * f.clamp(0.0, 1.0));
+
+  /// Roulis de la figure à l'instant [f] (0 → 1) d'un virage de [travel]
+  /// radians.
+  ///
+  /// **Un tonneau complet, à chaque changement de direction** — quart de tour
+  /// comme demi-tour : l'avion fait une révolution entière autour de son
+  /// fuselage pendant que son cap va de l'ancienne direction à la nouvelle.
+  ///
+  /// En deux temps :
+  ///
+  /// 1. **l'élan** — l'avion s'incline d'abord À L'ENVERS, de [_windUp]
+  ///    radians. C'est l'anticipation du dessin animé : le geste se ramasse
+  ///    avant de partir, et le départ cesse d'avoir l'air subi ;
+  /// 2. **le tour** — il repart de là et enroule ses 2π, vite d'abord puisqu'il
+  ///    a déjà de l'élan, puis en décélérant jusqu'à se poser à plat.
+  ///
+  /// Le roulis revient à 0 modulo 2π en fin de course : au moment où le joueur
+  /// doit répondre, l'avion est de nouveau à plat et son envergure pleinement
+  /// lisible. C'est la règle qui rend la figure gratuite — elle se joue sur le
+  /// roulis, jamais sur le cap, qui porte la réponse.
+  /// Roulis à l'instant [f] d'une figure qui part du roulis [from] et enroule
+  /// un tour complet dans le sens [way].
+  ///
+  /// Le départ est un PARAMÈTRE, et c'est tout l'enjeu : une figure peut être
+  /// interrompue par une réponse rapide, et la suivante doit reprendre l'avion
+  /// là où il est — sur la tranche, sur le dos — au lieu de le remettre à plat
+  /// d'un coup. C'est ce saut-là que le client voyait comme « une apparition
+  /// très rapide » sur certaines transitions et pas sur d'autres : il ne se
+  /// produisait que lorsqu'il répondait assez vite pour couper la figure.
+  static double rollFigure({
+    required double from,
+    required double way,
+    required double f,
+  }) => from + _rollAt(f, travel: way);
+
+  static double _rollAt(double f, {required double travel}) {
+    // On tourne DANS le sens du virage : le roulis suit le cap.
+    final way = travel.isNegative ? -1.0 : 1.0;
+    if (f <= _windUpEnd) {
+      return -way *
+          _windUp *
+          Curves.easeOutSine.transform(f / _windUpEnd);
+    }
+    // `easeOutSine` et pas `easeOutCubic` : le cube expédiait 80 % du tour dans
+    // la première moitié de la figure, et la seconde moitié n'était plus qu'un
+    // traînage. Le sinus part avec l'élan déjà acquis, tient un régime franc au
+    // milieu, et ne décélère que pour se poser — c'est l'allure d'un vrai
+    // tonneau.
+    final released = Curves.easeOutSine.transform(
+      (f - _windUpEnd) / (1 - _windUpEnd),
+    );
+    return -way * _windUp + way * (2 * math.pi + _windUp) * released;
+  }
+
+  /// Roulis affiché à l'instant [t] pour un virage de [from] vers [to].
+  @visibleForTesting
+  static double rollAt({
+    required double t,
+    required GameDirection from,
+    required GameDirection to,
+  }) => _rollAt(t, travel: _shortestTurn(from: from, to: to) - _angleFor(from));
 
   static double _angleFor(GameDirection direction) {
     return switch (direction) {
@@ -754,6 +1077,54 @@ class MoveFastPlane extends StatelessWidget {
       GameDirection.down => math.pi / 2,
       GameDirection.left => math.pi,
     };
+  }
+
+  /// Angle du nez, en radians, pour une direction donnée.
+  static double angleFor(GameDirection direction) => _angleFor(direction);
+
+  /// Angle d'arrivée équivalent à [to], mais atteint par le plus court chemin
+  /// depuis [from].
+  ///
+  /// Les quatre angles sont fixes (−π/2 … π) : les interpoler tels quels ferait
+  /// parcourir trois quarts de tour à un avion qui passe de « gauche » (π) à
+  /// « haut » (−π/2), alors que le virage réel est d'un quart de tour dans
+  /// l'autre sens. On ramène donc l'écart dans [−π, π].
+  @visibleForTesting
+  static double shortestTurn({
+    required GameDirection from,
+    required GameDirection to,
+  }) => _shortestTurn(from: from, to: to);
+
+  /// Angle d'arrivée équivalent à [to], atteint par le plus court chemin depuis
+  /// l'angle **courant** [fromAngle] — lequel n'est pas forcément l'un des
+  /// quatre caps : une figure interrompue laisse l'avion entre deux.
+  static double shortestTurnFrom({
+    required double fromAngle,
+    required GameDirection to,
+  }) {
+    var delta = _angleFor(to) - fromAngle;
+    while (delta > math.pi) {
+      delta -= 2 * math.pi;
+    }
+    while (delta < -math.pi) {
+      delta += 2 * math.pi;
+    }
+    return fromAngle + delta;
+  }
+
+  static double _shortestTurn({
+    required GameDirection from,
+    required GameDirection to,
+  }) {
+    final start = _angleFor(from);
+    var delta = _angleFor(to) - start;
+    while (delta > math.pi) {
+      delta -= 2 * math.pi;
+    }
+    while (delta < -math.pi) {
+      delta += 2 * math.pi;
+    }
+    return start + delta;
   }
 }
 
@@ -1028,6 +1399,339 @@ class AnimatedCountText extends StatelessWidget {
 /// Action renvoyée par le menu pause partagé ([GamePauseScaffold]).
 enum GamePauseAction { resume, help, exit, restart }
 
+/// Fenêtre pendant laquelle le menu pause reste ouvert — CdC « Harmonisation
+/// des règles de pause », §2.
+///
+/// 30 s, et non 10 ou 15 : la durée est calibrée sur les candidats à mobilité
+/// réduite (balayage, contacteur, commande adaptée), pour qui atteindre puis
+/// activer un bouton prend sensiblement plus de temps.
+const Duration kGamePauseWindow = Duration(seconds: 30);
+
+/// Droit de pause d'**une** partie : **une seule ouverture**, d'au plus
+/// [kGamePauseWindow].
+///
+/// Le CdC part d'une contradiction : « une interruption annule la session »
+/// cohabitait avec un menu pause ouvrable autant de fois qu'on voulait. Plutôt
+/// que deux modes (Entraînement / Test), la règle retenue est une ouverture
+/// unique et courte, réservée aux réglages (mode de saisie, son, musique).
+///
+/// **Une ouverture, pas un budget rechargeable.** Le droit s'éteint dès que le
+/// candidat referme le menu, quelle qu'ait été la durée de sa pause : deux
+/// secondes suffisent à le consommer. Les 30 s sont un PLAFOND, pas une réserve
+/// à dépenser en plusieurs fois.
+///
+/// Une version intermédiaire avait fait des 30 s un budget cumulatif,
+/// réouvrable tant qu'il en restait. Refusé au test : « le menu pause n'est
+/// accessible qu'une seule fois ; après Resume ou View Rules, il ne doit plus
+/// rester disponible. »
+///
+/// « View Rules » fait exception, et c'est la seule : c'est un aller-retour
+/// À L'INTÉRIEUR de la même ouverture ([canReopen]), pas une seconde ouverture.
+/// Le temps continue d'y courir — sans quoi il suffirait de passer par les
+/// règles pour obtenir une pause sans fin.
+///
+/// La confirmation de sortie proposée par le bouton « Exit mission » ne met
+/// rien en pause et ne touche donc pas à ce droit.
+///
+/// Mesuré sur l'horloge ambiante (`package:clock`) pour rester vérifiable par un
+/// test déterministe.
+class GamePauseAllowance {
+  GamePauseAllowance({this.window = kGamePauseWindow});
+
+  final Duration window;
+
+  /// Le droit a été utilisé : plus aucune ouverture, même s'il restait du temps.
+  bool _consumed = false;
+
+  /// Début de l'ouverture en cours, `null` quand le jeu tourne.
+  DateTime? _openedAt;
+
+  /// Vrai pendant que le jeu est en pause.
+  bool get isPaused => _openedAt != null;
+
+  /// Temps restant sur l'ouverture en cours ; le plafond entier avant la
+  /// première ouverture, zéro une fois le droit consommé.
+  Duration get remaining {
+    final openedAt = _openedAt;
+    if (openedAt == null) return _consumed ? Duration.zero : window;
+    final left = window - clock.now().difference(openedAt);
+    return left.isNegative ? Duration.zero : left;
+  }
+
+  /// Vrai tant que le menu n'a jamais été ouvert de la partie.
+  bool get canOpen => !_consumed;
+
+  /// Aller-retour interne — retour de l'écran de règles vers le menu.
+  ///
+  /// Ce n'est PAS une seconde ouverture : l'ouverture court toujours, et il lui
+  /// reste du temps. Après un « Resume », [close] a été appelé et ceci est faux.
+  bool get canReopen => _openedAt != null && remaining > Duration.zero;
+
+  /// Ouvre le menu — ou le rouvre au retour des règles — et rend le temps
+  /// restant.
+  ///
+  /// Idempotent : le retour des règles ne relance pas le décompte.
+  Duration open() {
+    if (_consumed && _openedAt == null) return Duration.zero;
+    _consumed = true;
+    _openedAt ??= clock.now();
+    return remaining;
+  }
+
+  /// Referme l'ouverture : le jeu repart et le droit est éteint.
+  ///
+  /// À appeler au moment où le jeu REPART, pas quand la boîte de dialogue se
+  /// dépile — un aller-retour par l'écran de règles ne referme rien, le jeu y
+  /// est toujours en pause.
+  void close() => _openedAt = null;
+
+  /// Rend le droit — uniquement au démarrage d'une **nouvelle** partie.
+  void reset() {
+    _consumed = false;
+    _openedAt = null;
+  }
+
+  /// Ce que le bouton de menu propose : la pause tant que le droit est intact,
+  /// la sortie une fois qu'il est consommé.
+  GameMenuAffordance get affordance =>
+      canOpen ? GameMenuAffordance.pause : GameMenuAffordance.exit;
+}
+
+/// Ce que propose le bouton de menu d'une partie.
+///
+/// Le cahier des charges dit que le menu de pause disparaît après les 30 s.
+/// Pris au pied de la lettre, cela retirait aussi « Exit mission », qui vit
+/// DEDANS : une fois la fenêtre consommée, le candidat n'avait plus aucun moyen
+/// volontaire de quitter. Il ne lui restait qu'à fermer l'application, ce que le
+/// jeu traite comme une interruption subie — tentative annulée, sans écran de
+/// confirmation, donc sans qu'il sache ce qu'il perdait.
+///
+/// Arbitrage du chef de projet (5 septembre 2026) : le bouton ne disparaît pas,
+/// **il devient « Exit mission » et change d'icône**. La règle de fond est
+/// intacte — plus de réglages, plus de « Resume », plus de temps gelé — mais la
+/// sortie volontaire reste offerte, avec sa confirmation.
+enum GameMenuAffordance {
+  pause(
+    icon: Icons.pause_rounded,
+    tooltip: 'Pause',
+    semanticsLabel: 'Pause the mission',
+  ),
+  exit(
+    // Même icône que le titre de [GameExitConfirmDialog] : le bouton annonce
+    // exactement la boîte qu'il ouvre.
+    icon: Icons.logout_rounded,
+    tooltip: 'Exit mission',
+    semanticsLabel: 'Exit the mission',
+  );
+
+  const GameMenuAffordance({
+    required this.icon,
+    required this.tooltip,
+    required this.semanticsLabel,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final String semanticsLabel;
+
+  bool get isExit => this == GameMenuAffordance.exit;
+}
+
+/// Compte à rebours de la fenêtre de pause, affiché sous le titre du menu.
+///
+/// Appelle [onExpired] une seule fois à zéro : c'est l'appelant qui referme sa
+/// propre boîte de dialogue, puisque chaque jeu a son propre type d'action.
+class _GamePauseCountdown extends StatefulWidget {
+  const _GamePauseCountdown({required this.remaining, this.onExpired});
+
+  final Duration remaining;
+  final VoidCallback? onExpired;
+
+  @override
+  State<_GamePauseCountdown> createState() => _GamePauseCountdownState();
+}
+
+/// Seuil des dernières secondes : bandeau rouge ET tic sonore.
+///
+/// Le rouge existait déjà, le son manquait — un candidat qui règle le volume
+/// dans le menu, tête baissée, ne voyait rien venir et se faisait renvoyer au
+/// jeu sans préavis. Même seuil que le rouge, pour que les deux signaux disent
+/// la même chose.
+const int _kPauseUrgentSeconds = 10;
+
+class _GamePauseCountdownState extends State<_GamePauseCountdown> {
+  Timer? _ticker;
+  late Duration _left = widget.remaining;
+  bool _fired = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_left <= Duration.zero) {
+      _expire();
+      return;
+    }
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      final next = _left - const Duration(seconds: 1);
+      setState(() => _left = next.isNegative ? Duration.zero : next);
+      // Tic sur chacune des dix dernières secondes, zéro exclu : à zéro le menu
+      // se referme, et le jeu a ses propres sons de reprise.
+      final seconds = _left.inSeconds;
+      if (seconds > 0 && seconds <= _kPauseUrgentSeconds) {
+        SoundService.instance.playSfx(GameSfx.timerDecrease);
+      }
+      if (_left <= Duration.zero) _expire();
+    });
+  }
+
+  void _expire() {
+    if (_fired) return;
+    _fired = true;
+    _ticker?.cancel();
+    final callback = widget.onExpired;
+    if (callback == null) return;
+    // Post-frame : `initState` peut être atteint avec une fenêtre déjà écoulée,
+    // et on ne dépile pas une route pendant sa propre construction.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) callback();
+    });
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final seconds = _left.inSeconds;
+    final urgent = seconds <= _kPauseUrgentSeconds;
+    final color = urgent ? ZennytGamePalette.error : ZennytGamePalette.muted;
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.base,
+        vertical: AppSpacing.xs,
+      ),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.timer_outlined, size: 18, color: color),
+          const SizedBox(width: AppSpacing.xs),
+          Text(
+            'Menu closes in ${seconds}s',
+            style: AppTypography.labelMedium.copyWith(
+              color: color,
+              letterSpacing: 0,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Confirmation avant « Exit mission » — CdC §3, dernière ligne, et maquette
+/// p. 2.
+///
+/// Sortir volontairement annule la tentative : sans cet écran, le candidat
+/// quittait en pensant que son score serait quand même comptabilisé. Renvoie
+/// `true` si le joueur confirme la sortie.
+class GameExitConfirmDialog extends StatelessWidget {
+  const GameExitConfirmDialog({super.key, this.missionLabel = 'mission'});
+
+  /// « mission » partout, « journey » pour Je continue : le libellé de sortie
+  /// diffère déjà d'un jeu à l'autre.
+  final String missionLabel;
+
+  static Future<bool> show(
+    BuildContext context, {
+    String missionLabel = 'mission',
+  }) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: ZennytGamePalette.ink.withValues(alpha: 0.82),
+      builder: (_) => GameExitConfirmDialog(missionLabel: missionLabel),
+    );
+    return confirmed ?? false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.white,
+      insetPadding: const EdgeInsets.all(AppSpacing.xl),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSpacing.radiusXxl),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              decoration: BoxDecoration(
+                color: ZennytGamePalette.magenta.withValues(alpha: 0.10),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.logout_rounded,
+                color: ZennytGamePalette.magenta,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.base),
+            Text(
+              'Leave $missionLabel?',
+              textAlign: TextAlign.center,
+              style: AppTypography.headlineLarge.copyWith(
+                color: ZennytGamePalette.blue,
+                letterSpacing: 0,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'If you leave now, your attempt will be cancelled and no score '
+              'will be recorded.',
+              textAlign: TextAlign.center,
+              style: AppTypography.bodyMedium.copyWith(
+                color: ZennytGamePalette.muted,
+                height: 1.45,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'To validate your score, you must complete all levels or keep '
+              'playing until the time runs out.',
+              textAlign: TextAlign.center,
+              style: AppTypography.bodyMedium.copyWith(
+                color: ZennytGamePalette.muted,
+                height: 1.45,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            GamePrimaryButton(
+              label: 'Continue $missionLabel',
+              onPressed: () => Navigator.of(context).pop(false),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            GamePauseExitButton(
+              label: 'Quit without saving',
+              onPressed: () => Navigator.of(context).pop(true),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// Coquille visuelle **unique** du menu pause, identique dans tous les jeux :
 /// carte blanche arrondie, titre « Pause », une section optionnelle en tête
 /// (ex. « Input mode »), une description optionnelle, le bloc « Audio options »
@@ -1044,11 +1748,23 @@ class GamePauseScaffold extends StatelessWidget {
     this.inputMode,
     this.description,
     this.showAudioOptions = true,
+    this.countdown,
+    this.onCountdownExpired,
     required this.buttons,
   });
 
   final String title;
   final Key? titleKey;
+
+  /// Temps restant sur la fenêtre de pause ([GamePauseAllowance.remaining]).
+  ///
+  /// Null ⇒ pas de compte à rebours (écrans hors partie mesurée, tests de
+  /// rendu). Les jeux passent la valeur de leur allocation.
+  final Duration? countdown;
+
+  /// Appelé quand [countdown] atteint zéro : l'écran referme son menu sur son
+  /// action « resume », puis la partie reprend sans autre pause possible.
+  final VoidCallback? onCountdownExpired;
 
   /// Section optionnelle affichée entre le titre et « Audio options »
   /// (ex. le sélecteur « Input mode » de Je bouge / Emotional Radar).
@@ -1103,6 +1819,13 @@ class GamePauseScaffold extends StatelessWidget {
                           letterSpacing: 0,
                         ),
               ),
+              if (countdown != null) ...[
+                SizedBox(height: gapButtons),
+                _GamePauseCountdown(
+                  remaining: countdown!,
+                  onExpired: onCountdownExpired,
+                ),
+              ],
               if (inputMode != null) ...[
                 SizedBox(height: gapLarge),
                 inputMode!,

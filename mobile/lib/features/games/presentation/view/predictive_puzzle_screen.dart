@@ -69,6 +69,9 @@ class _PredictivePuzzleScreenState
   Timer? _timer;
   Timer? _runTimer;
   int _elapsed = 0;
+
+  /// Droit de pause de la partie : une ouverture, 30 s (CdC pause §2-3).
+  final GamePauseAllowance _pauseAllowance = GamePauseAllowance();
   int _errors = 0;
   int _retries = 0;
   int _runIndex = 0;
@@ -127,6 +130,8 @@ class _PredictivePuzzleScreenState
   Future<void> _beginGame() async {
     _timer?.cancel();
     _runTimer?.cancel();
+    // Nouvelle partie = nouveau droit de pause.
+    _pauseAllowance.reset();
     setState(() {
       _stage = _PuzzleStage.planning;
       _level = 0;
@@ -442,36 +447,72 @@ class _PredictivePuzzleScreenState
     return true;
   }
 
+  /// Bouton unique du HUD : menu de pause tant que la fenêtre est ouverte,
+  /// confirmation de sortie ensuite. Voir [GameMenuAffordance].
+  Future<void> _openMenu() async {
+    if (_pauseAllowance.canOpen) return _pause();
+    // Fenêtre consommée : on ne met PAS le jeu en pause. Geler le chronomètre
+    // ici rendrait la pause renouvelable à volonté par simple ouverture de la
+    // boîte, ce que la fenêtre unique existe pour empêcher.
+    if (await GameExitConfirmDialog.show(context)) {
+      if (mounted) context.go(AppRoutes.games);
+    }
+  }
+
   Future<void> _pause() async {
+    // Une seule fenêtre de pause par partie (CdC pause §2-3).
+    if (!_pauseAllowance.canOpen) return;
     SoundService.instance.playSfx(GameSfx.pauseClick);
     _timer?.cancel();
-    await showDialog<void>(
+    _pauseAllowance.open();
+
+    final action = await showDialog<GamePauseAction>(
       context: context,
       barrierColor: ZennytGamePalette.ink.withValues(alpha: 0.82),
       builder: (dialogCtx) => GamePauseScaffold(
+        countdown: _pauseAllowance.remaining,
+        onCountdownExpired: () =>
+            Navigator.of(dialogCtx).pop(GamePauseAction.resume),
         buttons: [
           GamePrimaryButton(
             label: 'Resume',
-            onPressed: () => Navigator.of(dialogCtx).pop(),
+            onPressed: () =>
+                Navigator.of(dialogCtx).pop(GamePauseAction.resume),
           ),
           GameOutlineButton(
             label: 'View rules / Help',
-            onPressed: () {
-              Navigator.of(dialogCtx).pop();
-              setState(() => _stage = _PuzzleStage.rule);
-            },
+            onPressed: () => Navigator.of(dialogCtx).pop(GamePauseAction.help),
           ),
           GamePauseExitButton(
             label: 'Exit mission',
-            onPressed: () {
-              Navigator.of(dialogCtx).pop();
-              context.go(AppRoutes.games);
-            },
+            onPressed: () => Navigator.of(dialogCtx).pop(GamePauseAction.exit),
           ),
         ],
       ),
     );
-    if (!mounted || _stage != _PuzzleStage.planning) return;
+    if (!mounted) return;
+
+    if (action == GamePauseAction.exit) {
+      // Quitter annule la tentative : confirmation explicite d'abord.
+      if (await GameExitConfirmDialog.show(context)) {
+        if (mounted) context.go(AppRoutes.games);
+        return;
+      }
+      if (!mounted) return;
+    } else if (action == GamePauseAction.help) {
+      // Les règles occupent tout l'écran ici : on quitte la phase de jeu, donc
+      // rien à relancer — le retour des règles rétablit le chronomètre.
+      setState(() => _stage = _PuzzleStage.rule);
+      return;
+    }
+
+    if (!mounted) return;
+    // La partie repart : le temps passé en pause rejoint le budget consommé, et
+    // le HUD se redessine — le bouton reste « Pause » tant qu'il reste du
+    // budget, et bascule sur « Exit mission » une fois les 30 s épuisées.
+    _pauseAllowance.close();
+    setState(() {});
+    if (_stage != _PuzzleStage.planning) return;
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted && _stage == _PuzzleStage.planning) {
         setState(() => _elapsed++);
@@ -547,7 +588,8 @@ class _PredictivePuzzleScreenState
         onAddMove: _targetCompleted ? _runPlan : _addMove,
         onClear: _clearSequence,
         onUndo: _undo,
-        onPause: _pause,
+        onPause: _openMenu,
+        affordance: _pauseAllowance.affordance,
       )),
       _PuzzleStage.results => _PredictiveResultsView(
         session: session,
@@ -891,6 +933,7 @@ class _PuzzleGameplayView extends StatelessWidget {
     required this.onClear,
     required this.onUndo,
     required this.onPause,
+    required this.affordance,
   });
 
   final String elapsed;
@@ -914,6 +957,10 @@ class _PuzzleGameplayView extends StatelessWidget {
   final VoidCallback onClear;
   final VoidCallback onUndo;
   final VoidCallback onPause;
+
+  /// Pause ou sortie : le bouton change d'icône une fois la fenêtre consommée,
+  /// il ne disparaît plus. Voir [GameMenuAffordance].
+  final GameMenuAffordance affordance;
 
   @override
   Widget build(BuildContext context) {
@@ -944,19 +991,25 @@ class _PuzzleGameplayView extends StatelessWidget {
               SizedBox(
                 width: 52,
                 height: 58,
-                child: FilledButton(
-                  onPressed: running ? null : onPause,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Colors.white.withValues(alpha: 0.22),
-                    disabledBackgroundColor: Colors.white.withValues(
-                      alpha: 0.16,
+                child: Semantics(
+                  button: true,
+                  label: affordance.semanticsLabel,
+                  child: FilledButton(
+                    onPressed: running ? null : onPause,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.white.withValues(alpha: 0.22),
+                      disabledBackgroundColor: Colors.white.withValues(
+                        alpha: 0.16,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(
+                          AppSpacing.radiusLg,
+                        ),
+                      ),
+                      padding: EdgeInsets.zero,
                     ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-                    ),
-                    padding: EdgeInsets.zero,
+                    child: Icon(affordance.icon, color: Colors.white),
                   ),
-                  child: const Icon(Icons.pause_rounded, color: Colors.white),
                 ),
               ),
             ],

@@ -175,17 +175,33 @@ class CellComponent extends PositionComponent with TapCallbacks {
     canvas.drawPath(path, Paint()..color = color);
   }
 
+  /// Réaction d'une station traversée au **glissement** : elle grossit d'un coup
+  /// puis redescend toute seule. Même retour visuel qu'un appui, sans attendre
+  /// un relâché qui, sous le doigt qui glisse, ne viendra jamais sur elle.
+  void pulse() {
+    _scale = _pressScale;
+    _scaleTarget = 1;
+  }
+
   @override
   void onTapDown(TapDownEvent event) {
-    // Grossit instantanément à la sélection.
+    // Grossit instantanément à la sélection : le retour visuel reste immédiat…
     _scale = _pressScale;
     _scaleTarget = _pressScale;
-    onCellTap(row, col);
   }
 
   @override
   void onTapUp(TapUpEvent event) {
     _scaleTarget = 1; // redescend vers 1 (animé dans update).
+    // …mais le tracé, lui, n'avance qu'au relâché.
+    //
+    // Sur l'appui, il entrait en conflit avec le tracé au glissement : poser le
+    // doigt sur la tête du tracé pour la prolonger déclenchait d'abord le
+    // « retoucher la dernière case = annuler » de PlanifikGame, si bien que
+    // chaque glissement commençait par effacer un pas. Au relâché, un
+    // glissement remporte l'arène de gestes avant que le tap n'aboutisse :
+    // `onTapCancel` part, et le tracé n'est pas touché deux fois.
+    onCellTap(row, col);
   }
 
   @override

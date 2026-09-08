@@ -221,16 +221,22 @@ void main() {
     await tester.tapAt(const Offset(10, 10));
     await tester.pumpAndSettle();
 
-    // Emotional Regulation n'a plus aucun jeu ouvert sur ce build de test : la
-    // carte reste affichée avec ses logos (vérifiés plus haut) mais n'ouvre
-    // plus de sélecteur.
+    // Emotional Regulation : ses trois jeux sont ouverts, la carte présente
+    // donc le sélecteur avec les trois logos.
     await tester.tap(emotionCard);
     await tester.pumpAndSettle();
-    expect(
-      find.byKey(const ValueKey('picker-game-logo-Emotional Radar')),
-      findsNothing,
-      reason: 'catégorie entièrement fermée : la carte est inerte',
-    );
+    expect(find.text('Choose a game to play'), findsOneWidget);
+    for (final logo in const [
+      ('Emotional Radar', 'assets/games icons/Emotional Radar.png'),
+      ('Reflective Pause', 'assets/games icons/Reflective Pause.png'),
+      ('Strategic Choices', 'assets/games icons/Strategic Choices.png'),
+    ]) {
+      expect(
+        find.byKey(ValueKey('picker-game-logo-${logo.$1}')),
+        findsOneWidget,
+      );
+      expectAssetLogo('picker-game-logo-${logo.$1}', logo.$2);
+    }
   });
 
   for (final textScale in [1.3, 2.0]) {

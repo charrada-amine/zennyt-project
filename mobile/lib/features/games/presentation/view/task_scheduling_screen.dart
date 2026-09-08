@@ -78,7 +78,12 @@ class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen> {
     _busy = false;
   }
 
+  /// Droit de pause de la partie : une ouverture, 30 s (CdC pause §2-3).
+  final GamePauseAllowance _pauseAllowance = GamePauseAllowance();
+
   void _beginGame() {
+    // Nouvelle partie = nouveau droit de pause.
+    _pauseAllowance.reset();
     setState(() {
       _resetBoard();
       _stage = _Stage.gameplay;
@@ -212,15 +217,31 @@ class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen> {
     );
   }
 
+  /// Bouton unique du bandeau : menu de pause tant que la fenêtre est ouverte,
+  /// confirmation de sortie ensuite. Voir [GameMenuAffordance].
+  Future<void> _openMenu() async {
+    if (_stage != _Stage.gameplay) return;
+    if (_pauseAllowance.canOpen) return _openPause();
+    if (await GameExitConfirmDialog.show(context)) {
+      if (mounted) context.go(AppRoutes.games);
+    }
+  }
+
   /// Menu pause — même `GamePauseScaffold` que tous les autres jeux : reprise,
   /// réglages son/musique/vibration, règles, sortie.
   Future<void> _openPause() async {
     if (_stage != _Stage.gameplay) return;
+    // Une seule fenêtre de pause par partie (CdC pause §2-3).
+    if (!_pauseAllowance.canOpen) return;
     SoundService.instance.playSfx(GameSfx.pauseClick);
+    _pauseAllowance.open();
     final action = await showDialog<GamePauseAction>(
       context: context,
       barrierDismissible: false,
       builder: (context) => GamePauseScaffold(
+        countdown: _pauseAllowance.remaining,
+        onCountdownExpired: () =>
+            Navigator.of(context).pop(GamePauseAction.resume),
         description:
             'Le plateau est figé. Les tâches déjà posées sont conservées.',
         buttons: [
@@ -242,14 +263,25 @@ class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen> {
     if (!mounted) return;
     switch (action) {
       case GamePauseAction.help:
+        // Les règles occupent tout l'écran : on quitte la phase de jeu.
         setState(() => _stage = _Stage.howToPlay);
+        return;
       case GamePauseAction.exit:
-        context.go(AppRoutes.games);
+        // Quitter annule la tentative : confirmation explicite d'abord.
+        if (await GameExitConfirmDialog.show(context)) {
+          if (mounted) context.go(AppRoutes.games);
+          return;
+        }
       case GamePauseAction.resume:
       case GamePauseAction.restart:
       case null:
         break;
     }
+    // La partie repart : le temps passé en pause rejoint le budget consommé, et
+    // le bandeau se redessine — le bouton reste « Pause » tant qu'il reste du
+    // budget, et bascule sur « Exit mission » une fois les 30 s épuisées.
+    _pauseAllowance.close();
+    if (mounted) setState(() {});
   }
 
   Widget _buildStage() {
@@ -268,7 +300,8 @@ class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen> {
           onPlace: _place,
           onRemove: _removeFromSlot,
           onValidate: _submit,
-          onPause: _openPause,
+          onPause: _openMenu,
+          affordance: _pauseAllowance.affordance,
         )),
       _Stage.score => _ScoreView(
           rawScore: _serverSession?.lastAttempt?.score.rawPoints,
@@ -292,6 +325,7 @@ class _GameplayView extends StatelessWidget {
     required this.onRemove,
     required this.onValidate,
     required this.onPause,
+    required this.affordance,
   });
 
   final List<int?> slots;
@@ -300,6 +334,10 @@ class _GameplayView extends StatelessWidget {
   final ValueChanged<int> onRemove;
   final VoidCallback onValidate;
   final VoidCallback onPause;
+
+  /// Pause ou sortie : le bouton change d'icône une fois la fenêtre consommée,
+  /// il ne disparaît plus. Voir [GameMenuAffordance].
+  final GameMenuAffordance affordance;
 
   @override
   Widget build(BuildContext context) {
@@ -327,22 +365,29 @@ class _GameplayView extends StatelessWidget {
                 filled: true,
               ),
               const SizedBox(width: AppSpacing.sm),
-              // Ce jeu était le SEUL du module sans menu pause : impossible d'y
-              // couper le son, de relire les règles ou de sortir proprement.
+              // Ce jeu était le SEUL du module sans menu pause : impossible
+              // d'y couper le son, de relire les règles ou de sortir
+              // proprement.
               SizedBox(
                 width: 44,
                 height: 44,
-                child: IconButton.filled(
-                  tooltip: 'Mettre en pause',
-                  onPressed: onPause,
-                  style: IconButton.styleFrom(
-                    backgroundColor: Colors.white.withValues(alpha: 0.16),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                child: Semantics(
+                  button: true,
+                  label: affordance.semanticsLabel,
+                  child: IconButton.filled(
+                    tooltip: affordance.tooltip,
+                    onPressed: onPause,
+                    style: IconButton.styleFrom(
+                      backgroundColor: Colors.white.withValues(alpha: 0.16),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(
+                          AppSpacing.radiusMd,
+                        ),
+                      ),
                     ),
+                    icon: Icon(affordance.icon, size: 20),
                   ),
-                  icon: const Icon(Icons.pause, size: 20),
                 ),
               ),
             ],

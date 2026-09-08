@@ -184,7 +184,12 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
     setState(() => _stage = stage);
   }
 
+  /// Droit de pause de la partie : une ouverture, 30 s (CdC pause §2-3).
+  final GamePauseAllowance _pauseAllowance = GamePauseAllowance();
+
   Future<void> _startGame() async {
+    // Nouvelle partie = nouveau droit de pause.
+    _pauseAllowance.reset();
     setState(() {
       _stage = _ReflectiveStage.loading;
       _errorMessage = null;
@@ -255,15 +260,35 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
     _startClock();
   }
 
-  Future<void> _openPause() async {
+  /// Flèche « retour » : le menu tant que la fenêtre est ouverte, sinon la
+  /// seule issue restante — quitter, donc renoncer au score.
+  Future<void> _backOrExit() async {
+    if (_pauseAllowance.canOpen) return _openPause();
+    if (!await GameExitConfirmDialog.show(context, missionLabel: 'journey')) {
+      return;
+    }
+    if (mounted) context.go(AppRoutes.games);
+  }
+
+  /// [reopen] : réaffichage interne (retour des règles, sortie annulée) sur le
+  /// temps restant d'une fenêtre déjà ouverte.
+  Future<void> _openPause({bool reopen = false}) async {
+    if (!reopen) {
+      // Une seule fenêtre de pause par partie (CdC pause §2-3).
+      if (!_pauseAllowance.canOpen) return;
+      _pauseAllowance.open();
+    }
     _freezeClock();
     final action = await showDialog<EmotionalGamePauseAction>(
       context: context,
       barrierDismissible: false,
       barrierColor: const Color(0xCC1B1B4B),
-      builder: (_) => EmotionalGamePauseDialog(
+      builder: (dialogCtx) => EmotionalGamePauseDialog(
         buttonsInput: _buttonsInput,
         onInputMode: (value) => setState(() => _buttonsInput = value),
+        countdown: _pauseAllowance.remaining,
+        onCountdownExpired: () =>
+            Navigator.of(dialogCtx).pop(EmotionalGamePauseAction.resume),
       ),
     );
     if (!mounted) return;
@@ -273,11 +298,22 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
         barrierColor: const Color(0xCC1B1B4B),
         builder: (_) => const _ReflectiveRulesDialog(),
       );
+      if (!mounted) return;
+      if (_pauseAllowance.canReopen) return _openPause(reopen: true);
     } else if (action == EmotionalGamePauseAction.exit) {
-      context.go(AppRoutes.games);
-      return;
+      // Quitter annule la tentative : confirmation explicite d'abord.
+      if (await GameExitConfirmDialog.show(context, missionLabel: 'journey')) {
+        if (mounted) context.go(AppRoutes.games);
+        return;
+      }
+      if (!mounted) return;
+      if (_pauseAllowance.canReopen) return _openPause(reopen: true);
     }
-    if (mounted) _resumeClockIfNeeded();
+    if (!mounted) return;
+    // La partie repart : le temps passé en pause rejoint le budget consommé, et
+    // le bouton reste « Pause » tant qu'il en reste.
+    _pauseAllowance.close();
+    setState(_resumeClockIfNeeded);
   }
 
   Future<void> _validateResponse() async {
@@ -359,7 +395,7 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
       case _ReflectiveStage.loading ||
           _ReflectiveStage.gameplay ||
           _ReflectiveStage.saved:
-        _openPause();
+        _backOrExit();
     }
   }
 
@@ -412,7 +448,9 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
                 onSelect: (response) =>
                     setState(() => _selectedResponse = response),
                 onValidate: _validateResponse,
-                onPause: _openPause,
+                onPause: _backOrExit,
+                onBack: _backOrExit,
+                affordance: _pauseAllowance.affordance,
               ),
             ),
             _ReflectiveStage.saved => _SavedView(
@@ -445,11 +483,20 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
 }
 
 class _TopBar extends StatelessWidget {
-  const _TopBar({required this.onBack, this.title, this.onPause});
+  const _TopBar({
+    required this.onBack,
+    this.title,
+    this.onPause,
+    this.affordance = GameMenuAffordance.pause,
+  });
 
   final VoidCallback onBack;
   final String? title;
   final VoidCallback? onPause;
+
+  /// Pause ou sortie : le bouton change d'icône une fois la fenêtre consommée,
+  /// il ne disparaît plus. Voir [GameMenuAffordance].
+  final GameMenuAffordance affordance;
 
   @override
   Widget build(BuildContext context) {
@@ -476,8 +523,8 @@ class _TopBar extends StatelessWidget {
           const Spacer(),
         if (onPause != null)
           _SquareIconButton(
-            icon: Icons.pause_rounded,
-            tooltip: 'Pause',
+            icon: affordance.icon,
+            tooltip: affordance.tooltip,
             onTap: onPause!,
           ),
       ],
@@ -911,6 +958,8 @@ class _GameplayView extends StatelessWidget {
     required this.onSelect,
     required this.onValidate,
     required this.onPause,
+    required this.onBack,
+    required this.affordance,
   });
 
   final _PressureMoment moment;
@@ -921,6 +970,11 @@ class _GameplayView extends StatelessWidget {
   final ValueChanged<ReflectivePauseResponseType> onSelect;
   final VoidCallback onValidate;
   final VoidCallback onPause;
+  final VoidCallback onBack;
+
+  /// Pause ou sortie : le bouton change d'icône une fois la fenêtre consommée,
+  /// il ne disparaît plus. Voir [GameMenuAffordance].
+  final GameMenuAffordance affordance;
 
   @override
   Widget build(BuildContext context) {
@@ -934,9 +988,10 @@ class _GameplayView extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.fromLTRB(24, 18, 24, 12),
           child: _TopBar(
-            onBack: onPause,
+            onBack: onBack,
             title: 'Moment $momentNumber / ${_moments.length}',
             onPause: onPause,
+            affordance: affordance,
           ),
         ),
         Padding(

@@ -28,12 +28,12 @@ void main() {
             children: [
               Expanded(
                 child: debugObjectDistractionView(
-                    challenge: odd, objectCount: 5, secondsLeft: 11),
+                    challenge: odd, objectCount: 5, secondsLeft: 11, totalSeconds: 12),
               ),
               const Divider(color: Colors.white24, height: 1),
               Expanded(
                 child: debugObjectDistractionView(
-                    challenge: puzzle, objectCount: 5, secondsLeft: 11),
+                    challenge: puzzle, objectCount: 5, secondsLeft: 11, totalSeconds: 12),
               ),
             ],
           ),
