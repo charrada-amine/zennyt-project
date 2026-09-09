@@ -1,3 +1,4 @@
+import '../domain/config/decision_provisional_rules.dart';
 import '../domain/entities/decision_form.dart';
 import '../domain/entities/decision_metrics.dart';
 import '../domain/entities/device_calibration.dart';
@@ -18,9 +19,24 @@ import 'games_mock_repository.dart';
 /// ⚠️ **Les scores produits ici n'ont AUCUNE valeur psychométrique.** Les
 /// vignettes et la clé de correction ci-dessous sont écrites pour faire vivre
 /// le parcours à l'écran, pas pour mesurer quoi que ce soit. Elles n'ont été
-/// validées par personne. Ce fichier n'est référencé que par
-/// `lib/main_games_demo.dart` : ni `main.dart`, ni le mock de développement, ni
-/// le backend ne le voient, donc la notation réelle reste intouchée.
+/// validées par personne.
+///
+/// ⚠️ **Ce fichier EST atteint par l'application principale.** Une version
+/// précédente de ce commentaire affirmait le contraire — « référencé seulement
+/// par `lib/main_games_demo.dart`, donc ni `main.dart` ni le backend ne le
+/// voient ». C'était faux à deux titres : `lib/main_games_demo.dart` n'existe
+/// pas, et [gamesRepositoryProvider] renvoie cette classe dès que
+/// [kLot1DemoBuild] vaut `true` — sa valeur actuelle. `main.dart` passe donc
+/// par ici, et c'est cette clé de correction embarquée qui note le candidat.
+///
+/// Ce qui protège réellement la notation serveur, ce n'est pas ce fichier :
+/// c'est [kLot1DemoBuild]. Le remettre à `false` rebranche
+/// [GamesRepositoryImpl] et rend à ce fichier son statut de code inerte. Tant
+/// qu'il vaut `true`, **aucun score produit par ce build ne doit être présenté
+/// comme une mesure**.
+///
+/// Voir `lib/features/games/presentation/games_providers.dart` (sélection du
+/// dépôt) et `lib/core/router/app_router.dart` (déclaration du drapeau).
 class DemoGamesRepository extends GamesMockRepository {
   DemoGamesRepository();
 
@@ -142,12 +158,16 @@ class DemoGamesRepository extends GamesMockRepository {
     ];
   }
 
-  static String _levelFor(double normalized) {
-    if (normalized >= 75) return 'Élevé';
-    if (normalized >= 55) return 'Normal';
-    if (normalized >= 40) return 'Borderline';
-    return 'Fragile';
-  }
+  /// Niveau affiché, délégué à la couche provisoire.
+  ///
+  /// Les seuils étaient recopiés ici — 75 / 55 / 40 — face aux 75 / 60 / 45 de
+  /// [DecisionProvisionalRules]. Un même score tombait donc « Normal » d'un côté
+  /// et « Borderline » de l'autre, sur cinq points d'écart. Seul le seuil 75
+  /// vient de la fiche du psychologue ; les deux autres sont déduits, et c'est
+  /// la couche provisoire qui porte cette traçabilité. Elle fait donc foi, ici
+  /// comme ailleurs.
+  static String _levelFor(double normalized) =>
+      DecisionProvisionalRules.levelForScw(normalized);
 }
 
 const int _itemsPerDimension = 6;
@@ -210,90 +230,103 @@ final List<_DemoItem> _demoItems = [
   ..._control,
 ];
 
+// Les vignettes sont en ANGLAIS, comme le reste de l'interface.
+//
+// Elles étaient écrites en français alors que les trois écrans de « Je décide »
+// sont en anglais : le candidat lisait « Choose what feels most natural » puis
+// « Un livrable est attendu vendredi ». Les deux langues cohabitaient sur le
+// même écran. La traduction ne touche que la prose — identifiants, dimensions,
+// formats, budgets de temps, paires et points restent inchangés, donc la
+// notation de démo produit exactement les mêmes scores qu'avant.
+//
+// Ce n'est pas de la localisation : l'application n'en fait pas encore, ni ici
+// ni ailleurs dans ce module (voir `app_fr.arb` / `app_en.arb`, présents et
+// inutilisés). C'est une mise en cohérence, en attendant.
+
 // ── II — Analyse des contraintes ──────────────────────────────────────────
 final _analytical = <_DemoItem>[
   _DemoItem(
     itemId: 'II-1',
     dimension: DecisionDimension.ii,
     vignette:
-        'Un livrable est attendu vendredi. En le préparant, vous découvrez que '
-        'deux des chiffres fournis par un autre service se contredisent.',
-    task: 'Que faites-vous en premier ?',
+        'A deliverable is due on Friday. While preparing it, you find that two '
+        'of the figures supplied by another team contradict each other.',
+    task: 'What do you do first?',
     options: const [
-      ('Identifier laquelle des deux sources fait foi avant de continuer', 3),
-      ('Retenir le chiffre le plus prudent et le signaler en note', 2),
-      ('Reprendre le calcul avec les deux valeurs pour voir l\'écart', 1),
-      ('Livrer avec le chiffre reçu en dernier', 0),
+      ('Establish which of the two sources governs before going further', 3),
+      ('Use the more conservative figure and flag it in a note', 2),
+      ('Rerun the calculation with both values to see the gap', 1),
+      ('Ship it with whichever figure arrived last', 0),
     ],
   ),
   _DemoItem(
     itemId: 'II-2',
     dimension: DecisionDimension.ii,
     vignette:
-        'On vous confie un projet avec un budget serré, une échéance courte et '
-        'une exigence de qualité élevée. Les trois ne tiennent pas ensemble.',
-    task: 'Comment abordez-vous la situation ?',
+        'You are handed a project with a tight budget, a short deadline and a '
+        'high quality bar. The three do not hold together.',
+    task: 'How do you approach it?',
     options: const [
-      ('Faire arbitrer explicitement laquelle des trois contraintes cède', 3),
-      ('Proposer un périmètre réduit qui respecte les trois', 2),
-      ('Commencer et signaler le problème dès qu\'il se matérialise', 1),
-      ('Absorber l\'écart en heures supplémentaires', 0),
+      ('Have someone rule explicitly on which of the three gives way', 3),
+      ('Propose a reduced scope that respects all three', 2),
+      ('Start, and raise the problem when it materialises', 1),
+      ('Absorb the gap through overtime', 0),
     ],
   ),
   _DemoItem(
     itemId: 'II-3',
     dimension: DecisionDimension.ii,
     vignette:
-        'Deux prestataires répondent à votre appel d\'offres. Le moins cher a '
-        'des références plus faibles sur ce type de mission précis.',
-    task: 'Sur quoi fondez-vous votre choix ?',
+        'Two suppliers answer your tender. The cheaper one has weaker '
+        'references on this particular kind of work.',
+    task: 'What do you base your choice on?',
     options: const [
-      ('Le coût total sur la durée, risque de reprise inclus', 3),
-      ('Les références, en négociant le prix du mieux-disant', 2),
-      ('Le prix affiché, quitte à encadrer davantage', 1),
-      ('L\'impression laissée par la présentation orale', 0),
+      ('Total cost over time, including the risk of redoing the work', 3),
+      ('The references, negotiating the stronger bidder\'s price down', 2),
+      ('The quoted price, accepting closer supervision', 1),
+      ('The impression left by the pitch meeting', 0),
     ],
   ),
   _DemoItem(
     itemId: 'II-4',
     dimension: DecisionDimension.ii,
     vignette:
-        'Une procédure interne vous paraît inutilement lourde. Vous n\'êtes pas '
-        'certain de connaître la raison de son existence.',
-    task: 'Quelle est votre démarche ?',
+        'An internal procedure strikes you as needlessly heavy. You are not '
+        'sure you know why it exists.',
+    task: 'What is your approach?',
     options: const [
-      ('Chercher pourquoi elle a été mise en place avant de proposer', 3),
-      ('Proposer une version allégée à titre d\'essai', 2),
-      ('L\'appliquer sans rien changer', 1),
-      ('La contourner quand elle ralentit le travail', 0),
+      ('Find out why it was put in place before proposing anything', 3),
+      ('Propose a lighter version as a trial', 2),
+      ('Apply it unchanged', 1),
+      ('Work around it whenever it slows things down', 0),
     ],
   ),
   _DemoItem(
     itemId: 'II-5',
     dimension: DecisionDimension.ii,
     vignette:
-        'Un indicateur de suivi se dégrade depuis trois mois, alors que les '
-        'retours des utilisateurs restent bons.',
-    task: 'Comment traitez-vous cet écart ?',
+        'A tracking metric has been sliding for three months, while user '
+        'feedback stays good.',
+    task: 'How do you handle the discrepancy?',
     options: const [
-      ('Vérifier ce que l\'indicateur mesure réellement', 3),
-      ('Croiser avec un second indicateur avant de conclure', 2),
-      ('Faire confiance aux retours utilisateurs', 1),
-      ('Attendre le prochain point mensuel', 0),
+      ('Check what the metric actually measures', 3),
+      ('Cross-check against a second metric before concluding', 2),
+      ('Trust the user feedback', 1),
+      ('Wait for the next monthly review', 0),
     ],
   ),
   _DemoItem(
     itemId: 'II-6',
     dimension: DecisionDimension.ii,
     vignette:
-        'On vous demande un avis sur un dossier que vous venez de recevoir, '
-        'dans une réunion qui commence dans dix minutes.',
-    task: 'Que faites-vous ?',
+        'You are asked for an opinion on a file you have just received, in a '
+        'meeting that starts in ten minutes.',
+    task: 'What do you do?',
     options: const [
-      ('Annoncer un avis provisoire en nommant ce qu\'il vous manque', 3),
-      ('Demander à traiter le point en fin de réunion', 2),
-      ('Donner un avis ferme à partir de ce que vous avez lu', 1),
-      ('Vous ranger à l\'avis du premier qui parle', 0),
+      ('Give a provisional view and name what you are missing', 3),
+      ('Ask for the point to be taken at the end of the meeting', 2),
+      ('Give a firm opinion based on what you have read', 1),
+      ('Go along with whoever speaks first', 0),
     ],
   ),
 ];
@@ -304,84 +337,84 @@ final _risk = <_DemoItem>[
     itemId: 'ER-1',
     dimension: DecisionDimension.er,
     vignette:
-        'Deux options de fournisseur : l\'une garantit une économie de 5 %, '
-        'l\'autre offre 20 % d\'économie avec une chance sur trois d\'échouer.',
-    task: 'Laquelle retenez-vous ?',
+        'Two supplier options: one guarantees a 5% saving, the other offers a '
+        '20% saving with a one-in-three chance of falling through.',
+    task: 'Which do you take?',
     options: const [
-      ('L\'option garantie, l\'échec coûtant plus que le gain espéré', 3),
-      ('L\'option risquée, en préparant une solution de repli', 2),
-      ('L\'option risquée, l\'espérance de gain étant supérieure', 1),
-      ('Tirer au sort pour ne pas perdre de temps', 0),
+      ('The guaranteed one — failure costs more than the upside gains', 3),
+      ('The risky one, with a fallback prepared', 2),
+      ('The risky one — the expected value is higher', 1),
+      ('Toss a coin, to avoid losing time', 0),
     ],
   ),
   _DemoItem(
     itemId: 'ER-2',
     dimension: DecisionDimension.er,
     vignette:
-        'Un investissement peut être reporté de six mois. Le reporter réduit '
-        'l\'incertitude mais laisse un concurrent prendre de l\'avance.',
-    task: 'Quelle décision prenez-vous ?',
+        'An investment can be deferred by six months. Deferring reduces the '
+        'uncertainty but lets a competitor get ahead.',
+    task: 'What do you decide?',
     options: const [
-      ('Engager une part limitée maintenant, le reste après mesure', 3),
-      ('Reporter et suivre le concurrent de près', 2),
-      ('Engager la totalité tout de suite', 1),
-      ('Abandonner le projet', 0),
+      ('Commit a limited share now, the rest once you have measured', 3),
+      ('Defer, and watch the competitor closely', 2),
+      ('Commit the full amount straight away', 1),
+      ('Drop the project', 0),
     ],
   ),
   _DemoItem(
     itemId: 'ER-3',
     dimension: DecisionDimension.er,
     vignette:
-        'Une panne rare mais coûteuse peut être couverte par une assurance dont '
-        'la prime représente un dixième du sinistre potentiel.',
-    task: 'Que décidez-vous ?',
+        'A rare but costly failure can be insured against, for a premium worth '
+        'a tenth of the potential loss.',
+    task: 'What do you decide?',
     options: const [
-      ('Couvrir, le sinistre étant supportable seulement une fois assuré', 3),
-      ('Couvrir partiellement, avec une franchise élevée', 2),
-      ('Ne pas couvrir et provisionner la somme', 1),
-      ('Ne rien faire, la panne étant rare', 0),
+      ('Insure — the loss is only bearable once covered', 3),
+      ('Insure partially, with a high excess', 2),
+      ('Skip the insurance and set the money aside', 1),
+      ('Do nothing — the failure is rare', 0),
     ],
   ),
   _DemoItem(
     itemId: 'ER-4',
     dimension: DecisionDimension.er,
     vignette:
-        'Un test à petite échelle donne un résultat encourageant mais sur un '
-        'échantillon trop faible pour conclure.',
-    task: 'Quelle suite donnez-vous ?',
+        'A small-scale test gives an encouraging result, on a sample too small '
+        'to conclude from.',
+    task: 'What do you do next?',
     options: const [
-      ('Étendre le test avant tout déploiement', 3),
-      ('Déployer sur un périmètre réversible', 2),
-      ('Déployer partout, le signal étant positif', 1),
-      ('Arrêter, le résultat n\'étant pas prouvé', 0),
+      ('Widen the test before any rollout', 3),
+      ('Roll out on a scope you can reverse', 2),
+      ('Roll out everywhere — the signal is positive', 1),
+      ('Stop: the result is not proven', 0),
     ],
   ),
   _DemoItem(
     itemId: 'ER-5',
     dimension: DecisionDimension.er,
     vignette:
-        'Vous pouvez sécuriser un gain immédiat modeste ou continuer, avec une '
-        'possibilité réelle de tout perdre.',
-    task: 'Que faites-vous ?',
+        'You can lock in a modest gain now, or carry on with a real chance of '
+        'losing everything.',
+    task: 'What do you do?',
     options: const [
-      ('Sécuriser, la perte totale n\'étant pas absorbable', 3),
-      ('Continuer en fixant à l\'avance un seuil d\'arrêt', 2),
-      ('Continuer sans seuil, en surveillant', 1),
-      ('Continuer et augmenter la mise', 0),
+      ('Lock it in — a total loss is not something you can absorb', 3),
+      ('Carry on, with a stopping threshold set in advance', 2),
+      ('Carry on with no threshold, watching closely', 1),
+      ('Carry on and raise the stake', 0),
     ],
   ),
   _DemoItem(
     itemId: 'ER-6',
     dimension: DecisionDimension.er,
     vignette:
-        'Une décision engage l\'équipe sur un an. L\'information manquante ne '
-        'sera disponible que dans deux semaines.',
-    task: 'Comment procédez-vous ?',
+        'A decision commits the team for a year. The missing information will '
+        'only be available in two weeks.',
+    task: 'How do you proceed?',
     options: const [
-      ('Attendre : deux semaines pèsent peu face à un an', 3),
-      ('Décider maintenant, avec une clause de révision', 2),
-      ('Décider maintenant, l\'attente démobilisant l\'équipe', 1),
-      ('Déléguer la décision pour ne pas trancher', 0),
+      ('Wait: two weeks weigh little against a year', 3),
+      ('Decide now, with a review clause', 2),
+      ('Decide now — waiting would stall the team', 1),
+      ('Delegate the decision to avoid making the call', 0),
     ],
   ),
 ];
@@ -394,14 +427,14 @@ final _quick = <_DemoItem>[
     format: DecisionItemFormat.temporalDecision,
     timeLimitMs: 15000,
     vignette:
-        'Une alerte signale un incident sur le service en production. Trois '
-        'actions sont possibles immédiatement.',
-    task: 'Quelle action lancez-vous ?',
+        'An alert reports an incident on the production service. Three actions '
+        'are available right now.',
+    task: 'Which do you trigger?',
     options: const [
-      ('Rétablir la dernière version stable connue', 3),
-      ('Isoler le composant suspect et observer', 2),
-      ('Chercher la cause avant toute action', 1),
-      ('Attendre confirmation d\'un second signalement', 0),
+      ('Roll back to the last known stable version', 3),
+      ('Isolate the suspect component and observe', 2),
+      ('Find the cause before doing anything', 1),
+      ('Wait for a second report to confirm', 0),
     ],
   ),
   _DemoItem(
@@ -410,28 +443,28 @@ final _quick = <_DemoItem>[
     format: DecisionItemFormat.temporalDecision,
     timeLimitMs: 15000,
     vignette:
-        'Un client important demande une réponse ferme avant la fin de la '
-        'réunion, sur un point que vous maîtrisez partiellement.',
-    task: 'Que répondez-vous ?',
+        'An important client wants a firm answer before the meeting ends, on a '
+        'point you only partly command.',
+    task: 'What do you answer?',
     options: const [
-      ('Vous engagez sur ce que vous maîtrisez, différez le reste', 3),
-      ('Vous demandez un délai court et argumenté', 2),
-      ('Vous vous engagez entièrement pour ne pas le perdre', 1),
-      ('Vous restez évasif', 0),
+      ('Commit on what you command, defer the rest', 3),
+      ('Ask for a short, reasoned delay', 2),
+      ('Commit to all of it rather than lose the client', 1),
+      ('Stay vague', 0),
     ],
   ),
   _DemoItem(
     itemId: 'DT-3',
     dimension: DecisionDimension.dt,
     vignette:
-        'Deux tâches urgentes tombent en même temps ; une seule peut être '
-        'traitée avant l\'échéance.',
-    task: 'Sur quel critère tranchez-vous ?',
+        'Two urgent tasks land at once; only one can be finished before the '
+        'deadline.',
+    task: 'What do you decide on?',
     options: const [
-      ('La conséquence de ne PAS traiter chacune', 3),
-      ('L\'échéance la plus proche', 2),
-      ('Celle qui se termine le plus vite', 1),
-      ('Celle demandée par la personne la plus insistante', 0),
+      ('What follows from NOT doing each of them', 3),
+      ('The nearest deadline', 2),
+      ('Whichever finishes fastest', 1),
+      ('Whichever the most insistent person asked for', 0),
     ],
   ),
   _DemoItem(
@@ -439,42 +472,41 @@ final _quick = <_DemoItem>[
     dimension: DecisionDimension.dt,
     format: DecisionItemFormat.temporalDecision,
     timeLimitMs: 12000,
-    vignette:
-        'Pendant une présentation, une donnée affichée vous semble fausse.',
-    task: 'Que faites-vous sur le moment ?',
+    vignette: 'During a presentation, a figure on screen looks wrong to you.',
+    task: 'What do you do in the moment?',
     options: const [
-      ('Signaler le doute sans interrompre le fil', 3),
-      ('Noter et vérifier juste après', 2),
-      ('Interrompre pour corriger immédiatement', 1),
-      ('Ne rien dire', 0),
+      ('Flag the doubt without breaking the thread', 3),
+      ('Note it and check straight afterwards', 2),
+      ('Interrupt to correct it immediately', 1),
+      ('Say nothing', 0),
     ],
   ),
   _DemoItem(
     itemId: 'DT-5',
     dimension: DecisionDimension.dt,
     vignette:
-        'Vous devez choisir entre livrer à l\'heure avec un défaut mineur connu '
-        'ou livrer en retard sans défaut.',
-    task: 'Quelle option retenez-vous ?',
+        'You must choose between shipping on time with a known minor defect, '
+        'or shipping late with none.',
+    task: 'Which do you take?',
     options: const [
-      ('Livrer à l\'heure en documentant le défaut et sa correction', 3),
-      ('Livrer en retard, la qualité primant', 2),
-      ('Livrer à l\'heure sans mentionner le défaut', 1),
-      ('Repousser la décision au dernier moment', 0),
+      ('Ship on time, documenting the defect and its fix', 3),
+      ('Ship late — quality comes first', 2),
+      ('Ship on time without mentioning the defect', 1),
+      ('Put the decision off to the last minute', 0),
     ],
   ),
   _DemoItem(
     itemId: 'DT-6',
     dimension: DecisionDimension.dt,
     vignette:
-        'Une réunion s\'enlise. Le point à trancher n\'avance plus depuis '
-        'vingt minutes.',
-    task: 'Que proposez-vous ?',
+        'A meeting is bogging down. The point to settle has not moved for '
+        'twenty minutes.',
+    task: 'What do you propose?',
     options: const [
-      ('Nommer le désaccord et fixer qui tranche, avec une date', 3),
-      ('Reporter le point à une réunion dédiée', 2),
-      ('Laisser la discussion se poursuivre', 1),
-      ('Trancher seul sans consulter', 0),
+      ('Name the disagreement and set who decides, with a date', 3),
+      ('Move the point to a dedicated meeting', 2),
+      ('Let the discussion run on', 1),
+      ('Decide alone, without consulting', 0),
     ],
   ),
 ];
@@ -487,14 +519,14 @@ final _stability = <_DemoItem>[
     format: DecisionItemFormat.coherencePair,
     pairId: 'CS-1',
     vignette:
-        'Vous choisissez entre deux plannings : A finit tôt mais mobilise tout '
-        'le monde ; B finit plus tard en préservant les autres chantiers.',
-    task: 'Que retenez-vous ?',
+        'You choose between two schedules: A finishes early but ties up '
+        'everyone; B finishes later while protecting the other workstreams.',
+    task: 'Which do you take?',
     options: const [
-      ('B, parce que les autres chantiers ont aussi des échéances', 3),
-      ('A, l\'échéance de ce projet primant', 2),
-      ('A, quitte à décaler les autres ensuite', 1),
-      ('Vous laissez l\'équipe choisir', 0),
+      ('B, because the other workstreams have deadlines too', 3),
+      ('A — this project\'s deadline comes first', 2),
+      ('A, and push the others back afterwards', 1),
+      ('Let the team choose', 0),
     ],
   ),
   _DemoItem(
@@ -503,70 +535,70 @@ final _stability = <_DemoItem>[
     format: DecisionItemFormat.coherencePair,
     pairId: 'CS-1',
     vignette:
-        'Même situation, présentée autrement : le planning B protège les autres '
-        'chantiers, le planning A les met en attente.',
-    task: 'Que retenez-vous cette fois ?',
+        'The same situation, framed differently: schedule B protects the other '
+        'workstreams, schedule A puts them on hold.',
+    task: 'Which do you take this time?',
     options: const [
-      ('B, comme précédemment', 3),
-      ('A, en assumant le changement d\'avis', 2),
-      ('A, sans lien avec la question précédente', 1),
-      ('Indifférent', 0),
+      ('B, as before', 3),
+      ('A, owning the change of mind', 2),
+      ('A, unrelated to the previous question', 1),
+      ('No preference', 0),
     ],
   ),
   _DemoItem(
     itemId: 'CS-2',
     dimension: DecisionDimension.cs,
     vignette:
-        'Vous aviez tranché la semaine dernière. Un collègue revient avec les '
-        'mêmes arguments, sans élément nouveau.',
-    task: 'Comment réagissez-vous ?',
+        'You settled this last week. A colleague comes back with the same '
+        'arguments and nothing new.',
+    task: 'How do you respond?',
     options: const [
-      ('Maintenir la décision et rappeler ce qui la fonde', 3),
-      ('Maintenir, en proposant un point de revue daté', 2),
-      ('Rouvrir la discussion pour préserver la relation', 1),
-      ('Changer d\'avis pour clore le sujet', 0),
+      ('Hold the decision and restate what it rests on', 3),
+      ('Hold it, and offer a dated review point', 2),
+      ('Reopen the discussion to protect the relationship', 1),
+      ('Change your mind to close the subject', 0),
     ],
   ),
   _DemoItem(
     itemId: 'CS-3',
     dimension: DecisionDimension.cs,
     vignette:
-        'Un élément nouveau et vérifié contredit une décision que vous avez '
-        'défendue publiquement.',
-    task: 'Que faites-vous ?',
+        'New, verified information contradicts a decision you defended '
+        'publicly.',
+    task: 'What do you do?',
     options: const [
-      ('Réviser la décision et expliquer ce qui a changé', 3),
-      ('Réviser discrètement, sans revenir dessus', 2),
-      ('Maintenir, un revirement affaiblissant votre position', 1),
-      ('Contester la fiabilité de l\'élément', 0),
+      ('Revise the decision and explain what changed', 3),
+      ('Revise quietly, without revisiting it', 2),
+      ('Hold — reversing would weaken your position', 1),
+      ('Dispute how reliable the new information is', 0),
     ],
   ),
   _DemoItem(
     itemId: 'CS-4',
     dimension: DecisionDimension.cs,
     vignette:
-        'Deux dossiers comparables se présentent à trois mois d\'intervalle. '
-        'Vous aviez refusé le premier.',
-    task: 'Comment traitez-vous le second ?',
+        'Two comparable cases come up three months apart. You turned the first '
+        'one down.',
+    task: 'How do you handle the second?',
     options: const [
-      ('Appliquer le même critère, ou expliquer pourquoi il évolue', 3),
-      ('Le traiter au cas par cas, sans référence au précédent', 2),
-      ('L\'accepter, le contexte ayant probablement changé', 1),
-      ('Le refuser par principe de cohérence', 0),
+      ('Apply the same criterion, or explain why it has moved', 3),
+      ('Take it on its own merits, with no reference to the first', 2),
+      ('Accept it — the context has probably changed', 1),
+      ('Refuse it, on principle of consistency', 0),
     ],
   ),
   _DemoItem(
     itemId: 'CS-5',
     dimension: DecisionDimension.cs,
     vignette:
-        'Votre décision est critiquée par une personne dont l\'avis compte pour '
-        'vous, sans argument technique.',
-    task: 'Quelle est votre réponse ?',
+        'Your decision is criticised by someone whose view matters to you, '
+        'without any technical argument.',
+    task: 'What is your answer?',
     options: const [
-      ('Demander l\'argument précis avant d\'envisager de bouger', 3),
-      ('Maintenir, tout en reconnaissant le désaccord', 2),
-      ('Assouplir la décision pour ménager la relation', 1),
-      ('Revenir sur la décision', 0),
+      ('Ask for the specific argument before considering a move', 3),
+      ('Hold, while acknowledging the disagreement', 2),
+      ('Soften the decision to spare the relationship', 1),
+      ('Reverse the decision', 0),
     ],
   ),
 ];
@@ -577,84 +609,84 @@ final _control = <_DemoItem>[
     itemId: 'RE-1',
     dimension: DecisionDimension.re,
     vignette:
-        'Une prime modeste est disponible ce mois-ci, ou le double dans six '
-        'mois si vous laissez le dossier mûrir.',
-    task: 'Que choisissez-vous ?',
+        'A modest bonus is available this month, or double that in six months '
+        'if you let the case mature.',
+    task: 'Which do you choose?',
     options: const [
-      ('Attendre : le gain double pour un délai supportable', 3),
-      ('Attendre, en sécurisant une avance partielle', 2),
-      ('Prendre maintenant, l\'avenir étant incertain', 1),
-      ('Prendre maintenant sans y réfléchir', 0),
+      ('Wait: the gain doubles for a bearable delay', 3),
+      ('Wait, securing a partial advance', 2),
+      ('Take it now — the future is uncertain', 1),
+      ('Take it now without thinking about it', 0),
     ],
   ),
   _DemoItem(
     itemId: 'RE-2',
     dimension: DecisionDimension.re,
     vignette:
-        'Un message vous agace pendant une journée déjà chargée. La réponse '
-        'peut partir tout de suite.',
-    task: 'Que faites-vous ?',
+        'A message irritates you during an already heavy day. The reply could '
+        'go out right now.',
+    task: 'What do you do?',
     options: const [
-      ('Différer la réponse et la relire à froid', 3),
-      ('Répondre brièvement, sans traiter le fond', 2),
-      ('Répondre immédiatement, en pesant les mots', 1),
-      ('Répondre immédiatement sur le ton reçu', 0),
+      ('Hold the reply and read it back once you have cooled off', 3),
+      ('Reply briefly, without addressing the substance', 2),
+      ('Reply immediately, weighing your words', 1),
+      ('Reply immediately, in the tone you received', 0),
     ],
   ),
   _DemoItem(
     itemId: 'RE-3',
     dimension: DecisionDimension.re,
     vignette:
-        'Un raccourci vous ferait gagner deux jours, au prix d\'une dette '
-        'technique que quelqu\'un devra rembourser.',
-    task: 'Quelle décision prenez-vous ?',
+        'A shortcut would save you two days, at the cost of technical debt '
+        'someone will have to repay.',
+    task: 'What do you decide?',
     options: const [
-      ('Refuser le raccourci si personne ne peut rembourser la dette', 3),
-      ('L\'accepter en planifiant explicitement le remboursement', 2),
-      ('L\'accepter, la dette étant courante', 1),
-      ('L\'accepter sans le mentionner', 0),
+      ('Refuse the shortcut if nobody can repay the debt', 3),
+      ('Take it, scheduling the repayment explicitly', 2),
+      ('Take it — debt is normal', 1),
+      ('Take it without mentioning it', 0),
     ],
   ),
   _DemoItem(
     itemId: 'RE-4',
     dimension: DecisionDimension.re,
     vignette:
-        'Vous êtes proche du but sur une tâche, mais une autre, plus urgente, '
-        'vient d\'arriver.',
-    task: 'Comment arbitrez-vous ?',
+        'You are close to finishing a task when another, more urgent one comes '
+        'in.',
+    task: 'How do you arbitrate?',
     options: const [
-      ('Basculer sur l\'urgente après avoir noté où vous en êtes', 3),
-      ('Terminer la tâche en cours, elle est presque finie', 2),
-      ('Mener les deux de front', 1),
-      ('Continuer sans regarder l\'urgente', 0),
+      ('Switch to the urgent one after noting where you stopped', 3),
+      ('Finish the current task — it is nearly done', 2),
+      ('Run both at once', 1),
+      ('Carry on without looking at the urgent one', 0),
     ],
   ),
   _DemoItem(
     itemId: 'RE-5',
     dimension: DecisionDimension.re,
     vignette:
-        'Un résultat vous donne raison. L\'occasion se présente de le faire '
-        'remarquer à un collègue qui s\'était opposé.',
-    task: 'Que faites-vous ?',
+        'A result proves you right. There is an opening to point it out to a '
+        'colleague who had disagreed.',
+    task: 'What do you do?',
     options: const [
-      ('Rien : le sujet est clos, le relever n\'apporte rien', 3),
-      ('Partager le résultat sans le personnaliser', 2),
-      ('Le mentionner à l\'oral, sur le ton de la plaisanterie', 1),
-      ('Le rappeler devant l\'équipe', 0),
+      ('Nothing: the matter is closed, raising it adds nothing', 3),
+      ('Share the result without making it personal', 2),
+      ('Mention it out loud, as a joke', 1),
+      ('Bring it up in front of the team', 0),
     ],
   ),
   _DemoItem(
     itemId: 'RE-6',
     dimension: DecisionDimension.re,
     vignette:
-        'Une formation utile à moyen terme se tient pendant une période de '
-        'forte charge.',
-    task: 'Quelle décision prenez-vous ?',
+        'A course that pays off in the medium term falls during a period of '
+        'heavy workload.',
+    task: 'What do you decide?',
     options: const [
-      ('Y aller en réorganisant la charge à l\'avance', 3),
-      ('Y aller partiellement, sur les modules clés', 2),
-      ('La reporter à la prochaine session', 1),
-      ('L\'annuler', 0),
+      ('Go, reorganising the workload in advance', 3),
+      ('Go partially, for the key sessions', 2),
+      ('Postpone it to the next run', 1),
+      ('Cancel it', 0),
     ],
   ),
 ];

@@ -7,7 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/audio/sound_service.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_typography.dart';
-import '../../data/decision_progress_store.dart';
+import '../../domain/config/decision_config.dart';
 import '../../domain/entities/decision_form.dart';
 import '../../domain/entities/decision_metrics.dart';
 import '../../domain/entities/game_type.dart';
@@ -19,6 +19,14 @@ import '../../../navigation/presentation/widgets/app_bottom_nav.dart';
 import 'je_decide_gameplay.dart';
 import 'je_decide_results.dart';
 import '../widgets/game_system_components.dart';
+
+/// Durée annoncée sur la fiche d'introduction, en minutes.
+///
+/// Dérivée, pas estimée : chaque question est bornée par
+/// [DecisionConfig.questionTimeLimitS], et la forme en compte
+/// [DecisionConfig.totalItems]. C'est le seul plafond que le code garantisse.
+const int _maxDurationMin =
+    DecisionConfig.totalItems * DecisionConfig.questionTimeLimitS ~/ 60;
 
 const _ink = Color(0xFF28234F);
 const _muted = Color(0xFF7E8DB2);
@@ -72,14 +80,15 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
   final _nicknameController = TextEditingController();
   final _onboardingController = PageController();
 
+  /// Réponses effectivement données, et longueur de la forme jouée.
+  int _answeredCount = 0;
+  int _submittedCount = 0;
+
   _DecisionStage _stage = _DecisionStage.welcome;
   int _onboardingPage = 0;
   int _selectedTheme = 0;
   int _selectedAvatar = 0;
   int? _selectedChoice;
-  bool _checkingSavedProgress = true;
-  bool _resumeSavedJourney = false;
-  int _savedItemIndex = 0;
   DecisionForm? _form;
   bool _loadingForm = false;
   Object? _formError;
@@ -89,21 +98,6 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
   @override
   void initState() {
     super.initState();
-    _restoreSavedJourney();
-  }
-
-  Future<void> _restoreSavedJourney() async {
-    final store = DecisionProgressStore();
-    final hasSavedCheckpoint = await store.hasSavedCheckpoint();
-    final savedIndex = hasSavedCheckpoint ? await store.loadSavedItemIndex() : 0;
-    if (!mounted) return;
-    setState(() {
-      _checkingSavedProgress = false;
-      _resumeSavedJourney = hasSavedCheckpoint;
-      _savedItemIndex = savedIndex;
-      if (hasSavedCheckpoint) _stage = _DecisionStage.gameplay;
-    });
-    if (hasSavedCheckpoint) unawaited(_openSessionAndLoadForm());
   }
 
   /// Ouvre la session puis récupère les 30 items de sa forme.
@@ -141,9 +135,12 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
 
   /// Fin de partie : les 30 réponses partent au serveur, qui note.
   Future<void> _submitJourney(List<DecisionItemResponse> responses) async {
+    // Retenu pour l'écran de fin, qui annonçait « 30 / 30 » en dur — donc un
+    // sans-faute même quand des questions avaient expiré.
+    _answeredCount = responses.where((r) => r.answered).length;
+    _submittedCount = responses.length;
     // Langue capturée AVANT le premier await : le contexte peut disparaître.
     final language = Localizations.localeOf(context).languageCode;
-    await DecisionProgressStore().clearCheckpoint();
     await ref
         .read(gamesControllerProvider.notifier)
         .submit(
@@ -154,16 +151,10 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
           ),
         );
     if (!mounted) return;
-    setState(() {
-      _resumeSavedJourney = false;
-      _stage = _DecisionStage.results;
-    });
+    setState(() => _stage = _DecisionStage.results);
   }
 
-  Future<void> _finishResults() async {
-    await DecisionProgressStore().clearCheckpoint();
-    if (mounted) context.go(AppRoutes.games);
-  }
+  void _finishResults() => context.go(AppRoutes.games);
 
   @override
   void dispose() {
@@ -277,9 +268,6 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_checkingSavedProgress) {
-      return const Scaffold(backgroundColor: _canvas, body: SizedBox.expand());
-    }
     if (_stage == _DecisionStage.gameplay) {
       final form = _form;
       return Scaffold(
@@ -295,7 +283,6 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
                   form: form,
                   onClose: () => context.go(AppRoutes.games),
                   onComplete: _submitJourney,
-                  initialIndex: _resumeSavedJourney ? _savedItemIndex : 0,
                 ),
               ),
       );
@@ -308,6 +295,8 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
           profile: session == null
               ? const DecisionProfile(score: 0, level: '—', dimensions: [])
               : DecisionProfile.fromSession(session),
+          answered: _answeredCount,
+          totalItems: _submittedCount,
           onClose: () => context.go(AppRoutes.games),
           onDone: _finishResults,
         ),
@@ -593,15 +582,25 @@ class _WelcomeView extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          const _SurfaceCard(
-            padding: EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+          // « 30 scenarios » et « 15–20 min » étaient écrits en dur.
+          //
+          // Le nombre vient maintenant de [DecisionConfig], seule source de la
+          // structure de la forme (fiche). La durée est le PLAFOND réel, celui
+          // qu'impose le chronomètre d'une minute par question — la fourchette
+          // précédente était une estimation, et le chronomètre l'avait rendue
+          // fausse : trente questions à une minute font trente minutes.
+          _SurfaceCard(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
             child: Column(
               children: [
-                _InfoRow(label: 'Goal', value: 'Discover your decision style'),
-                _InfoRow(label: 'Duration', value: '15–20 min'),
+                const _InfoRow(
+                  label: 'Goal',
+                  value: 'Discover your decision style',
+                ),
+                _InfoRow(label: 'Duration', value: 'Up to $_maxDurationMin min'),
                 _InfoRow(
                   label: 'Format',
-                  value: '30 scenarios',
+                  value: '${DecisionConfig.totalItems} scenarios',
                   divider: false,
                 ),
               ],

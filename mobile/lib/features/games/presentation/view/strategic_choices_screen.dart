@@ -553,13 +553,20 @@ class _CoverView extends StatelessWidget {
           style: TextStyle(color: _muted, fontSize: 16, height: 1.45),
         ),
         const SizedBox(height: 18),
-        const Wrap(
+        Wrap(
           spacing: 8,
           runSpacing: 8,
           children: [
-            _FeatureChip(label: '10 situations', color: _blue),
-            _FeatureChip(label: 'Text preview', color: _magenta),
-            _FeatureChip(label: 'Final insights', color: _green),
+            // Annonçait « 10 situations » en dur. Le jeu en joue onze — tout le
+            // reste de l'écran compte déjà sur `situations.length`, seule cette
+            // pastille avait son propre chiffre, et il était faux.
+            _FeatureChip(
+              label:
+                  '${StrategicChoicesContent.situations.length} situations',
+              color: _blue,
+            ),
+            const _FeatureChip(label: 'Text preview', color: _magenta),
+            const _FeatureChip(label: 'Final insights', color: _green),
           ],
         ),
         const SizedBox(height: 26),

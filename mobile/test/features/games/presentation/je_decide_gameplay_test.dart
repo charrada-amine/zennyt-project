@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zennyt/features/games/domain/config/decision_config.dart';
 import 'package:zennyt/features/games/domain/entities/decision_form.dart';
+import 'package:zennyt/features/games/presentation/decision_milestones.dart';
 import 'package:zennyt/features/games/domain/entities/decision_metrics.dart';
 import 'package:zennyt/features/games/presentation/view/je_decide_gameplay.dart';
 import 'package:zennyt/features/games/presentation/widgets/game_system_components.dart';
@@ -69,6 +71,285 @@ void main() {
     await tester.pump();
     return submitted;
   }
+
+  // ── Chronomètre d'une minute par question ──────────────────────────────────
+
+  /// Aucune question n'était bornée hors du module sous contrainte : 24 items
+  /// sur 30 restaient ouverts indéfiniment. Une minute les cadre.
+  testWidgets('chaque question porte un chronomètre, la minute par défaut', (
+    tester,
+  ) async {
+    await pumpJourney(tester);
+
+    expect(find.byType(GameTimerBar), findsOneWidget);
+    expect(find.text('${DecisionConfig.questionTimeLimitS} sec'), findsOneWidget);
+    // Le nombre de secondes vit dans l'en-tête, la barre reste nue : c'est la
+    // disposition de « Je bouge », et elle ne coûte aucune hauteur au scénario.
+    expect(
+      find.descendant(
+        of: find.byType(GameTimerBar),
+        matching: find.byType(Text),
+      ),
+      findsNothing,
+    );
+
+    // Et il descend vraiment.
+    await tester.pump(const Duration(seconds: 3));
+    expect(
+      find.text('${DecisionConfig.questionTimeLimitS - 3} sec'),
+      findsOneWidget,
+    );
+  });
+
+  /// Le point du retour client : « si le candidat répond à 12 secondes, on
+  /// affiche la question suivante ». Le temps restant n'est ni attendu, ni
+  /// reporté sur la question d'après.
+  testWidgets('répondre avant la fin passe tout de suite à la suite', (
+    tester,
+  ) async {
+    await pumpJourney(tester);
+
+    await tester.pump(const Duration(seconds: 12));
+    expect(find.text('${DecisionConfig.questionTimeLimitS - 12} sec'),
+        findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('decision-option-0')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('decision-continue')));
+    await tester.pump();
+
+    // Item suivant (sous contrainte) : son propre budget, reparti de zéro.
+    expect(
+      find.text('7 sec'),
+      findsOneWidget,
+      reason: 'les 48 s non consommées ne se reportent pas',
+    );
+  });
+
+  /// Le rebours de la minute couvre la question ENTIÈRE, lecture comprise —
+  /// contrairement à celui des items sous contrainte, qui attend l'écran de
+  /// choix parce qu'il mesure la décision et non la vitesse de lecture.
+  testWidgets('une question ordinaire qui expire est comptée manquée', (
+    tester,
+  ) async {
+    List<DecisionItemResponse>? submitted;
+    SharedPreferences.setMockInitialValues({});
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: DecisionGameplayView(
+            form: DecisionForm(
+              formCode: 'A',
+              itemsPerDimension: 2,
+              items: [item('II-1', DecisionDimension.ii)],
+            ),
+            onClose: () {},
+            onComplete: (r) => submitted = r,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.pump(
+      const Duration(seconds: DecisionConfig.questionTimeLimitS),
+    );
+    expect(
+      find.byKey(const ValueKey('decision-timeout-title')),
+      findsOneWidget,
+      reason: 'l\'écran d\'expiration ne servait qu\'aux items sous contrainte',
+    );
+
+    await tester.pump(const Duration(milliseconds: 1600));
+    await tester.pumpAndSettle();
+    expect(submitted, isNotNull);
+    expect(submitted!.single.answered, isFalse);
+  });
+
+  /// Un choix déjà posé n'est pas perdu si la minute s'achève : il est validé
+  /// tel quel. Le perdre punirait un candidat qui a décidé mais pas confirmé.
+  testWidgets('un choix posé est validé quand la minute s\'achève', (
+    tester,
+  ) async {
+    List<DecisionItemResponse>? submitted;
+    SharedPreferences.setMockInitialValues({});
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: DecisionGameplayView(
+            form: DecisionForm(
+              formCode: 'A',
+              itemsPerDimension: 2,
+              items: [item('II-1', DecisionDimension.ii)],
+            ),
+            onClose: () {},
+            onComplete: (r) => submitted = r,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byKey(const ValueKey('decision-option-1')));
+    await tester.pump();
+    await tester.pump(
+      const Duration(seconds: DecisionConfig.questionTimeLimitS),
+    );
+    await tester.pumpAndSettle();
+
+    expect(submitted, isNotNull);
+    expect(submitted!.single.answered, isTrue);
+    expect(submitted!.single.selectedOptionId, 'II-1-o2');
+  });
+
+  // ── La reprise a été retirée ──────────────────────────────────────────────
+
+  /// Le point de reprise ne conservait que l'index de la question, jamais les
+  /// réponses : reprendre un parcours renvoyait au serveur toutes les questions
+  /// précédentes comme « non répondues » — un test l'a mesuré à 3 perdues sur 4
+  /// — pendant que l'écran affirmait « Your previous choices are saved ».
+  ///
+  /// Plutôt que de persister des réponses de test psychométrique en clair sur
+  /// l'appareil, la reprise a été retirée. Ce test empêche son retour silencieux.
+  testWidgets('aucun écran de reprise, aucun point de sauvegarde', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({
+      'games.je_decide.saved_checkpoint': true,
+      'games.je_decide.saved_item_index': 15,
+    });
+    await pumpJourney(tester);
+
+    // Un point de reprise résiduel dans les préférences ne doit plus rien
+    // déclencher : le parcours commence au premier scénario.
+    expect(find.text('Welcome back'), findsNothing);
+    expect(find.text('Your previous choices are saved.'), findsNothing);
+    expect(find.byKey(const ValueKey('decision-resume-continue')), findsNothing);
+    expect(find.text('Scenario 01 / 2'), findsOneWidget);
+  });
+
+  /// Le bouton « Take a short pause » du point d'étape écrivait ce point de
+  /// reprise. Il n'a plus rien à écrire.
+  testWidgets('le point d\'étape ne propose plus de sauvegarder', (
+    tester,
+  ) async {
+    await pumpJourney(tester);
+    expect(
+      find.byKey(const ValueKey('decision-checkpoint-pause')),
+      findsNothing,
+    );
+  });
+
+  // ── Écrans de jalon : la dimension réellement franchie ────────────────────
+
+  /// Les écrans de transition annonçaient un jalon ÉCRIT EN DUR : le médaillon
+  /// « RN », le titre « Risk Navigator » et deux pastilles sur cinq, quelle que
+  /// soit la dimension terminée. Relevé sur une capture au scénario 25 sur 30 —
+  /// quatre dimensions franchies, la deuxième annoncée.
+  testWidgets('le jalon nomme la dimension franchie et compte les pastilles', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    tester.view.physicalSize = const Size(390, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    // Deux items par dimension : l'écran de jalon tombe au 4ᵉ palier, donc
+    // après CS — la quatrième dimension, pas la deuxième.
+    final ordered = [
+      for (final d in DecisionDimension.values) ...[
+        item('${d.wire}-1', d),
+        item('${d.wire}-2', d),
+      ],
+    ];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: DecisionGameplayView(
+            form: DecisionForm(
+              formCode: 'A',
+              itemsPerDimension: 2,
+              items: ordered,
+            ),
+            onClose: () {},
+            onComplete: (_) {},
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    // On avance jusqu'à l'écran de jalon, en balayant les écrans de transition
+    // que le rythme intercale à chaque frontière de dimension.
+    const continues = [
+      'decision-next-scenario',
+      'decision-checkpoint-continue',
+      'decision-badge-continue',
+      'decision-encouragement-continue',
+    ];
+    for (var step = 0; step < 40; step++) {
+      if (find
+          .byKey(const ValueKey('decision-dimension-complete'))
+          .evaluate()
+          .isNotEmpty) {
+        break;
+      }
+      var moved = false;
+      for (final key in continues) {
+        final f = find.byKey(ValueKey(key));
+        if (f.evaluate().isNotEmpty) {
+          await tester.tap(f.first);
+          moved = true;
+          break;
+        }
+      }
+      if (!moved) {
+        // `.first` : la transition garde brièvement les cartes des deux items.
+        await tester.tap(find.byKey(const ValueKey('decision-option-0')).first);
+        await tester.pump();
+        await tester.tap(find.byKey(const ValueKey('decision-continue')).first);
+      }
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+    }
+
+    expect(
+      find.byKey(const ValueKey('decision-dimension-complete')),
+      findsOneWidget,
+      reason: 'le 4ᵉ palier du rythme est l\'écran de jalon',
+    );
+    expect(find.text('Risk Navigator'), findsNothing);
+    expect(
+      find.text(milestoneOf(DecisionDimension.cs).name),
+      findsOneWidget,
+      reason: 'CS vient d\'être franchie',
+    );
+
+    // Quatre pastilles allumées sur cinq, pas deux.
+    for (final d in DecisionDimension.values) {
+      final code = milestoneOf(d).code;
+      final on = d != DecisionDimension.re;
+      expect(
+        find.byKey(ValueKey('milestone-$code-${on ? 'on' : 'off'}')),
+        findsOneWidget,
+        reason: '$code doit être ${on ? 'allumée' : 'éteinte'}',
+      );
+    }
+
+    await tester.tap(find.byKey(const ValueKey('decision-dimension-continue')));
+    await tester.pump();
+  });
 
   /// Item COURT à deux options — un cas favorable, pas un cas représentatif.
   ///

@@ -47,6 +47,8 @@ void main() {
   }) {
     return MaterialApp(
       home: DecisionResultsFlow(
+        answered: 28,
+        totalItems: 30,
         profile: profileFixture(),
         initialStep: initialStep,
         onClose: () {},
@@ -71,7 +73,11 @@ void main() {
       find.byKey(const ValueKey('decision-journey-complete')),
       findsOneWidget,
     );
-    expect(find.text('30 / 30'), findsOneWidget);
+    // La carte annonçait « 30 / 30 » en dur : un sans-faute affiché même quand
+    // des questions avaient expiré. Elle compte maintenant les réponses réelles
+    // — ici 28 sur 30.
+    expect(find.text('28 / 30'), findsOneWidget);
+    expect(find.text('30 / 30'), findsNothing);
     await tap(tester, 'decision-reveal-profile');
 
     expect(

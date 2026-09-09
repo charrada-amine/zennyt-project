@@ -149,12 +149,22 @@ class DecisionResultsFlow extends StatefulWidget {
   const DecisionResultsFlow({
     super.key,
     required this.profile,
+    required this.answered,
+    required this.totalItems,
     required this.onClose,
     required this.onDone,
     this.initialStep = DecisionResultsStep.journeyComplete,
   });
 
   final DecisionProfile profile;
+
+  /// Scénarios réellement répondus, et longueur de la forme.
+  ///
+  /// La carte de fin annonçait « Scenarios complete — 30 / 30 » en dur : un
+  /// candidat qui laissait expirer des questions, ou qui recevait une forme
+  /// d'une autre longueur, lisait quand même un sans-faute.
+  final int answered;
+  final int totalItems;
   final VoidCallback onClose;
   final VoidCallback onDone;
   final DecisionResultsStep initialStep;
@@ -231,13 +241,15 @@ class _DecisionResultsFlowState extends State<DecisionResultsFlow> {
     DecisionResultsStep.preparing => 'Preparing your profile',
     DecisionResultsStep.profile => 'Decision profile',
     DecisionResultsStep.details => 'Detailed insights',
-    DecisionResultsStep.export => 'Export & share',
+    DecisionResultsStep.export => 'Keep your profile',
   };
 
   Widget _buildStep() => switch (_step) {
     DecisionResultsStep.journeyComplete => _JourneyCompleteView(
       onReveal: () => _go(DecisionResultsStep.preparing),
       onBack: widget.onClose,
+      answered: widget.answered,
+      totalItems: widget.totalItems,
     ),
     DecisionResultsStep.preparing => _PreparingProfileView(
       profile: widget.profile,
@@ -323,10 +335,19 @@ class _ResultsHeader extends StatelessWidget {
 }
 
 class _JourneyCompleteView extends StatelessWidget {
-  const _JourneyCompleteView({required this.onReveal, required this.onBack});
+  const _JourneyCompleteView({
+    required this.onReveal,
+    required this.onBack,
+    required this.answered,
+    required this.totalItems,
+  });
 
   final VoidCallback onReveal;
   final VoidCallback onBack;
+
+  /// Scénarios répondus, et longueur de la forme.
+  final int answered;
+  final int totalItems;
 
   @override
   Widget build(BuildContext context) {
@@ -339,10 +360,11 @@ class _JourneyCompleteView extends StatelessWidget {
           key: const ValueKey('decision-journey-complete'),
           title: 'Journey complete',
           body:
-              'You explored 30 everyday choices. Your personal decision profile is ready.',
+              'You explored $totalItems everyday choices. Your personal '
+              'decision profile is ready.',
         ),
         const SizedBox(height: 22),
-        const _CompletionCard(),
+        _CompletionCard(answered: answered, totalItems: totalItems),
         const SizedBox(height: 28),
         GamePrimaryButton(
           key: const ValueKey('decision-reveal-profile'),
@@ -501,7 +523,9 @@ class _ProfileView extends StatelessWidget {
           onPressed: onInsights,
         ),
         const SizedBox(height: 10),
-        GameOutlineButton(label: 'Share profile', onPressed: onShare),
+        // Ce bouton NAVIGUE vers l'écran suivant, il ne partage rien : son
+        // libellé « Share profile » annonçait une action qu'il ne fait pas.
+        GameOutlineButton(label: 'Keep your profile', onPressed: onShare),
       ],
     );
   }
@@ -541,7 +565,7 @@ class _DetailsView extends StatelessWidget {
         const SizedBox(height: 12),
         GamePrimaryButton(
           key: const ValueKey('decision-export-summary'),
-          label: 'Export summary',
+          label: 'Keep your profile',
           onPressed: onExport,
         ),
         const SizedBox(height: 10),
@@ -584,20 +608,19 @@ class _ExportView extends StatelessWidget {
               'Choose how you want to keep this simple snapshot of your journey.',
         ),
         const SizedBox(height: 24),
+        // Une seule option, et elle dit ce qu'elle fait.
+        //
+        // Il y en avait deux : « Export summary » (icône PDF, sous-titre « Copy
+        // a PDF-ready overview ») et « Share profile ». Elles appelaient la même
+        // fonction avec le même contenu — deux boutons pour un comportement — et
+        // aucune ne produisait de PDF ni n'ouvrait la feuille de partage du
+        // système. Elles copiaient du texte brut dans le presse-papier.
         _ExportOption(
-          icon: Icons.picture_as_pdf_rounded,
-          title: 'Export summary',
-          subtitle: 'Copy a PDF-ready overview',
+          icon: Icons.content_copy_rounded,
+          title: 'Copy summary',
+          subtitle: 'Put your profile on the clipboard as text',
           color: _magenta,
-          onTap: () => _copy(context, 'Summary copied and ready to export.'),
-        ),
-        const SizedBox(height: 12),
-        _ExportOption(
-          icon: Icons.share_rounded,
-          title: 'Share profile',
-          subtitle: 'Copy a simple profile snapshot',
-          color: _violet,
-          onTap: () => _copy(context, 'Profile snapshot copied.'),
+          onTap: () => _copy(context, 'Profile copied to the clipboard.'),
         ),
         const SizedBox(height: 12),
         _ExportOption(
@@ -717,26 +740,29 @@ class _TitleBlock extends StatelessWidget {
 }
 
 class _CompletionCard extends StatelessWidget {
-  const _CompletionCard();
+  const _CompletionCard({required this.answered, required this.totalItems});
+
+  final int answered;
+  final int totalItems;
 
   @override
   Widget build(BuildContext context) {
-    return const _ResultCard(
+    return _ResultCard(
       child: Column(
         children: [
           _CompletionRow(
             icon: Icons.check_circle_rounded,
-            label: 'Scenarios complete',
-            value: '30 / 30',
+            label: 'Scenarios answered',
+            value: '$answered / $totalItems',
           ),
-          Divider(color: _border, height: 24),
-          _CompletionRow(
+          const Divider(color: _border, height: 24),
+          const _CompletionRow(
             icon: Icons.lock_rounded,
             label: 'Choices',
             value: 'Saved privately',
           ),
-          Divider(color: _border, height: 24),
-          _CompletionRow(
+          const Divider(color: _border, height: 24),
+          const _CompletionRow(
             icon: Icons.auto_graph_rounded,
             label: 'Decision profile',
             value: 'Ready',

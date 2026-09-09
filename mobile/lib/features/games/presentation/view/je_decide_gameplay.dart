@@ -5,10 +5,16 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/audio/sound_service.dart';
 import '../../../../core/theme/app_typography.dart';
-import '../../data/decision_progress_store.dart';
+import '../../domain/config/decision_config.dart';
 import '../../domain/entities/decision_form.dart';
 import '../../domain/entities/decision_metrics.dart';
+import '../decision_milestones.dart';
 import '../widgets/game_system_components.dart';
+
+/// XP affiché par réponse. Purement décoratif, mais écrit UNE fois : la vue de
+/// récompense affichait « +12 XP » en dur à côté d'un total calculé avec la
+/// même valeur ailleurs — deux littéraux qui pouvaient diverger en silence.
+const int kXpPerAnswer = 12;
 
 const _decisionInk = Color(0xFF28234F);
 const _decisionMuted = Color(0xFF7E8DB2);
@@ -82,7 +88,6 @@ class DecisionGameplayView extends StatefulWidget {
     required this.form,
     required this.onClose,
     required this.onComplete,
-    this.initialIndex = 0,
   });
 
   final DecisionForm form;
@@ -92,13 +97,13 @@ class DecisionGameplayView extends StatefulWidget {
   final ValueChanged<List<DecisionItemResponse>> onComplete;
 
   /// Index de reprise (checkpoint sauvegardé).
-  final int initialIndex;
 
   @override
   State<DecisionGameplayView> createState() => _DecisionGameplayViewState();
 }
 
 class _DecisionGameplayViewState extends State<DecisionGameplayView> {
+  /// Seuil d'alerte sur un item SOUS CONTRAINTE : deux secondes sur sept.
   static const _criticalThreshold = 2;
 
   /// Repli si le serveur n'a pas envoyé de temps imparti sur un item chronométré.
@@ -111,7 +116,6 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
 
   int _index = 0;
   DecisionInterstitial? _interstitial;
-  bool _resuming = false;
   int _secondsRemaining = 0;
   bool _timedOut = false;
 
@@ -130,9 +134,8 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
   @override
   void initState() {
     super.initState();
-    _index = widget.initialIndex.clamp(0, widget.form.items.length - 1);
-    _resuming = widget.initialIndex > 0;
-    if (!_resuming) _enterItem();
+    _index = 0;
+    _enterItem();
   }
 
   @override
@@ -151,18 +154,46 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
 
   int? get _selection => _answer.selectedIndex;
 
-  bool get _isChoiceStep => _interstitial == null && !_resuming;
+  bool get _isChoiceStep => _interstitial == null;
 
   bool get _usesLightShell => !_isChoiceStep;
 
   /// Numéro affiché : 1-based, sur le total réel de la forme.
   int get _scenarioNumber => _index + 1;
 
-  int get _timeLimitSeconds =>
-      ((_item.timeLimitMs ?? _fallbackTimeLimitMs) / 1000).ceil();
+  /// Dimensions déjà franchies, dans l'ordre où le parcours les a présentées.
+  ///
+  /// Lue sur les items eux-mêmes plutôt que déduite d'un découpage régulier :
+  /// une forme servie par le serveur n'est pas tenue de grouper ses items par
+  /// dimension dans le même ordre que la fiche.
+  List<DecisionDimension> get _completedDimensions {
+    final seen = <DecisionDimension>[];
+    for (var i = 0; i < _index && i < widget.form.items.length; i++) {
+      final dimension = widget.form.items[i].dimension;
+      if (!seen.contains(dimension)) seen.add(dimension);
+    }
+    return seen;
+  }
+
+  /// Temps imparti à l'item courant, en secondes.
+  ///
+  /// Chaque question est bornée. Les items sous contrainte temporelle gardent
+  /// leur limite courte — c'est elle qui les note ; toutes les autres reçoivent
+  /// la minute de [DecisionConfig.questionTimeLimitS].
+  int get _timeLimitSeconds => _item.isTimed
+      ? ((_item.timeLimitMs ?? _fallbackTimeLimitMs) / 1000).ceil()
+      : DecisionConfig.questionTimeLimitS;
+
+  /// Le rebours entre-t-il dans sa zone d'alerte ?
+  bool get _criticalTime =>
+      _secondsRemaining <=
+      (_item.isTimed
+          ? _criticalThreshold
+          : DecisionConfig.questionCriticalThresholdS);
 
   /// XP purement visuel — aucun rapport avec le score, qui est calculé serveur.
-  int get _visualXp => _answers.values.where((a) => a.selectedIndex != null).length * 12;
+  int get _visualXp =>
+      _answers.values.where((a) => a.selectedIndex != null).length * kXpPerAnswer;
 
   // ── Cycle de vie d'un item ──────────────────────────────────────────────
 
@@ -178,19 +209,31 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
     // partie de la décision, et le temps de lecture ne doit pas disparaître de
     // la mesure parce qu'on a changé la présentation.
     _answer.start();
-    if (_item.isTimed) {
-      _secondsRemaining = _timeLimitSeconds;
-      _countdownPending = true;
-    }
+    // Plus aucune question n'est ouverte indéfiniment : le rebours est armé sur
+    // tous les items, la minute pour les uns, leur limite propre pour ceux qui
+    // sont sous contrainte.
+    _secondsRemaining = _timeLimitSeconds;
+    _countdownPending = true;
   }
 
-  /// Démarre le compte à rebours si l'écran de choix est bien celui qui
-  /// s'affiche. Appelé après chaque `build`, une fois la mise en page connue.
+  /// Démarre le compte à rebours de l'item. Appelé après chaque `build`, une
+  /// fois la mise en page connue.
+  ///
+  /// Les deux limites ne partent pas au même moment, et c'est voulu :
+  ///
+  /// * la **minute** couvre la question entière, lecture de la situation
+  ///   comprise — c'est une borne sur la réflexion, et lire fait partie de la
+  ///   réflexion ;
+  /// * la **contrainte temporelle** attend l'écran de CHOIX. Elle mesure la
+  ///   décision sous pression, pas la vitesse de lecture ; la faire courir
+  ///   pendant la situation reviendrait à noter autre chose que ce qu'elle
+  ///   prétend mesurer.
   void _armCountdownIfVisible({required bool choicesVisible}) {
-    if (!_countdownPending || !choicesVisible) return;
+    if (!_countdownPending) return;
+    if (_item.isTimed && !choicesVisible) return;
     _countdownPending = false;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && _item.isTimed && !_timedOut) _startCountdown(reset: false);
+      if (mounted && !_timedOut) _startCountdown(reset: false);
     });
   }
 
@@ -360,7 +403,6 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
     // rendrait la pause renouvelable à volonté par simple ouverture de la
     // boîte, ce que la fenêtre unique existe pour empêcher.
     if (await GameExitConfirmDialog.show(context, missionLabel: 'journey')) {
-      await DecisionProgressStore().clearCheckpoint();
       if (mounted) widget.onClose();
     }
   }
@@ -409,7 +451,6 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
         // Quitter annule la passation : pas de point de reprise, sinon le
         // message de confirmation serait faux et la règle contournable.
         if (await GameExitConfirmDialog.show(context, missionLabel: 'journey')) {
-          await DecisionProgressStore().clearCheckpoint();
           if (mounted) widget.onClose();
           return;
         }
@@ -430,12 +471,6 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
     } else if (_timeoutAdvancePending) {
       _scheduleTimeoutAdvance();
     }
-  }
-
-  Future<void> _saveFromCheckpoint() async {
-    await DecisionProgressStore().saveCheckpoint(itemIndex: _index);
-    if (mounted) setState(() => _interstitial = null);
-    if (mounted) widget.onClose();
   }
 
   // ── Rendu ───────────────────────────────────────────────────────────────
@@ -477,7 +512,7 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
     final gapAfterHeader = compact ? 8.0 : 12.0;
     final gapBeforeArea = compact ? 12.0 : 18.0;
     final gapBeforeButton = compact ? 10.0 : 14.0;
-    final timerBand = _timerBandHeight(compact: compact, textScaler: textScaler);
+    final timerBand = _timerBandHeight(compact: compact);
 
     // Hauteur offerte au scénario, calculée et non mesurée : il faut connaître
     // la mise en page (un temps ou deux) AVANT de construire la colonne, parce
@@ -489,7 +524,7 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
         padBottom -
         _kHeaderHeight -
         gapAfterHeader -
-        _kProgressHeight -
+        _progressBandHeight(textScaler) -
         timerBand -
         gapBeforeArea -
         gapBeforeButton -
@@ -515,7 +550,12 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
     // alors que la contrainte n'a pas commencé. Sa bande reste comptée dans
     // `scenarioHeight` — la densité ne bouge donc pas — mais l'écran de lecture
     // récupère ses ~39 px.
-    final showTimer = _item.isTimed && choicesVisible;
+    // Le chronomètre s'affiche là où il tourne : partout pour la minute, et
+    // seulement sur l'écran de choix pour la contrainte, qui n'a pas encore
+    // démarré pendant la lecture — une barre figée dirait au candidat qu'il a
+    // du temps alors que la contrainte n'a pas commencé.
+    final showTimer =
+        _isChoiceStep && !_timedOut && (!_item.isTimed || choicesVisible);
 
     return Padding(
       padding: EdgeInsets.fromLTRB(padH, padTop, padH, padBottom),
@@ -529,6 +569,8 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
             affordance: _menuAffordance,
             light: _usesLightShell,
             onBack: twoSteps && !readingSituation ? _backToSituation : null,
+            timerLabel: showTimer ? '$_secondsRemaining sec' : null,
+            timerColor: _criticalTime ? _decisionWarning : _decisionTimer,
           ),
           SizedBox(height: gapAfterHeader),
           _JourneyProgress(
@@ -546,7 +588,7 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
             _DecisionTimer(
               secondsRemaining: _secondsRemaining,
               totalSeconds: _timeLimitSeconds,
-              critical: _secondsRemaining <= _criticalThreshold,
+              critical: _criticalTime,
             ),
           ],
           SizedBox(height: gapBeforeArea),
@@ -573,7 +615,7 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
               ),
               child: KeyedSubtree(
                 key: ValueKey(
-                  '${_interstitial ?? ''}-$_index-$_resuming-$readingSituation',
+                  '${_interstitial ?? ''}-$_index-$readingSituation',
                 ),
                 child: _buildStep(
                   density: plan.density,
@@ -609,15 +651,6 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
     required bool readingSituation,
     required bool twoSteps,
   }) {
-    if (_resuming) {
-      return _ResumeJourneyView(
-        scenarioNumber: _scenarioNumber,
-        onContinue: () {
-          setState(() => _resuming = false);
-          _enterItem();
-        },
-      );
-    }
     if (_interstitial != null) {
       return switch (_interstitial!) {
         DecisionInterstitial.xpFeedback => _XpFeedbackView(
@@ -625,18 +658,24 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
         ),
         DecisionInterstitial.checkpoint => _CheckpointView(
           onContinue: _leaveInterstitial,
-          onPause: _saveFromCheckpoint,
+          scenarioNumber: _scenarioNumber,
+          totalItems: widget.form.totalItems,
         ),
         DecisionInterstitial.encouragement => _EncouragementView(
           onContinue: _leaveInterstitial,
+          scenarioNumber: _scenarioNumber,
         ),
-        DecisionInterstitial.badge => _BadgeView(onContinue: _leaveInterstitial),
+        DecisionInterstitial.badge => _BadgeView(
+          onContinue: _leaveInterstitial,
+          completed: _completedDimensions,
+        ),
         DecisionInterstitial.dimensionComplete => _DimensionCompleteView(
           onContinue: _leaveInterstitial,
+          completed: _completedDimensions,
         ),
       };
     }
-    if (_item.isTimed && _timedOut) return const _TimeoutView();
+    if (_timedOut) return const _TimeoutView();
 
     final scenario = _scenarioDataOf(_item);
     if (readingSituation) {
@@ -676,19 +715,32 @@ const double _kNarrowShellWidth = 360;
 /// correspondants doit être répercutée ici — le test `l'ossature réserve
 /// exactement ce qu'elle annonce` échoue sinon.
 const double _kHeaderHeight = 52;
-const double _kProgressHeight = 6;
+
+/// Épaisseur de la barre de progression du parcours.
+const double _kProgressBarHeight = 6;
+
+/// Gouttière droite réservée au pourcentage du parcours.
+///
+/// La bande du temps la réserve aussi, sans rien y mettre : c'est ce qui aligne
+/// le bord droit des deux barres. Sans elle, celle du temps dépassait celle du
+/// parcours de la largeur du libellé, et l'empilement paraissait de travers.
+const double _kProgressLabelGutter = 44;
 const double _kPrimaryButtonHeight = 52;
 
-/// Hauteur de la bande du chronomètre : l'écart qui la précède, la barre de
-/// progression du temps, son interligne, et la ligne « N sec ».
-double _timerBandHeight({
-  required bool compact,
-  required TextScaler textScaler,
-}) =>
-    (compact ? 8 : 10) +
-    7 +
-    5 +
-    textScaler.scale(AppTypography.fontSizeSm) * AppTypography.lineHeightNormal;
+/// Hauteur de la bande du chronomètre : l'écart qui la précède, puis la barre.
+///
+/// Elle réservait aussi la ligne « N sec » — ~23 px — alors que ce libellé vit
+/// désormais dans l'en-tête. Le budget du scénario payait donc une hauteur que
+/// rien n'occupait, sur chaque question.
+double _timerBandHeight({required bool compact}) => (compact ? 8 : 10) + 7;
+
+/// Hauteur de la bande de progression : la barre, ou la ligne de pourcentage
+/// quand celle-ci est plus haute.
+double _progressBandHeight(TextScaler textScaler) {
+  final label =
+      textScaler.scale(AppTypography.fontSizeSm) * AppTypography.lineHeightNormal;
+  return label > _kProgressBarHeight ? label : _kProgressBarHeight;
+}
 
 /// Projette un item servi par le backend dans le modèle d'affichage.
 ///
@@ -729,6 +781,8 @@ class _DecisionProgressHeader extends StatelessWidget {
     required this.affordance,
     required this.light,
     this.onBack,
+    this.timerLabel,
+    this.timerColor,
   });
 
   final int scenarioNumber;
@@ -750,6 +804,16 @@ class _DecisionProgressHeader extends StatelessWidget {
   /// sortie ne sont offertes pendant les 7 s (CdC pause §4).
   final GameMenuAffordance? affordance;
   final bool light;
+
+  /// Temps restant (« 58 sec »), ou `null` si aucun rebours ne tourne.
+  ///
+  /// Il est ICI, dans la barre d'en-tête, et non sous la barre de temps — comme
+  /// la tuile « Timer » de « Je bouge ». La légende avait sa propre ligne, qui
+  /// coûtait ~23 px de hauteur À CHAQUE question ; sur 320×568 les items les
+  /// plus longs débordaient d'autant. L'en-tête a la place, elle, et n'en
+  /// réclame aucune de plus.
+  final String? timerLabel;
+  final Color? timerColor;
 
   @override
   Widget build(BuildContext context) {
@@ -779,6 +843,26 @@ class _DecisionProgressHeader extends StatelessWidget {
             const SizedBox(width: 14),
           ],
           Expanded(child: _title(context)),
+          if (timerLabel != null) ...[
+            Container(
+              height: 34,
+              alignment: Alignment.center,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(99),
+              ),
+              child: Text(
+                timerLabel!,
+                key: const ValueKey('decision-timer-label'),
+                style: AppTypography.bodySmall.copyWith(
+                  color: timerColor,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
           Container(
             height: 34,
             constraints: const BoxConstraints(minWidth: 72),
@@ -846,23 +930,53 @@ class _JourneyProgress extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final percent = (value.clamp(0, 1) * 100).round();
     return Semantics(
-      label: 'Journey progress ${(value * 100).round()} percent',
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(99),
-        child: LinearProgressIndicator(
-          minHeight: 6,
-          value: value.clamp(0, 1),
-          backgroundColor: light
-              ? _decisionBorder
-              : Colors.white.withValues(alpha: 0.88),
-          valueColor: const AlwaysStoppedAnimation(_decisionMagenta),
-        ),
+      label: 'Journey progress $percent percent',
+      excludeSemantics: true,
+      child: Row(
+        children: [
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(99),
+              child: LinearProgressIndicator(
+                minHeight: _kProgressBarHeight,
+                value: value.clamp(0, 1),
+                backgroundColor: light
+                    ? _decisionBorder
+                    : Colors.white.withValues(alpha: 0.88),
+                valueColor: const AlwaysStoppedAnimation(_decisionMagenta),
+              ),
+            ),
+          ),
+          // Largeur figée : sans elle, la barre se raccourcirait en passant de
+          // « 9% » à « 100% » et le remplissage sauterait en arrière au moment
+          // même où il devrait avancer.
+          SizedBox(
+            width: _kProgressLabelGutter,
+            child: Text(
+              '$percent%',
+              textAlign: TextAlign.right,
+              style: AppTypography.bodySmall.copyWith(
+                // Le magenta de la barre ne se lit pas sur le bleu du plateau —
+                // deux couleurs saturées de luminance voisine, à peine 1,4:1 de
+                // contraste. Il ne sert que sur les écrans clairs, où il tient.
+                color: light
+                    ? _decisionMagenta
+                    : Colors.white.withValues(alpha: 0.92),
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
+/// Bande de temps d'une question : la barre partagée des mini-jeux, sans
+/// légende — le nombre de secondes vit dans l'en-tête, comme la tuile « Timer »
+/// de « Je bouge ».
 class _DecisionTimer extends StatelessWidget {
   const _DecisionTimer({
     required this.secondsRemaining,
@@ -875,46 +989,17 @@ class _DecisionTimer extends StatelessWidget {
   final bool critical;
 
   @override
-  Widget build(BuildContext context) {
-    final color = critical ? _decisionWarning : _decisionTimer;
-    return Semantics(
-      liveRegion: true,
-      label: '$secondsRemaining seconds remaining',
-      child: Column(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(99),
-            child: LinearProgressIndicator(
-              minHeight: 7,
-              value: (secondsRemaining / totalSeconds).clamp(0, 1),
-              backgroundColor: Colors.white,
-              valueColor: AlwaysStoppedAnimation(color),
-            ),
-          ),
-          const SizedBox(height: 5),
-          Row(
-            children: [
-              Text(
-                'Quick choice',
-                style: AppTypography.bodySmall.copyWith(
-                  color: Colors.white.withValues(alpha: 0.72),
-                ),
-              ),
-              const Spacer(),
-              Text(
-                '$secondsRemaining sec',
-                key: const ValueKey('decision-timer-label'),
-                style: AppTypography.bodySmall.copyWith(
-                  color: color,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
-        ],
+  Widget build(BuildContext context) => Semantics(
+    liveRegion: true,
+    label: '$secondsRemaining seconds remaining',
+    child: Padding(
+      padding: const EdgeInsets.only(right: _kProgressLabelGutter),
+      child: GameTimerBar(
+        progress: totalSeconds <= 0 ? 0 : secondsRemaining / totalSeconds,
+        color: critical ? _decisionWarning : _decisionTimer,
       ),
-    );
-  }
+    ),
+  );
 }
 
 class _ScenarioData {
@@ -1853,7 +1938,7 @@ class _XpFeedbackView extends StatelessWidget {
                     border: Border.all(color: _decisionMagenta, width: 2),
                   ),
                   child: Text(
-                    '+12 XP',
+                    '+$kXpPerAnswer XP',
                     style: AppTypography.titleLarge.copyWith(
                       color: _decisionMagenta,
                       fontWeight: FontWeight.w800,
@@ -1892,9 +1977,16 @@ class _XpFeedbackView extends StatelessWidget {
 }
 
 class _BadgeView extends StatelessWidget {
-  const _BadgeView({required this.onContinue});
+  const _BadgeView({required this.onContinue, required this.completed});
 
   final VoidCallback onContinue;
+
+  /// Dimensions franchies. Le badge porte le nom de la dernière.
+  ///
+  /// Il affichait « Steady Explorer » en dur, à chaque passage — le jalon de la
+  /// stabilité des choix, annoncé même quand le joueur venait de terminer une
+  /// tout autre dimension.
+  final List<DecisionDimension> completed;
 
   @override
   Widget build(BuildContext context) {
@@ -1943,7 +2035,10 @@ class _BadgeView extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'Steady Explorer',
+                completed.isEmpty
+                    ? 'Milestone reached'
+                    : milestoneOf(completed.last).name,
+                textAlign: TextAlign.center,
                 style: AppTypography.titleLarge.copyWith(
                   color: _decisionMagenta,
                   fontWeight: FontWeight.w800,
@@ -1973,10 +2068,20 @@ class _BadgeView extends StatelessWidget {
 }
 
 class _CheckpointView extends StatelessWidget {
-  const _CheckpointView({required this.onContinue, required this.onPause});
+  const _CheckpointView({
+    required this.onContinue,
+    required this.scenarioNumber,
+    required this.totalItems,
+  });
+
+  /// Scénario atteint, et longueur réelle de la forme.
+  ///
+  /// L'écran annonçait « You've completed 15 of 30 scenarios » et « 50 % » en
+  /// dur : les mêmes chiffres à tous les points d'étape, sur toutes les formes.
+  final int scenarioNumber;
+  final int totalItems;
 
   final VoidCallback onContinue;
-  final VoidCallback onPause;
 
   @override
   Widget build(BuildContext context) {
@@ -1997,7 +2102,7 @@ class _CheckpointView extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          'You’ve completed 15 of 30 scenarios.',
+          'You’ve completed ${scenarioNumber - 1} of $totalItems scenarios.',
           textAlign: TextAlign.center,
           style: AppTypography.bodyMedium.copyWith(color: _decisionMuted),
         ),
@@ -2019,17 +2124,15 @@ class _CheckpointView extends StatelessWidget {
                       ),
                     ),
                   ),
-                  Text(
-                    '50%',
-                    style: TextStyle(
-                      color: _decisionMagenta,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
                 ],
               ),
               SizedBox(height: m.compact ? 8 : 12),
-              const _JourneyProgress(value: 0.5, light: true),
+              // La barre porte son propre pourcentage : le « 50% » qui vivait
+              // au-dessus était figé, et l'aurait contredite.
+              _JourneyProgress(
+                value: totalItems <= 0 ? 0 : (scenarioNumber - 1) / totalItems,
+                light: true,
+              ),
               SizedBox(height: m.lightGapSm),
               Wrap(
                 alignment: WrapAlignment.center,
@@ -2050,21 +2153,28 @@ class _CheckpointView extends StatelessWidget {
           label: 'Continue journey',
           onPressed: onContinue,
         ),
-        SizedBox(height: m.compact ? 8 : 10),
-        GameOutlineButton(
-          key: const ValueKey('decision-checkpoint-pause'),
-          label: 'Take a short pause',
-          onPressed: onPause,
-        ),
+        // « Take a short pause » enregistrait un point de reprise. La reprise a
+        // été retirée : le point de reprise ne conservait que l'index de la
+        // question, jamais les réponses, si bien que reprendre un parcours
+        // renvoyait au serveur toutes les questions précédentes comme
+        // « non répondues » — et produisait un profil faux, pendant que l'écran
+        // affirmait « Your previous choices are saved ».
       ],
     );
   }
 }
 
 class _EncouragementView extends StatelessWidget {
-  const _EncouragementView({required this.onContinue});
+  const _EncouragementView({
+    required this.onContinue,
+    required this.scenarioNumber,
+  });
 
   final VoidCallback onContinue;
+
+  /// Scénario atteint. Le médaillon affichait « 16 » en dur — le même nombre à
+  /// chaque passage, et faux partout sauf au seizième.
+  final int scenarioNumber;
 
   @override
   Widget build(BuildContext context) {
@@ -2077,7 +2187,7 @@ class _EncouragementView extends StatelessWidget {
           decoration: _lightCardDecoration(),
           child: Column(
             children: [
-              const _BadgeMark(label: '16', color: _decisionMagenta),
+              _BadgeMark(label: '$scenarioNumber', color: _decisionMagenta),
               const SizedBox(height: 28),
               Text(
                 'Nice reflection. Let’s continue.',
@@ -2110,83 +2220,32 @@ class _EncouragementView extends StatelessWidget {
 
 
 
-class _ResumeJourneyView extends StatelessWidget {
-  const _ResumeJourneyView({required this.scenarioNumber, required this.onContinue});
-
-  final int scenarioNumber;
-  final VoidCallback onContinue;
-
-  @override
-  Widget build(BuildContext context) {
-    return _LightStepScroll(
-      children: [
-        const SizedBox(height: 30),
-        const _BadgeMark(label: 'SE', color: _decisionMagenta),
-        const SizedBox(height: 22),
-        Text(
-          'Welcome back',
-          key: const ValueKey('decision-welcome-back'),
-          style: AppTypography.headlineMedium.copyWith(
-            color: _decisionInk,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'You’re halfway through your decision journey.',
-          textAlign: TextAlign.center,
-          style: AppTypography.bodyMedium.copyWith(color: _decisionMuted),
-        ),
-        const SizedBox(height: 24),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(20),
-          decoration: _lightCardDecoration(),
-          child: const Column(
-            children: [
-              _CompletionLine(label: 'Completed', value: '15 / 30'),
-              SizedBox(height: 16),
-              _JourneyProgress(value: 0.5, light: true),
-            ],
-          ),
-        ),
-        const SizedBox(height: 28),
-        GamePrimaryButton(
-          key: const ValueKey('decision-resume-continue'),
-          label: 'Continue from scenario $scenarioNumber',
-          onPressed: onContinue,
-        ),
-        const SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.lock_outline_rounded, color: _decisionMagenta),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(
-                'Your previous choices are saved.',
-                textAlign: TextAlign.center,
-                style: AppTypography.bodySmall.copyWith(color: _decisionMuted),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
 class _DimensionCompleteView extends StatelessWidget {
-  const _DimensionCompleteView({required this.onContinue});
+  const _DimensionCompleteView({
+    required this.onContinue,
+    required this.completed,
+  });
 
   final VoidCallback onContinue;
 
+  /// Dimensions franchies, dans l'ordre du parcours. La dernière est celle que
+  /// l'écran célèbre ; toutes allument leur pastille.
+  ///
+  /// L'écran affichait « RN · Risk Navigator » et deux pastilles sur cinq, en
+  /// dur. Au scénario 25 sur 30 — quatre dimensions derrière soi — il annonçait
+  /// donc toujours la deuxième, et une progression de 2/5.
+  final List<DecisionDimension> completed;
+
   @override
   Widget build(BuildContext context) {
+    final reached = completed.isEmpty ? null : milestoneOf(completed.last);
     return _LightStepScroll(
       children: [
         const SizedBox(height: 20),
-        const _BadgeMark(label: 'RN', color: _decisionMagenta),
+        _BadgeMark(
+          label: reached?.code ?? '—',
+          color: _decisionMagenta,
+        ),
         const SizedBox(height: 20),
         Text(
           'New milestone',
@@ -2194,8 +2253,9 @@ class _DimensionCompleteView extends StatelessWidget {
         ),
         const SizedBox(height: 5),
         Text(
-          'Risk Navigator',
+          reached?.name ?? 'Milestone reached',
           key: const ValueKey('decision-dimension-complete'),
+          textAlign: TextAlign.center,
           style: AppTypography.headlineMedium.copyWith(
             color: _decisionInk,
             fontWeight: FontWeight.w800,
@@ -2206,14 +2266,23 @@ class _DimensionCompleteView extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.all(18),
           decoration: _lightCardDecoration(),
-          child: const Row(
+          child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _MiniBadge(label: 'AE', active: true),
-              _MiniBadge(label: 'RN', active: true),
-              _MiniBadge(label: 'QC', active: false),
-              _MiniBadge(label: 'SE', active: false),
-              _MiniBadge(label: 'SP', active: false),
+              for (final dimension in DecisionDimension.values)
+                () {
+                  final on = completed.contains(dimension);
+                  final milestone = milestoneOf(dimension);
+                  return _MiniBadge(
+                    // La clé porte l'état : allumée ou non se lit sur une
+                    // couleur, que rien ne peut vérifier de l'extérieur.
+                    key: ValueKey(
+                      'milestone-${milestone.code}-${on ? 'on' : 'off'}',
+                    ),
+                    label: milestone.code,
+                    active: on,
+                  );
+                }(),
             ],
           ),
         ),
@@ -2275,7 +2344,11 @@ class _BadgeMark extends StatelessWidget {
 }
 
 class _MiniBadge extends StatelessWidget {
-  const _MiniBadge({required this.label, required this.active});
+  const _MiniBadge({
+    super.key,
+    required this.label,
+    required this.active,
+  });
 
   final String label;
   final bool active;
@@ -2322,34 +2395,6 @@ class _MilestoneChip extends StatelessWidget {
           fontWeight: FontWeight.w700,
         ),
       ),
-    );
-  }
-}
-
-class _CompletionLine extends StatelessWidget {
-  const _CompletionLine({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(label, style: const TextStyle(color: _decisionInk)),
-        ),
-        Flexible(
-          child: Text(
-            value,
-            textAlign: TextAlign.right,
-            style: const TextStyle(
-              color: _decisionInk,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

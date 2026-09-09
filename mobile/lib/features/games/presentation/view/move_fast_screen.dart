@@ -1659,9 +1659,12 @@ class _GameplayBoard extends StatelessWidget {
                     // Maquette : le compteur au-dessus, sa légende en dessous.
                     // « upgrade » nomme ce que la série déclenche — la montée du
                     // multiplicateur.
+                    // Le seuil vient de la config, il n'est plus recopié ici :
+                    // deux littéraux « 4 » pouvaient diverger en silence.
                     statusValue: feedback == _MoveFastFeedback.error
-                        ? '0/4'
-                        : '$streakCounter/4',
+                        ? '0/${MoveFastConfig.correctStreakForUpgrade}'
+                        : '$streakCounter/'
+                              '${MoveFastConfig.correctStreakForUpgrade}',
                     statusCaption: feedback == _MoveFastFeedback.error
                         ? 'reset'
                         : 'upgrade',

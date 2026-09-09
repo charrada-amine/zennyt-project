@@ -120,34 +120,18 @@ void main() {
     },
   );
 
-  testWidgets('saved checkpoint opens the welcome-back screen', (tester) async {
-    SharedPreferences.setMockInitialValues({
-      'games.je_decide.saved_checkpoint': true,
-      'games.je_decide.saved_item_index': 15,
-    });
-    final preferences = await SharedPreferences.getInstance();
-    final repository = _FakeGamesRepository();
-    tester.view.physicalSize = const Size(390, 844);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(preferences),
-          gamesRepositoryProvider.overrideWithValue(repository),
-        ],
-        child: const MaterialApp(home: JeDecideScreen()),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const ValueKey('decision-welcome-back')), findsOneWidget);
-    expect(find.text('Continue from scenario 16'), findsOneWidget,
-        reason: 'index 15 sauvegardé → item 16 affiché');
-    expect(find.byType(AppBottomNav), findsNothing);
-  });
+  // Le test « saved checkpoint opens the welcome-back screen » vivait ici.
+  //
+  // La reprise a été retirée : le point de sauvegarde ne conservait que l'index
+  // de la question, jamais les réponses, si bien qu'un parcours repris renvoyait
+  // au serveur toutes les questions précédentes comme « non répondues » — trois
+  // perdues sur quatre à la mesure — pendant que l'écran affirmait « Your
+  // previous choices are saved ».
+  //
+  // La garantie que des clés résiduelles dans les préférences ne déclenchent
+  // plus rien est vérifiée par « aucun écran de reprise, aucun point de
+  // sauvegarde » dans `je_decide_gameplay_test.dart`, qui les sème justement
+  // avant de monter l'écran.
 
   testWidgets('full journey reaches the final decision profile', (
     tester,

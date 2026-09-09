@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zennyt/features/games/data/demo_games_repository.dart';
+import 'package:zennyt/features/games/domain/config/decision_provisional_rules.dart';
 import 'package:zennyt/features/games/domain/entities/decision_form.dart';
+import 'package:zennyt/features/games/domain/entities/game_score.dart';
 import 'package:zennyt/features/games/domain/entities/decision_metrics.dart';
 import 'package:zennyt/features/games/domain/entities/game_type.dart';
 import 'package:zennyt/features/games/domain/entities/mini_game.dart';
@@ -151,4 +153,54 @@ void main() {
 
     expect(result.lastAttempt!.score.rawPoints, 0);
   });
+
+  /// Les seuils de niveau étaient recopiés dans le dépôt de démo — 75 / 55 / 40
+  /// — face aux 75 / 60 / 45 de la couche provisoire. Un même score tombait donc
+  /// « Normal » d'un côté et « Borderline » de l'autre, sur cinq points d'écart.
+  /// Seule la couche provisoire trace ce qui vient de la fiche du psychologue et
+  /// ce qui est déduit : elle fait foi, et ce test empêche la copie de revenir.
+  test('le niveau de démo suit la couche provisoire', () async {
+    /// Joue toute la forme en prenant sur chaque item l'option de rang [rank].
+    /// Les items de démo listent leurs options de la meilleure à la pire : le
+    /// score décroît donc avec le rang, ce qui balaie les quatre niveaux.
+    Future<GameScore> playAll(int rank) async {
+      final session = await repo.startSession(GameType.decision);
+      final items = (await repo.decisionItems(session.id)).items;
+      final out = await repo.submitResult(
+        sessionId: session.id,
+        miniGame: MiniGame.decisionCore,
+        metrics: DecisionMetrics(
+          items: [
+            for (final i in items)
+              DecisionItemResponse(
+                itemId: i.itemId,
+                dimension: i.dimension,
+                selectedOptionId:
+                    i.options[rank.clamp(0, i.options.length - 1)].optionId,
+                responseTimeMs: 4000,
+                answered: true,
+                decisionChangesCount: 0,
+              ),
+          ],
+        ),
+      );
+      return out.lastAttempt!.score;
+    }
+
+    for (var rank = 0; rank < 4; rank++) {
+      final score = await playAll(rank);
+      expect(
+        score.level,
+        DecisionProvisionalRules.levelForScw(score.normalized),
+        reason:
+            'rang $rank → ${score.normalized.toStringAsFixed(1)} : le niveau '
+            'doit être celui de la couche provisoire',
+      );
+    }
+
+    // La frontière qui divergeait : l'ancien barème de démo disait « Normal »
+    // à 57, la couche provisoire dit « Borderline ».
+    expect(DecisionProvisionalRules.levelForScw(57), 'Borderline');
+  });
+
 }

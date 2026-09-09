@@ -132,7 +132,6 @@ void main() {
     'decision-badge-continue',
     'decision-encouragement-continue',
     'decision-dimension-continue',
-    'decision-resume-continue',
   ];
 
   Finder? interstitialOnScreen() {
@@ -252,9 +251,24 @@ void main() {
     /// AUGMENTE, c'est une régression d'affichage ; s'il tombe à zéro, les
     /// textes ont été raccourcis et la borne doit être ramenée à zéro.
     /// Pire item : II-18, 1167 caractères dont une justification de 273.
+    ///
+    /// Relevées le 09/09, en deux fois :
+    ///
+    /// * **+15 / +13 px** — la bande de temps devenue permanente, quand chaque
+    ///   question a reçu son chronomètre d'une minute. La barre seule coûte
+    ///   ~14 px ; sa légende chiffrée en aurait coûté 23 de plus, d'où son
+    ///   déménagement dans l'en-tête ;
+    /// * **+11 px** — la ligne de pourcentage de la barre de parcours, dont la
+    ///   hauteur de texte dépasse les 6 px de la barre seule.
+    ///
+    /// Le Redmi 13C entre dans la table pour la première fois, à 3 px : c'est le
+    /// reliquat de cette seconde ligne sur les deux items les plus longs de la
+    /// banque SERVEUR. La banque de démo — celle du build client — tient sur les
+    /// sept gabarits sans rien réserver.
     const iiDeficit = <String, double>{
-      '320×568 sans barres': 189,
-      '360×640 entrée de gamme': 65,
+      '320×568 sans barres': 216,
+      '360×640 entrée de gamme': 92,
+      '360×800 Redmi 13C, 3 boutons': 4,
     };
 
     for (final (device, size, insets) in devices) {
