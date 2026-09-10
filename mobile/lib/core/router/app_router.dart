@@ -83,9 +83,11 @@ const _publicRoutes = <String>{
 ///
 /// Quand `true`, l'application démarre directement sur le **vrai** hub des jeux
 /// (onglet Games de [MainNavigationScreen]) sans authentification, exactement
-/// comme le menu atteint en revenant d'un jeu. Passer à `false` pour un build
-/// de production normal (démarrage sur le splash + flux d'auth).
-const bool kLot1DemoBuild = true;
+/// comme le menu atteint en revenant d'un jeu. Quand `false` (défaut), l'app
+/// démarre normalement sur le splash + flux d'auth.
+///
+/// Build de démo : `flutter run --dart-define=LOT1_DEMO_BUILD=true`
+const bool kLot1DemoBuild = bool.fromEnvironment('LOT1_DEMO_BUILD');
 
 /// Onglet de [MainNavigationScreen] qui porte le hub des jeux (« Progress »).
 /// Seul onglet actif quand [kLot1DemoBuild] vaut `true`.
