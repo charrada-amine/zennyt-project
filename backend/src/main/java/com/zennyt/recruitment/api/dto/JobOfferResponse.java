@@ -29,18 +29,20 @@ public record JobOfferResponse(
     UUID assessmentId, UUID jobPositionId, String shareableLink, boolean openToInternational,
     JobOfferStatus status, long applicantCount, Integer fitScore, Boolean goodFit,
     Integer softSkillScore, Integer hardSkillScore, Boolean partialData,
-    HardSkillsAlertLevel hardSkillsAlert, Instant postedAt, Instant updatedAt
+    HardSkillsAlertLevel hardSkillsAlert, TypeEvaluationHard typeEvaluationHard,
+    Instant postedAt, Instant updatedAt
 ) {
     public record RecruiterSummary(UUID id, String companyName, String companyInfo) {}
 
     public static JobOfferResponse from(JobOffer o) {
-        return from(o, 0, null, null, null, null, HardSkillsAlertLevel.NONE);
+        return from(o, 0, null, null, null, null, HardSkillsAlertLevel.NONE, null);
     }
 
     public static JobOfferResponse from(JobOffer o, long applicantCount, String shareableLink,
                                         com.zennyt.recruitment.domain.model.FitScore fitScore,
                                         String recruiterCompanyName, String recruiterCompanyInfo,
-                                        HardSkillsAlertLevel hardSkillsAlert) {
+                                        HardSkillsAlertLevel hardSkillsAlert,
+                                        TypeEvaluationHard evaluationMode) {
         return new JobOfferResponse(
             o.id(), o.recruiterId(),
             new RecruiterSummary(o.recruiterId(), recruiterCompanyName, recruiterCompanyInfo),
@@ -57,8 +59,9 @@ public record JobOfferResponse(
             fitScore != null ? fitScore.goodFit() : null,
             fitScore != null ? fitScore.softSkillScore() : null,
             fitScore != null ? fitScore.hardSkillScore() : null,
-            fitScore != null ? fitScore.partialData(o.assessmentId() != null) : null,
+            fitScore != null ? fitScore.partialData(o.assessmentId() != null, evaluationMode) : null,
             hardSkillsAlert,
+            evaluationMode,
             o.postedAt(), o.updatedAt()
         );
     }

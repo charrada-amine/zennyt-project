@@ -230,8 +230,72 @@ class _JobOfferCard extends StatelessWidget {
                 _TagChip(label: job.contractType.label),
               ],
             ),
+            // F16/F19/F29 (FITSCORE_REMEDIATION.md §3): the backend already
+            // computes/contracts hardSkillsAlert but no client read it before —
+            // a recruiter saw a bare offer card with no signal at all, whether
+            // this senior technical role was missing a QCM or was a creative
+            // role correctly evaluated by portfolio.
+            if (job.hardSkillsAlert != HardSkillsAlertLevel.none) ...[
+              const SizedBox(height: 10),
+              _HardSkillsAlertBanner(level: job.hardSkillsAlert),
+            ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _HardSkillsAlertBanner extends StatelessWidget {
+  final HardSkillsAlertLevel level;
+  const _HardSkillsAlertBanner({required this.level});
+
+  /// F19 (FITSCORE_REMEDIATION.md §3 index F19) — PORTFOLIO_BASED reads as
+  /// reassurance (F29, CdC §10 #8: "soft-only is a standard mode, not
+  /// degraded"), never as an alarm; the other levels nudge the recruiter to
+  /// attach a QCM, in increasing urgency.
+  String get _message {
+    switch (level) {
+      case HardSkillsAlertLevel.portfolioBased:
+        return 'Evaluated by portfolio — standard for this role, not missing data';
+      case HardSkillsAlertLevel.strong:
+        return 'No hard-skills test attached — strongly recommended for this role';
+      case HardSkillsAlertLevel.moderate:
+        return 'No hard-skills test attached — consider adding one';
+      case HardSkillsAlertLevel.info:
+      case HardSkillsAlertLevel.none:
+        return 'No hard-skills test attached yet';
+    }
+  }
+
+  Color get _color =>
+      level == HardSkillsAlertLevel.portfolioBased ? const Color(0xFF0F766E) : const Color(0xFFB45309);
+  Color get _background =>
+      level == HardSkillsAlertLevel.portfolioBased ? const Color(0xFFECFDF5) : const Color(0xFFFFFBEB);
+  IconData get _icon =>
+      level == HardSkillsAlertLevel.portfolioBased ? Icons.palette_outlined : Icons.info_outline;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: _background,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(_icon, size: 14, color: _color),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              _message,
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _color),
+            ),
+          ),
+        ],
       ),
     );
   }

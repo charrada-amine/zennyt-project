@@ -1,23 +1,44 @@
 import 'package:flutter/widgets.dart';
 
+/// The three layout tiers used to serve different designs per screen size.
+enum DeviceType { mobile, tablet, desktop }
+
 /// Lightweight responsive helpers so the UI adapts across phones (small to
-/// large) and tablets without hard-coding pixel positions.
+/// large), tablets, and desktops without hard-coding pixel positions.
 ///
-/// The maquette relies primarily on fluid layouts; this utility only handles
-/// breakpoint-aware padding and a max content width so forms stay readable on
-/// wide screens (tablets / foldables / landscape).
+/// The maquette relies primarily on fluid layouts; this utility handles
+/// breakpoint-aware padding, device-type detection, and a max content width so
+/// forms stay readable on wide screens (tablets / foldables / landscape /
+/// desktop).
 class Responsive {
   Responsive._();
 
   /// Breakpoint above which we treat the device as a tablet.
   static const double tabletBreakpoint = 600;
 
+  /// Breakpoint above which we treat the device as a desktop.
+  static const double desktopBreakpoint = 1024;
+
   /// Largest width a single column of content should occupy. On wider screens
   /// content is centered within this width.
   static const double maxContentWidth = 480;
 
+  /// Returns the current [DeviceType] based on screen width.
+  static DeviceType deviceType(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    if (width >= desktopBreakpoint) return DeviceType.desktop;
+    if (width >= tabletBreakpoint) return DeviceType.tablet;
+    return DeviceType.mobile;
+  }
+
+  static bool isDesktop(BuildContext context) =>
+      deviceType(context) == DeviceType.desktop;
+
   static bool isTablet(BuildContext context) =>
       MediaQuery.sizeOf(context).width >= tabletBreakpoint;
+
+  static bool isMobile(BuildContext context) =>
+      deviceType(context) == DeviceType.mobile;
 
   /// Horizontal padding that grows slightly on larger screens.
   static double horizontalPadding(BuildContext context) {
@@ -34,6 +55,49 @@ class Responsive {
     if (width <= 340) return value * 0.85;
     if (width <= 375) return value * 0.93;
     return value;
+  }
+}
+
+/// Declarative per-platform layout builder.
+///
+/// Each screen that needs different designs per device type wraps its build
+/// with this widget. [tablet] is optional — when omitted, falls back to
+/// [mobile].
+///
+/// ```dart
+/// ResponsiveBuilder(
+///   mobile:  (context) => LoginMobileLayout(),
+///   desktop: (context) => LoginDesktopLayout(),
+/// )
+/// ```
+class ResponsiveBuilder extends StatelessWidget {
+  const ResponsiveBuilder({
+    super.key,
+    required this.mobile,
+    this.tablet,
+    required this.desktop,
+  });
+
+  /// Builder for screens narrower than [Responsive.tabletBreakpoint].
+  final WidgetBuilder mobile;
+
+  /// Builder for screens between tablet and desktop breakpoints.
+  /// Falls back to [mobile] when not provided.
+  final WidgetBuilder? tablet;
+
+  /// Builder for screens at or wider than [Responsive.desktopBreakpoint].
+  final WidgetBuilder desktop;
+
+  @override
+  Widget build(BuildContext context) {
+    switch (Responsive.deviceType(context)) {
+      case DeviceType.desktop:
+        return desktop(context);
+      case DeviceType.tablet:
+        return (tablet ?? mobile)(context);
+      case DeviceType.mobile:
+        return mobile(context);
+    }
   }
 }
 

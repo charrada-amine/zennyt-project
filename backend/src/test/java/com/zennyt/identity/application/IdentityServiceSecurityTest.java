@@ -67,4 +67,46 @@ class IdentityServiceSecurityTest {
         service.deleteCv(publicId);
         verify(storage).delete("old-cv", FileStoragePort.ResourceType.RAW);
     }
+
+    @Test
+    void updateUserPersistsGeneratedAvatarUrl() {
+        UUID publicId = UUID.randomUUID();
+        User user = mock(User.class);
+        when(users.findByPublicId(publicId)).thenReturn(Optional.of(user));
+        when(user.active()).thenReturn(true);
+        when(user.role()).thenReturn(Role.RECRUITER);
+        when(user.firstName()).thenReturn("amine");
+        when(user.lastName()).thenReturn("manai");
+        when(user.profileImageUrl()).thenReturn(
+            "https://api.dicebear.com/9.x/avataaars/png?seed=amine");
+        when(users.save(user)).thenReturn(user);
+
+        service.updateUser(publicId, "amine", "manai", "24999243", "tunis", "Tunisia",
+            null, "https://api.dicebear.com/9.x/avataaars/png?seed=amine");
+
+        verify(user).updateIdentity("amine", "manai", "24999243", "tunis", "Tunisia", null);
+        verify(user).updateAvatar(
+            "https://api.dicebear.com/9.x/avataaars/png?seed=amine", null);
+        verify(users).save(user);
+    }
+
+    @Test
+    void updateUserKeepsExistingAvatarWhenUrlBlank() {
+        UUID publicId = UUID.randomUUID();
+        User user = mock(User.class);
+        when(users.findByPublicId(publicId)).thenReturn(Optional.of(user));
+        when(user.active()).thenReturn(true);
+        when(user.role()).thenReturn(Role.RECRUITER);
+        when(user.firstName()).thenReturn("amine");
+        when(user.lastName()).thenReturn("manai");
+        when(user.profileImageUrl()).thenReturn(null);
+        when(users.save(user)).thenReturn(user);
+
+        service.updateUser(publicId, "amine", "manai", "24999243", "tunis", "Tunisia",
+            null, "  ");
+
+        verify(user).updateIdentity("amine", "manai", "24999243", "tunis", "Tunisia", null);
+        verify(user, never()).updateAvatar(any(), any());
+        verify(users).save(user);
+    }
 }

@@ -3,6 +3,7 @@ package com.zennyt.recruitment.domain.model;
 import com.zennyt.recruitment.domain.vo.ExperienceLevel;
 import com.zennyt.recruitment.domain.vo.JobPositionStatus;
 import com.zennyt.recruitment.domain.vo.JobProfileType;
+import com.zennyt.recruitment.domain.vo.TypeEvaluationHard;
 import com.zennyt.shared.domain.model.AggregateRoot;
 
 import java.time.Instant;
@@ -23,6 +24,13 @@ public class JobPosition extends AggregateRoot {
     private String name;
     private String sector; // null = métier transverse
     private JobProfileType profileType; // null tant que non classé (proposition en attente)
+    /**
+     * F32 / décision D-C — le mode de mesure du hard skills appartient au métier, pas à
+     * sa famille : UX/UI Designer se prête à un QCM sur les outils là où Photographe ne
+     * s'évalue que par portfolio, alors que les deux sont ARTISTIQUE. Porté par
+     * job_role_profile jusqu'à V60, où cette intention du CdC §4.3 était inexprimable.
+     */
+    private TypeEvaluationHard typeEvaluationHard = TypeEvaluationHard.QCM;
     private boolean calibrated;
     private JobPositionStatus status;
     private final UUID proposedByRecruiterId; // null pour les métiers seedés
@@ -66,7 +74,8 @@ public class JobPosition extends AggregateRoot {
                                         boolean calibrated, JobPositionStatus status,
                                         UUID proposedByRecruiterId, String juniorLabel, String seniorLabel,
                                         String leadLabel, String managerLabel, Instant createdAt,
-                                        String embedding, JobProfileType suggestedProfileType) {
+                                        String embedding, JobProfileType suggestedProfileType,
+                                        TypeEvaluationHard typeEvaluationHard) {
         JobPosition position = new JobPosition(id, name, sector, profileType, calibrated, status,
             proposedByRecruiterId, createdAt);
         position.juniorLabel = juniorLabel;
@@ -75,6 +84,8 @@ public class JobPosition extends AggregateRoot {
         position.managerLabel = managerLabel;
         position.embedding = embedding;
         position.suggestedProfileType = suggestedProfileType;
+        position.typeEvaluationHard =
+            typeEvaluationHard != null ? typeEvaluationHard : TypeEvaluationHard.QCM;
         return position;
     }
 
@@ -124,6 +135,7 @@ public class JobPosition extends AggregateRoot {
     public String name() { return name; }
     public String sector() { return sector; }
     public JobProfileType profileType() { return profileType; }
+    public TypeEvaluationHard typeEvaluationHard() { return typeEvaluationHard; }
     public boolean calibrated() { return calibrated; }
     public JobPositionStatus status() { return status; }
     public UUID proposedByRecruiterId() { return proposedByRecruiterId; }

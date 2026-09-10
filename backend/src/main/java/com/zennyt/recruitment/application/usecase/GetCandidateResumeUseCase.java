@@ -3,10 +3,12 @@ package com.zennyt.recruitment.application.usecase;
 import com.zennyt.recruitment.domain.model.JobOffer;
 import com.zennyt.recruitment.domain.repository.HardSkillsSummaryRepository;
 import com.zennyt.recruitment.domain.repository.JobOfferRepository;
+import com.zennyt.recruitment.domain.repository.JobPositionRepository;
 import com.zennyt.recruitment.domain.repository.SoftSkillsProjectionRepository;
 import com.zennyt.recruitment.domain.repository.SoftSkillsSummaryRepository;
 import com.zennyt.recruitment.domain.repository.TestResultRepository;
 import com.zennyt.recruitment.domain.vo.ResumeAudience;
+import com.zennyt.recruitment.domain.vo.TypeEvaluationHard;
 import com.zennyt.shared.application.exception.ForbiddenException;
 import com.zennyt.shared.application.exception.NotFoundException;
 import org.springframework.stereotype.Service;
@@ -71,11 +73,47 @@ public class GetCandidateResumeUseCase {
     public static final String SOFT_SKILLS_PENDING_FR = HARD_SKILLS_PENDING_FR;
     public static final String SOFT_SKILLS_PENDING_EN = HARD_SKILLS_PENDING_EN;
 
+    /**
+     * F18 (FITSCORE_REMEDIATION.md §3 index F18, décision D-F) — CdC §7 : pour un
+     * {@code job_role_profile} ARTISTIQUE reposant uniquement sur une évaluation
+     * Portfolio (pas de QCM ni de mode Mixte), le recruteur doit être averti
+     * explicitement que le Fit Score ne mesure que les soft skills. D-F a reporté
+     * la grille de notation portfolio elle-même : au lancement, ce message est la
+     * seule mesure de compensation, donc **obligatoire**, pas une amélioration.
+     * Texte FR figé au mot près par le CdC.
+     */
+    public static final String HARD_SKILLS_PORTFOLIO_ONLY_FR =
+        "Ce profil relève d'un métier créatif. Le Fit Score affiché reflète uniquement "
+            + "l'évaluation des soft skills — la qualité technique et créative du travail "
+            + "n'est pas mesurée automatiquement. Nous vous recommandons d'examiner directement "
+            + "le portfolio du candidat avant de prendre votre décision.";
+    public static final String HARD_SKILLS_PORTFOLIO_ONLY_EN =
+        "This profile is a creative role. The displayed Fit Score reflects soft skills only — "
+            + "the technical and creative quality of the work is not measured automatically. "
+            + "We recommend reviewing the candidate's portfolio directly before making your decision.";
+
+    /**
+     * Même message, adressé au candidat qui consulte son propre résumé. Le texte du CdC
+     * est écrit pour le recruteur (« le portfolio du candidat ») : servi tel quel au
+     * candidat, il parlerait de lui à la troisième personne. Le fond est identique — ce
+     * qui n'est pas mesuré, et par quoi le regarder — seule l'adresse change.
+     */
+    public static final String HARD_SKILLS_PORTFOLIO_ONLY_SELF_FR =
+        "Votre métier est un métier créatif. Votre Fit Score reflète uniquement "
+            + "l'évaluation de vos soft skills — la qualité technique et créative de votre "
+            + "travail n'est pas mesurée automatiquement. Soignez votre portfolio : c'est lui "
+            + "que le recruteur examinera.";
+    public static final String HARD_SKILLS_PORTFOLIO_ONLY_SELF_EN =
+        "Yours is a creative role. Your Fit Score reflects your soft skills only — the "
+            + "technical and creative quality of your work is not measured automatically. "
+            + "Take care of your portfolio: that is what the recruiter will review.";
+
     private final JobOfferRepository jobOffers;
     private final TestResultRepository testResults;
     private final SoftSkillsProjectionRepository softSkillsProjections;
     private final SoftSkillsSummaryRepository softSkillsSummaries;
     private final HardSkillsSummaryRepository hardSkillsSummaries;
+    private final JobPositionRepository jobPositions;
 
     public record Section(boolean available, String textFr, String textEn, Instant updatedAt) {}
     public record Result(Section softSkills, Section hardSkills) {}
@@ -84,12 +122,14 @@ public class GetCandidateResumeUseCase {
                                      TestResultRepository testResults,
                                      SoftSkillsProjectionRepository softSkillsProjections,
                                      SoftSkillsSummaryRepository softSkillsSummaries,
-                                     HardSkillsSummaryRepository hardSkillsSummaries) {
+                                     HardSkillsSummaryRepository hardSkillsSummaries,
+                                     JobPositionRepository jobPositions) {
         this.jobOffers = jobOffers;
         this.testResults = testResults;
         this.softSkillsProjections = softSkillsProjections;
         this.softSkillsSummaries = softSkillsSummaries;
         this.hardSkillsSummaries = hardSkillsSummaries;
+        this.jobPositions = jobPositions;
     }
 
     /** Lecture recruteur — réservée au propriétaire de l'offre. */
@@ -140,14 +180,31 @@ public class GetCandidateResumeUseCase {
         // « résumé en cours de génération » de « aucun test, score soft seul ».
         boolean tested = jobPositionId != null
             && !testResults.findHardSkillHistory(candidateId, jobPositionId).isEmpty();
+
+        // F18 — métier créatif évalué par portfolio : le repli le plus prioritaire, avant
+        // même « pas encore testé ». Pour ces métiers, l'absence de QCM n'est pas un manque
+        // à combler mais le fonctionnement normal (CdC §6, §7). D-F ayant reporté la grille
+        // de notation portfolio, ce message est au lancement la seule compensation — donc
+        // obligatoire, pas une amélioration.
+        // F32 — le mode se lit désormais sur le MÉTIER : deux métiers ARTISTIQUE peuvent
+        // en avoir un différent (UX/UI Designer en Mixte, Photographe en Portfolio).
+        boolean portfolioOnly = offer != null && offer.jobPositionId() != null
+            && jobPositions.findById(offer.jobPositionId())
+                .map(position -> position.typeEvaluationHard() == TypeEvaluationHard.PORTFOLIO)
+                .orElse(false);
+
         Section hardSkills = hardSkillsSummaries
             .findByCandidateIdAndJobPositionIdAndAudience(candidateId, jobPositionId, audience)
             .map(s -> new Section(true, s.textFr(), s.textEn(), s.updatedAt()))
-            .orElseGet(() -> tested
-                ? new Section(false, HARD_SKILLS_PENDING_FR, HARD_SKILLS_PENDING_EN, null)
-                : new Section(false,
-                    self ? HARD_SKILLS_NOT_TESTED_SELF_FR : HARD_SKILLS_NOT_TESTED_FR,
-                    self ? HARD_SKILLS_NOT_TESTED_SELF_EN : HARD_SKILLS_NOT_TESTED_EN, null));
+            .orElseGet(() -> portfolioOnly
+                ? new Section(false,
+                    self ? HARD_SKILLS_PORTFOLIO_ONLY_SELF_FR : HARD_SKILLS_PORTFOLIO_ONLY_FR,
+                    self ? HARD_SKILLS_PORTFOLIO_ONLY_SELF_EN : HARD_SKILLS_PORTFOLIO_ONLY_EN, null)
+                : tested
+                    ? new Section(false, HARD_SKILLS_PENDING_FR, HARD_SKILLS_PENDING_EN, null)
+                    : new Section(false,
+                        self ? HARD_SKILLS_NOT_TESTED_SELF_FR : HARD_SKILLS_NOT_TESTED_FR,
+                        self ? HARD_SKILLS_NOT_TESTED_SELF_EN : HARD_SKILLS_NOT_TESTED_EN, null));
 
         return new Result(softSkills, hardSkills);
     }

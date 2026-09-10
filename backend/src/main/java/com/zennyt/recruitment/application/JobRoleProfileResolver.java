@@ -7,6 +7,7 @@ import com.zennyt.recruitment.domain.repository.JobPositionRepository;
 import com.zennyt.recruitment.domain.repository.JobRoleProfileRepository;
 import com.zennyt.recruitment.domain.vo.ExperienceLevel;
 import com.zennyt.recruitment.domain.vo.JobProfileType;
+import com.zennyt.recruitment.domain.vo.TypeEvaluationHard;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
@@ -32,12 +33,28 @@ public class JobRoleProfileResolver {
         this.roleProfiles = roleProfiles;
     }
 
+    /**
+     * Ce que le référentiel dit d'une offre : combien le technique pèse, et comment il se
+     * mesure. Les deux viennent du même métier, donc de la même requête — les séparer
+     * coûterait une lecture de plus par offre, ce que F20 venait justement de supprimer.
+     *
+     * @param weights        pondération du couple (profil, niveau)
+     * @param evaluationMode mode d'évaluation du hard skills, porté par le MÉTIER depuis F32
+     */
+    public record ResolvedProfile(JobRoleProfile weights, TypeEvaluationHard evaluationMode) {}
+
     public JobRoleProfile resolve(JobOffer offer) {
+        ResolvedProfile resolved = resolveWithEvaluationMode(offer);
+        return resolved == null ? null : resolved.weights();
+    }
+
+    public ResolvedProfile resolveWithEvaluationMode(JobOffer offer) {
         if (offer.jobPositionId() == null) return null;
         return positions.findById(offer.jobPositionId())
-            .map(JobPosition::profileType)
-            .filter(profileType -> profileType != null)
-            .flatMap(profileType -> roleProfiles.findByProfileTypeAndLevel(profileType, offer.experienceLevel()))
+            .filter(position -> position.profileType() != null)
+            .flatMap(position -> roleProfiles
+                .findByProfileTypeAndLevel(position.profileType(), offer.experienceLevel())
+                .map(weights -> new ResolvedProfile(weights, position.typeEvaluationHard())))
             .orElse(null);
     }
 
@@ -51,24 +68,33 @@ public class JobRoleProfileResolver {
      *         même sémantique que le {@code null} de {@link #resolve}.
      */
     public Map<UUID, JobRoleProfile> resolveAll(List<JobOffer> offers) {
+        return resolveAllWithEvaluationMode(offers).entrySet().stream()
+            .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().weights()));
+    }
+
+    /** Variante par lot de {@link #resolveWithEvaluationMode}, même coût que {@link #resolveAll}. */
+    public Map<UUID, ResolvedProfile> resolveAllWithEvaluationMode(List<JobOffer> offers) {
         List<UUID> positionIds = offers.stream()
             .map(JobOffer::jobPositionId).filter(Objects::nonNull).distinct().toList();
         if (positionIds.isEmpty()) return Map.of();
 
-        Map<UUID, JobProfileType> profileTypeByPosition = positions.findByIds(positionIds).stream()
+        Map<UUID, JobPosition> positionsById = positions.findByIds(positionIds).stream()
             .filter(position -> position.profileType() != null)
-            .collect(Collectors.toMap(JobPosition::id, JobPosition::profileType));
+            .collect(Collectors.toMap(JobPosition::id, Function.identity()));
         Map<String, JobRoleProfile> weightsByTypeAndLevel = roleProfiles.findAll().stream()
             .collect(Collectors.toMap(
                 profile -> key(profile.profileType(), profile.level()), Function.identity()));
 
-        Map<UUID, JobRoleProfile> resolved = new HashMap<>();
+        Map<UUID, ResolvedProfile> resolved = new HashMap<>();
         for (JobOffer offer : offers) {
             if (offer.jobPositionId() == null) continue;
-            JobProfileType profileType = profileTypeByPosition.get(offer.jobPositionId());
-            if (profileType == null) continue;
-            JobRoleProfile weights = weightsByTypeAndLevel.get(key(profileType, offer.experienceLevel()));
-            if (weights != null) resolved.put(offer.id(), weights);
+            JobPosition position = positionsById.get(offer.jobPositionId());
+            if (position == null) continue;
+            JobRoleProfile weights = weightsByTypeAndLevel
+                .get(key(position.profileType(), offer.experienceLevel()));
+            if (weights != null) {
+                resolved.put(offer.id(), new ResolvedProfile(weights, position.typeEvaluationHard()));
+            }
         }
         return resolved;
     }

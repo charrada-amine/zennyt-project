@@ -143,6 +143,6 @@ class CandidateFeedRankerTest {
 
     private JobPosition jobPosition(UUID id, String embedding) {
         return JobPosition.rehydrate(id, "Développeur", "IT, AI & Fintech", JobProfileType.TECHNIQUE,
-            false, JobPositionStatus.APPROVED, null, null, null, null, null, Instant.now(), embedding, null);
+            false, JobPositionStatus.APPROVED, null, null, null, null, null, Instant.now(), embedding, null, TypeEvaluationHard.QCM);
     }
 }

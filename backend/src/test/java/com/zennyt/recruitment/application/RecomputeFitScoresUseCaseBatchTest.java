@@ -49,8 +49,7 @@ class RecomputeFitScoresUseCaseBatchTest {
     private final JobOffer offreNonResolue = offer(UUID.randomUUID(), RECRUTEUR_SANS_INFO, null);
 
     private static final JobRoleProfile PONDERATION = new JobRoleProfile(
-        JobProfileType.TECHNIQUE, ExperienceLevel.SENIOR, 35, 65, 65, 30, 20, 30, 15, 5,
-        TypeEvaluationHard.QCM, false, java.time.Instant.now());
+        JobProfileType.TECHNIQUE, ExperienceLevel.SENIOR, 35, 65, 65, 30, 20, 30, 15, 5, false, java.time.Instant.now());
 
     private final List<SoftSkillsProjection> modules = List.of(
         SoftSkillsProjection.create(CANDIDATE_COMPLET, "MOVE_FAST", 80, 100, Instant.now()),

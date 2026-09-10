@@ -132,9 +132,8 @@ class _PersonalInformationsScreenState
                               final user = ref
                                   .watch(authControllerProvider)
                                   .value;
-                              final imageUrl = (user?.profileImageUrl != null && user!.profileImageUrl!.isNotEmpty)
-                                  ? user.profileImageUrl!
-                                  : ref.read(avatarServiceProvider).defaultFor(user?.email ?? '');
+                              final imageUrl = user?.effectiveAvatarUrl ??
+                                  ref.read(avatarServiceProvider).defaultFor('');
                               return CircleAvatar(
                                 radius: 48,
                                 backgroundColor: colors.primary.withValues(

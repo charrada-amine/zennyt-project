@@ -51,3 +51,8 @@ final secureStorageProvider = Provider<FlutterSecureStorage>(
 final tokenStorageProvider = Provider<TokenStorage>(
   (ref) => TokenStorage(ref.watch(secureStorageProvider)),
 );
+
+/// Instance par défaut pour les call sites hors Riverpod (ex. le singleton
+/// [WebSocketService]) : même stockage sécurisé que [secureStorageProvider]
+/// (le paramètre déprécié est ignoré par la lib, données migrées à l'accès).
+final defaultTokenStorage = TokenStorage(const FlutterSecureStorage());

@@ -16,7 +16,12 @@ class AuthInterceptor extends QueuedInterceptor {
     required this.tokenStorage,
     required this.authEventBus,
     required this.baseUrl,
-  }) : _refreshDio = Dio(BaseOptions(baseUrl: baseUrl));
+  }) : _refreshDio = Dio(BaseOptions(
+          baseUrl: baseUrl,
+          connectTimeout: const Duration(seconds: 10),
+          receiveTimeout: const Duration(seconds: 10),
+          sendTimeout: const Duration(seconds: 10),
+        ));
 
   final TokenStorage tokenStorage;
   final AuthEventBus authEventBus;

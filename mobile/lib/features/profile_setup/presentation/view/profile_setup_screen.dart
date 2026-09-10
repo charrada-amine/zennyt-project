@@ -39,8 +39,10 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   @override
   void initState() {
     super.initState();
-    final email = ref.read(signupViewModelProvider).email;
-    _avatarUrl = ref.read(avatarServiceProvider).defaultFor(email);
+    final signup = ref.read(signupViewModelProvider);
+    final fullName = '${signup.firstName} ${signup.lastName}'.trim();
+    final seed = fullName.isNotEmpty ? fullName : signup.email;
+    _avatarUrl = ref.read(avatarServiceProvider).defaultFor(seed);
   }
 
   @override

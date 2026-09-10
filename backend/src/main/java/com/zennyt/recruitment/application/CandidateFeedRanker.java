@@ -1,5 +1,7 @@
 package com.zennyt.recruitment.application;
 
+import com.zennyt.shared.application.EmbeddingCodec;
+
 import com.zennyt.recruitment.domain.model.FitScore;
 import com.zennyt.recruitment.domain.model.JobOffer;
 import com.zennyt.recruitment.domain.model.JobPosition;

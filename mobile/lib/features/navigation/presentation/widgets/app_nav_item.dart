@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/theme.dart';
-import '../../../../shared/widgets/app_motion.dart';
 
 /// A single item in [AppBottomNav]: an icon above a label.
 ///
@@ -69,55 +68,32 @@ class AppNavItem extends StatelessWidget {
     }
 
     return Expanded(
-      child: Semantics(
-        selected: selected,
-        button: true,
-        label: label,
-        child: AppPressScale(
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(20),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 5),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  AnimatedContainer(
-                    duration: AppMotion.duration(context, AppMotion.settle),
-                    curve: AppMotion.curve,
-                    width: 48,
-                    height: 34,
-                    decoration: BoxDecoration(
-                      color: selected
-                          ? colors.primary.withValues(alpha: .10)
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: AnimatedScale(
-                      scale: selected ? 1.04 : .92,
-                      duration: AppMotion.duration(context, AppMotion.settle),
-                      curve: Curves.easeOutBack,
-                      child: Center(child: iconWidget),
-                    ),
-                  ),
-                  const SizedBox(height: 5),
-                  ExcludeSemantics(
-                    child: Text(
-                      label,
-                      textAlign: TextAlign.center,
-                      style: AppTypography.navLabel.copyWith(
-                        color: selected
-                            ? colors.navLabelSelected
-                            : colors.navLabelUnselected,
-                        fontWeight: selected
-                            ? FontWeight.w700
-                            : FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                height: _iconSize + 2,
+                child: Center(child: iconWidget),
               ),
-            ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: AppTypography.labelSmall.copyWith(
+                  fontSize: 10,
+                  color: selected
+                      ? colors.navLabelSelected
+                      : colors.navLabelUnselected,
+                  fontWeight: selected
+                      ? AppTypography.semiBold
+                      : AppTypography.medium,
+                ),
+              ),
+            ],
           ),
         ),
       ),

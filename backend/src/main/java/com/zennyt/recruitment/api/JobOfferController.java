@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.Authentication;
 
 import java.security.Principal;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -80,7 +81,7 @@ public class JobOfferController {
             req.description(), req.responsibilities(),
             req.minimumQualifications(), req.preferredQualifications(),
             req.whatWeOffer(), req.howToApply(),
-            null, req.jobPositionId(),
+            req.jobPositionId(),
             Boolean.TRUE.equals(req.openToInternational())));
         return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(offer, null));
     }
@@ -138,8 +139,12 @@ public class JobOfferController {
             UUID.fromString(principal.getName()), jobOfferId, page, size);
         // F04 : le seuil de couverture dépend de la présence d'un QCM sur l'OFFRE,
         // pas de la tentative du candidat. Lu une seule fois pour tout le lot.
-        boolean offerHasAssessment = jobOfferRepository.findById(jobOfferId)
-            .map(o -> o.assessmentId() != null).orElse(false);
+        var offre = jobOfferRepository.findById(jobOfferId);
+        boolean offerHasAssessment = offre.map(o -> o.assessmentId() != null).orElse(false);
+        // Le mode d'évaluation appartient au métier de l'offre : il est le même pour tous
+        // les candidats du deck, donc résolu une seule fois hors de la boucle.
+        var modeMetier = offre.map(roleProfileResolver::resolveWithEvaluationMode)
+            .map(r -> r == null ? null : r.evaluationMode()).orElse(null);
         var items = result.content().stream().map(score -> {
             var actor = actors.findById(score.candidateId());
             return new CandidateFeedItemResponse(score.candidateId(),
@@ -148,7 +153,7 @@ public class JobOfferController {
                 actor.map(a -> a.city()).orElse(null),
                 actor.map(a -> a.country()).orElse(null),
                 score.score(), score.goodFit(), score.softSkillScore(),
-                score.hardSkillScore(), score.partialData(offerHasAssessment));
+                score.hardSkillScore(), score.partialData(offerHasAssessment, modeMetier));
         }).toList();
         return ResponseEntity.ok(PageResponse.of(items, page, size, result.totalElements()));
     }
@@ -241,21 +246,14 @@ public class JobOfferController {
         String link = shareableLink(offer);
         var fitScore = fitScore(offer, authentication);
         var recruiter = actors.findById(offer.recruiterId());
+        var resolved = roleProfileResolver.resolveWithEvaluationMode(offer);
+        var mode = resolved != null ? resolved.evaluationMode() : null;
+        HardSkillsAlertLevel alert = offer.assessmentId() != null || resolved == null
+            ? HardSkillsAlertLevel.NONE
+            : resolved.weights().hardSkillsAlert(mode);
         return JobOfferResponse.from(offer, applicantCounts.getOrDefault(offer.id(), 0L), link, fitScore,
             recruiter.map(a -> a.companyName()).orElse(null), recruiter.map(a -> a.companyInfo()).orElse(null),
-            hardSkillsAlert(offer));
-    }
-
-    /**
-     * Alerte « hard skills manquant » (CdC Fit Score v3 §6) — purement
-     * informationnelle, jamais utilisée dans le calcul du Fit Score. NONE si
-     * un QCM est déjà attaché, ou si l'offre n'est pas encore reliée au
-     * référentiel de métiers (pas de base pour dériver une alerte).
-     */
-    private HardSkillsAlertLevel hardSkillsAlert(JobOffer offer) {
-        if (offer.assessmentId() != null) return HardSkillsAlertLevel.NONE;
-        JobRoleProfile roleProfile = roleProfileResolver.resolve(offer);
-        return roleProfile != null ? roleProfile.hardSkillsAlert() : HardSkillsAlertLevel.NONE;
+            alert, mode);
     }
 
     private String shareableLink(JobOffer offer) {
@@ -272,16 +270,39 @@ public class JobOfferController {
             .orElse(null);
     }
 
+    /**
+     * F20 (FITSCORE_REMEDIATION.md §3 index F20) — auparavant 3 requêtes par offre
+     * (~60 sur une page de 20) : {@code actors.findById} et {@code hardSkillsAlert}
+     * → {@code roleProfileResolver.resolve} appelaient chacun leur variante
+     * unitaire par offre, alors que les variantes par lot ({@code findByIds},
+     * {@code resolveAll}) existent déjà et sont utilisées deux lignes plus haut
+     * pour les candidatures et les scores.
+     */
     private List<JobOfferSummaryResponse> toSummaries(List<JobOffer> offers, Authentication authentication) {
         if (offers.isEmpty()) return List.of();
         List<UUID> offerIds = offers.stream().map(JobOffer::id).toList();
         Map<UUID, Long> applicantCounts = swipeRepository.countRightByJobOfferIds(offerIds);
         Map<UUID, com.zennyt.recruitment.domain.model.FitScore> scoresByOffer = fitScoresByOffer(offerIds, authentication);
+        List<UUID> recruiterIds = offers.stream().map(JobOffer::recruiterId).distinct().toList();
+        // Un recruteur qui vient de s'inscrire n'a pas encore de nom d'entreprise : il le
+        // renseigne à l'onboarding. Collectors.toMap refuse les valeurs nulles (NPE dans
+        // HashMap.merge), donc ce recruteur-là recevait un 500 sur sa propre liste d'offres
+        // — le premier écran qu'il ouvre après avoir publié. Une entrée absente et une
+        // entrée nulle veulent dire la même chose ici : pas de nom à afficher.
+        Map<UUID, String> companyNamesByRecruiter = new HashMap<>();
+        for (var actor : actors.findByIds(recruiterIds)) {
+            companyNamesByRecruiter.putIfAbsent(actor.publicUserId(), actor.companyName());
+        }
+        var resolvedByOffer = roleProfileResolver.resolveAllWithEvaluationMode(offers);
         return offers.stream().map(offer -> {
-            String companyName = actors.findById(offer.recruiterId()).map(a -> a.companyName()).orElse(null);
+            String companyName = companyNamesByRecruiter.get(offer.recruiterId());
+            var resolved = resolvedByOffer.get(offer.id());
+            var mode = resolved != null ? resolved.evaluationMode() : null;
+            HardSkillsAlertLevel alert = offer.assessmentId() != null || resolved == null
+                ? HardSkillsAlertLevel.NONE
+                : resolved.weights().hardSkillsAlert(mode);
             return JobOfferSummaryResponse.from(offer, companyName,
-                applicantCounts.getOrDefault(offer.id(), 0L), scoresByOffer.get(offer.id()),
-                hardSkillsAlert(offer));
+                applicantCounts.getOrDefault(offer.id(), 0L), scoresByOffer.get(offer.id()), alert, mode);
         }).toList();
     }
 

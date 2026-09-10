@@ -1,5 +1,6 @@
 import 'package:zennyt/features/jobs/domain/entities/assessment.dart';
 import '../entities/job.dart' show ContractType, WorkplaceType, ExperienceLevel, JobStatus, JobOffer;
+import 'package:zennyt/features/jobs/domain/entities/job_position.dart';
 
 /// Abstraction over the recruitment API's job-offer and assessment
 /// management endpoints. Implementations throw typed `ApiException`s.
@@ -9,6 +10,12 @@ abstract class JobsRepository {
   Future<JobOffer> createJobOffer(CreateJobOfferParams params);
   Future<JobOffer> updateJobOffer(UpdateJobOfferParams params);
   Future<void> deleteJobOffer(String id);
+
+  /// F06/F30 — le référentiel des métiers et sa pondération. Sans le premier, aucune
+  /// offre ne peut être créée ; sans le second, le recruteur ne voit pas ce que son
+  /// choix de métier et de niveau implique pour le score.
+  Future<List<JobPosition>> getJobPositions();
+  Future<List<JobRoleProfile>> getJobRoleProfiles();
 
   Future<List<Assessment>> getAssessments();
   Future<Assessment> getAssessmentById(String id);
@@ -46,6 +53,12 @@ class CreateJobOfferParams {
   final String? assessmentId;
   final bool openToInternational;
 
+  /// F06 (FITSCORE_REMEDIATION.md §3 index F06) — obligatoire côté serveur depuis
+  /// la suppression du repli IA : sans métier, la formule n'a aucune pondération.
+  /// Le champ était câblé mais aucun écran ne le renseignait — donc toujours `null`,
+  /// donc toute création échouait. Le sélecteur de métier existe désormais.
+  final String? jobPositionId;
+
   const CreateJobOfferParams({
     required this.title,
     required this.companyName,
@@ -68,6 +81,7 @@ class CreateJobOfferParams {
     required this.companyInfo,
     this.assessmentId,
     required this.openToInternational,
+    this.jobPositionId,
   });
 }
 

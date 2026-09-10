@@ -47,7 +47,22 @@ identity:
 
 groq:
   api-key: ${GROQ_API_KEY:}
-  model: llama-3.3-70b-versatile
+  # llama-3.3-70b-versatile a ete mis hors service par Groq le 2026-08-16. L'API
+  # repondait 404 « model_not_found », ce qui cassait SILENCIEUSEMENT la generation de
+  # tests, les resumes IA, l'analyse de CV et les reponses du centre d'aide : aucun de
+  # ces appels ne journalisait le statut recu.
+  #
+  # Groq proposait deux remplacants. Compares le 2026-08-21 sur les taches reelles du
+  # projet (voir docs/help-center/compare_modeles.py) :
+  #
+  #   openai/gpt-oss-120b   3 epreuves sur 3, 3,3 s au total
+  #   qwen/qwen3.6-27b      1 epreuve sur 3, 9,7 s au total
+  #
+  # Qwen a echoue la ou le projet en a le plus besoin : JSON invalide sur la generation
+  # de QCM, et blocs de raisonnement <think> deverses dans une reponse d'aide censee
+  # faire trois phrases. C'est un modele de raisonnement, mal adapte a des sorties
+  # courtes et structurees.
+  model: ${GROQ_MODEL:openai/gpt-oss-120b}
   connect-timeout-ms: ${GROQ_CONNECT_TIMEOUT_MS:5000}
   read-timeout-ms: ${GROQ_READ_TIMEOUT_MS:20000}
 
@@ -87,9 +102,11 @@ recruitment:
     # indépendante des autres réglages. Voir FitScoreAiConfig.
     db-pool-size: ${RECRUITMENT_FITSCORE_DB_POOL_SIZE:2}
     inline:
-      # Calcul des notes manquantes au moment de l'affichage. Désactivé par défaut :
-      # c'est l'interrupteur de retour arrière immédiat, sans redéploiement.
-      enabled: ${RECRUITMENT_FITSCORE_INLINE_ENABLED:false}
+      # Calcul des notes manquantes au moment de l'affichage. ACTIVÉ depuis le 15/08/2026 :
+      # c'est lui qui garantit qu'une offre affichée n'est jamais reléguée en fin de liste
+      # faute de note. Il reste l'interrupteur de retour arrière immédiat — passer la
+      # variable d'environnement à false suffit, sans redéploiement.
+      enabled: ${RECRUITMENT_FITSCORE_INLINE_ENABLED:true}
       # Budget de calcul par requête d'affichage. Un budget de TEMPS, pas un compteur de
       # paires : il reste valable quand le matériel ou le code change.
       budget-ms: ${RECRUITMENT_FITSCORE_INLINE_BUDGET_MS:800}
@@ -97,8 +114,11 @@ recruitment:
       # n'est jamais atteinte en pratique — elle borne le pire cas si le budget est mal réglé.
       max-pairs: ${RECRUITMENT_FITSCORE_INLINE_MAX_PAIRS:200}
     queue:
-      # File de travail durable. Désactivée par défaut : interrupteur de retour arrière.
-      enabled: ${RECRUITMENT_FITSCORE_QUEUE_ENABLED:false}
+      # File de travail durable. ACTIVÉE depuis le 15/08/2026. Sans elle, les recalculs
+      # déclenchés par un événement ne survivent pas à un redémarrage, et seul le
+      # pré-remplissage horaire rattrape — avec jusqu'à une heure de retard.
+      # Interrupteur de retour arrière : passer la variable d'environnement à false.
+      enabled: ${RECRUITMENT_FITSCORE_QUEUE_ENABLED:true}
       # Taille de transaction du worker — une granularité, pas un plafond de débit :
       # le worker enchaîne les passages tant que la file est pleine.
       chunk-size: ${RECRUITMENT_FITSCORE_QUEUE_CHUNK_SIZE:200}
@@ -107,6 +127,15 @@ recruitment:
       max-attempts: ${RECRUITMENT_FITSCORE_QUEUE_MAX_ATTEMPTS:5}
       # Filet de sécurité si un réveil se perd. Le chemin normal est le réveil immédiat.
       poll-interval-ms: ${RECRUITMENT_FITSCORE_QUEUE_POLL_INTERVAL_MS:5000}
+      # Rétention de l'historique terminé. Une ligne est écrite par paire traitée et rien
+      # ne l'efface : sans purge la table croît sur un volume proportionnel au produit des
+      # candidats par les offres. Les index étant partiels sur PENDING, rien ne ralentit —
+      # c'est l'espace disque qui part, silencieusement. Les lignes FAILED sont conservées.
+      retention-days: ${RECRUITMENT_FITSCORE_QUEUE_RETENTION_DAYS:7}
+      # Purge quotidienne. fixedDelay : jamais deux passages en parallèle.
+      purge-interval-ms: ${RECRUITMENT_FITSCORE_QUEUE_PURGE_INTERVAL_MS:86400000}
+      # Laisse le démarrage se terminer avant le premier passage.
+      purge-initial-delay-ms: ${RECRUITMENT_FITSCORE_QUEUE_PURGE_INITIAL_DELAY_MS:300000}
   fitscore-backfill:
     # Intervalle entre deux passages du balayage de rattrapage (paires candidat/offre
     # sans Fit Score). fixedDelay : le passage suivant ne démarre qu'après la fin du

@@ -27,6 +27,13 @@ import static org.assertj.core.api.Assertions.assertThat;
  * corriger <i>doit</i> faire échouer ce test — c'est le but. Le contrat est :
  * tout écart avec cette baseline doit être <b>expliqué</b> dans le message de
  * commit, jamais simplement réaligné.
+ *
+ * <p><b>Écart du 2026-08-15, au titre de ce contrat.</b> Les cinq personas ont perdu
+ * de 0 à 5 points, sans qu'aucune pondération ne bouge : « Je Décide » est devenu
+ * mesurable et un <b>cinquième</b> module entre désormais dans leur moyenne pondérée.
+ * L'infirmier senior perd le plus (75 -> 70) parce que sa prise de décision synthétisée
+ * (50) est loin de sa régulation émotionnelle (93), qui pèse 45 % sur un profil
+ * Relationnel. Le photographe ne perd rien : ses modules sont homogènes.
  */
 class FitScoreBaselineTest {
 
@@ -49,30 +56,46 @@ class FitScoreBaselineTest {
         }
         int hard = hardCurve[level.ordinal()];
         return new JobRoleProfile(type, level, 100 - hard, hard, hard,
-            modules[0], modules[1], modules[2], modules[3], modules[4], mode, false, Instant.now());
+            modules[0], modules[1], modules[2], modules[3], modules[4], false, Instant.now());
     }
 
     /**
-     * Un candidat qui a joué <b>tous</b> les jeux mesurables, un par module.
+     * Un candidat qui a joué <b>tous</b> les jeux livrés, module par module.
      *
      * <p>Ces personas mesurent la <i>pondération</i> métier, pas la décote de couverture :
-     * ils doivent donc rester pleinement couverts. Chaque module CdC ne compte aujourd'hui
-     * qu'un seul jeu disponible côté recrutement (Je continue / Je coordonne / Je place
-     * livrés par Games mais pas encore fusionnés) : alimenter un jeu par module suffit
-     * donc à couvrir 100 % de chacun.
-     *
-     * <p><b>2026-08-12 — activation de « Je Décide ».</b> Le catalogue de la prise de
-     * décision est désormais livré ({@code DECISION_CORE.isPlayable() == true}) : le
-     * module {@code DECISION_MAKING} est mesurable et entre dans le Fit Score. Les
-     * personas reçoivent donc un score décision pour rester pleinement couverts (le poids
-     * décision, ex. 30 % en Technique, pèse maintenant réellement dans le dénominateur).
+     * ils doivent donc rester pleinement couverts. Avant la livraison Games du 2026-08-10,
+     * un seul jeu par module suffisait pour cela — la flexibilité en compte désormais 3,
+     * la mémoire 2, et « Je Décide » est mesurable depuis le 2026-08-12. Il faut les
+     * alimenter tous pour garder la même signification. Sans ça les personas se seraient
+     * mis à décrire des candidats qui sautent la moitié des jeux, et les scores de
+     * référence auraient chuté sans qu'aucune pondération ne bouge.
      */
     private static Map<String, ModuleScore> measuredModules(double flex, double memory,
-                                                            double decision, double planning,
-                                                            double regulation) {
+                                                            double planning, double regulation) {
+        return measuredModules(flex, memory, planning, regulation, decision(flex, memory));
+    }
+
+    /**
+     * Le score de « Je Décide » n'était pas un paramètre de ces personas tant que le
+     * module était inatteignable. Plutôt que de réécrire les cinq personas et de perdre
+     * la comparaison avec la baseline d'origine, la prise de décision reçoit la moyenne
+     * des deux modules cognitifs les plus proches — un candidat n'est pas radicalement
+     * différent sur cette dimension. Les tests qui veulent une valeur précise passent
+     * par la surcharge à cinq arguments.
+     */
+    private static double decision(double flex, double memory) {
+        return Math.round((flex + memory) / 2);
+    }
+
+    private static Map<String, ModuleScore> measuredModules(double flex, double memory,
+                                                            double planning, double regulation,
+                                                            double decision) {
         Map<String, ModuleScore> scores = new LinkedHashMap<>();
         scores.put("MOVE_FAST", ModuleScore.fullyCovered(flex));
+        scores.put("CONTINUOUS_ATTENTION", ModuleScore.fullyCovered(flex));
+        scores.put("VISUOMOTOR_COORDINATION", ModuleScore.fullyCovered(flex));
         scores.put("MEMORY_QUEST", ModuleScore.fullyCovered(memory));
+        scores.put("VISUOSPATIAL_MEMORY", ModuleScore.fullyCovered(memory));
         scores.put("DECISION", ModuleScore.fullyCovered(decision));
         scores.put("PLANIFIK", ModuleScore.fullyCovered(planning));
         scores.put("EMOTIONAL_REGULATION", ModuleScore.fullyCovered(regulation));
@@ -86,17 +109,17 @@ class FitScoreBaselineTest {
     @Test
     @DisplayName("Baseline : développeur senior, profil Technique, avec QCM")
     void developpeurSenior() {
-        FitScoreResult result = score(measuredModules(82, 74, 80, 90, 55),
+        FitScoreResult result = score(measuredModules(82, 74, 90, 55),
             profile(JobProfileType.TECHNIQUE, ExperienceLevel.SENIOR), 78);
 
-        assertThat(result.softSkillScore()).isEqualTo(80);
-        assertThat(result.score()).isEqualTo(79);
+        assertThat(result.softSkillScore()).isEqualTo(79);
+        assertThat(result.score()).isEqualTo(78);
     }
 
     @Test
     @DisplayName("Baseline : commercial junior, profil Relationnel, sans QCM — le fit égale le soft")
     void commercialJuniorSansQcm() {
-        FitScoreResult result = score(measuredModules(60, 65, 62, 58, 88),
+        FitScoreResult result = score(measuredModules(60, 65, 58, 88),
             profile(JobProfileType.RELATIONNEL, ExperienceLevel.JUNIOR), null);
 
         assertThat(result.softSkillScore()).isEqualTo(73);
@@ -106,33 +129,33 @@ class FitScoreBaselineTest {
     @Test
     @DisplayName("Baseline : comptable manager, profil Conventionnel, avec QCM")
     void comptableManager() {
-        FitScoreResult result = score(measuredModules(55, 84, 72, 79, 70),
+        FitScoreResult result = score(measuredModules(55, 84, 79, 70),
             profile(JobProfileType.CONVENTIONNEL, ExperienceLevel.MANAGER), 61);
 
         assertThat(result.softSkillScore()).isEqualTo(75);
-        // Décision (poids 15 % en Conventionnel, score 72) désormais incluse au soft :
-        // le fit repasse à 72 (soft ×80 % + 61 ×20 %).
+        // F21 : le soft reste à virgule jusqu'au mélange final. Arrondi trop tôt, le fit
+        // basculerait d'un point — c'est tout l'objet de ce garde-fou.
         assertThat(result.score()).isEqualTo(72);
     }
 
     @Test
     @DisplayName("Baseline : infirmier senior, profil Relationnel — la régulation émotionnelle pèse 45 %")
     void infirmierSenior() {
-        FitScoreResult result = score(measuredModules(48, 52, 58, 55, 93),
+        FitScoreResult result = score(measuredModules(48, 52, 55, 93),
             profile(JobProfileType.RELATIONNEL, ExperienceLevel.SENIOR), 64);
 
-        assertThat(result.softSkillScore()).isEqualTo(72);
-        assertThat(result.score()).isEqualTo(70);
+        assertThat(result.softSkillScore()).isEqualTo(70);
+        assertThat(result.score()).isEqualTo(69);
     }
 
     @Test
     @DisplayName("Baseline : photographe lead, profil Artistique, portfolio seul (pas de QCM)")
     void photographeLead() {
-        FitScoreResult result = score(measuredModules(95, 58, 55, 54, 77),
+        FitScoreResult result = score(measuredModules(95, 58, 54, 77),
             profile(JobProfileType.ARTISTIQUE, ExperienceLevel.LEAD), null);
 
-        assertThat(result.softSkillScore()).isEqualTo(75);
-        assertThat(result.score()).isEqualTo(75);
+        assertThat(result.softSkillScore()).isEqualTo(78);
+        assertThat(result.score()).isEqualTo(78);
     }
 
     /**
@@ -144,7 +167,7 @@ class FitScoreBaselineTest {
     @Test
     @DisplayName("D-A : le pic de pondération hard tombe bien sur SENIOR, pas ailleurs")
     void picHardSurSenior() {
-        Map<String, ModuleScore> softFaible = measuredModules(45, 45, 45, 45, 45);
+        Map<String, ModuleScore> softFaible = measuredModules(45, 45, 45, 45);
 
         int junior  = score(softFaible, profile(JobProfileType.TECHNIQUE, ExperienceLevel.JUNIOR),  90).score();
         int senior  = score(softFaible, profile(JobProfileType.TECHNIQUE, ExperienceLevel.SENIOR),  90).score();
@@ -177,10 +200,7 @@ class FitScoreBaselineTest {
         int sansLeJeuRate = score(saute, technique, null).softSkillScore();
 
         assertThat(sansLeJeuRate).isLessThan(avecLeJeuRate);
-        // Depuis l'activation de « Je Décide », la décision (poids 30 % en Technique,
-        // non jouée ici) est au dénominateur : jouer Planifik (raté, 30) fait tout de
-        // même passer le soft de 39 à 44, soit +5 — jouer n'est jamais pénalisant.
-        assertThat(avecLeJeuRate - sansLeJeuRate).isEqualTo(5);
+        assertThat(avecLeJeuRate - sansLeJeuRate).isEqualTo(4);
     }
 
     /**
@@ -200,15 +220,14 @@ class FitScoreBaselineTest {
         assertThat(score(Map.of("JEU_PAS_ENCORE_CABLE", ModuleScore.fullyCovered(10)), technique, null)).isNull();
 
         // Mélangée à un module connu, elle reste ignorée : seul MOVE_FAST compte.
-        // 40 × 30 / 100 = 12 — la valeur inconnue (90) n'y contribue en rien. La
-        // flexibilité ne compte qu'un jeu disponible, Move Fast la couvre à 100 % ; le
-        // dénominateur vaut 100 depuis que la décision est mesurable.
+        // 40 × 0,33 × 30 / 100 = 4 — la valeur inconnue (90) n'y contribue en rien.
+        // Move Fast est 1 des 3 jeux de la flexibilité, d'où la décote au tiers.
         Map<String, ModuleScore> melange = new LinkedHashMap<>();
         melange.put("MOVE_FAST", ModuleScore.fullyCovered(40));
         melange.put("JEU_PAS_ENCORE_CABLE", ModuleScore.fullyCovered(90));
-        assertThat(score(melange, technique, null).softSkillScore()).isEqualTo(12);
+        assertThat(score(melange, technique, null).softSkillScore()).isEqualTo(4);
         assertThat(score(Map.of("MOVE_FAST", ModuleScore.fullyCovered(40)), technique, null)
-            .softSkillScore()).isEqualTo(12);
+            .softSkillScore()).isEqualTo(4);
     }
 
     /**
@@ -231,6 +250,6 @@ class FitScoreBaselineTest {
     @Test
     @DisplayName("Offre sans métier approuvé : rien n'est calculé ni écrit")
     void offreSansMetierApprouve() {
-        assertThat(score(measuredModules(90, 90, 90, 90, 90), null, 78)).isNull();
+        assertThat(score(measuredModules(90, 90, 90, 90), null, 78)).isNull();
     }
 }

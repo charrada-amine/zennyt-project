@@ -6,6 +6,7 @@ import com.zennyt.recruitment.domain.repository.FitScoreRepository;
 import com.zennyt.recruitment.domain.repository.JobOfferRepository;
 import com.zennyt.recruitment.domain.repository.FitScoreDismissalRepository;
 import com.zennyt.recruitment.application.usecase.DismissFitScoreUseCase;
+import com.zennyt.recruitment.application.JobRoleProfileResolver;
 import com.zennyt.recruitment.application.usecase.RecomputeFitScoresUseCase;
 import com.zennyt.recruitment.api.security.RecruiterOnly;
 import com.zennyt.shared.application.exception.ForbiddenException;
@@ -26,17 +27,20 @@ public class FitScoreController {
     private final DismissFitScoreUseCase dismissFitScore;
     private final FitScoreDismissalRepository dismissals;
     private final RecomputeFitScoresUseCase recomputeFitScores;
+    private final JobRoleProfileResolver roleProfileResolver;
 
     public FitScoreController(FitScoreRepository fitScoreRepository,
                               JobOfferRepository jobOfferRepository,
                               DismissFitScoreUseCase dismissFitScore,
                               FitScoreDismissalRepository dismissals,
-                              RecomputeFitScoresUseCase recomputeFitScores) {
+                              RecomputeFitScoresUseCase recomputeFitScores,
+                              JobRoleProfileResolver roleProfileResolver) {
         this.fitScoreRepository = fitScoreRepository;
         this.jobOfferRepository = jobOfferRepository;
         this.dismissFitScore = dismissFitScore;
         this.dismissals = dismissals;
         this.recomputeFitScores = recomputeFitScores;
+        this.roleProfileResolver = roleProfileResolver;
     }
 
     /** GET /api/v1/fit-scores?candidateId=&jobOfferId= — Score de compatibilité */
@@ -62,12 +66,16 @@ public class FitScoreController {
         }
         // F04 : le seuil de couverture dépend de la présence d'un QCM sur l'OFFRE,
         // pas de la tentative du candidat (CdC §3.3).
-        boolean offerHasAssessment = jobOfferRepository.findById(jobOfferId)
-            .map(o -> o.assessmentId() != null).orElse(false);
+        var offre = jobOfferRepository.findById(jobOfferId);
+        boolean offerHasAssessment = offre.map(o -> o.assessmentId() != null).orElse(false);
+        // F32 — un métier Mixte attend un portfolio en plus du QCM, et le portfolio n'a
+        // aucune note : la mesure technique est partielle par construction.
+        var modeMetier = offre.map(roleProfileResolver::resolveWithEvaluationMode)
+            .map(r -> r == null ? null : r.evaluationMode()).orElse(null);
         return fitScoreRepository.findByCandidateIdAndJobOfferId(candidateId, jobOfferId)
             .map(f -> ResponseEntity.ok(new FitScoreResponse(f.id(), f.candidateId(), f.jobOfferId(),
                 f.score(), f.goodFit(), f.softSkillScore(), f.hardSkillScore(),
-                f.partialData(offerHasAssessment), f.computedAt().toString())))
+                f.partialData(offerHasAssessment, modeMetier), f.computedAt().toString())))
             .orElse(ResponseEntity.notFound().build());
     }
 

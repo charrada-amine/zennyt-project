@@ -3,7 +3,6 @@ package com.zennyt.recruitment.application;
 import com.zennyt.recruitment.application.usecase.CreateJobOfferUseCase;
 import com.zennyt.recruitment.domain.model.JobOffer;
 import com.zennyt.recruitment.domain.model.JobPosition;
-import com.zennyt.recruitment.domain.repository.AssessmentRepository;
 import com.zennyt.recruitment.domain.repository.JobOfferRepository;
 import com.zennyt.recruitment.domain.repository.JobPositionRepository;
 import com.zennyt.recruitment.domain.vo.*;
@@ -40,20 +39,19 @@ class CreateJobOfferUseCaseTest {
     void setUp() {
         offers = mock(JobOfferRepository.class);
         positions = mock(JobPositionRepository.class);
-        AssessmentRepository assessments = mock(AssessmentRepository.class);
         ApplicationEventPublisher events = mock(ApplicationEventPublisher.class);
         when(offers.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(positions.findById(POSITION)).thenReturn(Optional.of(
             JobPosition.rehydrate(POSITION, "Développeur", "IT, AI & Fintech",
                 JobProfileType.TECHNIQUE, false, JobPositionStatus.APPROVED, null,
-                null, null, null, null, Instant.now(), null, null)));
-        useCase = new CreateJobOfferUseCase(offers, assessments, positions, events);
+                null, null, null, null, Instant.now(), null, null, TypeEvaluationHard.QCM)));
+        useCase = new CreateJobOfferUseCase(offers, positions, events);
     }
 
     private CreateJobOfferUseCase.Command command(UUID jobPositionId) {
         return new CreateJobOfferUseCase.Command("Développeur", new Location("Tunis", "TN"),
             40000.0, 70000.0, ContractType.FULL_TIME, WorkplaceType.REMOTE, ExperienceLevel.SENIOR,
-            "desc", "resp", "min", "pref", "offer", "apply", null, jobPositionId, false);
+            "desc", "resp", "min", "pref", "offer", "apply", jobPositionId, false);
     }
 
     @Test
@@ -62,6 +60,9 @@ class CreateJobOfferUseCaseTest {
 
         assertThat(created.jobPositionId()).isEqualTo(POSITION);
         assertThat(created.status()).isEqualTo(JobOfferStatus.ACTIVE);
+        // F23 : aucune évaluation n'est assignable à la création (contrat squad web
+        // §3.3, réservé au PATCH) — jamais autre chose que null ici.
+        assertThat(created.assessmentId()).isNull();
     }
 
     @Test

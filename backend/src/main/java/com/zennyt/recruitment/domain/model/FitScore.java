@@ -1,6 +1,7 @@
 package com.zennyt.recruitment.domain.model;
 
 import com.zennyt.recruitment.domain.vo.FitScorePolicy;
+import com.zennyt.recruitment.domain.vo.TypeEvaluationHard;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -90,11 +91,29 @@ public class FitScore {
      * pourtant attaché à l'offre était jugé au seuil renforcé de 70 %, alors que
      * l'offre porte bien une dimension hard capable de compenser l'incertitude.
      *
+     * <p><b>Le mode d'évaluation du métier (F32) entre ici.</b> Un métier en
+     * {@link TypeEvaluationHard#MIXTE} attend <b>deux</b> mesures techniques — un QCM
+     * <i>et</i> un portfolio (CdC §4.3) — et le portfolio n'a aucune note dans le
+     * système : il n'existe que comme une URL sur le profil du candidat, qu'aucun
+     * mécanisme n'évalue. Le sous-score hard d'un tel métier ne couvre donc, par
+     * construction, que la moitié de ce que le métier exige.
+     *
+     * <p>Le <i>score</i> lui-même reste juste : conformément au principe posé en §2.2, on
+     * retire le terme non mesurable au lieu de le mettre à zéro — un candidat n'est pas
+     * puni pour une donnée que personne ne produit. Ce qui manquait était le
+     * <b>signal</b> : rien ne disait au recruteur que la mesure était partielle et qu'il
+     * lui restait un portfolio à regarder. Un métier Mixte est donc toujours signalé
+     * comme partiel, quelle que soit la couverture soft.
+     *
      * @param offerHasAssessment {@code true} si l'offre porte un QCM
      *                           ({@code JobOffer.assessmentId() != null}) —
      *                           propriété de l'offre, jamais de la tentative
+     * @param evaluationMode     mode d'évaluation du MÉTIER de l'offre ; {@code null}
+     *                           quand l'offre n'est pas encore reliée au référentiel,
+     *                           auquel cas seule la couverture décide
      */
-    public boolean partialData(boolean offerHasAssessment) {
+    public boolean partialData(boolean offerHasAssessment, TypeEvaluationHard evaluationMode) {
+        if (evaluationMode == TypeEvaluationHard.MIXTE) return true;
         int threshold = offerHasAssessment
             ? FitScorePolicy.COVERAGE_THRESHOLD_WITH_HARD_SKILLS
             : FitScorePolicy.COVERAGE_THRESHOLD_SOFT_ONLY;

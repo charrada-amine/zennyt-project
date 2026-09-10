@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/theme.dart';
+import '../../core/utils/responsive.dart';
 import 'zennyt_logo.dart';
-import 'app_motion.dart';
 
 /// Shared header used at the top of auth / sign-up screens: the centered
 /// ZENNYT logo, a title and an optional subtitle.
@@ -21,54 +21,33 @@ class AuthHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    return AppReveal(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (showLogo) ...[
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: colors.cardSurface,
-                borderRadius: BorderRadius.circular(26),
-                boxShadow: [
-                  BoxShadow(
-                    color: colors.primary.withValues(alpha: .07),
-                    blurRadius: 32,
-                    offset: const Offset(0, 12),
-                  ),
-                ],
-              ),
-              child: const ZennytLogo(
-                size: 44,
-                axis: Axis.horizontal,
-                showTagline: true,
-              ),
-            ),
-            const SizedBox(height: 32),
-          ],
+    final bool shouldShowLogo = showLogo && !Responsive.isDesktop(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        if (shouldShowLogo) ...[
+          const ZennytLogo(size: 44, showTagline: true),
+          const SizedBox(height: AppSpacing.xl),
+        ],
+        Text(
+          title,
+          textAlign: TextAlign.center,
+          style: AppTypography.headlineMedium.copyWith(
+            color: colors.textPrimary,
+          ),
+        ),
+        if (subtitle != null) ...[
+          const SizedBox(height: AppSpacing.sm),
           Text(
-            title,
-            textAlign: TextAlign.start,
-            style: AppTypography.displaySmall.copyWith(
-              color: colors.textDarkBlue,
-              fontWeight: FontWeight.w700,
-              letterSpacing: -1,
-              height: 1.15,
+            subtitle!,
+            textAlign: TextAlign.center,
+            style: AppTypography.bodyMedium.copyWith(
+              color: colors.textSecondary,
             ),
           ),
-          if (subtitle != null) ...[
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              subtitle!,
-              textAlign: TextAlign.start,
-              style: AppTypography.bodyMedium.copyWith(
-                color: colors.textSecondary,
-              ),
-            ),
-          ],
         ],
-      ),
+      ],
     );
   }
 }

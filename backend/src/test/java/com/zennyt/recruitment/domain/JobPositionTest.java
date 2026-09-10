@@ -4,6 +4,7 @@ import com.zennyt.recruitment.domain.model.JobPosition;
 import com.zennyt.recruitment.domain.vo.ExperienceLevel;
 import com.zennyt.recruitment.domain.vo.JobPositionStatus;
 import com.zennyt.recruitment.domain.vo.JobProfileType;
+import com.zennyt.recruitment.domain.vo.TypeEvaluationHard;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -61,7 +62,7 @@ class JobPositionTest {
     void levelLabelFallsBackToDefaultWhenNoOverride() {
         JobPosition position = JobPosition.rehydrate(UUID.randomUUID(), "Développeur", "IT, AI & Fintech",
             JobProfileType.TECHNIQUE, false, JobPositionStatus.APPROVED, null,
-            null, null, null, null, Instant.now(), null, null);
+            null, null, null, null, Instant.now(), null, null, TypeEvaluationHard.QCM);
 
         assertThat(position.levelLabel(ExperienceLevel.JUNIOR)).isEqualTo("Junior");
         assertThat(position.levelLabel(ExperienceLevel.SENIOR)).isEqualTo("Senior");
@@ -74,7 +75,7 @@ class JobPositionTest {
         JobPosition position = JobPosition.rehydrate(UUID.randomUUID(), "Ouvrier / Compagnon qualifié",
             "Construction & Infrastructure", JobProfileType.TECHNIQUE, false, JobPositionStatus.APPROVED, null,
             "Apprenti / Ouvrier débutant", "Compagnon confirmé", "Chef d'équipe", "Chef de chantier", Instant.now(),
-            null, null);
+            null, null, TypeEvaluationHard.QCM);
 
         assertThat(position.levelLabel(ExperienceLevel.JUNIOR)).isEqualTo("Apprenti / Ouvrier débutant");
         assertThat(position.levelLabel(ExperienceLevel.MANAGER)).isEqualTo("Chef de chantier");

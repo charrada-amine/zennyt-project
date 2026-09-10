@@ -1,7 +1,7 @@
 package com.zennyt.recruitment.infrastructure;
 
-import com.zennyt.recruitment.application.EmbeddingCodec;
-import com.zennyt.recruitment.application.port.EmbeddingPort;
+import com.zennyt.shared.application.EmbeddingCodec;
+import com.zennyt.shared.application.port.EmbeddingPort;
 import com.zennyt.recruitment.domain.repository.JobPositionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.ApplicationArguments;

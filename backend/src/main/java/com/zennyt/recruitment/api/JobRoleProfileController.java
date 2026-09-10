@@ -5,7 +5,6 @@ import com.zennyt.recruitment.domain.model.JobRoleProfile;
 import com.zennyt.recruitment.domain.repository.JobRoleProfileRepository;
 import com.zennyt.recruitment.domain.vo.ExperienceLevel;
 import com.zennyt.recruitment.domain.vo.JobProfileType;
-import com.zennyt.recruitment.domain.vo.TypeEvaluationHard;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -32,13 +31,13 @@ public class JobRoleProfileController {
                                   int softWeight, int hardWeight, int expectedHardWeight,
                                   int cognitiveFlexibilityWeight, int workingMemoryWeight,
                                   int decisionMakingWeight, int executivePlanningWeight,
-                                  int emotionalRegulationWeight, TypeEvaluationHard typeEvaluationHard,
+                                  int emotionalRegulationWeight,
                                   boolean calibrated) {
         static JobRoleProfileResponse from(JobRoleProfile profile) {
             return new JobRoleProfileResponse(profile.profileType(), profile.level(), profile.softWeight(),
                 profile.hardWeight(), profile.expectedHardWeight(), profile.cognitiveFlexibilityWeight(),
                 profile.workingMemoryWeight(), profile.decisionMakingWeight(), profile.executivePlanningWeight(),
-                profile.emotionalRegulationWeight(), profile.typeEvaluationHard(), profile.calibrated());
+                profile.emotionalRegulationWeight(), profile.calibrated());
         }
     }
 

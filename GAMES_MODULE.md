@@ -85,11 +85,11 @@ Contexte **indépendant** : ne dépend que de `shared`, s'intègre au reste **un
 | | `domain/model/AdminConfigurationSchemaRegistry.java` | Source unique Java pure des 16 schémas `GameType × SETTINGS/MODIFIERS` : types, bornes, enums, valeurs par défaut et allowlist stricte hors scoring. |
 | | `domain/model/AdminModels.java` · `domain/repository/GameAdminRepository.java` | Modèle Java pur et port de persistance de l'administration. Rejette les clés de scoring dans les configurations modifiables. |
 | **infrastructure / admin** | `infrastructure/persistence/JdbcGameAdminRepository.java` | Projection unifiée des catalogues Je Décide / Emotional Radar, versions, rotations et audit via JDBC. |
-| **migration / admin** | `V65__games_admin_console.sql` | Tables de brouillons, banques/items, configurations hors scoring, assets et audit ; seed des catalogues existants, sans modifier les tables de score. |
-| | `V66__games_admin_full_control.sql` | Sépare SETTINGS/MODIFIERS, garantit une seule version publiée par jeu/type et une seule version publiée par code de question. |
-| | `V67__games_runtime_configuration_snapshot.sql` · `V68__games_runtime_bank_snapshot.sql` | Figent versions et JSON de settings/modifiers ainsi que banque/code/version/type sur chaque session, afin qu'une publication admin ne modifie jamais une partie en cours. |
-| | `V69__games_admin_radar_answer_reference.sql` | Autorise la référence d'une réponse Radar vers une scène système ou une scène administrée publiée/archivée, avec contrôle différé d'intégrité. |
-| | `V70__games_admin_configuration_defaults.sql` · `V71__games_admin_normalize_legacy_configurations.sql` | Garantissent 8 versions `SETTINGS` + 8 `MODIFIERS` publiées et normalisent les anciens blobs libres vers l'allowlist typée en archivant l'historique, sans toucher aux valeurs de score. |
+| **migration / admin** | `V69__games_admin_console.sql` | Tables de brouillons, banques/items, configurations hors scoring, assets et audit ; seed des catalogues existants, sans modifier les tables de score. |
+| | `V70__games_admin_full_control.sql` | Sépare SETTINGS/MODIFIERS, garantit une seule version publiée par jeu/type et une seule version publiée par code de question. |
+| | `V71__games_runtime_configuration_snapshot.sql` · `V72__games_runtime_bank_snapshot.sql` | Figent versions et JSON de settings/modifiers ainsi que banque/code/version/type sur chaque session, afin qu'une publication admin ne modifie jamais une partie en cours. |
+| | `V73__games_admin_radar_answer_reference.sql` | Autorise la référence d'une réponse Radar vers une scène système ou une scène administrée publiée/archivée, avec contrôle différé d'intégrité. |
+| | `V74__games_admin_configuration_defaults.sql` · `V75__games_admin_normalize_legacy_configurations.sql` | Garantissent 8 versions `SETTINGS` + 8 `MODIFIERS` publiées et normalisent les anciens blobs libres vers l'allowlist typée en archivant l'historique, sans toucher aux valeurs de score. |
 | **mobile / runtime** | `domain/entities/game_runtime_snapshot.dart` | Projection Dart du snapshot runtime exposé par Spring ; helpers typés et valeurs de repli sûres. |
 | **web admin** | `admin/apps/web/src/features/admin/admin-app.tsx` | Shell TanStack Start responsive : authentification JWT ADMIN, navigation, rafraîchissement et gestion d'erreurs. |
 | | `admin/apps/web/src/features/admin/admin-pages.tsx` | Dashboard réel avec catalogue mobile par catégories, fiche dédiée pour chacun des 13 jeux, accès contextualisé aux questions/banques/settings/modifiers/assets, catalogue paginé et audit ; les brouillons de configuration exposent leur écart exact avec la version publiée et passent par une revue d'impact avant publication. |
@@ -158,7 +158,7 @@ Contexte **indépendant** : ne dépend que de `shared`, s'intègre au reste **un
 | | `domain/vo/ContinuousAttention{Metrics,BlockMetric,TrialMetric,Phase,InputSource,Report,PhaseReport,EpochReport}.java` | Payload brut auto-validant et rapport serveur. Ordre, compteurs, continuité X puis AX, timeline nominale, tuples de réponse et monotonie des onsets sont vérifiés avant persistance. |
 | | `domain/repository/ContinuousAttentionMetricsRepository.java` | Port de remplacement transactionnel des données brutes d'une session, y compris l'audit-only invalide. |
 | | `infrastructure/persistence/ContinuousAttentionMetricsRepositoryAdapter.java` | Persistance JDBC batch des 1 364 essais après validation du domaine. |
-| | `resources/db/migration/V27__games_continuous_attention.sql` | Ajoute le type/mini-jeu, `continuous_attention_runs`, `continuous_attention_trials` et l'index unique partiel empêchant deux Attempts valides. |
+| | `resources/db/migration/V61__games_continuous_attention.sql` | Ajoute le type/mini-jeu, `continuous_attention_runs`, `continuous_attention_trials` et l'index unique partiel empêchant deux Attempts valides. |
 | **Je coordonne** | `domain/config/CoordinationConfig.java` | Source de vérité de `FIXED_SQUARE_CW_V1` : carré fixed-point, 2 segments de pratique + 12 tests, durées 7000/2333 ms, tours lent/rapide, géométrie et fenêtres de validité. Java pur ; miroir Dart obligatoire. |
 | | `domain/config/CoordinationProvisionalRules.java` | **Score /100 PROVISOIRE** isolé et remplaçable : précision globale pondérée par le temps, unique arrondi half-up ; aucune sous-précision ni distance dans le score. |
 | | `domain/service/CoordinationTrajectoryService.java` | Reconstruit de manière déterministe la position de la cible sur le carré fixe horaire, sans easing ni saut aux changements de segment/vitesse. |
@@ -166,14 +166,14 @@ Contexte **indépendant** : ne dépend que de `shared`, s'intègre au reste **un
 | | `domain/vo/Coordination{Metrics,InputSource,Phase,PointerSample,Report,SegmentMetric,Speed}.java` | Trace brute auto-validante (14 segments contigus, positions fixed-point, source d'entrée, interruptions) et rapport descriptif serveur. Le client ne transmet ni cible, ni distance, ni score. |
 | | `domain/repository/CoordinationMetricsRepository.java` | Port de remplacement transactionnel du run et de ses échantillons bruts, y compris l'audit-only invalide. |
 | | `infrastructure/persistence/CoordinationMetricsRepositoryAdapter.java` | Persistance batch V28 de la trace après validation du domaine. |
-| | `resources/db/migration/V28__games_visuomotor_coordination.sql` | Autorise `VISUOMOTOR_COORDINATION` / `COORDINATION_TRACKING_CORE` et persiste le run, les segments/échantillons et leur audit de validité. |
+| | `resources/db/migration/V62__games_visuomotor_coordination.sql` | Autorise `VISUOMOTOR_COORDINATION` / `COORDINATION_TRACKING_CORE` et persiste le run, les segments/échantillons et leur audit de validité. |
 | **Je place** | `domain/config/ObjectLocationConfig.java` | Source de vérité `OBJECT_LOCATION_FINE_V1` : grille 4×4, pratique 2 objets, charges test 3→8, timings, réserves et progression. Toutes les valeurs de protocole non fournies sont marquées provisoires ; miroir Dart obligatoire. |
 | | `domain/config/ObjectLocationProvisionalRules.java` | **Score /100 PROVISOIRE** isolé et remplaçable : placements exacts / objets administrés, unique arrondi half-up ; temps, swaps, distances et pente de charge exclus. |
 | | `domain/service/ObjectLocationLayoutGenerator.java` | Reconstruit depuis `sessionId|OBJECT_LOCATION_FINE_V1` le catalogue, les objets, leurs cellules et leur ordre de réserve avec FNV-1a 32 bits, xorshift32 et Fisher–Yates. |
 | | `domain/service/ObjectLocationActionReplayer.java` · `ObjectLocationScoringService.java` | Rejoue les poses/retours/éjections, classe chaque objet de façon exclusive (`EXACT`, `SWAP`, `LOCAL`, `GLOBAL`, `UNPLACED`), dérive les indicateurs et valide timing/progression côté serveur. |
 | | `domain/vo/ObjectLocation*.java` | Actions et niveaux bruts auto-validants, enums de phase/réserve/fin, rapports descriptifs ; aucune origine, catégorie d'erreur ou note n'est acceptée du client. |
 | | `domain/repository/ObjectLocationMetricsRepository.java` · `infrastructure/persistence/ObjectLocationMetricsRepositoryAdapter.java` | Port + adaptateur JDBC de remplacement transactionnel d'un run, de ses niveaux et de ses actions, y compris l'audit-only invalide. |
-| | `resources/db/migration/V29__games_object_location_memory.sql` | Autorise `VISUOSPATIAL_MEMORY` / `OBJECT_LOCATION_BINDING_CORE`, crée les trois tables d'audit et protège l'unique Attempt valide par session. |
+| | `resources/db/migration/V63__games_object_location_memory.sql` | Autorise `VISUOSPATIAL_MEMORY` / `OBJECT_LOCATION_BINDING_CORE`, crée les trois tables d'audit et protège l'unique Attempt valide par session. |
 | **domain / event** | `domain/event/GameResultRecordedEvent.java` | `games.result.recorded` — **seul** point d'intégration inter-contextes. |
 | **domain / repo** | `domain/repository/GameSessionRepository.java` | Port (interface) — le domaine ne connaît jamais JPA ; expose un chargement sérialisé pour empêcher deux soumissions concurrentes d'écraser un audit validé. |
 | | `domain/repository/DeviceCalibrationRepository.java` | Port du calibrage (upsert par `sessionId`). |
@@ -714,7 +714,7 @@ Méthode **« technique » pure** (fiche « JE BOUGE » Tableau 2 révisé + gui
 
 Chaque critère affiche la **valeur mesurée entre parenthèses** et les **points/max**. Libellés fidèles aux barèmes ci-dessus. La décomposition Move Fast (points de jeu vs bonus) provient de `MoveFastConfig.replay` — même source que le score.
 
-### Schéma DB (`V9__games_schema.sql`, `V11__games_device_calibrations.sql`, `V12__games_memory_quest_minigame.sql`, `V24__games_decision_minigame.sql`, `V26__games_reflective_pause_minigame.sql`, `V27__games_continuous_attention.sql`, `V28__games_visuomotor_coordination.sql`, `V29__games_object_location_memory.sql`)
+### Schéma DB (`V9__games_schema.sql`, `V11__games_device_calibrations.sql`, `V12__games_memory_quest_minigame.sql`, `V24__games_decision_minigame.sql`, `V26__games_reflective_pause_minigame.sql`, `V61__games_continuous_attention.sql`, `V62__games_visuomotor_coordination.sql`, `V63__games_object_location_memory.sql`)
 
 - `games.game_sessions` : `id`, `player_id`, `game_type`, `status`, `started_at`, `completed_at` + `CHECK` sur type/status, index `(player_id)` et `(game_type, status)`.
 - **V12** (« J'investigue ») : la contrainte `ck_game_attempts_mini_game` autorise désormais `MEMORY_QUEST_CORE` (aucune nouvelle table — le composite est un `Attempt` /100).
@@ -1335,8 +1335,8 @@ Je place restent protégés plutôt qu'exposés comme contrôles sans effet.
 | 52 | **Catégorie mobile de « Je place »** | deuxième jeu de **Working Memory**, sans renommer la catégorie ni modifier `MEMORY_QUEST` | Placement produit cohérent avec la mémoire visuo-spatiale, mais taxonomie finale à confirmer | `games_hub_screen.dart` |
 | 53 | **Fit Score / Analytics de « Je place »** | event supprimé même après Attempt valide tant que le barème est provisoire | Aucun mapping vers la matrice Fit Score ni validation psychologue fournis | `SubmitGameResultUseCase.executeObjectLocation` |
 | 54 | **Strategic Choices — frontière de la preview front** | affiché comme 3ᵉ entrée de `Emotional Regulation`, avec scénarios textuels sans vidéo ; aucun `GameType`/`MiniGame`, score, session, Attempt, event ou Fit Score ajouté | Les 10 vidéos/captions/transcriptions, les poids des 8 stratégies, le calcul /100, les 3 indicateurs et la normalisation émotionnelle /30 ne sont pas fournis. La demande parle d'« Emotional Intelligence » mais les maquettes et la taxonomie active utilisent `Emotional Regulation` | `strategic_choices_content.dart` · `strategic_choices_screen.dart` · `games_hub_screen.dart` |
-| 55 | **Defaults d'exploitation de la console** | `sessionEnabled=true` dans `SETTINGS` et `reducedMotionDefault=false` dans `MODIFIERS` pour les 8 `GameType` ; ces valeurs reproduisent le comportement antérieur et sont versionnées, jamais rétroactives sur une session ouverte | La demande exige un contrôle complet mais ne fixe pas les valeurs initiales ni le vocabulaire des clés ; arbitrage produit à confirmer | `AdminConfigurationSchemaRegistry` · V70/V71 · `StartGameSessionUseCase` |
-| 19 | **« Je Décide » — équivalence des formes parallèles** | Forme A seule seedée (V59). Les 4 formes ne peuvent pas être équivalentes tant que ER-1..18, CS et RE sont en notation neutre : la seule forme contenant ER-19..24 serait la seule où ER discrimine, et le Fit Score compare les candidats globalement | Modèles d'aversion λ (ER), d'actualisation hyperbolique k (RE) et de cohérence de paire (CS) — 66 items sur 120 restent en notation neutre en attendant | `V59__games_decision_scenarios.sql`, `DecisionScoringService.java`, `decision_scenarios.json` |
+| 55 | **Defaults d'exploitation de la console** | `sessionEnabled=true` dans `SETTINGS` et `reducedMotionDefault=false` dans `MODIFIERS` pour les 8 `GameType` ; ces valeurs reproduisent le comportement antérieur et sont versionnées, jamais rétroactives sur une session ouverte | La demande exige un contrôle complet mais ne fixe pas les valeurs initiales ni le vocabulaire des clés ; arbitrage produit à confirmer | `AdminConfigurationSchemaRegistry` · V74/V75 · `StartGameSessionUseCase` |
+| 19 | **« Je Décide » — équivalence des formes parallèles** | Forme A seule seedée (V59). Les 4 formes ne peuvent pas être équivalentes tant que ER-1..18, CS et RE sont en notation neutre : la seule forme contenant ER-19..24 serait la seule où ER discrimine, et le Fit Score compare les candidats globalement | Modèles d'aversion λ (ER), d'actualisation hyperbolique k (RE) et de cohérence de paire (CS) — 66 items sur 120 restent en notation neutre en attendant | `V67__games_decision_scenarios.sql`, `DecisionScoringService.java`, `decision_scenarios.json` |
 
 Décisions additionnelles du 2026-09-06 :
 
@@ -1872,6 +1872,16 @@ d'assets non intégrées (`assets/04 Je Continue Logo Options/`, `assets/04 Je D
 `assets/J’investigue/J’investigue/`, 6 icônes de jeu inutilisées). `mobile/pubspec.yaml` inchangé
 (aucun asset encore déclaré n'a été retiré). `.gitignore` mis à jour. Zones protégées inchangées.
 
-**Dernière mise à jour** : 2026-09-10 — **(56)** nettoyage du dépôt (Figma/plans/artefacts/explorations d'assets) ;
+**Changelog (57)** — 2026-09-10 : fusion de `origin/main` dans la branche Games (merge, aucun
+barème/contrat/event modifié). Les migrations `games` uniques à la branche sont **renumérotées
+au-dessus de la dernière migration de `main` (V66)** pour supprimer la collision de versions :
+`V59 decision`→`V67`, `V64 emotional_radar_v2`→`V68`, `V65 admin_console`→`V69`,
+`V66 admin_full_control`→`V70`, `V67`→`V71`, `V68`→`V72`, `V69`→`V73`, `V70`→`V74`, `V71`→`V75`.
+Les migrations continues/visuo/object-location communes à `main` y restent à `V61/V62/V63` (les
+doublons de la branche sont supprimés). Côté mobile, les fichiers UI en conflit (thème, écrans
+auth, navigation) adoptent la **design system de `main`** ; le correctif anti-overflow
+`Row`→`Wrap` de l'écran d'inscription est conservé.
+
+**Dernière mise à jour** : 2026-09-10 — **(57)** merge `origin/main` + renumérotation Flyway ; **(56)** nettoyage du dépôt ;
 **(55)** démo Day Stack, Emotional Radar, Reflective Pause
 et Strategic Choices ; layouts améliorés et vidéos locales provisoires. Barèmes protégés conservés.

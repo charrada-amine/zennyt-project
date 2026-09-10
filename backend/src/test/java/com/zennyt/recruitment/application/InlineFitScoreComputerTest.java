@@ -35,8 +35,7 @@ class InlineFitScoreComputerTest {
     private static final UUID RECRUTEUR = UUID.randomUUID();
 
     private static final JobRoleProfile PONDERATION = new JobRoleProfile(
-        JobProfileType.TECHNIQUE, ExperienceLevel.SENIOR, 35, 65, 65, 30, 20, 30, 15, 5,
-        TypeEvaluationHard.QCM, false, Instant.now());
+        JobProfileType.TECHNIQUE, ExperienceLevel.SENIOR, 35, 65, 65, 30, 20, 30, 15, 5, false, Instant.now());
 
     private FitScoreRepository fitScores;
     private JobRoleProfileResolver resolver;

@@ -146,24 +146,35 @@ class FitsRepositoryImpl implements FitsRepository {
         howToApply: json['howToApply'] as String? ?? '',
         companyInfo: json['companyInfo'] as String? ?? '',
         assessmentId: json['assessmentId'] as String?,
+        jobPositionId: json['jobPositionId'] as String?,
         openToInternational: json['openToInternational'] as bool? ?? false,
         status: JobStatus.fromString(json['status'] as String? ?? 'ACTIVE'),
         postedAt: json['postedAt'] != null
             ? DateTime.tryParse(json['postedAt'] as String) ?? DateTime.now()
             : DateTime.now(),
+        // F17 (FITSCORE_REMEDIATION.md §3 index F17): the candidate's Fit Score
+        // for this offer — this mapper only ever backs candidate-facing calls
+        // (getCandidateDeck/getMyActiveOffers), so it's populated when present.
+        fitScore: (json['fitScore'] as num?)?.toInt(),
+        hardSkillsAlert: HardSkillsAlertLevel.fromString(json['hardSkillsAlert'] as String?),
       );
 
-  /// The merged backend's candidate feed carries the fit score plus the
-  /// name/avatar/location projected from Identity. Per-module soft-skill
-  /// details aren't exposed yet (see PLAN_FITSCORE_V3 D5), so the three
-  /// soft-skill rows show a qualitative level derived from the aggregate.
+  /// The merged backend's candidate feed (`CandidateFeedItem`, contract §…)
+  /// carries the fit score, an aggregate soft-skills score, `targetRole` and
+  /// a nested `location` object — not flat `city`/`country` keys, and no
+  /// `avatarUrl` field (candidate photo isn't projected into Recruitment
+  /// yet). Per-module soft-skill details aren't exposed either (see F10,
+  /// PLAN_FITSCORE_V3 D5), so section shows one qualitative level derived
+  /// from the aggregate instead of three fabricated identical rows.
   static CandidateProfile _candidateFromFeedJson(Map<String, dynamic> json) {
     final fullName = json['fullName'] as String? ?? '';
     final spaceIndex = fullName.indexOf(' ');
     final firstName = spaceIndex == -1 ? fullName : fullName.substring(0, spaceIndex);
     final lastName = spaceIndex == -1 ? '' : fullName.substring(spaceIndex + 1);
     final softSkills = (json['softSkillsScore'] as num?)?.toInt();
-    final location = [json['city'], json['country']]
+    final hardSkillScore = (json['hardSkillScore'] as num?)?.toInt();
+    final locationJson = json['location'] as Map<String, dynamic>?;
+    final location = [locationJson?['city'], locationJson?['country']]
         .whereType<String>()
         .where((p) => p.isNotEmpty)
         .join(', ');
@@ -174,16 +185,14 @@ class FitsRepositoryImpl implements FitsRepository {
         firstName: firstName,
         lastName: lastName,
         email: '',
-        profileImageUrl: json['avatarUrl'] as String?,
       ),
-      targetRole: '',
+      targetRole: json['targetRole'] as String? ?? '',
       seniority: '',
       fitScore: (json['fitScore'] as num?)?.toInt() ?? 0,
       location: location,
-      decisionMaking: _qualitative(softSkills),
-      cognitiveFlexibility: _qualitative(softSkills),
-      emotionalRegulation: _qualitative(softSkills),
-      hardSkills: const {},
+      softSkillsLevel: _qualitative(softSkills),
+      hardSkills: hardSkillScore != null ? {'Hard Skills': hardSkillScore} : const {},
+      partialData: json['partialData'] as bool? ?? false,
       contractTypes: [if (json['goodFit'] as bool? ?? false) 'Good fit'],
       isImmediate: false,
     );

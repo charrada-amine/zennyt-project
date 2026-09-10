@@ -5,6 +5,7 @@ import 'package:zennyt/features/jobs/data/jobs_repository_impl.dart';
 import 'package:zennyt/features/jobs/domain/entities/assessment.dart';
 import 'package:zennyt/features/jobs/domain/entities/job.dart';
 import 'package:zennyt/features/jobs/domain/repositories/jobs_repository.dart';
+import 'package:zennyt/features/jobs/domain/entities/job_position.dart';
 /// Source unique du repository Jobs (backend intégré).
 final jobsRepositoryProvider = Provider<JobsRepository>((ref) {
   return JobsRepositoryImpl(ref.watch(dioProvider));
@@ -21,10 +22,16 @@ class JobOffersNotifier extends AsyncNotifier<List<JobOffer>> {
     state = await AsyncValue.guard(() => ref.read(jobsRepositoryProvider).getJobOffers());
   }
 
-  Future<void> createJob(CreateJobOfferParams params) async {
+  /// F24 (FITSCORE_REMEDIATION.md §3 index F24): `assessmentId` isn't part of
+  /// the create payload (backend-enforced, see [JobsRepositoryImpl.createJobOffer])
+  /// — returns the created job so callers that captured an assessment
+  /// selection in the same form can immediately follow up with
+  /// [assignAssessment].
+  Future<JobOffer> createJob(CreateJobOfferParams params) async {
     final newJob = await ref.read(jobsRepositoryProvider).createJobOffer(params);
     final current = state.value ?? [];
     state = AsyncData([newJob, ...current]);
+    return newJob;
   }
 
   Future<void> updateJob(UpdateJobOfferParams params) async {
@@ -96,6 +103,19 @@ class AssessmentsNotifier extends AsyncNotifier<List<Assessment>> {
     state = AsyncData(current.where((a) => a.id != id).toList());
   }
 }
+
+/// F06 — le catalogue des métiers, pour le sélecteur du formulaire de création.
+/// Chargé une fois par session : le référentiel est fixe (142 lignes approuvées).
+final jobPositionsProvider = FutureProvider<List<JobPosition>>((ref) {
+  return ref.read(jobsRepositoryProvider).getJobPositions();
+});
+
+/// F30 — les 24 lignes de pondération (6 profils × 4 niveaux). L'endpoint existait
+/// depuis le début, au contrat, avec son javadoc annonçant servir au préremplissage
+/// du formulaire — et personne ne l'appelait.
+final jobRoleProfilesProvider = FutureProvider<List<JobRoleProfile>>((ref) {
+  return ref.read(jobsRepositoryProvider).getJobRoleProfiles();
+});
 
 final assessmentsProvider = AsyncNotifierProvider<AssessmentsNotifier, List<Assessment>>(
   AssessmentsNotifier.new,

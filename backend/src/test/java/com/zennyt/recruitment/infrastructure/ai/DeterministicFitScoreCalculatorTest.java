@@ -8,7 +8,6 @@ import com.zennyt.recruitment.domain.vo.ExperienceLevel;
 import com.zennyt.recruitment.domain.vo.JobProfileType;
 import com.zennyt.recruitment.domain.vo.SoftSkillModule;
 import com.zennyt.recruitment.domain.vo.TypeEvaluationHard;
-import org.assertj.core.data.Offset;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -23,28 +22,32 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * <p>Repère utile pour lire les valeurs attendues : sur un profil <b>Technique</b>,
  * les poids sont 30/20/30/15/5 (flexibilité, mémoire, décision, planification,
- * régulation). Depuis l'activation de « Je Décide » (2026-08-12, catalogue de 120
- * items livré), la <b>Prise de décision est mesurable et compte au dénominateur</b> :
- * il vaut donc 30+20+30+15+5 = <b>100</b>.
+ * régulation). Depuis la livraison du catalogue « Je Décide » (2026-08-12, 120 items),
+ * <b>les cinq modules sont mesurables</b> : le dénominateur vaut donc <b>100</b>. Il a
+ * valu 70 tant que la prise de décision restait inatteignable — les valeurs de ce
+ * fichier ont baissé d'autant, sans qu'aucune pondération ne bouge.
  *
- * <p>En revanche, la flexibilité et la mémoire ne comptent aujourd'hui qu'<b>un seul
- * jeu disponible</b> chacune (Je continue / Je coordonne / Je place livrés par Games
- * mais pas encore fusionnés côté recrutement, cf. {@link SoftSkillModule}). Jouer
- * Move Fast couvre donc la flexibilité à 100 % (1 jeu sur 1), pas à un tiers. Un
- * candidat qui n'a joué qu'un seul module obtient logiquement un score bas <i>et</i>
- * une couverture basse : c'est le signal attendu, pas un bug.
+ * <p>Un candidat qui n'a joué qu'un seul jeu obtient logiquement un score bas <i>et</i>
+ * une couverture basse : c'est le signal attendu, pas un bug. Il l'obtient même deux
+ * fois, puisque la flexibilité compte 3 jeux depuis le 10 août et que la prise de
+ * décision pèse maintenant au dénominateur.
+ *
+ * <p><b>Depuis la livraison Games du 2026-08-10</b>, la flexibilité compte <b>3</b> jeux
+ * (Move Fast, Je continue, Je coordonne) et la mémoire <b>2</b>. Jouer Move Fast seul ne
+ * couvre donc plus qu'un tiers de la flexibilité, là où c'était 100 % quand il était le
+ * seul jeu livré. Les valeurs ci-dessous ont chuté pour cette raison : ce n'est pas une
+ * régression du calcul, c'est la décote de couverture du CdC §3.3 qui a enfin de quoi
+ * s'exercer.
  */
 class DeterministicFitScoreCalculatorTest {
 
     /** Technique/Senior — hard 65, soft 35, modules 30/20/30/15/5 (matrice v4.1). */
     private static final JobRoleProfile TECHNIQUE_SENIOR = new JobRoleProfile(
-        JobProfileType.TECHNIQUE, ExperienceLevel.SENIOR, 35, 65, 65, 30, 20, 30, 15, 5,
-        TypeEvaluationHard.QCM, false, Instant.now());
+        JobProfileType.TECHNIQUE, ExperienceLevel.SENIOR, 35, 65, 65, 30, 20, 30, 15, 5, false, Instant.now());
 
     /** Relationnel/Senior — hard 20, soft 80, modules 10/10/20/15/45 (matrice v4.1). */
     private static final JobRoleProfile RELATIONNEL_SENIOR = new JobRoleProfile(
-        JobProfileType.RELATIONNEL, ExperienceLevel.SENIOR, 80, 20, 20, 10, 10, 20, 15, 45,
-        TypeEvaluationHard.QCM, false, Instant.now());
+        JobProfileType.RELATIONNEL, ExperienceLevel.SENIOR, 80, 20, 20, 10, 10, 20, 15, 45, false, Instant.now());
 
     private final DeterministicFitScoreCalculator calculator = new DeterministicFitScoreCalculator();
 
@@ -58,10 +61,9 @@ class DeterministicFitScoreCalculatorTest {
         FitScoreResult result = score(
             Map.of("MOVE_FAST", ModuleScore.fullyCovered(90)), TECHNIQUE_SENIOR, null);
 
-        // Flexibilité = 1 jeu disponible → Move Fast la couvre à 100 %. Les 4 autres
-        // modules mesurables ne sont pas joués : seul le poids 30 contribue.
-        assertThat(result.softSkillScore()).isEqualTo(27);   // 90 × 30 / 100
-        assertThat(result.coverageRatio()).isEqualTo(30);    // 100 × 30 / 100
+        // Un jeu sur les 3 de la flexibilité : le module n'est couvert qu'à 33 %.
+        assertThat(result.softSkillScore()).isEqualTo(9);    // 90 × 0,33 × 30 / 100
+        assertThat(result.coverageRatio()).isEqualTo(10);    // 33 × 30 / 100
     }
 
     @Test
@@ -70,8 +72,8 @@ class DeterministicFitScoreCalculatorTest {
         FitScoreResult result = score(
             Map.of("MOVE_FAST", new ModuleScore(90, 40)), TECHNIQUE_SENIOR, null);
 
-        assertThat(result.softSkillScore()).isEqualTo(11);   // 90 × 0,40 × 30 / 100
-        assertThat(result.coverageRatio()).isEqualTo(12);    // 40 × 30 / 100
+        assertThat(result.softSkillScore()).isEqualTo(4);   // 90 × (40/3) % × 30 / 100
+        assertThat(result.coverageRatio()).isEqualTo(4);    // (40/3) × 30 / 100
     }
 
     /**
@@ -87,8 +89,9 @@ class DeterministicFitScoreCalculatorTest {
             "MEMORY_QUEST", new ModuleScore(80, 50)),   // poids 20, à moitié couvert
             TECHNIQUE_SENIOR, null);
 
-        assertThat(result.softSkillScore()).isEqualTo(32);   // (80×1,00×30 + 80×0,50×20) / 100
-        assertThat(result.coverageRatio()).isEqualTo(40);    // (100×30 + 50×20) / 100
+        // Flexibilité : 100 sur 3 jeux = 33 %. Mémoire : 50 sur 2 jeux = 25 %.
+        assertThat(result.softSkillScore()).isEqualTo(12);   // (80×0,33×30 + 80×0,25×20) / 100
+        assertThat(result.coverageRatio()).isEqualTo(15);    // (33×30 + 25×20) / 100
     }
 
     @Test
@@ -96,8 +99,8 @@ class DeterministicFitScoreCalculatorTest {
     void poidsHardSeulementApresLeQcm() {
         Map<String, ModuleScore> joue = Map.of("MOVE_FAST", ModuleScore.fullyCovered(80));
 
-        // soft = 80 × 30 / 100 = 24 ; fit = 24 × 35 % + 60 × 65 % = 47,4 -> 47
-        assertThat(score(joue, TECHNIQUE_SENIOR, 60).score()).isEqualTo(47);
+        // soft = 80 × 0,33 × 30 / 100 = 8,0 ; fit = 8,0 × 35 % + 60 × 65 % = 41,8
+        assertThat(score(joue, TECHNIQUE_SENIOR, 60).score()).isEqualTo(42);
 
         FitScoreResult sansQcm = score(joue, TECHNIQUE_SENIOR, null);
         assertThat(sansQcm.score()).isEqualTo(sansQcm.softSkillScore());
@@ -123,10 +126,10 @@ class DeterministicFitScoreCalculatorTest {
         candidat.put("MEMORY_QUEST", ModuleScore.fullyCovered(55));    // mémoire
         candidat.put("PLANIFIK", ModuleScore.fullyCovered(70));        // planification
 
-        // Technique, dénominateur 100 : (50×30 + 55×20 + 70×15) / 100 = 37
-        assertThat(score(candidat, TECHNIQUE_SENIOR, null).softSkillScore()).isEqualTo(37);
-        // Relationnel, dénominateur 100 : (50×10 + 55×10 + 70×15) / 100 = 21
-        assertThat(score(candidat, RELATIONNEL_SENIOR, null).softSkillScore()).isEqualTo(21);
+        // Technique, dénominateur 100 : (50×0,33×30 + 55×0,50×20 + 70×1,00×15) / 100 = 21
+        assertThat(score(candidat, TECHNIQUE_SENIOR, null).softSkillScore()).isEqualTo(21);
+        // Relationnel, dénominateur 100 : (50×0,33×10 + 55×0,50×10 + 70×1,00×15) / 100 = 15
+        assertThat(score(candidat, RELATIONNEL_SENIOR, null).softSkillScore()).isEqualTo(15);
     }
 
     @Test
@@ -137,9 +140,9 @@ class DeterministicFitScoreCalculatorTest {
             "EMOTIONAL_REGULATION", ModuleScore.fullyCovered(20)),
             TECHNIQUE_SENIOR, null);
 
-        // (80×30 + 20×5) / 100 = 25. Régulation ignorée, ce serait 24 : l'écart prouve
-        // que le module compte bien.
-        assertThat(result.softSkillScore()).isEqualTo(25);
+        // (80×0,33×30 + 20×1,00×5) / 100 = 9,0. Régulation ignorée, ce serait 8,0 :
+        // l'écart prouve que le module compte bien.
+        assertThat(result.softSkillScore()).isEqualTo(9);
     }
 
     @Test
@@ -150,66 +153,88 @@ class DeterministicFitScoreCalculatorTest {
             "JEU_PAS_ENCORE_CABLE", ModuleScore.fullyCovered(10)),
             TECHNIQUE_SENIOR, null);
 
-        assertThat(result.softSkillScore()).isEqualTo(24);   // identique à MOVE_FAST seul (80×30/100)
+        assertThat(result.softSkillScore()).isEqualTo(8);    // identique à MOVE_FAST seul
         // Seule, une clé inconnue ne produit aucun score du tout.
         assertThat(score(Map.of("JEU_PAS_ENCORE_CABLE", ModuleScore.fullyCovered(90)),
             TECHNIQUE_SENIOR, null)).isNull();
     }
 
     /**
-     * Décision D-D, révisée le 2026-08-12 — « Je Décide » est désormais livré
-     * (catalogue de 120 items, {@code DECISION_CORE.isPlayable() == true}). Le module
-     * est mesurable et pèse pour de bon : sur un profil Technique (poids décision 30 %),
-     * un candidat qui ne l'a pas joué plafonne à 70/100 ; ne l'atteint 100 que celui
-     * qui a joué tous les jeux, décision comprise. C'est l'exact inverse de l'ancienne
-     * règle qui sortait la décision du calcul faute de catalogue.
+     * Depuis la livraison du catalogue « Je Décide » (2026-08-12), <b>plus aucun module
+     * n'est hors du calcul</b> : les cinq pèsent, le dénominateur vaut 100. Le mécanisme
+     * d'exclusion reste en place et testé — il servira si Games retire un jour un jeu —
+     * mais il ne s'applique aujourd'hui à personne.
+     *
+     * <p>« Parfait » veut donc dire : les <b>8</b> jeux livrés, « Je Décide » compris.
      */
     @Test
-    @DisplayName("La décision est mesurable : ne pas la jouer plafonne le score")
-    void laDecisionCompteDesormaisDansLeScore() {
+    @DisplayName("Un candidat qui a tout joué atteint bien 100, sans plafond")
+    void candidatCompletAtteintCent() {
         assertThat(SoftSkillModule.DECISION_MAKING.unmeasurable()).isFalse();
 
-        // « Parfait » = un jeu par module mesurable, décision comprise, tous à 100.
+        FitScoreResult result = score(candidatComplet(), TECHNIQUE_SENIOR, null);
+
+        assertThat(result.softSkillScore()).isEqualTo(100);
+        assertThat(result.coverageRatio()).isEqualTo(100);
+    }
+
+    /**
+     * Le changement de comportement le plus visible de la livraison du 2026-08-12, et
+     * celui qu'un candidat remarquera : « Je Décide » pèse 30 sur un profil Technique.
+     * Ne pas y jouer coûtait <b>zéro</b> la veille — le module était ignoré — et coûte
+     * désormais exactement son poids.
+     */
+    @Test
+    @DisplayName("Ne pas jouer « Je Décide » coûte exactement le poids du module")
+    void ignorerLaPriseDeDecisionCouteSonPoids() {
+        Map<String, ModuleScore> sansDecision = new LinkedHashMap<>(candidatComplet());
+        sansDecision.remove("DECISION");
+
+        FitScoreResult result = score(sansDecision, TECHNIQUE_SENIOR, null);
+
+        // 100 - 30 (le poids de la prise de décision sur ce profil).
+        assertThat(result.softSkillScore()).isEqualTo(70);
+        assertThat(result.coverageRatio()).isEqualTo(70);
+    }
+
+    /** Les 8 jeux livrés, tous parfaitement réussis et pleinement couverts. */
+    private static Map<String, ModuleScore> candidatComplet() {
         Map<String, ModuleScore> parfait = new LinkedHashMap<>();
         parfait.put("MOVE_FAST", ModuleScore.fullyCovered(100));
+        parfait.put("CONTINUOUS_ATTENTION", ModuleScore.fullyCovered(100));
+        parfait.put("VISUOMOTOR_COORDINATION", ModuleScore.fullyCovered(100));
         parfait.put("MEMORY_QUEST", ModuleScore.fullyCovered(100));
+        parfait.put("VISUOSPATIAL_MEMORY", ModuleScore.fullyCovered(100));
         parfait.put("DECISION", ModuleScore.fullyCovered(100));
         parfait.put("PLANIFIK", ModuleScore.fullyCovered(100));
         parfait.put("EMOTIONAL_REGULATION", ModuleScore.fullyCovered(100));
-
-        FitScoreResult result = score(parfait, TECHNIQUE_SENIOR, null);
-        assertThat(result.softSkillScore()).isEqualTo(100);
-        assertThat(result.coverageRatio()).isEqualTo(100);
-
-        // Le même candidat SANS avoir joué la décision : le poids 30 % reste au
-        // dénominateur mais ne contribue rien -> plafond à 70.
-        Map<String, ModuleScore> sansDecision = new LinkedHashMap<>(parfait);
-        sansDecision.remove("DECISION");
-        assertThat(score(sansDecision, TECHNIQUE_SENIOR, null).softSkillScore()).isEqualTo(70);
+        return parfait;
     }
 
     /**
      * Un module peut être alimenté par PLUSIEURS jeux (Flexibilité cognitive =
      * Move Fast + Je continue + Je coordonne, cf. GAMES_MODULE.md). Sans regroupement
-     * préalable, son poids serait compté une fois par jeu — 30+30+30 = 90 points sur
-     * 100 au lieu de 30 — et le module écraserait tous les autres.
+     * préalable, son poids serait compté une fois par jeu — 30+30+30 = 90 points sur un
+     * dénominateur de 100 — et un candidat qui ne joue QUE de la flexibilité obtiendrait
+     * 90 alors qu'il n'a rien montré des quatre autres modules.
      */
     @Test
     @DisplayName("Plusieurs jeux d'un même module : le poids n'est compté qu'une fois")
     void plusieursJeuxUnSeulPoids() {
-        Map<String, ModuleScore> unJeuDeFlex = new LinkedHashMap<>();
-        unJeuDeFlex.put("MOVE_FAST", ModuleScore.fullyCovered(80));
-        unJeuDeFlex.put("MEMORY_QUEST", ModuleScore.fullyCovered(75));
+        Map<String, ModuleScore> tousLesJeuxDeFlex = new LinkedHashMap<>();
+        tousLesJeuxDeFlex.put("MOVE_FAST", ModuleScore.fullyCovered(100));
+        tousLesJeuxDeFlex.put("CONTINUOUS_ATTENTION", ModuleScore.fullyCovered(100));
+        tousLesJeuxDeFlex.put("VISUOMOTOR_COORDINATION", ModuleScore.fullyCovered(100));
 
-        Map<String, ModuleScore> troisJeuxDeFlex = new LinkedHashMap<>(unJeuDeFlex);
-        troisJeuxDeFlex.put("CONTINUOUS_ATTENTION", ModuleScore.fullyCovered(90));
-        troisJeuxDeFlex.put("VISUOMOTOR_COORDINATION", ModuleScore.fullyCovered(60));
+        FitScoreResult result = score(tousLesJeuxDeFlex, TECHNIQUE_SENIOR, null);
 
-        int avecUnJeu = score(unJeuDeFlex, TECHNIQUE_SENIOR, null).softSkillScore();
-        int avecTroisJeux = score(troisJeuxDeFlex, TECHNIQUE_SENIOR, null).softSkillScore();
+        // La flexibilité pèse 30 sur 100, et rien d'autre n'est mesuré : 30, pas 90.
+        assertThat(result.softSkillScore()).isEqualTo(30);
+        assertThat(result.coverageRatio()).isEqualTo(30);
 
-        // La flexibilité passe de 80 à la moyenne des jeux rattachés : quelques points
-        // d'écart. Si le poids était compté trois fois, l'écart serait massif.
-        assertThat(avecTroisJeux).isCloseTo(avecUnJeu, Offset.offset(3));
+        // Corollaire : jouer les 3 jeux vaut mieux que d'en jouer un seul.
+        int unSeul = score(Map.of("MOVE_FAST", ModuleScore.fullyCovered(100)),
+            TECHNIQUE_SENIOR, null).softSkillScore();
+        assertThat(result.softSkillScore()).isGreaterThan(unSeul);
     }
 }

@@ -17,6 +17,27 @@ public class HelpChatController {
     private final ListHelpChatsUseCase listChats;
     private final ListHelpMessagesUseCase listMessages;
     private final SendHelpMessageUseCase sendMessage;
+    private final OpenHelpChatUseCase openChat;
+    private final RateHelpChatUseCase rateChat;
+
+    /** POST /api/v1/help-chats — Ouvrir une conversation d'aide */
+    @PostMapping @EngagementAuthenticated
+    public ResponseEntity<HelpChatResponse> open(@RequestBody(required = false) HelpChatOpenRequest request,
+                                                 Principal principal) {
+        String title = request == null ? null : request.title();
+        String subtitle = request == null ? null : request.subtitle();
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(HelpChatResponse.from(openChat.execute(actor(principal), title, subtitle)));
+    }
+
+    /** POST /api/v1/help-chats/{id}/rating — Noter l'echange (Poor / OK / Great) */
+    @PostMapping("/{helpChatId}/rating") @EngagementAuthenticated
+    public HelpChatResponse rate(@PathVariable UUID helpChatId,
+                                 @Valid @RequestBody HelpChatRatingRequest request,
+                                 Principal principal) {
+        return HelpChatResponse.from(
+            rateChat.execute(actor(principal), helpChatId, request.rating(), request.comment()));
+    }
     @GetMapping @EngagementAuthenticated
     public List<HelpChatResponse> list(Principal principal) { return listChats.execute(actor(principal)).stream().map(HelpChatResponse::from).toList(); }
     @GetMapping("/{helpChatId}/messages") @EngagementAuthenticated

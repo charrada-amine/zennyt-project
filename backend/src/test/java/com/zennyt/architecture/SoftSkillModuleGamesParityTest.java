@@ -63,15 +63,20 @@ class SoftSkillModuleGamesParityTest {
     }
 
     /**
-     * Jeux <b>livrés par Games</b> (mini-jeu jouable) mais <b>délibérément pas encore
-     * comptés</b> au Fit Score, le temps de finaliser leur intégration côté recrutement.
-     * <b>Décision produit du 2026-08-12</b> : « Je continue », « Je coordonne » et
-     * « Je place » restent {@code available = false} dans {@link SoftSkillModule} — ils
-     * n'entrent donc pas encore au dénominateur. Retirer une entrée d'ici dès que le jeu
-     * correspondant est fusionné (et passé à {@code true}).
+     * Jeux <b>livrés par Games</b> mais <b>délibérément pas encore comptés</b> au Fit
+     * Score, le temps de finaliser leur intégration côté recrutement.
+     *
+     * <p><b>La liste est vide, et c'est l'état normal.</b> Elle a servi entre le 10 et le
+     * 15 août 2026 : la branche Games travaillait sur une base antérieure où « Je
+     * continue », « Je coordonne » et « Je place » étaient encore à {@code false}, alors
+     * que {@code main} les comptait déjà. La fusion a réaligné les deux, donc plus rien
+     * n'est différé.
+     *
+     * <p>Le garde-fou du bas de {@link #disponibiliteAlignee()} interdit d'y laisser une
+     * entrée périmée : une entrée qui ne diverge plus fait échouer le test. C'est
+     * volontaire — une allowlist qu'on oublie de vider finit par masquer un vrai écart.
      */
-    private static final java.util.Set<String> INTENTIONNELLEMENT_DIFFERES = java.util.Set.of(
-        "CONTINUOUS_ATTENTION", "VISUOMOTOR_COORDINATION", "VISUOSPATIAL_MEMORY");
+    private static final java.util.Set<String> INTENTIONNELLEMENT_DIFFERES = java.util.Set.of();
 
     @Test
     @DisplayName("La disponibilité déclarée au Fit Score suit celle de Games (hors différés assumés)")

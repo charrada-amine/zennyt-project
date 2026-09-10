@@ -7,12 +7,12 @@ import com.zennyt.games.domain.catalog.DecisionScenarioCatalog;
 import com.zennyt.games.domain.event.GameResultRecordedEvent;
 import com.zennyt.games.domain.model.GameSession;
 import com.zennyt.games.domain.model.MiniGame;
+import com.zennyt.games.domain.repository.DeviceCalibrationRepository;
 import com.zennyt.games.domain.repository.ContinuousAttentionMetricsRepository;
 import com.zennyt.games.domain.repository.CoordinationMetricsRepository;
-import com.zennyt.games.domain.repository.DeviceCalibrationRepository;
 import com.zennyt.games.domain.repository.EmotionalRadarAnswerRepository;
-import com.zennyt.games.domain.repository.GameSessionRepository;
 import com.zennyt.games.domain.repository.ObjectLocationMetricsRepository;
+import com.zennyt.games.domain.repository.GameSessionRepository;
 import com.zennyt.games.domain.vo.GameType;
 import com.zennyt.games.domain.vo.MemoryQuestMetrics;
 import org.junit.jupiter.api.BeforeEach;
@@ -63,6 +63,8 @@ class SubmitGameResultUseCaseEventTest {
             mock(DecisionFormCatalog.class));
 
         session = GameSession.start(JOUEUR, GameType.MEMORY_QUEST);
+        // Depuis le verrou de ligne posé par Games, le cas d'usage lit la session via
+        // findByIdForUpdate : sérialiser les soumissions concurrentes d'une même session.
         when(repository.findByIdForUpdate(session.id())).thenReturn(Optional.of(session));
         // Comme GameSessionRepositoryAdapter : une session reconstruite, sans événements.
         when(repository.save(any())).thenAnswer(invocation -> reconstruire(invocation.getArgument(0)));

@@ -18,7 +18,7 @@ public class AssessmentAiConfig {
     public AssessmentGeneratorPort assessmentGenerator(
             ObjectMapper objectMapper,
             @Value("${groq.api-key:}") String apiKey,
-            @Value("${groq.model:llama-3.3-70b-versatile}") String model,
+            @Value("${groq.model:openai/gpt-oss-120b}") String model,
             @Value("${groq.connect-timeout-ms:5000}") int connectTimeoutMs,
             @Value("${groq.read-timeout-ms:20000}") int readTimeoutMs) {
         if (apiKey == null || apiKey.isBlank()) return new StubAssessmentGenerator();

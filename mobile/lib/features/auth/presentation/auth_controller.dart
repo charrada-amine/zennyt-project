@@ -2,9 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:flutter/material.dart';
 
 import '../../../core/enums/user_role.dart';
 import '../../../core/error/api_exception.dart';
+import '../../../core/localization/locale_controller.dart';
 import '../../../core/network/auth_events.dart';
 import '../../../core/storage/token_storage.dart';
 import '../../../core/upload/upload_service.dart';
@@ -193,14 +196,42 @@ class AuthController extends AsyncNotifier<AppUser?> {
 
   Future<void> _revalidate() async {
     try {
-      final user = await ref.read(authRepositoryProvider).getMe();
+      final user = await ref
+          .read(authRepositoryProvider)
+          .getMe()
+          .timeout(const Duration(seconds: 15));
       state = AsyncData(user);
-    } on ApiException {
-      // Keep the cached user; interceptor governs token validity.
+    } catch (_) {
+      // If the token was cleared by the session-expired handler (or refresh
+      // failed), treat the user as signed out immediately.
+      final token = await ref.read(tokenStorageProvider).readAccessToken();
+      if (token == null || token.isEmpty) {
+        state = const AsyncData(null);
+      }
     }
   }
 
   Future<void> _onSessionExpired() async {
+    // Show a toast — wrapped in try/catch so a failure here never blocks logout.
+    try {
+      final locale = ref.read(localeProvider);
+      final isFrench = locale.languageCode == 'fr';
+      final message = isFrench
+          ? 'Votre session a expiré. Veuillez vous reconnecter.'
+          : 'Your session has expired. Please log in again.';
+
+      Fluttertoast.showToast(
+        msg: message,
+        toastLength: Toast.LENGTH_LONG,
+        gravity: ToastGravity.CENTER,
+        backgroundColor: const Color(0xFFE53935),
+        textColor: const Color(0xFFFFFFFF),
+        fontSize: 15,
+      );
+    } catch (_) {
+      // Toast is best-effort; critical path continues below.
+    }
+
     await ref.read(tokenStorageProvider).clear();
     state = const AsyncData(null);
   }

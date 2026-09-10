@@ -10,6 +10,7 @@ import com.zennyt.recruitment.domain.repository.JobPositionRepository;
 import com.zennyt.recruitment.domain.vo.ExperienceLevel;
 import com.zennyt.recruitment.domain.vo.JobPositionStatus;
 import com.zennyt.recruitment.domain.vo.JobProfileType;
+import com.zennyt.recruitment.domain.vo.TypeEvaluationHard;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -46,7 +47,8 @@ public class JobPositionController {
     record JobPositionResponse(UUID id, String name, String sector, JobProfileType profileType,
                                boolean calibrated, JobPositionStatus status,
                                Map<String, String> levelLabels, Instant createdAt,
-                               JobProfileType suggestedProfileType) {
+                               JobProfileType suggestedProfileType,
+                               TypeEvaluationHard typeEvaluationHard) {
         static JobPositionResponse from(JobPosition position) {
             Map<String, String> labels = new LinkedHashMap<>();
             for (ExperienceLevel level : ExperienceLevel.values()) {
@@ -54,7 +56,7 @@ public class JobPositionController {
             }
             return new JobPositionResponse(position.id(), position.name(), position.sector(),
                 position.profileType(), position.calibrated(), position.status(), labels, position.createdAt(),
-                position.suggestedProfileType());
+                position.suggestedProfileType(), position.typeEvaluationHard());
         }
     }
 
