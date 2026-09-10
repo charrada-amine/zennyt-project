@@ -11,10 +11,10 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
-import { type FormEvent, useCallback, useEffect, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { AdminApiError, loadAdminData, login } from "./admin-api";
+import { AdminApiError, hasAdminSession, loadAdminData, login, logoutAdmin } from "./admin-api";
 import { ErrorState, GameOrbs, LoadingState } from "./admin-components";
 import { AdminEditor } from "./admin-editor";
 import {
@@ -48,25 +48,29 @@ export function AdminApp() {
   const [data, setData] = useState<AdminData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const loadGeneration = useRef(0);
 
   const logout = useCallback(() => {
-    sessionStorage.removeItem("zennyt.admin.auth");
-    sessionStorage.removeItem("zennyt.admin.token");
+    loadGeneration.current++;
+    void logoutAdmin().catch((cause: Error) => toast.error(cause.message));
     setAuthenticated(false);
     setData(null);
     setEditor(null);
   }, []);
 
   const refresh = useCallback(async () => {
+    const generation = ++loadGeneration.current;
     setLoading(true);
     setError(null);
     try {
-      setData(await loadAdminData());
+      const nextData = await loadAdminData();
+      if (generation === loadGeneration.current) setData(nextData);
     } catch (cause) {
+      if (generation !== loadGeneration.current) return;
       if (cause instanceof AdminApiError && cause.status === 401) logout();
       else setError(cause instanceof Error ? cause.message : "Chargement impossible");
     } finally {
-      setLoading(false);
+      if (generation === loadGeneration.current) setLoading(false);
     }
   }, [logout]);
 
@@ -75,7 +79,7 @@ export function AdminApp() {
   }, [authenticated, refresh]);
 
   useEffect(() => {
-    setAuthenticated(sessionStorage.getItem("zennyt.admin.auth") === "true");
+    setAuthenticated(hasAdminSession());
   }, []);
 
   if (!authenticated) return <Login onSuccess={() => setAuthenticated(true)} />;
@@ -151,7 +155,7 @@ export function AdminApp() {
         <div className="sidebar-foot">
           <div className="connection-state">
             <span />
-            API Spring connectée
+            {error ? "API à vérifier" : loading ? "Synchronisation…" : "API Spring connectée"}
           </div>
           <button className="nav-button" type="button" onClick={logout}>
             <LogOut />

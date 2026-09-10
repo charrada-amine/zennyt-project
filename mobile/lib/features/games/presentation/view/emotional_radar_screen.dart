@@ -12,6 +12,7 @@ import '../games_providers.dart';
 import '../widgets/emotional_game_pause_dialog.dart';
 import '../widgets/game_system_components.dart';
 import '../widgets/emotional_radar_components.dart';
+import '../widgets/emotional_radar_video.dart';
 import 'emotional_radar_gameplay.dart';
 
 /// Étapes du parcours, calquées sur « Prototype logic » (Developer handoff) :
@@ -282,7 +283,20 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
 
   /// Bouton unique du bandeau : menu de pause tant que la fenêtre est ouverte,
   /// confirmation de sortie ensuite. Voir [GameMenuAffordance].
-  Future<void> _openMenu() async {
+  int _videoOverlayDepth = 0;
+
+  Future<void> _withVideoPaused(Future<void> Function() action) async {
+    setState(() => _videoOverlayDepth++);
+    try {
+      await action();
+    } finally {
+      if (mounted) setState(() => _videoOverlayDepth--);
+    }
+  }
+
+  Future<void> _openMenu() => _withVideoPaused(_showMenu);
+
+  Future<void> _showMenu() async {
     if (_pauseAllowance.canOpen) return _openPause();
     if (await GameExitConfirmDialog.show(context)) {
       if (mounted) Navigator.of(context).maybePop();
@@ -291,7 +305,10 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
 
   /// [reopen] : réaffichage interne (retour de l'aide, sortie annulée) sur le
   /// temps restant d'une fenêtre déjà ouverte.
-  Future<void> _openPause({bool reopen = false}) async {
+  Future<void> _openPause({bool reopen = false}) =>
+      _withVideoPaused(() => _showPause(reopen: reopen));
+
+  Future<void> _showPause({bool reopen = false}) async {
     if (!reopen) {
       // Une seule fenêtre de pause par partie (CdC pause §2-3).
       if (!_pauseAllowance.canOpen) return;
@@ -329,7 +346,9 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
     if (mounted) setState(() {});
   }
 
-  Future<void> _openHelp() async {
+  Future<void> _openHelp() => _withVideoPaused(_showHelp);
+
+  Future<void> _showHelp() async {
     if (!_helpEnabled) return;
     setState(() => _helpOpenedThisScene = true);
     await showDialog<void>(
@@ -339,7 +358,9 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
     );
   }
 
-  Future<void> _openFullscreen() async {
+  Future<void> _openFullscreen() => _withVideoPaused(_showFullscreen);
+
+  Future<void> _showFullscreen() async {
     final scene = _scene;
     if (scene == null) return;
     setState(() => _fullscreenOpenedThisScene = true);
@@ -452,7 +473,11 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
     return _buildShell(
       child: Column(
         children: [
-          SceneCard(scene: scene, onOpenFullscreen: _openFullscreen),
+          SceneCard(
+            scene: scene,
+            onOpenFullscreen: _openFullscreen,
+            playbackEnabled: _videoOverlayDepth == 0,
+          ),
           const SizedBox(height: 14),
           AnswerPanel(
             sceneSet: set,
@@ -489,7 +514,11 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
     return _buildShell(
       child: Column(
         children: [
-          SceneCard(scene: scene, onOpenFullscreen: _openFullscreen),
+          SceneCard(
+            scene: scene,
+            onOpenFullscreen: _openFullscreen,
+            playbackEnabled: _videoOverlayDepth == 0,
+          ),
           const SizedBox(height: 14),
           FeedbackCard(
             feedback: feedback,
@@ -523,9 +552,11 @@ class _GameScaffold extends StatelessWidget {
     return Scaffold(
       backgroundColor: EmotionalRadarPalette.canvas,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: child,
+        child: GameContentFrame(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: child,
+          ),
         ),
       ),
     );
@@ -1165,8 +1196,10 @@ class _FullscreenSceneView extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Image full screen',
+                      Text(
+                        scene.mediaType == SceneMediaType.video
+                            ? 'Video full screen'
+                            : 'Image full screen',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
@@ -1177,23 +1210,33 @@ class _FullscreenSceneView extends StatelessWidget {
                       Expanded(
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(12),
-                          child: InteractiveViewer(
-                            maxScale: 4,
-                            child: EmotionalRadarSceneImage(
-                              scene: scene,
-                              fit: BoxFit.contain,
-                              width: double.infinity,
-                              fallback: Container(
-                                color: const Color(0xFF23224F),
-                                alignment: Alignment.center,
-                                child: const Icon(
-                                  Icons.image_outlined,
-                                  size: 48,
-                                  color: Colors.white54,
+                          child:
+                              scene.mediaType == SceneMediaType.video &&
+                                  scene.mediaUrl != null
+                              ? SingleChildScrollView(
+                                  child: GamePanel(
+                                    child: EmotionalRadarVideo(
+                                      source: scene.mediaUrl!,
+                                    ),
+                                  ),
+                                )
+                              : InteractiveViewer(
+                                  maxScale: 4,
+                                  child: EmotionalRadarSceneImage(
+                                    scene: scene,
+                                    fit: BoxFit.contain,
+                                    width: double.infinity,
+                                    fallback: Container(
+                                      color: const Color(0xFF23224F),
+                                      alignment: Alignment.center,
+                                      child: const Icon(
+                                        Icons.image_outlined,
+                                        size: 48,
+                                        color: Colors.white54,
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ),
-                          ),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -1205,7 +1248,9 @@ class _FullscreenSceneView extends StatelessWidget {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          scene.altText ?? scene.instructionText,
+                          scene.transcript ??
+                              scene.altText ??
+                              scene.instructionText,
                           style: const TextStyle(
                             fontSize: 15,
                             height: 1.4,

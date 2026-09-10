@@ -1,31 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/theme/theme.dart';
+import 'app_back_button.dart';
+
 const kAppBarTitleStyle = TextStyle(
-  fontSize: 20, 
+  fontFamily: AppTypography.fontFamily,
+  fontSize: 24,
   fontWeight: FontWeight.w700,
-  color: Color(0xFF1E1B4B),
-  letterSpacing: -0.5,
+  color: AppColors.primaryDeep,
+  letterSpacing: -.8,
 );
 
 BoxDecoration kAppBarButtonDecoration({Color? borderColor}) => BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: borderColor ?? const Color(0xFFE2E8F0)),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.02),
-          blurRadius: 8,
-          offset: const Offset(0, 2),
-        ),
-      ],
-    );
+  color: Colors.white,
+  borderRadius: BorderRadius.circular(16),
+  border: Border.all(color: borderColor ?? AppColorScheme.light.border),
+);
 
+/// Shared page chrome. Flexible title space supports long localized labels.
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
-  final String title;
-  final VoidCallback? onBack;
-  final Widget? trailingAction;
-
   const CustomAppBar({
     super.key,
     required this.title,
@@ -33,50 +27,47 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.trailingAction,
   });
 
+  final String title;
+  final VoidCallback? onBack;
+  final Widget? trailingAction;
+
   @override
-  Size get preferredSize => const Size.fromHeight(64); 
+  Size get preferredSize => const Size.fromHeight(76);
 
   @override
   Widget build(BuildContext context) {
-    // Sur la racine d'un onglet, il n'y a rien à dépiler : un pop retirerait
-    // la seule page du navigateur interne (écran blanc). On masque la flèche.
     final showBack = onBack != null || context.canPop();
     return AppBar(
-      backgroundColor: Colors.white,
+      backgroundColor: context.colors.scaffoldBg,
+      foregroundColor: context.colors.textDarkBlue,
       elevation: 0,
+      scrolledUnderElevation: 0,
       automaticallyImplyLeading: false,
+      centerTitle: false,
       titleSpacing: 0,
-      toolbarHeight: 64, 
-      
+      toolbarHeight: preferredSize.height,
       title: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Stack(
-          alignment: Alignment.center,
+        padding: EdgeInsets.only(left: showBack ? 4 : 24, right: 20),
+        child: Row(
           children: [
-            Text(title, style: kAppBarTitleStyle),
-
-            if (showBack)
-              Align(
-                alignment: Alignment.centerLeft,
-                child: GestureDetector(
-                  onTap: onBack ?? () { if (context.canPop()) context.pop(); },
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: kAppBarButtonDecoration(),
-                    child: const Icon(
-                      Icons.chevron_left,
-                      color: Color(0xFF1E293B),
-                      size: 24,
-                    ),
-                  ),
+            if (showBack) ...[
+              AppBackButton(onPressed: onBack),
+              const SizedBox(width: 12),
+            ],
+            Expanded(
+              child: Text(
+                title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: kAppBarTitleStyle.copyWith(
+                  color: context.colors.textDarkBlue,
                 ),
               ),
-
-            Align(
-              alignment: Alignment.centerRight,
-              child: trailingAction ?? const SizedBox(width: 40),
             ),
+            if (trailingAction != null) ...[
+              const SizedBox(width: 12),
+              trailingAction!,
+            ],
           ],
         ),
       ),

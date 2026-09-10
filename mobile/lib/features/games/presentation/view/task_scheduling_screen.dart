@@ -60,6 +60,7 @@ class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen> {
   late List<int> _pool;
   int _adjustmentCount = 0; // réajustements = retraits d'un emplacement rempli
   bool _busy = false;
+  bool _reviewingRules = false;
 
   Future<GameSession>? _sessionStart;
   GameSession? _serverSession;
@@ -84,12 +85,14 @@ class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen> {
   void _beginGame() {
     // Nouvelle partie = nouveau droit de pause.
     _pauseAllowance.reset();
+    _reviewingRules = false;
     setState(() {
       _resetBoard();
       _stage = _Stage.gameplay;
     });
-    _sessionStart =
-        ref.read(gamesRepositoryProvider).startSession(GameType.planifik);
+    _sessionStart = ref
+        .read(gamesRepositoryProvider)
+        .startSession(GameType.planifik);
   }
 
   void _place(int taskIndex) {
@@ -174,15 +177,18 @@ class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen> {
   );
 
   Future<void> _submit() async {
-    if (_slots.contains(null)) return;
+    if (_busy || _slots.contains(null)) return;
     setState(() {
       _busy = true;
       _stage = _Stage.score;
     });
     try {
-      final session = await (_sessionStart ??=
-          ref.read(gamesRepositoryProvider).startSession(GameType.planifik));
-      final updated = await ref.read(gamesRepositoryProvider).submitResult(
+      final session = await (_sessionStart ??= ref
+          .read(gamesRepositoryProvider)
+          .startSession(GameType.planifik));
+      final updated = await ref
+          .read(gamesRepositoryProvider)
+          .submitResult(
             sessionId: session.id,
             miniGame: MiniGame.taskScheduling,
             metrics: _buildMetrics(),
@@ -212,7 +218,9 @@ class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen> {
       },
       child: Scaffold(
         backgroundColor: isDark ? ZennytGamePalette.gameBlue : Colors.white,
-        body: SafeArea(child: _buildStage()),
+        body: SafeArea(
+          child: GameContentFrame(maxWidth: 980, child: _buildStage()),
+        ),
       ),
     );
   }
@@ -263,8 +271,11 @@ class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen> {
     if (!mounted) return;
     switch (action) {
       case GamePauseAction.help:
-        // Les règles occupent tout l'écran : on quitte la phase de jeu.
-        setState(() => _stage = _Stage.howToPlay);
+        // Relire les règles conserve le plateau et la session courante.
+        setState(() {
+          _reviewingRules = true;
+          _stage = _Stage.howToPlay;
+        });
         return;
       case GamePauseAction.exit:
         // Quitter annule la tentative : confirmation explicite d'abord.
@@ -284,17 +295,29 @@ class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen> {
     if (mounted) setState(() {});
   }
 
+  void _resumeFromRules() {
+    _pauseAllowance.close();
+    setState(() {
+      _reviewingRules = false;
+      _stage = _Stage.gameplay;
+    });
+  }
+
   Widget _buildStage() {
     return switch (_stage) {
       _Stage.intro => _IntroView(
-          onStart: () => setState(() => _stage = _Stage.howToPlay),
-          onBack: () => context.go(AppRoutes.games),
-        ),
+        onStart: () => setState(() => _stage = _Stage.howToPlay),
+        onBack: () => context.go(AppRoutes.games),
+      ),
       _Stage.howToPlay => _HowToPlayView(
-          onStart: _beginGame,
-          onBack: () => setState(() => _stage = _Stage.intro),
-        ),
-      _Stage.gameplay => GameplayMusic(child: _GameplayView(
+        onStart: _reviewingRules ? _resumeFromRules : _beginGame,
+        onBack: _reviewingRules
+            ? _resumeFromRules
+            : () => setState(() => _stage = _Stage.intro),
+        reviewing: _reviewingRules,
+      ),
+      _Stage.gameplay => GameplayMusic(
+        child: _GameplayView(
           slots: _slots,
           pool: _pool,
           onPlace: _place,
@@ -302,15 +325,16 @@ class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen> {
           onValidate: _submit,
           onPause: _openMenu,
           affordance: _pauseAllowance.affordance,
-        )),
-      _Stage.score => _ScoreView(
-          rawScore: _serverSession?.lastAttempt?.score.rawPoints,
-          level: _serverSession?.lastAttempt?.score.level,
-          busy: _busy,
-          onReplay: _beginGame,
-          onNext: () => context.go(AppRoutes.gamesPredictivePuzzle),
-          onBack: () => context.go(AppRoutes.games),
         ),
+      ),
+      _Stage.score => _ScoreView(
+        rawScore: _serverSession?.lastAttempt?.score.rawPoints,
+        level: _serverSession?.lastAttempt?.score.level,
+        busy: _busy,
+        onReplay: _beginGame,
+        onNext: () => context.go(AppRoutes.gamesPredictivePuzzle),
+        onBack: () => context.go(AppRoutes.games),
+      ),
     };
   }
 }
@@ -334,16 +358,74 @@ class _GameplayView extends StatelessWidget {
   final ValueChanged<int> onRemove;
   final VoidCallback onValidate;
   final VoidCallback onPause;
-
-  /// Pause ou sortie : le bouton change d'icône une fois la fenêtre consommée,
-  /// il ne disparaît plus. Voir [GameMenuAffordance].
   final GameMenuAffordance affordance;
 
   @override
   Widget build(BuildContext context) {
     final full = !slots.contains(null);
+    final placed = slots.whereType<int>().length;
+    final schedule = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Your schedule',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Expanded(
+          child: ListView.builder(
+            key: const ValueKey('day-stack-schedule'),
+            itemCount: slots.length,
+            itemBuilder: (context, i) => _SlotRow(
+              position: i + 1,
+              taskIndex: slots[i],
+              onRemove: slots[i] == null ? null : () => onRemove(i),
+            ),
+          ),
+        ),
+      ],
+    );
+    final tray = GamePanel(
+      padding: const EdgeInsets.all(12),
+      backgroundColor: ZennytGamePalette.gamePanel,
+      borderColor: Colors.transparent,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Tasks to place · ${pool.length}',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Tap a task to fill the next empty slot.',
+            style: TextStyle(color: Colors.white, fontSize: 12),
+          ),
+          const SizedBox(height: 10),
+          Expanded(
+            child: ListView.separated(
+              key: const ValueKey('day-stack-tray'),
+              itemCount: pool.length,
+              separatorBuilder: (_, index) => const SizedBox(height: 8),
+              itemBuilder: (_, index) => _TaskChip(
+                taskIndex: pool[index],
+                onTap: () => onPlace(pool[index]),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -351,88 +433,71 @@ class _GameplayView extends StatelessWidget {
             children: [
               const Expanded(
                 child: Text(
-                  'Order the tasks',
+                  'Day Stack',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 22,
+                    fontSize: 24,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
               ),
-              GameRuleChip(
-                label: 'Planning',
-                color: Colors.white,
-                filled: true,
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              // Ce jeu était le SEUL du module sans menu pause : impossible
-              // d'y couper le son, de relire les règles ou de sortir
-              // proprement.
-              SizedBox(
-                width: 44,
-                height: 44,
-                child: Semantics(
-                  button: true,
-                  label: affordance.semanticsLabel,
-                  child: IconButton.filled(
-                    tooltip: affordance.tooltip,
-                    onPressed: onPause,
-                    style: IconButton.styleFrom(
-                      backgroundColor: Colors.white.withValues(alpha: 0.16),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(
-                          AppSpacing.radiusMd,
-                        ),
-                      ),
-                    ),
-                    icon: Icon(affordance.icon, size: 20),
-                  ),
+              IconButton.filled(
+                tooltip: affordance.tooltip,
+                onPressed: onPause,
+                style: IconButton.styleFrom(
+                  backgroundColor: ZennytGamePalette.gamePanel,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(48, 48),
                 ),
+                icon: Icon(affordance.icon),
               ),
             ],
           ),
           const SizedBox(height: 4),
           Text(
-            'Respect dependencies (after: …) and deadlines (by slot).',
-            style: AppTypography.bodyMedium.copyWith(
-              color: Colors.white.withValues(alpha: 0.9),
-              letterSpacing: 0,
+            '$placed / ${slots.length} tasks placed',
+            key: const ValueKey('day-stack-progress'),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: AppSpacing.md),
-          // Emplacements ordonnés.
+          const SizedBox(height: 8),
+          LinearProgressIndicator(
+            value: placed / slots.length,
+            minHeight: 5,
+            color: Colors.white,
+            backgroundColor: ZennytGamePalette.gamePanel,
+            semanticsLabel: 'Tasks placed',
+            semanticsValue: '${(100 * placed / slots.length).round()}%',
+          ),
+          const SizedBox(height: 12),
           Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  for (var i = 0; i < slots.length; i++)
-                    _SlotRow(
-                      position: i + 1,
-                      taskIndex: slots[i],
-                      onRemove: slots[i] == null ? null : () => onRemove(i),
-                    ),
-                ],
-              ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                if (pool.isEmpty) return schedule;
+                if (constraints.maxWidth >= 640) {
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(flex: 3, child: schedule),
+                      const SizedBox(width: 20),
+                      Expanded(flex: 2, child: tray),
+                    ],
+                  );
+                }
+                return Column(
+                  children: [
+                    Expanded(flex: 4, child: schedule),
+                    const SizedBox(height: 12),
+                    Expanded(flex: 3, child: tray),
+                  ],
+                );
+              },
             ),
           ),
-          const SizedBox(height: AppSpacing.sm),
-          // Réserve de tâches (à placer).
-          if (pool.isNotEmpty)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(AppSpacing.sm),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-              ),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [for (final t in pool) _TaskChip(taskIndex: t, onTap: () => onPlace(t))],
-              ),
-            ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: 12),
           GamePrimaryButton(
             label: 'Validate schedule',
             onPressed: full ? onValidate : null,
@@ -444,7 +509,11 @@ class _GameplayView extends StatelessWidget {
 }
 
 class _SlotRow extends StatelessWidget {
-  const _SlotRow({required this.position, required this.taskIndex, this.onRemove});
+  const _SlotRow({
+    required this.position,
+    required this.taskIndex,
+    this.onRemove,
+  });
 
   final int position;
   final int? taskIndex;
@@ -470,13 +539,22 @@ class _SlotRow extends StatelessWidget {
           Expanded(
             child: Semantics(
               button: task != null,
-              label: task == null ? 'Empty slot' : task.label,
+              label: task == null
+                  ? 'Empty slot $position'
+                  : 'Slot $position: ${task.label}',
+              hint: task == null
+                  ? 'Choose a task from the tray'
+                  : 'Tap to return this task to the tray',
               child: InkWell(
+                key: ValueKey('day-stack-slot-$position'),
                 onTap: onRemove,
                 borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                 child: Container(
                   constraints: const BoxConstraints(minHeight: 48),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: task == null
                         ? Colors.white.withValues(alpha: 0.10)
@@ -490,7 +568,7 @@ class _SlotRow extends StatelessWidget {
                             color: Colors.white.withValues(alpha: 0.7),
                           ),
                         )
-                      : _TaskInfo(task: task, dark: true),
+                      : _TaskInfo(task: task),
                 ),
               ),
             ),
@@ -514,6 +592,7 @@ class _TaskChip extends StatelessWidget {
       button: true,
       label: task.label,
       child: InkWell(
+        key: ValueKey('day-stack-task-$taskIndex'),
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
         child: Container(
@@ -523,7 +602,7 @@ class _TaskChip extends StatelessWidget {
             color: Colors.white,
             borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
           ),
-          child: _TaskInfo(task: task, dark: false),
+          child: _TaskInfo(task: task),
         ),
       ),
     );
@@ -531,10 +610,9 @@ class _TaskChip extends StatelessWidget {
 }
 
 class _TaskInfo extends StatelessWidget {
-  const _TaskInfo({required this.task, required this.dark});
+  const _TaskInfo({required this.task});
 
   final _Task task;
-  final bool dark;
 
   @override
   Widget build(BuildContext context) {
@@ -604,8 +682,14 @@ class _IntroView extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: AppSpacing.lg),
+                Image.asset(
+                  'assets/games icons/Task Scheduling transparent.png',
+                  height: 112,
+                  semanticLabel: 'Day Stack task scheduling',
+                ),
+                const SizedBox(height: AppSpacing.base),
                 Text(
-                  'Task\nScheduling',
+                  'Day Stack',
                   style: AppTypography.displayLarge.copyWith(
                     color: Colors.white,
                     letterSpacing: 0,
@@ -625,7 +709,9 @@ class _IntroView extends StatelessWidget {
           const SizedBox(height: AppSpacing.xl),
           const Row(
             children: [
-              Expanded(child: ResultStatTile(label: 'Goal', value: 'Planning')),
+              Expanded(
+                child: ResultStatTile(label: 'Goal', value: 'Planning'),
+              ),
               SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: ResultStatTile(
@@ -635,7 +721,9 @@ class _IntroView extends StatelessWidget {
                 ),
               ),
               SizedBox(width: AppSpacing.sm),
-              Expanded(child: ResultStatTile(label: 'Format', value: '/10')),
+              Expanded(
+                child: ResultStatTile(label: 'Format', value: '9 tasks'),
+              ),
             ],
           ),
           const SizedBox(height: AppSpacing.xxl),
@@ -647,7 +735,12 @@ class _IntroView extends StatelessWidget {
 }
 
 class _HowToPlayView extends StatelessWidget {
-  const _HowToPlayView({required this.onStart, required this.onBack});
+  const _HowToPlayView({
+    required this.onStart,
+    required this.onBack,
+    this.reviewing = false,
+  });
+  final bool reviewing;
   final VoidCallback onStart;
   final VoidCallback onBack;
 
@@ -704,14 +797,26 @@ class _HowToPlayView extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
-          step(Icons.touch_app_outlined, 'Place tasks',
-              'Tap a task to drop it in the next slot. Tap a slot to send it back.'),
-          step(Icons.link_rounded, 'Dependencies',
-              'A task must come AFTER the tasks listed in "after: …".'),
-          step(Icons.schedule_rounded, 'Deadlines',
-              'A task marked "by slot n" must be placed at that slot or earlier.'),
+          step(
+            Icons.touch_app_outlined,
+            'Place tasks',
+            'Tap a task to drop it in the next slot. Tap a slot to send it back.',
+          ),
+          step(
+            Icons.link_rounded,
+            'Dependencies',
+            'A task must come AFTER the tasks listed in "after: …".',
+          ),
+          step(
+            Icons.schedule_rounded,
+            'Deadlines',
+            'A task marked "by slot n" must be placed at that slot or earlier.',
+          ),
           const SizedBox(height: AppSpacing.lg),
-          GamePrimaryButton(label: 'I am ready', onPressed: onStart),
+          GamePrimaryButton(
+            label: reviewing ? 'Resume schedule' : 'I am ready',
+            onPressed: onStart,
+          ),
         ],
       ),
     );
@@ -755,7 +860,7 @@ class _ScoreView extends StatelessWidget {
             ),
           ),
           Text(
-            busy ? 'Scoring…' : 'Task scheduling — Planifik #2',
+            busy ? 'Scoring…' : 'Day Stack · Task scheduling',
             style: AppTypography.bodyMedium.copyWith(
               color: ZennytGamePalette.muted,
               letterSpacing: 0,

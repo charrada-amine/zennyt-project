@@ -2291,3 +2291,84 @@ tr:last-child td {
     animation: none;
   }
 }
+/* Game-owned artwork and the existing Flutter-like surfaces identify control scope. */
+.configuration-game-picker {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 4px 2px 18px;
+  margin-bottom: 12px;
+}
+.configuration-game-picker button {
+  flex: 0 0 128px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 10px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: white;
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.configuration-game-picker button[aria-pressed="true"] {
+  border-color: var(--indigo);
+  box-shadow: inset 0 0 0 1px var(--indigo);
+}
+.configuration-game-picker img {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+}
+.configuration-art {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.configuration-form-intro > .configuration-art {
+  float: right;
+  margin-left: 16px;
+}
+.configuration-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 8px 0 20px;
+}
+.configuration-toolbar > span {
+  font-size: 12px;
+  color: var(--muted);
+}
+.configuration-version-filter {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--mist);
+  border-radius: 12px;
+}
+.configuration-version-filter button {
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  padding: 8px 14px;
+  border-radius: 9px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.configuration-version-filter button[aria-pressed="true"] {
+  background: white;
+  box-shadow: 0 1px 4px #1b1b4b12;
+}
+.configuration-game-picker button:focus-visible,
+.configuration-version-filter button:focus-visible {
+  outline: 3px solid var(--indigo);
+  outline-offset: 3px;
+}

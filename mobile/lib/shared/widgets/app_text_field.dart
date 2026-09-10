@@ -46,7 +46,7 @@ InputDecoration appInputDecoration(
 
   OutlineInputBorder border(Color color, [double width = 1.2]) =>
       OutlineInputBorder(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        borderRadius: BorderRadius.circular(18),
         borderSide: BorderSide(color: color, width: width),
       );
 
@@ -195,7 +195,7 @@ class _AppTextFieldState extends State<AppTextField> {
             splashRadius: 20,
             onPressed: () => setState(() => _obscured = !_obscured),
             icon: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 180),
+              duration: AppMotion.duration(context, AppMotion.settle),
               transitionBuilder: (child, anim) => FadeTransition(
                 opacity: anim,
                 child: ScaleTransition(scale: anim, child: child),
@@ -213,16 +213,16 @@ class _AppTextFieldState extends State<AppTextField> {
         : widget.suffixIcon;
 
     final field = AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
+      duration: AppMotion.duration(context, AppMotion.settle),
       curve: Curves.easeOut,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        borderRadius: BorderRadius.circular(18),
         boxShadow: showShadow
             ? [
                 BoxShadow(
-                  color: accent.withValues(alpha: 0.12),
-                  blurRadius: 14,
-                  offset: const Offset(0, 4),
+                  color: accent.withValues(alpha: 0.08),
+                  blurRadius: 0,
+                  spreadRadius: 4,
                 ),
               ]
             : const [],

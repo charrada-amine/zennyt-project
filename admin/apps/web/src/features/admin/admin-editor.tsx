@@ -3,7 +3,7 @@ import { type FormEvent, type ReactNode, useEffect, useMemo, useState } from "re
 import { toast } from "sonner";
 
 import { adminApi } from "./admin-api";
-import { StatusPill } from "./admin-components";
+import { gameAsset, StatusPill } from "./admin-components";
 import type {
   AdminData,
   Bank,
@@ -12,7 +12,7 @@ import type {
   EditorState,
   Question,
 } from "./admin-types";
-import { GAME_TYPES, gamePresentation } from "./admin-types";
+import { configurationGame, GAME_TYPES, gamePresentation } from "./admin-types";
 
 export function AdminEditor({
   editor,
@@ -561,11 +561,14 @@ function ConfigurationForm({
   const changes = useMemo(
     () =>
       schema?.fields
-        .filter((field) => baseline && baseline.values[field.key] !== values[field.key])
+        .filter(
+          (field) =>
+            baseline && (baseline.values[field.key] ?? field.defaultValue) !== values[field.key],
+        )
         .map((field) => ({
           key: field.key,
           label: field.label,
-          before: baseline?.values[field.key],
+          before: baseline?.values[field.key] ?? field.defaultValue,
           after: values[field.key],
         })) ?? [],
     [baseline, schema, values],
@@ -603,12 +606,19 @@ function ConfigurationForm({
         >
           {GAME_TYPES.map((game) => (
             <option value={game} key={game}>
-              {game.replaceAll("_", " ")}
+              {configurationGame(game).label}
             </option>
           ))}
         </select>
       </Field>
       <div className="configuration-form-intro">
+        {configurationGame(selectedGameType).asset && (
+          <img
+            className="configuration-art"
+            src={gameAsset(configurationGame(selectedGameType).asset!)}
+            alt=""
+          />
+        )}
         <strong>{kind === "SETTINGS" ? "Déroulé opérationnel" : "Expérience joueur"}</strong>
         <p>
           {baseline && !value
@@ -631,6 +641,7 @@ function ConfigurationForm({
               {field.valueType === "BOOLEAN" && (
                 <button
                   aria-checked={Boolean(current)}
+                  aria-label={field.label}
                   className={`configuration-switch ${current ? "active" : ""}`}
                   onClick={() => updateValue(field.key, !current)}
                   role="switch"
@@ -649,10 +660,16 @@ function ConfigurationForm({
                     min={field.minimum ?? undefined}
                     onChange={(event) => updateValue(field.key, Number(event.target.value))}
                     type="number"
+                    step="1"
+                    required
                     value={Number(current)}
                   />
                   <small>
                     {field.minimum}–{field.maximum}
+                    {field.key.endsWith("Ms") ? " ms" : ""}
+                    {field.key.endsWith("Ms") && (
+                      <> · {(Number(current) / 1000).toLocaleString("fr-FR")} s</>
+                    )}
                   </small>
                 </div>
               )}
@@ -714,11 +731,7 @@ function ConfigurationForm({
         saving={saving}
         close={close}
         label={
-          value
-            ? "Enregistrer"
-            : baseline
-              ? `Créer la version ${baseline.version + 1}`
-              : "Créer la configuration"
+          value ? "Enregistrer" : baseline ? "Créer la version suivante" : "Créer la configuration"
         }
       />
     </form>

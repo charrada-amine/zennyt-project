@@ -116,17 +116,17 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
   // ═══════════════════════════════════════════════════════════════════════════
 
   static const light = AppColorScheme(
-    scaffoldBg: Color(0xFFFFFFFF),
+    scaffoldBg: Color(0xFFF7F7FC),
     cardSurface: Color(0xFFFFFFFF),
 
-    textPrimary: Color(0xFF232323),
-    textSecondary: Color(0xFF7C8393),
+    textPrimary: Color(0xFF202944),
+    textSecondary: Color(0xFF626C83),
     textDarkBlue: Color(0xFF283266),
-    textMuted: Color(0xFF7A8191),
+    textMuted: Color(0xFF68738A),
 
     divider: Color(0xFFF1F1F5),
     dividerThick: Color(0xFFEEEEEE),
-    border: Color(0xFFEEEEEE),
+    border: Color(0xFFE5E8F2),
 
     backButtonBg: Color(0xFFFFFFFF),
     backButtonBorder: Color(0xFFEEEEEE),
@@ -146,8 +146,8 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     navLabelUnselected: Color(0xFF7C8393),
 
     iconDefault: Color(0xFF232323),
-    shadowColor: Color(0x14000000),
-    inputFill: Color(0xFFF3F3F3),
+    shadowColor: Color(0x1021438A),
+    inputFill: Color(0xFFF0F2F9),
     placeholderBg: Color(0xFFF3F3F3),
 
     primary: Color(0xFF21438A),
@@ -169,7 +169,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     textPrimary: Color(0xFFFFFFFF),
     textSecondary: Color(0xFFA0A0B0),
     textDarkBlue: Color(0xFFFFFFFF),
-    textMuted: Color(0xFF6E6E80),
+    textMuted: Color(0xFFA0A0B0),
 
     divider: Color(0xFF2E2E45),
     dividerThick: Color(0xFF2E2E45),
@@ -190,7 +190,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     navBg: Color(0xFF1A1A2E),
     navBorder: Color(0xFF2E2E45),
     navLabelSelected: Color(0xFFFFFFFF),
-    navLabelUnselected: Color(0xFF6E6E80),
+    navLabelUnselected: Color(0xFFA0A0B0),
 
     iconDefault: Color(0xFFFFFFFF),
     shadowColor: Color(0x00000000), // Shadows invisible in dark mode

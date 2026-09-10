@@ -8,6 +8,8 @@ import '../../../../../core/theme/theme.dart';
 import '../../../../../core/utils/responsive.dart';
 import '../../../../../shared/widgets/app_text_field.dart';
 import '../../../../../shared/widgets/primary_button.dart';
+import '../../../../../shared/widgets/auth_header.dart';
+import '../../../../../shared/widgets/app_back_button.dart';
 import '../../../../../shared/widgets/screen_top_bar.dart';
 import '../../../../../shared/widgets/language_toggle.dart';
 import '../../auth_providers.dart';
@@ -80,38 +82,15 @@ class _ForgotPasswordEmailScreenState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const ScreenTopBar(trailing: LanguageToggle()),
+                const ScreenTopBar(
+                  leading: AppBackButton(),
+                  trailing: LanguageToggle(),
+                ),
                 const SizedBox(height: AppSpacing.xl),
 
-                Container(
-                  width: 72,
-                  height: 72,
-                  decoration: BoxDecoration(
-                    color: colors.primary.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.email_outlined,
-                    color: colors.primary,
-                    size: 36,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-
-                Text(
-                  l10n.enterYourEmail,
-                  style: AppTypography.headlineMedium.copyWith(
-                    color: colors.primary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  l10n.enterEmailDesc,
-                  style: AppTypography.bodyMedium.copyWith(
-                    color: colors.textSecondary,
-                    height: 1.5,
-                  ),
+                AuthHeader(
+                  title: l10n.enterYourEmail,
+                  subtitle: l10n.enterEmailDesc,
                 ),
                 const SizedBox(height: AppSpacing.xxl),
 
@@ -151,7 +130,7 @@ class _ForgotPasswordEmailScreenState
 
                 Center(
                   child: SizedBox(
-                    width: 200,
+                    width: double.infinity,
                     child: PrimaryButton(
                       label: l10n.sendCode,
                       loading: _isLoading,

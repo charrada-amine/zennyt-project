@@ -53,6 +53,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('I am ready'));
     await tester.pump();
+    // The game now waits for the backend snapshot before starting its clocks.
+    await tester.pump(const Duration(milliseconds: 150));
+    await tester.pump();
   }
 
   /// Laisse défiler l'observation d'une séquence de [length] chiffres :

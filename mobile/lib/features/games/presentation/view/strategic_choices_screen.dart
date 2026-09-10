@@ -322,9 +322,9 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
       actions: [
         TextButton(
           onPressed: () {
-                  SoundService.instance.playSfx(GameSfx.buttonClick);
-                  Navigator.of(context).pop();
-                },
+            SoundService.instance.playSfx(GameSfx.buttonClick);
+            Navigator.of(context).pop();
+          },
           child: const Text('Back to mission'),
         ),
       ],
@@ -377,57 +377,62 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
               )
             : null,
         body: SafeArea(
-          child: AnimatedSwitcher(
-            duration: _reducedMotion
-                ? Duration.zero
-                : const Duration(milliseconds: 250),
-            child: switch (_stage) {
-              _StrategicStage.cover => _CoverView(
-                key: const ValueKey('strategic-cover'),
-                onBack: _handleBack,
-                onTutorial: () => _setStage(_StrategicStage.intro),
-                onStart: () => _setStage(_StrategicStage.intro),
-              ),
-              _StrategicStage.intro => _IntroView(
-                key: const ValueKey('strategic-intro'),
-                onBack: _handleBack,
-                onContinue: () => _setStage(_StrategicStage.tutorial),
-              ),
-              _StrategicStage.tutorial => _TutorialView(
-                key: const ValueKey('strategic-tutorial'),
-                onBack: _handleBack,
-                onStart: _startJourney,
-              ),
-              _StrategicStage.gameplay => GameplayMusic(child: _GameplayView(
-                key: ValueKey('strategic-gameplay-$_situationIndex'),
-                situation: StrategicChoicesContent.situations[_situationIndex],
-                situationNumber: _situationIndex + 1,
-                phase: _scenarioPhase,
-                reflectionRemaining: _reflectionRemaining,
-                selected: _selectedStrategy,
-                onStartReflection: _startReflection,
-                onSelect: _selectStrategy,
-                onValidate: _validateChoice,
-                onPause: _backOrExit,
-                affordance: _pauseAllowance.affordance,
-              )),
-              _StrategicStage.saved => _SavedView(
-                key: ValueKey('strategic-saved-$_situationIndex'),
-                situationNumber: _situationIndex + 1,
-              ),
-              _StrategicStage.results => _ResultsView(
-                key: const ValueKey('strategic-results'),
-                answerCount: _answers.length,
-                onBack: _handleBack,
-                onInsights: () => _setStage(_StrategicStage.insights),
-              ),
-              _StrategicStage.insights => _InsightsView(
-                key: const ValueKey('strategic-insights'),
-                answers: List.unmodifiable(_answers),
-                onBack: _handleBack,
-                onFinish: () => context.go(AppRoutes.games),
-              ),
-            },
+          child: GameContentFrame(
+            child: AnimatedSwitcher(
+              duration: _reducedMotion
+                  ? Duration.zero
+                  : const Duration(milliseconds: 250),
+              child: switch (_stage) {
+                _StrategicStage.cover => _CoverView(
+                  key: const ValueKey('strategic-cover'),
+                  onBack: _handleBack,
+                  onTutorial: () => _setStage(_StrategicStage.intro),
+                  onStart: () => _setStage(_StrategicStage.intro),
+                ),
+                _StrategicStage.intro => _IntroView(
+                  key: const ValueKey('strategic-intro'),
+                  onBack: _handleBack,
+                  onContinue: () => _setStage(_StrategicStage.tutorial),
+                ),
+                _StrategicStage.tutorial => _TutorialView(
+                  key: const ValueKey('strategic-tutorial'),
+                  onBack: _handleBack,
+                  onStart: _startJourney,
+                ),
+                _StrategicStage.gameplay => GameplayMusic(
+                  child: _GameplayView(
+                    key: ValueKey('strategic-gameplay-$_situationIndex'),
+                    situation:
+                        StrategicChoicesContent.situations[_situationIndex],
+                    situationNumber: _situationIndex + 1,
+                    phase: _scenarioPhase,
+                    reflectionRemaining: _reflectionRemaining,
+                    selected: _selectedStrategy,
+                    onStartReflection: _startReflection,
+                    onSelect: _selectStrategy,
+                    onValidate: _validateChoice,
+                    onPause: _backOrExit,
+                    affordance: _pauseAllowance.affordance,
+                  ),
+                ),
+                _StrategicStage.saved => _SavedView(
+                  key: ValueKey('strategic-saved-$_situationIndex'),
+                  situationNumber: _situationIndex + 1,
+                ),
+                _StrategicStage.results => _ResultsView(
+                  key: const ValueKey('strategic-results'),
+                  answerCount: _answers.length,
+                  onBack: _handleBack,
+                  onInsights: () => _setStage(_StrategicStage.insights),
+                ),
+                _StrategicStage.insights => _InsightsView(
+                  key: const ValueKey('strategic-insights'),
+                  answers: List.unmodifiable(_answers),
+                  onBack: _handleBack,
+                  onFinish: () => context.go(AppRoutes.games),
+                ),
+              },
+            ),
           ),
         ),
       ),
@@ -561,8 +566,7 @@ class _CoverView extends StatelessWidget {
             // reste de l'écran compte déjà sur `situations.length`, seule cette
             // pastille avait son propre chiffre, et il était faux.
             _FeatureChip(
-              label:
-                  '${StrategicChoicesContent.situations.length} situations',
+              label: '${StrategicChoicesContent.situations.length} situations',
               color: _blue,
             ),
             const _FeatureChip(label: 'Text preview', color: _magenta),
@@ -1008,27 +1012,22 @@ class _GameplayView extends StatelessWidget {
                             ],
                           );
                         }
-                        return GridView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: StrategicChoicesContent.strategies.length,
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                crossAxisSpacing: 8,
-                                mainAxisSpacing: 8,
-                                childAspectRatio: 2.28,
+                        return Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (final strategy
+                                in StrategicChoicesContent.strategies)
+                              SizedBox(
+                                width: (constraints.maxWidth - 8) / 2,
+                                child: _StrategyCard(
+                                  strategy: strategy,
+                                  enabled: phase != _ScenarioPhase.reading,
+                                  selected: selected == strategy,
+                                  onTap: () => onSelect(strategy),
+                                ),
                               ),
-                          itemBuilder: (context, index) {
-                            final strategy =
-                                StrategicChoicesContent.strategies[index];
-                            return _StrategyCard(
-                              strategy: strategy,
-                              enabled: phase != _ScenarioPhase.reading,
-                              selected: selected == strategy,
-                              onTap: () => onSelect(strategy),
-                            );
-                          },
+                          ],
                         );
                       },
                     ),
@@ -1057,22 +1056,24 @@ class _GameplayView extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 10),
-              if (phase == _ScenarioPhase.reading)
-                GamePrimaryButton(
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 18),
+          child: phase == _ScenarioPhase.reading
+              ? GamePrimaryButton(
                   key: const ValueKey('strategic-start-reflection'),
                   label: 'Start reflection',
                   onPressed: onStartReflection,
                 )
-              else
-                GamePrimaryButton(
+              : GamePrimaryButton(
                   key: const ValueKey('strategic-validate'),
                   label: 'Validate my answer',
                   onPressed: phase == _ScenarioPhase.ready && selected != null
                       ? onValidate
                       : null,
                 ),
-            ],
-          ),
         ),
       ],
     );

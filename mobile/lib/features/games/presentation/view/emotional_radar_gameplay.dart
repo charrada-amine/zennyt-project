@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../../domain/config/emotional_radar_config.dart';
 import '../../domain/entities/emotional_radar.dart';
 import '../widgets/emotional_radar_components.dart';
+import '../widgets/emotional_radar_video.dart';
 
 /// Carte de la scène : type de média, énoncé, consigne.
 ///
@@ -16,10 +17,12 @@ class SceneCard extends StatelessWidget {
     super.key,
     required this.scene,
     required this.onOpenFullscreen,
+    this.playbackEnabled = true,
   });
 
   final EmotionalRadarScene scene;
   final VoidCallback onOpenFullscreen;
+  final bool playbackEnabled;
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +39,11 @@ class SceneCard extends StatelessWidget {
           SceneTypeChip(mediaType: scene.mediaType),
           const SizedBox(height: 14),
           if (scene.mediaType.isMedia) ...[
-            _ScenePreview(scene: scene, onTap: onOpenFullscreen),
+            _ScenePreview(
+              scene: scene,
+              onTap: onOpenFullscreen,
+              playbackEnabled: playbackEnabled,
+            ),
             const SizedBox(height: 12),
           ],
           Text(
@@ -64,36 +71,49 @@ class SceneCard extends StatelessWidget {
 }
 
 class _ScenePreview extends StatelessWidget {
-  const _ScenePreview({required this.scene, required this.onTap});
+  const _ScenePreview({
+    required this.scene,
+    required this.onTap,
+    required this.playbackEnabled,
+  });
 
   final EmotionalRadarScene scene;
   final VoidCallback onTap;
+  final bool playbackEnabled;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Semantics(
-          button: true,
-          image: true,
-          label: scene.altText ?? 'Scene image',
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(12),
-            child: ClipRRect(
+        if (scene.mediaType == SceneMediaType.video && scene.mediaUrl != null)
+          EmotionalRadarVideo(
+            key: ValueKey(scene.mediaUrl),
+            source: scene.mediaUrl!,
+            playbackEnabled: playbackEnabled,
+            onFullscreen: onTap,
+          )
+        else
+          Semantics(
+            button: true,
+            image: true,
+            label: scene.altText ?? 'Scene image',
+            child: InkWell(
+              onTap: onTap,
               borderRadius: BorderRadius.circular(12),
-              child: AspectRatio(
-                aspectRatio: 16 / 10,
-                child: EmotionalRadarSceneImage(
-                  scene: scene,
-                  fit: BoxFit.cover,
-                  fallback: const _MediaPlaceholder(),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: AspectRatio(
+                  aspectRatio: 16 / 10,
+                  child: EmotionalRadarSceneImage(
+                    scene: scene,
+                    fit: BoxFit.cover,
+                    fallback: const _MediaPlaceholder(),
+                  ),
                 ),
               ),
             ),
           ),
-        ),
         if (scene.altText != null) ...[
           const SizedBox(height: 8),
           Text(
@@ -104,6 +124,38 @@ class _ScenePreview extends StatelessWidget {
             ),
           ),
         ],
+        if (scene.mediaUrl?.startsWith('assets/games_demo/') ?? false) ...[
+          const SizedBox(height: 8),
+          const Text(
+            'Demo footage · answer using the written situation.',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: EmotionalRadarPalette.ink,
+            ),
+          ),
+        ],
+        if (scene.transcript != null)
+          ExpansionTile(
+            tilePadding: EdgeInsets.zero,
+            title: const Text(
+              'Video description',
+              style: TextStyle(fontSize: 13),
+            ),
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(
+                  scene.transcript!,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    height: 1.4,
+                    color: EmotionalRadarPalette.ink,
+                  ),
+                ),
+              ),
+            ],
+          ),
       ],
     );
   }

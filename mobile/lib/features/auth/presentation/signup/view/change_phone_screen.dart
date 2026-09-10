@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../../core/constants/app_strings.dart';
 import '../../../../../core/utils/responsive.dart';
 import '../../../../../shared/widgets/app_back_button.dart';
+import '../../../../../shared/widgets/auth_header.dart';
 import '../../../../../shared/widgets/app_text_field.dart';
 import '../../../../../shared/widgets/primary_button.dart';
 import '../../../../../core/theme/theme.dart';
@@ -69,12 +70,9 @@ class _ChangePhoneScreenState extends ConsumerState<ChangePhoneScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text(
-                          AppStrings.changePhoneTitle,
-                          textAlign: TextAlign.center,
-                          style: AppTypography.headlineMedium.copyWith(
-                            color: colors.textPrimary,
-                          ),
+                        const AuthHeader(
+                          title: AppStrings.changePhoneTitle,
+                          showLogo: false,
                         ),
                         const SizedBox(height: AppSpacing.xxl),
                         AppTextField(
@@ -89,7 +87,7 @@ class _ChangePhoneScreenState extends ConsumerState<ChangePhoneScreen> {
                         const SizedBox(height: AppSpacing.xl),
                         Center(
                           child: SizedBox(
-                            width: 190,
+                            width: double.infinity,
                             child: PrimaryButton(
                               label: AppStrings.confirm,
                               onPressed: _confirm,

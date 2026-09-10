@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
 import 'zennyt_logo.dart';
+import '../../core/theme/app_motion.dart';
 
 /// A custom animated loader inspired by the app's logo.
-/// 
+///
 /// It spins smoothly and pulses slightly to indicate a loading state,
 /// replacing standard circular progress indicators for a more branded experience.
 class ZennytLoader extends StatefulWidget {
-  const ZennytLoader({
-    super.key,
-    this.size = 48.0,
-  });
+  const ZennytLoader({super.key, this.size = 48.0});
 
   final double size;
 
@@ -28,20 +26,35 @@ class _ZennytLoaderState extends State<ZennytLoader>
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
-    )..repeat();
+    );
 
     _scaleAnimation = TweenSequence<double>([
       TweenSequenceItem(
-        tween: Tween<double>(begin: 0.9, end: 1.1)
-            .chain(CurveTween(curve: Curves.easeInOut)),
+        tween: Tween<double>(
+          begin: 0.9,
+          end: 1.1,
+        ).chain(CurveTween(curve: Curves.easeInOut)),
         weight: 50.0,
       ),
       TweenSequenceItem(
-        tween: Tween<double>(begin: 1.1, end: 0.9)
-            .chain(CurveTween(curve: Curves.easeInOut)),
+        tween: Tween<double>(
+          begin: 1.1,
+          end: 0.9,
+        ).chain(CurveTween(curve: Curves.easeInOut)),
         weight: 50.0,
       ),
     ]).animate(_controller);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (AppMotion.reduced(context) || !TickerMode.valuesOf(context).enabled) {
+      _controller.stop();
+      _controller.value = 0;
+    } else if (!_controller.isAnimating) {
+      _controller.repeat();
+    }
   }
 
   @override

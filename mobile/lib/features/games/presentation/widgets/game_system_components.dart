@@ -25,6 +25,23 @@ class ZennytGamePalette {
   static const Color gamePanel = Color(0xFF675DE6);
 }
 
+/// Keeps text and controls readable on tablets while using the full phone width.
+class GameContentFrame extends StatelessWidget {
+  const GameContentFrame({super.key, required this.child, this.maxWidth = 760});
+
+  final Widget child;
+  final double maxWidth;
+
+  @override
+  Widget build(BuildContext context) => Align(
+    alignment: Alignment.topCenter,
+    child: ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: maxWidth),
+      child: SizedBox(width: double.infinity, child: child),
+    ),
+  );
+}
+
 enum GameDirection {
   up(Icons.arrow_upward, 'haut', 'Up'),
   right(Icons.arrow_forward, 'droite', 'Right'),
@@ -1047,9 +1064,7 @@ class MoveFastPlane extends StatelessWidget {
     // On tourne DANS le sens du virage : le roulis suit le cap.
     final way = travel.isNegative ? -1.0 : 1.0;
     if (f <= _windUpEnd) {
-      return -way *
-          _windUp *
-          Curves.easeOutSine.transform(f / _windUpEnd);
+      return -way * _windUp * Curves.easeOutSine.transform(f / _windUpEnd);
     }
     // `easeOutSine` et pas `easeOutCubic` : le cube expédiait 80 % du tour dans
     // la première moitié de la figure, et la seconde moitié n'était plus qu'un
@@ -1068,7 +1083,10 @@ class MoveFastPlane extends StatelessWidget {
     required double t,
     required GameDirection from,
     required GameDirection to,
-  }) => _rollAt(t, travel: _shortestTurn(from: from, to: to) - _angleFor(from));
+  }) => _rollAt(
+    t,
+    travel: _shortestTurn(from: from, to: to) - _angleFor(from),
+  );
 
   static double _angleFor(GameDirection direction) {
     return switch (direction) {

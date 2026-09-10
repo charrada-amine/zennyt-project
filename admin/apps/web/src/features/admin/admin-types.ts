@@ -352,3 +352,19 @@ export const formatDate = (value: string) =>
   new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(
     new Date(value),
   );
+
+export function configurationGame(gameType: string) {
+  const games: readonly GameAdminDefinition[] = GAME_CATEGORIES.flatMap(
+    (category) => category.games,
+  );
+  const matching = games.filter((game) => game.gameType === gameType);
+  const label =
+    gameType === "PLANIFIK"
+      ? "Planifik"
+      : gameType === "MEMORY_QUEST"
+        ? "Memory Quest"
+        : gameType === "EMOTIONAL_REGULATION"
+          ? "Emotional Regulation"
+          : (matching[0]?.label ?? gameType);
+  return { label, asset: matching[0]?.asset, games: matching };
+}

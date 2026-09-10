@@ -44,7 +44,13 @@ import type {
   Page,
   Question,
 } from "./admin-types";
-import { formatDate, GAME_CATEGORIES, gamePresentation } from "./admin-types";
+import {
+  configurationGame,
+  formatDate,
+  GAME_CATEGORIES,
+  GAME_TYPES,
+  gamePresentation,
+} from "./admin-types";
 
 interface PageProps {
   data: AdminData;
@@ -867,9 +873,16 @@ export function ConfigurationsPage({
   game,
   openGame,
 }: PageProps & { kind: ConfigurationKind }) {
+  const [selectedType, setSelectedType] = useState("");
+  const [versionFilter, setVersionFilter] = useState("CURRENT");
+  const scope = game?.gameType ?? selectedType;
   const configurations = data.configurations.filter(
-    (configuration) =>
-      configuration.kind === kind && (!game?.gameType || configuration.gameType === game.gameType),
+    (configuration) => configuration.kind === kind && (!scope || configuration.gameType === scope),
+  );
+  const visible = configurations.filter((configuration) =>
+    versionFilter === "CURRENT"
+      ? configuration.status !== "ARCHIVED"
+      : configuration.status === versionFilter,
   );
   const settings = kind === "SETTINGS";
   const [publishReview, setPublishReview] = useState<Configuration | null>(null);
@@ -912,7 +925,7 @@ export function ConfigurationsPage({
       refresh,
     );
   };
-  const gamePublishedConfiguration = game?.gameType ? publishedForGame(game.gameType) : undefined;
+  const gamePublishedConfiguration = scope ? publishedForGame(scope) : undefined;
   return (
     <>
       <PageHeading
@@ -937,7 +950,7 @@ export function ConfigurationsPage({
                 kind: "configuration",
                 configurationKind: kind,
                 source: gamePublishedConfiguration,
-                gameType: game?.gameType,
+                gameType: scope || undefined,
               })
             }
             type="button"
@@ -948,26 +961,73 @@ export function ConfigurationsPage({
         }
       />
       {game && <GameScopeBar game={game} openGame={openGame} />}
+      {!game && (
+        <nav className="configuration-game-picker" aria-label="Filtrer les contrôles par jeu">
+          <button type="button" aria-pressed={!scope} onClick={() => setSelectedType("")}>
+            <Settings2 />
+            <span>Tous les jeux</span>
+          </button>
+          {GAME_TYPES.map((type) => {
+            const presentation = configurationGame(type);
+            return (
+              <button
+                key={type}
+                type="button"
+                aria-pressed={scope === type}
+                onClick={() => setSelectedType(type)}
+              >
+                {presentation.asset && <img src={gameAsset(presentation.asset)} alt="" />}
+                <span>{presentation.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+      )}
+      <div className="configuration-toolbar">
+        <div className="configuration-version-filter" role="group" aria-label="Versions affichées">
+          {[
+            ["CURRENT", "Actives"],
+            ["DRAFT", "Brouillons"],
+            ["ARCHIVED", "Archives"],
+          ].map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              aria-pressed={versionFilter === id}
+              onClick={() => setVersionFilter(id)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <span>
+          {visible.length} versions · {scope ? configurationGame(scope).label : "Tous les jeux"}
+        </span>
+      </div>
       <ProtectedNotice />
       <div className="configuration-grid">
-        {configurations.length === 0 ? (
+        {visible.length === 0 ? (
           <EmptyState
             title="Aucune configuration"
             description="Créez une première version pour ce type de configuration."
           />
         ) : (
-          configurations.map((configuration) => {
+          visible.map((configuration) => {
             const activePublished = publishedForGame(configuration.gameType);
             const schema = schemaForGame(configuration.gameType);
             const changes = configurationChanges(configuration, activePublished, schema);
             return (
               <article className="configuration-card" key={configuration.id}>
                 <div className="configuration-title">
-                  <span className="configuration-icon">
-                    {settings ? <Settings2 /> : <SlidersHorizontal />}
-                  </span>
+                  {configurationGame(configuration.gameType).asset && (
+                    <img
+                      className="configuration-art"
+                      src={gameAsset(configurationGame(configuration.gameType).asset!)}
+                      alt=""
+                    />
+                  )}
                   <div>
-                    <h2>{humanize(configuration.gameType)}</h2>
+                    <h2>{configurationGame(configuration.gameType).label}</h2>
                     <p>
                       {settings ? "Paramètres" : "Modificateurs"} v{configuration.version}
                     </p>
@@ -975,21 +1035,27 @@ export function ConfigurationsPage({
                   <StatusPill status={configuration.status} />
                 </div>
                 <dl className="json-summary">
-                  {Object.entries(configuration.values)
-                    .slice(0, 8)
-                    .map(([key, value]) => (
-                      <div key={key}>
-                        <dt>
-                          {data.configurationSchemas
-                            .find(
-                              (schema) =>
-                                schema.gameType === configuration.gameType && schema.kind === kind,
-                            )
-                            ?.fields.find((field) => field.key === key)?.label ?? humanize(key)}
-                        </dt>
-                        <dd>{formatValue(value)}</dd>
-                      </div>
-                    ))}
+                  {Object.entries({
+                    ...Object.fromEntries(
+                      schema?.fields.map((field) => [field.key, field.defaultValue]) ?? [],
+                    ),
+                    ...configuration.values,
+                  }).map(([key, value]) => (
+                    <div key={key}>
+                      <dt>
+                        {data.configurationSchemas
+                          .find(
+                            (schema) =>
+                              schema.gameType === configuration.gameType && schema.kind === kind,
+                          )
+                          ?.fields.find((field) => field.key === key)?.label ?? humanize(key)}
+                      </dt>
+                      <dd>
+                        {formatValue(value)}
+                        {key.endsWith("Ms") ? " ms" : ""}
+                      </dd>
+                    </div>
+                  ))}
                 </dl>
                 {configuration.status === "DRAFT" && (
                   <section className="configuration-card-review">
@@ -1055,7 +1121,7 @@ export function ConfigurationsPage({
                         type="button"
                       >
                         <Copy />
-                        Créer v{configuration.version + 1}
+                        Créer la version suivante
                       </button>
                       <button
                         className="secondary-button"
@@ -1208,13 +1274,18 @@ function configurationChanges(
       (key) => !schema?.fields.some((field) => field.key === key),
     ),
   ];
+  const effective = (values: Record<string, unknown> | undefined, key: string) =>
+    values?.[key] ?? schema?.fields.find((field) => field.key === key)?.defaultValue;
   return orderedKeys
-    .filter((key) => !published || published.values[key] !== configuration.values[key])
+    .filter(
+      (key) =>
+        !published || effective(published.values, key) !== effective(configuration.values, key),
+    )
     .map((key) => ({
       key,
       label: schema?.fields.find((field) => field.key === key)?.label ?? humanize(key),
-      before: published?.values[key],
-      after: configuration.values[key],
+      before: published ? effective(published.values, key) : undefined,
+      after: effective(configuration.values, key),
     }));
 }
 

@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../core/theme/theme.dart';
 import '../../core/constants/app_strings.dart';
@@ -70,8 +71,8 @@ class _LogoMark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Image.asset(
-      'assets/images/Logo.png',
+    return SvgPicture.asset(
+      'assets/images/Logo.svg',
       width: size,
       height: size,
       fit: BoxFit.contain,

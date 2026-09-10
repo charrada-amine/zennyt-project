@@ -40,6 +40,19 @@ class GameRuntimeSnapshot {
   bool modifierBool(String key, {required bool fallback}) =>
       modifiers[key] is bool ? modifiers[key] as bool : fallback;
 
+  int settingInt(
+    String key, {
+    required int fallback,
+    required int minimum,
+    required int maximum,
+  }) {
+    final value = settings[key];
+    if (value is! num || !value.isFinite || value != value.roundToDouble()) {
+      return fallback;
+    }
+    return value.toInt().clamp(minimum, maximum);
+  }
+
   int modifierInt(
     String key, {
     required int fallback,

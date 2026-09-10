@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/theme.dart';
 import '../../core/enums/user_role.dart';
+import '../../core/audio/sound_service.dart';
+import 'app_motion.dart';
 
 /// Segmented selector for the account role: Recruiter / Candidate / Student.
 ///
@@ -16,19 +18,26 @@ class RoleTabs extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const roles = UserRole.values;
-    return Row(
-      children: [
-        for (var i = 0; i < roles.length; i++) ...[
-          Expanded(
-            child: _Segment(
-              label: roles[i].label,
-              isSelected: roles[i] == selected,
-              onTap: () => onChanged(roles[i]),
+    return Container(
+      padding: const EdgeInsets.all(5),
+      decoration: BoxDecoration(
+        color: context.colors.inputFill,
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Row(
+        children: [
+          for (var i = 0; i < roles.length; i++) ...[
+            Expanded(
+              child: _Segment(
+                label: roles[i].label,
+                isSelected: roles[i] == selected,
+                onTap: () => onChanged(roles[i]),
+              ),
             ),
-          ),
-          if (i < roles.length - 1) const SizedBox(width: AppSpacing.md),
+            if (i < roles.length - 1) const SizedBox(width: 4),
+          ],
         ],
-      ],
+      ),
     );
   }
 }
@@ -47,29 +56,40 @@ class _Segment extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOut,
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: isSelected ? colors.actionCardFilled : colors.cardSurface,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          border: Border.all(
-            color: isSelected ? Colors.transparent : colors.border,
-          ),
-          boxShadow: isSelected ? AppShadows.accentButton : AppShadows.none,
-        ),
-        child: Text(
-          label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
-          style: AppTypography.buttonSmall.copyWith(
-            color: isSelected ? Colors.white : colors.textSecondary,
+    return Semantics(
+      selected: isSelected,
+      button: true,
+      child: AppPressScale(
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(18),
+            onTap: () {
+              if (isSelected) return;
+              SoundService.instance.vibrateSelection();
+              onTap();
+            },
+            child: AnimatedContainer(
+              duration: AppMotion.duration(context, AppMotion.settle),
+              curve: Curves.easeOut,
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: isSelected ? colors.cardSurface : Colors.transparent,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: Colors.transparent),
+                boxShadow: isSelected ? AppShadows.sm : AppShadows.none,
+              ),
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: AppTypography.buttonSmall.copyWith(
+                  color: isSelected ? colors.accent : colors.textSecondary,
+                ),
+              ),
+            ),
           ),
         ),
       ),

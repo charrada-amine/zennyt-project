@@ -1045,6 +1045,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to save profile: {error}'**
   String cvReviewSaveFailed(String error);
+
+  /// No description provided for @onbGamesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Play your way forward.'**
+  String get onbGamesTitle;
+
+  /// No description provided for @onbSkillsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Discover what makes you, you.'**
+  String get onbSkillsTitle;
+
+  /// No description provided for @onbOpportunitiesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Find your next possibility.'**
+  String get onbOpportunitiesTitle;
 }
 
 class _AppLocalizationsDelegate

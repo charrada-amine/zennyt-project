@@ -6,6 +6,8 @@ import '../../../../core/localization/l10n_extension.dart';
 import '../../../../core/theme/theme.dart';
 import '../../../auth/presentation/auth_controller.dart';
 import 'profile_avatar.dart';
+import '../../../../shared/widgets/app_motion.dart';
+import '../../../../core/audio/sound_service.dart';
 
 /// Profile header section: avatar circle, user name, and "See your profile"
 /// link. Bound to the authenticated user.
@@ -15,51 +17,127 @@ class ProfileHeaderSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
-    final colors = context.colors;
     final user = ref.watch(authControllerProvider).value;
     final name = (user?.fullName.trim().isNotEmpty ?? false)
         ? user!.fullName.trim()
         : l10n.profileUserName;
 
-    return Row(
-      children: [
-        ProfileAvatar(
-          imageUrl: user?.profileImageUrl,
-          size: 60,
-          fallbackSeed: user?.email,
-        ),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
+    return ProfileIdentityCard(
+      name: name,
+      imageUrl: user?.profileImageUrl,
+      fallbackSeed: user?.email,
+      subtitle: l10n.seeYourProfile,
+      onTap: () => context.pushNamed('userProfile'),
+    );
+  }
+}
+
+/// Shared identity surface for candidate, recruiter and settings profiles.
+class ProfileIdentityCard extends StatelessWidget {
+  const ProfileIdentityCard({
+    super.key,
+    required this.name,
+    this.imageUrl,
+    this.fallbackSeed,
+    this.subtitle,
+    this.metadata,
+    this.actions,
+    this.onTap,
+  });
+
+  final String name;
+  final String? imageUrl, fallbackSeed, subtitle, metadata;
+  final Widget? actions;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return AppReveal(
+      child: AppPressScale(
+        enabled: onTap != null,
+        child: Material(
+          color: colors.cardSurface,
+          borderRadius: BorderRadius.circular(28),
           child: InkWell(
-            onTap: () => context.pushNamed('userProfile'),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(28),
+            onTap: onTap == null
+                ? null
+                : () {
+                    SoundService.instance.vibrateSelection();
+                    onTap!();
+                  },
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4.0),
+              padding: const EdgeInsets.all(22),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(5),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: colors.primary.withValues(alpha: .18),
+                            width: 2,
+                          ),
+                        ),
+                        child: ProfileAvatar(
+                          imageUrl: imageUrl,
+                          size: 72,
+                          fallbackSeed: fallbackSeed,
+                        ),
+                      ),
+                      const Spacer(),
+                      if (onTap != null)
+                        Icon(
+                          Icons.arrow_outward_rounded,
+                          color: colors.primary,
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 22),
                   Text(
                     name,
-                    style: AppTypography.titleMedium.copyWith(
+                    style: TextStyle(
+                      fontSize: 28,
+                      height: 1.12,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -.8,
                       color: colors.textDarkBlue,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 18,
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    l10n.seeYourProfile,
-                    style: AppTypography.bodySmall.copyWith(
-                      color: colors.textSecondary,
-                      fontSize: 13,
+                  if (subtitle?.isNotEmpty ?? false) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      subtitle!,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: colors.textSecondary,
+                      ),
                     ),
-                  ),
+                  ],
+                  if (metadata?.isNotEmpty ?? false) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      metadata!,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: colors.textSecondary,
+                      ),
+                    ),
+                  ],
+                  if (actions != null) ...[
+                    const SizedBox(height: 22),
+                    actions!,
+                  ],
                 ],
               ),
             ),
           ),
         ),
-      ],
+      ),
     );
   }
 }

@@ -110,77 +110,102 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 const SizedBox(height: AppSpacing.sm),
                 AuthHeader(title: context.l10n.loginTitle),
                 const SizedBox(height: AppSpacing.xxl),
-                AppTextField(
-                  hint: context.l10n.email,
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  textInputAction: TextInputAction.next,
-                  status: emailStatus,
-                  prefixIcon: Icons.mail_outline_rounded,
-                  onChanged: (_) => ref
-                      .read(loginViewModelProvider.notifier)
-                      .clearEmailError(),
-                ),
-                if (state.emailError != null) ...[
-                  const SizedBox(height: AppSpacing.sm),
-                  _FieldErrorText(
-                    message: loginErrorText(context.l10n, state.emailError!),
-                  ),
-                ],
-                const SizedBox(height: AppSpacing.base),
-                // Wrap only the password field in a ValueListenableBuilder so
-                // each keystroke rebuilds the field (for the valid/normal
-                // border tint) instead of the entire Scaffold.
-                ValueListenableBuilder<TextEditingValue>(
-                  valueListenable: _passwordController,
-                  builder: (_, value, _) {
-                    final passwordStatus = state.passwordError != null
-                        ? FieldStatus.error
-                        : (value.text.length >= 8
-                              ? FieldStatus.valid
-                              : FieldStatus.normal);
-                    return AppTextField(
-                      hint: context.l10n.password,
-                      controller: _passwordController,
-                      obscureText: true,
-                      textInputAction: TextInputAction.done,
-                      status: passwordStatus,
-                      prefixIcon: Icons.lock_outline_rounded,
-                      onChanged: (_) => ref
-                          .read(loginViewModelProvider.notifier)
-                          .clearPasswordError(),
-                      onSubmitted: (_) => _submit(),
-                    );
-                  },
-                ),
-                if (state.passwordError != null) ...[
-                  const SizedBox(height: AppSpacing.sm),
-                  _FieldErrorText(
-                    message: loginErrorText(context.l10n, state.passwordError!),
-                  ),
-                ],
-                const SizedBox(height: AppSpacing.xl),
-                Center(
-                  child: SizedBox(
-                    width: 190,
-                    child: PrimaryButton(
-                      label: context.l10n.signIn,
-                      loading: state.isLoading,
-                      onPressed: _submit,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                Center(
-                  child: TextButton(
-                    onPressed: () =>
-                        context.push(AppRoutes.forgotPasswordMethod),
-                    child: Text(
-                      context.l10n.forgotPassword,
-                      style: AppTypography.titleSmall.copyWith(
-                        color: colors.primary,
+                Container(
+                  padding: const EdgeInsets.all(22),
+                  decoration: BoxDecoration(
+                    color: colors.cardSurface,
+                    borderRadius: BorderRadius.circular(28),
+                    boxShadow: [
+                      BoxShadow(
+                        color: colors.shadowColor,
+                        blurRadius: 32,
+                        offset: const Offset(0, 12),
                       ),
-                    ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      AppTextField(
+                        hint: context.l10n.email,
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        textInputAction: TextInputAction.next,
+                        status: emailStatus,
+                        prefixIcon: Icons.mail_outline_rounded,
+                        onChanged: (_) => ref
+                            .read(loginViewModelProvider.notifier)
+                            .clearEmailError(),
+                      ),
+                      if (state.emailError != null) ...[
+                        const SizedBox(height: AppSpacing.sm),
+                        _FieldErrorText(
+                          message: loginErrorText(
+                            context.l10n,
+                            state.emailError!,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: AppSpacing.base),
+                      // Wrap only the password field in a ValueListenableBuilder so
+                      // each keystroke rebuilds the field (for the valid/normal
+                      // border tint) instead of the entire Scaffold.
+                      ValueListenableBuilder<TextEditingValue>(
+                        valueListenable: _passwordController,
+                        builder: (_, value, _) {
+                          final passwordStatus = state.passwordError != null
+                              ? FieldStatus.error
+                              : (value.text.length >= 8
+                                    ? FieldStatus.valid
+                                    : FieldStatus.normal);
+                          return AppTextField(
+                            hint: context.l10n.password,
+                            controller: _passwordController,
+                            obscureText: true,
+                            textInputAction: TextInputAction.done,
+                            status: passwordStatus,
+                            prefixIcon: Icons.lock_outline_rounded,
+                            onChanged: (_) => ref
+                                .read(loginViewModelProvider.notifier)
+                                .clearPasswordError(),
+                            onSubmitted: (_) => _submit(),
+                          );
+                        },
+                      ),
+                      if (state.passwordError != null) ...[
+                        const SizedBox(height: AppSpacing.sm),
+                        _FieldErrorText(
+                          message: loginErrorText(
+                            context.l10n,
+                            state.passwordError!,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: AppSpacing.xl),
+                      Center(
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: PrimaryButton(
+                            label: context.l10n.signIn,
+                            loading: state.isLoading,
+                            onPressed: _submit,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      Center(
+                        child: TextButton(
+                          onPressed: () =>
+                              context.push(AppRoutes.forgotPasswordMethod),
+                          child: Text(
+                            context.l10n.forgotPassword,
+                            style: AppTypography.titleSmall.copyWith(
+                              color: colors.primary,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: AppSpacing.lg),
@@ -193,7 +218,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     color: Color(0xFF4285F4),
                   ),
                   label: context.l10n.continueWithGoogle,
-                  onPressed: () {},
+                  onPressed: null,
                 ),
                 const SizedBox(height: AppSpacing.md),
                 SocialLoginButton(
@@ -203,7 +228,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     color: colors.iconDefault,
                   ),
                   label: context.l10n.continueWithGitHub,
-                  onPressed: () {},
+                  onPressed: null,
                 ),
                 const SizedBox(height: AppSpacing.xl),
                 _SignUpRow(onTap: () => context.go(AppRoutes.signup)),

@@ -13,6 +13,8 @@ import '../../../../core/theme/app_typography.dart';
 import '../../domain/config/move_fast_config.dart';
 import '../../domain/entities/device_calibration.dart';
 import '../../domain/entities/game_session.dart';
+import '../../domain/entities/game_runtime_snapshot.dart';
+import '../../domain/config/game_presentation_timing.dart';
 import '../../domain/entities/game_type.dart';
 import '../../domain/entities/mini_game.dart';
 import '../../domain/entities/move_fast_metrics.dart';
@@ -171,7 +173,27 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
     });
   }
 
-  void _startGameplay() {
+  bool _starting = false;
+  Future<void> _startGameplay() async {
+    if (_starting) return;
+    _starting = true;
+    try {
+      _sessionStart = ref
+          .read(gamesRepositoryProvider)
+          .startSession(GameType.moveFast);
+      final session = await _sessionStart!;
+      if (!mounted) return;
+      _serverSession = session;
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Partie indisponible : $error')));
+      }
+      return;
+    } finally {
+      _starting = false;
+    }
     _timer?.cancel();
     _trialTimer?.cancel();
     _advanceTimer?.cancel();
@@ -200,7 +222,6 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
       _reactionTotalMs = 0;
       _resultSubmitted = false;
       _submittingResult = false;
-      _serverSession = null;
       _responses.clear();
       _previousTrialRule = null;
       _calibrationProbe.reset();
@@ -212,9 +233,7 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
       _trialSerial = 0;
       _stimulus = _buildStimulus();
     });
-    _sessionStart = ref
-        .read(gamesRepositoryProvider)
-        .startSession(GameType.moveFast);
+    // Start clocks only after availability and runtime snapshot are confirmed.
     _startTimer();
     _startReactionTimer();
     // Le tout premier avion annonce sa règle, comme tous les suivants.
@@ -321,18 +340,15 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
       ..reset()
       ..stop();
     setState(() => _responseOpen = false);
-    _settleTimer = Timer(
-      _settleDelay,
-      () {
-        if (!mounted || _paused || _timeExpired) return;
-        if (_stage != _MoveFastStage.gameplay) return;
-        setState(() => _responseOpen = true);
-        _reactionWatch
-          ..reset()
-          ..start();
-        _armTrialDeadline();
-      },
-    );
+    _settleTimer = Timer(_settleDelay, () {
+      if (!mounted || _paused || _timeExpired) return;
+      if (_stage != _MoveFastStage.gameplay) return;
+      setState(() => _responseOpen = true);
+      _reactionWatch
+        ..reset()
+        ..start();
+      _armTrialDeadline();
+    });
   }
 
   /// Arme l'échéance de réponse de l'essai en cours.
@@ -662,7 +678,10 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
     // Minuterie NOMMÉE, et non un `Future.delayed` anonyme : celui-ci survivait
     // au démontage de l'écran, faute de prise pour l'annuler.
     _advanceTimer?.cancel();
-    _advanceTimer = Timer(const Duration(milliseconds: 650), () {
+    final timing = GamePresentationTiming(
+      _serverSession?.runtime ?? const GameRuntimeSnapshot(),
+    );
+    _advanceTimer = Timer(Duration(milliseconds: timing.responseFeedbackMs), () {
       if (!mounted || _stage != _MoveFastStage.gameplay) return;
       if (_reachedEndCondition) {
         _finishSession();
@@ -1758,7 +1777,7 @@ class _PlaneCluster extends StatelessWidget {
       builder: (context, constraints) {
         return Stack(
           children: [
-            for (var i = 0; i < _MoveFastStimulus.maxLanes; i++) 
+            for (var i = 0; i < _MoveFastStimulus.maxLanes; i++)
               _ScrollingPlane(
                 // La clé est la VOIE, jamais l'essai : c'est elle qui fait que
                 // Flutter réutilise l'avion au lieu d'en construire un neuf.
@@ -1808,11 +1827,7 @@ class _ScrollingPlane extends StatefulWidget {
 /// Où se trouve un avion, et de quelle taille, pour une règle de mouvement et
 /// une voie données.
 class _PlaneSpot {
-  const _PlaneSpot({
-    required this.left,
-    required this.top,
-    required this.size,
-  });
+  const _PlaneSpot({required this.left, required this.top, required this.size});
 
   final double left;
   final double top;

@@ -5,11 +5,26 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zennyt/core/storage/shared_preferences_provider.dart';
 import 'package:zennyt/features/auth/presentation/current_user_provider.dart';
 import 'package:zennyt/features/games/data/games_mock_repository.dart';
+import 'package:zennyt/features/games/domain/entities/game_session.dart';
+import 'package:zennyt/features/games/domain/entities/game_type.dart';
+import 'package:zennyt/features/games/domain/entities/game_runtime_snapshot.dart';
 import 'package:zennyt/features/games/presentation/games_providers.dart';
 import 'package:zennyt/features/games/presentation/view/reflective_pause_screen.dart';
 
+class _LongReflectionRepository extends GamesMockRepository {
+  @override
+  Future<GameSession> startSession(GameType gameType) async {
+    final session = await super.startSession(gameType);
+    return GameSession(id: session.id, gameType: session.gameType,
+      status: session.status, compositeRaw: session.compositeRaw,
+      compositeMax: session.compositeMax, normalized: session.normalized,
+      attempts: session.attempts, startedAt: session.startedAt,
+      runtime: const GameRuntimeSnapshot(settings: {'reflectiveThinkingTimeMs': 6000}));
+  }
+}
+
 void main() {
-  Future<void> pumpGame(WidgetTester tester) async {
+  Future<void> pumpGame(WidgetTester tester, {GamesMockRepository? repository}) async {
     SharedPreferences.setMockInitialValues({});
     final preferences = await SharedPreferences.getInstance();
     tester.view.physicalSize = const Size(390 * 3, 844 * 3);
@@ -18,7 +33,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          gamesRepositoryProvider.overrideWithValue(GamesMockRepository()),
+          gamesRepositoryProvider.overrideWithValue(repository ?? GamesMockRepository()),
           sharedPreferencesProvider.overrideWithValue(preferences),
           currentUserProvider.overrideWithValue(null),
         ],
@@ -68,6 +83,16 @@ void main() {
     );
     await tester.pump();
     expect(find.text('Respond'), findsOneWidget);
+  });
+
+  testWidgets('published thinking time extends the input lock and countdown', (tester) async {
+    await pumpGame(tester, repository: _LongReflectionRepository());
+    await reachGameplay(tester);
+    await tester.pump(const Duration(milliseconds: 3100));
+    expect(find.textContaining('Pause for'), findsOneWidget);
+    expect(find.text('Take the response that feels most natural.'), findsNothing);
+    await tester.pump(const Duration(milliseconds: 3100));
+    expect(find.text('Take the response that feels most natural.'), findsOneWidget);
   });
 
   testWidgets('le timer bloque les choix et le menu pause reprend le chrono', (

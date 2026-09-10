@@ -216,7 +216,7 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
                         const SizedBox(height: AppSpacing.xl),
                         Center(
                           child: SizedBox(
-                            width: 190,
+                            width: double.infinity,
                             child: PrimaryButton(
                               label: context.l10n.continueLabel,
                               loading: isLoading,
@@ -354,8 +354,10 @@ class _LoginRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 4,
       children: [
         Text(
           context.l10n.haveAccount,

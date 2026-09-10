@@ -2,6 +2,7 @@ import '../domain/config/decision_provisional_rules.dart';
 import '../domain/entities/decision_form.dart';
 import '../domain/entities/decision_metrics.dart';
 import '../domain/entities/device_calibration.dart';
+import '../domain/entities/emotional_radar.dart';
 import '../domain/entities/game_metrics.dart';
 import '../domain/entities/game_score.dart';
 import '../domain/entities/game_session.dart';
@@ -11,7 +12,8 @@ import 'games_mock_repository.dart';
 
 /// Repository de **DÉMO** — n'existe que pour l'APK de revue client.
 ///
-/// Il ne diffère de [GamesMockRepository] que sur « Je décide », qui refuse
+/// Il ajoute les vidéos illustratives Radar de la démo et le contenu
+/// « Je décide », qui refuse
 /// normalement de tourner hors ligne : sa banque de 120 items et sa clé de
 /// correction ne sont pas embarquées dans l'application, et le mock lève plutôt
 /// que d'inventer des scénarios.
@@ -39,6 +41,46 @@ import 'games_mock_repository.dart';
 /// dépôt) et `lib/core/router/app_router.dart` (déclaration du drapeau).
 class DemoGamesRepository extends GamesMockRepository {
   DemoGamesRepository();
+
+  // PROVISOIRE — à valider : footage illustratif autorisé pour la démo,
+  // jamais un nouveau stimulus validé. IDs, prompts et notation V25 restent
+  // ceux de GamesMockRepository / EmotionalRadarScoringService.java.
+  static const _radarClips = <int, (String, String)>{
+    1: ('phone_call.mp4', 'A woman listens to a phone call in her apartment.'),
+    2: ('night_apartment.mp4', 'A woman walks through her apartment at night.'),
+    3: (
+      'park_bench.mp4',
+      'A child sits alone on a park bench, moving his feet.',
+    ),
+  };
+
+  @override
+  Future<EmotionalRadarSceneSet> emotionalRadarScenes(String sessionId) async {
+    final original = await super.emotionalRadarScenes(sessionId);
+    return EmotionalRadarSceneSet(
+      totalScenes: original.totalScenes,
+      maxPoints: original.maxPoints,
+      emotions: original.emotions,
+      scenes: original.scenes
+          .map((scene) {
+            final clip = _radarClips[scene.sceneOrder];
+            if (clip == null) return scene;
+            return EmotionalRadarScene(
+              id: scene.id,
+              sceneOrder: scene.sceneOrder,
+              mediaType: SceneMediaType.video,
+              promptText: scene.promptText,
+              instructionText: scene.instructionText,
+              mediaUrl: 'assets/games_demo/emotional_radar/${clip.$1}',
+              altText: clip.$2,
+              transcript:
+                  'Silent illustrative footage. ${clip.$2} '
+                  'Use the written situation to answer; the footage is not an exact reenactment.',
+            );
+          })
+          .toList(growable: false),
+    );
+  }
 
   /// Clé de correction locale : `itemId` → (`optionId` → points /3).
   ///

@@ -9,7 +9,7 @@ import '../../../../../core/constants/app_strings.dart';
 import '../../../../../core/router/app_routes.dart';
 import '../../../../../core/utils/responsive.dart';
 import '../../../../../shared/widgets/primary_button.dart';
-import '../../../../../shared/widgets/zennyt_logo.dart';
+import '../../../../../shared/widgets/auth_header.dart';
 import '../../../../../core/theme/theme.dart';
 import '../viewmodel/signup_viewmodel.dart';
 
@@ -90,7 +90,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
       ),
       decoration: BoxDecoration(
         color: fill ?? colors.inputFill,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: borderColor, width: borderWidth),
       ),
     );
@@ -111,7 +111,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
             ? screenWidth
             : Responsive.maxContentWidth) -
         hPadding * 2;
-    final boxWidth = ((contentWidth - gap * 5) / 6).clamp(40.0, 56.0);
+    final boxWidth = ((contentWidth - gap * 5) / 6).clamp(28.0, 56.0);
 
     final colors = context.colors;
 
@@ -129,23 +129,9 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(height: AppSpacing.xl),
-                        const Center(
-                          child: ZennytLogo(size: 48, showTagline: true),
-                        ),
-                        const SizedBox(height: AppSpacing.xxxl),
-                        Text(
-                          AppStrings.confirmationSmsTitle,
-                          style: AppTypography.headlineMedium.copyWith(
-                            color: colors.textPrimary,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.sm),
-                        Text(
-                          AppStrings.confirmationSmsBody,
-                          style: AppTypography.bodyMedium.copyWith(
-                            color: colors.textSecondary,
-                          ),
+                        const AuthHeader(
+                          title: AppStrings.confirmationSmsTitle,
+                          subtitle: AppStrings.confirmationSmsBody,
                         ),
                         const SizedBox(height: AppSpacing.xl),
                         _OtpBoxes(
@@ -187,7 +173,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                         const SizedBox(height: AppSpacing.xl),
                         Center(
                           child: SizedBox(
-                            width: 190,
+                            width: double.infinity,
                             child: PrimaryButton(
                               label: AppStrings.continueLabel,
                               loading: state.isLoading,

@@ -9,7 +9,7 @@ info:
     des MÉTRIQUES objectives ; le score déterministe est calculé côté serveur.
     Ce contexte est indépendant : il n'expose et ne consomme aucun autre
     contexte, et publie son résultat via l'événement games.result.recorded.
-  version: 1.7.0
+  version: 1.8.0
 
 servers:
   - url: https://api.zennyt.com/api/v1
@@ -774,6 +774,18 @@ components:
 
     AdminConfigurationSchema:
       type: object
+      description: |
+        Les SETTINGS exposent aussi des timers de présentation optionnels, figés par session.
+        MEMORY_QUEST : memoryDigitVisibleMs (900, 300–3000), memoryDigitGapMs (1000, 200–3000),
+        memoryManipulationStepMs (750, 200–3000), memoryRetentionMs (3000, 0–10000).
+        PLANIFIK : puzzlePlaybackStepMs (420, 150–2000).
+        MOVE_FAST : responseFeedbackMs (650, 200–2000).
+        EMOTIONAL_REGULATION : reflectiveThinkingTimeMs (3000, 3000–15000) et
+        reflectiveTransitionMs (700, 0–5000). Toutes les valeurs sont en millisecondes.
+        Une clé optionnelle absente conserve le défaut historique, y compris dans les anciennes
+        sessions. À la création d'une nouvelle session, les defaults optionnels sont matérialisés
+        dans le snapshot persistant. La pause de réflexion peut être allongée, jamais abaissée sous le seuil de
+        scoring de 3 s. Les barèmes, timeouts de scoring et protocoles anti-triche restent fixes.
       required: [gameType, kind, fields]
       properties:
         gameType: { $ref: '#/components/schemas/GameType' }

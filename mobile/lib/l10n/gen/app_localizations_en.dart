@@ -504,4 +504,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String cvReviewSaveFailed(String error) {
     return 'Failed to save profile: $error';
   }
+
+  @override
+  String get onbGamesTitle => 'Play your way forward.';
+
+  @override
+  String get onbSkillsTitle => 'Discover what makes you, you.';
+
+  @override
+  String get onbOpportunitiesTitle => 'Find your next possibility.';
 }

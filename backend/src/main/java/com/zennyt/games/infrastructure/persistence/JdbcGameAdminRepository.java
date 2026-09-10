@@ -102,8 +102,12 @@ public class JdbcGameAdminRepository implements GameAdminRepository {
             bank == null ? null : bank.contentType().name(),
             settings == null ? null : settings.version(),
             modifiers == null ? null : modifiers.version(),
-            settings == null ? Map.of() : jsonMap(settings.valuesJson()),
-            modifiers == null ? Map.of() : jsonMap(modifiers.valuesJson()));
+            com.zennyt.games.domain.model.AdminConfigurationSchemaRegistry.effectiveValues(
+                gameType.name(), ConfigurationKind.SETTINGS,
+                settings == null ? Map.of() : jsonMap(settings.valuesJson())),
+            com.zennyt.games.domain.model.AdminConfigurationSchemaRegistry.effectiveValues(
+                gameType.name(), ConfigurationKind.MODIFIERS,
+                modifiers == null ? Map.of() : jsonMap(modifiers.valuesJson())));
     }
 
     private Bank selectPublishedBank(GameType gameType) {

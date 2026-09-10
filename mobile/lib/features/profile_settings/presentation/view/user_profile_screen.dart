@@ -8,7 +8,8 @@ import '../../../../core/utils/responsive.dart';
 import '../viewmodel/candidate_profile_viewmodel.dart';
 import '../widgets/candidate_overview_tab.dart';
 import '../widgets/candidate_portfolio_tab.dart';
-import '../widgets/profile_avatar.dart';
+import '../widgets/profile_header_section.dart';
+import '../../../../shared/widgets/custom_app_bar.dart';
 import 'recruiter_profile_view.dart';
 import '../../../auth/presentation/auth_controller.dart';
 import '../../../../core/enums/user_role.dart';
@@ -51,6 +52,18 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
 
     return Scaffold(
       backgroundColor: colors.scaffoldBg,
+      appBar: CustomAppBar(
+        title: 'Profile',
+        trailingAction: IconButton.filledTonal(
+          tooltip: 'Auto Fill Profile',
+          icon: const Icon(Icons.document_scanner_outlined),
+          onPressed: () => showModalBottomSheet(
+            context: context,
+            showDragHandle: true,
+            builder: (_) => CvSourceBottomSheet(cvUrl: profileState.cvUrl),
+          ),
+        ),
+      ),
       body: SafeArea(
         child: NestedScrollView(
           headerSliverBuilder: (context, innerBoxIsScrolled) {
@@ -64,8 +77,6 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _buildTopBar(context, colors),
-                      const SizedBox(height: AppSpacing.xl),
                       _buildProfileHeader(
                         context,
                         colors,
@@ -116,54 +127,6 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
     );
   }
 
-  Widget _buildTopBar(BuildContext context, AppColorScheme colors) {
-    return Row(
-      children: [
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: colors.backButtonBg,
-            shape: BoxShape.circle,
-            border: Border.all(color: colors.backButtonBorder, width: 1),
-          ),
-          child: IconButton(
-            onPressed: () => context.pop(),
-            icon: Icon(
-              Icons.arrow_back_ios_new_rounded,
-              color: colors.backButtonIcon,
-              size: 20,
-            ),
-          ),
-        ),
-        const Spacer(),
-        Text(
-          'Profile',
-          style: AppTypography.titleLarge.copyWith(
-            color: colors.textPrimary,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const Spacer(),
-        IconButton(
-          onPressed: () {
-            // Get the current profile state
-            final state = ref.read(candidateProfileProvider);
-            showModalBottomSheet(
-              context: context,
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-              ),
-              builder: (context) => CvSourceBottomSheet(cvUrl: state.cvUrl),
-            );
-          },
-          icon: Icon(Icons.document_scanner_outlined, color: colors.primary),
-          tooltip: 'Auto Fill Profile',
-        ),
-      ],
-    );
-  }
-
   Widget _buildProfileHeader(
     BuildContext context,
     AppColorScheme colors,
@@ -171,136 +134,49 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
     CandidateProfileViewModel viewModel,
   ) {
     final user = ref.watch(authControllerProvider).value;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Avatar
-        ProfileAvatar(imageUrl: state.avatarUrl, size: 70, fallbackSeed: user?.email),
-        const SizedBox(width: AppSpacing.md),
-        // Info
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                state.name,
-                style: AppTypography.titleLarge.copyWith(
-                  color: colors.textDarkBlue,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                state.role,
-                style: AppTypography.bodyMedium.copyWith(
-                  color: colors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Row(
+    return ProfileIdentityCard(
+      name: state.name,
+      imageUrl: state.avatarUrl,
+      fallbackSeed: user?.email,
+      subtitle: state.role,
+      metadata: state.location,
+      actions: Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        children: [
+          FilledButton.icon(
+            onPressed: () => context.push(AppRoutes.editProfile),
+            icon: const Icon(Icons.edit_outlined, size: 18),
+            label: const Text('Edit Profile'),
+          ),
+          PopupMenuButton<bool>(
+            tooltip: 'Resume AI visibility',
+            onSelected: viewModel.toggleResumeAiVisibility,
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: true, child: Text('Show')),
+              PopupMenuItem(value: false, child: Text('Hide')),
+            ],
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    Icons.location_on_outlined,
-                    size: 16,
+                    state.isResumeAiVisible
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                    size: 18,
                     color: colors.textSecondary,
                   ),
-                  const SizedBox(width: 4),
-                  Text(
-                    state.location,
-                    style: AppTypography.bodySmall.copyWith(
-                      color: colors.textSecondary,
-                    ),
-                  ),
+                  const SizedBox(width: 8),
+                  const Text('Resume AI'),
+                  const Icon(Icons.keyboard_arrow_down, size: 18),
                 ],
               ),
-              const SizedBox(height: AppSpacing.sm),
-              OutlinedButton(
-                onPressed: () => context.push(AppRoutes.editProfile),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(0, 32),
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  side: BorderSide(color: colors.border),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: Text(
-                  'Edit Profile',
-                  style: AppTypography.bodySmall.copyWith(
-                    color: colors.textPrimary,
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-        // Resume AI Dropdown
-        Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: colors.primary.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.person, color: colors.primary, size: 24),
-            ),
-            const SizedBox(height: 4),
-            PopupMenuButton<bool>(
-              child: Row(
-                children: [
-                  Text('Resume AI', style: AppTypography.labelSmall),
-                  const Icon(Icons.keyboard_arrow_down, size: 16),
-                ],
-              ),
-              itemBuilder: (context) => [
-                PopupMenuItem(
-                  value: true,
-                  child: Row(
-                    children: [
-                      Icon(
-                        state.isResumeAiVisible
-                            ? Icons.radio_button_checked
-                            : Icons.radio_button_unchecked,
-                        color: state.isResumeAiVisible
-                            ? colors.primary
-                            : colors.textSecondary,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      const Text('Show'),
-                      const Spacer(),
-                      const Icon(Icons.visibility_outlined, size: 20),
-                    ],
-                  ),
-                ),
-                PopupMenuItem(
-                  value: false,
-                  child: Row(
-                    children: [
-                      Icon(
-                        !state.isResumeAiVisible
-                            ? Icons.radio_button_checked
-                            : Icons.radio_button_unchecked,
-                        color: !state.isResumeAiVisible
-                            ? colors.primary
-                            : colors.textSecondary,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      const Text('Hide'),
-                      const Spacer(),
-                      const Icon(Icons.visibility_off_outlined, size: 20),
-                    ],
-                  ),
-                ),
-              ],
-              onSelected: (value) => viewModel.toggleResumeAiVisibility(value),
-            ),
-          ],
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -309,128 +185,78 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
     CandidateProfileState profileState,
     CandidateProfileViewModel viewModel,
   ) {
-    return Column(
-      children: [
-        Row(
-          children: [
-            PopupMenuButton<bool>(
-              offset: const Offset(0, 36),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              color: colors.scaffoldBg,
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: colors.cardSurface,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          PopupMenuButton<bool>(
+            tooltip: 'Soft skills visibility',
+            onSelected: viewModel.toggleSoftSkillsVisibility,
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: true, child: Text('Show')),
+              PopupMenuItem(value: false, child: Text('Hide')),
+            ],
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
               child: Row(
-                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    'SOFT SKILLS SCORE',
-                    style: AppTypography.labelMedium.copyWith(
-                      color: colors.textSecondary,
-                      fontWeight: FontWeight.w600,
+                  Expanded(
+                    child: Text(
+                      'SOFT SKILLS SCORE',
+                      style: AppTypography.labelMedium.copyWith(
+                        color: colors.textSecondary,
+                        letterSpacing: .8,
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 4),
                   Icon(
-                    Icons.keyboard_arrow_down,
-                    size: 16,
+                    profileState.isSoftSkillsVisible
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
                     color: colors.textSecondary,
+                    size: 20,
                   ),
+                  const Icon(Icons.keyboard_arrow_down, size: 20),
                 ],
               ),
-              itemBuilder: (context) => [
-                PopupMenuItem(
-                  value: true,
-                  child: Row(
-                    children: [
-                      Icon(
-                        profileState.isSoftSkillsVisible
-                            ? Icons.radio_button_checked
-                            : Icons.radio_button_unchecked,
-                        color: profileState.isSoftSkillsVisible
-                            ? colors.primary
-                            : colors.textSecondary,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Show',
-                        style: AppTypography.bodyMedium.copyWith(
-                          color: colors.textPrimary,
-                        ),
-                      ),
-                      const Spacer(),
-                      Icon(
-                        Icons.visibility_outlined,
-                        size: 18,
-                        color: colors.textSecondary,
-                      ),
-                    ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          AnimatedOpacity(
+            opacity: profileState.isSoftSkillsVisible ? 1 : .3,
+            duration: AppMotion.duration(context, AppMotion.settle),
+            child: Row(
+              children: [
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: LinearProgressIndicator(
+                      value: profileState.softSkillsScore / 100,
+                      minHeight: 10,
+                      backgroundColor: colors.inputFill,
+                      valueColor: AlwaysStoppedAnimation(colors.accent),
+                    ),
                   ),
                 ),
-                PopupMenuItem(
-                  value: false,
-                  child: Row(
-                    children: [
-                      Icon(
-                        !profileState.isSoftSkillsVisible
-                            ? Icons.radio_button_checked
-                            : Icons.radio_button_unchecked,
-                        color: !profileState.isSoftSkillsVisible
-                            ? colors.primary
-                            : colors.textSecondary,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Hide',
-                        style: AppTypography.bodyMedium.copyWith(
-                          color: colors.textPrimary,
-                        ),
-                      ),
-                      const Spacer(),
-                      Icon(
-                        Icons.visibility_off_outlined,
-                        size: 18,
-                        color: colors.textSecondary,
-                      ),
-                    ],
+                const SizedBox(width: 16),
+                Text(
+                  '${profileState.softSkillsScore}%',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    color: colors.textPrimary,
                   ),
                 ),
               ],
-              onSelected: (value) =>
-                  viewModel.toggleSoftSkillsVisibility(value),
             ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: AnimatedOpacity(
-                opacity: profileState.isSoftSkillsVisible ? 1.0 : 0.3,
-                duration: const Duration(milliseconds: 300),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: profileState.softSkillsScore / 100,
-                    minHeight: 8,
-                    backgroundColor: colors.border,
-                    valueColor: AlwaysStoppedAnimation<Color>(colors.primary),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            AnimatedOpacity(
-              opacity: profileState.isSoftSkillsVisible ? 1.0 : 0.3,
-              duration: const Duration(milliseconds: 300),
-              child: Text(
-                '${profileState.softSkillsScore}%',
-                style: AppTypography.labelMedium.copyWith(
-                  color: colors.textPrimary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -457,6 +283,7 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   bool shouldRebuild(_SliverAppBarDelegate oldDelegate) {
-    return false;
+    return oldDelegate.backgroundColor != backgroundColor ||
+        oldDelegate._tabBar != _tabBar;
   }
 }

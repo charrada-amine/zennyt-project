@@ -81,6 +81,15 @@ public final class AdminConfigurationSchemaRegistry {
         return SCHEMAS;
     }
 
+    /** Resolve optional fields once at session creation, not on every read. */
+    public static Map<String, Object> effectiveValues(String gameType, ConfigurationKind kind,
+                                                     Map<String, Object> published) {
+        Map<String, Object> resolved = new LinkedHashMap<>(schema(gameType, kind).defaultValues());
+        resolved.putAll(published);
+        validate(gameType, kind, resolved);
+        return Collections.unmodifiableMap(resolved);
+    }
+
     public static Schema schema(String gameType, ConfigurationKind kind) {
         GameType parsed = parseGameType(gameType);
         return SCHEMAS.stream()
@@ -149,9 +158,24 @@ public final class AdminConfigurationSchemaRegistry {
     private static List<Schema> buildSchemas() {
         List<Schema> schemas = new ArrayList<>();
         for (GameType gameType : GameType.values()) {
-            List<Field> settings = gameType == GameType.EMOTIONAL_REGULATION
+            List<Field> settings = new ArrayList<>(gameType == GameType.EMOTIONAL_REGULATION
                 ? List.of(SESSION_ENABLED, SCENE_COUNT, ORDER_MODE, HELP_ENABLED)
-                : List.of(SESSION_ENABLED);
+                : List.of(SESSION_ENABLED));
+            // PROVISOIRE — bornes d'exploitation à valider. Defaults mirror
+            // mobile GamePresentationTiming; score constants are never changed.
+            settings.addAll(switch (gameType) {
+                case MEMORY_QUEST -> List.of(
+                    timing("memoryDigitVisibleMs", "Chiffres · temps d'observation", "Durée de visibilité de chaque chiffre avant le rappel.", 900, 300, 3000),
+                    timing("memoryDigitGapMs", "Chiffres · intervalle", "Écran vide entre deux chiffres. La saisie reste verrouillée.", 1000, 200, 3000),
+                    timing("memoryManipulationStepMs", "Images · rythme des échanges", "Durée de chaque étape de mise en évidence et d'échange d'objets.", 750, 200, 3000),
+                    timing("memoryRetentionMs", "Images · pause avant rappel", "Temps de consolidation après les échanges, avant la restitution.", 3000, 0, 10000));
+                case PLANIFIK -> List.of(timing("puzzlePlaybackStepMs", "Predictive Puzzle · vitesse de lecture", "Durée de chaque mouvement lors de l'exécution du plan. Les essais et le barème ne changent pas.", 420, 150, 2000));
+                case MOVE_FAST -> List.of(timing("responseFeedbackMs", "Move Fast · feedback entre essais", "Temps d'affichage du retour avant l'avion suivant. Le budget de session reste inchangé.", 650, 200, 2000));
+                case EMOTIONAL_REGULATION -> List.of(
+                    timing("reflectiveThinkingTimeMs", "Reflective Pause · temps de réflexion", "Délai avant validation. Ne peut pas descendre sous les 3 s du protocole ; le seuil du barème reste 3 s.", 3000, 3000, 15000),
+                    timing("reflectiveTransitionMs", "Reflective Pause · transition", "Durée de la confirmation entre deux moments. Ignorée en mouvements réduits.", 700, 0, 5000));
+                default -> List.of();
+            });
             List<Field> modifiers = gameType == GameType.EMOTIONAL_REGULATION
                 ? List.of(REDUCED_MOTION, ANSWER_FEEDBACK, TRANSITION_DURATION)
                 : List.of(REDUCED_MOTION);
@@ -164,6 +188,13 @@ public final class AdminConfigurationSchemaRegistry {
     private static Field bool(String key, String label, String description, boolean defaultValue) {
         return new Field(key, label, description, ValueType.BOOLEAN, true, defaultValue,
             null, null, List.of());
+    }
+
+    private static Field timing(String key, String label, String description,
+                                int defaultValue, int minimum, int maximum) {
+        // Optional for compatibility with immutable pre-1.8 snapshots/publications.
+        return new Field(key, label, description, ValueType.INTEGER, false, defaultValue,
+            minimum, maximum, List.of());
     }
 
     private static Field integer(String key, String label, String description,

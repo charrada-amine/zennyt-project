@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,7 +6,8 @@ import '../../../../core/theme/theme.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../auth/presentation/auth_controller.dart';
 import '../viewmodel/recruiter_profile_viewmodel.dart';
-import '../widgets/profile_avatar.dart';
+import '../widgets/profile_header_section.dart';
+import '../../../../shared/widgets/custom_app_bar.dart';
 
 class RecruiterProfileView extends ConsumerWidget {
   const RecruiterProfileView({super.key});
@@ -22,6 +22,7 @@ class RecruiterProfileView extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: colors.scaffoldBg,
+      appBar: const CustomAppBar(title: 'Profile'),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: EdgeInsets.symmetric(
@@ -31,8 +32,6 @@ class RecruiterProfileView extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _buildTopBar(context, colors),
-              const SizedBox(height: AppSpacing.xl),
               _buildProfileHeader(context, colors, user, recruiterState.value),
               const SizedBox(height: AppSpacing.xl),
               _buildCompanyInformation(context, colors, recruiterState.value),
@@ -49,166 +48,29 @@ class RecruiterProfileView extends ConsumerWidget {
     );
   }
 
-  Widget _buildTopBar(BuildContext context, AppColorScheme colors) {
-    return Row(
-      children: [
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: colors.scaffoldBg,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: colors.shadowColor.withValues(alpha: 0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              ),
-            ],
-            border: Border.all(
-              color: colors.divider,
-              width: 1,
-            ),
-          ),
-          child: IconButton(
-            onPressed: () => context.pop(),
-            icon: Icon(
-              Icons.arrow_back_ios_new_rounded,
-              color: colors.textPrimary,
-              size: 18,
-            ),
-          ),
-        ),
-        const Spacer(),
-        Text(
-          'Profile',
-          style: AppTypography.titleLarge.copyWith(
-            color: colors.textDarkBlue,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const Spacer(),
-        const SizedBox(width: 44),
-      ],
-    );
-  }
-
   Widget _buildProfileHeader(
     BuildContext context,
     AppColorScheme colors,
     user,
     profile,
   ) {
-    final fullName = user != null ? '${user.firstName} ${user.lastName}' : 'Recruiter Name';
-    final jobTitle = profile?.jobTitle ?? 'Job Title';
-    final companyName = profile?.companyName ?? 'Company Name';
+    final fullName = user != null
+        ? '${user.firstName} ${user.lastName}'
+        : 'Recruiter Name';
+    final jobTitle = profile?.jobTitle ?? '';
+    final companyName = profile?.companyName ?? '';
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: colors.scaffoldBg,
-            boxShadow: [
-              BoxShadow(
-                color: colors.primary.withValues(alpha: 0.15),
-                blurRadius: 15,
-                spreadRadius: 2,
-              ),
-            ],
-          ),
-          child: ProfileAvatar(size: 70, imageUrl: user?.profileImageUrl, fallbackSeed: user?.email),
-        ),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                fullName,
-                style: AppTypography.titleLarge.copyWith(
-                  color: colors.textDarkBlue,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 22,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                jobTitle,
-                style: AppTypography.bodyMedium.copyWith(
-                  color: colors.textSecondary,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                decoration: BoxDecoration(
-                  color: colors.primary.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (profile?.companyLogoUrl != null && profile!.companyLogoUrl!.isNotEmpty)
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(6),
-                        child: Image.network(
-                          profile.companyLogoUrl!,
-                          width: 16,
-                          height: 16,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => const Icon(
-                            Icons.business,
-                            size: 16,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      )
-                    else
-                      Icon(
-                        Icons.business,
-                        size: 16,
-                        color: colors.primary,
-                      ),
-                    const SizedBox(width: 8),
-                    Text(
-                      companyName,
-                      style: AppTypography.bodySmall.copyWith(
-                        color: colors.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              OutlinedButton(
-                onPressed: () {
-                  context.pushNamed('recruiterEditProfile');
-                },
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(0, 36),
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  side: BorderSide(color: colors.divider),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: Text(
-                  'Edit Profile',
-                  style: AppTypography.bodySmall.copyWith(
-                    color: colors.textSecondary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+    return ProfileIdentityCard(
+      name: fullName,
+      imageUrl: user?.profileImageUrl,
+      fallbackSeed: user?.email,
+      subtitle: jobTitle,
+      metadata: companyName,
+      actions: FilledButton.icon(
+        onPressed: () => context.pushNamed('recruiterEditProfile'),
+        icon: const Icon(Icons.edit_outlined, size: 18),
+        label: const Text('Edit Profile'),
+      ),
     );
   }
 
@@ -224,7 +86,7 @@ class RecruiterProfileView extends ConsumerWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Company Informations',
+              'Company information',
               style: AppTypography.titleMedium.copyWith(
                 color: colors.textDarkBlue,
                 fontWeight: FontWeight.bold,
@@ -245,23 +107,48 @@ class RecruiterProfileView extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: AppSpacing.lg),
-        _buildInfoRow(colors, 'Company size', profile?.companySize ?? '100-200 employees', Icons.people_outline_rounded),
+        _buildInfoRow(
+          colors,
+          'Company size',
+          profile?.companySize ?? '—',
+          Icons.people_outline_rounded,
+        ),
         const SizedBox(height: AppSpacing.md),
-        _buildInfoRow(colors, 'Field of work', profile?.fieldOfWork ?? 'Consulting & Services', Icons.work_outline_rounded),
+        _buildInfoRow(
+          colors,
+          'Field of work',
+          profile?.fieldOfWork ?? '—',
+          Icons.work_outline_rounded,
+        ),
         const SizedBox(height: AppSpacing.md),
-        _buildInfoRow(colors, 'Company location', profile?.companyLocation ?? 'California, USA', Icons.location_on_outlined),
+        _buildInfoRow(
+          colors,
+          'Company location',
+          profile?.companyLocation ?? '—',
+          Icons.location_on_outlined,
+        ),
         const SizedBox(height: AppSpacing.md),
-        _buildInfoRow(colors, 'Company Registration Number (EIN)', profile?.companyRegistrationNumber ?? 'Verified', Icons.verified_outlined),
+        _buildInfoRow(
+          colors,
+          'Company Registration Number (EIN)',
+          profile?.companyRegistrationNumber ?? '—',
+          Icons.verified_outlined,
+        ),
       ],
     );
   }
 
-  Widget _buildInfoRow(AppColorScheme colors, String label, String value, IconData icon) {
+  Widget _buildInfoRow(
+    AppColorScheme colors,
+    String label,
+    String value,
+    IconData icon,
+  ) {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: colors.cardSurface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(color: colors.divider),
         boxShadow: [
           BoxShadow(
@@ -311,7 +198,7 @@ class RecruiterProfileView extends ConsumerWidget {
 
   Widget _buildAboutMe(BuildContext context, AppColorScheme colors, profile) {
     final aboutMe = profile?.aboutMe;
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -330,12 +217,14 @@ class RecruiterProfileView extends ConsumerWidget {
               padding: const EdgeInsets.all(AppSpacing.lg),
               decoration: BoxDecoration(
                 color: colors.primary.withValues(alpha: 0.03),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: colors.primary.withValues(alpha: 0.1)),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: colors.primary.withValues(alpha: 0.1),
+                ),
               ),
               child: Text(
                 (aboutMe == null || aboutMe.isEmpty)
-                    ? 'Hello. My name is Millie working as UI/UX designer. The UI design will help you and your website or app to convert the visitor to real customers.'
+                    ? 'Introduce yourself and your company. Add a few words about the people you are looking for.'
                     : aboutMe,
                 style: AppTypography.bodyMedium.copyWith(
                   color: colors.textDarkBlue,
@@ -371,7 +260,11 @@ class RecruiterProfileView extends ConsumerWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.edit_note_rounded, size: 18, color: colors.primary),
+                  Icon(
+                    Icons.edit_note_rounded,
+                    size: 18,
+                    color: colors.primary,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     'Edit content',

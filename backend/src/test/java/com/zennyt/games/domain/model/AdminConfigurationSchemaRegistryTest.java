@@ -11,6 +11,41 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class AdminConfigurationSchemaRegistryTest {
     @Test
+    void materializesDefaultsAndOverridesIntoImmutableSessionValues() {
+        var resolved = AdminConfigurationSchemaRegistry.effectiveValues("MEMORY_QUEST",
+            ConfigurationKind.SETTINGS, Map.of("memoryDigitVisibleMs", 1800));
+        assertThat(resolved).containsEntry("memoryDigitVisibleMs", 1800)
+            .containsEntry("memoryDigitGapMs", 1000).containsEntry("sessionEnabled", true);
+        assertThatThrownBy(() -> resolved.put("memoryDigitVisibleMs", 900))
+            .isInstanceOf(UnsupportedOperationException.class);
+    }
+    @Test
+    void validatesAllDefaultsAndPreservesLegacySettings() {
+        for (var schema : AdminConfigurationSchemaRegistry.all()) {
+            AdminConfigurationSchemaRegistry.validate(schema.gameType().name(), schema.kind(), schema.defaultValues());
+        }
+        AdminConfigurationSchemaRegistry.validate("MEMORY_QUEST", ConfigurationKind.SETTINGS, Map.of("sessionEnabled", true));
+    }
+
+    @Test
+    void acceptsTimingOverridesButRejectsFractionsWrongGameAndUnsafeReflection() {
+        AdminConfigurationSchemaRegistry.validate("MEMORY_QUEST", ConfigurationKind.SETTINGS,
+            Map.of("sessionEnabled", true, "memoryDigitVisibleMs", 1500));
+        for (Object invalid : new Object[] {299, 3001, 500.5, "900", Double.NaN, Double.POSITIVE_INFINITY}) {
+            assertThatThrownBy(() -> AdminConfigurationSchemaRegistry.validate("MEMORY_QUEST", ConfigurationKind.SETTINGS,
+                Map.of("sessionEnabled", true, "memoryDigitVisibleMs", invalid)))
+                .isInstanceOf(IllegalArgumentException.class);
+        }
+        assertThatThrownBy(() -> AdminConfigurationSchemaRegistry.validate("PLANIFIK", ConfigurationKind.SETTINGS,
+            Map.of("sessionEnabled", true, "memoryDigitVisibleMs", 900)))
+            .isInstanceOf(IllegalArgumentException.class);
+        var settings = new java.util.HashMap<>(AdminConfigurationSchemaRegistry.schema("EMOTIONAL_REGULATION", ConfigurationKind.SETTINGS).defaultValues());
+        settings.put("reflectiveThinkingTimeMs", 2999);
+        assertThatThrownBy(() -> AdminConfigurationSchemaRegistry.validate("EMOTIONAL_REGULATION", ConfigurationKind.SETTINGS, settings))
+            .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void exposesSettingsAndModifiersForEveryGameType() {
         assertThat(AdminConfigurationSchemaRegistry.all()).hasSize(GameType.values().length * 2);
         for (GameType gameType : GameType.values()) {

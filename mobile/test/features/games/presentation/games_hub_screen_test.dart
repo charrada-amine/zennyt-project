@@ -151,11 +151,11 @@ void main() {
       'assets/games icons/Optimal Path transparent.png',
     );
     expect(
-      find.byKey(const ValueKey('category-game-logo-Task Scheduling')),
+      find.byKey(const ValueKey('category-game-logo-Day Stack')),
       findsOneWidget,
     );
     expectAssetLogo(
-      'category-game-logo-Task Scheduling',
+      'category-game-logo-Day Stack',
       'assets/games icons/Task Scheduling transparent.png',
     );
     expect(
@@ -202,11 +202,11 @@ void main() {
       'assets/games icons/Optimal Path transparent.png',
     );
     expect(
-      find.byKey(const ValueKey('picker-game-logo-Task Scheduling')),
+      find.byKey(const ValueKey('picker-game-logo-Day Stack')),
       findsOneWidget,
     );
     expectAssetLogo(
-      'picker-game-logo-Task Scheduling',
+      'picker-game-logo-Day Stack',
       'assets/games icons/Task Scheduling transparent.png',
     );
     expect(

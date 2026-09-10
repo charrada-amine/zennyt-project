@@ -9,6 +9,7 @@ import '../../../../core/theme/theme_provider.dart';
 import '../../../auth/presentation/current_user_provider.dart';
 import '../viewmodel/nav_tab_provider.dart';
 import 'app_nav_item.dart';
+import '../../../../core/audio/sound_service.dart';
 
 /// The app's main bottom navigation bar: Home, Fits, Progress, Search,
 /// Notifications. Drives [navTabProvider].
@@ -23,8 +24,11 @@ class AppBottomNav extends ConsumerWidget {
     final tab = selectedTab ?? ref.watch(navTabProvider);
     final isDark = ref.watch(themeProvider) == ThemeMode.dark;
     final colors = context.colors;
-    final isRecruiter = ref.watch(currentUserProvider)?.role == UserRole.recruiter;
-    final thirdTabLabel = isRecruiter ? AppStrings.tabCareers : AppStrings.tabProgress;
+    final isRecruiter =
+        ref.watch(currentUserProvider)?.role == UserRole.recruiter;
+    final thirdTabLabel = isRecruiter
+        ? AppStrings.tabCareers
+        : AppStrings.tabProgress;
 
     void select(int i) {
       // Build de démo « Lot 1 » : seul l'onglet qui porte les jeux répond.
@@ -35,6 +39,8 @@ class AppBottomNav extends ConsumerWidget {
       // item de la barre ne puisse le contourner.
       if (kLot1DemoBuild && i != kLot1DemoTabIndex) return;
 
+      if (i == tab) return;
+      SoundService.instance.vibrateSelection();
       final overrideSelect = onSelect;
       if (overrideSelect != null) {
         overrideSelect(i);
@@ -44,14 +50,24 @@ class AppBottomNav extends ConsumerWidget {
     }
 
     return Container(
+      margin: const EdgeInsets.fromLTRB(14, 6, 14, 8),
+      padding: const EdgeInsets.symmetric(horizontal: 6),
       decoration: BoxDecoration(
         color: colors.navBg,
-        border: Border(top: BorderSide(color: colors.navBorder, width: 1)),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: colors.navBorder),
+        boxShadow: [
+          BoxShadow(
+            color: colors.primary.withValues(alpha: .08),
+            blurRadius: 28,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+          padding: const EdgeInsets.symmetric(vertical: 3),
           child: Row(
             children: [
               AppNavItem(

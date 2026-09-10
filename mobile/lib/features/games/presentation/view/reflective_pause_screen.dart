@@ -11,6 +11,8 @@ import '../../../navigation/presentation/viewmodel/nav_tab_provider.dart';
 import '../../../navigation/presentation/widgets/app_bottom_nav.dart';
 import '../../domain/config/reflective_pause_config.dart';
 import '../../domain/entities/game_session.dart';
+import '../../domain/entities/game_runtime_snapshot.dart';
+import '../../domain/config/game_presentation_timing.dart';
 import '../../domain/entities/game_type.dart';
 import '../../domain/entities/mini_game.dart';
 import '../../domain/entities/reflective_pause_metrics.dart';
@@ -156,8 +158,9 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
 
   bool _buttonsInput = true;
 
-  bool get _minimumReached =>
-      _elapsedMs >= ReflectivePauseConfig.minimumPauseMs;
+  GamePresentationTiming get _timing =>
+      GamePresentationTiming(_session?.runtime ?? const GameRuntimeSnapshot());
+  bool get _minimumReached => _elapsedMs >= _timing.reflectiveThinkingTimeMs;
 
   bool get _reducedMotion =>
       (MediaQuery.maybeDisableAnimationsOf(context) ?? false) ||
@@ -326,13 +329,17 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
         momentId: moment.id,
         selectedResponse: response,
         responseTimeMs: _elapsedMs,
-        minimumTimerReached: _minimumReached,
+        // The server's protected scoring threshold stays at 3 s even when
+        // the presentation policy asks the player to think longer.
+        minimumTimerReached: _elapsedMs >= ReflectivePauseConfig.minimumPauseMs,
       ),
     );
     setState(() => _stage = _ReflectiveStage.saved);
 
     if (!_reducedMotion) {
-      await Future<void>.delayed(const Duration(milliseconds: 700));
+      await Future<void>.delayed(
+        Duration(milliseconds: _timing.reflectiveTransitionMs),
+      );
     }
     if (!mounted) return;
     if (_momentIndex == _moments.length - 1) {
@@ -413,69 +420,72 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
           ? AppBottomNav(selectedTab: 2, onSelect: _selectMainTab)
           : null,
       body: SafeArea(
-        child: AnimatedSwitcher(
-          duration: _reducedMotion
-              ? Duration.zero
-              : const Duration(milliseconds: 250),
-          child: switch (_stage) {
-            _ReflectiveStage.cover => _CoverView(
-              key: const ValueKey('reflective-cover'),
-              onBack: _back,
-              onTutorial: () => _setStage(_ReflectiveStage.intro),
-              onStart: () => _setStage(_ReflectiveStage.intro),
-            ),
-            _ReflectiveStage.intro => _IntroView(
-              key: const ValueKey('reflective-intro'),
-              onBack: _back,
-              onContinue: () => _setStage(_ReflectiveStage.tutorial),
-            ),
-            _ReflectiveStage.tutorial => _TutorialView(
-              key: const ValueKey('reflective-tutorial'),
-              onBack: _back,
-              onStart: _startGame,
-            ),
-            _ReflectiveStage.loading => const _LoadingView(
-              key: ValueKey('reflective-loading'),
-            ),
-            _ReflectiveStage.gameplay => GameplayMusic(
-              child: _GameplayView(
-                key: ValueKey('reflective-gameplay-$_momentIndex'),
-                moment: _moments[_momentIndex],
-                momentNumber: _momentIndex + 1,
-                elapsedMs: _elapsedMs,
-                minimumReached: _minimumReached,
-                selectedResponse: _selectedResponse,
-                onSelect: (response) =>
-                    setState(() => _selectedResponse = response),
-                onValidate: _validateResponse,
-                onPause: _backOrExit,
-                onBack: _backOrExit,
-                affordance: _pauseAllowance.affordance,
+        child: GameContentFrame(
+          child: AnimatedSwitcher(
+            duration: _reducedMotion
+                ? Duration.zero
+                : const Duration(milliseconds: 250),
+            child: switch (_stage) {
+              _ReflectiveStage.cover => _CoverView(
+                key: const ValueKey('reflective-cover'),
+                onBack: _back,
+                onTutorial: () => _setStage(_ReflectiveStage.intro),
+                onStart: () => _setStage(_ReflectiveStage.intro),
               ),
-            ),
-            _ReflectiveStage.saved => _SavedView(
-              key: ValueKey('reflective-saved-$_momentIndex'),
-              momentNumber: _momentIndex + 1,
-            ),
-            _ReflectiveStage.results => _ResultsView(
-              key: const ValueKey('reflective-results'),
-              session: _session,
-              onBack: _back,
-              onInsights: () => _setStage(_ReflectiveStage.insights),
-            ),
-            _ReflectiveStage.insights => _InsightsView(
-              key: const ValueKey('reflective-insights'),
-              session: _session,
-              onBack: _back,
-              onFinish: () => context.go(AppRoutes.games),
-            ),
-            _ReflectiveStage.error => _ErrorView(
-              key: const ValueKey('reflective-error'),
-              message: _errorMessage ?? 'An unexpected error occurred.',
-              onBack: _back,
-              onRetry: _startGame,
-            ),
-          },
+              _ReflectiveStage.intro => _IntroView(
+                key: const ValueKey('reflective-intro'),
+                onBack: _back,
+                onContinue: () => _setStage(_ReflectiveStage.tutorial),
+              ),
+              _ReflectiveStage.tutorial => _TutorialView(
+                key: const ValueKey('reflective-tutorial'),
+                onBack: _back,
+                onStart: _startGame,
+              ),
+              _ReflectiveStage.loading => const _LoadingView(
+                key: ValueKey('reflective-loading'),
+              ),
+              _ReflectiveStage.gameplay => GameplayMusic(
+                child: _GameplayView(
+                  key: ValueKey('reflective-gameplay-$_momentIndex'),
+                  moment: _moments[_momentIndex],
+                  momentNumber: _momentIndex + 1,
+                  elapsedMs: _elapsedMs,
+                  thinkingTimeMs: _timing.reflectiveThinkingTimeMs,
+                  minimumReached: _minimumReached,
+                  selectedResponse: _selectedResponse,
+                  onSelect: (response) =>
+                      setState(() => _selectedResponse = response),
+                  onValidate: _validateResponse,
+                  onPause: _backOrExit,
+                  onBack: _backOrExit,
+                  affordance: _pauseAllowance.affordance,
+                ),
+              ),
+              _ReflectiveStage.saved => _SavedView(
+                key: ValueKey('reflective-saved-$_momentIndex'),
+                momentNumber: _momentIndex + 1,
+              ),
+              _ReflectiveStage.results => _ResultsView(
+                key: const ValueKey('reflective-results'),
+                session: _session,
+                onBack: _back,
+                onInsights: () => _setStage(_ReflectiveStage.insights),
+              ),
+              _ReflectiveStage.insights => _InsightsView(
+                key: const ValueKey('reflective-insights'),
+                session: _session,
+                onBack: _back,
+                onFinish: () => context.go(AppRoutes.games),
+              ),
+              _ReflectiveStage.error => _ErrorView(
+                key: const ValueKey('reflective-error'),
+                message: _errorMessage ?? 'An unexpected error occurred.',
+                onBack: _back,
+                onRetry: _startGame,
+              ),
+            },
+          ),
         ),
       ),
     );
@@ -953,6 +963,7 @@ class _GameplayView extends StatelessWidget {
     required this.moment,
     required this.momentNumber,
     required this.elapsedMs,
+    required this.thinkingTimeMs,
     required this.minimumReached,
     required this.selectedResponse,
     required this.onSelect,
@@ -965,6 +976,7 @@ class _GameplayView extends StatelessWidget {
   final _PressureMoment moment;
   final int momentNumber;
   final int elapsedMs;
+  final int thinkingTimeMs;
   final bool minimumReached;
   final ReflectivePauseResponseType? selectedResponse;
   final ValueChanged<ReflectivePauseResponseType> onSelect;
@@ -978,10 +990,7 @@ class _GameplayView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final remainingMs = math.max(
-      0,
-      ReflectivePauseConfig.minimumPauseMs - elapsedMs,
-    );
+    final remainingMs = math.max(0, thinkingTimeMs - elapsedMs);
     final remainingSeconds = (remainingMs / 1000).ceil();
     return Column(
       children: [
@@ -1153,7 +1162,7 @@ class _ResponseCard extends StatelessWidget {
                   child: Text(
                     response.label,
                     style: TextStyle(
-                      color: enabled ? _ink : _muted.withValues(alpha: 0.5),
+                      color: enabled ? _ink : _muted,
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
                     ),

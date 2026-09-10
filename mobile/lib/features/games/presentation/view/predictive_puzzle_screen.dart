@@ -10,6 +10,8 @@ import '../../../../core/audio/sound_service.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../domain/entities/game_session.dart';
+import '../../domain/entities/game_runtime_snapshot.dart';
+import '../../domain/config/game_presentation_timing.dart';
 import '../../domain/entities/game_type.dart';
 import '../../domain/entities/mini_game.dart';
 import '../../domain/entities/prevision_puzzle_metrics.dart';
@@ -127,7 +129,19 @@ class _PredictivePuzzleScreenState
     super.dispose();
   }
 
+  bool _starting = false;
   Future<void> _beginGame() async {
+    if (_starting) return;
+    _starting = true;
+    await ref.read(gamesControllerProvider.notifier).start(GameType.planifik);
+    _starting = false;
+    if (!mounted) return;
+    if (ref.read(gamesControllerProvider).value == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Partie indisponible. Réessayez.')),
+      );
+      return;
+    }
     _timer?.cancel();
     _runTimer?.cancel();
     // Nouvelle partie = nouveau droit de pause.
@@ -154,7 +168,6 @@ class _PredictivePuzzleScreenState
         setState(() => _elapsed++);
       }
     });
-    await ref.read(gamesControllerProvider.notifier).start(GameType.planifik);
   }
 
   void _selectTower(String tower) {
@@ -310,20 +323,27 @@ class _PredictivePuzzleScreenState
       }
       _feedback = 'Machine running the queued plan.';
     });
-    _runTimer = Timer.periodic(const Duration(milliseconds: 420), (timer) {
-      if (!mounted) return;
-      if (_runIndex >= _queue.length) {
-        timer.cancel();
-        // Réussite = cible atteinte. Les coups fautifs sont sautés pendant le
-        // rejeu : ils ne font PAS échouer le niveau tant que la tolérance
-        // d'erreurs du niveau n'est pas dépassée (elle l'est déjà gérée par
-        // [_addInvalidMove]). Ils restent pénalisés au barème via
-        // `firstTrySuccess = false` et le critère « erreurs de séquence ».
-        _finishRun(_isTarget(_executionTowers));
-        return;
-      }
-      _executeQueuedMove();
-    });
+    final timing = GamePresentationTiming(
+      ref.read(gamesControllerProvider).value?.runtime ??
+          const GameRuntimeSnapshot(),
+    );
+    _runTimer = Timer.periodic(
+      Duration(milliseconds: timing.puzzlePlaybackStepMs),
+      (timer) {
+        if (!mounted) return;
+        if (_runIndex >= _queue.length) {
+          timer.cancel();
+          // Réussite = cible atteinte. Les coups fautifs sont sautés pendant le
+          // rejeu : ils ne font PAS échouer le niveau tant que la tolérance
+          // d'erreurs du niveau n'est pas dépassée (elle l'est déjà gérée par
+          // [_addInvalidMove]). Ils restent pénalisés au barème via
+          // `firstTrySuccess = false` et le critère « erreurs de séquence ».
+          _finishRun(_isTarget(_executionTowers));
+          return;
+        }
+        _executeQueuedMove();
+      },
+    );
   }
 
   void _executeQueuedMove() {
@@ -431,7 +451,9 @@ class _PredictivePuzzleScreenState
         .submit(
           miniGame: MiniGame.previsionPuzzle,
           metrics: PrevisionPuzzleMetrics(
-            levels: List<PrevisionPuzzleLevelMetrics>.unmodifiable(_levelMetrics),
+            levels: List<PrevisionPuzzleLevelMetrics>.unmodifiable(
+              _levelMetrics,
+            ),
           ),
         );
     if (!mounted) return;
@@ -565,32 +587,34 @@ class _PredictivePuzzleScreenState
         onBack: () => setState(() => _stage = _PuzzleStage.intro),
         onStartGame: _beginGame,
       ),
-      _PuzzleStage.planning || _PuzzleStage.running => GameplayMusic(child: _PuzzleGameplayView(
-        elapsed: _timeLabel,
-        movesPlanned: _validMoveCount,
-        optimalMoves: _optimalMoves,
-        discCount: _discCount,
-        level: _level + 1,
-        totalLevels: _puzzleLevels.length,
-        errors: _errors,
-        maxErrors: _maxErrors,
-        towers: _stage == _PuzzleStage.running
-            ? _executionTowers
-            : _planningTowers,
-        selectedSource: _selectedSource,
-        selectedDestination: _selectedDestination,
-        queue: _queue,
-        feedback: _feedback,
-        running: _stage == _PuzzleStage.running,
-        targetReady: _targetCompleted,
-        runProgress: _queue.isEmpty ? 0 : _runIndex / _queue.length,
-        onTowerTap: _selectTower,
-        onAddMove: _targetCompleted ? _runPlan : _addMove,
-        onClear: _clearSequence,
-        onUndo: _undo,
-        onPause: _openMenu,
-        affordance: _pauseAllowance.affordance,
-      )),
+      _PuzzleStage.planning || _PuzzleStage.running => GameplayMusic(
+        child: _PuzzleGameplayView(
+          elapsed: _timeLabel,
+          movesPlanned: _validMoveCount,
+          optimalMoves: _optimalMoves,
+          discCount: _discCount,
+          level: _level + 1,
+          totalLevels: _puzzleLevels.length,
+          errors: _errors,
+          maxErrors: _maxErrors,
+          towers: _stage == _PuzzleStage.running
+              ? _executionTowers
+              : _planningTowers,
+          selectedSource: _selectedSource,
+          selectedDestination: _selectedDestination,
+          queue: _queue,
+          feedback: _feedback,
+          running: _stage == _PuzzleStage.running,
+          targetReady: _targetCompleted,
+          runProgress: _queue.isEmpty ? 0 : _runIndex / _queue.length,
+          onTowerTap: _selectTower,
+          onAddMove: _targetCompleted ? _runPlan : _addMove,
+          onClear: _clearSequence,
+          onUndo: _undo,
+          onPause: _openMenu,
+          affordance: _pauseAllowance.affordance,
+        ),
+      ),
       _PuzzleStage.results => _PredictiveResultsView(
         session: session,
         busy: _busy,
@@ -1281,7 +1305,9 @@ class _TowerView extends StatelessWidget {
                   // dès 9 disques (18 + 8 × 20 = 178 > 170) ; il est abaissé à
                   // 11 px pour que 10 disques rentrent encore.
                   const rodHeight = 170.0;
-                  final gap = (rodHeight / maxDiscs).clamp(11.0, 32.0).toDouble();
+                  final gap = (rodHeight / maxDiscs)
+                      .clamp(11.0, 32.0)
+                      .toDouble();
                   final discHeight = gap;
 
                   double discWidth(int disc) {
@@ -1819,6 +1845,7 @@ class _PredictiveComparisonView extends StatelessWidget {
     );
   }
 }
+
 class _SquareIconButton extends StatelessWidget {
   const _SquareIconButton({required this.icon, required this.onTap});
 

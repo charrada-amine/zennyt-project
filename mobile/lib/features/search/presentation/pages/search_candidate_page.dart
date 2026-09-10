@@ -2,20 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/router/app_routes.dart';
+import '../../../../core/theme/theme.dart';
+import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/custom_app_bar.dart';
+import '../../../../shared/widgets/zennyt_loader.dart';
 import '../../../fits/presentation/widgets/fit_scores_grid.dart';
 import '../providers/search_provider.dart';
 
 class SearchCandidatePage extends ConsumerStatefulWidget {
   const SearchCandidatePage({super.key});
-
   @override
-  ConsumerState<SearchCandidatePage> createState() => _SearchCandidatePageState();
+  ConsumerState<SearchCandidatePage> createState() =>
+      _SearchCandidatePageState();
 }
 
 class _SearchCandidatePageState extends ConsumerState<SearchCandidatePage> {
-  final _searchController = TextEditingController();
-
+  late final _searchController = TextEditingController(
+    text: ref.read(searchQueryProvider),
+  );
   @override
   void dispose() {
     _searchController.dispose();
@@ -24,135 +28,126 @@ class _SearchCandidatePageState extends ConsumerState<SearchCandidatePage> {
 
   @override
   Widget build(BuildContext context) {
-    final resultsAsync = ref.watch(searchResultsProvider);
-
+    final results = ref.watch(searchResultsProvider);
+    final filters = ref.watch(searchFiltersProvider);
+    final colors = context.colors;
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: const CustomAppBar(
-        title: 'Search',
-      ),
+      backgroundColor: colors.scaffoldBg,
+      appBar: const CustomAppBar(title: 'Search'),
       body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF4F5F7),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                      child: Row(
-                        children: [
-                          Icon(Icons.search, color: const Color(0xFF7A869A).withOpacity(0.7), size: 20),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: TextField(
-                              controller: _searchController,
-                              onChanged: (value) =>
-                                  ref.read(searchQueryProvider.notifier).update(value),
-                              decoration: const InputDecoration(
-                                hintText: 'Search',
-                                hintStyle: TextStyle(
-                                  color: Color(0xFF7A869A),
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w400,
-                                ),
-                                border: InputBorder.none,
-                                isDense: true,
-                                contentPadding: EdgeInsets.zero,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+        padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: AppTextField(
+                    hint: 'Role, company or location',
+                    controller: _searchController,
+                    prefixIcon: Icons.search_rounded,
+                    textInputAction: TextInputAction.search,
+                    onChanged: (value) =>
+                        ref.read(searchQueryProvider.notifier).update(value),
                   ),
-                  const SizedBox(width: 12),
-                  GestureDetector(
-                    onTap: () => context.pushNamed(AppRoutes.nSearchFilter),
-                    child: Container(
-                      height: 44,
-                      width: 44,
-                      decoration: BoxDecoration(
-                        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
-                        borderRadius: BorderRadius.circular(12),
-                        color: Colors.white,
-                      ),
-                      child: const Icon(
-                        Icons.tune_outlined,
-                        color: Color(0xFF1B3B7B),
-                        size: 20,
-                      ),
+                ),
+                const SizedBox(width: 12),
+                Badge(
+                  isLabelVisible: filters.isActive,
+                  child: IconButton.filledTonal(
+                    tooltip: 'Filters',
+                    onPressed: () => context.pushNamed(AppRoutes.nSearchFilter),
+                    style: IconButton.styleFrom(
+                      minimumSize: const Size(52, 54),
                     ),
+                    icon: const Icon(Icons.tune_rounded),
                   ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                'Suggestions',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF1E1B4B),
+                ),
+              ],
+            ),
+            if (filters.isActive)
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: () =>
+                      ref.read(searchFiltersProvider.notifier).clear(),
+                  icon: const Icon(Icons.close_rounded, size: 16),
+                  label: const Text('Clear filters'),
                 ),
               ),
-              const SizedBox(height: 14),
-              _SearchResultsBody(resultsAsync: resultsAsync),
-              const SizedBox(height: 24),
-            ],
-          ),
+            const SizedBox(height: 28),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _searchController.text.isEmpty
+                        ? 'Explore possibilities'
+                        : 'Search results',
+                    style: AppTypography.headlineLarge.copyWith(
+                      color: colors.textDarkBlue,
+                      letterSpacing: -.7,
+                    ),
+                  ),
+                ),
+                if (results.hasValue)
+                  Text(
+                    '${results.value!.length}',
+                    style: AppTypography.titleMedium.copyWith(
+                      color: colors.accent,
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            if (results.isLoading)
+              const Padding(
+                padding: EdgeInsets.all(48),
+                child: Center(child: ZennytLoader()),
+              )
+            else if (results.hasError)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 40),
+                child: Text(
+                  'Could not load results. Check your connection and try again.',
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: colors.textSecondary,
+                  ),
+                ),
+              )
+            else if (results.value?.isEmpty ?? true)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  color: colors.cardSurface,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Column(
+                  children: [
+                    Icon(Icons.search_rounded, size: 38, color: colors.primary),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No results yet',
+                      style: AppTypography.titleLarge.copyWith(
+                        color: colors.textDarkBlue,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Try a different search or adjust your filters.',
+                      textAlign: TextAlign.center,
+                      style: AppTypography.bodyMedium.copyWith(
+                        color: colors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              FitScoresGrid(items: results.value!),
+          ],
         ),
       ),
     );
-  }
-}
-
-class _SearchResultsBody extends StatelessWidget {
-  final AsyncValue resultsAsync;
-  const _SearchResultsBody({required this.resultsAsync});
-
-  @override
-  Widget build(BuildContext context) {
-    if (resultsAsync.isLoading) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 40),
-        child: Center(child: CircularProgressIndicator(color: Color(0xFF4F46E5))),
-      );
-    }
-
-    if (resultsAsync.hasError) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 40),
-        child: Center(
-          child: Text(
-            'Something went wrong loading results.',
-            style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
-          ),
-        ),
-      );
-    }
-
-    final items = (resultsAsync.value as List?) ?? [];
-    if (items.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 40),
-        child: Center(
-          child: Text(
-            'No results found.',
-            style: TextStyle(color: Color(0xFF7A869A), fontSize: 14, fontWeight: FontWeight.w500),
-          ),
-        ),
-      );
-    }
-
-    return FitScoresGrid(items: items.cast());
   }
 }

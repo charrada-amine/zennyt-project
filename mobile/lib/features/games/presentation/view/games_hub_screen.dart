@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/app_routes.dart';
+import '../../../../core/router/app_router.dart' show kLot1DemoBuild;
 import '../../../../core/theme/app_typography.dart';
 import '../../../navigation/presentation/viewmodel/nav_tab_provider.dart';
 
@@ -66,7 +67,7 @@ class GamesHubScreen extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(36, 32, 31, 26),
                 children: [
                   Text(
-                    'Coverage 0%',
+                    kLot1DemoBuild ? 'Games demo' : 'Coverage 0%',
                     style: AppTypography.headlineLarge.copyWith(
                       color: _magenta,
                       fontSize: 24,
@@ -74,6 +75,13 @@ class GamesHubScreen extends ConsumerWidget {
                       letterSpacing: 0,
                     ),
                   ),
+                  if (kLot1DemoBuild) ...[
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Practice sessions · sample results',
+                      style: TextStyle(color: _muted, fontSize: 13),
+                    ),
+                  ],
                   const SizedBox(height: 26),
                   _GameCategoryCard(
                     key: const ValueKey('game-category-cognitive-flexibility'),
@@ -174,8 +182,8 @@ class GamesHubScreen extends ConsumerWidget {
                         fallbackIcon: Icons.route_rounded,
                       ),
                       _GameEntry(
-                        label: 'Task Scheduling',
-                        subtitle: 'Dependencies & deadlines',
+                        label: 'Day Stack',
+                        subtitle: 'Task scheduling · dependencies & deadlines',
                         route: AppRoutes.gamesTaskScheduling,
                         logoAsset: _logoTaskScheduling,
                         fallbackIcon: Icons.event_note_rounded,

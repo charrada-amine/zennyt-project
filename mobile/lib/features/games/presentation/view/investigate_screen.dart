@@ -14,6 +14,8 @@ import '../../data/memory_pace_store.dart';
 import '../../domain/config/memory_quest_config.dart';
 import '../../domain/entities/device_calibration.dart';
 import '../../domain/entities/game_session.dart';
+import '../../domain/entities/game_runtime_snapshot.dart';
+import '../../domain/config/game_presentation_timing.dart';
 import '../../domain/entities/game_type.dart';
 import '../../domain/entities/memory_distraction.dart';
 import '../../domain/entities/memory_object.dart';
@@ -112,8 +114,12 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
   bool _submitting = false;
 
   // ── Timers (data-driven, cf. handoff §6/§8) ──────────────────────────────
-  static const int _digitVisibleMs = 900; // affichage d'un chiffre
-  static const int _isiMs = 1000; // blanc inter-stimulus 1 s (input verrouillé)
+  GamePresentationTiming get _timing => GamePresentationTiming(
+    _serverSession?.runtime ?? const GameRuntimeSnapshot(),
+  );
+  int get _digitVisibleMs => _timing.memoryDigitVisibleMs;
+  int get _isiMs => _timing.memoryDigitGapMs;
+  bool _starting = false;
   static const int _feedbackMs = 250;
 
   // ── Système de niveaux (fiche Tableau 1, via MemoryQuestConfig) ───────────
@@ -171,9 +177,8 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
 
   // ── Mission B — manipulation d'objets (nb d'objets selon le niveau) ──────
   static const int _bManipulations = 2; // 2 manipulations automatiques
-  static const int _manipStepMs = 750;
-  static const int _preRecallMs =
-      3000; // pause 3 s après manipulation, avant rappel
+  int get _manipStepMs => _timing.memoryManipulationStepMs;
+  int get _preRecallMs => _timing.memoryRetentionMs;
 
   List<MemoryObject> _objects = const []; // ordre INITIAL à restaurer
   List<MemoryObject> _shownOrder =
@@ -266,7 +271,26 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
 
   // ── Cycle de jeu ─────────────────────────────────────────────────────────
 
-  void _startMission() {
+  Future<void> _startMission() async {
+    if (_starting) return;
+    _starting = true;
+    try {
+      _sessionStart = ref
+          .read(gamesRepositoryProvider)
+          .startSession(GameType.memoryQuest);
+      final session = await _sessionStart!;
+      if (!mounted) return;
+      _serverSession = session;
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Partie indisponible : $error')));
+      }
+      return;
+    } finally {
+      _starting = false;
+    }
     setState(() {
       _level = 1;
       _levelFailures = 0;
@@ -283,7 +307,6 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
       _afterDistractObserved = 0;
       _afterDistractCorrect = 0;
       _distractQuestionCorrect = false;
-      _serverSession = null;
       _submitting = false;
       _tasks.clear();
     });
@@ -295,10 +318,7 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
     _sessionWatch
       ..reset()
       ..start();
-    // Démarre la session côté repo (mock hors-ligne / backend online).
-    _sessionStart = ref
-        .read(gamesRepositoryProvider)
-        .startSession(GameType.memoryQuest);
+    // Snapshot received before any observation timer starts.
     _beginRound();
   }
 
@@ -364,11 +384,11 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
       );
       // Voix native qui énonce le chiffre affiché, dans la langue du jeu.
       SoundService.instance.speakNumber(_sequence[i], languageCode: lang);
-      await Future<void>.delayed(const Duration(milliseconds: _digitVisibleMs));
+      await Future<void>.delayed(Duration(milliseconds: _digitVisibleMs));
       if (!mounted || token != _seqToken) return;
       setState(() => _showingDigit = false); // ISI (blanc, input verrouillé)
       SoundService.instance.playSfx(GameSfx.blankInterval);
-      await Future<void>.delayed(const Duration(milliseconds: _isiMs));
+      await Future<void>.delayed(Duration(milliseconds: _isiMs));
     }
     if (!mounted || token != _seqToken) return;
     setState(() => _observedDigits += _sequence.length);
@@ -577,14 +597,14 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
         _highlightA = a;
         _highlightB = b;
       });
-      await Future<void>.delayed(const Duration(milliseconds: _manipStepMs));
+      await Future<void>.delayed(Duration(milliseconds: _manipStepMs));
       if (!mounted || token != _objToken) return;
       setState(() {
         final tmp = _shownOrder[a];
         _shownOrder[a] = _shownOrder[b];
         _shownOrder[b] = tmp;
       });
-      await Future<void>.delayed(const Duration(milliseconds: _manipStepMs));
+      await Future<void>.delayed(Duration(milliseconds: _manipStepMs));
     }
 
     if (!mounted || token != _objToken) return;
@@ -594,7 +614,7 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
       _highlightA = -1;
       _highlightB = -1;
     });
-    await Future<void>.delayed(const Duration(milliseconds: _preRecallMs));
+    await Future<void>.delayed(Duration(milliseconds: _preRecallMs));
     if (!mounted || token != _objToken) return;
     // À partir du niveau [distractionMinLevel], une tâche parasite s'intercale
     // ici — entre la mémorisation et la restauration —, exactement comme la

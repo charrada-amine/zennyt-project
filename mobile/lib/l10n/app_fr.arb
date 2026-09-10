@@ -172,5 +172,8 @@
   "cvReviewSaveBtn": "Enregistrer dans le profil",
   "cvReviewSaving": "Enregistrement en cours...",
   "cvReviewSaveSuccess": "Profil mis à jour avec succès !",
-  "cvReviewSaveFailed": "Échec de l'enregistrement du profil : {error}"
+  "cvReviewSaveFailed": "Échec de l'enregistrement du profil : {error}",
+  "onbGamesTitle": "Avancez en jouant.",
+  "onbSkillsTitle": "Découvrez ce qui vous rend unique.",
+  "onbOpportunitiesTitle": "Trouvez votre prochaine opportunité."
 }

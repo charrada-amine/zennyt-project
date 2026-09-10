@@ -6,9 +6,10 @@ import { defineConfig } from "vite";
 export default defineConfig({
   server: {
     port: 3001,
+    strictPort: true,
     proxy: {
       "/api": {
-        target: "http://localhost:8080",
+        target: process.env.API_PROXY_TARGET ?? "http://localhost:8080",
         changeOrigin: true,
       },
     },
