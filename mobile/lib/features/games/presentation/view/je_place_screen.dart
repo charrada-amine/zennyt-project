@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/audio/sound_service.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../domain/config/object_location_config.dart';
 import '../../domain/entities/game_session.dart';
@@ -100,6 +101,9 @@ class _JePlaceScreenState extends ConsumerState<JePlaceScreen>
   int _remainingMs = 0;
   bool _practiceFrozen = false;
   bool _pauseOpen = false;
+
+  /// Droit de pause de la partie : une ouverture, 30 s (CdC pause §2-3).
+  final GamePauseAllowance _pauseAllowance = GamePauseAllowance();
   bool _measuredInterrupted = false;
   bool _interruptionSnapshotAdded = false;
 
@@ -186,6 +190,8 @@ class _JePlaceScreenState extends ConsumerState<JePlaceScreen>
 
   Future<void> _startJourney() async {
     _cancelTimeline();
+    // Nouvelle partie = nouveau droit de pause.
+    _pauseAllowance.reset();
     setState(() {
       _stage = _JePlaceStage.starting;
       _errorMessage = null;
@@ -551,12 +557,31 @@ class _JePlaceScreenState extends ConsumerState<JePlaceScreen>
     setState(() {});
   }
 
+  /// Flèche « retour » de l'en-tête.
+  ///
+  /// Tant que la fenêtre de pause est disponible, elle ouvre le menu. Une fois
+  /// celle-ci consommée, il n'y a plus de pause : le seul geste possible est de
+  /// quitter — donc de renoncer au score.
+  Future<void> _backOrExit() async {
+    if (_pauseAllowance.canOpen || !_isGameplay) return _openPause();
+    if (!await GameExitConfirmDialog.show(context)) return;
+    if (!mounted) return;
+    if (_isPractice) {
+      _exitToGames();
+    } else {
+      await _persistInterruptedRunAndContinue(_InterruptedRunContinuation.exit);
+    }
+  }
+
   Future<void> _openPause() async {
     if (_pauseOpen) return;
     if (!_isGameplay) {
       _exitToGames();
       return;
     }
+    // Une seule fenêtre de pause par partie (CdC pause §2-3).
+    if (!_pauseAllowance.canOpen) return;
+    _pauseAllowance.open();
     _pauseOpen = true;
     if (_isPractice) {
       _freezePractice();
@@ -572,8 +597,12 @@ class _JePlaceScreenState extends ConsumerState<JePlaceScreen>
       final action = await showDialog<JePlacePauseAction>(
         context: context,
         barrierDismissible: false,
-        builder: (_) =>
-            JePlacePauseDialog(measuredRunInterrupted: !_isPractice),
+        builder: (dialogCtx) => JePlacePauseDialog(
+          measuredRunInterrupted: !_isPractice,
+          countdown: _pauseAllowance.remaining,
+          onCountdownExpired: () =>
+              Navigator.of(dialogCtx).pop(JePlacePauseAction.resume),
+        ),
       );
       if (!mounted) break;
       switch (action) {
@@ -588,6 +617,12 @@ class _JePlaceScreenState extends ConsumerState<JePlaceScreen>
           );
         case JePlacePauseAction.exit:
         case null:
+          // Quitter annule la tentative : confirmation explicite d'abord.
+          if (!mounted) break;
+          if (!await GameExitConfirmDialog.show(context)) {
+            showAgain = _pauseAllowance.canReopen;
+            break;
+          }
           if (_isPractice) {
             _exitToGames();
           } else {
@@ -598,6 +633,10 @@ class _JePlaceScreenState extends ConsumerState<JePlaceScreen>
       }
     }
     _pauseOpen = false;
+    // La partie repart : le temps passé en pause rejoint le budget consommé, et
+    // le bouton reste « Pause » tant qu'il en reste.
+    _pauseAllowance.close();
+    if (mounted) setState(() {});
   }
 
   Future<void> _showRules() {
@@ -610,7 +649,10 @@ class _JePlaceScreenState extends ConsumerState<JePlaceScreen>
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () {
+                  SoundService.instance.playSfx(GameSfx.buttonClick);
+                  Navigator.of(context).pop();
+                },
             child: const Text('Got it'),
           ),
         ],
@@ -682,7 +724,7 @@ class _JePlaceScreenState extends ConsumerState<JePlaceScreen>
     _JePlaceStage.onboarding => _buildOnboarding(),
     _JePlaceStage.encoding ||
     _JePlaceStage.retention ||
-    _JePlaceStage.recall => _buildGameplay(),
+    _JePlaceStage.recall => GameplayMusic(child: _buildGameplay()),
     _JePlaceStage.practiceFeedback => _buildPracticeFeedback(),
     _JePlaceStage.measuredReady => _buildMeasuredReady(),
     _JePlaceStage.levelTransition => _buildLevelTransition(),
@@ -841,8 +883,12 @@ class _JePlaceScreenState extends ConsumerState<JePlaceScreen>
                 ? 'Je place · Practice'
                 : 'Je place · Level $_layoutCursor',
             title: stageLabel,
-            onBack: _openPause,
-            onMenu: _openPause,
+            onBack: _backOrExit,
+            // Même routeur que la flèche de retour : pause tant que la fenêtre
+            // est ouverte, confirmation de sortie ensuite. Le bouton ne
+            // disparaît plus une fois la fenêtre consommée, il change d'icône.
+            onMenu: _backOrExit,
+            menuAffordance: _pauseAllowance.affordance,
             onDark: true,
           ),
         ),
@@ -1328,6 +1374,7 @@ class _JePlaceHeader extends StatelessWidget {
     required this.title,
     required this.onBack,
     this.onMenu,
+    this.menuAffordance = GameMenuAffordance.pause,
     this.onDark = false,
   });
 
@@ -1335,6 +1382,10 @@ class _JePlaceHeader extends StatelessWidget {
   final String title;
   final VoidCallback onBack;
   final VoidCallback? onMenu;
+
+  /// Pause ou sortie : le bouton change d'icône une fois la fenêtre consommée,
+  /// il ne disparaît plus. Voir [GameMenuAffordance].
+  final GameMenuAffordance menuAffordance;
   final bool onDark;
 
   @override
@@ -1378,8 +1429,8 @@ class _JePlaceHeader extends StatelessWidget {
           const SizedBox(width: 50, height: 50)
         else
           _HeaderButton(
-            tooltip: 'Pause',
-            icon: Icons.pause_rounded,
+            tooltip: menuAffordance.tooltip,
+            icon: menuAffordance.icon,
             onPressed: onMenu!,
             onDark: onDark,
           ),

@@ -10,6 +10,7 @@ import '../../../../shared/widgets/language_toggle.dart';
 import '../../../../shared/widgets/primary_button.dart';
 import '../../../../shared/widgets/zennyt_logo.dart';
 import '../../../../core/theme/theme.dart';
+import '../../../../core/audio/sound_service.dart';
 import '../../domain/entities/onboarding_page.dart';
 import '../viewmodel/onboarding_viewmodel.dart';
 
@@ -30,8 +31,13 @@ String _onboardingBody(BuildContext context, OnboardingSlide slide) {
   }
 }
 
-String? _onboardingTitle(BuildContext context, OnboardingSlide slide) =>
-    slide == OnboardingSlide.welcome ? context.l10n.onbWelcomeTitle : null;
+String _onboardingTitle(BuildContext context, OnboardingSlide slide) =>
+    switch (slide) {
+      OnboardingSlide.welcome => context.l10n.onbWelcomeTitle,
+      OnboardingSlide.games => context.l10n.onbGamesTitle,
+      OnboardingSlide.skills => context.l10n.onbSkillsTitle,
+      OnboardingSlide.opportunities => context.l10n.onbOpportunitiesTitle,
+    };
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -59,7 +65,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       _finish();
     } else {
       _pageController.nextPage(
-        duration: const Duration(milliseconds: 350),
+        duration: AppMotion.duration(context, AppMotion.navigation),
         curve: Curves.easeOut,
       );
     }
@@ -72,16 +78,33 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final pages = state.pages;
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.primaryDarkest,
       body: Stack(
         children: [
           // Full-bleed swipeable photos.
           PageView.builder(
             controller: _pageController,
-            onPageChanged: viewModel.onPageChanged,
+            onPageChanged: (index) {
+              SoundService.instance.vibrateSelection();
+              viewModel.onPageChanged(index);
+            },
             itemCount: pages.length,
-            itemBuilder: (context, index) =>
-                _OnboardingBackground(page: pages[index]),
+            itemBuilder: (context, index) => AnimatedBuilder(
+              animation: _pageController,
+              child: _OnboardingBackground(page: pages[index]),
+              builder: (context, child) {
+                final position =
+                    _pageController.hasClients &&
+                        _pageController.position.hasContentDimensions
+                    ? _pageController.page ?? 0
+                    : 0.0;
+                final distance = (position - index).abs().clamp(0.0, 1.0);
+                return Transform.scale(
+                  scale: AppMotion.reduced(context) ? 1 : 1 + distance * .06,
+                  child: child,
+                );
+              },
+            ),
           ),
 
           // White Zennyt Careers logo overlaid at the top, with the language
@@ -94,22 +117,24 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               bottom: false,
               child: Padding(
                 padding: const EdgeInsets.only(top: AppSpacing.lg),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    ZennytLogo(
-                      size: 40,
-                      axis: Axis.horizontal,
-                      showTagline: true,
-                      wordmarkColor: Colors.white,
-                    ),
-                    Positioned(
-                      right: AppSpacing.base,
-                      top: 0,
-                      bottom: 0,
-                      child: const Center(child: LanguageToggle(light: true)),
-                    ),
-                  ],
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Row(
+                    children: [
+                      const Expanded(
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: ZennytLogo(
+                            size: 42,
+                            axis: Axis.horizontal,
+                            showTagline: true,
+                            wordmarkColor: Colors.white,
+                          ),
+                        ),
+                      ),
+                      const LanguageToggle(light: true),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -125,18 +150,25 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               child: Padding(
                 padding: EdgeInsets.all(Responsive.horizontalPadding(context)),
                 child: CenteredConstrainedBox(
-                  child: _OnboardingCard(
-                    title: _onboardingTitle(
-                      context,
-                      pages[state.currentIndex].slide,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: MediaQuery.sizeOf(context).height * .65,
                     ),
-                    body: _onboardingBody(
-                      context,
-                      pages[state.currentIndex].slide,
+                    child: SingleChildScrollView(
+                      child: _OnboardingCard(
+                        title: _onboardingTitle(
+                          context,
+                          pages[state.currentIndex].slide,
+                        ),
+                        body: _onboardingBody(
+                          context,
+                          pages[state.currentIndex].slide,
+                        ),
+                        isLastPage: state.isLastPage,
+                        progress: (state.currentIndex + 1) / pages.length,
+                        onNext: () => _onNext(state),
+                      ),
                     ),
-                    isLastPage: state.isLastPage,
-                    progress: (state.currentIndex + 1) / pages.length,
-                    onNext: () => _onNext(state),
                   ),
                 ),
               ),
@@ -162,10 +194,10 @@ class _OnboardingBackground extends StatelessWidget {
           imageUrl: page.imageUrl,
           fit: BoxFit.cover,
           placeholder: (context, url) => const ColoredBox(
-            color: Colors.grey,
+            color: AppColors.primaryDeep,
           ), // Using standard grey for placeholder
           errorWidget: (context, url, error) => const ColoredBox(
-            color: Colors.grey,
+            color: AppColors.primaryDeep,
             child: Icon(Icons.image_outlined, color: Colors.white, size: 48),
           ),
         ),
@@ -174,8 +206,9 @@ class _OnboardingBackground extends StatelessWidget {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
-              end: Alignment.center,
-              colors: [Color(0x55102759), Color(0x00000000)],
+              end: Alignment.bottomCenter,
+              colors: [Color(0xAA102759), Color(0x00102759), Color(0xCC102759)],
+              stops: [0, .45, 1],
             ),
           ),
         ),
@@ -202,10 +235,10 @@ class _OnboardingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.xl),
+      padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
         color: context.colors.cardSurface,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+        borderRadius: BorderRadius.circular(32),
         boxShadow: context.colors.shadowColor != Colors.transparent
             ? AppShadows.lg
             : null,
@@ -214,6 +247,19 @@ class _OnboardingCard extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Row(
+            children: [
+              Expanded(child: _ProgressBar(value: progress)),
+              const SizedBox(width: 20),
+              Text(
+                '${(progress * 4).round().toString().padLeft(2, '0')} / 04',
+                style: AppTypography.overline.copyWith(
+                  color: context.colors.textMuted,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
           if (title != null) ...[
             _Title(title: title!),
             const SizedBox(height: AppSpacing.md),
@@ -226,34 +272,12 @@ class _OnboardingCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.xl),
-          isLastPage
-              ? Align(
-                  alignment: Alignment.centerRight,
-                  child: PrimaryButton(
-                    label: context.l10n.getStarted,
-                    expanded: false,
-                    onPressed: onNext,
-                  ),
-                )
-              : Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    SizedBox(width: 96, child: _ProgressBar(value: progress)),
-                    const Spacer(),
-                    GestureDetector(
-                      onTap: onNext,
-                      behavior: HitTestBehavior.opaque,
-                      child: Text(
-                        context.l10n.next,
-                        style: AppTypography.titleSmall.copyWith(
-                          color: context
-                              .colors
-                              .actionCardFilled, // Accent equivalent
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+          PrimaryButton(
+            label: isLastPage ? context.l10n.getStarted : context.l10n.next,
+            icon: Icons.arrow_forward_rounded,
+            backgroundColor: context.colors.accent,
+            onPressed: onNext,
+          ),
         ],
       ),
     );
@@ -267,7 +291,9 @@ class _Title extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final base = AppTypography.headlineMedium.copyWith(
+    final base = AppTypography.displaySmall.copyWith(
+      fontWeight: FontWeight.w700,
+      letterSpacing: -.8,
       color: context.colors.textPrimary,
     );
     // Bold the brand phrase ("Zennyt Careers") within the title.
@@ -303,13 +329,13 @@ class _ProgressBar extends StatelessWidget {
       borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
       child: TweenAnimationBuilder<double>(
         tween: Tween(begin: 0, end: value),
-        duration: const Duration(milliseconds: 350),
+        duration: AppMotion.duration(context, AppMotion.navigation),
         curve: Curves.easeOut,
         builder: (context, animatedValue, _) => LinearProgressIndicator(
           value: animatedValue,
           minHeight: 6,
           backgroundColor: context.colors.divider,
-          valueColor: AlwaysStoppedAnimation(context.colors.textPrimary),
+          valueColor: AlwaysStoppedAnimation(context.colors.accent),
         ),
       ),
     );

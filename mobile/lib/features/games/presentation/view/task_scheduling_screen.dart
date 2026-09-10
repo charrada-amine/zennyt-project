@@ -2,17 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/audio/sound_service.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../domain/entities/game_session.dart';
 import '../../domain/entities/game_type.dart';
 import '../../domain/entities/mini_game.dart';
-import '../../domain/entities/score_breakdown.dart';
 import '../../domain/entities/task_scheduling_metrics.dart';
 import '../games_providers.dart';
 import '../widgets/game_system_components.dart';
-import '../widgets/score_detail_panel.dart';
 
 /// Planifik #2 — « Ordonnancement de tâches ».
 ///
@@ -61,6 +60,7 @@ class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen> {
   late List<int> _pool;
   int _adjustmentCount = 0; // réajustements = retraits d'un emplacement rempli
   bool _busy = false;
+  bool _reviewingRules = false;
 
   Future<GameSession>? _sessionStart;
   GameSession? _serverSession;
@@ -79,13 +79,20 @@ class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen> {
     _busy = false;
   }
 
+  /// Droit de pause de la partie : une ouverture, 30 s (CdC pause §2-3).
+  final GamePauseAllowance _pauseAllowance = GamePauseAllowance();
+
   void _beginGame() {
+    // Nouvelle partie = nouveau droit de pause.
+    _pauseAllowance.reset();
+    _reviewingRules = false;
     setState(() {
       _resetBoard();
       _stage = _Stage.gameplay;
     });
-    _sessionStart =
-        ref.read(gamesRepositoryProvider).startSession(GameType.planifik);
+    _sessionStart = ref
+        .read(gamesRepositoryProvider)
+        .startSession(GameType.planifik);
   }
 
   void _place(int taskIndex) {
@@ -170,15 +177,18 @@ class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen> {
   );
 
   Future<void> _submit() async {
-    if (_slots.contains(null)) return;
+    if (_busy || _slots.contains(null)) return;
     setState(() {
       _busy = true;
       _stage = _Stage.score;
     });
     try {
-      final session = await (_sessionStart ??=
-          ref.read(gamesRepositoryProvider).startSession(GameType.planifik));
-      final updated = await ref.read(gamesRepositoryProvider).submitResult(
+      final session = await (_sessionStart ??= ref
+          .read(gamesRepositoryProvider)
+          .startSession(GameType.planifik));
+      final updated = await ref
+          .read(gamesRepositoryProvider)
+          .submitResult(
             sessionId: session.id,
             miniGame: MiniGame.taskScheduling,
             metrics: _buildMetrics(),
@@ -208,37 +218,123 @@ class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen> {
       },
       child: Scaffold(
         backgroundColor: isDark ? ZennytGamePalette.gameBlue : Colors.white,
-        body: SafeArea(child: _buildStage()),
+        body: SafeArea(
+          child: GameContentFrame(maxWidth: 980, child: _buildStage()),
+        ),
       ),
     );
+  }
+
+  /// Bouton unique du bandeau : menu de pause tant que la fenêtre est ouverte,
+  /// confirmation de sortie ensuite. Voir [GameMenuAffordance].
+  Future<void> _openMenu() async {
+    if (_stage != _Stage.gameplay) return;
+    if (_pauseAllowance.canOpen) return _openPause();
+    if (await GameExitConfirmDialog.show(context)) {
+      if (mounted) context.go(AppRoutes.games);
+    }
+  }
+
+  /// Menu pause — même `GamePauseScaffold` que tous les autres jeux : reprise,
+  /// réglages son/musique/vibration, règles, sortie.
+  Future<void> _openPause() async {
+    if (_stage != _Stage.gameplay) return;
+    // Une seule fenêtre de pause par partie (CdC pause §2-3).
+    if (!_pauseAllowance.canOpen) return;
+    SoundService.instance.playSfx(GameSfx.pauseClick);
+    _pauseAllowance.open();
+    final action = await showDialog<GamePauseAction>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => GamePauseScaffold(
+        countdown: _pauseAllowance.remaining,
+        onCountdownExpired: () =>
+            Navigator.of(context).pop(GamePauseAction.resume),
+        description:
+            'Le plateau est figé. Les tâches déjà posées sont conservées.',
+        buttons: [
+          GamePrimaryButton(
+            label: 'Resume',
+            onPressed: () => Navigator.of(context).pop(GamePauseAction.resume),
+          ),
+          GameOutlineButton(
+            label: 'View rules',
+            onPressed: () => Navigator.of(context).pop(GamePauseAction.help),
+          ),
+          GamePauseExitButton(
+            label: 'Exit mission',
+            onPressed: () => Navigator.of(context).pop(GamePauseAction.exit),
+          ),
+        ],
+      ),
+    );
+    if (!mounted) return;
+    switch (action) {
+      case GamePauseAction.help:
+        // Relire les règles conserve le plateau et la session courante.
+        setState(() {
+          _reviewingRules = true;
+          _stage = _Stage.howToPlay;
+        });
+        return;
+      case GamePauseAction.exit:
+        // Quitter annule la tentative : confirmation explicite d'abord.
+        if (await GameExitConfirmDialog.show(context)) {
+          if (mounted) context.go(AppRoutes.games);
+          return;
+        }
+      case GamePauseAction.resume:
+      case GamePauseAction.restart:
+      case null:
+        break;
+    }
+    // La partie repart : le temps passé en pause rejoint le budget consommé, et
+    // le bandeau se redessine — le bouton reste « Pause » tant qu'il reste du
+    // budget, et bascule sur « Exit mission » une fois les 30 s épuisées.
+    _pauseAllowance.close();
+    if (mounted) setState(() {});
+  }
+
+  void _resumeFromRules() {
+    _pauseAllowance.close();
+    setState(() {
+      _reviewingRules = false;
+      _stage = _Stage.gameplay;
+    });
   }
 
   Widget _buildStage() {
     return switch (_stage) {
       _Stage.intro => _IntroView(
-          onStart: () => setState(() => _stage = _Stage.howToPlay),
-          onBack: () => context.go(AppRoutes.games),
-        ),
+        onStart: () => setState(() => _stage = _Stage.howToPlay),
+        onBack: () => context.go(AppRoutes.games),
+      ),
       _Stage.howToPlay => _HowToPlayView(
-          onStart: _beginGame,
-          onBack: () => setState(() => _stage = _Stage.intro),
-        ),
-      _Stage.gameplay => _GameplayView(
+        onStart: _reviewingRules ? _resumeFromRules : _beginGame,
+        onBack: _reviewingRules
+            ? _resumeFromRules
+            : () => setState(() => _stage = _Stage.intro),
+        reviewing: _reviewingRules,
+      ),
+      _Stage.gameplay => GameplayMusic(
+        child: _GameplayView(
           slots: _slots,
           pool: _pool,
           onPlace: _place,
           onRemove: _removeFromSlot,
           onValidate: _submit,
+          onPause: _openMenu,
+          affordance: _pauseAllowance.affordance,
         ),
+      ),
       _Stage.score => _ScoreView(
-          rawScore: _serverSession?.lastAttempt?.score.rawPoints,
-          level: _serverSession?.lastAttempt?.score.level,
-          busy: _busy,
-          breakdown: _serverSession?.scoreBreakdown ?? const [],
-          onReplay: _beginGame,
-          onNext: () => context.go(AppRoutes.gamesPredictivePuzzle),
-          onBack: () => context.go(AppRoutes.games),
-        ),
+        rawScore: _serverSession?.lastAttempt?.score.rawPoints,
+        level: _serverSession?.lastAttempt?.score.level,
+        busy: _busy,
+        onReplay: _beginGame,
+        onNext: () => context.go(AppRoutes.gamesPredictivePuzzle),
+        onBack: () => context.go(AppRoutes.games),
+      ),
     };
   }
 }
@@ -252,6 +348,8 @@ class _GameplayView extends StatelessWidget {
     required this.onPlace,
     required this.onRemove,
     required this.onValidate,
+    required this.onPause,
+    required this.affordance,
   });
 
   final List<int?> slots;
@@ -259,12 +357,75 @@ class _GameplayView extends StatelessWidget {
   final ValueChanged<int> onPlace;
   final ValueChanged<int> onRemove;
   final VoidCallback onValidate;
+  final VoidCallback onPause;
+  final GameMenuAffordance affordance;
 
   @override
   Widget build(BuildContext context) {
     final full = !slots.contains(null);
+    final placed = slots.whereType<int>().length;
+    final schedule = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Your schedule',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Expanded(
+          child: ListView.builder(
+            key: const ValueKey('day-stack-schedule'),
+            itemCount: slots.length,
+            itemBuilder: (context, i) => _SlotRow(
+              position: i + 1,
+              taskIndex: slots[i],
+              onRemove: slots[i] == null ? null : () => onRemove(i),
+            ),
+          ),
+        ),
+      ],
+    );
+    final tray = GamePanel(
+      padding: const EdgeInsets.all(12),
+      backgroundColor: ZennytGamePalette.gamePanel,
+      borderColor: Colors.transparent,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Tasks to place · ${pool.length}',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Tap a task to fill the next empty slot.',
+            style: TextStyle(color: Colors.white, fontSize: 12),
+          ),
+          const SizedBox(height: 10),
+          Expanded(
+            child: ListView.separated(
+              key: const ValueKey('day-stack-tray'),
+              itemCount: pool.length,
+              separatorBuilder: (_, index) => const SizedBox(height: 8),
+              itemBuilder: (_, index) => _TaskChip(
+                taskIndex: pool[index],
+                onTap: () => onPlace(pool[index]),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -272,62 +433,71 @@ class _GameplayView extends StatelessWidget {
             children: [
               const Expanded(
                 child: Text(
-                  'Order the tasks',
+                  'Day Stack',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 22,
+                    fontSize: 24,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
               ),
-              GameRuleChip(
-                label: 'Planning',
-                color: Colors.white,
-                filled: true,
+              IconButton.filled(
+                tooltip: affordance.tooltip,
+                onPressed: onPause,
+                style: IconButton.styleFrom(
+                  backgroundColor: ZennytGamePalette.gamePanel,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(48, 48),
+                ),
+                icon: Icon(affordance.icon),
               ),
             ],
           ),
           const SizedBox(height: 4),
           Text(
-            'Respect dependencies (after: …) and deadlines (by slot).',
-            style: AppTypography.bodyMedium.copyWith(
-              color: Colors.white.withValues(alpha: 0.9),
-              letterSpacing: 0,
+            '$placed / ${slots.length} tasks placed',
+            key: const ValueKey('day-stack-progress'),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: AppSpacing.md),
-          // Emplacements ordonnés.
+          const SizedBox(height: 8),
+          LinearProgressIndicator(
+            value: placed / slots.length,
+            minHeight: 5,
+            color: Colors.white,
+            backgroundColor: ZennytGamePalette.gamePanel,
+            semanticsLabel: 'Tasks placed',
+            semanticsValue: '${(100 * placed / slots.length).round()}%',
+          ),
+          const SizedBox(height: 12),
           Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  for (var i = 0; i < slots.length; i++)
-                    _SlotRow(
-                      position: i + 1,
-                      taskIndex: slots[i],
-                      onRemove: slots[i] == null ? null : () => onRemove(i),
-                    ),
-                ],
-              ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                if (pool.isEmpty) return schedule;
+                if (constraints.maxWidth >= 640) {
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(flex: 3, child: schedule),
+                      const SizedBox(width: 20),
+                      Expanded(flex: 2, child: tray),
+                    ],
+                  );
+                }
+                return Column(
+                  children: [
+                    Expanded(flex: 4, child: schedule),
+                    const SizedBox(height: 12),
+                    Expanded(flex: 3, child: tray),
+                  ],
+                );
+              },
             ),
           ),
-          const SizedBox(height: AppSpacing.sm),
-          // Réserve de tâches (à placer).
-          if (pool.isNotEmpty)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(AppSpacing.sm),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-              ),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [for (final t in pool) _TaskChip(taskIndex: t, onTap: () => onPlace(t))],
-              ),
-            ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: 12),
           GamePrimaryButton(
             label: 'Validate schedule',
             onPressed: full ? onValidate : null,
@@ -339,7 +509,11 @@ class _GameplayView extends StatelessWidget {
 }
 
 class _SlotRow extends StatelessWidget {
-  const _SlotRow({required this.position, required this.taskIndex, this.onRemove});
+  const _SlotRow({
+    required this.position,
+    required this.taskIndex,
+    this.onRemove,
+  });
 
   final int position;
   final int? taskIndex;
@@ -365,13 +539,22 @@ class _SlotRow extends StatelessWidget {
           Expanded(
             child: Semantics(
               button: task != null,
-              label: task == null ? 'Empty slot' : task.label,
+              label: task == null
+                  ? 'Empty slot $position'
+                  : 'Slot $position: ${task.label}',
+              hint: task == null
+                  ? 'Choose a task from the tray'
+                  : 'Tap to return this task to the tray',
               child: InkWell(
+                key: ValueKey('day-stack-slot-$position'),
                 onTap: onRemove,
                 borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                 child: Container(
                   constraints: const BoxConstraints(minHeight: 48),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: task == null
                         ? Colors.white.withValues(alpha: 0.10)
@@ -385,7 +568,7 @@ class _SlotRow extends StatelessWidget {
                             color: Colors.white.withValues(alpha: 0.7),
                           ),
                         )
-                      : _TaskInfo(task: task, dark: true),
+                      : _TaskInfo(task: task),
                 ),
               ),
             ),
@@ -409,6 +592,7 @@ class _TaskChip extends StatelessWidget {
       button: true,
       label: task.label,
       child: InkWell(
+        key: ValueKey('day-stack-task-$taskIndex'),
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
         child: Container(
@@ -418,7 +602,7 @@ class _TaskChip extends StatelessWidget {
             color: Colors.white,
             borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
           ),
-          child: _TaskInfo(task: task, dark: false),
+          child: _TaskInfo(task: task),
         ),
       ),
     );
@@ -426,10 +610,9 @@ class _TaskChip extends StatelessWidget {
 }
 
 class _TaskInfo extends StatelessWidget {
-  const _TaskInfo({required this.task, required this.dark});
+  const _TaskInfo({required this.task});
 
   final _Task task;
-  final bool dark;
 
   @override
   Widget build(BuildContext context) {
@@ -499,8 +682,14 @@ class _IntroView extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: AppSpacing.lg),
+                Image.asset(
+                  'assets/games icons/Task Scheduling transparent.png',
+                  height: 112,
+                  semanticLabel: 'Day Stack task scheduling',
+                ),
+                const SizedBox(height: AppSpacing.base),
                 Text(
-                  'Task\nScheduling',
+                  'Day Stack',
                   style: AppTypography.displayLarge.copyWith(
                     color: Colors.white,
                     letterSpacing: 0,
@@ -520,7 +709,9 @@ class _IntroView extends StatelessWidget {
           const SizedBox(height: AppSpacing.xl),
           const Row(
             children: [
-              Expanded(child: ResultStatTile(label: 'Goal', value: 'Planning')),
+              Expanded(
+                child: ResultStatTile(label: 'Goal', value: 'Planning'),
+              ),
               SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: ResultStatTile(
@@ -530,7 +721,9 @@ class _IntroView extends StatelessWidget {
                 ),
               ),
               SizedBox(width: AppSpacing.sm),
-              Expanded(child: ResultStatTile(label: 'Format', value: '/10')),
+              Expanded(
+                child: ResultStatTile(label: 'Format', value: '9 tasks'),
+              ),
             ],
           ),
           const SizedBox(height: AppSpacing.xxl),
@@ -542,7 +735,12 @@ class _IntroView extends StatelessWidget {
 }
 
 class _HowToPlayView extends StatelessWidget {
-  const _HowToPlayView({required this.onStart, required this.onBack});
+  const _HowToPlayView({
+    required this.onStart,
+    required this.onBack,
+    this.reviewing = false,
+  });
+  final bool reviewing;
   final VoidCallback onStart;
   final VoidCallback onBack;
 
@@ -599,28 +797,39 @@ class _HowToPlayView extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
-          step(Icons.touch_app_outlined, 'Place tasks',
-              'Tap a task to drop it in the next slot. Tap a slot to send it back.'),
-          step(Icons.link_rounded, 'Dependencies',
-              'A task must come AFTER the tasks listed in "after: …".'),
-          step(Icons.schedule_rounded, 'Deadlines',
-              'A task marked "by slot n" must be placed at that slot or earlier.'),
+          step(
+            Icons.touch_app_outlined,
+            'Place tasks',
+            'Tap a task to drop it in the next slot. Tap a slot to send it back.',
+          ),
+          step(
+            Icons.link_rounded,
+            'Dependencies',
+            'A task must come AFTER the tasks listed in "after: …".',
+          ),
+          step(
+            Icons.schedule_rounded,
+            'Deadlines',
+            'A task marked "by slot n" must be placed at that slot or earlier.',
+          ),
           const SizedBox(height: AppSpacing.lg),
-          GamePrimaryButton(label: 'I am ready', onPressed: onStart),
+          GamePrimaryButton(
+            label: reviewing ? 'Resume schedule' : 'I am ready',
+            onPressed: onStart,
+          ),
         ],
       ),
     );
   }
 }
 
-// ── Score (réutilise ScoreDetailPanel) ──────────────────────────────────────
+// ── Score ───────────────────────────────────────────────────────────────────
 
 class _ScoreView extends StatelessWidget {
   const _ScoreView({
     required this.rawScore,
     required this.level,
     required this.busy,
-    required this.breakdown,
     required this.onReplay,
     required this.onNext,
     required this.onBack,
@@ -629,7 +838,6 @@ class _ScoreView extends StatelessWidget {
   final int? rawScore;
   final String? level;
   final bool busy;
-  final List<ScoreBreakdownLine> breakdown;
   final VoidCallback onReplay;
   final VoidCallback onNext;
   final VoidCallback onBack;
@@ -652,7 +860,7 @@ class _ScoreView extends StatelessWidget {
             ),
           ),
           Text(
-            busy ? 'Scoring…' : 'Task scheduling — Planifik #2',
+            busy ? 'Scoring…' : 'Day Stack · Task scheduling',
             style: AppTypography.bodyMedium.copyWith(
               color: ZennytGamePalette.muted,
               letterSpacing: 0,
@@ -694,10 +902,6 @@ class _ScoreView extends StatelessWidget {
               ],
             ),
           ),
-          if (breakdown.isNotEmpty) ...[
-            const SizedBox(height: AppSpacing.xl),
-            ScoreDetailPanel(lines: breakdown),
-          ],
           const SizedBox(height: AppSpacing.xxl),
           GamePrimaryButton(label: 'Continue to Hanoï', onPressed: onNext),
           const SizedBox(height: AppSpacing.md),

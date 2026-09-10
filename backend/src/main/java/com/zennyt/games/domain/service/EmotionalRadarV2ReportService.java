@@ -38,15 +38,35 @@ public final class EmotionalRadarV2ReportService {
     public EmotionalRadarV2Report report(List<RadarSceneOutcome> outcomes,
                                          int startingLevel,
                                          List<String> levelTransitions) {
+        return report(outcomes, startingLevel,
+            outcomes == null || outcomes.isEmpty() ? startingLevel
+                : outcomes.get(outcomes.size() - 1).level(),
+            levelTransitions, true);
+    }
+
+    /** Phase-A report: computes the game layer while gating non-normed measurements. */
+    public EmotionalRadarV2Report report(List<RadarSceneOutcome> outcomes,
+                                         int startingLevel,
+                                         int finalLevel,
+                                         List<String> levelTransitions) {
+        return report(outcomes, startingLevel, finalLevel, levelTransitions, false);
+    }
+
+    private EmotionalRadarV2Report report(List<RadarSceneOutcome> outcomes,
+                                          int startingLevel,
+                                          int finalLevel,
+                                          List<String> levelTransitions,
+                                          boolean measurementAvailable) {
         if (outcomes == null || outcomes.isEmpty()) {
             throw new IllegalArgumentException("aucune scène notée");
         }
         int total = outcomes.size();
         int correct = (int) outcomes.stream().filter(RadarSceneOutcome::correct).count();
-        int finalLevel = outcomes.get(outcomes.size() - 1).level();
 
         Score game = gameScore.score(outcomes, finalLevel);
         RadarThetaEstimate thetaEstimate = theta.estimate(outcomes);
+        boolean justificationAvailable = measurementAvailable
+            && outcomes.stream().anyMatch(outcome -> outcome.justificationScore() >= 0);
 
         return new EmotionalRadarV2Report(
             total,
@@ -57,13 +77,16 @@ public final class EmotionalRadarV2ReportService {
             pct(correct, total),
             accuracyBy(outcomes, o -> o.level()),
             accuracyBy(outcomes, o -> o.choicesCount()),
-            accuracyBySemanticBand(outcomes),
-            semanticProximityErrorScore(outcomes),
+            measurementAvailable ? accuracyBySemanticBand(outcomes) : Map.of(),
+            measurementAvailable,
+            measurementAvailable ? semanticProximityErrorScore(outcomes) : 0.0,
             intensityMatchPercent(outcomes),
             intensityErrorDirection(outcomes),
             accuracyByStimulusIntensity(outcomes),
-            stimulusTypePerformance(outcomes),
-            averageJustification(outcomes),
+            measurementAvailable ? stimulusTypePerformance(outcomes) : Map.of(),
+            measurementAvailable,
+            justificationAvailable ? averageJustification(outcomes) : null,
+            justificationAvailable,
             averageResponseTime(outcomes),
             impulsivePercent(outcomes),
             game.rawPoints(),

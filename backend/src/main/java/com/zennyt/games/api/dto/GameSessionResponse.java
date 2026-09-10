@@ -2,6 +2,7 @@ package com.zennyt.games.api.dto;
 
 import com.zennyt.games.domain.model.Attempt;
 import com.zennyt.games.domain.model.GameSession;
+import com.zennyt.games.domain.model.GameRuntimeSnapshot;
 import com.zennyt.games.domain.vo.DecisionReport;
 import com.zennyt.games.domain.vo.ContinuousAttentionEpochReport;
 import com.zennyt.games.domain.vo.ContinuousAttentionPhaseReport;
@@ -32,6 +33,7 @@ public record GameSessionResponse(
     List<AttemptResponse> attempts,
     Instant startedAt,
     Instant completedAt,
+    GameRuntimeSnapshotResponse runtime,
     MoveFastIndicatorsResponse moveFastIndicators,
     PrevisionPuzzleIndicatorsResponse previsionPuzzleIndicators,
     MemoryQuestIndicatorsResponse memoryQuestIndicators,
@@ -43,6 +45,23 @@ public record GameSessionResponse(
     ObjectLocationIndicatorsResponse objectLocationIndicators,
     List<ScoreBreakdownLineResponse> scoreBreakdown
 ) {
+    public record GameRuntimeSnapshotResponse(
+        UUID bankId,
+        String bankCode,
+        Integer bankVersion,
+        String bankContentType,
+        Integer settingsVersion,
+        Integer modifiersVersion,
+        java.util.Map<String, Object> settings,
+        java.util.Map<String, Object> modifiers
+    ) {
+        static GameRuntimeSnapshotResponse from(GameRuntimeSnapshot snapshot) {
+            return new GameRuntimeSnapshotResponse(snapshot.bankId(), snapshot.bankCode(),
+                snapshot.bankVersion(), snapshot.bankContentType(), snapshot.settingsVersion(),
+                snapshot.modifiersVersion(), snapshot.settings(), snapshot.modifiers());
+        }
+    }
+
     /** Rapport descriptif de liaison objet-position, sans norme clinique. */
     public record ObjectLocationIndicatorsResponse(
         String protocolVersion,
@@ -385,23 +404,38 @@ public record GameSessionResponse(
     /** Indicateurs « J'investigue » (calculés serveur ; notes par tâche + composite). */
     public record MemoryQuestIndicatorsResponse(
         int compositeScore,
-        int sameOrderScore,
-        int reverseOrderScore,
+        /** Nul quand la partie ne joue pas les chiffres (MemoryQuest · Images). */
+        Integer sameOrderScore,
+        /** Nul quand la partie ne joue pas les chiffres (MemoryQuest · Images). */
+        Integer reverseOrderScore,
         Integer restoreScore,
         Integer afterDistractionScore,
+        /** Note des tâches parasites visuelles ; nul si aucune n'a été jouée. */
+        Integer distractionChallengeScore,
         int highestSequenceLength,
         boolean distractionQuestionCorrect,
         boolean missionBPlayed,
         boolean distractionPlayed,
+        int distractionChallengesPlayed,
+        int distractionChallengesSolved,
+        int distractionTimeouts,
+        String mode,
         int finalLevel,
         boolean sessionValid,
         int timeoutTaskCount
     ) {
         static MemoryQuestIndicatorsResponse from(MemoryQuestReport r) {
+            // Les notes de chiffres restent NULLES pour une partie d'images :
+            // les publier à 0 laisserait croire à un échec sur une épreuve qui
+            // n'a jamais été présentée. Le type doit donc être `Integer` — en
+            // `int`, l'auto-unboxing d'un null ferait planter la réponse.
             return new MemoryQuestIndicatorsResponse(
                 r.compositeScore(), r.sameOrderScore(), r.reverseOrderScore(),
-                r.restoreScore(), r.afterDistractionScore(), r.highestSequenceLength(),
+                r.restoreScore(), r.afterDistractionScore(), r.distractionChallengeScore(),
+                r.highestSequenceLength(),
                 r.distractionQuestionCorrect(), r.missionBPlayed(), r.distractionPlayed(),
+                r.distractionChallengesPlayed(), r.distractionChallengesSolved(),
+                r.distractionTimeouts(), r.mode().name(),
                 r.finalLevel(), r.sessionValid(), r.timeoutTaskCount());
         }
     }
@@ -482,7 +516,7 @@ public record GameSessionResponse(
             s.id(), s.playerId(), s.gameType().name(), s.status().name(),
             s.compositeRaw(), s.compositeMax(), s.normalizedScore(),
             s.attempts().stream().map(AttemptResponse::from).toList(),
-            s.startedAt(), s.completedAt(),
+            s.startedAt(), s.completedAt(), GameRuntimeSnapshotResponse.from(s.runtimeSnapshot()),
             moveFastReport == null ? null : MoveFastIndicatorsResponse.from(moveFastReport),
             previsionPuzzleReport == null ? null
                 : PrevisionPuzzleIndicatorsResponse.from(previsionPuzzleReport),

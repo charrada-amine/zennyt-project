@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/theme.dart';
+import '../../core/audio/sound_service.dart';
+import 'app_motion.dart';
 import 'zennyt_loader.dart';
 
 /// Primary call-to-action button matching the design's buttons.
@@ -19,6 +21,7 @@ class PrimaryButton extends StatelessWidget {
     this.backgroundColor,
     this.foregroundColor,
     this.icon,
+    this.haptics = true,
   });
 
   final String label;
@@ -29,17 +32,19 @@ class PrimaryButton extends StatelessWidget {
   final Color? backgroundColor;
   final Color? foregroundColor;
   final IconData? icon;
+  final bool haptics;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final enabled = !loading && onPressed != null;
+    void activate() {
+      if (haptics) SoundService.instance.vibrateSelection();
+      onPressed?.call();
+    }
 
     final child = loading
-        ? const SizedBox(
-            height: 22,
-            width: 22,
-            child: ZennytLoader(size: 22),
-          )
+        ? const SizedBox(height: 22, width: 22, child: ZennytLoader(size: 22))
         : Row(
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
@@ -54,7 +59,7 @@ class PrimaryButton extends StatelessWidget {
 
     final Widget button = outlined
         ? OutlinedButton(
-            onPressed: loading ? null : onPressed,
+            onPressed: enabled ? activate : null,
             style: OutlinedButton.styleFrom(
               foregroundColor: foregroundColor ?? colors.primary,
               backgroundColor: backgroundColor ?? Colors.transparent,
@@ -63,17 +68,28 @@ class PrimaryButton extends StatelessWidget {
                 width: 1.5,
               ),
             ),
-            child: child,
+            child: AnimatedSwitcher(
+              duration: AppMotion.duration(context, AppMotion.settle),
+              child: KeyedSubtree(key: ValueKey(loading), child: child),
+            ),
           )
         : ElevatedButton(
-            onPressed: loading ? null : onPressed,
+            onPressed: enabled ? activate : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: backgroundColor ?? colors.primary,
               foregroundColor: foregroundColor ?? Colors.white,
             ),
-            child: child,
+            child: AnimatedSwitcher(
+              duration: AppMotion.duration(context, AppMotion.settle),
+              child: KeyedSubtree(key: ValueKey(loading), child: child),
+            ),
           );
 
-    return expanded ? SizedBox(width: double.infinity, child: button) : button;
+    return AppPressScale(
+      enabled: enabled,
+      child: expanded
+          ? SizedBox(width: double.infinity, child: button)
+          : button,
+    );
   }
 }

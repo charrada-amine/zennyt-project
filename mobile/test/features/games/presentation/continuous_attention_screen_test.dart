@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zennyt/core/storage/shared_preferences_provider.dart';
 import 'package:zennyt/features/auth/presentation/current_user_provider.dart';
 import 'package:zennyt/features/games/domain/config/continuous_attention_config.dart';
+import 'package:zennyt/features/games/domain/entities/decision_form.dart';
 import 'package:zennyt/features/games/domain/entities/continuous_attention_metrics.dart';
 import 'package:zennyt/features/games/domain/entities/device_calibration.dart';
 import 'package:zennyt/features/games/domain/entities/emotional_radar.dart';
@@ -174,8 +175,15 @@ void main() {
     },
   );
 
+  /// Attention Continue : **aucune** pause, sans exception (CdC pause §3-4,
+  /// « point important »).
+  ///
+  /// Le jeu mesure le maintien de la vigilance dans la durée ; une pause remet
+  /// le candidat à niveau et efface le signal cherché. Ce test remplace celui
+  /// qui verrouillait l'inverse — il vérifiait que le menu pause proposait
+  /// reprise, règles et redémarrage de phase.
   testWidgets(
-    'le menu pause expose règles, reprise de pratique et restart du test',
+    'aucune pause pendant la passation, seulement une sortie confirmée',
     (tester) async {
       final bindingClock = _BindingClock(tester.binding.clock.now);
       await pumpGame(
@@ -204,47 +212,29 @@ void main() {
       expect(stimulusSemantics.properties.liveRegion, isNot(isTrue));
       expect(stimulusSemantics.container, isTrue);
       expect(stimulusSemantics.excludeSemantics, isTrue);
-      await tester.tap(find.byTooltip('Pause'));
-      await tester.pumpAndSettle();
-      expect(find.textContaining('practice clock is stopped'), findsOneWidget);
-      expect(await tester.binding.handlePopRoute(), isTrue);
-      await tester.pump();
-      expect(find.text('Pause'), findsOneWidget);
-      expect(find.textContaining('practice clock is stopped'), findsOneWidget);
-      expect(find.text('Resume'), findsOneWidget);
-      expect(find.text('Restart phase'), findsOneWidget);
-      expect(find.text('View rules / Help'), findsOneWidget);
-      expect(find.text('Exit journey'), findsOneWidget);
 
-      await tester.ensureVisible(find.text('View rules / Help'));
-      await tester.pump();
-      await tester.tap(find.text('View rules / Help'));
+      // Aucun contrôle de pause, ni en pratique…
+      expect(find.byTooltip('Pause'), findsNothing);
+      expect(find.byTooltip('Pause and restart phase'), findsNothing);
+
+      // …seulement une sortie, qui prévient que rien ne sera enregistré.
+      await tester.tap(find.byTooltip('Exit journey'));
       await tester.pumpAndSettle();
-      expect(find.text('Rules / Help'), findsOneWidget);
+      expect(find.text('Leave journey?'), findsOneWidget);
       expect(
-        find.textContaining('Respond whenever the current letter is X'),
+        find.textContaining('no score will be recorded'),
         findsOneWidget,
       );
-      await tester.ensureVisible(find.text('Got it'));
-      await tester.pump();
-      await tester.tap(find.text('Got it'));
-      await tester.pumpAndSettle();
-      expect(find.text('Pause'), findsOneWidget);
 
-      await tester.ensureVisible(find.text('Resume'));
+      // Renoncer à sortir ramène à la passation, sans pause intercalée.
+      await tester.ensureVisible(find.text('Continue journey'));
       await tester.pump();
-      await tester.tap(find.text('Resume'));
-      await tester.pump();
+      await tester.tap(find.text('Continue journey'));
+      await tester.pumpAndSettle();
       expect(find.text('First rule · Practice'), findsOneWidget);
+      expect(find.byTooltip('Pause'), findsNothing);
 
-      await tester.tap(find.byTooltip('Pause'));
-      await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('Restart phase'));
-      await tester.pump();
-      await tester.tap(find.text('Restart phase'));
-      await tester.pump();
-      expect(find.text('Block 1 / 2'), findsOneWidget);
-
+      // …ni pendant la phase MESURÉE, la plus sensible de toutes.
       await tester.pump(const Duration(minutes: 3));
       await tester.pumpAndSettle();
       expect(find.text('Practice complete'), findsOneWidget);
@@ -252,23 +242,9 @@ void main() {
       await tester.pump();
       await tester.pump();
       expect(find.text('First focus round'), findsOneWidget);
-
-      await tester.tap(find.byTooltip('Pause and restart phase'));
-      await tester.pumpAndSettle();
-      expect(
-        find.textContaining('measured phase was interrupted'),
-        findsOneWidget,
-      );
-      expect(find.text('Resume'), findsNothing);
-      final dialogRestart = find.descendant(
-        of: find.byType(Dialog),
-        matching: find.text('Restart phase'),
-      );
-      await tester.ensureVisible(dialogRestart);
-      await tester.pump();
-      await tester.tap(dialogRestart);
-      await tester.pump();
-      expect(find.text('Block 1 / 20'), findsOneWidget);
+      expect(find.byTooltip('Pause'), findsNothing);
+      expect(find.byTooltip('Pause and restart phase'), findsNothing);
+      expect(find.byTooltip('Exit journey'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
@@ -388,6 +364,10 @@ class _BindingClock implements ContinuousAttentionClock {
 }
 
 class _RecordingGamesRepository implements GamesRepository {
+  @override
+  Future<DecisionForm> decisionItems(String sessionId, {String language = 'fr'}) =>
+      throw UnimplementedError();
+
   _RecordingGamesRepository({this.invalidFirst = false});
 
   static const sessionId = '00000000-0000-4000-8000-000000000001';

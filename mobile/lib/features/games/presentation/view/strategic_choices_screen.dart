@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/audio/sound_service.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../navigation/presentation/viewmodel/nav_tab_provider.dart';
 import '../../../navigation/presentation/widgets/app_bottom_nav.dart';
@@ -71,8 +72,6 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
   Timer? _savedTimer;
   bool _pauseOpen = false;
   bool _resumePauseAfterLifecycle = false;
-  bool _soundEffects = true;
-  bool _music = false;
   bool _buttonsInput = true;
 
   bool get _reducedMotion =>
@@ -107,7 +106,7 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
         !_pauseOpen) {
       _resumePauseAfterLifecycle = false;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _openPause();
+        if (mounted) _openPause(afterLifecycle: true);
       });
     }
   }
@@ -127,9 +126,14 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
     setState(() => _stage = stage);
   }
 
+  /// Droit de pause de la partie : une ouverture, 30 s (CdC pause §2-3).
+  final GamePauseAllowance _pauseAllowance = GamePauseAllowance();
+
   void _startJourney() {
     _reflectionTimer?.cancel();
     _savedTimer?.cancel();
+    // Nouvelle partie = nouveau droit de pause.
+    _pauseAllowance.reset();
     setState(() {
       _stage = _StrategicStage.gameplay;
       _scenarioPhase = _ScenarioPhase.reading;
@@ -225,20 +229,40 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
     });
   }
 
-  Future<void> _openPause() async {
+  /// Flèche « retour » : le menu tant que la fenêtre est ouverte, sinon la
+  /// seule issue restante — quitter, donc renoncer au score.
+  Future<void> _backOrExit() async {
+    if (_pauseAllowance.canOpen) return _openPause();
+    if (!await GameExitConfirmDialog.show(context, missionLabel: 'journey')) {
+      return;
+    }
+    if (mounted) context.go(AppRoutes.games);
+  }
+
+  /// [afterLifecycle] : retour d'arrière-plan, donc interruption SUBIE — elle ne
+  /// consomme pas la fenêtre unique et n'affiche aucun compte à rebours.
+  /// [reopen] : réaffichage interne (retour des règles, sortie annulée) sur le
+  /// temps restant d'une fenêtre déjà ouverte.
+  Future<void> _openPause({
+    bool afterLifecycle = false,
+    bool reopen = false,
+  }) async {
     if (_stage != _StrategicStage.gameplay || _pauseOpen) return;
+    if (!afterLifecycle && !reopen) {
+      if (!_pauseAllowance.canOpen) return;
+      _pauseAllowance.open();
+    }
     _pauseReflectionTimer();
     _pauseOpen = true;
     final action = await showDialog<EmotionalGamePauseAction>(
       context: context,
       barrierDismissible: false,
-      builder: (context) => EmotionalGamePauseDialog(
-        soundEffects: _soundEffects,
-        music: _music,
+      builder: (dialogCtx) => EmotionalGamePauseDialog(
         buttonsInput: _buttonsInput,
-        onSoundEffects: (value) => _soundEffects = value,
-        onMusic: (value) => _music = value,
         onInputMode: (value) => _buttonsInput = value,
+        countdown: afterLifecycle ? null : _pauseAllowance.remaining,
+        onCountdownExpired: () =>
+            Navigator.of(dialogCtx).pop(EmotionalGamePauseAction.resume),
       ),
     );
     _pauseOpen = false;
@@ -246,14 +270,33 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
     switch (action) {
       case EmotionalGamePauseAction.rules:
         await _showRules();
-        if (mounted) _resumeReflectionTimer();
+        if (!mounted) return;
+        if (_pauseAllowance.canReopen) return _openPauseAgain();
       case EmotionalGamePauseAction.exit:
-        context.go(AppRoutes.games);
+        // Quitter annule la tentative : confirmation explicite d'abord.
+        if (await GameExitConfirmDialog.show(
+          context,
+          missionLabel: 'journey',
+        )) {
+          if (mounted) context.go(AppRoutes.games);
+          return;
+        }
+        if (!mounted) return;
+        if (_pauseAllowance.canReopen) return _openPauseAgain();
       case EmotionalGamePauseAction.resume:
       case null:
-        _resumeReflectionTimer();
+        break;
     }
+    if (!mounted) return;
+    // La partie repart : le temps passé en pause rejoint le budget consommé, et
+    // le bouton reste « Pause » tant qu'il en reste.
+    _pauseAllowance.close();
+    setState(_resumeReflectionTimer);
   }
+
+  /// Réouverture interne (retour des règles / sortie annulée) : la fenêtre est
+  /// déjà consommée, on repart sur son temps restant.
+  Future<void> _openPauseAgain() => _openPause(reopen: true);
 
   Future<void> _showRules() => showDialog<void>(
     context: context,
@@ -278,7 +321,10 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+            SoundService.instance.playSfx(GameSfx.buttonClick);
+            Navigator.of(context).pop();
+          },
           child: const Text('Back to mission'),
         ),
       ],
@@ -294,7 +340,7 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
       case _StrategicStage.tutorial:
         _setStage(_StrategicStage.intro);
       case _StrategicStage.gameplay:
-        _openPause();
+        _backOrExit();
       case _StrategicStage.saved:
         break;
       case _StrategicStage.results:
@@ -331,56 +377,62 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
               )
             : null,
         body: SafeArea(
-          child: AnimatedSwitcher(
-            duration: _reducedMotion
-                ? Duration.zero
-                : const Duration(milliseconds: 250),
-            child: switch (_stage) {
-              _StrategicStage.cover => _CoverView(
-                key: const ValueKey('strategic-cover'),
-                onBack: _handleBack,
-                onTutorial: () => _setStage(_StrategicStage.intro),
-                onStart: () => _setStage(_StrategicStage.intro),
-              ),
-              _StrategicStage.intro => _IntroView(
-                key: const ValueKey('strategic-intro'),
-                onBack: _handleBack,
-                onContinue: () => _setStage(_StrategicStage.tutorial),
-              ),
-              _StrategicStage.tutorial => _TutorialView(
-                key: const ValueKey('strategic-tutorial'),
-                onBack: _handleBack,
-                onStart: _startJourney,
-              ),
-              _StrategicStage.gameplay => _GameplayView(
-                key: ValueKey('strategic-gameplay-$_situationIndex'),
-                situation: StrategicChoicesContent.situations[_situationIndex],
-                situationNumber: _situationIndex + 1,
-                phase: _scenarioPhase,
-                reflectionRemaining: _reflectionRemaining,
-                selected: _selectedStrategy,
-                onStartReflection: _startReflection,
-                onSelect: _selectStrategy,
-                onValidate: _validateChoice,
-                onPause: _openPause,
-              ),
-              _StrategicStage.saved => _SavedView(
-                key: ValueKey('strategic-saved-$_situationIndex'),
-                situationNumber: _situationIndex + 1,
-              ),
-              _StrategicStage.results => _ResultsView(
-                key: const ValueKey('strategic-results'),
-                answerCount: _answers.length,
-                onBack: _handleBack,
-                onInsights: () => _setStage(_StrategicStage.insights),
-              ),
-              _StrategicStage.insights => _InsightsView(
-                key: const ValueKey('strategic-insights'),
-                answers: List.unmodifiable(_answers),
-                onBack: _handleBack,
-                onFinish: () => context.go(AppRoutes.games),
-              ),
-            },
+          child: GameContentFrame(
+            child: AnimatedSwitcher(
+              duration: _reducedMotion
+                  ? Duration.zero
+                  : const Duration(milliseconds: 250),
+              child: switch (_stage) {
+                _StrategicStage.cover => _CoverView(
+                  key: const ValueKey('strategic-cover'),
+                  onBack: _handleBack,
+                  onTutorial: () => _setStage(_StrategicStage.intro),
+                  onStart: () => _setStage(_StrategicStage.intro),
+                ),
+                _StrategicStage.intro => _IntroView(
+                  key: const ValueKey('strategic-intro'),
+                  onBack: _handleBack,
+                  onContinue: () => _setStage(_StrategicStage.tutorial),
+                ),
+                _StrategicStage.tutorial => _TutorialView(
+                  key: const ValueKey('strategic-tutorial'),
+                  onBack: _handleBack,
+                  onStart: _startJourney,
+                ),
+                _StrategicStage.gameplay => GameplayMusic(
+                  child: _GameplayView(
+                    key: ValueKey('strategic-gameplay-$_situationIndex'),
+                    situation:
+                        StrategicChoicesContent.situations[_situationIndex],
+                    situationNumber: _situationIndex + 1,
+                    phase: _scenarioPhase,
+                    reflectionRemaining: _reflectionRemaining,
+                    selected: _selectedStrategy,
+                    onStartReflection: _startReflection,
+                    onSelect: _selectStrategy,
+                    onValidate: _validateChoice,
+                    onPause: _backOrExit,
+                    affordance: _pauseAllowance.affordance,
+                  ),
+                ),
+                _StrategicStage.saved => _SavedView(
+                  key: ValueKey('strategic-saved-$_situationIndex'),
+                  situationNumber: _situationIndex + 1,
+                ),
+                _StrategicStage.results => _ResultsView(
+                  key: const ValueKey('strategic-results'),
+                  answerCount: _answers.length,
+                  onBack: _handleBack,
+                  onInsights: () => _setStage(_StrategicStage.insights),
+                ),
+                _StrategicStage.insights => _InsightsView(
+                  key: const ValueKey('strategic-insights'),
+                  answers: List.unmodifiable(_answers),
+                  onBack: _handleBack,
+                  onFinish: () => context.go(AppRoutes.games),
+                ),
+              },
+            ),
           ),
         ),
       ),
@@ -506,13 +558,19 @@ class _CoverView extends StatelessWidget {
           style: TextStyle(color: _muted, fontSize: 16, height: 1.45),
         ),
         const SizedBox(height: 18),
-        const Wrap(
+        Wrap(
           spacing: 8,
           runSpacing: 8,
           children: [
-            _FeatureChip(label: '10 situations', color: _blue),
-            _FeatureChip(label: 'Text preview', color: _magenta),
-            _FeatureChip(label: 'Final insights', color: _green),
+            // Annonçait « 10 situations » en dur. Le jeu en joue onze — tout le
+            // reste de l'écran compte déjà sur `situations.length`, seule cette
+            // pastille avait son propre chiffre, et il était faux.
+            _FeatureChip(
+              label: '${StrategicChoicesContent.situations.length} situations',
+              color: _blue,
+            ),
+            const _FeatureChip(label: 'Text preview', color: _magenta),
+            const _FeatureChip(label: 'Final insights', color: _green),
           ],
         ),
         const SizedBox(height: 26),
@@ -711,6 +769,7 @@ class _GameplayView extends StatelessWidget {
     required this.onSelect,
     required this.onValidate,
     required this.onPause,
+    required this.affordance,
   });
 
   final StrategicChoiceSituation situation;
@@ -722,6 +781,10 @@ class _GameplayView extends StatelessWidget {
   final ValueChanged<StrategicChoiceStrategy> onSelect;
   final VoidCallback onValidate;
   final VoidCallback onPause;
+
+  /// Pause ou sortie : le bouton change d'icône une fois la fenêtre consommée,
+  /// il ne disparaît plus. Voir [GameMenuAffordance].
+  final GameMenuAffordance affordance;
 
   String get _modeLabel => switch (phase) {
     _ScenarioPhase.reading => 'Read the situation',
@@ -776,8 +839,8 @@ class _GameplayView extends StatelessWidget {
                 ),
               ),
               _PurpleIconButton(
-                icon: Icons.pause_rounded,
-                tooltip: 'Pause',
+                icon: affordance.icon,
+                tooltip: affordance.tooltip,
                 onTap: onPause,
               ),
             ],
@@ -949,27 +1012,22 @@ class _GameplayView extends StatelessWidget {
                             ],
                           );
                         }
-                        return GridView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: StrategicChoicesContent.strategies.length,
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                crossAxisSpacing: 8,
-                                mainAxisSpacing: 8,
-                                childAspectRatio: 2.28,
+                        return Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (final strategy
+                                in StrategicChoicesContent.strategies)
+                              SizedBox(
+                                width: (constraints.maxWidth - 8) / 2,
+                                child: _StrategyCard(
+                                  strategy: strategy,
+                                  enabled: phase != _ScenarioPhase.reading,
+                                  selected: selected == strategy,
+                                  onTap: () => onSelect(strategy),
+                                ),
                               ),
-                          itemBuilder: (context, index) {
-                            final strategy =
-                                StrategicChoicesContent.strategies[index];
-                            return _StrategyCard(
-                              strategy: strategy,
-                              enabled: phase != _ScenarioPhase.reading,
-                              selected: selected == strategy,
-                              onTap: () => onSelect(strategy),
-                            );
-                          },
+                          ],
                         );
                       },
                     ),
@@ -998,22 +1056,24 @@ class _GameplayView extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 10),
-              if (phase == _ScenarioPhase.reading)
-                GamePrimaryButton(
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 18),
+          child: phase == _ScenarioPhase.reading
+              ? GamePrimaryButton(
                   key: const ValueKey('strategic-start-reflection'),
                   label: 'Start reflection',
                   onPressed: onStartReflection,
                 )
-              else
-                GamePrimaryButton(
+              : GamePrimaryButton(
                   key: const ValueKey('strategic-validate'),
                   label: 'Validate my answer',
                   onPressed: phase == _ScenarioPhase.ready && selected != null
                       ? onValidate
                       : null,
                 ),
-            ],
-          ),
         ),
       ],
     );

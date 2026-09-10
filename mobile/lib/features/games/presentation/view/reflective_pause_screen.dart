@@ -5,11 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/audio/sound_service.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../navigation/presentation/viewmodel/nav_tab_provider.dart';
 import '../../../navigation/presentation/widgets/app_bottom_nav.dart';
 import '../../domain/config/reflective_pause_config.dart';
 import '../../domain/entities/game_session.dart';
+import '../../domain/entities/game_runtime_snapshot.dart';
+import '../../domain/config/game_presentation_timing.dart';
 import '../../domain/entities/game_type.dart';
 import '../../domain/entities/mini_game.dart';
 import '../../domain/entities/reflective_pause_metrics.dart';
@@ -153,15 +156,19 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
   bool _submitting = false;
   String? _errorMessage;
 
-  bool _soundEffects = true;
-  bool _music = false;
   bool _buttonsInput = true;
 
-  bool get _minimumReached =>
-      _elapsedMs >= ReflectivePauseConfig.minimumPauseMs;
+  GamePresentationTiming get _timing =>
+      GamePresentationTiming(_session?.runtime ?? const GameRuntimeSnapshot());
+  bool get _minimumReached => _elapsedMs >= _timing.reflectiveThinkingTimeMs;
 
   bool get _reducedMotion =>
-      MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+      (MediaQuery.maybeDisableAnimationsOf(context) ?? false) ||
+      (_session?.runtime.modifierBool(
+            'reducedMotionDefault',
+            fallback: false,
+          ) ??
+          false);
 
   DateTime _now() => widget.now?.call() ?? DateTime.now();
 
@@ -180,7 +187,12 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
     setState(() => _stage = stage);
   }
 
+  /// Droit de pause de la partie : une ouverture, 30 s (CdC pause §2-3).
+  final GamePauseAllowance _pauseAllowance = GamePauseAllowance();
+
   Future<void> _startGame() async {
+    // Nouvelle partie = nouveau droit de pause.
+    _pauseAllowance.reset();
     setState(() {
       _stage = _ReflectiveStage.loading;
       _errorMessage = null;
@@ -251,19 +263,35 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
     _startClock();
   }
 
-  Future<void> _openPause() async {
+  /// Flèche « retour » : le menu tant que la fenêtre est ouverte, sinon la
+  /// seule issue restante — quitter, donc renoncer au score.
+  Future<void> _backOrExit() async {
+    if (_pauseAllowance.canOpen) return _openPause();
+    if (!await GameExitConfirmDialog.show(context, missionLabel: 'journey')) {
+      return;
+    }
+    if (mounted) context.go(AppRoutes.games);
+  }
+
+  /// [reopen] : réaffichage interne (retour des règles, sortie annulée) sur le
+  /// temps restant d'une fenêtre déjà ouverte.
+  Future<void> _openPause({bool reopen = false}) async {
+    if (!reopen) {
+      // Une seule fenêtre de pause par partie (CdC pause §2-3).
+      if (!_pauseAllowance.canOpen) return;
+      _pauseAllowance.open();
+    }
     _freezeClock();
     final action = await showDialog<EmotionalGamePauseAction>(
       context: context,
       barrierDismissible: false,
       barrierColor: const Color(0xCC1B1B4B),
-      builder: (_) => EmotionalGamePauseDialog(
-        soundEffects: _soundEffects,
-        music: _music,
+      builder: (dialogCtx) => EmotionalGamePauseDialog(
         buttonsInput: _buttonsInput,
-        onSoundEffects: (value) => setState(() => _soundEffects = value),
-        onMusic: (value) => setState(() => _music = value),
         onInputMode: (value) => setState(() => _buttonsInput = value),
+        countdown: _pauseAllowance.remaining,
+        onCountdownExpired: () =>
+            Navigator.of(dialogCtx).pop(EmotionalGamePauseAction.resume),
       ),
     );
     if (!mounted) return;
@@ -273,11 +301,22 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
         barrierColor: const Color(0xCC1B1B4B),
         builder: (_) => const _ReflectiveRulesDialog(),
       );
+      if (!mounted) return;
+      if (_pauseAllowance.canReopen) return _openPause(reopen: true);
     } else if (action == EmotionalGamePauseAction.exit) {
-      context.go(AppRoutes.games);
-      return;
+      // Quitter annule la tentative : confirmation explicite d'abord.
+      if (await GameExitConfirmDialog.show(context, missionLabel: 'journey')) {
+        if (mounted) context.go(AppRoutes.games);
+        return;
+      }
+      if (!mounted) return;
+      if (_pauseAllowance.canReopen) return _openPause(reopen: true);
     }
-    if (mounted) _resumeClockIfNeeded();
+    if (!mounted) return;
+    // La partie repart : le temps passé en pause rejoint le budget consommé, et
+    // le bouton reste « Pause » tant qu'il en reste.
+    _pauseAllowance.close();
+    setState(_resumeClockIfNeeded);
   }
 
   Future<void> _validateResponse() async {
@@ -290,13 +329,17 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
         momentId: moment.id,
         selectedResponse: response,
         responseTimeMs: _elapsedMs,
-        minimumTimerReached: _minimumReached,
+        // The server's protected scoring threshold stays at 3 s even when
+        // the presentation policy asks the player to think longer.
+        minimumTimerReached: _elapsedMs >= ReflectivePauseConfig.minimumPauseMs,
       ),
     );
     setState(() => _stage = _ReflectiveStage.saved);
 
     if (!_reducedMotion) {
-      await Future<void>.delayed(const Duration(milliseconds: 700));
+      await Future<void>.delayed(
+        Duration(milliseconds: _timing.reflectiveTransitionMs),
+      );
     }
     if (!mounted) return;
     if (_momentIndex == _moments.length - 1) {
@@ -359,7 +402,7 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
       case _ReflectiveStage.loading ||
           _ReflectiveStage.gameplay ||
           _ReflectiveStage.saved:
-        _openPause();
+        _backOrExit();
     }
   }
 
@@ -377,65 +420,72 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
           ? AppBottomNav(selectedTab: 2, onSelect: _selectMainTab)
           : null,
       body: SafeArea(
-        child: AnimatedSwitcher(
-          duration: _reducedMotion
-              ? Duration.zero
-              : const Duration(milliseconds: 250),
-          child: switch (_stage) {
-            _ReflectiveStage.cover => _CoverView(
-              key: const ValueKey('reflective-cover'),
-              onBack: _back,
-              onTutorial: () => _setStage(_ReflectiveStage.intro),
-              onStart: () => _setStage(_ReflectiveStage.intro),
-            ),
-            _ReflectiveStage.intro => _IntroView(
-              key: const ValueKey('reflective-intro'),
-              onBack: _back,
-              onContinue: () => _setStage(_ReflectiveStage.tutorial),
-            ),
-            _ReflectiveStage.tutorial => _TutorialView(
-              key: const ValueKey('reflective-tutorial'),
-              onBack: _back,
-              onStart: _startGame,
-            ),
-            _ReflectiveStage.loading => const _LoadingView(
-              key: ValueKey('reflective-loading'),
-            ),
-            _ReflectiveStage.gameplay => _GameplayView(
-              key: ValueKey('reflective-gameplay-$_momentIndex'),
-              moment: _moments[_momentIndex],
-              momentNumber: _momentIndex + 1,
-              elapsedMs: _elapsedMs,
-              minimumReached: _minimumReached,
-              selectedResponse: _selectedResponse,
-              onSelect: (response) =>
-                  setState(() => _selectedResponse = response),
-              onValidate: _validateResponse,
-              onPause: _openPause,
-            ),
-            _ReflectiveStage.saved => _SavedView(
-              key: ValueKey('reflective-saved-$_momentIndex'),
-              momentNumber: _momentIndex + 1,
-            ),
-            _ReflectiveStage.results => _ResultsView(
-              key: const ValueKey('reflective-results'),
-              session: _session,
-              onBack: _back,
-              onInsights: () => _setStage(_ReflectiveStage.insights),
-            ),
-            _ReflectiveStage.insights => _InsightsView(
-              key: const ValueKey('reflective-insights'),
-              session: _session,
-              onBack: _back,
-              onFinish: () => context.go(AppRoutes.games),
-            ),
-            _ReflectiveStage.error => _ErrorView(
-              key: const ValueKey('reflective-error'),
-              message: _errorMessage ?? 'An unexpected error occurred.',
-              onBack: _back,
-              onRetry: _startGame,
-            ),
-          },
+        child: GameContentFrame(
+          child: AnimatedSwitcher(
+            duration: _reducedMotion
+                ? Duration.zero
+                : const Duration(milliseconds: 250),
+            child: switch (_stage) {
+              _ReflectiveStage.cover => _CoverView(
+                key: const ValueKey('reflective-cover'),
+                onBack: _back,
+                onTutorial: () => _setStage(_ReflectiveStage.intro),
+                onStart: () => _setStage(_ReflectiveStage.intro),
+              ),
+              _ReflectiveStage.intro => _IntroView(
+                key: const ValueKey('reflective-intro'),
+                onBack: _back,
+                onContinue: () => _setStage(_ReflectiveStage.tutorial),
+              ),
+              _ReflectiveStage.tutorial => _TutorialView(
+                key: const ValueKey('reflective-tutorial'),
+                onBack: _back,
+                onStart: _startGame,
+              ),
+              _ReflectiveStage.loading => const _LoadingView(
+                key: ValueKey('reflective-loading'),
+              ),
+              _ReflectiveStage.gameplay => GameplayMusic(
+                child: _GameplayView(
+                  key: ValueKey('reflective-gameplay-$_momentIndex'),
+                  moment: _moments[_momentIndex],
+                  momentNumber: _momentIndex + 1,
+                  elapsedMs: _elapsedMs,
+                  thinkingTimeMs: _timing.reflectiveThinkingTimeMs,
+                  minimumReached: _minimumReached,
+                  selectedResponse: _selectedResponse,
+                  onSelect: (response) =>
+                      setState(() => _selectedResponse = response),
+                  onValidate: _validateResponse,
+                  onPause: _backOrExit,
+                  onBack: _backOrExit,
+                  affordance: _pauseAllowance.affordance,
+                ),
+              ),
+              _ReflectiveStage.saved => _SavedView(
+                key: ValueKey('reflective-saved-$_momentIndex'),
+                momentNumber: _momentIndex + 1,
+              ),
+              _ReflectiveStage.results => _ResultsView(
+                key: const ValueKey('reflective-results'),
+                session: _session,
+                onBack: _back,
+                onInsights: () => _setStage(_ReflectiveStage.insights),
+              ),
+              _ReflectiveStage.insights => _InsightsView(
+                key: const ValueKey('reflective-insights'),
+                session: _session,
+                onBack: _back,
+                onFinish: () => context.go(AppRoutes.games),
+              ),
+              _ReflectiveStage.error => _ErrorView(
+                key: const ValueKey('reflective-error'),
+                message: _errorMessage ?? 'An unexpected error occurred.',
+                onBack: _back,
+                onRetry: _startGame,
+              ),
+            },
+          ),
         ),
       ),
     );
@@ -443,11 +493,20 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
 }
 
 class _TopBar extends StatelessWidget {
-  const _TopBar({required this.onBack, this.title, this.onPause});
+  const _TopBar({
+    required this.onBack,
+    this.title,
+    this.onPause,
+    this.affordance = GameMenuAffordance.pause,
+  });
 
   final VoidCallback onBack;
   final String? title;
   final VoidCallback? onPause;
+
+  /// Pause ou sortie : le bouton change d'icône une fois la fenêtre consommée,
+  /// il ne disparaît plus. Voir [GameMenuAffordance].
+  final GameMenuAffordance affordance;
 
   @override
   Widget build(BuildContext context) {
@@ -474,8 +533,8 @@ class _TopBar extends StatelessWidget {
           const Spacer(),
         if (onPause != null)
           _SquareIconButton(
-            icon: Icons.pause_rounded,
-            tooltip: 'Pause',
+            icon: affordance.icon,
+            tooltip: affordance.tooltip,
             onTap: onPause!,
           ),
       ],
@@ -904,37 +963,44 @@ class _GameplayView extends StatelessWidget {
     required this.moment,
     required this.momentNumber,
     required this.elapsedMs,
+    required this.thinkingTimeMs,
     required this.minimumReached,
     required this.selectedResponse,
     required this.onSelect,
     required this.onValidate,
     required this.onPause,
+    required this.onBack,
+    required this.affordance,
   });
 
   final _PressureMoment moment;
   final int momentNumber;
   final int elapsedMs;
+  final int thinkingTimeMs;
   final bool minimumReached;
   final ReflectivePauseResponseType? selectedResponse;
   final ValueChanged<ReflectivePauseResponseType> onSelect;
   final VoidCallback onValidate;
   final VoidCallback onPause;
+  final VoidCallback onBack;
+
+  /// Pause ou sortie : le bouton change d'icône une fois la fenêtre consommée,
+  /// il ne disparaît plus. Voir [GameMenuAffordance].
+  final GameMenuAffordance affordance;
 
   @override
   Widget build(BuildContext context) {
-    final remainingMs = math.max(
-      0,
-      ReflectivePauseConfig.minimumPauseMs - elapsedMs,
-    );
+    final remainingMs = math.max(0, thinkingTimeMs - elapsedMs);
     final remainingSeconds = (remainingMs / 1000).ceil();
     return Column(
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(24, 18, 24, 12),
           child: _TopBar(
-            onBack: onPause,
+            onBack: onBack,
             title: 'Moment $momentNumber / ${_moments.length}',
             onPause: onPause,
+            affordance: affordance,
           ),
         ),
         Padding(
@@ -1096,7 +1162,7 @@ class _ResponseCard extends StatelessWidget {
                   child: Text(
                     response.label,
                     style: TextStyle(
-                      color: enabled ? _ink : _muted.withValues(alpha: 0.5),
+                      color: enabled ? _ink : _muted,
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
                     ),

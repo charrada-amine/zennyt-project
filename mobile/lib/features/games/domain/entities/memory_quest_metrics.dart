@@ -5,10 +5,40 @@ enum MemoryTaskKind {
   sameOrder('SAME_ORDER'),
   reverseOrder('REVERSE_ORDER'),
   restore('RESTORE'),
-  afterDistraction('AFTER_DISTRACTION');
+  afterDistraction('AFTER_DISTRACTION'),
+
+  /// Tâche parasite elle-même (intrus / pièce manquante).
+  ///
+  /// Notée comme les autres, mais son délai de référence est le budget de la
+  /// distraction, pas [MemoryQuestConfig.maxTaskTimeMs] — voir
+  /// `isDistractionTimedOut`.
+  distractionChallenge('DISTRACTION_CHALLENGE');
 
   final String wire;
   const MemoryTaskKind(this.wire);
+}
+
+/// Moitié de « J'investigue » réellement jouée.
+///
+/// Le jeu a été scindé en deux : l'empan de chiffres et la mémoire des images se
+/// jouent séparément. Le mode voyage avec les mesures parce que le barème et la
+/// validation en dépendent — une partie d'images n'observe aucun chiffre, et le
+/// serveur refusait jusqu'ici toute soumission sans chiffre observé.
+enum MemoryQuestMode {
+  /// Chiffres seuls : empan direct, inverse, interférence.
+  digits('DIGITS'),
+
+  /// Images seules : mémorisation d'objets, interférence visuelle, restitution.
+  images('IMAGES'),
+
+  /// Les deux missions à la suite — mode historique.
+  full('FULL');
+
+  final String wire;
+  const MemoryQuestMode(this.wire);
+
+  bool get playsDigits => this != MemoryQuestMode.images;
+  bool get playsImages => this != MemoryQuestMode.digits;
 }
 
 /// Résultat mesuré d'UNE tâche (une instance de niveau) — le timeout est décidé
@@ -19,12 +49,20 @@ class MemoryTaskResult {
     required this.correct,
     required this.total,
     required this.responseTimeMs,
+    this.level = 1,
   });
 
   final MemoryTaskKind kind;
   final int correct;
   final int total;
   final int responseTimeMs;
+
+  /// Niveau qui a produit la tâche.
+  ///
+  /// Nécessaire au serveur pour appliquer le bon délai à une tâche PARASITE :
+  /// son budget dépend du niveau, alors que les tâches de rappel partagent un
+  /// seuil unique.
+  final int level;
 
   double get accuracy => total == 0 ? 0 : correct / total;
 
@@ -33,6 +71,7 @@ class MemoryTaskResult {
     'correct': correct,
     'total': total,
     'responseTimeMs': responseTimeMs,
+    'level': level,
   };
 }
 
@@ -41,10 +80,14 @@ class MemoryTaskResult {
 /// le composite /100. Aligné sur MemoryQuestMetrics du contrat games.openapi.yaml.
 class MemoryQuestMetrics extends GameMetrics {
   const MemoryQuestMetrics({
-    required this.observedDigits,
-    required this.correctSameDigits,
-    required this.correctReverseDigits,
-    required this.highestSequenceLength,
+    this.mode = MemoryQuestMode.full,
+    this.observedDigits = 0,
+    this.correctSameDigits = 0,
+    this.correctReverseDigits = 0,
+    this.highestSequenceLength = 0,
+    this.distractionChallengesPlayed = 0,
+    this.distractionChallengesSolved = 0,
+    this.distractionTimeouts = 0,
     this.objectCount = 0,
     this.restoreCorrect = 0,
     this.manipulationCount = 0,
@@ -57,10 +100,23 @@ class MemoryQuestMetrics extends GameMetrics {
     this.tasks = const [],
   });
 
+  /// Moitié du jeu réellement jouée (chiffres / images / les deux).
+  final MemoryQuestMode mode;
+
   final int observedDigits;
   final int correctSameDigits;
   final int correctReverseDigits;
   final int highestSequenceLength;
+
+  /// Tâches parasites présentées sur la partie.
+  final int distractionChallengesPlayed;
+
+  /// Tâches parasites résolues dans les temps.
+  final int distractionChallengesSolved;
+
+  /// Tâches parasites perdues par expiration du chronomètre.
+  final int distractionTimeouts;
+
   final int objectCount;
   final int restoreCorrect;
   final int manipulationCount;
@@ -83,8 +139,17 @@ class MemoryQuestMetrics extends GameMetrics {
       ? 0
       : afterDistractionCorrect / afterDistractionObserved;
 
+  /// Part des tâches parasites résolues dans les temps.
+  double get distractionSolveRate => distractionChallengesPlayed == 0
+      ? 0
+      : distractionChallengesSolved / distractionChallengesPlayed;
+
   @override
   Map<String, dynamic> toJson() => {
+    'mode': mode.wire,
+    'distractionChallengesPlayed': distractionChallengesPlayed,
+    'distractionChallengesSolved': distractionChallengesSolved,
+    'distractionTimeouts': distractionTimeouts,
     'observedDigits': observedDigits,
     'correctSameDigits': correctSameDigits,
     'correctReverseDigits': correctReverseDigits,

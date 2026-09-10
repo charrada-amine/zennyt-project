@@ -1,5 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Retour haptique des jeux (erreurs). Requise par le canal `zennyt/haptics`
+         (MainActivity.kt), qui commande le service Vibrator directement : c'est
+         la seule voie qui ne dépende pas du réglage système « Vibration au
+         toucher », désactivé par défaut sur beaucoup d'appareils et qui faisait
+         ignorer la vibration sans la moindre erreur. -->
+    <uses-permission android:name="android.permission.VIBRATE"/>
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32"/>
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"/>

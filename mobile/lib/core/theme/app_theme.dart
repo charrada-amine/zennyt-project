@@ -4,6 +4,7 @@ import 'app_color_scheme.dart';
 import 'app_colors.dart';
 import 'app_typography.dart';
 import 'app_spacing.dart';
+import 'app_theme_redesign.dart';
 
 /// ──────────────────────────────────────────────────────────────────────────────
 /// APP THEME
@@ -20,7 +21,9 @@ class AppTheme {
   // LIGHT THEME
   // ═══════════════════════════════════════════════════════════════════════════
 
-  static ThemeData get light {
+  static ThemeData get light => applyExperienceTheme(_light);
+
+  static ThemeData get _light {
     return ThemeData(
       extensions: const [AppColorScheme.light],
       useMaterial3: true,
@@ -518,7 +521,9 @@ class AppTheme {
   // DARK THEME
   // ═══════════════════════════════════════════════════════════════════════════
 
-  static ThemeData get dark {
+  static ThemeData get dark => applyExperienceTheme(_dark);
+
+  static ThemeData get _dark {
     return ThemeData(
       extensions: const [AppColorScheme.dark],
       useMaterial3: true,

@@ -19,49 +19,62 @@ class LanguageOptionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  label,
-                  style: AppTypography.titleSmall.copyWith(
-                    color: colors.textDarkBlue,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16,
+    return Semantics(
+      selected: selected,
+      child: Material(
+        color: selected
+            ? colors.primary.withValues(alpha: .09)
+            : colors.cardSurface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(22),
+          side: BorderSide(color: selected ? colors.primary : colors.border),
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(22),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    label,
+                    style: AppTypography.titleSmall.copyWith(
+                      color: colors.textDarkBlue,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                    ),
                   ),
                 ),
-              ),
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 220),
-                switchInCurve: Curves.easeOut,
-                switchOutCurve: Curves.easeIn,
-                transitionBuilder: (child, animation) => FadeTransition(
-                  opacity: animation,
-                  child: ScaleTransition(
-                    scale: Tween<double>(begin: 0.6, end: 1).animate(animation),
-                    child: child,
+                AnimatedSwitcher(
+                  duration: AppMotion.duration(context, AppMotion.settle),
+                  switchInCurve: Curves.easeOut,
+                  switchOutCurve: Curves.easeIn,
+                  transitionBuilder: (child, animation) => FadeTransition(
+                    opacity: animation,
+                    child: ScaleTransition(
+                      scale: Tween<double>(
+                        begin: 0.6,
+                        end: 1,
+                      ).animate(animation),
+                      child: child,
+                    ),
                   ),
+                  child: selected
+                      ? Icon(
+                          key: ValueKey<String>('check-$label'),
+                          Icons.check_rounded,
+                          color: colors.accent,
+                          size: 24,
+                        )
+                      : SizedBox(
+                          key: ValueKey<String>('empty-$label'),
+                          width: 24,
+                          height: 24,
+                        ),
                 ),
-                child: selected
-                    ? Icon(
-                        key: ValueKey<String>('check-$label'),
-                        Icons.check_rounded,
-                        color: colors.accent,
-                        size: 24,
-                      )
-                    : SizedBox(
-                        key: ValueKey<String>('empty-$label'),
-                        width: 24,
-                        height: 24,
-                      ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

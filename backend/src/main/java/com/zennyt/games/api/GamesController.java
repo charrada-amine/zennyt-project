@@ -1,10 +1,12 @@
 package com.zennyt.games.api;
 
+import com.zennyt.games.api.dto.DecisionDtos.ItemListResponse;
 import com.zennyt.games.api.dto.GameSessionResponse;
 import com.zennyt.games.api.dto.StartSessionRequest;
 import com.zennyt.games.api.dto.SubmitResultRequest;
 import com.zennyt.games.application.command.StartGameSessionCommand;
 import com.zennyt.games.application.command.SubmitGameResultCommand;
+import com.zennyt.games.application.usecase.GetDecisionFormUseCase;
 import com.zennyt.games.application.usecase.StartGameSessionUseCase;
 import com.zennyt.games.application.usecase.SubmitGameResultUseCase;
 import com.zennyt.games.domain.model.GameSession;
@@ -31,11 +33,29 @@ public class GamesController {
 
     private final StartGameSessionUseCase startSession;
     private final SubmitGameResultUseCase submitResult;
+    private final GetDecisionFormUseCase decisionForm;
 
     public GamesController(StartGameSessionUseCase startSession,
-                          SubmitGameResultUseCase submitResult) {
+                          SubmitGameResultUseCase submitResult,
+                          GetDecisionFormUseCase decisionForm) {
         this.startSession = startSession;
         this.submitResult = submitResult;
+        this.decisionForm = decisionForm;
+    }
+
+    /**
+     * Items « Je Décide » de la forme assignée à la session.
+     *
+     * <p>La projection en {@code ItemListResponse} est le seul endroit où la clé de
+     * correction est retirée : le use case, lui, renvoie les items complets.
+     */
+    @GetMapping("/sessions/{sessionId}/decision/items")
+    public ResponseEntity<ItemListResponse> decisionItems(
+            @PathVariable UUID sessionId,
+            @RequestParam(name = "language", defaultValue = "fr") String language) {
+
+        return ResponseEntity.ok(
+            ItemListResponse.from(decisionForm.execute(sessionId, language)));
     }
 
     @PostMapping("/sessions")

@@ -45,7 +45,9 @@ public record DecisionReport(
         Integer score,
         int maxScore,
         boolean exploitable,
-        int answeredItems
+        int answeredItems,
+        /** true → tous les items servis sur cette dimension sont en notation neutre. */
+        boolean provisionalScoring
     ) {
     }
 }

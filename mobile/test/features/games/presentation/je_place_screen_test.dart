@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zennyt/features/games/data/object_location_scoring.dart';
 import 'package:zennyt/features/games/domain/config/object_location_config.dart';
+import 'package:zennyt/features/games/domain/entities/decision_form.dart';
 import 'package:zennyt/features/games/domain/entities/device_calibration.dart';
 import 'package:zennyt/features/games/domain/entities/emotional_radar.dart';
 import 'package:zennyt/features/games/domain/entities/game_metrics.dart';
@@ -342,6 +343,10 @@ class FakeObjectLocationClock implements ObjectLocationClock {
 }
 
 class _RecordingRepository implements GamesRepository {
+  @override
+  Future<DecisionForm> decisionItems(String sessionId, {String language = 'fr'}) =>
+      throw UnimplementedError();
+
   static const id = '00000000-0000-4000-8000-000000000004';
   static const _scoring = ObjectLocationScoring();
 

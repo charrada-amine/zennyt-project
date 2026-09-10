@@ -6,6 +6,7 @@ import com.zennyt.games.domain.vo.OptionQuality;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Port (interface) — catalogue des scénarios « Je Décide ».
@@ -25,11 +26,20 @@ import java.util.Optional;
  */
 public interface DecisionScenarioCatalog {
 
-    /** Entrée d'un item : dimension, format et qualité de chaque option. */
+    /**
+     * Entrée d'un item : dimension, format et qualité de chaque option.
+     *
+     * @param provisionalScoring true → item en notation NEUTRE provisoire (toutes
+     *        ses options à {@code SATISFACTORY}), en attendant le vrai modèle
+     *        (aversion λ pour ER, actualisation hyperbolique k pour RE, cohérence
+     *        de paire pour CS). Remonté dans le report pour que la lecture d'un
+     *        score dise explicitement quelle dimension ne discrimine pas encore.
+     */
     record Item(
         String itemId,
         DecisionDimension dimension,
         DecisionItemFormat format,
+        boolean provisionalScoring,
         Map<String, OptionQuality> optionQualities
     ) {
         public Item {
@@ -49,6 +59,11 @@ public interface DecisionScenarioCatalog {
 
     /** Métadonnées + qualités d'un item, ou {@code empty} si l'item est inconnu. */
     Optional<Item> item(String itemId);
+
+    /** Session-bank-aware lookup; old catalogs keep their historical behavior. */
+    default Optional<Item> item(String itemId, UUID bankId) {
+        return item(itemId);
+    }
 
     /** true si le catalogue ne contient aucun scénario (gate de jouabilité). */
     boolean isEmpty();

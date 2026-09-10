@@ -4,6 +4,7 @@ import com.zennyt.games.domain.catalog.EmotionalRadarSceneCatalog;
 import com.zennyt.games.domain.config.EmotionalRadarConfig;
 import com.zennyt.games.domain.config.EmotionalRadarProvisionalRules;
 import com.zennyt.games.domain.repository.GameSessionRepository;
+import com.zennyt.games.domain.model.GameSession;
 import com.zennyt.games.domain.vo.BasicEmotion;
 import com.zennyt.games.domain.vo.EmotionalRadarScene;
 import com.zennyt.shared.application.exception.NotFoundException;
@@ -37,10 +38,11 @@ public class GetEmotionalRadarScenesUseCase {
     /** Scènes + taxonomie pour une session existante. */
     @Transactional(readOnly = true)
     public Result execute(UUID sessionId) {
-        sessions.findById(sessionId)
+        GameSession session = sessions.findById(sessionId)
             .orElseThrow(() -> new NotFoundException("Session introuvable : " + sessionId));
 
-        List<EmotionalRadarScene> scenes = catalog.scenes();
+        List<EmotionalRadarScene> scenes = EmotionalRadarRuntimeSelection.select(
+            session, catalog.scenes(session.runtimeSnapshot().bankId()));
         if (scenes.isEmpty()) {
             throw new IllegalStateException(
                 "Aucune scène active : le catalogue Emotional Radar est vide.");

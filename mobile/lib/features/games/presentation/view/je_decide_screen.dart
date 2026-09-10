@@ -1,15 +1,32 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/audio/sound_service.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_typography.dart';
-import '../../data/decision_progress_store.dart';
+import '../../domain/config/decision_config.dart';
+import '../../domain/entities/decision_form.dart';
+import '../../domain/entities/decision_metrics.dart';
+import '../../domain/entities/game_type.dart';
+import '../../domain/entities/mini_game.dart';
+import '../games_controller.dart';
+import '../games_providers.dart';
 import '../../../navigation/presentation/viewmodel/nav_tab_provider.dart';
 import '../../../navigation/presentation/widgets/app_bottom_nav.dart';
 import 'je_decide_gameplay.dart';
 import 'je_decide_results.dart';
 import '../widgets/game_system_components.dart';
+
+/// Durée annoncée sur la fiche d'introduction, en minutes.
+///
+/// Dérivée, pas estimée : chaque question est bornée par
+/// [DecisionConfig.questionTimeLimitS], et la forme en compte
+/// [DecisionConfig.totalItems]. C'est le seul plafond que le code garantisse.
+const int _maxDurationMin =
+    DecisionConfig.totalItems * DecisionConfig.questionTimeLimitS ~/ 60;
 
 const _ink = Color(0xFF28234F);
 const _muted = Color(0xFF7E8DB2);
@@ -46,8 +63,12 @@ enum _DecisionStage {
 
 /// Parcours mobile de « Je Décide ».
 ///
-/// Les écrans et transitions suivent les maquettes Phases 1–4. Cette version
-/// ne démarre aucune session backend et ne calcule aucun score côté client.
+/// Les écrans et transitions suivent les maquettes Phases 1–4. Le CONTENU, lui,
+/// vient du backend : la session est ouverte au démarrage du parcours, la forme
+/// de passation (30 items sur les 120 de la banque) est récupérée par
+/// `GET /decision/items`, et le score est calculé serveur à la soumission. Aucun
+/// barème ne vit côté client — voir l'exception de parité en tête de
+/// `games_mock_repository.dart`.
 class JeDecideScreen extends ConsumerStatefulWidget {
   const JeDecideScreen({super.key});
 
@@ -59,56 +80,81 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
   final _nicknameController = TextEditingController();
   final _onboardingController = PageController();
 
+  /// Réponses effectivement données, et longueur de la forme jouée.
+  int _answeredCount = 0;
+  int _submittedCount = 0;
+
   _DecisionStage _stage = _DecisionStage.welcome;
   int _onboardingPage = 0;
   int _selectedTheme = 0;
   int _selectedAvatar = 0;
   int? _selectedChoice;
-  bool _checkingSavedProgress = true;
-  bool _resumeSavedJourney = false;
-  DecisionGameplayStep _savedResumeStep = DecisionGameplayStep.encouragement;
+  DecisionForm? _form;
+  bool _loadingForm = false;
+  Object? _formError;
 
   static const _themes = [_magenta, _violet, _cyan, _orange];
 
   @override
   void initState() {
     super.initState();
-    _restoreSavedJourney();
   }
 
-  Future<void> _restoreSavedJourney() async {
-    final hasSavedCheckpoint = await DecisionProgressStore()
-        .hasSavedCheckpoint();
-    final savedStepName = hasSavedCheckpoint
-        ? await DecisionProgressStore().loadSavedStep()
-        : null;
-    if (!mounted) return;
+  /// Ouvre la session puis récupère les 30 items de sa forme.
+  ///
+  /// L'ordre est imposé : la forme est tirée serveur à la création de session,
+  /// donc il n'y a rien à demander avant d'avoir un identifiant de session.
+  Future<void> _openSessionAndLoadForm() async {
+    if (_loadingForm || _form != null) return;
     setState(() {
-      _checkingSavedProgress = false;
-      _resumeSavedJourney = hasSavedCheckpoint;
-      _savedResumeStep = sanitizeDecisionResumeStep(
-        DecisionGameplayStep.values.firstWhere(
-          (step) => step.name == savedStepName,
-          orElse: () => DecisionGameplayStep.encouragement,
-        ),
-      );
-      if (hasSavedCheckpoint) _stage = _DecisionStage.gameplay;
+      _loadingForm = true;
+      _formError = null;
     });
+    try {
+      await ref.read(gamesControllerProvider.notifier).start(GameType.decision);
+      final session = ref.read(gamesControllerProvider).value;
+      if (session == null) {
+        throw StateError('Session « Je Décide » non ouverte.');
+      }
+      final form = await ref
+          .read(gamesRepositoryProvider)
+          .decisionItems(session.id);
+      if (!mounted) return;
+      setState(() {
+        _form = form;
+        _loadingForm = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _formError = error;
+        _loadingForm = false;
+      });
+    }
   }
 
-  Future<void> _completeGameplay() async {
-    await DecisionProgressStore().clearCheckpoint();
+  /// Fin de partie : les 30 réponses partent au serveur, qui note.
+  Future<void> _submitJourney(List<DecisionItemResponse> responses) async {
+    // Retenu pour l'écran de fin, qui annonçait « 30 / 30 » en dur — donc un
+    // sans-faute même quand des questions avaient expiré.
+    _answeredCount = responses.where((r) => r.answered).length;
+    _submittedCount = responses.length;
+    // Langue capturée AVANT le premier await : le contexte peut disparaître.
+    final language = Localizations.localeOf(context).languageCode;
+    await ref
+        .read(gamesControllerProvider.notifier)
+        .submit(
+          miniGame: MiniGame.decisionCore,
+          metrics: DecisionMetrics(
+            items: responses,
+            sessionLanguage: language,
+          ),
+        );
     if (!mounted) return;
-    setState(() {
-      _resumeSavedJourney = false;
-      _stage = _DecisionStage.results;
-    });
+    setState(() => _stage = _DecisionStage.results);
   }
 
-  Future<void> _finishResults() async {
-    await DecisionProgressStore().clearCheckpoint();
-    if (mounted) context.go(AppRoutes.games);
-  }
+  void _finishResults() => context.go(AppRoutes.games);
 
   @override
   void dispose() {
@@ -197,6 +243,7 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
   }
 
   Future<void> _openJourneyMenu() async {
+    SoundService.instance.playSfx(GameSfx.pauseClick);
     final action = await showDialog<DecisionPauseAction>(
       context: context,
       barrierDismissible: false,
@@ -221,26 +268,35 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_checkingSavedProgress) {
-      return const Scaffold(backgroundColor: _canvas, body: SizedBox.expand());
-    }
     if (_stage == _DecisionStage.gameplay) {
+      final form = _form;
       return Scaffold(
         backgroundColor: _canvas,
-        body: DecisionGameplayView(
-          onClose: () => context.go(AppRoutes.games),
-          onComplete: _completeGameplay,
-          initialStep: _resumeSavedJourney
-              ? DecisionGameplayStep.resumeJourney
-              : DecisionGameplayStep.analytical,
-          resumeStepAfterWelcome: _savedResumeStep,
-        ),
+        body: form == null
+            ? _DecisionLoadingView(
+                error: _formError,
+                onRetry: _openSessionAndLoadForm,
+                onBack: () => context.go(AppRoutes.games),
+              )
+            : GameplayMusic(
+                child: DecisionGameplayView(
+                  form: form,
+                  onClose: () => context.go(AppRoutes.games),
+                  onComplete: _submitJourney,
+                ),
+              ),
       );
     }
     if (_stage == _DecisionStage.results) {
+      final session = ref.watch(gamesControllerProvider).value;
       return Scaffold(
         backgroundColor: _canvas,
         body: DecisionResultsFlow(
+          profile: session == null
+              ? const DecisionProfile(score: 0, level: '—', dimensions: [])
+              : DecisionProfile.fromSession(session),
+          answered: _answeredCount,
+          totalItems: _submittedCount,
           onClose: () => context.go(AppRoutes.games),
           onDone: _finishResults,
         ),
@@ -320,7 +376,10 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
         onSelected: (index) => setState(() => _selectedChoice = index),
         onContinue: _selectedChoice == null
             ? null
-            : () => _setStage(_DecisionStage.gameplay),
+            : () {
+                _setStage(_DecisionStage.gameplay);
+                unawaited(_openSessionAndLoadForm());
+              },
       ),
       _DecisionStage.gameplay => const SizedBox.shrink(),
       _DecisionStage.results => const SizedBox.shrink(),
@@ -399,7 +458,12 @@ class _HeaderMoreButton extends StatelessWidget {
       child: IconButton(
         key: const ValueKey('decision-more-menu'),
         tooltip: 'Journey menu',
-        onPressed: onPressed,
+        // Ce bouton ouvre les règles/aide : il doit cliquer comme les autres.
+        // `IconButton` brut n'hérite pas du clic des boutons partagés.
+        onPressed: () {
+          SoundService.instance.playSfx(GameSfx.buttonClick);
+          onPressed();
+        },
         icon: const Icon(Icons.more_horiz_rounded, color: _ink, size: 28),
         style: IconButton.styleFrom(
           fixedSize: const Size(48, 48),
@@ -432,7 +496,13 @@ class _HeaderButton extends StatelessWidget {
       label: tooltip,
       child: IconButton(
         tooltip: tooltip,
-        onPressed: onPressed,
+        // Flèche retour de l'en-tête, présente sur presque tous les écrans du
+        // parcours : `IconButton` brut n'hérite pas du clic des boutons
+        // partagés, elle était donc muette partout.
+        onPressed: () {
+          SoundService.instance.playSfx(GameSfx.buttonClick);
+          onPressed();
+        },
         icon: Icon(icon, color: _ink, size: 28),
         style: IconButton.styleFrom(
           fixedSize: const Size(48, 48),
@@ -512,15 +582,25 @@ class _WelcomeView extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          const _SurfaceCard(
-            padding: EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+          // « 30 scenarios » et « 15–20 min » étaient écrits en dur.
+          //
+          // Le nombre vient maintenant de [DecisionConfig], seule source de la
+          // structure de la forme (fiche). La durée est le PLAFOND réel, celui
+          // qu'impose le chronomètre d'une minute par question — la fourchette
+          // précédente était une estimation, et le chronomètre l'avait rendue
+          // fausse : trente questions à une minute font trente minutes.
+          _SurfaceCard(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
             child: Column(
               children: [
-                _InfoRow(label: 'Goal', value: 'Discover your decision style'),
-                _InfoRow(label: 'Duration', value: '15–20 min'),
+                const _InfoRow(
+                  label: 'Goal',
+                  value: 'Discover your decision style',
+                ),
+                _InfoRow(label: 'Duration', value: 'Up to $_maxDurationMin min'),
                 _InfoRow(
                   label: 'Format',
-                  value: '30 scenarios',
+                  value: '${DecisionConfig.totalItems} scenarios',
                   divider: false,
                 ),
               ],
@@ -907,7 +987,12 @@ class _PlayerCardView extends StatelessWidget {
                       selected: index == selectedTheme,
                       label: 'Color theme ${index + 1}',
                       child: InkWell(
-                        onTap: () => onThemeSelected(index),
+                        // Pastille de couleur : c'est un choix, il doit
+                        // s'entendre comme les autres sélections.
+                        onTap: () {
+                          SoundService.instance.playSfx(GameSfx.buttonClick);
+                          onThemeSelected(index);
+                        },
                         customBorder: const CircleBorder(),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 160),
@@ -1116,7 +1201,11 @@ class _AvatarCard extends StatelessWidget {
         color: selected ? _softPink : Colors.white,
         borderRadius: BorderRadius.circular(20),
         child: InkWell(
-          onTap: onTap,
+          // Choix d'avatar : sélection sonorisée comme le reste du parcours.
+          onTap: () {
+            SoundService.instance.playSfx(GameSfx.buttonClick);
+            onTap();
+          },
           borderRadius: BorderRadius.circular(20),
           child: Stack(
             fit: StackFit.expand,
@@ -1440,7 +1529,12 @@ class _ChoiceCard extends StatelessWidget {
         color: selected ? _softPink : Colors.white,
         borderRadius: BorderRadius.circular(22),
         child: InkWell(
-          onTap: onTap,
+          // Carte de choix (mode de jeu / consentement) : même clic que les
+          // boutons partagés.
+          onTap: () {
+            SoundService.instance.playSfx(GameSfx.buttonClick);
+            onTap();
+          },
           borderRadius: BorderRadius.circular(22),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 160),
@@ -1569,6 +1663,68 @@ class _ScrollableStage extends StatelessWidget {
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 22),
       child: child,
+    );
+  }
+}
+
+/// Attente (ou échec) du chargement de la forme de passation.
+///
+/// « Je Décide » est le seul jeu du module qui exige le backend : sa banque de
+/// 120 items et sa clé de correction ne sont pas embarquées dans l'application.
+/// L'échec est donc affiché tel quel plutôt que masqué par un contenu de repli.
+class _DecisionLoadingView extends StatelessWidget {
+  const _DecisionLoadingView({
+    required this.error,
+    required this.onRetry,
+    required this.onBack,
+  });
+
+  final Object? error;
+  final VoidCallback onRetry;
+  final VoidCallback onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    if (error == null) {
+      return const Center(
+        key: ValueKey('decision-loading-form'),
+        child: CircularProgressIndicator(color: _violet),
+      );
+    }
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 28),
+        child: Column(
+          key: const ValueKey('decision-form-error'),
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.cloud_off_rounded, size: 56, color: _muted),
+            const SizedBox(height: 16),
+            Text(
+              'Journey unavailable',
+              style: AppTypography.headlineSmall.copyWith(
+                color: _ink,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'The decision scenarios are served by Zennyt and could not be '
+              'loaded. Check your connection and try again.',
+              textAlign: TextAlign.center,
+              style: AppTypography.bodyMedium.copyWith(color: _muted, height: 1.4),
+            ),
+            const SizedBox(height: 24),
+            GamePrimaryButton(
+              key: const ValueKey('decision-retry-form'),
+              label: 'Try again',
+              onPressed: onRetry,
+            ),
+            const SizedBox(height: 10),
+            GameOutlineButton(label: 'Back to games', onPressed: onBack),
+          ],
+        ),
+      ),
     );
   }
 }

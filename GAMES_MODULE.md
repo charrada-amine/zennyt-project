@@ -14,7 +14,7 @@ Chaque **jeu** correspond à un `GameType` (un domaine cognitif = une fiche) et 
 | Jeu / mini-jeu | `GameType` | `MiniGame` | Catégorie évaluée | Statut | Rendu |
 |----------------|------------|------------|-------------------|--------|-------|
 | **Planifik #1 — Chemin Optimal** | `PLANIFIK` | `OPTIMAL_PATH` | Planification — chemin optimal (déviation ±10 %, essais, zones coûteuses, objectifs) | 🟢 Jouable **/10** — multi-niveaux (4), limite dure 3 essais | **Flame** + Flutter |
-| **Planifik #2 — Ordonnancement de tâches** | `PLANIFIK` | `TASK_SCHEDULING` | Planification — dépendances + contraintes horaires + cohérence + réajustements | 🟢 Jouable **/10** | Flutter (tap-to-place) |
+| **Planifik #2 — Ordonnancement de tâches / Day Stack** | `PLANIFIK` | `TASK_SCHEDULING` | Planification — dépendances + contraintes horaires + cohérence + réajustements | 🟢 Jouable **/10**, plateau responsive et reprise après consultation des règles | Flutter (tap-to-place) |
 | **Planifik #3 — Tour de Hanoï** | `PLANIFIK` | `PREVISION_PUZZLE` | Planification — anticipation / planning prévisionnel | 🟢 Jouable **/10** — 3 niveaux (3→4→5 disques) | Flutter custom |
 | ↳ **Planifik — « Je planifie » (domaine)** | `PLANIFIK` | *(les 3 mini-jeux ci-dessus)* | Planification | 🟢 **Complet** — profil global **/30** | Flame + Flutter |
 | **Move Fast — « Je bouge »** | `MOVE_FAST` | `MOVE_FAST_CORE` | Flexibilité cognitive — switching de règles (niveau unique : Orientation ⇄ Mouvement **aléatoire**) | 🟢 **Complet** — barème d'escalade (50 × mult., streak 4, bonus 250) | Flutter custom |
@@ -22,7 +22,7 @@ Chaque **jeu** correspond à un `GameType` (un domaine cognitif = une fiche) et 
 | **« Je coordonne » — Sync Square** | `VISUOMOTOR_COORDINATION` | `COORDINATION_TRACKING_CORE` | Coordination visuo-motrice — suivi continu d'une cible sur trajectoire carrée fixe horaire | 🟢 **Complet /100 PROVISOIRE** — 2 segments de pratique + 12 tests ; précision globale seule dans le score, autres indicateurs descriptifs | Flutter custom |
 | **Memory Quest — « J'investigue »** | `MEMORY_QUEST` | `MEMORY_QUEST_CORE` | Mémoire de travail — Mission A (digit span) + B (objets) + distraction | 🟢 **Complet** — 7 niveaux (3→9), calibrage → timeout (score dépend du temps), `session_valid` ; composite **/100** | Flutter custom |
 | **« Je place » — Place & Bind** | `VISUOSPATIAL_MEMORY` | `OBJECT_LOCATION_BINDING_CORE` | Mémoire visuo-spatiale — liaison objet-emplacement sur grille 4×4 | 🟢 **Complet /100 PROVISOIRE** — pratique à 2 objets puis 6 niveaux de 3→8 objets ; layouts reconstruits serveur, indicateurs secondaires descriptifs | Flutter custom |
-| **« Je Décide » — Phases 1–4 mobile** | `DECISION` | `DECISION_CORE` | Prise de décision (II, ER, DT, CS, RE — /18 chacune → /90 → SCW /100) | 🟡 **Parcours UI complet** (aperçu maquette) + 🟢 **moteur backend prêt** : agrégation, règle DT, imputation, interprétations, validité, couche provisoire isolée. **Non jouable end-to-end** tant que le catalogue de 30 scénarios est vide (`DECISION_CORE.isPlayable()=false`) | Flutter (UI) / Java (moteur) |
+| **« Je Décide »** | `DECISION` | `DECISION_CORE` | Prise de décision (II, ER, DT, CS, RE — /18 chacune → /90 → SCW /100) | 🟢 **Jouable end-to-end** (V59) : banque de 120 items en base, forme A de 30 items servie par `GET /decision/items`, notation serveur. ⚠️ CS et RE en **notation neutre provisoire** (modèles λ/k/cohérence non implémentés) ; formes B/C/D différées | Flutter (UI) / Java (moteur + contenu) |
 | **Emotional Radar — « Je gère »** | `EMOTIONAL_REGULATION` | `EMOTIONAL_RADAR_CORE` | Régulation émotionnelle — reconnaissance d'émotion (famille + nuance + intensité) | 🟢 Jouable **9 pts/scène** — 3 scènes rédigées (27), 15 visées (135) ; **contenu servi par le backend** | Flutter custom |
 | **Reflective Pause — « Je gère »** | `EMOTIONAL_REGULATION` | `REFLECTIVE_PAUSE_CORE` | Régulation émotionnelle — contrôle de l'impulsivité sous pression | 🟢 **Complet /10** — 10 moments, pause minimale 3 s, résultats + insights calculés serveur | Flutter custom |
 | **Strategic Choices — preview mobile** | *(rattaché visuellement à `EMOTIONAL_REGULATION`)* | *(aucun mini-jeu contractuel)* | Régulation émotionnelle — pause, lecture d'une situation et choix d'une stratégie | 🟡 **Front-only non scoré** — 10 situations textuelles, réflexion 3 s, aucun appel API/Fit Score | Flutter custom |
@@ -68,16 +68,34 @@ Contexte **indépendant** : ne dépend que de `shared`, s'intègre au reste **un
 | Couche | Fichier | Rôle |
 |--------|---------|------|
 | **api** | `api/GamesController.java` | Contrôleur REST `/api/v1/games`. Traduit HTTP → commande, délègue au use case. Aucune logique métier. |
+| | `api/GamesAdminController.java` | API `/api/v1/games/admin/**` réservée à `ROLE_ADMIN` : questions éditoriales, banques versionnées, paramètres hors scoring, assets et audit. |
+| | `api/GamesAssetController.java` | Livraison authentifiée des assets administrés **publiés** ; les brouillons/archives restent invisibles aux clients de jeu. |
 | | `api/GamesExceptionHandler.java` | Traduit localement payload/état invalide, propriété étrangère et ressource absente vers le format d'erreur commun en **400/403/404**, sans modifier `shared`. |
 | | `api/dto/StartSessionRequest.java` | Body `POST /sessions` — `gameType` (le joueur vient du JWT). |
 | | `api/dto/SubmitResultRequest.java` | Body `POST /sessions/{id}/results` — `miniGame` + payload union `Metrics` → `toMetrics()`. |
-| | `api/dto/GameSessionResponse.java` | Réponse : état complet de la session + score composite + attempts + indicateurs propres au mini-jeu, dont **`reflectivePauseIndicators`**, **`continuousAttentionIndicators`**, **`coordinationIndicators`** et **`objectLocationIndicators`**. |
+| | `api/dto/GameSessionResponse.java` | Réponse : état complet de la session + snapshot runtime immuable (banque/settings/modifiers), score composite + attempts + indicateurs propres au mini-jeu, dont **`reflectivePauseIndicators`**, **`continuousAttentionIndicators`**, **`coordinationIndicators`** et **`objectLocationIndicators`**. |
 | | `api/dto/ScoreResponse.java` | Sérialisation d'un `Score`. |
-| **application** | `application/usecase/StartGameSessionUseCase.java` | Crée l'agrégat `GameSession.start(...)` et le persiste. |
+| **application** | `application/usecase/StartGameSessionUseCase.java` | Charge le snapshot publié, refuse une nouvelle partie si `sessionEnabled=false`, puis crée l'agrégat `GameSession.start(...)` et le persiste. Une session déjà ouverte n'est jamais interrompue. |
+| | `application/usecase/ManageGamesAdminUseCase.java` | Orchestre les brouillons, publications atomiques et uploads de la console ; ne dépend d'aucun service de scoring. |
 | | `application/usecase/SubmitGameResultUseCase.java` | Charge la session avec verrou d'écriture, vérifie le propriétaire JWT, calcule le `Score` (domaine), enregistre et persiste. Il publie les Domain Events depuis **l'agrégat muté** (la copie réhydratée n'en contient pas), puis les listeners transactionnels agissent après commit. Pour « Je continue », « Je coordonne » et « Je place », une capture techniquement invalide reste audit-only (`IN_PROGRESS`, aucun `Attempt`/event) ; une structure ou séquence invalide est refusée sans écriture. Pour « Je place », même l'Attempt valide ne publie provisoirement aucun event Fit Score tant que le barème n'est pas validé. |
 | | `application/command/StartGameSessionCommand.java` | `(playerId, gameType)`. |
 | | `application/command/SubmitGameResultCommand.java` | `(sessionId, playerId issu du JWT, miniGame, GameMetrics, deviceCalibration?)`. |
 | **domain / model** | `domain/model/GameSession.java` | **Racine d'agrégat**. Invariants : 1 résultat/mini-jeu, refus d'un mini-jeu étranger au type, complétion auto + émission d'event au dernier mini-jeu. Java pur. |
+| | `domain/model/GameRuntimeSnapshot.java` | Snapshot Java pur, défensif et immuable de la banque et des configurations publiées au démarrage de la session. |
+| | `domain/model/AdminConfigurationSchemaRegistry.java` | Source unique Java pure des 16 schémas `GameType × SETTINGS/MODIFIERS` : types, bornes, enums, valeurs par défaut et allowlist stricte hors scoring. |
+| | `domain/model/AdminModels.java` · `domain/repository/GameAdminRepository.java` | Modèle Java pur et port de persistance de l'administration. Rejette les clés de scoring dans les configurations modifiables. |
+| **infrastructure / admin** | `infrastructure/persistence/JdbcGameAdminRepository.java` | Projection unifiée des catalogues Je Décide / Emotional Radar, versions, rotations et audit via JDBC. |
+| **migration / admin** | `V69__games_admin_console.sql` | Tables de brouillons, banques/items, configurations hors scoring, assets et audit ; seed des catalogues existants, sans modifier les tables de score. |
+| | `V70__games_admin_full_control.sql` | Sépare SETTINGS/MODIFIERS, garantit une seule version publiée par jeu/type et une seule version publiée par code de question. |
+| | `V71__games_runtime_configuration_snapshot.sql` · `V72__games_runtime_bank_snapshot.sql` | Figent versions et JSON de settings/modifiers ainsi que banque/code/version/type sur chaque session, afin qu'une publication admin ne modifie jamais une partie en cours. |
+| | `V73__games_admin_radar_answer_reference.sql` | Autorise la référence d'une réponse Radar vers une scène système ou une scène administrée publiée/archivée, avec contrôle différé d'intégrité. |
+| | `V74__games_admin_configuration_defaults.sql` · `V75__games_admin_normalize_legacy_configurations.sql` | Garantissent 8 versions `SETTINGS` + 8 `MODIFIERS` publiées et normalisent les anciens blobs libres vers l'allowlist typée en archivant l'historique, sans toucher aux valeurs de score. |
+| **mobile / runtime** | `domain/entities/game_runtime_snapshot.dart` | Projection Dart du snapshot runtime exposé par Spring ; helpers typés et valeurs de repli sûres. |
+| **web admin** | `admin/apps/web/src/features/admin/admin-app.tsx` | Shell TanStack Start responsive : authentification JWT ADMIN, navigation, rafraîchissement et gestion d'erreurs. |
+| | `admin/apps/web/src/features/admin/admin-pages.tsx` | Dashboard réel avec catalogue mobile par catégories, fiche dédiée pour chacun des 13 jeux, accès contextualisé aux questions/banques/settings/modifiers/assets, catalogue paginé et audit ; les brouillons de configuration exposent leur écart exact avec la version publiée et passent par une revue d'impact avant publication. |
+| | `admin/apps/web/src/features/admin/admin-editor.tsx` | Éditeurs complets : création/modification/clonage, composition ordonnée, publication, archivage et suppression sûre des brouillons ; toute nouvelle configuration reprend les valeurs publiées du jeu, puis affiche en direct les changements avant/après avec des switches, nombres bornés et enums décrits par Spring, sans textarea JSON. |
+| | `admin/apps/web/src/features/admin/admin-api.ts` | Client Spring unique ; chargement parallèle des ressources, aucune donnée de démonstration. |
+| | `admin/apps/web/public/assets/**` | Copies web des PNG officiels des 13 jeux et des 5 catégories, du logo splash et des 21 objets SVG originaux ; les assets Flutter sources ne sont pas modifiés. |
 | | `domain/model/MiniGame.java` | Enum des mini-jeux + `maxPoints` du barème + `belongsTo(gameType)` + `isPlayable()` (exclut les mini-jeux sans barème de la complétion). |
 | | `domain/model/Attempt.java` | Résultat immuable d'un mini-jeu (`miniGame`, `score`, `recordedAt`). |
 | **domain / vo** | `domain/vo/GameType.java` | `PLANIFIK`, `MOVE_FAST`, `MEMORY_QUEST`, `DECISION`, `EMOTIONAL_REGULATION`, `CONTINUOUS_ATTENTION`, `VISUOMOTOR_COORDINATION`, `VISUOSPATIAL_MEMORY`. |
@@ -140,7 +158,7 @@ Contexte **indépendant** : ne dépend que de `shared`, s'intègre au reste **un
 | | `domain/vo/ContinuousAttention{Metrics,BlockMetric,TrialMetric,Phase,InputSource,Report,PhaseReport,EpochReport}.java` | Payload brut auto-validant et rapport serveur. Ordre, compteurs, continuité X puis AX, timeline nominale, tuples de réponse et monotonie des onsets sont vérifiés avant persistance. |
 | | `domain/repository/ContinuousAttentionMetricsRepository.java` | Port de remplacement transactionnel des données brutes d'une session, y compris l'audit-only invalide. |
 | | `infrastructure/persistence/ContinuousAttentionMetricsRepositoryAdapter.java` | Persistance JDBC batch des 1 364 essais après validation du domaine. |
-| | `resources/db/migration/V27__games_continuous_attention.sql` | Ajoute le type/mini-jeu, `continuous_attention_runs`, `continuous_attention_trials` et l'index unique partiel empêchant deux Attempts valides. |
+| | `resources/db/migration/V61__games_continuous_attention.sql` | Ajoute le type/mini-jeu, `continuous_attention_runs`, `continuous_attention_trials` et l'index unique partiel empêchant deux Attempts valides. |
 | **Je coordonne** | `domain/config/CoordinationConfig.java` | Source de vérité de `FIXED_SQUARE_CW_V1` : carré fixed-point, 2 segments de pratique + 12 tests, durées 7000/2333 ms, tours lent/rapide, géométrie et fenêtres de validité. Java pur ; miroir Dart obligatoire. |
 | | `domain/config/CoordinationProvisionalRules.java` | **Score /100 PROVISOIRE** isolé et remplaçable : précision globale pondérée par le temps, unique arrondi half-up ; aucune sous-précision ni distance dans le score. |
 | | `domain/service/CoordinationTrajectoryService.java` | Reconstruit de manière déterministe la position de la cible sur le carré fixe horaire, sans easing ni saut aux changements de segment/vitesse. |
@@ -148,14 +166,14 @@ Contexte **indépendant** : ne dépend que de `shared`, s'intègre au reste **un
 | | `domain/vo/Coordination{Metrics,InputSource,Phase,PointerSample,Report,SegmentMetric,Speed}.java` | Trace brute auto-validante (14 segments contigus, positions fixed-point, source d'entrée, interruptions) et rapport descriptif serveur. Le client ne transmet ni cible, ni distance, ni score. |
 | | `domain/repository/CoordinationMetricsRepository.java` | Port de remplacement transactionnel du run et de ses échantillons bruts, y compris l'audit-only invalide. |
 | | `infrastructure/persistence/CoordinationMetricsRepositoryAdapter.java` | Persistance batch V28 de la trace après validation du domaine. |
-| | `resources/db/migration/V28__games_visuomotor_coordination.sql` | Autorise `VISUOMOTOR_COORDINATION` / `COORDINATION_TRACKING_CORE` et persiste le run, les segments/échantillons et leur audit de validité. |
+| | `resources/db/migration/V62__games_visuomotor_coordination.sql` | Autorise `VISUOMOTOR_COORDINATION` / `COORDINATION_TRACKING_CORE` et persiste le run, les segments/échantillons et leur audit de validité. |
 | **Je place** | `domain/config/ObjectLocationConfig.java` | Source de vérité `OBJECT_LOCATION_FINE_V1` : grille 4×4, pratique 2 objets, charges test 3→8, timings, réserves et progression. Toutes les valeurs de protocole non fournies sont marquées provisoires ; miroir Dart obligatoire. |
 | | `domain/config/ObjectLocationProvisionalRules.java` | **Score /100 PROVISOIRE** isolé et remplaçable : placements exacts / objets administrés, unique arrondi half-up ; temps, swaps, distances et pente de charge exclus. |
 | | `domain/service/ObjectLocationLayoutGenerator.java` | Reconstruit depuis `sessionId|OBJECT_LOCATION_FINE_V1` le catalogue, les objets, leurs cellules et leur ordre de réserve avec FNV-1a 32 bits, xorshift32 et Fisher–Yates. |
 | | `domain/service/ObjectLocationActionReplayer.java` · `ObjectLocationScoringService.java` | Rejoue les poses/retours/éjections, classe chaque objet de façon exclusive (`EXACT`, `SWAP`, `LOCAL`, `GLOBAL`, `UNPLACED`), dérive les indicateurs et valide timing/progression côté serveur. |
 | | `domain/vo/ObjectLocation*.java` | Actions et niveaux bruts auto-validants, enums de phase/réserve/fin, rapports descriptifs ; aucune origine, catégorie d'erreur ou note n'est acceptée du client. |
 | | `domain/repository/ObjectLocationMetricsRepository.java` · `infrastructure/persistence/ObjectLocationMetricsRepositoryAdapter.java` | Port + adaptateur JDBC de remplacement transactionnel d'un run, de ses niveaux et de ses actions, y compris l'audit-only invalide. |
-| | `resources/db/migration/V29__games_object_location_memory.sql` | Autorise `VISUOSPATIAL_MEMORY` / `OBJECT_LOCATION_BINDING_CORE`, crée les trois tables d'audit et protège l'unique Attempt valide par session. |
+| | `resources/db/migration/V63__games_object_location_memory.sql` | Autorise `VISUOSPATIAL_MEMORY` / `OBJECT_LOCATION_BINDING_CORE`, crée les trois tables d'audit et protège l'unique Attempt valide par session. |
 | **domain / event** | `domain/event/GameResultRecordedEvent.java` | `games.result.recorded` — **seul** point d'intégration inter-contextes. |
 | **domain / repo** | `domain/repository/GameSessionRepository.java` | Port (interface) — le domaine ne connaît jamais JPA ; expose un chargement sérialisé pour empêcher deux soumissions concurrentes d'écraser un audit validé. |
 | | `domain/repository/DeviceCalibrationRepository.java` | Port du calibrage (upsert par `sessionId`). |
@@ -664,7 +682,7 @@ Prise de décision (fiche « JE DÉCIDE »). Architecture **imposée : deux couc
 - **e — multiplicateurs es/it/pt** (estimations sectorielles : 1.22 / 1.18 / 1.22) + **fallback `ar`** documenté (1.20, tracé) plutôt qu'un échec.
 - Seuils « bas/élevé » par dimension (déclencheurs des interprétations) et seuils de qualité de session : provisoires, isolés ici.
 
-**Catalogue — port injectable** : `DecisionScenarioCatalog` (dimension + format + `OptionQuality` par option). Implémentation vivante **vide** `EmptyDecisionScenarioCatalog` (`// EN ATTENTE DU PSYCHOLOGUE — 30 scénarios + étiquetage`). **Aucun contenu de scénario n'est inventé.** `MiniGame.DECISION_CORE.isPlayable()=false` tant que le catalogue est vide (même patron que `TASK_SCHEDULING` avant implémentation).
+**Catalogue — deux ports injectables** : `DecisionScenarioCatalog` (notation : dimension + format + `provisionalScoring` + `OptionQuality` par option) et `DecisionFormCatalog` (présentation : vignette résolue, consigne, énoncés d'options). Implémentation vivante `DatabaseDecisionScenarioCatalog` (V59, 120 items en base) ; `EmptyDecisionScenarioCatalog` reste le repli de test, `JsonDecisionScenarioCatalog` est `@Deprecated`. `MiniGame.DECISION_CORE.isPlayable()=true`.
 
 **À demander au psychologue pour remplacer le provisoire** : (bloquant) **catalogue des 30 scénarios + étiquetage `OptionQuality` des options** ; poids SCW réels ; bornes de niveau hors ≥ 75 ; multiplicateurs es/it/pt/ar ; échelles post-test fatigue/motivation (et age/educationLevel).
 
@@ -696,7 +714,7 @@ Méthode **« technique » pure** (fiche « JE BOUGE » Tableau 2 révisé + gui
 
 Chaque critère affiche la **valeur mesurée entre parenthèses** et les **points/max**. Libellés fidèles aux barèmes ci-dessus. La décomposition Move Fast (points de jeu vs bonus) provient de `MoveFastConfig.replay` — même source que le score.
 
-### Schéma DB (`V9__games_schema.sql`, `V11__games_device_calibrations.sql`, `V12__games_memory_quest_minigame.sql`, `V24__games_decision_minigame.sql`, `V26__games_reflective_pause_minigame.sql`, `V27__games_continuous_attention.sql`, `V28__games_visuomotor_coordination.sql`, `V29__games_object_location_memory.sql`)
+### Schéma DB (`V9__games_schema.sql`, `V11__games_device_calibrations.sql`, `V12__games_memory_quest_minigame.sql`, `V24__games_decision_minigame.sql`, `V26__games_reflective_pause_minigame.sql`, `V61__games_continuous_attention.sql`, `V62__games_visuomotor_coordination.sql`, `V63__games_object_location_memory.sql`)
 
 - `games.game_sessions` : `id`, `player_id`, `game_type`, `status`, `started_at`, `completed_at` + `CHECK` sur type/status, index `(player_id)` et `(game_type, status)`.
 - **V12** (« J'investigue ») : la contrainte `ck_game_attempts_mini_game` autorise désormais `MEMORY_QUEST_CORE` (aucune nouvelle table — le composite est un `Attempt` /100).
@@ -732,6 +750,8 @@ sur l'onglet Careers/Progress ; les routes de jeu restent plein écran.
 | | `domain/entities/prevision_puzzle_metrics.dart` | Métriques « Predictive Puzzle » envoyées au backend/mock. |
 | | `domain/entities/reflective_pause_metrics.dart` | Réponses/timings bruts Reflective Pause + indicateurs serveur ; sérialise `reflectivePauseMoments`. |
 | | `domain/config/reflective_pause_config.dart` | Miroir exact de `ReflectivePauseConfig.java` pour le mode mock (3/4/3, content map, bandes). |
+| | `domain/config/game_presentation_timing.dart` | Huit timers de présentation lus depuis le snapshot ; defaults/bornes miroirs du registre Spring, sans logique de score. |
+| | `domain/entities/game_runtime_snapshot.dart` | Snapshot immuable ; lecture bool/int défensive et fallback des anciennes sessions. |
 | | `domain/entities/continuous_attention_metrics.dart` | Blocs/essais bruts « Je continue », enums de phase/input et indicateurs descriptifs serveur ; listes immuables et sérialisation conforme au contrat. |
 | | `domain/config/continuous_attention_config.dart` | Miroir exact de `ContinuousAttentionConfig.java` : génération déterministe, timings, compteurs et golden vector cross-platform. |
 | | `domain/config/continuous_attention_provisional_rules.dart` | Miroir du score provisoire ; même calcul rationnel entier et même arrondi que Java. |
@@ -742,10 +762,12 @@ sur l'onglet Careers/Progress ; les routes de jeu restent plein écran.
 | | `domain/entities/game_score.dart` | Score noté (immuable). |
 | | `domain/entities/game_session.dart` | `GameSession` + `GameAttempt` (miroir de l'agrégat backend). |
 | **domain / repo** | `domain/repositories/games_repository.dart` | Port : `startSession`, `submitResult`. |
+| | `domain/repositories/emotional_radar_v2_repository.dart` | Port dédié au flow adaptatif V2 : état pur, activation idempotente de la prochaine scène et réponse mesurée. |
 | **data** | `data/decision_progress_store.dart` | Checkpoint local « Je Décide » : conserve uniquement le point de reprise ; les choix individuels ne sont pas persistés. |
 | | `data/dtos/game_session_dto.dart` | Parse la réponse API → entité domaine. |
-| | `data/games_repository_impl.dart` | Impl **Dio** → `/api/v1/games`. Convertit erreurs en `ApiException`. |
-| | `data/games_mock_repository.dart` | Impl **MOCK** en mémoire : reproduit le barème serveur → jouable **sans backend**. |
+| | `data/games_repository_impl.dart` | Impl **Dio** → `/api/v1/games`, y compris les trois opérations Emotional Radar V2. Convertit erreurs en `ApiException`. |
+| | `data/games_mock_repository.dart` | Impl **MOCK** en mémoire : reproduit le barème serveur et le flow adaptatif Radar V2 (horloge injectable, activation/réponse/report) → jouable **sans backend**. |
+| | `data/demo_games_repository.dart` | Démo existante : banque Je Décide provisoire et trois vidéos Radar locales ; textes, identifiants et notation Radar hérités du mock. |
 | | `data/continuous_attention_scoring.dart` | Miroir offline du validateur/scorer serveur : séquence, correction, indicateurs, audit-only et breakdown canonique. Le backend reste autoritatif en mode API. |
 | | `data/coordination_tracking_scoring.dart` | Miroir offline de la reconstruction/notation serveur « Je coordonne » ; parité des précisions, distance, validité, score half-up et breakdown. Le backend reste autoritatif en mode API. |
 | | `data/object_location_scoring.dart` | Miroir offline du rejeu, de la classification exclusive, de la progression/validité et du score provisoire. Le backend reste autoritatif en mode API. |
@@ -754,6 +776,11 @@ sur l'onglet Careers/Progress ; les routes de jeu restent plein écran.
 | | `domain/config/emotional_radar_provisional_rules.dart` | **Miroir de la taxonomie** — `FIGMA` vs `PROVISIONAL`. |
 | | `presentation/view/emotional_radar_screen.dart` | Machine d'états `cover → tutorial → gameplay → feedback → transition → results` + pause / aide / plein écran / erreur. |
 | | `presentation/view/emotional_radar_gameplay.dart` | `SceneCard` (média + équivalent textuel voisin), `AnswerPanel` (révélation progressive), `FeedbackCard`. |
+| | `presentation/widgets/emotional_radar_video.dart` | Lecteur asset/réseau : lecture explicite, pause/replay, plein écran, retry, pause sur overlay et arrière-plan. |
+| **Démo / composants** | `presentation/widgets/game_system_components.dart` | `GameContentFrame` partagé pour limiter la largeur sur tablette ; composants de boutons/panneaux existants réutilisés. |
+| | `mobile/assets/games_demo/emotional_radar/` | Trois MP4 silencieux et `SOURCES.md` (provenance, licence et empreintes). |
+| **Tests démo** | `test/features/games/data/demo_radar_media_test.dart` | Chargement MP4 et parité de notation avec le mock. |
+| | `test/features/games/presentation/{emotional_radar_video,task_scheduling_screen}_test.dart` | Lecture, cycle de vie, retry ; petits écrans, texte 200 %, placements, règles et soumission brute. |
 | | `presentation/widgets/emotional_radar_components.dart` | Boutons d'émotion, chips de nuance, sélecteur d'intensité, étapes verrouillées/validées, palette — cibles ≥ 48 px, jamais de sens porté par la couleur seule. |
 | **Reflective Pause** | `presentation/view/reflective_pause_screen.dart` | Flow complet `cover → intro → tutorial → 10 moments → saved → results → insights`, timer 3 s, métriques brutes seulement. |
 | | `presentation/emotional_regulation_session_provider.dart` | Réutilise la même session `EMOTIONAL_REGULATION` entre Radar et Reflective, sans permettre deux tentatives identiques. |
@@ -764,7 +791,6 @@ sur l'onglet Careers/Progress ; les routes de jeu restent plein écran.
 | | `test/features/games/presentation/strategic_choices_screen_test.dart` | Catalogue, flow complet 10 situations, pause sans restart, absence de faux score et accessibilité 390×844 / texte 200 %. |
 | **Je continue** | `presentation/view/continuous_attention_screen.dart` | Parcours complet `cover → règles → tutoriels X/AX → pratiques → 20 blocs X → repos 2 min → 20 blocs AX → envoi → résultats/insights`. Tempo absolu 690/230 ms, clavier/espace + tactile, aucune correction pendant les tests. |
 | | `presentation/widgets/continuous_attention_pause_dialog.dart` | Pause/règles/sortie ; une interruption pendant une phase test impose le redémarrage de cette phase afin de ne pas fausser la vigilance mesurée. |
-| | `assets/04 Je Continue Logo Options/` | Explorations non intégrées V1 + V2 de logos PNG transparents, planches comparatives et prompts. La série V2 professionnelle contient `AX Ligature`, `Focus Gate`, `Signal Ribbon` et `Dual Phase`. Le logo actif `assets/games icons/Je Continue.png` reste inchangé jusqu'à validation produit. |
 | | `test/features/games/presentation/continuous_attention_screen_test.dart` | Parcours 44 blocs/1 364 essais, pause/règles/restart, retour système, audit invalide puis retry sur le même `sessionId`, résultats et accessibilité 390×844 jusqu'à 200 %. |
 | **Je coordonne** | `presentation/view/coordination_tracking_screen.dart` | Parcours complet `cover → onboarding 3 pages → pratique lente/rapide → ready → 12 segments test → sauvegarde → résultat/retry`. Ticker absolu, plateau custom, pointeur souris/touch/stylus, aucun score live ; réutilise le menu de pause mesurée et son dialogue de règles dédié. |
 | | `test/features/games/domain/coordination_tracking_config_test.dart` | Vecteurs de trajectoire/timeline Dart et constantes de parité `FIXED_SQUARE_CW_V1`. |
@@ -779,9 +805,9 @@ sur l'onglet Careers/Progress ; les routes de jeu restent plein écran.
 | **presentation** | `presentation/games_providers.dart` | Bascule mock/backend via `--dart-define=GAMES_MOCK` (défaut `true`). |
 | | `presentation/games_controller.dart` | `AsyncNotifier<GameSession?>` : `start()` / `submit()`. |
 | | `presentation/view/games_hub_screen.dart` | Hub jeux style maquette Progress : header « Play & discover your talent », 5 cartes de domaines cognitifs, illustration de catégorie + logos PNG officiels des jeux (`assets/games icons/`) ; le picker multi-jeux réutilise les mêmes images. `Cognitive Flexibility` propose Move Fast + Je continue + Je coordonne ; `Working Memory` propose Memory Quest + Je place ; `Emotional Regulation` propose Radar + Reflective Pause + la preview Strategic Choices, sans renommer les catégories. |
-| | `presentation/view/je_decide_screen.dart` | **« Je Décide » Phases 1–4** : machine d'états du welcome au profil final, restauration automatique d'un checkpoint local. UI uniquement, sans session backend. |
-| | `presentation/view/je_decide_gameplay.dart` | Gameplay **Phases 2–3** : scénarios représentatifs, timer DT 7 s, paire CS, feedback XP, encouragement, badge/dimension, checkpoint, pause/règles et sauvegarde/reprise. XP visuel uniquement ; aucun score calculé. |
-| | `presentation/view/je_decide_results.dart` | Résultats **Phase 4** : fin de parcours, préparation, radar accessible, score-ring/forces/axe de progression/détails et export-partage placeholder. Valeurs strictement issues de la maquette et marquées `DecisionProfilePreview`, jamais calculées depuis les choix. |
+| | `presentation/view/je_decide_screen.dart` | **« Je Décide »** : welcome → onboarding → entraînement → 30 items servis par `GET /decision/items` → soumission → profil réel. Ouvre la session backend, restaure un checkpoint local (index d'item). |
+| | `presentation/view/je_decide_gameplay.dart` | Gameplay piloté par les **30 items servis** : chrono DT sur le temps imparti renvoyé par le serveur, paires CS enchaînées, écrans de transition aux seules frontières de dimension, pause/règles, checkpoint. Mesure `responseTimeMs` (à la validation, via `package:clock`) et `decisionChangesCount`. XP visuel uniquement ; aucun score calculé. |
+| | `presentation/view/je_decide_results.dart` | Résultats : fin de parcours, préparation, radar accessible, score-ring, détail par dimension, export. `DecisionProfile.fromSession` projette la **réponse serveur** (SCW /100, niveau, /18 par dimension, marqueur de notation provisoire) — rien n'est calculé côté client. |
 | | `presentation/view/planifik_screen.dart` | Flow complet **Optimal Path** (intro Path Mind, How To Play, gameplay **multi-niveaux**, score, comparaison) + HUD stations, **menu pause** (`_PauseDialog`), légende, contrôles + bouton « Continue to scheduling » (→ Planifik #2). Voir [Flow Optimal Path](#-flow-optimal-path-mobile). |
 | | `presentation/view/task_scheduling_screen.dart` | **Planifik #2 « Ordonnancement de tâches »** : tap-to-place d'un lot de tâches (dépendances + échéances affichées), mesure (deps/horaires/cohérence/réajustements), soumet via le repo, `ScoreDetailPanel`, enchaîne vers #3. |
 | | `presentation/view/move_fast_screen.dart` | Écran complet « Je bouge » (intro, tutoriels, gameplay **niveau unique à règle aléatoire**, résultats). Voir [Niveau Move Fast](#-niveau-move-fast-mobile). |
@@ -818,8 +844,7 @@ Le hub n'est plus une liste `ListTile` générique. Il suit la maquette fournie 
 - Le bottom sheet d'une catégorie multi-jeux reprend le **même fichier image** pour chaque entrée
   afin de conserver l'identité visuelle entre le hub et le sélecteur. Les logos historiques
   proviennent des couvertures officielles fournies :
-  `Move Fast.png`, `Memory Quest.png`, `Je Decide.png`, `Optimal Path.png`,
-  `Task Scheduling.png`, `Predictive Puzzle.png`, `Je Place.png`, `Strategic Choices.png`. `Je Continue.png` est une illustration nette à
+  `Move Fast.png`, `Je Place.png`, `Strategic Choices.png`. `Je Continue.png` est une illustration nette à
   fond transparent fondée sur le concept A→X/focus ; `Je Coordonne.png` reprend le concept original
   **Sync Square** (rails carrés, cible, réticule et sens horaire), net et sans carré violet.
 - Assets déclarés dans `mobile/pubspec.yaml` :
@@ -1032,21 +1057,23 @@ machine d'états locale :
   puis passage automatique au scénario suivant. Aucune notion de réussite/échec.
 - **Feedback** : écran `+12 XP` et badge `Steady Explorer`. Ces valeurs reproduisent seulement les
   états visuels des maquettes ; elles ne constituent pas un barème.
-- **Checkpoint/reprise** : à mi-parcours, pause optionnelle, écran de progression sauvegardée et
-  restauration automatique. `DecisionProgressStore` conserve uniquement le nom de l'étape de
-  reprise dans `SharedPreferences`, jamais les réponses.
+- **Checkpoint/reprise** : pause optionnelle et restauration automatique. `DecisionProgressStore`
+  conserve uniquement l'**index de l'item** de reprise dans `SharedPreferences`, jamais les réponses.
+  ⚠️ Les réponses déjà données sont perdues si la session est interrompue : la soumission est unique
+  et finale (contrairement à Emotional Radar, qui persiste chaque scène côté serveur).
 - **Menu pause** : la croix gameplay ouvre un dialogue avec reprise, son/musique, règles et
   sauvegarde/sortie. Le timer DT est réellement suspendu puis reprend au même nombre de secondes.
-- **Résultats Phase 4** : fin 30/30, préparation, radar avec équivalent textuel accessible, profil,
-  forces, axe de progression, cinq dimensions détaillées et écran export/partage placeholder.
-  Le profil `82/100 — Analytical Decision-Maker` et ses cinq valeurs sont un **aperçu exact de la
-  maquette**, isolé dans `DecisionProfilePreview` ; il n'est pas dérivé des choix.
+- **Résultats** : fin 30/30, préparation, radar avec équivalent textuel accessible, profil, cinq
+  dimensions détaillées et écran export/partage. Le score, le niveau et le détail /18 viennent tous
+  de la réponse de soumission. Une dimension en notation provisoire est **signalée comme telle** :
+  un 12/18 forfaitaire ne doit pas se lire comme une performance.
 - La bottom nav partagée reste visible pendant l'introduction et disparaît pendant la pratique et
   tout le gameplay/résultat.
-- Restent à fournir avant l'intégration backend : `Practice 2/2`, catalogue des 30 scénarios,
-  mapping option→dimension (0–3), seuils de profil, règles XP/badges et règles de randomisation.
-  Tant qu'ils manquent, aucun `MiniGame.DECISION_CORE`, métrique, score, appel backend ni profil
-  psychométrique réel n'est créé côté client.
+- **Hors ligne** : « Je Décide » est le seul jeu du module qui exige le backend. Le mock lève une
+  erreur explicite plutôt que d'embarquer la banque et sa clé de correction — voir l'exception de
+  parité en tête de `games_mock_repository.dart`.
+- Restent à fournir : les modèles d'aversion λ (ER), d'actualisation hyperbolique k (RE) et de
+  cohérence de paire (CS). 66 des 120 items restent en notation neutre en attendant.
 
 La carte `Decision-Making` du hub pointe exclusivement vers `/games/je-decide`. Predictive Puzzle
 reste dans `Executive Planning`.
@@ -1096,8 +1123,8 @@ feedback visuel reste cohérent : **vert = Orientation**, **jaune/orange = Mouve
 
 - `GameDirectionControls` : D-pad **compact centré** (croix de largeur `buttonSize*3 + gap*2`),
   aligné sur la maquette Figma.
-- `MoveFastPlane` / `_PlanePainter` : avion vectoriel calé sur la référence Figma
-  `04 Move Fast/Move Fast Pro/Plane trail/next.png` (silhouette blanche, panneaux de règle,
+- `MoveFastPlane` / `_PlanePainter` : avion vectoriel calé sur la référence Figma d'origine
+  (silhouette blanche, panneaux de règle,
   contour et ombre bleu-violet). Sur le plateau, `_ScrollingPlane` fait **défiler les avions en
   continu** (boucle avec wrap) dans la direction du mouvement, sans ligne de trajectoire.
 - `_RulesDialog` : aide « Règles » avec deux cartes codées couleur (vert Orientation / orange
@@ -1136,6 +1163,44 @@ les agrégats utilisés au résultat.
 ---
 
 ## ✅ Statut & roadmap
+
+### Démo mobile — 2026-09-09
+
+Point d'entrée existant `mobile/lib/main.dart`, avec `kLot1DemoBuild=true` conservé.
+Le hub affiche « Games demo » et des résultats d'exemple plutôt qu'une couverture figée à 0 %.
+Les quatre jeux demandés sont accessibles dans les sélecteurs de catégorie existants.
+
+| Jeu | Contenu fixe / dynamique | Démo et amélioration |
+|-----|--------------------------|---------------------|
+| Day Stack | 9 tâches fixes, ordre du plateau de sélection mélangé, placements et retrait interactifs | Plateau et réserve défilent séparément, validation visible, règles sans réinitialisation de session. |
+| Emotional Radar | 3 situations fixes, réponses famille/nuance/intensité interactives | 3 vidéos locales de substitution, description textuelle, pause/relecture/plein écran. |
+| Reflective Pause | 10 situations fixes, réflexion et réponses chronométrées | Largeur lisible sur tablette et contraste des réponses verrouillées amélioré. |
+| Strategic Choices | 10 situations fixes, 8 stratégies, réflexion et récapitulatif interactifs | Choix de hauteur flexible et action principale fixe ; toujours sans score. |
+
+Ces banques fixes ne sont pas des écrans statiques : les actions modifient réellement la session.
+Les clips sont illustratifs, **pas une reconstitution ni un stimulus psychométrique validé** ;
+le texte de la situation fait référence et cette limite est affichée dans le lecteur.
+Le mode API conserve son contenu serveur ; seule la démo remplace les médias Radar.
+Les jeux « Je continue », « Je coordonne » et « Je place » restent désactivés dans le hub démo existant.
+
+Références : les 14 planches Reflective Pause et objets disponibles ont été inspectés ; pour
+les trois autres jeux, logos existants et écrans/composants Games servent de référence avec
+accord explicite du demandeur. Aucun nouvel écran ou barème inventé.
+
+Livraison : `cd mobile && flutter build apk --release` ; APK universel dans
+`mobile/build/app/outputs/flutter-apk/app-release.apk`. `video_player` et la déclaration du
+dossier vidéo dans `pubspec.yaml` sont **explicitement autorisés**, ainsi que le lockfile et
+l'enregistrement natif générés. Prochaines étapes : remplacer les médias illustratifs par
+les stimuli validés et faire valider un éventuel barème Strategic Choices avant intégration.
+
+Vérification de cette livraison : **36 tests ciblés verts**, analyse des fichiers modifiés sans
+diagnostic, build APK release (148 796 849 octets) et build web réussis. Installation Android
+émulateur réussie ; navigateur : navigation hub → Radar, lecture réelle du MP4, plein écran
+sans lecture concurrente, retour sans autoplay, puis placement Day Stack vérifiés.
+Suite Games plus large : **337 verts / 5 échecs**, dans les tests Move Fast non modifiés par
+cette tâche (quatre tests de flow et une comparaison d'image). Backend : les tests ciblés et
+ArchUnit ne s'exécutent pas car la compilation des tests Recruitment échoue sur
+`saveIfNotOlder` / `upsertIfNotOlder` ; aucun correctif hors périmètre effectué.
 
 | Élément | Statut |
 |---------|--------|
@@ -1184,7 +1249,7 @@ les agrégats utilisés au résultat.
 | **« J'investigue » — backend (Phase 4)** : mini-jeu `MEMORY_QUEST_CORE`, `MemoryQuestMetrics` (mesures par tâche), `MemoryQuestScoringService` (tâches 0–5 → **composite /100**), indicateurs + détail du score exposés, migration **V12** (CHECK), parité mock ; mobile soumet via le repository (score serveur autoritatif) | 🟢 Fait |
 | **« J'investigue » — système de niveaux** (7 niveaux, longueur 3→9, +1 après 3 tâches réussies ; objets 4→12 ; distraction gatée niveau ≥ 3 ; arrêt à `max_sequence_length`/`max_session_duration_min`) | 🟢 Fait (backend + mobile + parité mock) |
 | **« J'investigue » — calibrage appareil → timeout** (1er module dont le **score dépend du temps**) : `max_task_time_ms + offset` ; tâche dépassant le seuil ajusté = échec voidé ; `session_valid` | 🟢 Fait — socle `DeviceCalibration`/`CalibrationService` **réutilisé** (non modifié) |
-| **« Je Décide » (`DECISION`) — Phases 1–4 mobile** | 🟡 Fait côté UI — parcours complet jusqu'au profil, timer/timeout, transitions, pause/règles, checkpoint/reprise, radar/insights/export placeholder ; **profil maquette uniquement**. Catalogue complet/backend/scoring réel en attente des règles |
+| **« Je Décide » (`DECISION`)** | 🟢 Jouable end-to-end (V59) — banque 120 items en base, forme A de 30 items servie sans clé de correction, notation serveur, profil réel. Reste : modèles λ/k/cohérence pour ER-1..18, CS et RE, puis formes B/C/D |
 | **« Emotional Radar » (`EMOTIONAL_REGULATION`) — 5ᵉ domaine** : `GameType` + `EMOTIONAL_RADAR_CORE`, barème 9 pts/scène, écran Flutter complet (cover, tutoriel, gameplay à révélation progressive, feedback, transition, résultats, pause/aide/plein écran), parité mock | 🟢 **Fait** — jouable sur les 3 scènes rédigées (27 pts) |
 | Emotional Radar — **contenu servi par le backend** (texte/image/vidéo) : catalogue en base, `GamesMediaStoragePort` + adaptateur Cloudinary dédié, endpoint de téléversement | 🟢 Fait — 1ᵉʳ jeu du module dont le matériel n'est pas embarqué |
 | Emotional Radar — **notation par scène côté serveur** (clé de correction jamais envoyée au client ; score reconstruit depuis les réponses persistées) | 🟢 Fait — migration **V25**, table `emotional_radar_answers` |
@@ -1201,10 +1266,17 @@ les agrégats utilisés au résultat.
 | Calibrage — table `games.device_calibrations` (V11) + fallback fiabilité réduite | 🟢 Fait |
 | **Panneau « détail du score »** (dont Move Fast, Planifik, Reflective Pause, Je continue, Je coordonne et Je place) | 🟢 Fait côté serveur/mock (`ScoreBreakdownService`) ; affichage `ScoreDetailPanel` sur les écrans qui l'exposent |
 | Intégration Analytics (event) | 🟢 Listener en place (log ; à brancher au vrai dashboard) |
+| **Console web d'administration Games** (`admin/`, Better T Stack + TanStack Start) | 🟢 **Control plane complet** : UI responsive Flutter-like, JWT `ADMIN`, CRUD/versioning/publication/archivage, création de version héritée de la publication active, diff exact et revue d'impact avant publication, composition ordonnée des banques, rotation, 16 schémas typés settings/modifiers servis par Spring, uploads PNG/SVG, audit immuable ; aucune donnée de démonstration |
+| **Application runtime des contenus/configurations administrés** | 🟢 Snapshot immuable par session ; les 8 `GameType` ont chacun un `SETTINGS` et un `MODIFIERS` publié. `sessionEnabled` contrôle réellement le démarrage de toute nouvelle session ; `reducedMotionDefault` est livré pour tous et consommé par les parcours possédant déjà une branche reduced-motion (Radar, Reflective Pause, Je continue, J'investigue). Radar applique aussi `sceneCount`, `orderMode`, aide, feedback et durée de transition. Rotation et banques publiées sont consommées par Je Décide/Emotional Radar. |
 
 ---
 
 ## 🧠 Décisions à valider avec le psychologue référent
+
+État livraison (54) : admin/Docker unifiés sur `zennyt`, huit timers live câblés dans les quatre
+parcours concernés, UI filtrable par jeu et statut. Activation mobile live différée à la demande
+du client ; démo inchangée. Les timers des protocoles Je Décide / Je continue / Je coordonne /
+Je place restent protégés plutôt qu'exposés comme contrôles sans effet.
 
 Écarts **assumés et tracés** entre l'implémentation et les fiches — **ne pas les supprimer sans arbitrage**. Chacun est isolé en config/commenté dans le code. Pour « Je coordonne », les choix 37 à 45 ont été **autorisés par le demandeur pour l'intégration**, mais restent **PROVISOIRES — non validés par le psychologue**. Le seuil technique 46 est en plus à valider sur le parc réel. Pour « Je place », les choix 47 à 53 ont été autorisés afin de rendre la fiche incomplète exécutable, mais restent eux aussi provisoires.
 
@@ -1235,7 +1307,7 @@ les agrégats utilisés au résultat.
 | 24 | **Emotional Radar — nuances ANGER / DISGUST / SURPRISE** | sous-catégories **d'Ekman**, marquées `PROVISIONAL`, isolées dans la couche provisoire | **Absentes de toutes les planches** alors que les 6 familles sont sélectionnables | `EmotionalRadarProvisionalRules` + colonne `source` |
 | 25 | **Emotional Radar — `total_scenes` = 3** | 3 scènes rédigées ; l'UI annonce « / 15 » | Planche « Phase 2 QA notes » : les 15 scènes sont en Phase 3 | `EmotionalRadarConfig.TOTAL_SCENES` |
 | 26 | **Emotional Radar — bandes d'interprétation** (/100) | <40/<60/<75/<90 — alignées sur les autres jeux | Aucune fiche | `EmotionalRadarProvisionalRules.interpret` |
-| 27 | **Emotional Radar — autorisation de l'upload média** | endpoint **authentifié seulement** — aucun rôle admin n'existe dans `games` | Non spécifié — **arbitrage produit attendu** | `EmotionalRadarController.uploadMedia` |
+| 27 | **Emotional Radar — autorisation de l'upload média** | endpoint historique désormais **réservé à `ROLE_ADMIN`** ; médiathèque générique également protégée | Arbitrage résolu par la création de la console d'administration | `EmotionalRadarController.uploadMedia` · `GamesAdminController` |
 | 28 | **Reflective Pause — barème 3/4/3** | temps contrôlé /3 + non-impulsivité /4 + prise de recul /3 ; sous-scores à 0,1, somme arrondie une fois | Le handoff nomme les dimensions et le score /10 mais ne fixe pas explicitement les poids | `ReflectivePauseConfig` / miroir Dart |
 | 29 | **Reflective Pause — moment 3** | `WAIT` **ou** `REFORMULATE_CALMLY` comptent comme prise de recul | Content map : « Wait, then reformulate calmly » sans préférence entre les deux choix UI | `ReflectivePauseConfig.RECOMMENDED` |
 | 30 | **Profil émotionnel provisoire /37** | session complétée avec Radar actuel /27 + Reflective /10 | La planche globale prévoit 3 jeux ×10 = /30, mais Strategic Choices et la normalisation Radar /10 ne sont pas fournis | `MiniGame.EMOTIONAL_RADAR_CORE` + `REFLECTIVE_PAUSE_CORE` |
@@ -1263,7 +1335,23 @@ les agrégats utilisés au résultat.
 | 52 | **Catégorie mobile de « Je place »** | deuxième jeu de **Working Memory**, sans renommer la catégorie ni modifier `MEMORY_QUEST` | Placement produit cohérent avec la mémoire visuo-spatiale, mais taxonomie finale à confirmer | `games_hub_screen.dart` |
 | 53 | **Fit Score / Analytics de « Je place »** | event supprimé même après Attempt valide tant que le barème est provisoire | Aucun mapping vers la matrice Fit Score ni validation psychologue fournis | `SubmitGameResultUseCase.executeObjectLocation` |
 | 54 | **Strategic Choices — frontière de la preview front** | affiché comme 3ᵉ entrée de `Emotional Regulation`, avec scénarios textuels sans vidéo ; aucun `GameType`/`MiniGame`, score, session, Attempt, event ou Fit Score ajouté | Les 10 vidéos/captions/transcriptions, les poids des 8 stratégies, le calcul /100, les 3 indicateurs et la normalisation émotionnelle /30 ne sont pas fournis. La demande parle d'« Emotional Intelligence » mais les maquettes et la taxonomie active utilisent `Emotional Regulation` | `strategic_choices_content.dart` · `strategic_choices_screen.dart` · `games_hub_screen.dart` |
-| 19 | **« Je Décide » — frontière mobile/backend** | Le parcours UI Phases 1–4 est navigable. Le profil final est l'aperçu statique de la maquette (`DecisionProfilePreview`) et ne dépend jamais des choix ; XP purement visuel | `Practice 2/2`, catalogue 30 scénarios, mapping option→dimension, seuils de profil, XP/badges et randomisation non fournis | `je_decide_screen.dart`, `je_decide_gameplay.dart`, `je_decide_results.dart` |
+| 55 | **Defaults d'exploitation de la console** | `sessionEnabled=true` dans `SETTINGS` et `reducedMotionDefault=false` dans `MODIFIERS` pour les 8 `GameType` ; ces valeurs reproduisent le comportement antérieur et sont versionnées, jamais rétroactives sur une session ouverte | La demande exige un contrôle complet mais ne fixe pas les valeurs initiales ni le vocabulaire des clés ; arbitrage produit à confirmer | `AdminConfigurationSchemaRegistry` · V74/V75 · `StartGameSessionUseCase` |
+| 19 | **« Je Décide » — équivalence des formes parallèles** | Forme A seule seedée (V59). Les 4 formes ne peuvent pas être équivalentes tant que ER-1..18, CS et RE sont en notation neutre : la seule forme contenant ER-19..24 serait la seule où ER discrimine, et le Fit Score compare les candidats globalement | Modèles d'aversion λ (ER), d'actualisation hyperbolique k (RE) et de cohérence de paire (CS) — 66 items sur 120 restent en notation neutre en attendant | `V67__games_decision_scenarios.sql`, `DecisionScoringService.java`, `decision_scenarios.json` |
+
+Décisions additionnelles du 2026-09-06 :
+
+- **56 — Timers administrables** : huit timers de présentation optionnels (changelog 54),
+  defaults historiques conservés. Bornes d'exploitation **provisoires, à valider** avant un usage
+  psychométrique comparatif. Le feedback Move Fast consomme toujours son budget de session ;
+  Reflective Pause peut allonger la réflexion mais garde son seuil de scoring fixe à 3 s.
+- **57 — Mobile démo** : `kLot1DemoBuild=true` laissé intact sur choix explicite « Keep mobile
+  demo mode for now ». L'admin utilise `zennyt` mais la démo mobile ne consomme pas les publications.
+- **58 — Médias Radar de démonstration** : trois clips Mixkit gratuits intégrés avec accord
+  explicite pour `video_player` et les assets. **PROVISOIRE — à valider** : ils illustrent le
+  lecteur, sans changer les textes/réponses attendues ni prétendre valider un stimulus.
+- **59 — Références UI démo** : accord explicite pour reprendre les écrans et composants
+  existants de Day Stack, Radar et Strategic Choices en l'absence de maquettes complètes.
+  « Day Stack » est le libellé demandé de `TASK_SCHEDULING`, pas un nouveau mini-jeu.
 
 **Conforme à la fiche, NE PAS toucher** : profil global Planifik /30 (`interpretGlobal`), cœur du barème Move Fast (50 × multiplicateur, streak 4, bonus 250), barème catégoriel « Predictive Puzzle » (seule fiche validée), architecture par Domain Events.
 
@@ -1285,6 +1373,209 @@ vous touchez à l'un de ces chemins :
 - [ ] Un barème change → mettre à jour la section **Barème** (backend **et** mock mobile doivent rester identiques).
 - [ ] Un nouveau jeu/mini-jeu devient jouable → mettre à jour le **tableau de statut** et la **roadmap**.
 - [ ] Mettre à jour la ligne ci-dessous.
+
+**Changelog (55) — 2026-09-09** : démo des quatre jeux demandés : Day Stack responsive et règles
+sans perte de session, largeur partagée et choix Strategic Choices adaptatifs, contraste Reflective
+Pause, vidéos Radar embarquées avec commandes et pause de cycle de vie. Audit du contenu fixe,
+tests de layout/lecture/parité et provenance des clips ajoutés. Dépendance et assets autorisés.
+Barèmes, contrats, migrations et intégrations inter-modules inchangés par cette tâche.
+
+**Changelog (54) — 2026-09-06** : console unifiée sur la base mobile historique `zennyt` après
+sauvegarde, comparaison des schémas et répétition sur clone. Historique V59–V61 réconcilié avec
+autorisation explicite, huit migrations appliquées par Flyway ; aucun ancien fichier SQL modifié.
+Compte admin, questions, banques, versions, audit et PNG conservés. Compose gère le web et un
+volume d'assets persistant, avec redémarrage automatique. Le client admin renouvelle les tokens
+en single-flight et distingue identifiants incorrects, 5xx et panne réseau.
+
+Contrat **v1.8.0** : huit SETTINGS optionnels, defaults/bornes en ms :
+`memoryDigitVisibleMs` 900 [300–3000], `memoryDigitGapMs` 1000 [200–3000],
+`memoryManipulationStepMs` 750 [200–3000], `memoryRetentionMs` 3000 [0–10000],
+`puzzlePlaybackStepMs` 420 [150–2000], `responseFeedbackMs` 650 [200–2000],
+`reflectiveThinkingTimeMs` 3000 [3000–15000], `reflectiveTransitionMs` 700 [0–5000].
+`AdminConfigurationSchemaRegistry.effectiveValues` et `JdbcGameAdminRepository` matérialisent
+les defaults à la création de session. Nouveau `mobile/.../domain/config/game_presentation_timing.dart`
+(miroir centralisé) consommé par Investigate, Move Fast, Predictive Puzzle et Reflective Pause.
+Les trois premiers attendent la session avant le gameplay ; aucun calcul de score changé.
+
+UI : artwork officiel, sélection par jeu, filtres de versions, unités ms/s, switches nommés et
+diff des valeurs effectives (y compris defaults anciens). Fichiers nouveaux : `admin/Dockerfile`,
+`.dockerignore`, `admin/tests/admin-api.test.ts`, `GamePresentationTiming`, son test Dart et les
+scripts de reprise/smoke dans `tooling/games/`. Tests : 14 backend ciblés dont 3 ArchUnit,
+22 Flutter, 10 auth web ; build web et TypeScript verts. Analyse ciblée des 9 fichiers Dart : clean.
+Smoke live valide connexion, schémas,
+bornes, asset, refresh après redémarrage et connexion suivante. `flutter analyze` global :
+18 diagnostics préexistants ; compilation globale des tests Maven bloquée par recruitment.
+Barèmes, événements, shared/core, `pom.xml` et `pubspec.yaml` intacts. Mobile démo conservé sur choix utilisateur.
+
+**Changelog (53) — 2026-09-01** : le cycle de version des paramètres/modificateurs est désormais
+pilotable sans reconstruire une configuration. « Créer vN+1 » reprend automatiquement toutes les
+valeurs de la version publiée du même `GameType`/kind ; la création globale fait de même après le
+choix du jeu et conserve les defaults Spring seulement pour un flux sans publication. L'éditeur
+affiche en direct chaque différence `ancienne valeur → nouvelle valeur`. Les cartes brouillon
+annoncent le nombre d'écarts et l'action Publier ouvre une revue dédiée listant le diff exact,
+la version publiée qui sera archivée et la garantie de snapshot des sessions en cours. Cette revue
+devient une bottom sheet responsive à 390×844. Vérifications : TypeScript, Oxlint/Oxfmt et build
+Vite/SSR verts ; parcours réel WebKit desktop/mobile vert contre Spring/PostgreSQL (héritage,
+diff live, création, revue de publication), zéro erreur console ; le brouillon de vérification a été
+supprimé après le test. **Aucun contrat/API, backend, mobile, barème, formule de scoring, Domain Event,
+`pom.xml`, `pubspec.yaml`, migration existante, module `identity`, `shared` ou `core` modifié dans ce
+lot.**
+
+**Changelog (52) — 2026-09-01** : les paramètres et modificateurs de la console deviennent
+**typés et validés de bout en bout**. Le contrat `v1.7.0` expose
+`GET /games/admin/configuration-schemas` ; Spring fournit 16 schémas (`8 GameType × 2 kinds`) et
+refuse les clés inconnues/protégées, types incorrects, valeurs hors bornes et enums invalides, y
+compris juste avant publication. Le web ne demande plus de JSON brut : switches accessibles,
+nombres bornés, listes et libellés métier sont rendus depuis le schéma serveur, avec layout vérifié
+à 390×844 et desktop. V70 garantit une version publiée de chaque flux ; V71 convertit les anciennes
+configurations libres vers l'allowlist en archivant leur version, sans réécrire l'historique.
+`sessionEnabled` bloque effectivement les nouvelles sessions tout en préservant celles déjà ouvertes ;
+le défaut reduced-motion versionné est consommé par Radar, Reflective Pause, Je continue et
+J'investigue, et Radar conserve ses contrôles de scènes/ordre/aide/feedback/transition.
+Vérifications : compilation principale Java 21 + génération OpenAPI + démarrage Spring verts,
+Flyway V70/V71 appliqué sur PostgreSQL 16, **6 tests Java ciblés verts**, smoke API réel (16/16
+streams conformes, écriture protégée 400, session désactivée 400 puis restauration), TypeScript,
+Oxlint/Oxfmt et build Vite/SSR verts, Playwright WebKit desktop/mobile vert, analyse Flutter ciblée
+sans issue et **19 tests Flutter verts**. La compilation globale des tests backend reste bloquée par
+les 6 erreurs préexistantes du module `recruitment` (`saveIfNotOlder`/`upsertIfNotOlder`), non modifié.
+**Aucun barème, formule de scoring, Domain Event, `pom.xml`, `pubspec.yaml`, migration existante,
+module `identity`, `shared` ou `core` modifié.**
+
+**Changelog (51) — 2026-08-30** : le dashboard Games reprend la taxonomie et le langage visuel du
+hub Flutter : **5 catégories et 13 entrées**, illustrations officielles copiées depuis les assets
+mobile, cartes adaptatives et fiche d'administration dédiée pour chaque jeu. Chaque fiche mène aux
+questions, banques, paramètres, modificateurs et assets dans le contexte du jeu ; les listes sont
+filtrées et les formulaires préremplissent le `contentType` ou `gameType` sélectionné. Les contrôles
+éditoriaux restent explicitement non applicables pour les protocoles qui n'utilisent pas de questions ;
+Strategic Choices reste une preview sans runtime Spring et ses contrôles sont donc désactivés plutôt
+que simulés. Aucun endpoint, contrat, backend, mobile, barème, formule de scoring, Domain Event,
+`pom.xml`, `pubspec.yaml`, module `identity`, `shared` ou `core` modifié. Vérifications admin : lint et
+formatage Oxlint/Oxfmt, TypeScript et build Vite/SSR verts.
+
+**Changelog (50) — 2026-08-30** : le control plane devient un **runtime administrable réellement
+consommé**. Le contrat `v1.6.0` ajoute `GameRuntimeSnapshot` à chaque session : banque sélectionnée,
+versions de `SETTINGS`/`MODIFIERS` et valeurs sont figées au démarrage (V67/V68), donc une publication
+n'altère jamais une partie en cours. La rotation pondérée sélectionne les banques publiées ; Je Décide
+sert la composition ordonnée de la banque de session et note aussi les questions administrées avec la
+clé de correction conservée exclusivement côté serveur. Emotional Radar sert et note de la même façon
+les scènes administrées ; V69 maintient l'intégrité des réponses vers catalogue système ou contenu
+administré. La publication d'une banque valide structure, états et cardinalité (30 items Decision), et
+les réponses ne peuvent viser qu'un item/scène réellement assigné à la session. Le mobile consomme les
+contrôles Radar hors scoring (`sceneCount`, ordre stable, aide, reduced motion, feedback et transition).
+Les payloads admin exposent aux seuls ADMIN toutes les données éditoriales nécessaires au clonage et à
+la correction, sans jamais les envoyer au joueur. Les assets locaux publiés disposent désormais de
+`GET /games/assets/{assetId}` ; brouillons et archives restent non livrables, et l'URL publique est
+retournée après publication. La console permet de copier cette URL dans les contenus administrés ;
+Flutter récupère les routes locales avec son client Dio authentifié puis affiche les PNG/SVG depuis
+les octets hydratés, sans requête réseau anonyme. Smoke tests live : banque Decision v2 avec question gérée → 30 items,
+soumission 200 et report serveur SCW ; banque Radar v2 avec scène gérée → réponse notée 200 ; snapshot
+v1 préservé après publication v2 ; asset officiel Radar publié et livré en `image/png`. Compilation
+Java 21 et génération OpenAPI vertes. Le câblage mobile Emotional Radar V2, resté incomplet, est aussi
+rétabli : les repositories Dio/mock implémentent leur port dédié, le mock conserve l'horloge serveur,
+l'adaptation et le report, et le drapeau de contenu sensible reste aligné avec Java ; `flutter analyze`
+n'a plus aucune erreur Games (17 informations préexistantes hors périmètre subsistent) et les 40
+tests Flutter ciblés Decision/Radar/session sont verts. **Aucun barème, formule de scoring,
+Domain Event, `pom.xml`, `pubspec.yaml`, migration existante, module `identity`, `shared` ou `core`
+modifié.**
+
+**Changelog (49) — 2026-08-29** : la console Games passe du premier lot au **control plane complet**.
+Le contrat `v1.5.0` couvre désormais la modification et suppression sûre des brouillons de questions,
+le clonage, la publication et l'archivage ; les banques disposent du CRUD versionné, d'une composition
+ordonnée par question, de poids de rotation, d'une publication atomique et d'un archivage ; les
+configurations sont séparées en `SETTINGS` et `MODIFIERS`, versionnées par jeu/type et disposent du
+cycle brouillon → publié → archivé ; les assets PNG/SVG ont métadonnées, publication, archivage et
+suppression du brouillon avec purge du fichier Cloudinary ;
+l'audit restitue les opérations réelles. V66 ajoute les contraintes d'unicité des publications sans
+modifier une migration existante. Le front a été scindé en client API, modèles, pages, composants et
+éditeurs ; toutes les pages consomment Spring, les questions sont filtrables et paginées, la composition
+de banque permet ajout/retrait/réordonnancement, et chaque mutation possède états loading/error/empty,
+confirmation destructive et feedback. Les 34 PNG/SVG Flutter sont servis localement par le web.
+En profil `dev`, l'adaptateur média games utilise automatiquement un stockage local temporaire si les
+identifiants Cloudinary sont absents ; l'upload, l'aperçu authentifié et la purge restent donc testables
+dans Docker, tandis que tout autre profil continue d'exiger Cloudinary.
+Vérifications : compilation Spring principale, génération OpenAPI, smoke API authentifié, lint/typecheck/
+build SSR web et parcours Playwright desktop/mobile. **Aucun barème, service de scoring, Domain Event,
+`pom.xml`, `pubspec.yaml`, module `identity`, `shared` ou `core` modifié.**
+
+**Changelog (48) — 2026-08-28** : ajout de la **console web Games** dans `admin/`, scaffoldée avec
+**create-better-t-stack** (TanStack Start, React, TypeScript, Tailwind, Turborepo/Bun) et inspirée de
+`web-app-template`, tout en conservant Spring comme unique backend. Design aligné sur le langage
+Flutter Zennyt (palette navy/magenta, rayons, contrôles 48–54 px, splash/login responsive), avec copies
+web des PNG officiels, du logo splash et des 21 SVG de `J'investigue` — aucun asset mobile ni
+`pubspec.yaml` modifié. API contract-first `v1.4.0` sous `/games/admin/**`, protégée par
+`ROLE_ADMIN`; V65 ajoute brouillons éditoriaux, banques versionnées/clonables, poids de rotation,
+configurations hors scoring, assets et audit immuable. Les catalogues Je Décide A et Emotional Radar
+Core sont seedés comme versions publiées. Les publications restent atomiques et les sessions déjà
+démarrées ne sont pas mutées. Le modèle rejette les clés de scoring, et l'upload historique Radar est
+désormais ADMIN-only. Tests domaine ajoutés ; TypeScript et build web verts. **Aucun barème, service
+de scoring, Domain Event, `pom.xml`, `pubspec.yaml`, module `identity`, `shared` ou `core` modifié.**
+
+**Changelog (47) — 2026-08-17** : **« Je Décide » devient jouable end-to-end.** La banque du
+psychologue (120 items, 24 par dimension II·ER·DT·CS·RE) passe de la ressource JSON à la **base**
+(migration **V59**, seed généré depuis `resources/games/decision_scenarios.json` qui reste la source
+tracée par Git). Trois tables : `decision_scenarios` (dont `pair_id`, `vignette_ref`,
+`provisional_scoring` en **colonne**, pas en commentaire), `decision_scenario_options` (`quality`
+seule clé de correction — le score /3 reste porté par `OptionQuality.points()`, une seconde source de
+vérité ne pourrait que diverger) et `decision_form_items`. Colonne `decision_form_code` sur
+**`game_sessions`** — et non sur l'attempt, qui n'est écrit qu'à la soumission alors que la forme doit
+être connue pour servir les items.
+
+**Passation = 30 items sur 120, via une forme parallèle.** La composition d'une forme est une
+**donnée**, pas une règle positionnelle, pour trois raisons établies en lisant la banque :
+(a) les paires CS (`CS-1a`/`CS-1b`) doivent rester groupées, ce qu'un découpage par modulo casserait ;
+(b) `DT-k` **réutilise la vignette de `II-k`**, dont l'option OPTIMAL énonce la réponse en clair — les
+mettre dans la même forme rendrait l'item chronométré trivial ; (c) ER-1..18, CS et RE sont en notation
+neutre, donc un découpage contigu donnerait une seule forme où ER discrimine. **Forme A seule**
+seedée : `II-1..6`, `ER-19..24` (les seuls ER réellement notés), `DT-7..12` (décalés, cf. (b)),
+`CS-1a..3b` (3 paires complètes), `RE-1..6` → **18 des 30 items discriminent** au lieu de 12 avec un
+découpage naïf. B/C/D sont **volontairement différées** : des formes équivalentes sont impossibles tant
+que ER/CS/RE ne sont pas modélisées (λ, k, cohérence de paire). Le mécanisme est complet
+(`DecisionConfig.assignFormCode()`, colonne, relecture à la notation) : les activer ne demandera qu'une
+migration de données. La migration porte ses propres contrôles (`DO $$`) : 120 items, 24/dimension,
+66 provisoires, ≥ 2 options, une OPTIMAL unique par item noté, paires complètes, forme A à 6 items par
+dimension, aucune vignette partagée dans une même forme.
+
+**Deux ports, pas un.** `DecisionScenarioCatalog` (notation : dimension, format, qualité par option)
+est inchangé côté signature métier ; un port de lecture `DecisionFormCatalog` sert le contenu
+(vignette **résolue**, consigne, énoncés d'options). Élargir le port de notation aurait fait entrer de
+la présentation dans le chemin du barème. `DatabaseDecisionScenarioCatalog` implémente les deux ;
+`JsonDecisionScenarioCatalog` est `@Deprecated`, retiré du contexte Spring, conservé une release.
+
+**Endpoint** `GET /games/sessions/{id}/decision/items?language=` → 30 items **sans aucune clé de
+correction**. Le use case renvoie les items complets, le DTO les projette : point de filtrage unique,
+même patron que `GetEmotionalRadarScenesUseCase`. `timeLimitMs` (items DT) = base × multiplicateur de
+langue, **sans** `calibrationOffsetMs` — celui-ci se déduit de la télémétrie appareil, que le serveur ne
+reçoit qu'à la soumission ; le seuil de notation est donc très légèrement plus permissif que le
+chronomètre affiché, toujours en faveur du candidat. À la soumission, `SubmitGameResultUseCase` relit
+la forme **sur la session** et rejette tout item étranger : sans ce contrôle, un client pourrait ne
+renvoyer que des items d'une dimension où il réussit. `formCode` existe au contrat en `readOnly` :
+écho de diagnostic, jamais une entrée. Le report expose `provisionalScoring` **par dimension** (une
+dimension n'est déclarée neutre que si TOUS ses items le sont) et le breakdown l'affiche.
+
+**Mobile — le contenu ne vit plus dans l'app.** Les 6 scénarios anglais codés en dur et
+`DecisionProfilePreview` (score constant 82) ont disparu. `DecisionGameplayView` est piloté par les 30
+items servis, avec écrans de transition aux frontières de dimension uniquement — jamais entre les deux
+cadrages d'une paire. `responseTimeMs` est mesuré **à la validation** via `package:clock` (et non avec
+un `Stopwatch`, non testable) : choisir vite puis délibérer produit un temps long, l'exploit est fermé.
+Le changement d'avis est rouvert et **compté** (`decisionChangesCount`), conformément au contrat. La
+pause gèle le compte à rebours, son auto-avance et le chronomètre de délibération. Le profil final vient
+de la réponse serveur (SCW, niveau, /18 par dimension) ; l'étape « strengths » et ses textes inventés
+sont supprimées.
+
+⚠️ **Exception de parité assumée, écrite en tête de `games_mock_repository.dart`** : « Je Décide » est le
+**seul** jeu du module sans barème miroir côté mock. Noter un item suppose la qualité de chaque option,
+c'est-à-dire la clé de correction des 120 items — l'embarquer la rendrait extractible et ruinerait le
+test en recrutement. Hors ligne, `decisionItems` échoue explicitement et la soumission renvoie un
+attempt **non scoré**. `decision_scoring.dart` reste au dépôt comme miroir documentaire du barème
+serveur, couvert par son test, branché sur aucun chemin d'exécution. Ce n'est pas une régression : c'est
+le seul comportement compatible avec « les scores ne quittent jamais le serveur ».
+
+**Tests** : `DecisionItemsProjectionTest` échoue si une `OptionQuality` apparaît dans le JSON
+**réellement sérialisé** (pas seulement dans les champs du DTO) ; `DecisionSeedParityTest` compare le
+seed SQL à la banque JSON item par item et option par option — si les qualités sont identiques, aucun
+score ne peut changer ; `GameSessionTest` couvre l'assignation de forme. Backend **484 tests verts**,
+mobile **149 verts**, migration validée sur Postgres 16 (62 migrations rejouées à blanc).
+**Reste** : modèles λ (ER) / k (RE) / cohérence de paire (CS), puis activation des formes B/C/D.
 
 **Changelog (46) — 2026-08-12** : intégration **front-only** de **Strategic Choices** dans le
 sélecteur `Emotional Regulation`, sans vidéo pour cette phase. Deux logos PNG RGBA 512×512 ont été
@@ -1572,7 +1863,25 @@ Je Décide, Optimal Path, Task Scheduling, Predictive Puzzle), affichés à l'id
 les cartes de catégorie et le sélecteur. Contrôle qualité : fichiers nets et transparents,
 aucune régénération nécessaire. Aucun barème, contrat, endpoint ou event modifié.
 
-**Dernière mise à jour** : 2026-08-12 — **(46)** intégration front-only de Strategic Choices sans
-vidéo ni scoring : double logo PNG, hub/picker Emotional Regulation, parcours textuel complet,
-pause/règles, résultats non scorés, route et tests. Aucun contrat/backend ni manifest de dépendances
-modifié.
+**Changelog (56)** — 2026-09-10 : nettoyage du dépôt (aucun code, barème, contrat ni event touché).
+Suppression des exports Figma à la racine (`04 Move Fast/`, `04 Emotional Radar/`, `test/`,
+`test 2/`, captures `Progress Careers - tablet*`), des plans/recaps obsolètes, de `mobile_preview/`,
+des artefacts locaux (`output/`, `.playwright-cli/`, `backend-logs.txt`, `tmp/`) et des explorations
+d'assets non intégrées (`assets/04 Je Continue Logo Options/`, `assets/04 Je Décide 2/`,
+`assets/04 Je Décide 3/`, `assets/Emotional Radar/`, `assets/04 Reflective Pause/`,
+`assets/J’investigue/J’investigue/`, 6 icônes de jeu inutilisées). `mobile/pubspec.yaml` inchangé
+(aucun asset encore déclaré n'a été retiré). `.gitignore` mis à jour. Zones protégées inchangées.
+
+**Changelog (57)** — 2026-09-10 : fusion de `origin/main` dans la branche Games (merge, aucun
+barème/contrat/event modifié). Les migrations `games` uniques à la branche sont **renumérotées
+au-dessus de la dernière migration de `main` (V66)** pour supprimer la collision de versions :
+`V59 decision`→`V67`, `V64 emotional_radar_v2`→`V68`, `V65 admin_console`→`V69`,
+`V66 admin_full_control`→`V70`, `V67`→`V71`, `V68`→`V72`, `V69`→`V73`, `V70`→`V74`, `V71`→`V75`.
+Les migrations continues/visuo/object-location communes à `main` y restent à `V61/V62/V63` (les
+doublons de la branche sont supprimés). Côté mobile, les fichiers UI en conflit (thème, écrans
+auth, navigation) adoptent la **design system de `main`** ; le correctif anti-overflow
+`Row`→`Wrap` de l'écran d'inscription est conservé.
+
+**Dernière mise à jour** : 2026-09-10 — **(57)** merge `origin/main` + renumérotation Flyway ; **(56)** nettoyage du dépôt ;
+**(55)** démo Day Stack, Emotional Radar, Reflective Pause
+et Strategic Choices ; layouts améliorés et vidéos locales provisoires. Barèmes protégés conservés.

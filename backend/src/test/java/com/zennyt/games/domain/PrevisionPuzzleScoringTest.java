@@ -1,10 +1,12 @@
 package com.zennyt.games.domain;
 
+import com.zennyt.games.domain.config.PrevisionPuzzleConfig;
 import com.zennyt.games.domain.service.PlanifikScoringService;
 import com.zennyt.games.domain.vo.PrevisionPuzzleLevel;
 import com.zennyt.games.domain.vo.PrevisionPuzzleMetrics;
 import com.zennyt.games.domain.vo.PrevisionPuzzleReport;
 import com.zennyt.games.domain.vo.Score;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -101,5 +103,28 @@ class PrevisionPuzzleScoringTest {
         PrevisionPuzzleReport ko = PrevisionPuzzleReport.from(oneFailed);
         assertFalse(ko.globalPlanSuccess());
         assertEquals(1, ko.levelsCompleted());
+    }
+
+    @Test
+    @DisplayName("l'échelle de niveaux monte à 10 disques et reste alignée sur la tolérance")
+    void levelLadderIsConsistent() {
+        var levels = PrevisionPuzzleConfig.PUZZLE_LEVELS;
+        var tolerance = PrevisionPuzzleConfig.MAX_SEQUENCE_ERRORS;
+
+        // Une tolérance par niveau. Ces deux listes avaient divergé du client sans
+        // que rien ne le signale : aucune règle serveur ne les lit.
+        assertEquals(levels.size(), tolerance.size(),
+            "une tolérance d'erreurs par niveau");
+        assertEquals(10, levels.get(levels.size() - 1), "dernier niveau = 10 disques");
+
+        // Difficulté strictement croissante, tolérance jamais croissante.
+        for (int i = 1; i < levels.size(); i++) {
+            assertTrue(levels.get(i) > levels.get(i - 1),
+                "le nombre de disques doit croître : niveau " + i);
+            assertTrue(tolerance.get(i) <= tolerance.get(i - 1),
+                "la tolérance ne doit jamais se relâcher : niveau " + i);
+        }
+        // L'optimum reste déterministe sur toute l'échelle.
+        assertEquals(1023, PrevisionPuzzleConfig.optimalMoves(10));
     }
 }

@@ -54,20 +54,18 @@ class _ActionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 116,
+      constraints: const BoxConstraints(minHeight: 132),
       decoration: BoxDecoration(
-        color: isFilled ? colors.actionCardFilled : colors.actionCardOutlineBg,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        border: isFilled
-            ? null
-            : Border.all(color: colors.actionCardOutlineBorder, width: 1),
+        color: colors.inputFill,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: colors.border),
         boxShadow: AppShadows.xs,
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () {},
-          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+          onTap: null,
+          borderRadius: BorderRadius.circular(24),
           child: Padding(
             padding: const EdgeInsets.symmetric(
               vertical: AppSpacing.base,
@@ -82,10 +80,16 @@ class _ActionCard extends StatelessWidget {
                   label,
                   textAlign: TextAlign.center,
                   style: AppTypography.labelMedium.copyWith(
-                    color: isFilled
-                        ? Colors.white
-                        : colors.actionCardOutlineText,
+                    color: colors.textSecondary,
                     fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  context.l10n.comingSoon,
+                  textAlign: TextAlign.center,
+                  style: AppTypography.labelSmall.copyWith(
+                    color: colors.textSecondary,
                   ),
                 ),
               ],

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/audio/sound_service.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -17,7 +18,6 @@ import '../flame/grid_config.dart';
 import '../flame/planifik_game.dart';
 import '../games_controller.dart';
 import '../widgets/game_system_components.dart';
-import '../widgets/score_detail_panel.dart';
 
 /// Jeu « Optimal Path » (Planifik — « Je planifie »).
 ///
@@ -55,17 +55,47 @@ class _PlanifikScreenState extends ConsumerState<PlanifikScreen> {
   bool _busy = false;
   int _level = 0;
   int _score = 0;
+  // Fautes de case interdite (rouge) AU NIVEAU courant : chaque tentative de
+  // franchissement est comptée comme un « essai » supplémentaire dans les
+  // métriques → sanctionne le score /10 du niveau, en plus de la pénalité
+  // visuelle immédiate sur le score affiché.
+  int _levelCellFaults = 0;
   PlanifikMetrics? _lastMetrics;
   // Cumul explicite des métriques PAR NIVEAU — soumis en un seul PlanifikMetrics
   // au dernier niveau (le backend note chaque niveau /10 puis fait la moyenne).
   final List<PlanifikLevelMetrics> _levelMetrics = [];
 
+  /// Droit de pause de la PARTIE — une ouverture, 30 s (CdC pause §2-3).
+  ///
+  /// Porté par l'écran et non par `_GameplayView` : celui-ci est reconstruit à
+  /// chaque niveau (`key: ValueKey(_level)`), ce qui aurait rendu un droit de
+  /// pause par niveau au lieu d'un par session.
+  final GamePauseAllowance _pauseAllowance = GamePauseAllowance();
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
   Future<void> _beginGame() async {
+    // Nouvelle partie = nouveau droit de pause.
+    _pauseAllowance.reset();
     setState(() {
       _levelConfigs = GridConfig.randomLevels();
       _level = 0;
       _score = 0;
-      _game = PlanifikGame(config: _levelConfigs[_level]);
+      _levelCellFaults = 0;
+      _game = PlanifikGame(
+        config: _levelConfigs[_level],
+        onWrongCell: _onWrongCell,
+        onBlockedTap: _onBlockedTap,
+        onPointAdded: _onPointAdded,
+      );
       _stage = _PlanifikStage.gameplay;
       _levelAttempts = 0;
       _levelFailed = false;
@@ -78,9 +108,42 @@ class _PlanifikScreenState extends ConsumerState<PlanifikScreen> {
   /// Route correcte validée : +250, on fige les métriques du niveau, puis niveau
   /// suivant (plus dur) ou, au dernier niveau, soumission au backend.
   void _onCorrectRoute() {
+    SoundService.instance.playSfx(GameSfx.correctChoice);
     _score += 250;
     _captureLevelMetrics();
     _goToNextLevelOrSubmit();
+  }
+
+  /// Un point vient d'être ajouté au tracé : son « start-point » pour chaque
+  /// point (départ + intermédiaires), son « goal-point » quand on atteint la
+  /// case d'arrivée.
+  void _onPointAdded(bool isGoal) {
+    SoundService.instance.playSfx(
+      isGoal ? GameSfx.goalPoint : GameSfx.startPoint,
+    );
+  }
+
+  /// Appui sur une case interdite (rouge), **où qu'elle soit** : retour d'erreur
+  /// sonore et haptique.
+  ///
+  /// La vibration est déclenchée par SoundService avec le son d'erreur : un
+  /// appel direct à HapticFeedback ici échapperait au réglage « Vibration » du
+  /// menu pause.
+  void _onBlockedTap() {
+    SoundService.instance.playSfx(GameSfx.wrongChoice);
+  }
+
+  /// Case interdite touchée **en prolongement du tracé** : erreur de
+  /// planification, donc pénalité de score (le jeu dessine puis efface le faux
+  /// segment de son côté).
+  ///
+  /// Ne joue pas le son : [_onBlockedTap] vient de le faire pour ce même appui.
+  void _onWrongCell() {
+    setState(() {
+      _levelCellFaults++; // sanctionne le score /10 du niveau (compté en essais)
+      // Sanction visuelle claire : chaque case interdite retire 3 points.
+      _score = math.max(0, _score - 3);
+    });
   }
 
   void _onWrongRoute() {
@@ -100,7 +163,9 @@ class _PlanifikScreenState extends ConsumerState<PlanifikScreen> {
     _levelMetrics.add(
       _game.buildFailedLevelMetrics(
         levelIndex: _level,
-        attempts: _levelAttempts, // >= 3 → 1 pt sur « essais »
+        // Fautes de case interdite comptées comme des essais → aggravent la
+        // sanction (>= 3 → 1 pt sur « essais »).
+        attempts: _levelAttempts + _levelCellFaults,
       ),
     );
     setState(() => _levelFailed = true);
@@ -115,19 +180,27 @@ class _PlanifikScreenState extends ConsumerState<PlanifikScreen> {
       setState(() {
         _level++;
         _levelAttempts = 0;
+        _levelCellFaults = 0;
         _levelFailed = false;
-        _game = PlanifikGame(config: _levelConfigs[_level]);
+        _game = PlanifikGame(
+          config: _levelConfigs[_level],
+          onWrongCell: _onWrongCell,
+          onBlockedTap: _onBlockedTap,
+          onPointAdded: _onPointAdded,
+        );
       });
     } else {
       _submitFinal();
     }
   }
 
-  /// Fige les métriques du niveau courant (essais = mauvaises routes + 1).
+  /// Fige les métriques du niveau courant. Les « essais » = mauvaises routes + 1
+  /// + fautes de case interdite : franchir (tenter) une case rouge est ainsi
+  /// sanctionné dans le score /10 du niveau (barème « essais » : 1→3, 2→2, ≥3→1).
   void _captureLevelMetrics() {
     final metrics = _game.buildLevelMetrics(
       levelIndex: _level,
-      attempts: _levelAttempts + 1,
+      attempts: _levelAttempts + 1 + _levelCellFaults,
     );
     if (metrics != null) _levelMetrics.add(metrics);
   }
@@ -148,6 +221,7 @@ class _PlanifikScreenState extends ConsumerState<PlanifikScreen> {
       _busy = false;
       if (scored) _stage = _PlanifikStage.score;
     });
+    if (scored) SoundService.instance.playScoreboard();
   }
 
   void _replay() {
@@ -190,7 +264,7 @@ class _PlanifikScreenState extends ConsumerState<PlanifikScreen> {
         onBack: () => setState(() => _stage = _PlanifikStage.intro),
         onDone: _beginGame,
       ),
-      _PlanifikStage.gameplay => _GameplayView(
+      _PlanifikStage.gameplay => GameplayMusic(child: _GameplayView(
         key: ValueKey(_level),
         game: _game,
         busy: _busy,
@@ -198,16 +272,19 @@ class _PlanifikScreenState extends ConsumerState<PlanifikScreen> {
         level: _level + 1,
         totalLevels: _levelConfigs.length,
         levelFailed: _levelFailed,
+        pauseAllowance: _pauseAllowance,
         onCorrect: _onCorrectRoute,
         onWrong: _onWrongRoute,
         onExit: () => context.go(AppRoutes.games),
-      ),
+      )),
       _PlanifikStage.score => _ScoreView(
         session: session,
         metrics: _lastMetrics,
         onReplay: _replay,
         onCompare: () => setState(() => _stage = _PlanifikStage.comparison),
-        onNext: () => context.go(AppRoutes.gamesTaskScheduling),
+        // Chaque jeu est individuel : Optimal Path se termine sur son propre
+        // écran de score et revient au hub, sans enchaîner sur l'ordonnancement.
+        onNext: () => context.go(AppRoutes.games),
         onBack: () => context.go(AppRoutes.games),
       ),
       _PlanifikStage.comparison => _ComparisonView(
@@ -415,7 +492,12 @@ class _StartButton extends StatelessWidget {
     return SizedBox(
       height: 58,
       child: FilledButton(
-        onPressed: onPressed,
+        // Ce CTA n'utilise pas [GamePrimaryButton] (capsule magenta propre à la
+        // couverture d'Optimal Path), donc il n'héritait pas du clic générique.
+        onPressed: () {
+          SoundService.instance.playSfx(GameSfx.buttonClick);
+          onPressed();
+        },
         style: FilledButton.styleFrom(
           backgroundColor: ZennytGamePalette.magenta,
           foregroundColor: Colors.white,
@@ -701,7 +783,13 @@ class _TrailingArrowButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FilledButton(
-      onPressed: onPressed,
+      // Bouton « Next » des pages de RÈGLES : style propre à la maquette, donc
+      // hors [GamePrimaryButton] — c'était l'un des « boutons de règles » sans
+      // son signalés par le client.
+      onPressed: () {
+        SoundService.instance.playSfx(GameSfx.buttonClick);
+        onPressed();
+      },
       style: FilledButton.styleFrom(
         backgroundColor: ZennytGamePalette.magenta,
         foregroundColor: Colors.white,
@@ -794,7 +882,8 @@ class _HowToPlayPage1 extends StatelessWidget {
           const SizedBox(height: AppSpacing.sm),
           Text(
             'Leila starts at the Lab (green) and needs to reach the Meeting '
-            'Room (pink). Tap stations to trace your path — each segment costs '
+            'Room (pink). Slide your finger along the stations — or tap them one '
+            'by one — to trace your path. Each segment costs '
             '1 move. Avoid red zones (under construction) to save moves. '
             'You can only move right and left, up and down.',
             style: AppTypography.bodyMedium.copyWith(
@@ -836,33 +925,35 @@ class _HowToPlayPage2 extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: AppSpacing.lg),
+                // Barème réel : chaque niveau est noté /10 (miroir backend),
+                // puis moyenné sur les 4 niveaux → /100.
                 const _ScoringRow(
                   icon: Icons.gps_fixed_rounded,
-                  iconColor: Color(0xFFEF5B5B),
-                  label: 'Optimal route reached',
-                  points: '+3 pts',
+                  iconColor: Color(0xFF22C55E),
+                  label: 'Optimal route (within 10%)',
+                  points: '+4 pts',
                   pointsColor: Color(0xFF22C55E),
                 ),
                 const _ScoringRow(
-                  icon: Icons.star_rounded,
-                  iconColor: Color(0xFFF5B800),
-                  label: 'Document collected',
-                  points: '+2 pts each',
-                  pointsColor: ZennytGamePalette.magenta,
-                ),
-                const _ScoringRow(
-                  icon: Icons.bolt_rounded,
-                  iconColor: Color(0xFFF5B800),
-                  label: 'Move efficiency bonus',
-                  points: '+2 pts',
+                  icon: Icons.replay_rounded,
+                  iconColor: Color(0xFF00A9D6),
+                  label: 'Attempts (1st / 2nd / 3rd)',
+                  points: '+3 / +2 / +1',
                   pointsColor: Color(0xFF00A9D6),
                 ),
                 const _ScoringRow(
                   icon: Icons.do_not_disturb_rounded,
                   iconColor: Color(0xFFEF5B5B),
-                  label: 'Each wrong move',
-                  points: '-1 pt',
-                  pointsColor: Color(0xFFEF5B5B),
+                  label: 'Costly zones avoided',
+                  points: '+2 pts',
+                  pointsColor: ZennytGamePalette.magenta,
+                ),
+                const _ScoringRow(
+                  icon: Icons.star_rounded,
+                  iconColor: Color(0xFFF5B800),
+                  label: 'Documents collected',
+                  points: '+1 pt',
+                  pointsColor: Color(0xFFF5B800),
                 ),
               ],
             ),
@@ -1140,10 +1231,14 @@ class _GameplayView extends StatefulWidget {
     required this.level,
     required this.totalLevels,
     required this.levelFailed,
+    required this.pauseAllowance,
     required this.onCorrect,
     required this.onWrong,
     required this.onExit,
   });
+
+  /// Droit de pause de la session, détenu par l'écran (voir sa déclaration).
+  final GamePauseAllowance pauseAllowance;
 
   final PlanifikGame game;
   final bool busy;
@@ -1160,52 +1255,150 @@ class _GameplayView extends StatefulWidget {
 }
 
 class _GameplayViewState extends State<_GameplayView> {
+  /// Budget de temps d'un niveau, dérivé de sa longueur optimale.
+  ///
+  /// Le chrono ne comptait que le temps ÉCOULÉ, sans plafond : la barre de
+  /// progression du HUD n'avait donc aucun dénominateur temporel et affichait
+  /// en réalité l'avancement du tracé (`stepCount / optimalLength`). D'où
+  /// « la barre de progression du timer n'est pas fonctionnelle ».
+  ///
+  /// 12 s par case du chemin optimal laisse largement le temps de réfléchir
+  /// puis de tracer (niveaux 9–12 cases → 108–144 s). Le temps n'entre dans
+  /// AUCUNE métrique envoyée au serveur ([PlanifikLevelMetrics] n'a pas de
+  /// champ de durée) : ce budget ne touche donc pas au barème.
+  static const int _secondsPerOptimalStep = 12;
+  static const int _minLevelSeconds = 60;
+
+  /// Dernières secondes : barre rouge + tic sonore, comme « Je bouge ».
+  static const int _urgentSeconds = 10;
+
   Timer? _timer;
-  int _elapsed = 0;
+  late int _secondsLeft = _levelSeconds;
   int _tries = 0;
   bool _paused = false;
-  bool _soundEffects = true;
-  bool _music = false;
   _Feedback _feedback = _Feedback.none;
   String _feedbackText = '';
+
+  int get _levelSeconds => math.max(
+    _minLevelSeconds,
+    widget.game.optimalLength * _secondsPerOptimalStep,
+  );
 
   @override
   void initState() {
     super.initState();
+    _startTimer();
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted && !_paused) setState(() => _elapsed++);
+      if (!mounted || _paused) return;
+      if (_secondsLeft <= 0) return; // 00:00 : _expireLevel a déjà pris la main
+
+      setState(() => _secondsLeft--);
+
+      if (_secondsLeft == 0) {
+        _expireLevel();
+        return;
+      }
+      if (_secondsLeft <= _urgentSeconds) {
+        SoundService.instance.playSfx(GameSfx.timerDecrease);
+      }
     });
+  }
+
+  /// Temps écoulé : le niveau est scellé en échec par le MÊME chemin qu'un
+  /// 3ᵉ essai raté (`onWrong` → `levelFailed` → métriques d'échec + passage
+  /// automatique). Aucune sémantique d'échec nouvelle n'est introduite.
+  void _expireLevel() {
+    _timer?.cancel();
+    SoundService.instance.playSfx(GameSfx.timerEnd);
+    // Le temps écoulé EST un échec de niveau — même chemin qu'un 3ᵉ essai raté —
+    // et doit donc vibrer comme lui. La vibration est demandée explicitement
+    // ici, et non en ajoutant `timerEnd` aux sons d'erreur de SoundService :
+    // Move Fast joue le MÊME son à la fin normale de sa session, où une
+    // vibration d'échec serait un contresens.
+    //
+    // Passe par SoundService et non par HapticFeedback : le réglage
+    // « Vibration » du menu pause doit continuer de tout couper.
+    SoundService.instance.vibrateError();
+    if (_feedback != _Feedback.none) return;
+    setState(() {
+      _feedback = _Feedback.wrong;
+      _feedbackText = "Time's up";
+      _tries++;
+    });
+    widget.onWrong();
+  }
+
+  /// Bouton unique du HUD : menu de pause tant que la fenêtre est ouverte,
+  /// confirmation de sortie ensuite. Voir [GameMenuAffordance].
+  Future<void> _openMenu() async {
+    if (widget.pauseAllowance.canOpen) return _openPause();
+    // Fenêtre consommée : on ne met PAS le jeu en pause. Geler le chronomètre
+    // ici rendrait la pause renouvelable à volonté par simple ouverture de la
+    // boîte, ce que la fenêtre unique existe pour empêcher.
+    if (await GameExitConfirmDialog.show(context)) widget.onExit();
   }
 
   /// Menu pause (comme Move Fast) : pause le timer, propose Reprendre / Règles /
   /// Quitter, et des options audio.
   Future<void> _openPause() async {
+    // Une seule fenêtre de pause par partie (CdC pause §2-3).
+    if (!widget.pauseAllowance.canOpen) return;
+    SoundService.instance.playSfx(GameSfx.pauseClick);
+    widget.pauseAllowance.open();
     setState(() => _paused = true);
-    final action = await showDialog<_PauseAction>(
+    await _showPauseMenu();
+  }
+
+  /// Réaffiché après les règles sur le **temps restant** de la fenêtre.
+  Future<void> _showPauseMenu() async {
+    final action = await showDialog<GamePauseAction>(
       context: context,
       barrierColor: ZennytGamePalette.ink.withValues(alpha: 0.82),
-      builder: (context) => _PauseDialog(
-        timeLabel: _timeLabel,
-        attempts: _tries,
-        soundEffects: _soundEffects,
-        music: _music,
-        onSoundEffectsChanged: (v) => _soundEffects = v,
-        onMusicChanged: (v) => _music = v,
+      builder: (context) => GamePauseScaffold(
+        countdown: widget.pauseAllowance.remaining,
+        onCountdownExpired: () =>
+            Navigator.of(context).pop(GamePauseAction.resume),
+        buttons: [
+          GamePrimaryButton(
+            label: 'Resume',
+            onPressed: () => Navigator.of(context).pop(GamePauseAction.resume),
+          ),
+          GameOutlineButton(
+            label: 'View rules / Help',
+            onPressed: () => Navigator.of(context).pop(GamePauseAction.help),
+          ),
+          GamePauseExitButton(
+            label: 'Exit mission',
+            onPressed: () => Navigator.of(context).pop(GamePauseAction.exit),
+          ),
+        ],
       ),
     );
     if (!mounted) return;
-    if (action == _PauseAction.exit) {
-      widget.onExit();
-      return;
-    }
-    if (action == _PauseAction.help) {
+    if (action == GamePauseAction.exit) {
+      // Quitter annule la tentative : confirmation explicite d'abord.
+      if (await GameExitConfirmDialog.show(context)) {
+        widget.onExit();
+        return;
+      }
+      if (!mounted) return;
+      if (widget.pauseAllowance.canReopen) return _showPauseMenu();
+    } else if (action == GamePauseAction.help) {
       await showDialog<void>(
         context: context,
         barrierColor: ZennytGamePalette.ink.withValues(alpha: 0.82),
         builder: (context) => const _OptimalRulesDialog(),
       );
+      if (!mounted) return;
+      if (widget.pauseAllowance.canReopen) return _showPauseMenu();
     }
     if (!mounted) return;
+    // La partie repart : le temps passé en pause rejoint le budget consommé.
+    widget.pauseAllowance.close();
     setState(() => _paused = false);
   }
 
@@ -1216,10 +1409,16 @@ class _GameplayViewState extends State<_GameplayView> {
   }
 
   String get _timeLabel {
-    final m = (_elapsed ~/ 60).toString().padLeft(2, '0');
-    final s = (_elapsed % 60).toString().padLeft(2, '0');
+    final m = (_secondsLeft ~/ 60).toString().padLeft(2, '0');
+    final s = (_secondsLeft % 60).toString().padLeft(2, '0');
     return '$m:$s';
   }
+
+  /// Part de temps RESTANTE — ce que la barre du HUD doit refléter.
+  double get _timeProgress =>
+      (_secondsLeft / _levelSeconds).clamp(0.0, 1.0);
+
+  bool get _timeIsUrgent => _secondsLeft <= _urgentSeconds;
 
   void _validate() {
     // Niveau scellé (échec 3 essais) : plus aucune validation acceptée.
@@ -1238,6 +1437,12 @@ class _GameplayViewState extends State<_GameplayView> {
         if (mounted) widget.onCorrect();
       });
     } else {
+      // Valider un chemin qui n'atteint pas l'arrivée est LA faute principale
+      // du jeu, et elle ne produisait ni son ni vibration : seul le clic sur
+      // une case interdite en déclenchait. Le son d'erreur porte la vibration
+      // (via SoundService), donc le réglage « Vibration » du menu pause reste
+      // respecté — un HapticFeedback direct y échapperait.
+      SoundService.instance.playSfx(GameSfx.wrongChoice);
       setState(() {
         _feedback = _Feedback.wrong;
         _feedbackText = '-2pts';
@@ -1252,6 +1457,9 @@ class _GameplayViewState extends State<_GameplayView> {
         if (mounted && !widget.levelFailed) {
           setState(() => _feedback = _Feedback.none);
           widget.game.clear();
+          // Le chrono avait été coupé pour figer le feedback ; il ne repartait
+          // jamais, laissant le Timer gelé pour le reste du niveau.
+          _startTimer();
         }
       });
     }
@@ -1270,11 +1478,15 @@ class _GameplayViewState extends State<_GameplayView> {
               score: widget.score,
               timeLabel: _timeLabel,
               tries: _tries,
-              progress: (game.stepCount / game.optimalLength).clamp(0.0, 1.0),
-              progressColor: _feedback == _Feedback.wrong
+              // La barre suit le TEMPS RESTANT (elle se vide), et non plus
+              // l'avancement du tracé — c'est bien un « timer bar ».
+              progress: _timeProgress,
+              progressColor:
+                  (_feedback == _Feedback.wrong || _timeIsUrgent)
                   ? ZennytGamePalette.error
                   : ZennytGamePalette.success,
-              onPause: _openPause,
+              onPause: _openMenu,
+              affordance: widget.pauseAllowance.affordance,
             ),
           ),
           const SizedBox(height: AppSpacing.md),
@@ -1306,8 +1518,8 @@ class _GameplayViewState extends State<_GameplayView> {
                   Expanded(child: GameWidget(game: game)),
                   const SizedBox(height: AppSpacing.md),
                   Text(
-                    'Level ${widget.level}/${widget.totalLevels} — tap stations '
-                    'to trace Leila\'s route.',
+                    'Level ${widget.level}/${widget.totalLevels} — swipe or tap '
+                    'stations to trace Leila\'s route.',
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: Colors.white,
@@ -1368,6 +1580,7 @@ class _OptimalHud extends StatelessWidget {
     required this.progress,
     required this.progressColor,
     required this.onPause,
+    required this.affordance,
   });
 
   final int score;
@@ -1376,6 +1589,10 @@ class _OptimalHud extends StatelessWidget {
   final double progress;
   final Color progressColor;
   final VoidCallback onPause;
+
+  /// Pause ou sortie : le bouton change d'icône une fois la fenêtre consommée,
+  /// il ne disparaît plus. Voir [GameMenuAffordance].
+  final GameMenuAffordance affordance;
 
   @override
   Widget build(BuildContext context) {
@@ -1396,7 +1613,12 @@ class _OptimalHud extends StatelessWidget {
               child: _HudStatPill(label: 'Tries', value: '${tries > 3 ? 3 : tries}/3'),
             ),
             const SizedBox(width: AppSpacing.sm),
-            _HudIconButton(icon: Icons.pause_rounded, onTap: onPause),
+            _HudIconButton(
+              icon: affordance.icon,
+              tooltip: affordance.tooltip,
+              semanticsLabel: affordance.semanticsLabel,
+              onTap: onPause,
+            ),
           ],
         ),
         const SizedBox(height: AppSpacing.md),
@@ -1453,24 +1675,38 @@ class _HudStatPill extends StatelessWidget {
 }
 
 class _HudIconButton extends StatelessWidget {
-  const _HudIconButton({required this.icon, required this.onTap});
+  const _HudIconButton({
+    required this.icon,
+    required this.onTap,
+    required this.tooltip,
+    required this.semanticsLabel,
+  });
 
   final IconData icon;
   final VoidCallback onTap;
+  final String tooltip;
+  final String semanticsLabel;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white.withValues(alpha: 0.14),
-      borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        child: Container(
-          width: 52,
-          height: 52,
-          alignment: Alignment.center,
-          child: Icon(icon, color: Colors.white, size: 24),
+    return Semantics(
+      button: true,
+      label: semanticsLabel,
+      child: Tooltip(
+        message: tooltip,
+        child: Material(
+          color: Colors.white.withValues(alpha: 0.14),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+            child: Container(
+              width: 52,
+              height: 52,
+              alignment: Alignment.center,
+              child: Icon(icon, color: Colors.white, size: 24),
+            ),
+          ),
         ),
       ),
     );
@@ -1667,226 +1903,6 @@ class _ValidateButton extends StatelessWidget {
 
 // ─────────────────────────── Menu pause (comme Move Fast) ───────────────────────────
 
-enum _PauseAction { resume, help, exit }
-
-class _PauseDialog extends StatefulWidget {
-  const _PauseDialog({
-    required this.timeLabel,
-    required this.attempts,
-    required this.soundEffects,
-    required this.music,
-    required this.onSoundEffectsChanged,
-    required this.onMusicChanged,
-  });
-
-  final String timeLabel;
-  final int attempts;
-  final bool soundEffects;
-  final bool music;
-  final ValueChanged<bool> onSoundEffectsChanged;
-  final ValueChanged<bool> onMusicChanged;
-
-  @override
-  State<_PauseDialog> createState() => _PauseDialogState();
-}
-
-class _PauseDialogState extends State<_PauseDialog> {
-  late bool _soundEffects = widget.soundEffects;
-  late bool _music = widget.music;
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      insetPadding: const EdgeInsets.all(32),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusXxl),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Pause',
-              style: AppTypography.displayMedium.copyWith(
-                color: ZennytGamePalette.blue,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            // Stats : Time | Attempts.
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                _PauseStat(
-                  label: 'Time',
-                  value: widget.timeLabel,
-                  valueColor: ZennytGamePalette.magenta,
-                ),
-                Container(
-                  width: 1,
-                  height: 44,
-                  margin: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-                  color: ZennytGamePalette.border,
-                ),
-                _PauseStat(
-                  label: 'Attempts',
-                  value: '${widget.attempts}/3',
-                  valueColor: ZennytGamePalette.success,
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            Text(
-              'Audio options',
-              style: AppTypography.titleMedium.copyWith(
-                color: ZennytGamePalette.blue,
-                letterSpacing: 0,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            _PauseSwitchTile(
-              label: 'Sound effects',
-              value: _soundEffects,
-              onChanged: (value) {
-                setState(() => _soundEffects = value);
-                widget.onSoundEffectsChanged(value);
-              },
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            _PauseSwitchTile(
-              label: 'Music',
-              value: _music,
-              onChanged: (value) {
-                setState(() => _music = value);
-                widget.onMusicChanged(value);
-              },
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            GamePrimaryButton(
-              label: 'Resume',
-              onPressed: () => Navigator.of(context).pop(_PauseAction.resume),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            GameOutlineButton(
-              label: 'View rules',
-              onPressed: () => Navigator.of(context).pop(_PauseAction.help),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            OutlinedButton(
-              onPressed: () => Navigator.of(context).pop(_PauseAction.exit),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: ZennytGamePalette.error,
-                backgroundColor: ZennytGamePalette.error.withValues(
-                  alpha: 0.06,
-                ),
-                side: const BorderSide(color: ZennytGamePalette.error),
-                minimumSize: const Size.fromHeight(52),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-                ),
-                textStyle: AppTypography.buttonMedium.copyWith(
-                  letterSpacing: 0,
-                ),
-              ),
-              child: const Text('Exit mission'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _PauseStat extends StatelessWidget {
-  const _PauseStat({
-    required this.label,
-    required this.value,
-    required this.valueColor,
-  });
-
-  final String label;
-  final String value;
-  final Color valueColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          label,
-          style: AppTypography.titleMedium.copyWith(
-            color: ZennytGamePalette.blue,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: AppTypography.titleLarge.copyWith(
-            color: valueColor,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _PauseSwitchTile extends StatelessWidget {
-  const _PauseSwitchTile({
-    required this.label,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final String label;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.base,
-        vertical: AppSpacing.sm,
-      ),
-      decoration: BoxDecoration(
-        border: Border.all(color: ZennytGamePalette.border),
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: AppTypography.titleSmall.copyWith(
-                color: ZennytGamePalette.blue,
-                letterSpacing: 0,
-              ),
-            ),
-          ),
-          Text(
-            value ? 'On' : 'Off',
-            style: AppTypography.labelMedium.copyWith(
-              color: value
-                  ? ZennytGamePalette.success
-                  : ZennytGamePalette.muted,
-              letterSpacing: 0,
-            ),
-          ),
-          Switch(value: value, onChanged: onChanged),
-        ],
-      ),
-    );
-  }
-}
-
 /// Dialogue « Règles » d'Optimal Path (ouvert depuis le menu pause).
 class _OptimalRulesDialog extends StatelessWidget {
   const _OptimalRulesDialog();
@@ -1934,8 +1950,10 @@ class _OptimalRulesDialog extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.lg),
             _RuleLine(
-              icon: Icons.touch_app_rounded,
-              text: 'Tap adjacent stations from LAB to trace your route.',
+              icon: Icons.swipe_rounded,
+              text: 'Slide your finger from LAB across adjacent stations to '
+                  'trace your route — or tap them one by one. Slide back to '
+                  'erase the last step.',
             ),
             _RuleLine(
               icon: Icons.flag_rounded,
@@ -2009,7 +2027,7 @@ class _ScoreView extends StatelessWidget {
   final PlanifikMetrics? metrics;
   final VoidCallback onReplay;
   final VoidCallback onCompare;
-  final VoidCallback onNext; // enchaîne vers Planifik #2 (Ordonnancement)
+  final VoidCallback onNext; // termine le jeu → retour au hub des jeux
   final VoidCallback onBack;
 
   @override
@@ -2066,8 +2084,10 @@ class _ScoreView extends StatelessWidget {
                     letterSpacing: 0,
                   ),
                 ),
-                Text(
-                  '$scorePercent%',
+                AnimatedCountText(
+                  value: scorePercent,
+                  suffix: '%',
+                  onCompleted: SoundService.instance.stopScoreboard,
                   style: AppTypography.displayLarge.copyWith(
                     color: Colors.white,
                     fontSize: 56,
@@ -2120,10 +2140,6 @@ class _ScoreView extends StatelessWidget {
               ),
             ],
           ),
-          if ((session?.scoreBreakdown ?? const []).isNotEmpty) ...[
-            const SizedBox(height: AppSpacing.xl),
-            ScoreDetailPanel(lines: session!.scoreBreakdown),
-          ],
           const SizedBox(height: AppSpacing.xxl),
           GamePanel(
             backgroundColor: ZennytGamePalette.mist,
@@ -2148,13 +2164,13 @@ class _ScoreView extends StatelessWidget {
               ],
             ),
           ),
-          if (metrics != null) ...[
-            const SizedBox(height: AppSpacing.xl),
-            _ScoreBreakdownPanel(metrics: metrics!),
-          ],
+          // Le détail de la formule de calcul du score (points par critère,
+          // « ±10 % », « /4 »…) a été retiré du tableau de score sur retour
+          // client : le joueur voit son résultat et l'analyse, pas le barème.
+          // Le calcul reste entier côté serveur (ScoreBreakdownService).
           const SizedBox(height: AppSpacing.xxl),
-          // Enchaîne le flow Planifik : #1 Chemin Optimal → #2 Ordonnancement.
-          GamePrimaryButton(label: 'Continue to scheduling', onPressed: onNext),
+          // Jeu individuel : bouton terminal qui referme Optimal Path.
+          GamePrimaryButton(label: 'Finish', onPressed: onNext),
           const SizedBox(height: AppSpacing.md),
           Row(
             children: [
@@ -2176,137 +2192,6 @@ class _ScoreView extends StatelessWidget {
   }
 }
 
-/// Panneau de décomposition du score (Score breakdown panel) — reconstruit le
-/// barème serveur à partir des métriques pour l'afficher au joueur.
-class _ScoreBreakdownPanel extends StatelessWidget {
-  const _ScoreBreakdownPanel({required this.metrics});
-
-  final PlanifikMetrics metrics;
-
-  @override
-  Widget build(BuildContext context) {
-    final deviation =
-        (metrics.pathLength - metrics.optimalLength).abs() /
-        metrics.optimalLength;
-    final pathPts = deviation <= 0.10 ? 4 : 0;
-    final attemptPts = switch (metrics.attempts) {
-      1 => 3,
-      2 => 2,
-      _ => 1,
-    };
-    final costPts = metrics.costlyZonesAvoided ? 2 : 0;
-    final bonusPts = metrics.secondaryObjectives > 0 ? 1 : 0;
-
-    return GamePanel(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Score breakdown',
-            style: AppTypography.titleMedium.copyWith(
-              color: ZennytGamePalette.ink,
-              letterSpacing: 0,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          _BreakdownRow(
-            label: 'Optimal route (±10%)',
-            detail:
-                '${metrics.pathLength} steps · optimal ${metrics.optimalLength}',
-            points: pathPts,
-            max: 4,
-          ),
-          _BreakdownRow(
-            label: 'Attempts',
-            detail: '${metrics.attempts} attempt(s)',
-            points: attemptPts,
-            max: 3,
-          ),
-          _BreakdownRow(
-            label: 'Cost zones avoided',
-            detail: metrics.costlyZonesAvoided
-                ? 'Clean route'
-                : 'Crossed a cost zone',
-            points: costPts,
-            max: 2,
-          ),
-          _BreakdownRow(
-            label: 'Bonus objective',
-            detail: metrics.secondaryObjectives > 0 ? 'Reached' : 'Missed',
-            points: bonusPts,
-            max: 1,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _BreakdownRow extends StatelessWidget {
-  const _BreakdownRow({
-    required this.label,
-    required this.detail,
-    required this.points,
-    required this.max,
-  });
-
-  final String label;
-  final String detail;
-  final int points;
-  final int max;
-
-  @override
-  Widget build(BuildContext context) {
-    final earned = points > 0;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.md),
-      child: Row(
-        children: [
-          Icon(
-            earned
-                ? Icons.check_circle_rounded
-                : Icons.remove_circle_outline_rounded,
-            color: earned ? ZennytGamePalette.success : ZennytGamePalette.muted,
-            size: 22,
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: AppTypography.titleSmall.copyWith(
-                    color: ZennytGamePalette.ink,
-                    letterSpacing: 0,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  detail,
-                  style: AppTypography.bodySmall.copyWith(
-                    color: ZennytGamePalette.muted,
-                    letterSpacing: 0,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Text(
-            '$points/$max',
-            style: AppTypography.titleSmall.copyWith(
-              color: earned
-                  ? ZennytGamePalette.success
-                  : ZennytGamePalette.muted,
-              letterSpacing: 0,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 // ─────────────────────────── Comparison ───────────────────────────
 

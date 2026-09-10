@@ -60,10 +60,17 @@ void main() {
       'assets/games icons/Je Coordonne.png',
     );
     expect(find.text('2–25 min'), findsOneWidget);
-    expect(find.text('3 games'), findsOneWidget);
 
     final flexibilityCard = find.byKey(
       const ValueKey('game-category-cognitive-flexibility'),
+    );
+    // Portée à la carte visée : « 3 games » n'est pas unique dans le hub —
+    // plusieurs catégories comptent trois jeux. L'assertion globale ne tenait
+    // que parce que la police de remplacement des tests, plus large que la
+    // vraie, empêchait la seconde carte de se peindre.
+    expect(
+      find.descendant(of: flexibilityCard, matching: find.text('3 games')),
+      findsOneWidget,
     );
     await tester.tap(flexibilityCard);
     await tester.pumpAndSettle();
@@ -83,11 +90,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.byKey(const ValueKey('category-game-logo-Memory Quest')),
+      find.byKey(const ValueKey('category-game-logo-Memory Quest · Digits')),
       findsOneWidget,
     );
     expectAssetLogo(
-      'category-game-logo-Memory Quest',
+      'category-game-logo-Memory Quest · Digits',
       'assets/games icons/Memory Quest transparent.png',
     );
     expectAssetLogo(
@@ -101,7 +108,7 @@ void main() {
     await tester.tap(memoryCard);
     await tester.pumpAndSettle();
     expect(
-      find.byKey(const ValueKey('picker-game-logo-Memory Quest')),
+      find.byKey(const ValueKey('picker-game-logo-Memory Quest · Digits')),
       findsOneWidget,
     );
     expectAssetLogo(
@@ -144,11 +151,11 @@ void main() {
       'assets/games icons/Optimal Path transparent.png',
     );
     expect(
-      find.byKey(const ValueKey('category-game-logo-Task Scheduling')),
+      find.byKey(const ValueKey('category-game-logo-Day Stack')),
       findsOneWidget,
     );
     expectAssetLogo(
-      'category-game-logo-Task Scheduling',
+      'category-game-logo-Day Stack',
       'assets/games icons/Task Scheduling transparent.png',
     );
     expect(
@@ -195,11 +202,11 @@ void main() {
       'assets/games icons/Optimal Path transparent.png',
     );
     expect(
-      find.byKey(const ValueKey('picker-game-logo-Task Scheduling')),
+      find.byKey(const ValueKey('picker-game-logo-Day Stack')),
       findsOneWidget,
     );
     expectAssetLogo(
-      'picker-game-logo-Task Scheduling',
+      'picker-game-logo-Day Stack',
       'assets/games icons/Task Scheduling transparent.png',
     );
     expect(
@@ -213,24 +220,23 @@ void main() {
 
     await tester.tapAt(const Offset(10, 10));
     await tester.pumpAndSettle();
+
+    // Emotional Regulation : ses trois jeux sont ouverts, la carte présente
+    // donc le sélecteur avec les trois logos.
     await tester.tap(emotionCard);
     await tester.pumpAndSettle();
-    expect(
-      find.byKey(const ValueKey('picker-game-logo-Emotional Radar')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey('picker-game-logo-Reflective Pause')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey('picker-game-logo-Strategic Choices')),
-      findsOneWidget,
-    );
-    expectAssetLogo(
-      'picker-game-logo-Strategic Choices',
-      'assets/games icons/Strategic Choices.png',
-    );
+    expect(find.text('Choose a game to play'), findsOneWidget);
+    for (final logo in const [
+      ('Emotional Radar', 'assets/games icons/Emotional Radar.png'),
+      ('Reflective Pause', 'assets/games icons/Reflective Pause.png'),
+      ('Strategic Choices', 'assets/games icons/Strategic Choices.png'),
+    ]) {
+      expect(
+        find.byKey(ValueKey('picker-game-logo-${logo.$1}')),
+        findsOneWidget,
+      );
+      expectAssetLogo('picker-game-logo-${logo.$1}', logo.$2);
+    }
   });
 
   for (final textScale in [1.3, 2.0]) {

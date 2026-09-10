@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flame/components.dart';
+import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -24,10 +25,44 @@ import 'grid_config.dart';
 /// Valider s'active sur [stepCount] (>= 1), volontairement, pour que valider un
 /// chemin INCOMPLET compte comme un essai raté (barème « essais ». Voir
 /// GAMES_MODULE.md § Décisions à valider).
-class PlanifikGame extends FlameGame {
-  PlanifikGame({this.config = GridConfig.level1});
+class PlanifikGame extends FlameGame with DragCallbacks {
+  PlanifikGame({
+    this.config = GridConfig.level1,
+    this.onWrongCell,
+    this.onBlockedTap,
+    this.onPointAdded,
+  });
 
   final GridConfig config;
+
+  /// Notifié quand le joueur touche une case interdite (rouge) **adjacente au
+  /// tracé** : c'est une erreur de planification, la présentation applique la
+  /// pénalité de score. Le jeu, lui, dessine puis efface le « faux » segment.
+  final void Function()? onWrongCell;
+
+  /// Notifié à **chaque** appui sur une case interdite, adjacente ou non : la
+  /// présentation joue le retour d'erreur (son + vibration).
+  ///
+  /// Distinct de [onWrongCell], et c'est le fond du correctif : le retour
+  /// d'erreur était porté par le seul cas adjacent, si bien qu'appuyer sur une
+  /// case rouge ailleurs sur la grille ne produisait **rien** — ni son, ni
+  /// vibration, ni flash. Le client ne sentait donc aucune vibration, sans que
+  /// le câblage haptique soit en cause.
+  ///
+  /// La pénalité, elle, reste sur le cas adjacent : sanctionner une case rouge
+  /// touchée à l'autre bout de la grille punirait l'exploration, pas une faute.
+  final void Function()? onBlockedTap;
+
+  /// Notifié à chaque point ajouté au tracé. `isGoal` vaut `true` quand le point
+  /// posé est la case d'arrivée (son « goal-point »), sinon c'est un point
+  /// courant (départ ou intermédiaire → son « start-point »).
+  final void Function(bool isGoal)? onPointAdded;
+
+  // Flash d'erreur : segment temporaire vers la case interdite touchée, qui
+  // s'estompe (opacité 1 → 0) puis disparaît.
+  int? _errorFlashIndex;
+  double _errorFlashOpacity = 0;
+  static const double _errorFadePerSec = 2; // ~500 ms d'affichage
 
   /// Incrémenté à chaque modification du tracé — l'écran l'écoute pour
   /// rafraîchir le HUD (pas, bonus) et l'état des boutons undo/clear.
@@ -96,9 +131,159 @@ class PlanifikGame extends FlameGame {
   @visibleForTesting
   void tapCell(int row, int col) => _handleTap(row, col);
 
+  // ── Tracé au glissement ────────────────────────────────────────────────────
+  //
+  // Retour client : « dans le trajet je peux avoir un glissement — tracer le
+  // trajet par glissement (swipe) le long du parcours ». Poser le doigt sur la
+  // tête du tracé et le faire glisser de station en station étend la route ;
+  // rebrousser chemin l'efface. L'appui station par station reste possible : les
+  // deux gestes passent par les mêmes règles (adjacence, obstacles, pas de
+  // boucle) et produisent exactement le même tracé.
+
+  /// Un glissement traçant est en cours (le doigt a bien été posé sur la tête).
+  bool _dragging = false;
+
+  /// Dernière case passée sous le doigt, déjà traitée. Évite qu'un doigt
+  /// immobile sur une case interdite ne rejoue le retour d'erreur à chaque frame.
+  int? _lastDragCell;
+
+  /// Position du doigt à l'événement précédent, dans le repère du plateau.
+  ///
+  /// On la suit nous-mêmes, en cumulant les deltas, plutôt que de lire le couple
+  /// début/fin de l'événement : Flame le construit à partir de
+  /// `DragUpdateDetails.globalPosition`, or Flutter n'y met pas la même chose
+  /// selon l'événement — la position d'AVANT le mouvement pour le premier
+  /// (synthétisé par `MultiDragPointerState._startDrag`), celle d'APRÈS pour les
+  /// suivants. Le couple est donc décalé d'un mouvement une fois sur deux.
+  /// `canvasDelta`, lui, est toujours le déplacement réel de l'événement.
+  Vector2? _dragFrom;
+
+  @override
+  void onDragStart(DragStartEvent event) {
+    super.onDragStart(event);
+    final at = event.canvasPosition;
+    final index = _indexAt(at);
+    // Le glissement ne peut saisir que la TÊTE du tracé — la seule prise qui ne
+    // détruise rien. Posé ailleurs, le doigt ne trace pas : on ne veut pas
+    // qu'un geste de travers réécrive une route déjà posée.
+    if (index == null || _path.isEmpty || index != _path.last) return;
+    _dragging = true;
+    _lastDragCell = index;
+    _dragFrom = at.clone();
+  }
+
+  @override
+  void onDragUpdate(DragUpdateEvent event) {
+    final from = _dragFrom;
+    if (!_dragging || from == null) return;
+    final to = from + event.canvasDelta;
+    _dragFrom = to;
+    _walkSegment(from, to);
+  }
+
+  @override
+  void onDragEnd(DragEndEvent event) {
+    super.onDragEnd(event);
+    _dragging = false;
+    _lastDragCell = null;
+    _dragFrom = null;
+  }
+
+  /// Parcourt les cases traversées par le segment [from] → [to], dans l'ordre.
+  ///
+  /// On échantillonne le segment au lieu de ne regarder que son extrémité : un
+  /// swipe rapide franchit plusieurs cases entre deux frames, et sauter les
+  /// intermédiaires couperait la route — elles ne seraient plus adjacentes.
+  void _walkSegment(Vector2 from, Vector2 to) {
+    final step = math.max(1.0, _cellSize / 3);
+    final samples = math.max(1, (from.distanceTo(to) / step).ceil());
+    for (var i = 1; i <= samples; i++) {
+      final at = from + (to - from) * (i / samples);
+      final index = _indexAt(at);
+      if (index == null || index == _lastDragCell) continue;
+      _lastDragCell = index;
+      _extendByDrag(index);
+    }
+  }
+
+  /// Case sous un point exprimé dans le repère du plateau, ou `null` hors grille.
+  int? _indexAt(Vector2 point) {
+    if (size.x <= 0 || size.y <= 0) return null;
+    final col = (point.x / (size.x / config.cols)).floor();
+    final row = (point.y / (size.y / config.rows)).floor();
+    if (row < 0 || row >= config.rows || col < 0 || col >= config.cols) {
+      return null;
+    }
+    return config.index(row, col);
+  }
+
+  void _extendByDrag(int index) {
+    final last = _path.last;
+    if (index == last) return;
+
+    // Rebrousser chemin sur l'avant-dernière case efface le dernier pas : c'est
+    // la correction naturelle du glissement, sans lever le doigt.
+    if (_path.length >= 2 && index == _path[_path.length - 2]) {
+      undo();
+      return;
+    }
+
+    // Le doigt s'est éloigné du tracé (diagonale, sortie de route) : on ne
+    // raccroche pas, on attend qu'il revienne sur une case adjacente.
+    if (!_adjacent(index, last)) return;
+
+    if (!config.isWalkable(index)) {
+      // Même sanction qu'à l'appui : traverser un obstacle EST une erreur de
+      // planification. Le filtre d'adjacence suffit à ne pas punir un doigt qui
+      // balaie le plateau à distance du tracé.
+      onBlockedTap?.call();
+      _flashError(index);
+      return;
+    }
+
+    if (_path.contains(index)) return; // pas de boucle
+    _cellAt(index).pulse();
+    _addToPath(index);
+  }
+
+  /// Simule un glissement passant par le centre de chaque case de [cells] —
+  /// seam de test. Emprunte le même chemin de code qu'un vrai swipe : mêmes
+  /// règles de saisie, même échantillonnage du segment.
+  @visibleForTesting
+  void dragThrough(List<(int row, int col)> cells) {
+    if (cells.isEmpty) return;
+    Vector2 centerOf((int, int) c) => Vector2(
+      (c.$2 + 0.5) * size.x / config.cols,
+      (c.$1 + 0.5) * size.y / config.rows,
+    );
+    var at = centerOf(cells.first);
+    final start = _indexAt(at);
+    if (start == null || _path.isEmpty || start != _path.last) return;
+    _dragging = true;
+    _lastDragCell = start;
+    for (var i = 1; i < cells.length; i++) {
+      final next = centerOf(cells[i]);
+      _walkSegment(at, next);
+      at = next;
+    }
+    _dragging = false;
+    _lastDragCell = null;
+    _dragFrom = null;
+  }
+
   void _handleTap(int row, int col) {
     final index = config.index(row, col);
-    if (!config.isWalkable(index)) return; // obstacle infranchissable
+    if (!config.isWalkable(index)) {
+      // Toute tentative sur une case interdite est une erreur du point de vue du
+      // joueur : elle doit s'entendre et se sentir, où qu'elle se produise.
+      onBlockedTap?.call();
+      // Si en plus elle jouxte la fin du tracé, c'est une erreur de
+      // planification : faux segment qui s'efface + pénalité de score.
+      if (_path.isNotEmpty && _adjacent(index, _path.last)) {
+        _flashError(index);
+      }
+      return; // obstacle infranchissable : jamais ajouté au chemin
+    }
 
     // Premier appui : doit partir de la case départ.
     if (_path.isEmpty) {
@@ -123,7 +308,25 @@ class PlanifikGame extends FlameGame {
   void _addToPath(int index) {
     _path.add(index);
     _cellAt(index).inPath = true;
+    onPointAdded?.call(index == config.end);
     _refresh();
+  }
+
+  void _flashError(int index) {
+    _errorFlashIndex = index;
+    _errorFlashOpacity = 1;
+    onWrongCell?.call();
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    if (_errorFlashIndex == null) return;
+    _errorFlashOpacity -= _errorFadePerSec * dt;
+    if (_errorFlashOpacity <= 0) {
+      _errorFlashOpacity = 0;
+      _errorFlashIndex = null;
+    }
   }
 
   void _refresh() {
@@ -251,28 +454,49 @@ class _RouteLineComponent extends PositionComponent {
   @override
   void render(Canvas canvas) {
     final path = _game._path;
-    if (path.length < 2) return;
+    final width = math.max(3.0, _game._cellSize * 0.14);
 
-    final line = Path();
-    for (var i = 0; i < path.length; i++) {
-      final cell = _game._cellAt(path[i]);
-      final center = cell.position + cell.size / 2;
-      if (i == 0) {
-        line.moveTo(center.x, center.y);
-      } else {
-        line.lineTo(center.x, center.y);
+    if (path.length >= 2) {
+      final line = Path();
+      for (var i = 0; i < path.length; i++) {
+        final cell = _game._cellAt(path[i]);
+        final center = cell.position + cell.size / 2;
+        if (i == 0) {
+          line.moveTo(center.x, center.y);
+        } else {
+          line.lineTo(center.x, center.y);
+        }
       }
+      canvas.drawPath(
+        line,
+        Paint()
+          ..color = BoardPalette.route
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = width
+          ..strokeJoin = StrokeJoin.round
+          ..strokeCap = StrokeCap.round,
+      );
     }
 
-    final width = math.max(3.0, _game._cellSize * 0.14);
-    canvas.drawPath(
-      line,
-      Paint()
-        ..color = BoardPalette.route
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = width
-        ..strokeJoin = StrokeJoin.round
-        ..strokeCap = StrokeCap.round,
-    );
+    // Faux segment (rouge) vers la case interdite touchée, en train de s'effacer.
+    final errIndex = _game._errorFlashIndex;
+    if (errIndex != null && path.isNotEmpty && _game._errorFlashOpacity > 0) {
+      final from = _game._cellAt(path.last);
+      final to = _game._cellAt(errIndex);
+      final a = from.position + from.size / 2;
+      final b = to.position + to.size / 2;
+      canvas.drawLine(
+        Offset(a.x, a.y),
+        Offset(b.x, b.y),
+        Paint()
+          ..color = BoardPalette.blockIcon.withValues(
+            alpha: _game._errorFlashOpacity.clamp(0, 1),
+          )
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = width
+          ..strokeJoin = StrokeJoin.round
+          ..strokeCap = StrokeCap.round,
+      );
+    }
   }
 }

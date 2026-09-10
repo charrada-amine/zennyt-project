@@ -1000,4 +1000,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String likesCount(String count) {
     return '$count mentions j\'aime';
   }
+
+  @override
+  String get onbGamesTitle => 'Avancez en jouant.';
+
+  @override
+  String get onbSkillsTitle => 'Découvrez ce qui vous rend unique.';
+
+  @override
+  String get onbOpportunitiesTitle => 'Trouvez votre prochaine opportunité.';
 }

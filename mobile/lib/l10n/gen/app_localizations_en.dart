@@ -997,4 +997,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String likesCount(String count) {
     return '$count likes';
   }
+
+  @override
+  String get onbGamesTitle => 'Play your way forward.';
+
+  @override
+  String get onbSkillsTitle => 'Discover what makes you, you.';
+
+  @override
+  String get onbOpportunitiesTitle => 'Find your next possibility.';
 }

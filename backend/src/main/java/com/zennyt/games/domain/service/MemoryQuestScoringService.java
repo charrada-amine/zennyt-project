@@ -56,17 +56,28 @@ public class MemoryQuestScoringService {
         List<Integer> tasks = new ArrayList<>();
         if (m.hasTaskTimings()) {
             for (MemoryTaskResult t : m.tasks()) {
-                boolean timedOut = MemoryQuestConfig.isTaskTimedOut(t.responseTimeMs(), calibrationOffsetMs);
+                // Le délai applicable dépend du TYPE : une tâche parasite est
+                // jugée sur le budget de son niveau.
+                boolean timedOut = MemoryQuestMetrics.isTimedOut(t, calibrationOffsetMs);
                 tasks.add(timedOut ? 0 : MemoryQuestConfig.taskScore(t.accuracy()));
             }
         } else {
-            tasks.add(MemoryQuestConfig.taskScore(m.sameAccuracy()));
-            tasks.add(MemoryQuestConfig.taskScore(m.reverseAccuracy()));
+            // Repli sur les agrégats plats : seules les tâches que le MODE a
+            // réellement fait jouer sont notées. Une partie d'images n'a ni
+            // rappel direct ni rappel inverse — les compter à 0 écraserait le
+            // composite.
+            if (m.mode().playsDigits()) {
+                tasks.add(MemoryQuestConfig.taskScore(m.sameAccuracy()));
+                tasks.add(MemoryQuestConfig.taskScore(m.reverseAccuracy()));
+            }
             if (m.missionBPlayed()) {
                 tasks.add(MemoryQuestConfig.taskScore(m.restoreAccuracy()));
             }
             if (m.distractionPlayed()) {
                 tasks.add(MemoryQuestConfig.taskScore(m.afterDistractionAccuracy()));
+            }
+            if (m.distractionChallengesPlayed() > 0) {
+                tasks.add(MemoryQuestConfig.taskScore(m.distractionSolveRate()));
             }
         }
         double avg = tasks.stream().mapToInt(Integer::intValue).average().orElse(0.0);
@@ -83,16 +94,26 @@ public class MemoryQuestScoringService {
         int timeouts = m.timeoutTaskCount(calibrationOffsetMs);
         boolean valid = MemoryQuestConfig.isSessionValid(
             calibrationOffsetMs, m.sessionCompleted(), timeouts);
+        // Les notes de rappel de chiffres sont NULLES quand le mode ne les joue
+        // pas : les publier à 0 laisserait croire à un échec sur une épreuve qui
+        // n'a jamais eu lieu.
+        boolean digits = m.mode().playsDigits();
         return new MemoryQuestReport(
             compositeScore(m, calibrationOffsetMs),
-            MemoryQuestConfig.taskScore(m.sameAccuracy()),
-            MemoryQuestConfig.taskScore(m.reverseAccuracy()),
+            digits ? MemoryQuestConfig.taskScore(m.sameAccuracy()) : null,
+            digits ? MemoryQuestConfig.taskScore(m.reverseAccuracy()) : null,
             m.missionBPlayed() ? MemoryQuestConfig.taskScore(m.restoreAccuracy()) : null,
             m.distractionPlayed() ? MemoryQuestConfig.taskScore(m.afterDistractionAccuracy()) : null,
+            m.distractionChallengesPlayed() > 0
+                ? MemoryQuestConfig.taskScore(m.distractionSolveRate()) : null,
             m.highestSequenceLength(),
             m.distractionQuestionCorrect(),
             m.missionBPlayed(),
             m.distractionPlayed(),
+            m.distractionChallengesPlayed(),
+            m.distractionChallengesSolved(),
+            m.distractionTimeouts(),
+            m.mode(),
             m.finalLevel(),
             valid,
             timeouts);

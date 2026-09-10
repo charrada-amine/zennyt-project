@@ -43,4 +43,9 @@ public record EmotionDefinition(
             throw new IllegalArgumentException("arousal hors [0,1] pour " + key + " : " + arousal);
         }
     }
+
+    /** Editorial safety flag kept server-side; currently only the named sensitive stimulus. */
+    public boolean sensitiveContentFlag() {
+        return "SEXUAL_DESIRE".equals(key);
+    }
 }

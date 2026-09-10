@@ -56,8 +56,14 @@ public final class MemoryQuestConfig {
      */
     public static final boolean RESET_SEQUENCE_ON_ERROR = true;
 
-    /** Nombre d'objets (Mission B) — plage selon le niveau (4 → 12). */
-    public static final int MIN_OBJECT_COUNT = 4;
+    /**
+     * Nombre d'objets (Mission B) — un de plus par niveau à partir de
+     * {@link #MIN_OBJECT_COUNT}, plafonné à {@link #MAX_OBJECT_COUNT}.
+     *
+     * <p>Le plancher est passé de 4 à <b>3</b> pour adoucir l'entrée dans le jeu
+     * (demande client). Miroir de {@code memory_quest_config.dart}.
+     */
+    public static final int MIN_OBJECT_COUNT = 3;
     public static final int MAX_OBJECT_COUNT = 12;
 
     /**
@@ -175,16 +181,102 @@ public final class MemoryQuestConfig {
     }
 
     /**
-     * Nombre d'objets (Mission B) à un niveau (1-based) : progression linéaire de
-     * {@link #MIN_OBJECT_COUNT} (niveau 1) à {@link #MAX_OBJECT_COUNT} (dernier niveau).
+     * Nombre d'objets (Mission B) à un niveau (1-based) : <b>un objet de plus par
+     * niveau</b> à partir de {@link #MIN_OBJECT_COUNT} — 3, 4, 5, 6… — plafonné à
+     * {@link #MAX_OBJECT_COUNT}.
+     *
+     * <p>La progression était interpolée de bout en bout sur {@link #TOTAL_LEVELS},
+     * ce qui donnait 4, 5, 7, 8, 9, 11, 12 : la charge sautait de deux objets à
+     * certains paliers. Le pas constant reprend la mécanique du jeu de chiffres
+     * (un chiffre de plus par niveau). Miroir de {@code memory_quest_config.dart}.
      */
     public static int objectCountForLevel(int level) {
-        int clamped = Math.max(1, Math.min(TOTAL_LEVELS, level));
-        if (TOTAL_LEVELS <= 1) {
-            return MIN_OBJECT_COUNT;
-        }
-        int span = MAX_OBJECT_COUNT - MIN_OBJECT_COUNT;
-        return MIN_OBJECT_COUNT + Math.round(span * (clamped - 1f) / (TOTAL_LEVELS - 1));
+        int count = MIN_OBJECT_COUNT + Math.max(1, level) - 1;
+        return Math.min(count, MAX_OBJECT_COUNT);
+    }
+
+    // ── Difficulté des distractions visuelles (jeu des IMAGES) ───────────────
+    //
+    // Point de calibration UNIQUE de la montée en difficulté des tâches
+    // parasites : durée, taille de grille, ressemblance, nombre de pièces.
+    // Miroir de {@code memory_quest_config.dart}.
+
+    /**
+     * Niveau à partir duquel le jeu des <b>IMAGES</b> intercale une tâche
+     * parasite — plus tôt que le jeu des chiffres
+     * ({@link #DISTRACTION_MIN_LEVEL}), les deux courbes différant.
+     */
+    public static final int IMAGES_DISTRACTION_MIN_LEVEL = 2;
+
+    public static boolean imagesDistractionActiveAtLevel(int level) {
+        return level >= IMAGES_DISTRACTION_MIN_LEVEL;
+    }
+
+    /** Durée d'une tâche parasite au premier niveau où elle apparaît. */
+    public static final int DISTRACTION_BASE_TIME_LIMIT_MS = 12_000;
+
+    /** Temps retiré par niveau au-delà de {@link #DISTRACTION_MIN_LEVEL}. */
+    public static final int DISTRACTION_TIME_STEP_MS = 500;
+
+    /** Plancher : en deçà, la tâche cesse d'être faisable. */
+    public static final int DISTRACTION_MIN_TIME_LIMIT_MS = 6_000;
+
+    /**
+     * Budget de temps d'une tâche parasite — <b>identique pour les deux
+     * familles</b> (intrus / pièce manquante) et jamais illimité.
+     */
+    public static int distractionTimeLimitMs(int level) {
+        int steps = Math.max(0, level - IMAGES_DISTRACTION_MIN_LEVEL);
+        int ms = DISTRACTION_BASE_TIME_LIMIT_MS - steps * DISTRACTION_TIME_STEP_MS;
+        return Math.max(ms, DISTRACTION_MIN_TIME_LIMIT_MS);
+    }
+
+    /** Cases de la grille « intrus » : 4, puis deux de plus par niveau. */
+    public static final int DISTRACTION_MIN_GRID_CELLS = 4;
+    public static final int DISTRACTION_MAX_GRID_CELLS = 12;
+
+    public static int oddOneOutCellCount(int level) {
+        int steps = Math.max(0, level - IMAGES_DISTRACTION_MIN_LEVEL);
+        return Math.min(DISTRACTION_MIN_GRID_CELLS + steps * 2, DISTRACTION_MAX_GRID_CELLS);
+    }
+
+    /** Ressemblance de l'intrus dans [0,1] : plus haute = écart plus ténu. */
+    public static final double DISTRACTION_BASE_SIMILARITY = 0.35;
+    public static final double DISTRACTION_SIMILARITY_STEP = 0.10;
+    public static final double DISTRACTION_MAX_SIMILARITY = 0.85;
+
+    public static double oddOneOutSimilarity(int level) {
+        int steps = Math.max(0, level - IMAGES_DISTRACTION_MIN_LEVEL);
+        double s = DISTRACTION_BASE_SIMILARITY + steps * DISTRACTION_SIMILARITY_STEP;
+        return Math.min(s, DISTRACTION_MAX_SIMILARITY);
+    }
+
+    /** Côté du puzzle : 2×2, puis un cran tous les deux niveaux, max 4×4. */
+    public static final int PUZZLE_MIN_GRID_SIDE = 2;
+    public static final int PUZZLE_MAX_GRID_SIDE = 4;
+
+    public static int puzzleGridSide(int level) {
+        int steps = Math.max(0, level - IMAGES_DISTRACTION_MIN_LEVEL);
+        return Math.min(PUZZLE_MIN_GRID_SIDE + steps / 2, PUZZLE_MAX_GRID_SIDE);
+    }
+
+    /** Pièces proposées (une seule correcte) : 3, puis une de plus par niveau. */
+    public static final int PUZZLE_MIN_OPTIONS = 3;
+    public static final int PUZZLE_MAX_OPTIONS = 6;
+
+    public static int puzzleOptionCount(int level) {
+        int steps = Math.max(0, level - IMAGES_DISTRACTION_MIN_LEVEL);
+        return Math.min(PUZZLE_MIN_OPTIONS + steps, PUZZLE_MAX_OPTIONS);
+    }
+
+    /**
+     * Timeout d'une tâche PARASITE : c'est son propre budget qui fait foi, pas
+     * {@link #MAX_TASK_TIME_MS}.
+     */
+    public static boolean isDistractionTimedOut(int taskTimeMs, int level, double offsetMs) {
+        double limit = distractionTimeLimitMs(level)
+            + (APPLY_CALIBRATION_TO_TASK_TIMEOUT ? Math.max(0, offsetMs) : 0);
+        return taskTimeMs > limit;
     }
 
     /** true si la distraction est jouée à ce niveau (gatée à {@link #DISTRACTION_MIN_LEVEL}). */

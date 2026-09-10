@@ -1,14 +1,17 @@
 import '../domain/config/emotional_radar_config.dart';
 import '../domain/config/emotional_radar_provisional_rules.dart';
+import '../domain/config/emotional_radar_v2_config.dart';
+import '../domain/config/emotional_radar_v2_provisional_rules.dart';
+import '../domain/config/emotional_radar_v2_referential.dart';
 import '../domain/config/memory_quest_config.dart';
 import '../domain/config/move_fast_config.dart';
 import '../domain/config/reflective_pause_config.dart';
-import '../domain/decision_scenario_catalog.dart';
 import '../domain/entities/continuous_attention_metrics.dart';
 import '../domain/entities/coordination_tracking_metrics.dart';
-import '../domain/entities/decision_metrics.dart';
+import '../domain/entities/decision_form.dart';
 import '../domain/entities/device_calibration.dart';
 import '../domain/entities/emotional_radar.dart';
+import '../domain/entities/emotional_radar_v2.dart';
 import '../domain/entities/game_score.dart';
 import '../domain/entities/game_session.dart';
 import '../domain/entities/game_type.dart';
@@ -23,9 +26,9 @@ import '../domain/entities/reflective_pause_metrics.dart';
 import '../domain/entities/score_breakdown.dart';
 import '../domain/entities/task_scheduling_metrics.dart';
 import '../domain/repositories/games_repository.dart';
+import '../domain/repositories/emotional_radar_v2_repository.dart';
 import 'continuous_attention_scoring.dart';
 import 'coordination_tracking_scoring.dart';
-import 'decision_scoring.dart';
 import 'object_location_scoring.dart';
 
 /// [GamesRepository] MOCK — permet de jouer en totale autonomie, sans backend.
@@ -41,17 +44,48 @@ import 'object_location_scoring.dart';
 /// (+ constantes `MoveFastConfig` / `OptimalPathConfig` / `PrevisionPuzzleConfig`).
 /// Toute modification de barème DOIT être répercutée dans les deux fichiers
 /// DANS LA MÊME PR.
-class GamesMockRepository implements GamesRepository {
+///
+/// ⚠️ EXCEPTION ASSUMÉE — « Je Décide » n'a PAS de barème miroir ici, et n'en
+/// aura pas. Noter un item suppose de connaître la qualité de chaque option :
+/// c'est la clé de correction des 120 items du psychologue. L'embarquer dans le
+/// binaire mobile la rendrait extractible, et le test perdrait toute valeur en
+/// recrutement. Le mock renvoie donc un attempt NON SCORÉ (0/100, niveau
+/// « Non scoré hors ligne ») et `decisionItems` échoue explicitement : « Je
+/// Décide » exige le backend. Ce n'est pas une régression de parité — c'est le
+/// seul comportement compatible avec « les scores ne quittent jamais le
+/// serveur ». Le moteur `decision_scoring.dart` reste dans le dépôt comme
+/// miroir documentaire du barème serveur, couvert par son test ; il n'est
+/// volontairement branché sur aucun chemin d'exécution.
+class GamesMockRepository
+    implements GamesRepository, EmotionalRadarV2Repository {
+  GamesMockRepository({int Function()? emotionalRadarV2ClockMs})
+    : _emotionalRadarV2ClockMs =
+          emotionalRadarV2ClockMs ??
+          (() => DateTime.now().millisecondsSinceEpoch);
+
   final Map<String, GameSession> _sessions = {};
+  final Map<String, _MockRadarV2Session> _radarV2Sessions = {};
+  final int Function() _emotionalRadarV2ClockMs;
   int _counter = 0;
 
-  // « Je Décide » — miroir EXACT du barème serveur (moteur + couche provisoire).
-  // Catalogue VIDE tant que le psychologue n'a pas fourni les 30 scénarios : le
-  // scoring lève une erreur si `DECISION_CORE` est soumis (parité backend, non
-  // jouable). Le câblage UI (`je_decide_*.dart`) est un lot séparé.
-  static const _decisionScoring = DecisionScoring(
-    EmptyDecisionScenarioCatalog(),
+  // « Je Décide » — voir l'exception de parité en tête de fichier : aucun barème
+  // local, la notation appartient au serveur.
+  static GameScore _unscoredDecisionAttempt() => const GameScore(
+    rawPoints: 0,
+    maxPoints: 100,
+    normalized: 0,
+    level: 'Non scoré hors ligne',
   );
+
+  static List<ScoreBreakdownLine> _decisionBreakdown() => const [
+    ScoreBreakdownLine(
+      kind: ScoreBreakdownKind.note,
+      label:
+          'Partie enregistrée mais non notée : « Je Décide » est corrigé côté '
+          'serveur. La clé de correction des 120 items n\'est jamais embarquée '
+          'dans l\'application.',
+    ),
+  ];
   static const _continuousAttentionScoring = ContinuousAttentionScoring();
   static const _coordinationTrackingScoring = CoordinationTrackingScoring();
   static const _objectLocationScoring = ObjectLocationScoring();
@@ -78,6 +112,247 @@ class GamesMockRepository implements GamesRepository {
     );
     _sessions[id] = session;
     return session;
+  }
+
+  @override
+  Future<EmotionalRadarV2State> emotionalRadarV2State(String sessionId) async {
+    final radar = _radarV2Session(sessionId);
+    return _radarV2State(radar);
+  }
+
+  @override
+  Future<EmotionalRadarV2State> activateNextEmotionalRadarV2Scene(
+    String sessionId,
+  ) async {
+    final radar = _radarV2Session(sessionId);
+    if (radar.completed || radar.pending != null) return _radarV2State(radar);
+
+    final sceneOrder = radar.outcomes.length + 1;
+    final previousLevel = radar.outcomes.isEmpty
+        ? EmotionalRadarV2Config.startingLevel
+        : radar.outcomes.last.level;
+    final level = nextLevel(
+      previousLevel,
+      radar.outcomes.map((outcome) => outcome.correct).toList(growable: false),
+    );
+    final expected = emotionByKey(_radarV2ExpectedKeys[sceneOrder - 1])!;
+    final difficulty = EmotionalRadarV2Config.level(level);
+    final choices = buildChoices(expected, difficulty, sceneOrder)
+        .map(
+          (emotion) => EmotionalRadarV2Choice(
+            key: emotion.key,
+            labelFr: emotion.labelFr,
+            labelEn: emotion.labelEn,
+          ),
+        )
+        .toList(growable: false);
+    radar.pending = _MockRadarV2Pending(
+      sceneOrder: sceneOrder,
+      level: level,
+      expected: expected,
+      expectedIntensity: (sceneOrder - 1) % 3,
+      choices: choices,
+      servedAtMs: _emotionalRadarV2ClockMs(),
+    );
+    return _radarV2State(radar);
+  }
+
+  @override
+  Future<EmotionalRadarV2AnswerResult> answerEmotionalRadarV2Scene({
+    required String sessionId,
+    required int sceneOrder,
+    required String selectedEmotionKey,
+    required EmotionalRadarV2Intensity selectedIntensity,
+    required String explanation,
+  }) async {
+    final radar = _radarV2Session(sessionId);
+    final pending = radar.pending;
+    if (pending == null || pending.sceneOrder != sceneOrder) {
+      throw StateError('Aucune scène V2 courante pour l’ordre $sceneOrder.');
+    }
+    final normalizedExplanation = explanation.trim();
+    if (normalizedExplanation.isEmpty || normalizedExplanation.length > 2000) {
+      throw ArgumentError('explication requise (1..2000 caractères)');
+    }
+    if (!pending.choices.any((choice) => choice.key == selectedEmotionKey)) {
+      throw ArgumentError('émotion non proposée : $selectedEmotionKey');
+    }
+
+    final rawElapsed = _emotionalRadarV2ClockMs() - pending.servedAtMs;
+    final elapsed = rawElapsed < 0 ? 0 : rawElapsed;
+    final timedOut = elapsed > EmotionalRadarV2Config.maxResponseTimeMs;
+    final responseTimeMs = elapsed.clamp(
+      0,
+      EmotionalRadarV2Config.maxResponseTimeMs,
+    );
+    final correct = selectedEmotionKey == pending.expected.key && !timedOut;
+    final selected = emotionByKey(selectedEmotionKey)!;
+    final errorDistance = correct
+        ? 0.0
+        : semanticDistance(pending.expected, selected).clamp(0.0, 1.0);
+    final outcome = _MockRadarV2Outcome(
+      sceneOrder: sceneOrder,
+      level: pending.level,
+      choicesCount: pending.choices.length,
+      correct: correct,
+      expectedIntensity: pending.expectedIntensity,
+      selectedIntensity: selectedIntensity.wire,
+      responseTimeMs: responseTimeMs,
+      impulsive: elapsed < EmotionalRadarV2Config.minImpulsiveTimeMs,
+      timedOut: timedOut,
+    );
+    radar.outcomes.add(outcome);
+    radar.pending = null;
+
+    return EmotionalRadarV2AnswerResult(
+      feedback: EmotionalRadarV2Feedback(
+        sceneOrder: sceneOrder,
+        correct: correct,
+        timedOut: timedOut,
+        responseTimeMs: responseTimeMs,
+        impulsive: outcome.impulsive,
+        expectedEmotionKey: pending.expected.key,
+        expectedIntensity: EmotionalRadarV2Intensity.fromWire(
+          pending.expectedIntensity,
+        ),
+        semanticErrorDistance: errorDistance,
+      ),
+      state: _radarV2State(radar),
+    );
+  }
+
+  _MockRadarV2Session _radarV2Session(String sessionId) {
+    final session = _sessions[sessionId];
+    if (session == null) {
+      throw StateError('Session mock introuvable : $sessionId');
+    }
+    if (session.gameType != GameType.emotionalRegulation) {
+      throw StateError('Emotional Radar V2 exige EMOTIONAL_REGULATION.');
+    }
+    return _radarV2Sessions.putIfAbsent(sessionId, _MockRadarV2Session.new);
+  }
+
+  EmotionalRadarV2State _radarV2State(_MockRadarV2Session radar) {
+    final pending = radar.pending;
+    final currentLevel =
+        pending?.level ??
+        (radar.outcomes.isEmpty
+            ? EmotionalRadarV2Config.startingLevel
+            : radar.outcomes.last.level);
+    final now = _emotionalRadarV2ClockMs();
+    final remaining = pending == null
+        ? 0
+        : (EmotionalRadarV2Config.maxResponseTimeMs -
+                  (now - pending.servedAtMs).clamp(
+                    0,
+                    EmotionalRadarV2Config.maxResponseTimeMs,
+                  ))
+              .clamp(0, EmotionalRadarV2Config.maxResponseTimeMs);
+
+    return EmotionalRadarV2State(
+      totalScenes: EmotionalRadarV2Config.totalScenes,
+      answeredScenes: radar.outcomes.length,
+      startingLevel: EmotionalRadarV2Config.startingLevel,
+      currentLevel: currentLevel,
+      completed: radar.completed,
+      mediaLibraryReady: false,
+      measurementAvailable: false,
+      scoringProvisional: true,
+      fitScorePublished: false,
+      currentScene: pending == null
+          ? null
+          : EmotionalRadarV2Scene(
+              sceneOrder: pending.sceneOrder,
+              level: pending.level,
+              choicesCount: pending.choices.length,
+              choices: pending.choices,
+              mediaStatus: 'PLACEHOLDER_PENDING',
+              maxResponseTimeMs: EmotionalRadarV2Config.maxResponseTimeMs,
+              remainingResponseTimeMs: remaining,
+              impulsiveThresholdMs: EmotionalRadarV2Config.minImpulsiveTimeMs,
+            ),
+      report: radar.completed ? _radarV2Report(radar.outcomes) : null,
+    );
+  }
+
+  EmotionalRadarV2Report _radarV2Report(List<_MockRadarV2Outcome> outcomes) {
+    final correctCount = outcomes.where((outcome) => outcome.correct).length;
+    final finalLevel = outcomes.last.level;
+    final score = radarEmotionScore(correctCount, outcomes.length, finalLevel);
+    final transitions = <String>[];
+    for (var index = 1; index < outcomes.length; index++) {
+      final before = outcomes[index - 1].level;
+      final after = outcomes[index].level;
+      if (before != after) {
+        transitions.add('${after > before ? '↑' : '↓'} $before→$after');
+      }
+    }
+    final intensityDirection = {
+      'Sous-estimée': 0,
+      'Correcte': 0,
+      'Sur-estimée': 0,
+    };
+    for (final outcome in outcomes) {
+      final direction = outcome.selectedIntensity.compareTo(
+        outcome.expectedIntensity,
+      );
+      final label = direction < 0
+          ? 'Sous-estimée'
+          : direction > 0
+          ? 'Sur-estimée'
+          : 'Correcte';
+      intensityDirection[label] = intensityDirection[label]! + 1;
+    }
+
+    return EmotionalRadarV2Report(
+      totalScenes: outcomes.length,
+      startingLevel: EmotionalRadarV2Config.startingLevel,
+      finalLevel: finalLevel,
+      levelTransitions: transitions,
+      correctEmotions: correctCount,
+      emotionAccuracyPercent: _radarV2Percent(correctCount, outcomes.length),
+      accuracyByLevel: _radarV2AccuracyBy(outcomes, (outcome) => outcome.level),
+      accuracyByChoiceCount: _radarV2AccuracyBy(
+        outcomes,
+        (outcome) => outcome.choicesCount,
+      ),
+      accuracyBySemanticDistance: const {},
+      semanticDistanceScoringAvailable: false,
+      semanticProximityErrorScore: 0,
+      intensityMatchPercent: _radarV2Percent(
+        outcomes
+            .where(
+              (outcome) =>
+                  outcome.expectedIntensity == outcome.selectedIntensity,
+            )
+            .length,
+        outcomes.length,
+      ),
+      intensityErrorDirection: intensityDirection,
+      accuracyByStimulusIntensity: {
+        for (var intensity = 0; intensity < 3; intensity++)
+          EmotionalRadarV2Config
+              .stimulusIntensityLevels[intensity]: _radarV2AccuracyFor(
+            outcomes.where((outcome) => outcome.expectedIntensity == intensity),
+          ),
+      },
+      stimulusTypePerformance: const {},
+      stimulusTypeScoringAvailable: false,
+      justificationScoringAvailable: false,
+      averageResponseTimeMs:
+          outcomes
+              .map((outcome) => outcome.responseTimeMs)
+              .reduce((left, right) => left + right) ~/
+          outcomes.length,
+      impulsiveResponsesPercent: _radarV2Percent(
+        outcomes.where((outcome) => outcome.impulsive).length,
+        outcomes.length,
+      ),
+      radarEmotionScore: score,
+      emotionalLevel: EmotionalRadarV2ProvisionalRules.emotionalLevel(
+        score.toDouble(),
+      ),
+    );
   }
 
   @override
@@ -247,10 +522,9 @@ class GamesMockRepository implements GamesRepository {
       MiniGame.taskScheduling => _scoreTaskScheduling(
         metrics as TaskSchedulingMetrics,
       ),
-      MiniGame.decisionCore => _decisionScoring.score(
-        metrics as DecisionMetrics,
-        deviceCalibration?.calibrationOffsetMs ?? 0.0,
-      ),
+      // Voir l'exception de parité en tête de fichier : hors ligne, la partie
+      // est enregistrée mais pas notée.
+      MiniGame.decisionCore => _unscoredDecisionAttempt(),
       // Emotional Radar : le score vient des réponses notées à la validation de
       // chaque scène (`_emotionalRadarAnswers`), jamais des métriques reçues —
       // exactement comme le backend. Les métriques n'apportent que les temps.
@@ -366,19 +640,36 @@ class GamesMockRepository implements GamesRepository {
       // Avec timings : une tâche dépassant le timeout ajusté du calibrage est
       // voidée (note 0) ; le calibrage remonte le seuil (miroir backend).
       for (final t in m.tasks) {
-        final timedOut = MemoryQuestConfig.isTaskTimedOut(
-          t.responseTimeMs,
-          calibrationOffsetMs,
-        );
+        // Une tâche PARASITE est jugée sur SON budget, qui dépend du niveau —
+        // le seuil générique la voiderait alors qu'elle a été résolue dans les
+        // temps.
+        final timedOut = t.kind == MemoryTaskKind.distractionChallenge
+            ? MemoryQuestConfig.isDistractionTimedOut(
+                t.responseTimeMs,
+                t.level,
+                calibrationOffsetMs,
+              )
+            : MemoryQuestConfig.isTaskTimedOut(
+                t.responseTimeMs,
+                calibrationOffsetMs,
+              );
         tasks.add(timedOut ? 0 : _taskScore(t.accuracy));
       }
     } else {
-      tasks
-        ..add(_taskScore(m.sameAccuracy))
-        ..add(_taskScore(m.reverseAccuracy));
+      // Repli sur les agrégats plats : on ne note que les tâches que le mode a
+      // réellement fait jouer. Une partie d'images n'a ni rappel direct ni
+      // rappel inverse — les compter à 0 écraserait le composite.
+      if (m.mode.playsDigits) {
+        tasks
+          ..add(_taskScore(m.sameAccuracy))
+          ..add(_taskScore(m.reverseAccuracy));
+      }
       if (m.missionBPlayed) tasks.add(_taskScore(m.restoreAccuracy));
       if (m.distractionPlayed) {
         tasks.add(_taskScore(m.afterDistractionAccuracy));
+      }
+      if (m.distractionChallengesPlayed > 0) {
+        tasks.add(_taskScore(m.distractionSolveRate));
       }
     }
     final avg = tasks.isEmpty
@@ -549,10 +840,7 @@ class GamesMockRepository implements GamesRepository {
         metrics as MemoryQuestMetrics,
         score,
       ),
-      MiniGame.decisionCore => _decisionScoring.breakdown(
-        metrics as DecisionMetrics,
-        score,
-      ),
+      MiniGame.decisionCore => _decisionBreakdown(),
       MiniGame.emotionalRadarCore => _breakdownEmotionalRadar(sessionId, score),
       MiniGame.reflectivePauseCore => _breakdownReflectivePause(
         metrics as ReflectivePauseMetrics,
@@ -1379,6 +1667,20 @@ class GamesMockRepository implements GamesRepository {
   ];
 
   @override
+  Future<DecisionForm> decisionItems(
+    String sessionId, {
+    String language = 'fr',
+  }) {
+    // Servir les 30 items supposerait d'embarquer la banque du psychologue dans
+    // l'application. On échoue clairement plutôt que d'inventer des scénarios :
+    // « Je Décide » est le seul jeu du module qui exige le backend.
+    throw UnsupportedError(
+      '« Je Décide » nécessite le backend : la banque de 120 items et sa clé de '
+      'correction ne sont pas embarquées dans l\'application.',
+    );
+  }
+
+  @override
   Future<EmotionalRadarSceneSet> emotionalRadarScenes(String sessionId) async {
     await Future<void>.delayed(const Duration(milliseconds: 120));
     return EmotionalRadarSceneSet(
@@ -1551,3 +1853,98 @@ class _MockGradedAnswer {
   final int intensityPoints;
   final int points;
 }
+
+class _MockRadarV2Session {
+  final List<_MockRadarV2Outcome> outcomes = [];
+  _MockRadarV2Pending? pending;
+
+  bool get completed => outcomes.length == EmotionalRadarV2Config.totalScenes;
+}
+
+class _MockRadarV2Pending {
+  const _MockRadarV2Pending({
+    required this.sceneOrder,
+    required this.level,
+    required this.expected,
+    required this.expectedIntensity,
+    required this.choices,
+    required this.servedAtMs,
+  });
+
+  final int sceneOrder;
+  final int level;
+  final EmotionDefinition expected;
+  final int expectedIntensity;
+  final List<EmotionalRadarV2Choice> choices;
+  final int servedAtMs;
+}
+
+class _MockRadarV2Outcome {
+  const _MockRadarV2Outcome({
+    required this.sceneOrder,
+    required this.level,
+    required this.choicesCount,
+    required this.correct,
+    required this.expectedIntensity,
+    required this.selectedIntensity,
+    required this.responseTimeMs,
+    required this.impulsive,
+    required this.timedOut,
+  });
+
+  final int sceneOrder;
+  final int level;
+  final int choicesCount;
+  final bool correct;
+  final int expectedIntensity;
+  final int selectedIntensity;
+  final int responseTimeMs;
+  final bool impulsive;
+  final bool timedOut;
+}
+
+Map<int, double> _radarV2AccuracyBy(
+  Iterable<_MockRadarV2Outcome> outcomes,
+  int Function(_MockRadarV2Outcome outcome) keyOf,
+) {
+  final buckets = <int, List<_MockRadarV2Outcome>>{};
+  for (final outcome in outcomes) {
+    buckets.putIfAbsent(keyOf(outcome), () => []).add(outcome);
+  }
+  return {
+    for (final entry in buckets.entries)
+      entry.key: _radarV2AccuracyFor(entry.value),
+  };
+}
+
+double _radarV2AccuracyFor(Iterable<_MockRadarV2Outcome> outcomes) {
+  final values = outcomes.toList(growable: false);
+  if (values.isEmpty) return 0;
+  return _radarV2Percent(
+    values.where((outcome) => outcome.correct).length,
+    values.length,
+  );
+}
+
+double _radarV2Percent(int numerator, int denominator) {
+  if (denominator == 0) return 0;
+  return (numerator * 1000 / denominator).round() / 10;
+}
+
+const _radarV2ExpectedKeys = [
+  'JOY',
+  'AMUSEMENT',
+  'SATISFACTION',
+  'INTEREST',
+  'SURPRISE',
+  'SADNESS',
+  'ANGER',
+  'FEAR',
+  'DISGUST',
+  'HORROR',
+  'CONTEMPT',
+  'DISAPPOINTMENT',
+  'PAIN',
+  'EXCITEMENT',
+  'TRIUMPH',
+];

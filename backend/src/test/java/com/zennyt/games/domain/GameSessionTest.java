@@ -1,5 +1,6 @@
 package com.zennyt.games.domain;
 
+import com.zennyt.games.domain.config.DecisionConfig;
 import com.zennyt.games.domain.config.MoveFastConfig;
 import com.zennyt.games.domain.event.GameResultRecordedEvent;
 import com.zennyt.games.domain.model.GameSession;
@@ -15,6 +16,7 @@ import com.zennyt.games.domain.vo.PlanifikMetrics;
 import com.zennyt.games.domain.vo.Score;
 import com.zennyt.games.domain.vo.SecondaryObjectivesReached;
 import com.zennyt.games.domain.vo.SessionStatus;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -260,6 +262,20 @@ class GameSessionTest {
         assertEquals(30, event.compositeRaw());
         assertEquals(30, event.compositeMax());
         assertEquals(100, event.coverageRatio(), "module entièrement couvert");
+    }
+
+    @Test
+    @DisplayName("une session DECISION reçoit sa forme de passation à la création")
+    void decisionSessionGetsAForm() {
+        GameSession decision = GameSession.start(UUID.randomUUID(), GameType.DECISION);
+        assertEquals(DecisionConfig.DEFAULT_FORM_CODE, decision.decisionFormCode());
+    }
+
+    @Test
+    @DisplayName("les autres types de session n'ont pas de forme « Je Décide »")
+    void otherSessionsHaveNoForm() {
+        GameSession moveFast = GameSession.start(UUID.randomUUID(), GameType.MOVE_FAST);
+        assertNull(moveFast.decisionFormCode());
     }
 
     private static GameResultRecordedEvent event(GameSession session, int index) {

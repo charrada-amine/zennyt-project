@@ -33,9 +33,7 @@ mobile/coverage/
 
 # Dossiers 100 % generes par la compilation — jamais versionnes.
 # mobile/zennyt/ : 2,6 Go, aucun code source (ni lib/ ni pubspec.yaml).
-# mobile_preview/build/ : 148 Mo. Le code reel de mobile_preview/lib reste suivi.
 mobile/zennyt/
-mobile_preview/build/
 
 # ───────────── IDE ─────────────
 .idea/
@@ -66,7 +64,29 @@ node_modules/
 04 Move Fast/
 04 Emotional Radar/
 web/
+backend-logs.txt
 
-# Reglages d'atelier Visual Studio — 11 fichiers dont une base SQLite avaient ete
-# commites par la branche IntergrationV1 ; ils ne concernent qu'une machine.
+# ───────────── Sorties locales / artefacts (jamais versionnes) ─────────────
+# Ancres explicites : /test/ ne doit pas masquer mobile/test/.
+/output/
+/.playwright-cli/
+/test/
+/test 2/
+/mobile_preview/
+Progress Careers - tablet*.png
+
+# ───────────── Explorations Figma nettoyees (jamais re-versionnees) ─────────────
+/mobile/assets/04 Je Continue Logo Options/
+/mobile/assets/04 Je Décide 2/
+/mobile/assets/04 Je Décide 3/
+/mobile/assets/Emotional Radar/
+/mobile/assets/04 Reflective Pause/
+/mobile/assets/J’investigue/J’investigue/
+
+# ───────────── Reglages d'atelier Visual Studio ─────────────
 .vs/
+
+# The games administration console intentionally lives in this nested web directory.
+!admin/apps/
+!admin/apps/web/
+!admin/apps/web/**

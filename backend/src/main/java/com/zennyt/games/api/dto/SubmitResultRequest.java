@@ -9,6 +9,7 @@ import com.zennyt.games.domain.vo.EmotionalRadarMetrics;
 import com.zennyt.games.domain.vo.EmotionalRadarSceneMetric;
 import com.zennyt.games.domain.vo.GameMetrics;
 import com.zennyt.games.domain.vo.MemoryQuestMetrics;
+import com.zennyt.games.domain.vo.MemoryQuestMode;
 import com.zennyt.games.domain.vo.MemoryTaskKind;
 import com.zennyt.games.domain.vo.MemoryTaskResult;
 import com.zennyt.games.domain.vo.MoveFastMetrics;
@@ -78,6 +79,11 @@ public record SubmitResultRequest(
         @Size(min = 1) @Valid List<MoveFastResponsePayload> responses,
         @Size(min = 1) @Valid List<PrevisionPuzzleLevelPayload> previsionPuzzleLevels,
         // « J'investigue » (MEMORY_QUEST) — mesures par tâche.
+        /** DIGITS / IMAGES / FULL — absent = FULL (clients antérieurs à la scission). */
+        String memoryQuestMode,
+        @Min(0) Integer distractionChallengesPlayed,
+        @Min(0) Integer distractionChallengesSolved,
+        @Min(0) Integer distractionTimeouts,
         @Min(0) Integer observedDigits,
         @Min(0) Integer correctSameDigits,
         @Min(0) Integer correctReverseDigits,
@@ -293,7 +299,9 @@ public record SubmitResultRequest(
         @NotNull MemoryTaskKind kind,
         @NotNull @Min(0) Integer correct,
         @NotNull @Min(0) Integer total,
-        @NotNull @Min(0) Integer responseTimeMs
+        @NotNull @Min(0) Integer responseTimeMs,
+        /** Niveau d'origine — fixe le délai d'une tâche parasite. Absent = 1. */
+        @Min(1) Integer level
     ) {}
 
     /** Métriques d'un niveau « Chemin Optimal » (score calculé serveur). */
@@ -337,22 +345,7 @@ public record SubmitResultRequest(
             case PREVISION_PUZZLE -> new PrevisionPuzzleMetrics(
                 required(metrics.previsionPuzzleLevels(), "previsionPuzzleLevels").stream()
                     .map(SubmitResultRequest::toPuzzleLevel).toList());
-            case MEMORY_QUEST_CORE -> new MemoryQuestMetrics(
-                required(metrics.observedDigits(), "observedDigits"),
-                required(metrics.correctSameDigits(), "correctSameDigits"),
-                required(metrics.correctReverseDigits(), "correctReverseDigits"),
-                required(metrics.highestSequenceLength(), "highestSequenceLength"),
-                orZero(metrics.objectCount()),
-                orZero(metrics.restoreCorrect()),
-                orZero(metrics.manipulationCount()),
-                Boolean.TRUE.equals(metrics.distractionPlayed()),
-                orZero(metrics.afterDistractionObserved()),
-                orZero(metrics.afterDistractionCorrect()),
-                Boolean.TRUE.equals(metrics.distractionQuestionCorrect()),
-                metrics.finalLevel() == null ? 1 : metrics.finalLevel(),
-                metrics.sessionCompleted() == null || metrics.sessionCompleted(),
-                metrics.tasks() == null ? List.of()
-                    : metrics.tasks().stream().map(SubmitResultRequest::toMemoryTask).toList());
+            case MEMORY_QUEST_CORE -> toMemoryQuestMetrics(metrics);
             case TASK_SCHEDULING -> new TaskSchedulingMetrics(
                 required(metrics.dependenciesRespected(), "dependenciesRespected"),
                 required(metrics.timeConstraintsRespected(), "timeConstraintsRespected"),
@@ -526,7 +519,42 @@ public record SubmitResultRequest(
             required(p.kind(), "kind"),
             required(p.correct(), "correct"),
             required(p.total(), "total"),
-            required(p.responseTimeMs(), "responseTimeMs"));
+            required(p.responseTimeMs(), "responseTimeMs"),
+            p.level() == null ? 1 : p.level());
+    }
+
+    /**
+     * Mesures de « J'investigue » — <b>ce qui est exigé dépend du MODE</b>.
+     *
+     * <p>Une partie d'IMAGES n'observe aucun chiffre : réclamer
+     * {@code observedDigits} sans condition la rejetait à la soumission, si bien
+     * que le jeu des images ne pouvait pas être noté du tout.
+     */
+    private static MemoryQuestMetrics toMemoryQuestMetrics(Metrics metrics) {
+        MemoryQuestMode mode = metrics.memoryQuestMode() == null
+            ? MemoryQuestMode.FULL
+            : parseEnum(MemoryQuestMode.class, metrics.memoryQuestMode());
+        boolean digits = mode.playsDigits();
+        return new MemoryQuestMetrics(
+            mode,
+            digits ? required(metrics.observedDigits(), "observedDigits") : 0,
+            digits ? required(metrics.correctSameDigits(), "correctSameDigits") : 0,
+            digits ? required(metrics.correctReverseDigits(), "correctReverseDigits") : 0,
+            digits ? required(metrics.highestSequenceLength(), "highestSequenceLength") : 0,
+            digits ? orZero(metrics.objectCount()) : required(metrics.objectCount(), "objectCount"),
+            orZero(metrics.restoreCorrect()),
+            orZero(metrics.manipulationCount()),
+            Boolean.TRUE.equals(metrics.distractionPlayed()),
+            orZero(metrics.afterDistractionObserved()),
+            orZero(metrics.afterDistractionCorrect()),
+            Boolean.TRUE.equals(metrics.distractionQuestionCorrect()),
+            orZero(metrics.distractionChallengesPlayed()),
+            orZero(metrics.distractionChallengesSolved()),
+            orZero(metrics.distractionTimeouts()),
+            metrics.finalLevel() == null ? 1 : metrics.finalLevel(),
+            metrics.sessionCompleted() == null || metrics.sessionCompleted(),
+            metrics.tasks() == null ? List.of()
+                : metrics.tasks().stream().map(SubmitResultRequest::toMemoryTask).toList());
     }
 
     private static PrevisionPuzzleLevel toPuzzleLevel(PrevisionPuzzleLevelPayload p) {

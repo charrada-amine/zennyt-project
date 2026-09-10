@@ -22,6 +22,27 @@ class DecisionConfig {
   static const int dimensionMax = itemsPerDimension * itemScoreMax; // 18
   static const int rawMax = capabilitiesCount * dimensionMax; // 90
 
+  /// Temps imparti à une question ORDINAIRE, en secondes.
+  ///
+  /// Aucune question n'est plus ouverte indéfiniment : une minute cadre la
+  /// réflexion sans la presser. C'est une borne, pas une contrainte — répondre
+  /// avant la fin passe immédiatement à la suivante, et le temps restant n'est
+  /// ni compté ni reporté.
+  ///
+  /// À ne pas confondre avec [dtTimeLimitBaseS] : les items « décision sous
+  /// contrainte temporelle » gardent leur limite courte, qui est la MESURE de
+  /// cette dimension et détermine leur note ([dtFastPoints] / [dtSlowPoints]).
+  /// Leur appliquer la minute afficherait au candidat un temps qui n'est pas
+  /// celui auquel il est noté.
+  static const int questionTimeLimitS = 60;
+
+  /// Seuil d'alerte du compte à rebours d'une question ordinaire, en secondes.
+  ///
+  /// Proportionné à la minute : deux secondes — le seuil des items sous
+  /// contrainte — passeraient inaperçues sur une barre qui met une minute à se
+  /// vider.
+  static const int questionCriticalThresholdS = 10;
+
   // Règle DT (seule dimension dont le score dépend du temps).
   static const int dtTimeLimitBaseS = 7;
   static const double dtFastThresholdRatio = 0.75;

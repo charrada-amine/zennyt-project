@@ -12,6 +12,20 @@ public final class EmotionalRadarV2ProvisionalRules {
     private EmotionalRadarV2ProvisionalRules() {
     }
 
+    // ═══ Phase A delivery gates ══════════════════════════════════════════════
+
+    /** The normed 135-video library is not available yet. PROVISOIRE. */
+    public static final boolean MEDIA_LIBRARY_READY = false;
+
+    /** The visible game score remains provisional until media norming. PROVISOIRE. */
+    public static final boolean SCORING_PROVISIONAL = true;
+
+    /** A placeholder run must never publish into Fit Score. PROVISOIRE. */
+    public static final boolean FIT_SCORE_PUBLISHING_ALLOWED = false;
+
+    /** Phase A placeholders are not a psychometric measurement. PROVISOIRE. */
+    public static final boolean MEASUREMENT_AVAILABLE = false;
+
     // ═══ Score « jeu » (radar_emotion_score, 0–10) ═══════════════════════════
     // PROVISOIRE — le brief dit « basé sur les niveaux, façon jeu vidéo » sans donner
     // la formule. On combine le niveau atteint (poids majeur) et la précision globale.

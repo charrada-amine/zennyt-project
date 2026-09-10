@@ -1,6 +1,7 @@
 import 'continuous_attention_metrics.dart';
 import 'coordination_tracking_metrics.dart';
 import 'game_score.dart';
+import 'game_runtime_snapshot.dart';
 import 'game_type.dart';
 import 'mini_game.dart';
 import 'object_location_metrics.dart';
@@ -31,6 +32,7 @@ class GameSession {
     required this.normalized,
     required this.attempts,
     required this.startedAt,
+    this.runtime = const GameRuntimeSnapshot(),
     this.completedAt,
     this.scoreBreakdown = const [],
     this.reflectivePauseIndicators,
@@ -47,6 +49,7 @@ class GameSession {
   final double normalized;
   final List<GameAttempt> attempts;
   final DateTime startedAt;
+  final GameRuntimeSnapshot runtime;
   final DateTime? completedAt;
 
   /// Détail ligne par ligne du calcul du score (panneau de résultats).

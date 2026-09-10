@@ -12,12 +12,44 @@ void main() {
     await tester.pump(const Duration(milliseconds: 350));
   }
 
+  /// Profil tel qu'il arrive du serveur : SCW /100, niveau, et détail /18 par
+  /// dimension. CS et RE sont marquées provisoires — c'est l'état réel du barème.
+  DecisionProfile profileFixture() => const DecisionProfile(
+    score: 71,
+    level: 'Normal',
+    dimensions: [
+      DecisionDimensionResult(
+        code: 'II', label: 'Analytical Thinking', shortLabel: 'Analytical',
+        description: 'How you identify constraints.',
+        points: 14, maxPoints: 18, provisional: false),
+      DecisionDimensionResult(
+        code: 'ER', label: 'Risk Balance', shortLabel: 'Risk',
+        description: 'How you weigh outcomes.',
+        points: 11, maxPoints: 18, provisional: false),
+      DecisionDimensionResult(
+        code: 'DT', label: 'Quick Choice', shortLabel: 'Quick',
+        description: 'How you decide under time pressure.',
+        points: 15, maxPoints: 18, provisional: false),
+      DecisionDimensionResult(
+        code: 'CS', label: 'Decision Stability', shortLabel: 'Stability',
+        description: 'How stable your choices stay.',
+        points: 12, maxPoints: 18, provisional: true),
+      DecisionDimensionResult(
+        code: 'RE', label: 'Self-Control', shortLabel: 'Control',
+        description: 'How you weigh delayed rewards.',
+        points: 12, maxPoints: 18, provisional: true),
+    ],
+  );
+
   Widget subject({
     DecisionResultsStep initialStep = DecisionResultsStep.journeyComplete,
     VoidCallback? onDone,
   }) {
     return MaterialApp(
       home: DecisionResultsFlow(
+        answered: 28,
+        totalItems: 30,
+        profile: profileFixture(),
         initialStep: initialStep,
         onClose: () {},
         onDone: onDone ?? () {},
@@ -41,7 +73,11 @@ void main() {
       find.byKey(const ValueKey('decision-journey-complete')),
       findsOneWidget,
     );
-    expect(find.text('30 / 30'), findsOneWidget);
+    // La carte annonçait « 30 / 30 » en dur : un sans-faute affiché même quand
+    // des questions avaient expiré. Elle compte maintenant les réponses réelles
+    // — ici 28 sur 30.
+    expect(find.text('28 / 30'), findsOneWidget);
+    expect(find.text('30 / 30'), findsNothing);
     await tap(tester, 'decision-reveal-profile');
 
     expect(
@@ -55,16 +91,11 @@ void main() {
       find.byKey(const ValueKey('decision-profile-title')),
       findsOneWidget,
     );
-    expect(find.text('Analytical Decision-Maker'), findsOneWidget);
-    expect(find.text('82'), findsOneWidget);
+    expect(find.text('Normal'), findsOneWidget, reason: 'niveau serveur');
+    // Le score s'anime de 0 → 71 (compteur animé) : laisser l'animation finir.
+    await tester.pump(const Duration(milliseconds: 1000));
+    expect(find.text('71'), findsOneWidget);
     await tap(tester, 'decision-view-insights');
-
-    expect(find.text('Your strengths'), findsOneWidget);
-    expect(
-      find.text('You compare several pieces of information before choosing.'),
-      findsOneWidget,
-    );
-    await tap(tester, 'decision-detailed-insights');
 
     expect(find.text('Analytical Thinking'), findsOneWidget);
     expect(find.text('Self-Control'), findsOneWidget);
@@ -89,8 +120,8 @@ void main() {
 
     expect(
       find.bySemanticsLabel(
-        'Analytical Thinking 78 out of 100, Risk Balance 62 out of 100, '
-        'Quick Choice 48 out of 100, Decision Stability 72 out of 100, '
+        'Analytical Thinking 78 out of 100, Risk Balance 61 out of 100, '
+        'Quick Choice 83 out of 100, Decision Stability 67 out of 100, '
         'Self-Control 67 out of 100',
       ),
       findsOneWidget,

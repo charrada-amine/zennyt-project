@@ -23,8 +23,7 @@ Future<void> main() async {
   await Hive.initFlutter();
 
   // Initialize dependency injection container
-  final apiBaseUrl = dotenv.env['API_BASE_URL'];
-  await initDependencies(apiBaseUrl: apiBaseUrl!);
+  await initDependencies(apiBaseUrl: AppConfig.baseUrl);
 
   final prefs = await SharedPreferences.getInstance();
 

@@ -1,13 +1,12 @@
-import 'dart:math';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
+
+import '../../../../core/audio/sound_service.dart';
+import '../../../../core/theme/theme.dart';
 import 'fit_card_data.dart';
 
+/// Direct manipulation on the horizontal axis leaves the card's detail scroll free.
 class TinderCard extends StatefulWidget {
-  final FitCardData data;
-  final VoidCallback onSwipeLeft;
-  final VoidCallback onSwipeRight;
-  final bool isFront;
-
   const TinderCard({
     super.key,
     required this.data,
@@ -15,291 +14,316 @@ class TinderCard extends StatefulWidget {
     required this.onSwipeRight,
     required this.isFront,
   });
+  final FitCardData data;
+  final VoidCallback onSwipeLeft;
+  final VoidCallback onSwipeRight;
+  final bool isFront;
 
   @override
   State<TinderCard> createState() => _TinderCardState();
 }
 
-class _TinderCardState extends State<TinderCard> with SingleTickerProviderStateMixin {
-  Offset _position = Offset.zero;
-  bool _isDragging = false;
-  late Size _screenSize;
+class _TinderCardState extends State<TinderCard> {
+  double _drag = 0;
+  bool _dragging = false;
+  bool _submitted = false;
+  static const _thresholdFraction = .28;
+
+  void _reset() => setState(() {
+    _drag = 0;
+    _dragging = false;
+  });
+
+  @override
+  void didUpdateWidget(covariant TinderCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.data.id != widget.data.id) {
+      _drag = 0;
+      _dragging = false;
+      _submitted = false;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final width = constraints.maxWidth;
+      final threshold = width * _thresholdFraction;
+      final progress = (_drag.abs() / threshold).clamp(0.0, 1.0);
+      final content = FitCardContent(data: widget.data);
+      if (!widget.isFront) return ExcludeSemantics(child: content);
+      return GestureDetector(
+        onHorizontalDragStart: _submitted
+            ? null
+            : (_) => setState(() => _dragging = true),
+        onHorizontalDragUpdate: _submitted
+            ? null
+            : (details) => setState(() => _drag += details.delta.dx),
+        onHorizontalDragCancel: _reset,
+        onHorizontalDragEnd: _submitted
+            ? null
+            : (_) {
+                if (_drag.abs() >= threshold) {
+                  _submitted = true;
+                  SoundService.instance.vibrateSelection();
+                  _drag > 0 ? widget.onSwipeRight() : widget.onSwipeLeft();
+                } else {
+                  _reset();
+                }
+              },
+        child: AnimatedContainer(
+          duration: _dragging
+              ? Duration.zero
+              : AppMotion.duration(context, AppMotion.settle),
+          curve: Curves.easeOutBack,
+          transformAlignment: Alignment.bottomCenter,
+          transform: Matrix4.identity()
+            ..translateByDouble(_drag, 0, 0, 1)
+            ..rotateZ(
+              AppMotion.reduced(context) ? 0 : _drag / width * math.pi / 18,
+            ),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              content,
+              if (_dragging && progress > .1)
+                Positioned(
+                  top: 20,
+                  right: _drag > 0 ? 20 : null,
+                  left: _drag < 0 ? 20 : null,
+                  child: IgnorePointer(
+                    child: Opacity(
+                      opacity: progress,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _drag > 0
+                              ? context.colors.success
+                              : context.colors.accent,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Icon(
+                          _drag > 0 ? Icons.check_rounded : Icons.close_rounded,
+                          color: Colors.white,
+                          size: 32,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
+/// One readable detail composition, reused by the swipe deck and browse sheets.
+class FitCardContent extends StatelessWidget {
+  const FitCardContent({super.key, required this.data});
+  final FitCardData data;
 
   @override
   Widget build(BuildContext context) {
-    _screenSize = MediaQuery.of(context).size;
-
-    if (!widget.isFront) {
-      return _buildCardContent();
-    }
-
-    return GestureDetector(
-      onTap: () => _handleTap(context),
-      onPanStart: (_) => setState(() => _isDragging = true),
-      onPanUpdate: (details) => setState(() => _position += details.delta),
-      onPanEnd: (_) {
-        setState(() => _isDragging = false);
-        _handlePanEnd();
-      },
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final milliseconds = _isDragging ? 0 : 250;
-          final angle = (_position.dx / _screenSize.width) * (pi / 12);
-          final transform = Matrix4.identity()
-            ..translate(_position.dx, _position.dy)
-            ..rotateZ(angle);
-
-          return AnimatedContainer(
-            duration: Duration(milliseconds: milliseconds),
-            curve: Curves.easeOut,
-            transform: transform,
-            child: _buildCardContent(),
-          );
-        },
-      ),
-    );
-  }
-
-  void _handleTap(BuildContext context) {
-    // Les pages de détail (offre / candidat) arrivent avec le portage des
-    // features jobs et applications — le tap est neutre en attendant.
-  }
-
-  void _handlePanEnd() {
-    const threshold = 130.0;
-    if (_position.dx > threshold) {
-      widget.onSwipeRight();
-    } else if (_position.dx < -threshold) {
-      widget.onSwipeLeft();
-    } else {
-      setState(() => _position = Offset.zero);
-    }
-  }
-
-  Widget _buildCardContent() {
-    final d = widget.data;
-
-    const Color primaryColor = Color(0xFF0D2146);
-    const Color secondaryColor = Color(0xFF64748B);
-    const Color accentColor = Color(0xFFD82C74);
-    const Color dividerColor = Color(0xFFE2E8F0);
-
+    final colors = context.colors;
+    final d = data;
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        gradient: const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Colors.white,
-            Color(0xFFF1F5F9),
-            Color(0xFFBACCEE),
-          ],
-          stops: [0.0, 0.65, 1.0],
-        ),
+        color: colors.cardSurface,
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: colors.border),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
+            color: colors.shadowColor,
+            blurRadius: 28,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20.0, 16.0, 20.0, 24.0),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                CircleAvatar(
-                  radius: 26,
-                  backgroundColor: Colors.grey[200],
-                  backgroundImage: NetworkImage(d.avatarUrl),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        d.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 19,
-                          fontWeight: FontWeight.bold,
-                          color: primaryColor,
-                          letterSpacing: -0.5,
+                _FitAvatar(data: d, size: 58),
+                const Spacer(),
+                if (d.badgeText != null)
+                  Flexible(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: colors.primary.withValues(alpha: .09),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        d.badgeText!,
+                        style: AppTypography.labelMedium.copyWith(
+                          color: colors.primary,
                         ),
                       ),
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          const Icon(Icons.location_on_outlined, size: 14, color: secondaryColor),
-                          const SizedBox(width: 2),
-                          Expanded(
-                            child: Text(
-                              d.subtitle,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: secondaryColor,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF1B3B7B),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.psychology_outlined,
-                        color: Colors.white,
-                        size: 18,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    const Text(
-                      'Resume AI',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: secondaryColor,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
               ],
             ),
-
-            const Spacer(flex: 1),
-
+            const SizedBox(height: 24),
+            Text(
+              d.title,
+              style: AppTypography.displaySmall.copyWith(
+                color: colors.textDarkBlue,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -.9,
+                height: 1.15,
+              ),
+            ),
+            const SizedBox(height: 10),
             Row(
               children: [
-                Text(
-                  '${d.primaryLabel}   ',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: secondaryColor,
-                    fontWeight: FontWeight.w600,
-                  ),
+                Icon(
+                  Icons.location_on_outlined,
+                  size: 17,
+                  color: colors.textMuted,
                 ),
+                const SizedBox(width: 5),
                 Expanded(
                   child: Text(
-                    d.primaryValue,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: primaryColor,
-                      fontWeight: FontWeight.w600,
+                    d.subtitle,
+                    style: AppTypography.bodySmall.copyWith(
+                      color: colors.textSecondary,
                     ),
                   ),
                 ),
               ],
             ),
-
-            const Spacer(flex: 1),
-            const Divider(color: dividerColor, thickness: 1),
-            const Spacer(flex: 1),
-
-            Text(
-              d.section1Title,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: primaryColor,
+            const SizedBox(height: 24),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: colors.primary.withValues(alpha: .06),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    d.primaryLabel,
+                    style: AppTypography.labelSmall.copyWith(
+                      color: colors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    d.primaryValue,
+                    style: AppTypography.titleMedium.copyWith(
+                      color: colors.textDarkBlue,
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 6),
-            ...d.section1Stats.map(
-              (s) => _buildStatRow(s.label, s.value, primaryColor, secondaryColor),
-            ),
-
-            const Spacer(flex: 1),
-
-            Text(
-              d.section2Title,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: primaryColor,
-              ),
-            ),
-            const SizedBox(height: 6),
-            ...d.section2Stats.map(
-              (s) => _buildStatRow(s.label, s.value, primaryColor, secondaryColor),
-            ),
-
-            const Spacer(flex: 1),
-            const Divider(color: dividerColor, thickness: 1),
-            const Spacer(flex: 2),
-
+            const SizedBox(height: 28),
+            _Details(title: d.section1Title, stats: d.section1Stats),
+            if (d.section2Stats.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              _Details(title: d.section2Title, stats: d.section2Stats),
+            ],
+            const SizedBox(height: 24),
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: d.tags.map((t) => _buildPillTag(t, accentColor)).toList(),
+              children: d.tags.map((tag) => Chip(label: Text(tag))).toList(),
             ),
-
-            const Spacer(flex: 4),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildStatRow(String label, String value, Color primary, Color secondary) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(
-        children: [
-          Text(
-            '$label: ',
-            style: TextStyle(fontSize: 12, color: secondary, fontWeight: FontWeight.w500),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 12, color: primary, fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPillTag(String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(100),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
+class _Details extends StatelessWidget {
+  const _Details({required this.title, required this.stats});
+  final String title;
+  final List<FitCardStat> stats;
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        title,
+        style: AppTypography.titleSmall.copyWith(
+          color: context.colors.textDarkBlue,
         ),
       ),
+      const SizedBox(height: 12),
+      for (final stat in stats)
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  stat.label,
+                  style: AppTypography.bodySmall.copyWith(
+                    color: context.colors.textSecondary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  stat.value,
+                  textAlign: TextAlign.end,
+                  style: AppTypography.labelMedium.copyWith(
+                    color: context.colors.textDarkBlue,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+    ],
+  );
+}
+
+class _FitAvatar extends StatelessWidget {
+  const _FitAvatar({required this.data, required this.size});
+  final FitCardData data;
+  final double size;
+  @override
+  Widget build(BuildContext context) {
+    final fallback = Icon(
+      data.type == FitCardType.candidate
+          ? Icons.person_outline_rounded
+          : Icons.business_rounded,
+      color: context.colors.primary,
+      size: size * .45,
+    );
+    return Container(
+      width: size,
+      height: size,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: context.colors.inputFill,
+        borderRadius: BorderRadius.circular(size * .3),
+      ),
+      child: data.avatarUrl.isEmpty
+          ? fallback
+          : Image.network(
+              data.avatarUrl,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => fallback,
+            ),
     );
   }
 }

@@ -3,6 +3,7 @@ name: zennyt
 services:
   postgres:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-zennyt}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
@@ -20,11 +21,13 @@ services:
 
   backend:
     image: maven:3.9.9-eclipse-temurin-21
+    restart: unless-stopped
     working_dir: /workspace/backend
     command:
       - mvn
       - -B
-      - -DskipTests
+      # Development startup only; CI must still compile and run the tests.
+      - -Dmaven.test.skip=true
       - spring-boot:run
       - -Dspring-boot.run.profiles=dev
     environment:
@@ -52,12 +55,25 @@ services:
       - ./contracts:/workspace/contracts:ro
       - maven-cache:/root/.m2
       - backend-target:/workspace/backend/target
+      - games-assets:/tmp/zennyt-games-assets
     depends_on:
       postgres:
         condition: service_healthy
+    init: true
+
+  admin:
+    build: ./admin
+    restart: unless-stopped
+    environment:
+      API_PROXY_TARGET: http://backend:8080
+    ports:
+      - "127.0.0.1:${ADMIN_PORT:-3001}:3001"
+    depends_on:
+      - backend
     init: true
 
 volumes:
   postgres-data:
   maven-cache:
   backend-target:
+  games-assets:

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/audio/sound_service.dart';
 import '../../domain/config/emotional_radar_config.dart';
 import '../../domain/entities/emotional_radar.dart';
 import '../../domain/entities/game_session.dart';
@@ -9,7 +10,9 @@ import '../../domain/entities/mini_game.dart';
 import '../emotional_regulation_session_provider.dart';
 import '../games_providers.dart';
 import '../widgets/emotional_game_pause_dialog.dart';
+import '../widgets/game_system_components.dart';
 import '../widgets/emotional_radar_components.dart';
+import '../widgets/emotional_radar_video.dart';
 import 'emotional_radar_gameplay.dart';
 
 /// Étapes du parcours, calquées sur « Prototype logic » (Developer handoff) :
@@ -64,8 +67,6 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
   bool _fullscreenOpenedThisScene = false;
 
   // Options de la carte Pause.
-  bool _soundEffects = true;
-  bool _music = false;
   bool _buttonsInput = true;
 
   EmotionalRadarScene? get _scene {
@@ -78,11 +79,41 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
       _sceneSet?.totalScenes ?? EmotionalRadarConfig.pointsPerScene;
 
   bool get _reducedMotion =>
-      MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+      (MediaQuery.maybeDisableAnimationsOf(context) ?? false) ||
+      (_session?.runtime.modifierBool(
+            'reducedMotionDefault',
+            fallback:
+                _session?.runtime.settingBool(
+                  'reducedMotionDefault',
+                  fallback: false,
+                ) ??
+                false,
+          ) ??
+          false);
+
+  bool get _helpEnabled =>
+      _session?.runtime.settingBool('helpEnabled', fallback: true) ?? true;
+
+  bool get _feedbackEnabled =>
+      _session?.runtime.modifierBool('answerFeedback', fallback: true) ?? true;
+
+  int get _transitionDurationMs =>
+      _session?.runtime.modifierInt(
+        'transitionDurationMs',
+        fallback: 900,
+        minimum: 0,
+        maximum: 5000,
+      ) ??
+      900;
 
   // ── Cycle de jeu ──────────────────────────────────────────────────────────
 
+  /// Droit de pause de la partie : une ouverture, 30 s (CdC pause §2-3).
+  final GamePauseAllowance _pauseAllowance = GamePauseAllowance();
+
   Future<void> _startGame() async {
+    // Nouvelle partie = nouveau droit de pause.
+    _pauseAllowance.reset();
     setState(() {
       _stage = _Stage.loading;
       _errorMessage = null;
@@ -172,6 +203,7 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
       );
 
       if (!mounted) return;
+      final showFeedback = _feedbackEnabled;
       setState(() {
         _feedback = feedback;
         // Le score est mis à jour DÈS la validation : la maquette claire le
@@ -179,8 +211,9 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
         // l'incrémentait (9 → 18). C'est cette dernière qui est cohérente.
         _score = feedback.totalPoints;
         _validating = false;
-        _stage = _Stage.feedback;
+        _stage = showFeedback ? _Stage.feedback : _Stage.gameplay;
       });
+      if (!showFeedback) await _nextScene();
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -209,7 +242,7 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
     // Transition courte (200–300 ms de la maquette ; ici un temps de lecture),
     // supprimée en mouvement réduit.
     if (!_reducedMotion) {
-      await Future<void>.delayed(const Duration(milliseconds: 900));
+      await Future<void>.delayed(Duration(milliseconds: _transitionDurationMs));
     }
     if (!mounted) return;
     setState(() => _stage = _Stage.gameplay);
@@ -248,27 +281,75 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
 
   // ── Overlays ──────────────────────────────────────────────────────────────
 
-  Future<void> _openPause() async {
-    final action = await showDialog<EmotionalGamePauseAction>(
-      context: context,
-      barrierColor: const Color(0xCC1B1B4B),
-      builder: (context) => EmotionalGamePauseDialog(
-        soundEffects: _soundEffects,
-        music: _music,
-        buttonsInput: _buttonsInput,
-        onSoundEffects: (v) => setState(() => _soundEffects = v),
-        onMusic: (v) => setState(() => _music = v),
-        onInputMode: (buttons) => setState(() => _buttonsInput = buttons),
-      ),
-    );
-    if (action == EmotionalGamePauseAction.rules) {
-      await _openHelp();
-    } else if (action == EmotionalGamePauseAction.exit && mounted) {
-      Navigator.of(context).maybePop();
+  /// Bouton unique du bandeau : menu de pause tant que la fenêtre est ouverte,
+  /// confirmation de sortie ensuite. Voir [GameMenuAffordance].
+  int _videoOverlayDepth = 0;
+
+  Future<void> _withVideoPaused(Future<void> Function() action) async {
+    setState(() => _videoOverlayDepth++);
+    try {
+      await action();
+    } finally {
+      if (mounted) setState(() => _videoOverlayDepth--);
     }
   }
 
-  Future<void> _openHelp() async {
+  Future<void> _openMenu() => _withVideoPaused(_showMenu);
+
+  Future<void> _showMenu() async {
+    if (_pauseAllowance.canOpen) return _openPause();
+    if (await GameExitConfirmDialog.show(context)) {
+      if (mounted) Navigator.of(context).maybePop();
+    }
+  }
+
+  /// [reopen] : réaffichage interne (retour de l'aide, sortie annulée) sur le
+  /// temps restant d'une fenêtre déjà ouverte.
+  Future<void> _openPause({bool reopen = false}) =>
+      _withVideoPaused(() => _showPause(reopen: reopen));
+
+  Future<void> _showPause({bool reopen = false}) async {
+    if (!reopen) {
+      // Une seule fenêtre de pause par partie (CdC pause §2-3).
+      if (!_pauseAllowance.canOpen) return;
+      _pauseAllowance.open();
+    }
+    final action = await showDialog<EmotionalGamePauseAction>(
+      context: context,
+      barrierColor: const Color(0xCC1B1B4B),
+      builder: (dialogCtx) => EmotionalGamePauseDialog(
+        buttonsInput: _buttonsInput,
+        onInputMode: (buttons) => setState(() => _buttonsInput = buttons),
+        showRules: _helpEnabled,
+        countdown: _pauseAllowance.remaining,
+        onCountdownExpired: () =>
+            Navigator.of(dialogCtx).pop(EmotionalGamePauseAction.resume),
+      ),
+    );
+    if (!mounted) return;
+    if (action == EmotionalGamePauseAction.rules) {
+      await _openHelp();
+      if (!mounted) return;
+      if (_pauseAllowance.canReopen) return _openPause(reopen: true);
+    } else if (action == EmotionalGamePauseAction.exit) {
+      // Quitter annule la tentative : confirmation explicite d'abord.
+      if (await GameExitConfirmDialog.show(context)) {
+        if (mounted) Navigator.of(context).maybePop();
+        return;
+      }
+      if (!mounted) return;
+      if (_pauseAllowance.canReopen) return _openPause(reopen: true);
+    }
+    // La partie repart : le temps passé en pause rejoint le budget consommé, et
+    // le bouton reste « Pause » tant qu'il en reste.
+    _pauseAllowance.close();
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _openHelp() => _withVideoPaused(_showHelp);
+
+  Future<void> _showHelp() async {
+    if (!_helpEnabled) return;
     setState(() => _helpOpenedThisScene = true);
     await showDialog<void>(
       context: context,
@@ -277,7 +358,9 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
     );
   }
 
-  Future<void> _openFullscreen() async {
+  Future<void> _openFullscreen() => _withVideoPaused(_showFullscreen);
+
+  Future<void> _showFullscreen() async {
     final scene = _scene;
     if (scene == null) return;
     setState(() => _fullscreenOpenedThisScene = true);
@@ -308,7 +391,7 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
       ),
       _Stage.loading => const _GameScaffold(child: _CenteredSpinner()),
       _Stage.transition => _buildShell(child: const _PreparingCard()),
-      _Stage.gameplay => _buildGameplay(),
+      _Stage.gameplay => GameplayMusic(child: _buildGameplay()),
       _Stage.feedback => _buildFeedback(),
       _Stage.results => _ResultsView(
         session: _session,
@@ -347,17 +430,23 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
                 ),
               ),
               const SizedBox(width: 10),
-              _HelpPill(onTap: _openHelp),
-              const SizedBox(width: 6),
+              if (_helpEnabled) ...[
+                _HelpPill(onTap: _openHelp),
+                const SizedBox(width: 6),
+              ],
               // La pause est une action explicite et étiquetée : la planche
               // d'accessibilité interdit un contrôle uniquement iconique.
-              IconButton(
-                onPressed: _openPause,
-                icon: const Icon(
-                  Icons.pause_circle_outline,
-                  color: Colors.white,
+              Semantics(
+                button: true,
+                label: _pauseAllowance.affordance.semanticsLabel,
+                child: IconButton(
+                  onPressed: _openMenu,
+                  icon: Icon(
+                    _pauseAllowance.affordance.icon,
+                    color: Colors.white,
+                  ),
+                  tooltip: _pauseAllowance.affordance.tooltip,
                 ),
-                tooltip: 'Pause',
               ),
             ],
           ),
@@ -384,7 +473,11 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
     return _buildShell(
       child: Column(
         children: [
-          SceneCard(scene: scene, onOpenFullscreen: _openFullscreen),
+          SceneCard(
+            scene: scene,
+            onOpenFullscreen: _openFullscreen,
+            playbackEnabled: _videoOverlayDepth == 0,
+          ),
           const SizedBox(height: 14),
           AnswerPanel(
             sceneSet: set,
@@ -421,7 +514,11 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
     return _buildShell(
       child: Column(
         children: [
-          SceneCard(scene: scene, onOpenFullscreen: _openFullscreen),
+          SceneCard(
+            scene: scene,
+            onOpenFullscreen: _openFullscreen,
+            playbackEnabled: _videoOverlayDepth == 0,
+          ),
           const SizedBox(height: 14),
           FeedbackCard(
             feedback: feedback,
@@ -455,9 +552,11 @@ class _GameScaffold extends StatelessWidget {
     return Scaffold(
       backgroundColor: EmotionalRadarPalette.canvas,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: child,
+        child: GameContentFrame(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: child,
+          ),
         ),
       ),
     );
@@ -512,7 +611,13 @@ class _HelpPill extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
-          onTap: onTap,
+          // Pastille « ? Help » : c'est un bouton de règles, il doit cliquer
+          // comme les autres (elle passait à côté du son car elle n'utilise pas
+          // les boutons partagés).
+          onTap: () {
+            SoundService.instance.playSfx(GameSfx.buttonClick);
+            onTap();
+          },
           child: Container(
             constraints: const BoxConstraints(minHeight: 40, minWidth: 64),
             alignment: Alignment.center,
@@ -544,7 +649,12 @@ class _MagentaButton extends StatelessWidget {
       width: double.infinity,
       height: 56,
       child: ElevatedButton(
-        onPressed: onPressed,
+        // Porte « Start tutorial », « Start game », « Play again »… : même clic
+        // que les boutons partagés, dont il ne reprend que le style magenta.
+        onPressed: () {
+          SoundService.instance.playSfx(GameSfx.buttonClick);
+          onPressed();
+        },
         style: ElevatedButton.styleFrom(
           backgroundColor: EmotionalRadarPalette.magenta,
           foregroundColor: Colors.white,
@@ -574,7 +684,12 @@ class _WhiteOutlineButton extends StatelessWidget {
       width: double.infinity,
       height: 56,
       child: OutlinedButton(
-        onPressed: onPressed,
+        // Porte « View rules » sur la cover : même clic que les boutons
+        // partagés, dont ce bouton reprend seulement le style clair.
+        onPressed: () {
+          SoundService.instance.playSfx(GameSfx.buttonClick);
+          onPressed();
+        },
         style: OutlinedButton.styleFrom(
           foregroundColor: EmotionalRadarPalette.ink,
           side: const BorderSide(color: EmotionalRadarPalette.border),
@@ -998,7 +1113,10 @@ class _HelpDialog extends StatelessWidget {
             const SizedBox(height: 6),
             _MagentaButton(
               label: 'Resume game',
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () {
+                SoundService.instance.playSfx(GameSfx.buttonClick);
+                Navigator.of(context).pop();
+              },
             ),
           ],
         ),
@@ -1021,7 +1139,6 @@ class _FullscreenSceneView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final url = scene.mediaUrl;
     return Scaffold(
       backgroundColor: EmotionalRadarPalette.canvas,
       body: SafeArea(
@@ -1054,7 +1171,10 @@ class _FullscreenSceneView extends StatelessWidget {
                     button: true,
                     label: 'Close full screen',
                     child: IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
+                      onPressed: () {
+                        SoundService.instance.playSfx(GameSfx.buttonClick);
+                        Navigator.of(context).pop();
+                      },
                       icon: const Icon(Icons.close, color: Colors.white),
                       style: IconButton.styleFrom(
                         backgroundColor: Colors.white24,
@@ -1076,8 +1196,10 @@ class _FullscreenSceneView extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Image full screen',
+                      Text(
+                        scene.mediaType == SceneMediaType.video
+                            ? 'Video full screen'
+                            : 'Image full screen',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
@@ -1088,22 +1210,31 @@ class _FullscreenSceneView extends StatelessWidget {
                       Expanded(
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(12),
-                          child: url == null
-                              ? Container(
-                                  color: const Color(0xFF23224F),
-                                  alignment: Alignment.center,
-                                  child: const Icon(
-                                    Icons.image_outlined,
-                                    size: 48,
-                                    color: Colors.white54,
+                          child:
+                              scene.mediaType == SceneMediaType.video &&
+                                  scene.mediaUrl != null
+                              ? SingleChildScrollView(
+                                  child: GamePanel(
+                                    child: EmotionalRadarVideo(
+                                      source: scene.mediaUrl!,
+                                    ),
                                   ),
                                 )
                               : InteractiveViewer(
                                   maxScale: 4,
-                                  child: Image.network(
-                                    url,
+                                  child: EmotionalRadarSceneImage(
+                                    scene: scene,
                                     fit: BoxFit.contain,
                                     width: double.infinity,
+                                    fallback: Container(
+                                      color: const Color(0xFF23224F),
+                                      alignment: Alignment.center,
+                                      child: const Icon(
+                                        Icons.image_outlined,
+                                        size: 48,
+                                        color: Colors.white54,
+                                      ),
+                                    ),
                                   ),
                                 ),
                         ),
@@ -1117,7 +1248,9 @@ class _FullscreenSceneView extends StatelessWidget {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          scene.altText ?? scene.instructionText,
+                          scene.transcript ??
+                              scene.altText ??
+                              scene.instructionText,
                           style: const TextStyle(
                             fontSize: 15,
                             height: 1.4,
@@ -1229,10 +1362,9 @@ class _ResultsView extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 18),
-              // Le détail vient du serveur : le client n'en recalcule aucune ligne.
-              if (session?.scoreBreakdown.isNotEmpty ?? false)
-                _BreakdownPanel(lines: session!.scoreBreakdown),
+              // Le détail de la formule de calcul du score a été retiré du
+              // tableau de score sur retour client. Le barème reste calculé et
+              // exposé côté serveur — seul son AFFICHAGE disparaît ici.
               const SizedBox(height: 22),
               _MagentaButton(label: 'Play again', onPressed: onReplay),
               const SizedBox(height: 12),
@@ -1240,7 +1372,10 @@ class _ResultsView extends StatelessWidget {
                 width: double.infinity,
                 height: 52,
                 child: TextButton(
-                  onPressed: () => Navigator.of(context).maybePop(),
+                  onPressed: () {
+                    SoundService.instance.playSfx(GameSfx.buttonClick);
+                    Navigator.of(context).maybePop();
+                  },
                   child: const Text(
                     'Back to games',
                     style: TextStyle(
@@ -1254,82 +1389,6 @@ class _ResultsView extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _BreakdownPanel extends StatelessWidget {
-  const _BreakdownPanel({required this.lines});
-
-  final List<dynamic> lines;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1B1B4B),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Score detail',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 12),
-          for (final line in lines) ...[
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${line.label}',
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: Colors.white,
-                            fontFamily: 'monospace',
-                          ),
-                        ),
-                        if (line.detail != null)
-                          Text(
-                            '${line.detail}',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: Colors.white60,
-                              fontFamily: 'monospace',
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  if (line.points != null)
-                    Text(
-                      '${line.points}/${line.maxPoints}',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                        fontFamily: 'monospace',
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ],
-        ],
       ),
     );
   }
@@ -1376,7 +1435,10 @@ class _ErrorView extends StatelessWidget {
               _MagentaButton(label: 'Try again', onPressed: onRetry),
               const SizedBox(height: 12),
               TextButton(
-                onPressed: () => Navigator.of(context).maybePop(),
+                onPressed: () {
+                  SoundService.instance.playSfx(GameSfx.buttonClick);
+                  Navigator.of(context).maybePop();
+                },
                 child: const Text(
                   'Back to games',
                   style: TextStyle(

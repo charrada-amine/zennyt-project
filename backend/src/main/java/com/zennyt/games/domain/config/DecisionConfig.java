@@ -42,6 +42,35 @@ public final class DecisionConfig {
     /** {@code training_items_count} — 3 items d'entraînement (non notés). */
     public static final int TRAINING_ITEMS_COUNT = 3;
 
+    // ── Formes parallèles ────────────────────────────────────────────────────
+    // La banque compte 24 items par dimension pour 6 administrés : de quoi tirer
+    // 4 formes de 30 items. Leur composition est une DONNÉE (table
+    // games.decision_form_items, V59), jamais une règle positionnelle.
+
+    /** Formes prévues par la banque (24 = 4 × 6). */
+    public static final List<String> FORM_CODES = List.of("A", "B", "C", "D");
+
+    /** Seule forme seedée à ce jour. */
+    public static final String DEFAULT_FORM_CODE = "A";
+
+    /**
+     * Forme assignée à une nouvelle session « Je Décide ».
+     *
+     * <p><b>Toujours {@link #DEFAULT_FORM_CODE} pour l'instant, volontairement.</b>
+     * Faire tourner les 4 formes suppose qu'elles soient équivalentes ; elles ne
+     * peuvent pas l'être tant que ER-1..18, CS et RE sont en notation neutre
+     * provisoire : la seule forme contenant les items ER réellement notés serait la
+     * seule où ER discrimine, et deux candidats de formes différentes ne seraient
+     * plus comparables — alors que le Fit Score les compare globalement.
+     *
+     * <p>Le mécanisme complet est en place (colonne de session, composition en base,
+     * relecture à la notation) : activer la rotation ne demandera qu'une migration
+     * de données seedant B/C/D, plus le remplacement de ce corps de méthode.
+     */
+    public static String assignFormCode() {
+        return DEFAULT_FORM_CODE;
+    }
+
     /** {@code block_order_randomized} — l'ordre des blocs est randomisé. */
     public static final boolean BLOCK_ORDER_RANDOMIZED = true;
 

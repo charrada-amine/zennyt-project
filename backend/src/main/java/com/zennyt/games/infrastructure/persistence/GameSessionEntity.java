@@ -44,10 +44,43 @@ public class GameSessionEntity {
     @Column(name = "completed_at")
     private Instant completedAt;
 
+    /** Forme de passation « Je Décide » (A/B/C/D) ; null hors session DECISION. */
+    @Column(name = "decision_form_code", length = 1)
+    private String decisionFormCode;
+
+    @Column(name = "runtime_settings_version")
+    private Integer runtimeSettingsVersion;
+
+    @Column(name = "runtime_modifiers_version")
+    private Integer runtimeModifiersVersion;
+
+    @Column(name = "runtime_settings", nullable = false, columnDefinition = "text")
+    private String runtimeSettings;
+
+    @Column(name = "runtime_modifiers", nullable = false, columnDefinition = "text")
+    private String runtimeModifiers;
+
+    @Column(name = "runtime_bank_id")
+    private UUID runtimeBankId;
+
+    @Column(name = "runtime_bank_code", length = 64)
+    private String runtimeBankCode;
+
+    @Column(name = "runtime_bank_version")
+    private Integer runtimeBankVersion;
+
+    @Column(name = "runtime_bank_content_type", length = 32)
+    private String runtimeBankContentType;
+
     protected GameSessionEntity() { } // requis par JPA
 
     public GameSessionEntity(UUID id, UUID playerId, GameType gameType, SessionStatus status,
-                             List<AttemptEmbeddable> attempts, Instant startedAt, Instant completedAt) {
+                             List<AttemptEmbeddable> attempts, Instant startedAt, Instant completedAt,
+                             String decisionFormCode, Integer runtimeSettingsVersion,
+                             Integer runtimeModifiersVersion, String runtimeSettings,
+                             String runtimeModifiers, UUID runtimeBankId,
+                             String runtimeBankCode, Integer runtimeBankVersion,
+                             String runtimeBankContentType) {
         this.id = id;
         this.playerId = playerId;
         this.gameType = gameType;
@@ -55,6 +88,15 @@ public class GameSessionEntity {
         this.attempts = new ArrayList<>(attempts);
         this.startedAt = startedAt;
         this.completedAt = completedAt;
+        this.decisionFormCode = decisionFormCode;
+        this.runtimeSettingsVersion = runtimeSettingsVersion;
+        this.runtimeModifiersVersion = runtimeModifiersVersion;
+        this.runtimeSettings = runtimeSettings;
+        this.runtimeModifiers = runtimeModifiers;
+        this.runtimeBankId = runtimeBankId;
+        this.runtimeBankCode = runtimeBankCode;
+        this.runtimeBankVersion = runtimeBankVersion;
+        this.runtimeBankContentType = runtimeBankContentType;
     }
 
     public UUID getId() { return id; }
@@ -64,4 +106,13 @@ public class GameSessionEntity {
     public List<AttemptEmbeddable> getAttempts() { return attempts; }
     public Instant getStartedAt() { return startedAt; }
     public Instant getCompletedAt() { return completedAt; }
+    public String getDecisionFormCode() { return decisionFormCode; }
+    public Integer getRuntimeSettingsVersion() { return runtimeSettingsVersion; }
+    public Integer getRuntimeModifiersVersion() { return runtimeModifiersVersion; }
+    public String getRuntimeSettings() { return runtimeSettings; }
+    public String getRuntimeModifiers() { return runtimeModifiers; }
+    public UUID getRuntimeBankId() { return runtimeBankId; }
+    public String getRuntimeBankCode() { return runtimeBankCode; }
+    public Integer getRuntimeBankVersion() { return runtimeBankVersion; }
+    public String getRuntimeBankContentType() { return runtimeBankContentType; }
 }

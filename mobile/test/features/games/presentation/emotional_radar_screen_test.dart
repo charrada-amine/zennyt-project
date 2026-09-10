@@ -198,7 +198,7 @@ void main() {
     expect(find.text('Scene 1 / 3'), findsOneWidget);
   });
 
-  testWidgets('partie complète : 3 scènes parfaites → 27/27 et détail du score',
+  testWidgets('partie complète : 3 scènes parfaites → 27/27, sans détail du barème',
       (tester) async {
     await pumpGame(tester);
     await startPlaying(tester);
@@ -235,11 +235,13 @@ void main() {
       await tester.pumpAndSettle(const Duration(seconds: 2));
     }
 
-    // Écran de résultats : score serveur (ici mock) + panneau de détail.
+    // Écran de résultats : score serveur (ici mock), SANS le détail du barème.
     expect(find.text('Results'), findsOneWidget);
     expect(find.text('27 / 27'), findsOneWidget);
     expect(find.text('Excellent'), findsOneWidget);
-    expect(find.text('Score detail'), findsOneWidget);
     expect(find.text('3 scenes completed'), findsOneWidget);
+    // Le détail de la formule de calcul du score a été retiré de l'affichage
+    // sur retour client — il reste calculé côté serveur.
+    expect(find.text('Score detail'), findsNothing);
   });
 }

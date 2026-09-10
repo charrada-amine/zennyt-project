@@ -339,5 +339,8 @@
   "dateFormatted": "{day}/{month}/{year}",
 
   "sessionExpired": "Votre session a expiré. Veuillez vous reconnecter.",
-  "likesCount": "{count} mentions j'aime"
+  "likesCount": "{count} mentions j'aime",
+  "onbGamesTitle": "Avancez en jouant.",
+  "onbSkillsTitle": "Découvrez ce qui vous rend unique.",
+  "onbOpportunitiesTitle": "Trouvez votre prochaine opportunité."
 }

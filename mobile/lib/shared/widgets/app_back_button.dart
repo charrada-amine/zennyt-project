@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/theme.dart';
+import '../../core/audio/sound_service.dart';
+import 'app_motion.dart';
 
 /// Icon-only back button pinned to the top-left of a screen.
 ///
@@ -20,11 +22,20 @@ class AppBackButton extends StatelessWidget {
       alignment: Alignment.centerLeft,
       child: Padding(
         padding: const EdgeInsets.only(left: AppSpacing.sm, top: AppSpacing.xs),
-        child: IconButton(
-          onPressed: onPressed ?? () => _pop(context),
-          icon: const Icon(Icons.arrow_back_rounded),
-          color: context.colors.backButtonIcon,
-          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+        child: AppPressScale(
+          child: IconButton(
+            onPressed: () {
+              SoundService.instance.vibrateSelection();
+              (onPressed ?? () => _pop(context))();
+            },
+            style: IconButton.styleFrom(
+              backgroundColor: context.colors.cardSurface,
+              side: BorderSide(color: context.colors.border),
+            ),
+            icon: const Icon(Icons.arrow_back_rounded),
+            color: context.colors.backButtonIcon,
+            tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+          ),
         ),
       ),
     );

@@ -438,5 +438,8 @@
     "placeholders": {
       "count": { "type": "String" }
     }
-  }
+  },
+  "onbGamesTitle": "Play your way forward.",
+  "onbSkillsTitle": "Discover what makes you, you.",
+  "onbOpportunitiesTitle": "Find your next possibility."
 }

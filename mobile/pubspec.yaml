@@ -43,6 +43,10 @@ dependencies:
   # Engagement : temps reel, appels, cache local (IntergrationV1, 12/08).
   freezed_annotation: ^3.0.0
   equatable: ^2.0.5
+  clock: ^1.1.1
+  audioplayers: ^6.8.1
+  flutter_tts: ^4.2.2
+  video_player: ^2.14.0
   get_it: ^9.2.1
   dartz: ^0.10.1
   hive: ^2.2.3
@@ -99,7 +103,10 @@ flutter:
     - assets/04 Je Décide/08 Mobile/Tutorial Intro/
     - assets/J’investigue/memoryobject/
     - assets/J’investigue/MemoryObject/svg/
+    - assets/J’investigue/distractors/
     - assets/games icons/
+    - assets/sounds/
+    - assets/games_demo/emotional_radar/
     - assets/connectivity/
     - .env
 

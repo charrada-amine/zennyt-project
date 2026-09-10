@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
+import '../../../../core/audio/sound_service.dart';
+import '../../../../core/theme/theme.dart';
+import '../../../../shared/widgets/app_motion.dart';
 
 class TinderActionButtons extends StatelessWidget {
-  final VoidCallback onUndo;
-  final VoidCallback onReject;
-  final VoidCallback onApprove;
-  final VoidCallback onForward;
-  final bool canUndo;
-
   const TinderActionButtons({
     super.key,
     required this.onUndo,
@@ -14,87 +11,84 @@ class TinderActionButtons extends StatelessWidget {
     required this.onApprove,
     required this.onForward,
     required this.canUndo,
+    this.enabled = true,
   });
+  final VoidCallback onUndo, onReject, onApprove, onForward;
+  final bool canUndo;
+  final bool enabled;
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _buildActionButton(
-            icon: Icons.refresh,
-            color: const Color(0xFF2563EB),
-            backgroundColor: Colors.white,
-            onTap: canUndo ? onUndo : null,
-            size: 46,
-            iconSize: 22,
-          ),
-          _buildActionButton(
-            icon: Icons.close,
-            color: const Color(0xFFE11D48),
-            backgroundColor: Colors.white,
-            onTap: onReject,
-            size: 56,
-            iconSize: 28,
-            hasShadow: true,
-          ),
-          _buildActionButton(
-            icon: Icons.check,
-            color: const Color(0xFF10B981),
-            backgroundColor: Colors.white,
-            onTap: onApprove,
-            size: 56,
-            iconSize: 28,
-            hasShadow: true,
-          ),
-          _buildActionButton(
-            icon: Icons.send,
-            color: Colors.white,
-            backgroundColor: const Color(0xFFD91B5C),
-            onTap: onForward,
-            size: 46,
-            iconSize: 20,
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 14),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        _action(
+          context,
+          'Undo',
+          Icons.undo_rounded,
+          context.colors.primary,
+          canUndo ? onUndo : null,
+        ),
+        _action(
+          context,
+          'Pass',
+          Icons.close_rounded,
+          context.colors.accent,
+          enabled ? onReject : null,
+          prominent: true,
+        ),
+        _action(
+          context,
+          'Like',
+          Icons.check_rounded,
+          context.colors.success,
+          enabled ? onApprove : null,
+          prominent: true,
+        ),
+        _action(
+          context,
+          'Skip',
+          Icons.skip_next_rounded,
+          context.colors.primary,
+          enabled ? onForward : null,
+        ),
+      ],
+    ),
+  );
 
-  Widget _buildActionButton({
-    required IconData icon,
-    required Color color,
-    required Color backgroundColor,
-    required VoidCallback? onTap,
-    required double size,
-    required double iconSize,
-    bool hasShadow = false,
-  }) {
-    return Opacity(
-      opacity: onTap == null ? 0.4 : 1.0,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: backgroundColor,
-            border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
-            boxShadow: hasShadow
-                ? [
-                    BoxShadow(
-                      color: color.withOpacity(0.15),
-                      blurRadius: 12,
-                      offset: const Offset(0, 6),
-                    )
-                  ]
-                : null,
-          ),
-          child: Icon(icon, color: color, size: iconSize),
+  Widget _action(
+    BuildContext context,
+    String label,
+    IconData icon,
+    Color color,
+    VoidCallback? callback, {
+    bool prominent = false,
+  }) => AppPressScale(
+    enabled: callback != null,
+    child: IconButton(
+      tooltip: label,
+      onPressed: callback == null
+          ? null
+          : () {
+              SoundService.instance.vibrateSelection();
+              callback();
+            },
+      style: IconButton.styleFrom(
+        minimumSize: Size.square(prominent ? 62 : 48),
+        backgroundColor: context.colors.cardSurface,
+        foregroundColor: color,
+        disabledForegroundColor: context.colors.textMuted.withValues(alpha: .4),
+        side: BorderSide(
+          color: prominent
+              ? color.withValues(alpha: .2)
+              : context.colors.border,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(prominent ? 24 : 18),
         ),
       ),
-    );
-  }
+      icon: Icon(icon, size: prominent ? 30 : 22),
+    ),
+  );
 }

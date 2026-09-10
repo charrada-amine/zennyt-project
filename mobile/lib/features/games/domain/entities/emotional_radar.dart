@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'game_metrics.dart';
 
 /// Famille d'émotion de base — étape 1 d'« Emotional Radar ».
@@ -34,7 +36,8 @@ enum SceneMediaType {
   static SceneMediaType fromWire(String value) =>
       SceneMediaType.values.firstWhere((t) => t.wire == value);
 
-  bool get isMedia => this == SceneMediaType.image || this == SceneMediaType.video;
+  bool get isMedia =>
+      this == SceneMediaType.image || this == SceneMediaType.video;
 }
 
 /// Origine d'une nuance : maquette fournie, ou ajout provisoire à valider.
@@ -52,7 +55,8 @@ class EmotionalNuance {
   final String label;
   final NuanceSource source;
 
-  factory EmotionalNuance.fromJson(Map<String, dynamic> json) => EmotionalNuance(
+  factory EmotionalNuance.fromJson(Map<String, dynamic> json) =>
+      EmotionalNuance(
         key: json['key'] as String,
         label: json['label'] as String,
         source: (json['source'] as String? ?? 'PROVISIONAL') == 'FIGMA'
@@ -75,6 +79,8 @@ class EmotionalRadarScene {
     this.mediaUrl,
     this.altText,
     this.transcript,
+    this.mediaBytes,
+    this.mediaMimeType,
   });
 
   final String id;
@@ -85,6 +91,8 @@ class EmotionalRadarScene {
   final String? mediaUrl;
   final String? altText;
   final String? transcript;
+  final Uint8List? mediaBytes;
+  final String? mediaMimeType;
 
   factory EmotionalRadarScene.fromJson(Map<String, dynamic> json) =>
       EmotionalRadarScene(
@@ -96,6 +104,20 @@ class EmotionalRadarScene {
         mediaUrl: json['mediaUrl'] as String?,
         altText: json['altText'] as String?,
         transcript: json['transcript'] as String?,
+      );
+
+  EmotionalRadarScene withMediaBytes(Uint8List bytes, String? mimeType) =>
+      EmotionalRadarScene(
+        id: id,
+        sceneOrder: sceneOrder,
+        mediaType: mediaType,
+        promptText: promptText,
+        instructionText: instructionText,
+        mediaUrl: mediaUrl,
+        altText: altText,
+        transcript: transcript,
+        mediaBytes: bytes,
+        mediaMimeType: mimeType,
       );
 }
 
@@ -119,10 +141,11 @@ class EmotionalRadarSceneSet {
     final emotions = <BasicEmotion, List<EmotionalNuance>>{};
     for (final entry in (json['emotions'] as List<dynamic>)) {
       final map = entry as Map<String, dynamic>;
-      emotions[BasicEmotion.fromWire(map['emotion'] as String)] =
-          (map['nuances'] as List<dynamic>)
-              .map((n) => EmotionalNuance.fromJson(n as Map<String, dynamic>))
-              .toList();
+      emotions[BasicEmotion.fromWire(
+        map['emotion'] as String,
+      )] = (map['nuances'] as List<dynamic>)
+          .map((n) => EmotionalNuance.fromJson(n as Map<String, dynamic>))
+          .toList();
     }
     return EmotionalRadarSceneSet(
       totalScenes: json['totalScenes'] as int,
@@ -134,7 +157,8 @@ class EmotionalRadarSceneSet {
     );
   }
 
-  List<EmotionalNuance> nuancesFor(BasicEmotion emotion) => emotions[emotion] ?? const [];
+  List<EmotionalNuance> nuancesFor(BasicEmotion emotion) =>
+      emotions[emotion] ?? const [];
 }
 
 /// Correction d'une scène, renvoyée par le serveur après validation.
@@ -170,7 +194,9 @@ class EmotionalRadarFeedback {
   factory EmotionalRadarFeedback.fromJson(Map<String, dynamic> json) =>
       EmotionalRadarFeedback(
         correct: json['correct'] as bool,
-        expectedEmotion: BasicEmotion.fromWire(json['expectedEmotion'] as String),
+        expectedEmotion: BasicEmotion.fromWire(
+          json['expectedEmotion'] as String,
+        ),
         expectedNuance: json['expectedNuance'] as String,
         suggestedIntensity: json['suggestedIntensity'] as int,
         explanation: json['explanation'] as String,
@@ -200,12 +226,12 @@ class EmotionalRadarSceneMetric {
   final bool reducedMotion;
 
   Map<String, dynamic> toJson() => {
-        'sceneId': sceneId,
-        'responseTimeMs': responseTimeMs,
-        'helpOpened': helpOpened,
-        'fullscreenOpened': fullscreenOpened,
-        'reducedMotion': reducedMotion,
-      };
+    'sceneId': sceneId,
+    'responseTimeMs': responseTimeMs,
+    'helpOpened': helpOpened,
+    'fullscreenOpened': fullscreenOpened,
+    'reducedMotion': reducedMotion,
+  };
 }
 
 /// Métriques finales d'« Emotional Radar ».
@@ -219,6 +245,6 @@ class EmotionalRadarMetrics implements GameMetrics {
 
   @override
   Map<String, dynamic> toJson() => {
-        'emotionalRadarScenes': scenes.map((s) => s.toJson()).toList(),
-      };
+    'emotionalRadarScenes': scenes.map((s) => s.toJson()).toList(),
+  };
 }
