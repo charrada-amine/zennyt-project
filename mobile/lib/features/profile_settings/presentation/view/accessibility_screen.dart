@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/localization/l10n_extension.dart';
 import '../../../../core/router/app_routes.dart';
+import '../../../../core/settings/accessibility_provider.dart';
 import '../../../../core/theme/theme.dart';
 import '../../../../core/utils/responsive.dart';
 
@@ -16,14 +17,12 @@ class AccessibilityScreen extends ConsumerStatefulWidget {
 }
 
 class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
-  bool _contrastEnabled = true;
-  double _textSize = 18.0;
-
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final hPadding = Responsive.horizontalPadding(context);
     final l10n = context.l10n;
+    final a11y = ref.watch(accessibilityProvider);
     final currentLanguage = Localizations.localeOf(context).languageCode == 'fr' ? 'Français' : 'English';
 
     return Scaffold(
@@ -72,12 +71,12 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
                         height: 28,
                         child: FittedBox(
                           child: CupertinoSwitch(
-                            value: _contrastEnabled,
+                            value: a11y.highContrast,
                             activeTrackColor: colors.success,
                             onChanged: (val) {
-                              setState(() {
-                                _contrastEnabled = val;
-                              });
+                              ref
+                                  .read(accessibilityProvider.notifier)
+                                  .setHighContrast(val);
                             },
                           ),
                         ),
@@ -101,7 +100,7 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
                                 ),
                               ),
                               Text(
-                                '${_textSize.toInt()} px',
+                                '${a11y.textSizePx.toInt()} px',
                                 style: AppTypography.titleSmall.copyWith(
                                   color: colors.primary, // Using primary blue color
                                   fontWeight: FontWeight.bold,
@@ -123,10 +122,10 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
                                   colors,
                                   icon: Icons.remove,
                                   onTap: () {
-                                    if (_textSize > 10) {
-                                      setState(() {
-                                        _textSize -= 1;
-                                      });
+                                    if (a11y.textSizePx > 10) {
+                                      ref
+                                          .read(accessibilityProvider.notifier)
+                                          .setTextSize(a11y.textSizePx - 1);
                                     }
                                   },
                                 ),
@@ -144,13 +143,13 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
                                       overlayShape: SliderComponentShape.noOverlay,
                                     ),
                                     child: Slider(
-                                      value: _textSize,
+                                      value: a11y.textSizePx,
                                       min: 10,
                                       max: 30,
                                       onChanged: (val) {
-                                        setState(() {
-                                          _textSize = val;
-                                        });
+                                        ref
+                                            .read(accessibilityProvider.notifier)
+                                            .setTextSize(val);
                                       },
                                     ),
                                   ),
@@ -160,10 +159,10 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
                                   colors,
                                   icon: Icons.add,
                                   onTap: () {
-                                    if (_textSize < 30) {
-                                      setState(() {
-                                        _textSize += 1;
-                                      });
+                                    if (a11y.textSizePx < 30) {
+                                      ref
+                                          .read(accessibilityProvider.notifier)
+                                          .setTextSize(a11y.textSizePx + 1);
                                     }
                                   },
                                 ),
@@ -196,7 +195,7 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
                             l10n.accessibilityPreviewText,
                             style: AppTypography.bodyMedium.copyWith(
                               color: colors.textDarkBlue,
-                              fontSize: _textSize,
+                              fontSize: a11y.textSizePx,
                               height: 1.5,
                             ),
                           ),

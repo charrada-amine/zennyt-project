@@ -248,6 +248,7 @@ class _CreateJobOfferPageState extends ConsumerState<CreateJobOfferPage> {
                 howToApply: _descHowToApply,
                 companyInfo: _companyInfoCtrl.text.trim(),
                 assessmentId: _selectedAssessmentId,
+                jobPositionId: _selectedJobPositionId,
                 openToInternational: _openToInternational,
               ),
             );

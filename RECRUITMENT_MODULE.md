@@ -1,6 +1,6 @@
 # Module Recruitment
 
-**Dernière mise à jour :** 2026-08-05
+**Dernière mise à jour :** 2026-09-11
 
 ## 1. Rôle du module
 
@@ -661,3 +661,38 @@ GROQ_API_KEY=<optionnel>
      encore instrumenter. Côté mobile, `flutter analyze`/`flutter test` non exécutés
      (Flutter non installé dans cet environnement) ; changements relus à la main contre le
      contrat.
+9. 2026-09-11 — Première connexion mobile des écrans Recruitment (maquettes fournies,
+   dossier `Progress Careers - Light mode.png`). Écrans auparavant bloqués par
+   `_NotYetPortedPage` désormais branchés sur le contrat :
+   - **Détail d'offre** (`/jobs/:jobId`) — `GET /job-offers/{id}`, onglets
+     Description/Company, stats recruteur (`applicantCount`, `successRate`), édition
+     (`PUT`) et accès résultats. Rôle-aware candidat/recruteur.
+   - **Passation du test hard skills** (`/jobs/:jobId/test`) — `POST
+     /job-offers/{id}/test-attempts`, questions mélangées une par une, `expiresAt`,
+     `POST /test-attempts/{id}/submit` (score serveur), abandon explicite
+     `POST /test-attempts/{id}/abandon`, gate « déjà tenté » via
+     `GET /job-offers/{id}/test-results/me` (404 → pas encore tenté).
+   - **Résultats recruteur** (`/jobs/:jobId/results`) — `GET
+     /job-offers/{id}/test-results/summary` + `…/test-results` + détail de correction
+     par candidat `…/test-results/{candidateId}`.
+   - **Suppression d'un test** depuis le détail d'évaluation (`DELETE /assessments/{id}`).
+   - **Correctif data layer** (le formulaire d'offre envoyait des champs absents du contrat
+     et `fail-on-unknown-properties: true` faisait échouer la requête) :
+     `createJobOffer` n'envoie plus `companyName/currency/remote/fieldOfWork/companyInfo`
+     (retirés du schéma, V32) ; `updateJobOffer` utilise `PUT` pour le contenu et `PATCH`
+     pour `status`/`assessmentId` uniquement ; `companyName/companyInfo` sont lus depuis la
+     projection `recruiter`.
+   - **Reste ouvert** : `GET /tests/{token}` toujours bloqué par le filtre Shared (`401`,
+     §15.2) — le tunnel candidat passe donc par `test-attempts` (JWT), pas par le lien
+     public. Les maquettes « Wallet / Referral / Plans & Pricing / paiement du recrutement »
+     n'ont **aucun endpoint** (voir `docs/SCREENS_1TO1_PLAN.md` §2). Le formulaire de
+     création d'offre reste à aligner 1:1 sur les maquettes 204-217 (accordéon métier,
+     devise/période de salaire).
+
+   - **Recherche d'offres candidat** : le Search candidat/étudiant lit désormais le contrat
+     public `GET /job-offers` (+ `q`/`location`/`contractType`/`experienceLevel`) via
+     `JobsRepository.searchJobOffers`, au lieu du deck fits qui appelait des routes
+     disparues (§15.10). Le tap sur une offre ouvre le détail puis le tunnel de test.
+
+   Vérifié : `flutter analyze` sans erreur (73 infos/warnings préexistants, inchangé) ;
+   nouveau test de parsing `test/features/jobs/data/test_attempt_parsing_test.dart` (5 verts).

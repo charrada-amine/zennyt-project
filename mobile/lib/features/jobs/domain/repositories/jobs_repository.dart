@@ -1,12 +1,23 @@
 import 'package:zennyt/features/jobs/domain/entities/assessment.dart';
 import '../entities/job.dart' show ContractType, WorkplaceType, ExperienceLevel, JobStatus, JobOffer;
 import 'package:zennyt/features/jobs/domain/entities/job_position.dart';
+import 'package:zennyt/features/jobs/domain/entities/test_attempt.dart';
 
 /// Abstraction over the recruitment API's job-offer and assessment
 /// management endpoints. Implementations throw typed `ApiException`s.
 abstract class JobsRepository {
   Future<List<JobOffer>> getJobOffers();
   Future<JobOffer> getJobOfferById(String id);
+
+  /// Public search of ACTIVE offers (`GET /job-offers`) — used by the
+  /// candidate/student Search tab. Returns offer summaries mapped to [JobOffer].
+  Future<List<JobOffer>> searchJobOffers({
+    String? query,
+    String? location,
+    ContractType? contractType,
+    ExperienceLevel? experienceLevel,
+  });
+
   Future<JobOffer> createJobOffer(CreateJobOfferParams params);
   Future<JobOffer> updateJobOffer(UpdateJobOfferParams params);
   Future<void> deleteJobOffer(String id);
@@ -27,6 +38,37 @@ abstract class JobsRepository {
   Future<JobOffer> assignAssessmentToJob({
     required String jobId,
     required String? assessmentId,
+  });
+
+  // ── Hard-skills test attempts & results (contract §5.8/§5.9) ─────────────
+
+  /// Starts the candidate's single, final attempt for an offer. Throws a 409
+  /// `ATTEMPT_ALREADY_CONSUMED` if a result already exists.
+  Future<TestAttemptStarted> startTestAttempt(String jobOfferId);
+
+  /// Submits the candidate's answers (indices in the presented order). The
+  /// server scores; the client never sends a computed score.
+  Future<TestResult> submitTestAttempt({
+    required String attemptId,
+    required List<TestAttemptAnswer> answers,
+  });
+
+  /// Explicit abandon (back navigation / app closed) → `ABANDONED`, score 0.
+  Future<TestResult> abandonTestAttempt(String attemptId);
+
+  /// The candidate's own result for an offer, or null when not attempted yet.
+  Future<TestResult?> getMyTestResult(String jobOfferId);
+
+  /// Recruiter list of results for an owned offer, joined to candidates.
+  Future<TestResultPage> getJobTestResults(String jobOfferId, {int page = 0, int size = 20});
+
+  /// Server-side aggregate over the whole result set (not just the page).
+  Future<TestResultsSummary> getJobTestResultsSummary(String jobOfferId);
+
+  /// Per-question correction for one candidate (recruiter, owner).
+  Future<TestResultDetail> getJobTestResultDetail({
+    required String jobOfferId,
+    required String candidateId,
   });
 }
 
@@ -107,6 +149,7 @@ class UpdateJobOfferParams {
   final String? howToApply;
   final String? companyInfo;
   final String? assessmentId;
+  final String? jobPositionId;
   final bool? openToInternational;
   final JobStatus? status;
 
@@ -132,6 +175,7 @@ class UpdateJobOfferParams {
     this.howToApply,
     this.companyInfo,
     this.assessmentId,
+    this.jobPositionId,
     this.openToInternational,
     this.status,
   });

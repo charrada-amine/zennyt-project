@@ -63,6 +63,7 @@ class AppRoutes {
       '/profile-settings/account-center/personal-informations';
   static const String privacyPolicy =
       '/profile-settings/account-center/privacy-policy';
+  static const String termsOfUse = '/profile-settings/terms-of-use';
   static const String userProfile = '/user-profile';
   static const String editProfile = '/edit-profile';
   static const String recruiterEditProfile = '/recruiter-edit-profile';
@@ -80,6 +81,7 @@ class AppRoutes {
   static const String jobDetail = '/jobs/:jobId';
   static const String editJob = '/jobs/:jobId/edit';
   static const String jobResults = '/jobs/:jobId/results';
+  static const String jobTest = '/jobs/:jobId/test';
   static const String createAssessment = '/assessments/create';
   static const String assessmentDetail = '/assessments/:assessmentId';
   static const String editAssessment = '/assessments/:assessmentId/edit';
@@ -129,6 +131,7 @@ class AppRoutes {
   static const String nAccountCenter = 'accountCenter';
   static const String nPersonalInformations = 'personalInformations';
   static const String nPrivacyPolicy = 'privacyPolicy';
+  static const String nTermsOfUse = 'termsOfUse';
   static const String nUserProfile = 'userProfile';
   static const String nEditProfile = 'editProfile';
   static const String nRecruiterEditProfile = 'recruiterEditProfile';
@@ -143,6 +146,7 @@ class AppRoutes {
   static const String nJobDetail = 'jobDetail';
   static const String nEditJob = 'editJob';
   static const String nJobResults = 'jobResults';
+  static const String nJobTest = 'jobTest';
   static const String nCreateAssessment = 'createAssessment';
   static const String nAssessmentDetail = 'assessmentDetail';
   static const String nEditAssessment = 'editAssessment';

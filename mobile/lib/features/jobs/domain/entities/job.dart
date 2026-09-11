@@ -135,10 +135,16 @@ class JobOffer extends Equatable {
   final JobStatus status;
   final DateTime postedAt;
 
-  /// F17 (FITSCORE_REMEDIATION.md §3 index F17) — the candidate's Fit Score for
-  /// this offer. "Absent si non connecté" per the contract: null on the
-  /// recruiter's own offer list (no candidate context), populated on the
-  /// candidate-facing deck/search results.
+  /// Recruiter-facing stats joined by the backend for list/detail views.
+  final int applicantCount;
+
+  /// `%` of candidates who passed every evaluation. Null when unavailable.
+  final int? successRate;
+
+  /// Public share URL for the offer, when the backend provides one.
+  final String? shareableLink;
+
+  /// F17 — the candidate's Fit Score for this offer.
   final int? fitScore;
 
   /// F16/F19/F29 (FITSCORE_REMEDIATION.md §3) — recruiter-facing signal: is a
@@ -173,6 +179,9 @@ class JobOffer extends Equatable {
     required this.openToInternational,
     required this.status,
     required this.postedAt,
+    this.applicantCount = 0,
+    this.successRate,
+    this.shareableLink,
     this.fitScore,
     this.hardSkillsAlert = HardSkillsAlertLevel.none,
   });
@@ -204,6 +213,9 @@ class JobOffer extends Equatable {
     bool? openToInternational,
     JobStatus? status,
     DateTime? postedAt,
+    int? applicantCount,
+    int? successRate,
+    String? shareableLink,
     int? fitScore,
     HardSkillsAlertLevel? hardSkillsAlert,
   }) {
@@ -234,6 +246,9 @@ class JobOffer extends Equatable {
       openToInternational: openToInternational ?? this.openToInternational,
       status: status ?? this.status,
       postedAt: postedAt ?? this.postedAt,
+      applicantCount: applicantCount ?? this.applicantCount,
+      successRate: successRate ?? this.successRate,
+      shareableLink: shareableLink ?? this.shareableLink,
       fitScore: fitScore ?? this.fitScore,
       hardSkillsAlert: hardSkillsAlert ?? this.hardSkillsAlert,
     );
@@ -253,6 +268,7 @@ class JobOffer extends Equatable {
     experienceLevel, fieldOfWork, description, responsibilities,
     minimumQualifications, preferredQualifications, whatWeOffer,
     howToApply, companyInfo, assessmentId, jobPositionId, openToInternational,
-    status, postedAt, fitScore, hardSkillsAlert,
+    status, postedAt, applicantCount, successRate, shareableLink, fitScore,
+    hardSkillsAlert,
   ];
 }

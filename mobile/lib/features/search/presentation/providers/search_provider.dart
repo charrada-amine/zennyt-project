@@ -5,6 +5,7 @@ import '../../../auth/presentation/current_user_provider.dart';
 import '../../../fits/domain/entities/candidate_profile.dart';
 import '../../../fits/presentation/providers/swipe_deck_provider.dart';
 import '../../../fits/presentation/widgets/fit_card_data.dart';
+import '../../../jobs/presentation/providers/jobs_provider.dart';
 
 /// Filtres appliqués depuis /search-filter. `null` = filtre inactif.
 /// Les valeurs sont les valeurs "wire" du backend (FULL_TIME, JUNIOR, HYBRID…).
@@ -63,8 +64,11 @@ final _allCandidatesProvider =
   return ref.watch(fitsRepositoryProvider).getCandidateFeed(job.id);
 });
 
+/// Offres actives, lues via le contrat public `GET /job-offers` (le deck de
+/// swipe du module fits appelait des routes retirées du contrat — voir
+/// RECRUITMENT_MODULE.md §15.10). C'est la source du Search candidat/étudiant.
 final _allJobOffersProvider = FutureProvider.autoDispose((ref) {
-  return ref.watch(fitsRepositoryProvider).getCandidateDeck();
+  return ref.watch(jobsRepositoryProvider).searchJobOffers();
 });
 
 final searchResultsProvider = Provider.autoDispose<AsyncValue<List<FitCardData>>>((ref) {

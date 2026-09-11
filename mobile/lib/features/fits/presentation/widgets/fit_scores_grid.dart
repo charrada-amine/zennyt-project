@@ -7,8 +7,14 @@ import 'tinder_card.dart';
 
 /// Adaptive browse cards. Natural height accommodates large text and long titles.
 class FitScoresGrid extends StatelessWidget {
-  const FitScoresGrid({super.key, required this.items});
+  const FitScoresGrid({super.key, required this.items, this.onJobTap});
+
   final List<FitCardData> items;
+
+  /// Optional override for job-offer cards: when provided, tapping a job opens
+  /// the job detail page instead of the generic preview sheet. Candidate cards
+  /// keep the preview sheet. Additive — existing callers keep the old behavior.
+  final void Function(FitCardData item)? onJobTap;
 
   @override
   Widget build(BuildContext context) => Column(
@@ -26,6 +32,10 @@ class FitScoresGrid extends StatelessWidget {
                   borderRadius: BorderRadius.circular(24),
                   onTap: () {
                     SoundService.instance.vibrateSelection();
+                    if (item.type == FitCardType.jobOffer && onJobTap != null) {
+                      onJobTap!(item);
+                      return;
+                    }
                     showModalBottomSheet<void>(
                       context: context,
                       isScrollControlled: true,

@@ -5,6 +5,7 @@ import 'package:zennyt/features/jobs/domain/entities/assessment.dart';
 import 'package:zennyt/features/jobs/domain/entities/job.dart';
 import 'package:zennyt/features/jobs/domain/repositories/jobs_repository.dart';
 import 'package:zennyt/features/jobs/domain/entities/job_position.dart';
+import 'package:zennyt/features/jobs/domain/entities/test_attempt.dart';
 /// [JobsRepository] backed by Dio, talking to the integrated recruitment API.
 ///
 /// Route/field names below are the merged backend's actual contract
@@ -32,6 +33,27 @@ class JobsRepositoryImpl implements JobsRepository {
   }
 
   @override
+  Future<List<JobOffer>> searchJobOffers({
+    String? query,
+    String? location,
+    ContractType? contractType,
+    ExperienceLevel? experienceLevel,
+  }) {
+    return _guard(() async {
+      final res = await _dio.get<Map<String, dynamic>>('/job-offers', queryParameters: {
+        if (query != null && query.trim().isNotEmpty) 'q': query.trim(),
+        if (location != null && location.trim().isNotEmpty) 'location': location.trim(),
+        if (contractType != null) 'contractType': contractType.value,
+        if (experienceLevel != null) 'experienceLevel': experienceLevel.value,
+      });
+      final content = res.data!['content'] as List? ?? const [];
+      return content
+          .map((e) => _jobFromJson(e as Map<String, dynamic>))
+          .toList();
+    });
+  }
+
+  @override
   Future<JobOffer> createJobOffer(CreateJobOfferParams p) {
     return _guard(() async {
       // F24 (FITSCORE_REMEDIATION.md §3 index F24): `CreateJobOfferRequest` has
@@ -43,24 +65,19 @@ class JobsRepositoryImpl implements JobsRepository {
       // right after this returns (see JobOffersNotifier.createJob).
       final res = await _dio.post<Map<String, dynamic>>('/job-offers', data: {
         'title': p.title,
-        'companyName': p.companyName,
         'city': p.city,
         'country': p.country,
-        'remote': p.remote,
         'salaryMin': p.salaryMin,
         'salaryMax': p.salaryMax,
-        'currency': p.currency,
         'contractType': p.contractType.value,
         'workplaceType': p.workplaceType.value,
         'experienceLevel': p.experienceLevel.value,
-        'fieldOfWork': p.fieldOfWork,
         'description': p.description,
         'responsibilities': p.responsibilities,
         'minimumQualifications': p.minimumQualifications,
         'preferredQualifications': p.preferredQualifications,
         'whatWeOffer': p.whatWeOffer,
         'howToApply': p.howToApply,
-        'companyInfo': p.companyInfo,
         'openToInternational': p.openToInternational,
         // F06 (FITSCORE_REMEDIATION.md §3 index F06): required server-side
         // since the AI-fallback path was removed — every create call failed
@@ -76,31 +93,45 @@ class JobsRepositoryImpl implements JobsRepository {
   @override
   Future<JobOffer> updateJobOffer(UpdateJobOfferParams p) {
     return _guard(() async {
-      final body = <String, dynamic>{
+      // Content changes go through PUT (same shape as create). The backend
+      // PATCH only accepts `status`/`assessmentId` and runs with
+      // fail-on-unknown-properties — sending the whole form via PATCH 400s
+      // (contract §5.2, F23/F24).
+      final putBody = <String, dynamic>{
         if (p.title != null) 'title': p.title,
-        if (p.companyName != null) 'companyName': p.companyName,
         if (p.city != null) 'city': p.city,
         if (p.country != null) 'country': p.country,
-        if (p.remote != null) 'remote': p.remote,
         if (p.salaryMin != null) 'salaryMin': p.salaryMin,
         if (p.salaryMax != null) 'salaryMax': p.salaryMax,
-        if (p.currency != null) 'currency': p.currency,
         if (p.contractType != null) 'contractType': p.contractType!.value,
         if (p.workplaceType != null) 'workplaceType': p.workplaceType!.value,
         if (p.experienceLevel != null) 'experienceLevel': p.experienceLevel!.value,
-        if (p.fieldOfWork != null) 'fieldOfWork': p.fieldOfWork,
         if (p.description != null) 'description': p.description,
         if (p.responsibilities != null) 'responsibilities': p.responsibilities,
         if (p.minimumQualifications != null) 'minimumQualifications': p.minimumQualifications,
         if (p.preferredQualifications != null) 'preferredQualifications': p.preferredQualifications,
         if (p.whatWeOffer != null) 'whatWeOffer': p.whatWeOffer,
         if (p.howToApply != null) 'howToApply': p.howToApply,
-        if (p.companyInfo != null) 'companyInfo': p.companyInfo,
-        if (p.assessmentId != null) 'assessmentId': p.assessmentId,
         if (p.openToInternational != null) 'openToInternational': p.openToInternational,
-        if (p.status != null) 'status': p.status!.value,
+        if (p.jobPositionId != null) 'jobPositionId': p.jobPositionId,
       };
-      final res = await _dio.patch<Map<String, dynamic>>('/job-offers/${p.id}', data: body);
+      Response<Map<String, dynamic>>? res;
+      if (putBody.isNotEmpty) {
+        res = await _dio.put<Map<String, dynamic>>('/job-offers/${p.id}', data: putBody);
+      }
+      if (p.assessmentId != null) {
+        res = await _dio.patch<Map<String, dynamic>>(
+          '/job-offers/${p.id}',
+          data: {'assessmentId': p.assessmentId},
+        );
+      }
+      if (p.status != null) {
+        res = await _dio.patch<Map<String, dynamic>>(
+          '/job-offers/${p.id}/status',
+          data: {'status': p.status!.value},
+        );
+      }
+      res ??= await _dio.get<Map<String, dynamic>>('/job-offers/${p.id}');
       return _jobFromJson(res.data!);
     });
   }
@@ -220,44 +251,142 @@ class JobsRepositoryImpl implements JobsRepository {
     });
   }
 
+  // ── Hard-skills test attempts & results ───────────────────────────────────
+
+  @override
+  Future<TestAttemptStarted> startTestAttempt(String jobOfferId) {
+    return _guard(() async {
+      final res = await _dio.post<Map<String, dynamic>>(
+        '/job-offers/$jobOfferId/test-attempts',
+      );
+      return TestAttemptStarted.fromJson(res.data!);
+    });
+  }
+
+  @override
+  Future<TestResult> submitTestAttempt({
+    required String attemptId,
+    required List<TestAttemptAnswer> answers,
+  }) {
+    return _guard(() async {
+      final res = await _dio.post<Map<String, dynamic>>(
+        '/test-attempts/$attemptId/submit',
+        data: {'answers': answers.map((a) => a.toJson()).toList()},
+      );
+      return TestResult.fromJson(res.data!);
+    });
+  }
+
+  @override
+  Future<TestResult> abandonTestAttempt(String attemptId) {
+    return _guard(() async {
+      final res = await _dio.post<Map<String, dynamic>>('/test-attempts/$attemptId/abandon');
+      return TestResult.fromJson(res.data!);
+    });
+  }
+
+  @override
+  Future<TestResult?> getMyTestResult(String jobOfferId) {
+    return _guard(() async {
+      try {
+        final res = await _dio.get<Map<String, dynamic>>(
+          '/job-offers/$jobOfferId/test-results/me',
+        );
+        return TestResult.fromJson(res.data!);
+      } on DioException catch (e) {
+        if (e.response?.statusCode == 404) return null;
+        throw ApiException.fromDio(e);
+      }
+    });
+  }
+
+  @override
+  Future<TestResultPage> getJobTestResults(String jobOfferId, {int page = 0, int size = 20}) {
+    return _guard(() async {
+      final res = await _dio.get<Map<String, dynamic>>(
+        '/job-offers/$jobOfferId/test-results',
+        queryParameters: {'page': page, 'size': size},
+      );
+      return TestResultPage.fromJson(res.data!);
+    });
+  }
+
+  @override
+  Future<TestResultsSummary> getJobTestResultsSummary(String jobOfferId) {
+    return _guard(() async {
+      final res = await _dio.get<Map<String, dynamic>>(
+        '/job-offers/$jobOfferId/test-results/summary',
+      );
+      return TestResultsSummary.fromJson(res.data!);
+    });
+  }
+
+  @override
+  Future<TestResultDetail> getJobTestResultDetail({
+    required String jobOfferId,
+    required String candidateId,
+  }) {
+    return _guard(() async {
+      final res = await _dio.get<Map<String, dynamic>>(
+        '/job-offers/$jobOfferId/test-results/$candidateId',
+      );
+      return TestResultDetail.fromJson(res.data!);
+    });
+  }
+
   // --- mappers -------------------------------------------------------------
 
-  static JobOffer _jobFromJson(Map<String, dynamic> json) => JobOffer(
-        id: json['id'] as String,
-        recruiterId: json['recruiterId'] as String? ?? '',
-        title: json['title'] as String? ?? '',
-        companyName: json['companyName'] as String? ?? '',
-        city: json['city'] as String? ?? '',
-        country: json['country'] as String? ?? '',
-        remote: json['remote'] as bool? ?? false,
-        salaryMin: (json['salaryMin'] as num?)?.toDouble() ?? 0,
-        salaryMax: (json['salaryMax'] as num?)?.toDouble() ?? 0,
-        currency: json['currency'] as String? ?? '',
-        contractType: ContractType.fromString(json['contractType'] as String? ?? ''),
-        workplaceType: WorkplaceType.fromString(json['workplaceType'] as String? ?? ''),
-        experienceLevel:
-            ExperienceLevel.fromString(json['experienceLevel'] as String? ?? ''),
-        fieldOfWork: json['fieldOfWork'] as String? ?? '',
-        description: json['description'] as String? ?? '',
-        responsibilities: json['responsibilities'] as String? ?? '',
-        minimumQualifications: json['minimumQualifications'] as String? ?? '',
-        preferredQualifications: json['preferredQualifications'] as String? ?? '',
-        whatWeOffer: json['whatWeOffer'] as String? ?? '',
-        howToApply: json['howToApply'] as String? ?? '',
-        companyInfo: json['companyInfo'] as String? ?? '',
-        assessmentId: json['assessmentId'] as String?,
-        jobPositionId: json['jobPositionId'] as String?,
-        openToInternational: json['openToInternational'] as bool? ?? false,
-        status: JobStatus.fromString(json['status'] as String? ?? 'ACTIVE'),
-        postedAt: json['postedAt'] != null
-            ? DateTime.tryParse(json['postedAt'] as String) ?? DateTime.now()
-            : DateTime.now(),
-        // F16/F17/F19 (FITSCORE_REMEDIATION.md §3): null on the recruiter's own
-        // offer list (no candidate context — "absent si non connecté" per the
-        // contract), populated on the candidate-facing deck/search response.
-        fitScore: (json['fitScore'] as num?)?.toInt(),
-        hardSkillsAlert: HardSkillsAlertLevel.fromString(json['hardSkillsAlert'] as String?),
-      );
+  static JobOffer _jobFromJson(Map<String, dynamic> json) {
+    // companyName/companyInfo are joined at read time from the Identity actor
+    // projection (`recruiter`), never stored on the offer (contract §5.2,
+    // migrations V31/V32). `fieldOfWork`/`currency`/`remote` no longer exist on
+    // the wire — kept on the entity for the editor, derived here.
+    final recruiter = json['recruiter'] as Map<String, dynamic>? ?? const {};
+    final workplace = WorkplaceType.fromString(json['workplaceType'] as String? ?? '');
+    return JobOffer(
+      id: json['id'] as String,
+      recruiterId: json['recruiterId'] as String? ?? '',
+      title: json['title'] as String? ?? '',
+      companyName: json['companyName'] as String? ??
+          recruiter['companyName'] as String? ??
+          '',
+      city: json['city'] as String? ?? '',
+      country: json['country'] as String? ?? '',
+      remote: json['remote'] as bool? ?? (workplace == WorkplaceType.remote),
+      salaryMin: (json['salaryMin'] as num?)?.toDouble() ?? 0,
+      salaryMax: (json['salaryMax'] as num?)?.toDouble() ?? 0,
+      currency: json['currency'] as String? ?? '',
+      contractType: ContractType.fromString(json['contractType'] as String? ?? ''),
+      workplaceType: workplace,
+      experienceLevel:
+          ExperienceLevel.fromString(json['experienceLevel'] as String? ?? ''),
+      fieldOfWork: json['fieldOfWork'] as String? ?? '',
+      description: json['description'] as String? ?? '',
+      responsibilities: json['responsibilities'] as String? ?? '',
+      minimumQualifications: json['minimumQualifications'] as String? ?? '',
+      preferredQualifications: json['preferredQualifications'] as String? ?? '',
+      whatWeOffer: json['whatWeOffer'] as String? ?? '',
+      howToApply: json['howToApply'] as String? ?? '',
+      companyInfo: json['companyInfo'] as String? ??
+          recruiter['companyInfo'] as String? ??
+          '',
+      assessmentId: json['assessmentId'] as String?,
+      jobPositionId: json['jobPositionId'] as String?,
+      openToInternational: json['openToInternational'] as bool? ?? false,
+      status: JobStatus.fromString(json['status'] as String? ?? 'ACTIVE'),
+      postedAt: json['postedAt'] != null
+          ? DateTime.tryParse(json['postedAt'] as String) ?? DateTime.now()
+          : DateTime.now(),
+      applicantCount: (json['applicantCount'] as num?)?.toInt() ?? 0,
+      successRate: (json['successRate'] as num?)?.toInt(),
+      shareableLink: json['shareableLink'] as String?,
+      // F16/F17/F19 (FITSCORE_REMEDIATION.md §3): null on the recruiter's own
+      // offer list (no candidate context — "absent si non connecté" per the
+      // contract), populated on the candidate-facing deck/search response.
+      fitScore: (json['fitScore'] as num?)?.toInt(),
+      hardSkillsAlert: HardSkillsAlertLevel.fromString(json['hardSkillsAlert'] as String?),
+    );
+  }
 
   static Assessment _assessmentFromJson(Map<String, dynamic> json) {
     final rawQuestions = json['questions'] as List? ?? [];
