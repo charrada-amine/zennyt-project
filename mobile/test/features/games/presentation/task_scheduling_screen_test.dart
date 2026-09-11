@@ -234,7 +234,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(order(tester).indexOf(movedTask), greaterThan(0));
-    expect(find.text('1 déplacement(s) · sans pénalité'), findsOneWidget);
+    expect(find.text('1 déplacement(s)'), findsOneWidget);
     expect(find.byIcon(Icons.drag_indicator_rounded), findsNothing);
   });
 
@@ -363,7 +363,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Manche 2 / 2'), findsOneWidget);
     expect(
-      find.text('0 déplacement(s) · sans pénalité'),
+      find.text('0 déplacement(s)'),
       findsOneWidget,
       reason: 'plateau neuf',
     );
@@ -442,14 +442,13 @@ void main() {
     expect(envoye['universeId'], 'restaurant,restaurant');
   });
 
-  testWidgets('réordonner une tâche ne compte pas comme une correction', (
+  testWidgets('un déplacement ne perd ni ne duplique de tâche', (
     tester,
   ) async {
-    // Le défaut : le placement ne remplissait que le premier créneau libre.
-    // Insérer une tâche au rang 3 quand six étaient posées imposait d'en
-    // retirer quatre — et le barème d'autorégulation tombe à zéro au-delà de
-    // trois corrections. La rigidité de l'écran coûtait donc la composante à
-    // qui réorganisait une seule fois.
+    // Ce test porte sur l'INTÉGRITÉ de la liste, pas sur le comptage des
+    // corrections — celui-ci a son propre test juste en dessous. Ici on vérifie
+    // qu'un déplacement, dans un sens comme dans l'autre, ne perd ni ne duplique
+    // aucune tâche.
     final repo = await start(tester, levelCount: 1, universeIndex: 0);
 
     for (var task = 0; task < 12; task++) {
@@ -492,8 +491,60 @@ void main() {
     await tester.pumpAndSettle();
 
     final envoye = repo.submitted!.toJson();
-    expect(envoye['proactiveAdjustments'], 0);
+    // Le comptage des corrections a son propre test ; ici on ne vérifie que
+    // l'invariant : sans signal d'erreur pendant la manche, aucune correction
+    // ne peut être « réactive » au sens du référentiel.
     expect(envoye['reactiveAdjustments'], 0);
+  });
+
+  testWidgets('seul un RETOUR sur une carte compte comme correction', (
+    tester,
+  ) async {
+    // Compter tous les déplacements serait faux : trier douze cartes en demande
+    // sept au minimum, et le barème du client donne 0 point au-delà de neuf sur
+    // une partie. Chacun tomberait à 0/2. Dans ce plateau, glisser une carte
+    // n'est pas une correction — c'est la façon de jouer. Y REVENIR en est une.
+    await start(tester, levelCount: 1, universeIndex: 0);
+    final dynamic etat = tester.state<State<TaskSchedulingScreen>>(
+      find.byType(TaskSchedulingScreen),
+    );
+
+    // On vise les cartes par leur IDENTITÉ, jamais par leur position : après un
+    // déplacement les index glissent, et « bouger l'index 3 » finirait par
+    // reprendre une carte déjà déplacée sans qu'on s'en aperçoive.
+    Future<void> bouger(int carte, int vers) async {
+      final depuis = (etat.slotsForTest as List<int>).indexOf(carte);
+      etat.moveSlotForTest(depuis, vers);
+      await tester.pumpAndSettle();
+    }
+
+    final depart = List<int>.from(etat.slotsForTest as List<int>);
+    final quatre = depart.take(4).toList();
+
+    for (final carte in quatre) {
+      await bouger(carte, 8);
+    }
+    expect(
+      etat.proactiveAdjustmentsForTest,
+      0,
+      reason: 'quatre cartes différentes : du rangement, aucun retour',
+    );
+
+    // On revient sur la première : c'est une correction.
+    await bouger(quatre.first, 0);
+    expect(etat.proactiveAdjustmentsForTest, 1);
+
+    // Et une seconde fois sur la même.
+    await bouger(quatre.first, 6);
+    expect(etat.proactiveAdjustmentsForTest, 2);
+
+    // Une carte encore jamais touchée ne compte toujours pas.
+    await bouger(depart.last, 3);
+    expect(
+      etat.proactiveAdjustmentsForTest,
+      2,
+      reason: 'le premier geste sur une carte reste du rangement',
+    );
   });
 
   testWidgets('le nombre de manches jouées part avec les mesures', (

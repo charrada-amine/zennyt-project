@@ -123,11 +123,36 @@ class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen> {
   Future<GameSession>? _sessionStart;
   GameSession? _serverSession;
 
-  // Choix utilisateur du 2026-09-11 : déplacements libres, comptés localement.
-  // Ils n'alimentent pas les corrections pénalisées par TaskSchedulingConfig
-  // (backend) / day_stack_scoring.dart (mock).
-  static const int _proactiveAdjustments = 0;
-  static const int _reactiveAdjustments = 0;
+  /// Corrections au sens du référentiel : les RETOURS EN ARRIÈRE.
+  ///
+  /// Compter tous les déplacements serait faux. Trier douze cartes mélangées en
+  /// demande sept au minimum, même en jouant parfaitement — vingt et un sur une
+  /// partie de trois manches — alors que le barème du client donne 0 point
+  /// au-delà de neuf. Chacun tomberait à 0/2, le symétrique du défaut qu'on
+  /// corrige. Dans ce plateau, glisser une carte n'est pas une correction :
+  /// c'est la façon de jouer.
+  ///
+  /// Revenir sur une carte DÉJÀ déplacée, en revanche, est bien une correction :
+  /// le joueur défait un ordre qu'il avait lui-même posé. C'est cela que le
+  /// référentiel veut voir — « monitoring et flexibilité cognitive »
+  /// (Miyake et al., 2000), cité par le document du client.
+  int _proactiveAdjustments = 0;
+
+  /// Corrections déclenchées par un signal d'erreur du système.
+  ///
+  /// Nécessairement nulles ici : le plateau n'affiche AUCUNE violation pendant
+  /// la manche — elles n'apparaissent qu'au débrief. Sans signal en cours de
+  /// jeu, une correction réactive au sens du client ne peut pas exister. Le
+  /// jour où le plateau signalerait les erreurs en direct, c'est ce compteur-là
+  /// qui s'alimenterait.
+  final int _reactiveAdjustments = 0;
+
+  /// Cartes déjà déplacées dans la manche en cours.
+  ///
+  /// Remis à zéro à chaque manche — l'univers change, les cartes aussi. Les
+  /// corrections, elles, s'accumulent sur toute la partie : ce sont des mesures
+  /// de PARTIE, et le serveur met ses seuils à l'échelle du nombre de manches.
+  final Set<int> _movedOnce = <int>{};
 
   /// Instant d'ouverture du plateau, pour la latence de planification.
   DateTime? _boardShownAt;
@@ -182,10 +207,12 @@ class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen> {
     _slots = List<int>.generate(_universe.tasks.length, (i) => i)..shuffle();
     _validatedSchedule = null;
     _moveCount = 0;
+    _movedOnce.clear();
     _boardShownAt = null;
     // La latence initiale est conservée entre les manches de la partie.
     if (_level == 1) {
       _planningLatencyMs = null;
+      _proactiveAdjustments = 0;
     }
     _serverSession = null;
     _busy = false;
@@ -230,6 +257,9 @@ class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen> {
       final task = _slots.removeAt(from);
       _slots.insert(to, task);
       _moveCount++;
+      // Premier geste sur cette carte : c'est du rangement. Y revenir : c'est
+      // se corriger.
+      if (!_movedOnce.add(task)) _proactiveAdjustments++;
     });
   }
 
@@ -245,6 +275,10 @@ class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen> {
 
   @visibleForTesting
   void moveSlotForTest(int from, int to) => _moveSlot(from, to);
+
+  /// Corrections comptées jusqu'ici, pour les tests.
+  @visibleForTesting
+  int get proactiveAdjustmentsForTest => _proactiveAdjustments;
 
   /// Part de temps mort sur l'ensemble de la partie.
   ///
@@ -693,7 +727,11 @@ class _GameplayViewState extends State<_GameplayView> {
           ),
           const SizedBox(height: 8),
           Text(
-            '${widget.moveCount} déplacement(s) · sans pénalité',
+            // Plus de « sans pénalité » : revenir sur une carte compte
+            // désormais dans l'autorégulation, et l'affirmer serait faux. On
+            // n'annonce pas non plus la règle exacte — le référentiel observe
+            // une conduite spontanée, la dire inviterait à la simuler.
+            '${widget.moveCount} déplacement(s)',
             key: const ValueKey('day-stack-progress'),
             style: const TextStyle(color: Colors.white, fontSize: 12),
           ),
@@ -1409,7 +1447,7 @@ class _HowToPlayView extends StatelessWidget {
                 'normalement. Pour changer une position, maintiens directement '
                 'la carte puis déplace-la. Garde-la près du bord pour faire '
                 'défiler pendant le déplacement. '
-                'Les déplacements sont sans pénalité ; seule la validation évalue ton planning.',
+                'Réorganise autant de fois que nécessaire avant de valider.',
           ),
           step(
             Icons.link_rounded,
