@@ -70,7 +70,16 @@ public final class EmotionalRadarV2Config {
     // ── Timing (admin table) ─────────────────────────────────────────────────
 
     /** {@code max_response_time_ms} — temps max autorisé pour répondre. */
-    public static final int MAX_RESPONSE_TIME_MS = 8000;
+    /**
+     * {@code max_response_time_ms} — budget de réponse d'une scène.
+     *
+     * <p>Le référentiel écrit 8 000 ms. Porté à 30 000 ms à la demande du
+     * client : ce budget doit couvrir le VISIONNAGE puis la réponse, or les
+     * clips existants durent jusqu'à 12 s — 8 s ne permettaient même pas de
+     * voir la scène en entier. À rediscuter quand la banque normée fixera une
+     * durée de stimulus stable (le référentiel vise 5 à 8 s).
+     */
+    public static final int MAX_RESPONSE_TIME_MS = 30000;
 
     /** {@code min_impulsive_time_ms} — réponse trop rapide (absence d'analyse). */
     public static final int MIN_IMPULSIVE_TIME_MS = 400;
@@ -81,7 +90,11 @@ public final class EmotionalRadarV2Config {
     public static final boolean NORMING_REQUIRED_BEFORE_USE = true;
 
     /** {@code require_explanation} — justification textuelle demandée au joueur (0–5). */
-    public static final boolean REQUIRE_EXPLANATION = true;
+    // Passé à false : le client a retiré la troisième question de l'écran.
+    // Le référentiel la demandait après chaque réponse — l'écart est assumé, et
+    // `justificationScoringAvailable` reste faux tant qu'aucun texte n'est
+    // collecté, de sorte que le rapport ne prétende pas la noter.
+    public static final boolean REQUIRE_EXPLANATION = false;
 
     public static final int JUSTIFICATION_MIN_SCORE = 0;
     public static final int JUSTIFICATION_MAX_SCORE = 5;

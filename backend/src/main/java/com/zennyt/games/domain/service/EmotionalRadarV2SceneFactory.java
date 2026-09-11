@@ -2,6 +2,7 @@ package com.zennyt.games.domain.service;
 
 import com.zennyt.games.domain.catalog.EmotionReferential;
 import com.zennyt.games.domain.config.EmotionalRadarV2Config;
+import com.zennyt.games.domain.config.EmotionalRadarV2ProvisionalRules;
 import com.zennyt.games.domain.vo.DifficultyLevel;
 import com.zennyt.games.domain.vo.EmotionDefinition;
 import com.zennyt.games.domain.vo.RadarV2SceneAssignment;
@@ -42,7 +43,8 @@ public final class EmotionalRadarV2SceneFactory {
     }
 
     /**
-     * Crée une scène sans média tant que la banque 45 × 3 n'est pas livrée.
+     * Crée une scène : avec sa vidéo si l'émotion tirée fait partie des 3 clips
+     * déjà produits, sans média sinon, tant que la banque 45 × 3 n'est pas livrée.
      *
      * <p>L'UUID public de session n'alimente jamais le tirage. La cible, l'ordre
      * des choix et l'intensité viennent d'un CSPRNG serveur. Les cibles déjà
@@ -76,17 +78,76 @@ public final class EmotionalRadarV2SceneFactory {
          * normés et un protocole serveur non reconstructible.
          */
         Collections.shuffle(available, serverRandom);
-        List<EmotionDefinition> choices = new ArrayList<>(
-            available.subList(0, level.choicesCount()));
-        EmotionDefinition correct = choices.get(serverRandom.nextInt(choices.size()));
+
+        /*
+         * DÉMO : les trois premières scènes visent les émotions qui ont une
+         * vidéo, pour qu'une démonstration les montre à coup sûr. Piloté par
+         * EmotionalRadarV2ProvisionalRules.DEMO_FOOTAGE_FIRST — une fois la
+         * banque livrée, le drapeau retombe et le tirage redevient uniforme.
+         *
+         * La POSITION de la bonne réponse dans la grille reste tirée au sort :
+         * forcer la cible ne doit pas la rendre repérable à l'œil.
+         */
+        EmotionDefinition forced = forcedTarget(sceneOrder, available);
+        List<EmotionDefinition> choices;
+        EmotionDefinition correct;
+        if (forced == null) {
+            choices = new ArrayList<>(available.subList(0, level.choicesCount()));
+            correct = choices.get(serverRandom.nextInt(choices.size()));
+        } else {
+            choices = new ArrayList<>(level.choicesCount());
+            for (EmotionDefinition candidate : available) {
+                if (choices.size() == level.choicesCount() - 1) break;
+                if (!candidate.key().equals(forced.key())) choices.add(candidate);
+            }
+            choices.add(forced);
+            Collections.shuffle(choices, serverRandom);
+            correct = forced;
+        }
         double sceneDifficulty = distractors.sceneDifficulty(correct, choices);
         int intensity = serverRandom.nextInt(
             EmotionalRadarV2Config.STIMULUS_INTENSITY_LEVELS.size());
 
+        List<String> choiceKeys = choices.stream().map(EmotionDefinition::key).toList();
+
+        /*
+         * Les 3 seuls clips produits à ce jour sont rattachés à l'émotion qu'ils
+         * représentent réellement, jamais à un numéro de scène : une vidéo qui
+         * contredit la correction serait pire qu'un placeholder. Le rattachement
+         * est fait ICI parce que le client ignore la cible — et doit continuer
+         * à l'ignorer.
+         */
+        EmotionalRadarV2ProvisionalRules.DemoFootage footage =
+            EmotionalRadarV2ProvisionalRules.DEMO_FOOTAGE.get(correct.key());
+        if (footage != null) {
+            return RadarV2SceneAssignment.ready(
+                sessionId, sceneOrder, levelNumber, choiceKeys,
+                sceneDifficulty, correct.key(), correct.stimulusType(), intensity,
+                correct.sensitiveContentFlag(), servedAt,
+                footage.mediaUrl(), footage.contextualCaption());
+        }
+
         return RadarV2SceneAssignment.pending(
-            sessionId, sceneOrder, levelNumber,
-            choices.stream().map(EmotionDefinition::key).toList(),
+            sessionId, sceneOrder, levelNumber, choiceKeys,
             sceneDifficulty, correct.key(), correct.stimulusType(), intensity,
             correct.sensitiveContentFlag(), servedAt);
+    }
+
+    /**
+     * Émotion imposée pour cette scène en mode démonstration, {@code null} sinon.
+     *
+     * <p>Rend la main si l'émotion a déjà été tirée dans la session : les 15
+     * cibles doivent rester distinctes, cette règle passe avant la démo.
+     */
+    private EmotionDefinition forcedTarget(int sceneOrder,
+                                           List<EmotionDefinition> available) {
+        if (!EmotionalRadarV2ProvisionalRules.DEMO_FOOTAGE_FIRST) return null;
+        List<String> order = EmotionalRadarV2ProvisionalRules.DEMO_FOOTAGE_ORDER;
+        if (sceneOrder < 1 || sceneOrder > order.size()) return null;
+        String key = order.get(sceneOrder - 1);
+        return available.stream()
+            .filter(emotion -> emotion.key().equals(key))
+            .findFirst()
+            .orElse(null);
     }
 }

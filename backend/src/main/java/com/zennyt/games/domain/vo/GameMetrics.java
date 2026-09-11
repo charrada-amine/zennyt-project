@@ -5,6 +5,7 @@ public sealed interface GameMetrics
     permits PlanifikMetrics, TaskSchedulingMetrics, MoveFastMetrics,
             PrevisionPuzzleMetrics, MemoryQuestMetrics, DecisionMetrics,
             EmotionalRadarMetrics, ReflectivePauseMetrics,
+            StrategicChoicesMetrics,
             ContinuousAttentionMetrics, CoordinationMetrics,
             ObjectLocationMetrics {
 }

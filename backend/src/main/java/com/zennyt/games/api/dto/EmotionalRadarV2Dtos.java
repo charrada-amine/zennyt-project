@@ -24,7 +24,7 @@ public final class EmotionalRadarV2Dtos {
     public record AnswerRequest(
         @NotBlank @Size(max = 64) String selectedEmotionKey,
         @NotNull @Min(0) @Max(2) Integer selectedIntensity,
-        @NotBlank @Size(max = 2000) String explanation
+        @Size(max = 2000) String explanation
     ) {
     }
 

@@ -9,6 +9,7 @@ enum MiniGame {
   decisionCore('DECISION_CORE'),
   emotionalRadarCore('EMOTIONAL_RADAR_CORE'),
   reflectivePauseCore('REFLECTIVE_PAUSE_CORE'),
+  strategicChoicesCore('STRATEGIC_CHOICES_CORE'),
   continuousAttentionCore('CONTINUOUS_ATTENTION_CORE'),
   coordinationTrackingCore('COORDINATION_TRACKING_CORE'),
 

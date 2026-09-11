@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,7 +9,17 @@ import '../../../../core/audio/sound_service.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../navigation/presentation/viewmodel/nav_tab_provider.dart';
 import '../../../navigation/presentation/widgets/app_bottom_nav.dart';
+import '../../data/strategic_choices_bank_loader.dart';
 import '../../domain/config/strategic_choices_content.dart';
+import '../../domain/entities/game_score.dart';
+import '../../domain/entities/game_session.dart';
+import '../../domain/entities/game_type.dart';
+import '../../domain/entities/mini_game.dart';
+import '../../domain/entities/score_breakdown.dart';
+import '../../domain/entities/strategic_choices_bank.dart';
+import '../../domain/entities/strategic_choices_metrics.dart';
+import '../emotional_regulation_session_provider.dart';
+import '../games_providers.dart';
 import '../widgets/emotional_game_pause_dialog.dart';
 import '../widgets/game_system_components.dart';
 
@@ -35,6 +46,13 @@ enum _StrategicStage {
 }
 
 enum _ScenarioPhase { reading, reflecting, ready }
+
+/// Situations jouées dans une partie, tirées de la banque des soixante.
+///
+/// La banque du client en compte soixante ; les enchaîner toutes ferait une
+/// séance interminable. Dix par partie conservent la durée annoncée au joueur,
+/// et le tirage change d'une passation à l'autre.
+const int kStrategicChoicesPerJourney = 10;
 
 /// Front-only implementation of the Strategic Choices handoff.
 ///
@@ -63,6 +81,25 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
     with WidgetsBindingObserver {
   _StrategicStage _stage = _StrategicStage.cover;
   _ScenarioPhase _scenarioPhase = _ScenarioPhase.reading;
+
+  /// Les dix situations de la partie en cours.
+  List<StrategicChoiceScenario> _scenarios = const [];
+
+  /// Session serveur de la partie, ouverte au démarrage.
+  GameSession? _session;
+
+  /// Mesures brutes envoyées au serveur — jamais une cotation.
+  final List<StrategicChoiceAnswerMetric> _answerMetrics = [];
+
+  /// Instant d'affichage de la situation courante, pour le délai de réponse.
+  DateTime? _situationShownAt;
+
+  /// Score renvoyé par le serveur, une fois la partie remontée.
+  GameScore? _serverScore;
+  List<ScoreBreakdownLine> _serverBreakdown = const [];
+  bool _submitting = false;
+  String? _submitError;
+
   int _situationIndex = 0;
   Duration _reflectionRemaining = Duration.zero;
   StrategicChoiceStrategy? _selectedStrategy;
@@ -129,12 +166,80 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
   /// Droit de pause de la partie : une ouverture, 30 s (CdC pause §2-3).
   final GamePauseAllowance _pauseAllowance = GamePauseAllowance();
 
-  void _startJourney() {
+  /// Remonte la partie et récupère le score calculé par le serveur.
+  ///
+  /// Le client n'envoie que la situation vue et la stratégie retenue : la
+  /// cotation appartient au catalogue serveur. Un échec ne fait pas perdre la
+  /// partie — l'écran le dit et propose de renvoyer, plutôt que d'afficher un
+  /// tiret muet.
+  Future<void> _submitJourney() async {
+    final session = _session;
+    if (session == null || _submitting) return;
+    setState(() {
+      _submitting = true;
+      _submitError = null;
+    });
+    try {
+      final updated = await ref
+          .read(gamesRepositoryProvider)
+          .submitResult(
+            sessionId: session.id,
+            miniGame: MiniGame.strategicChoicesCore,
+            metrics: StrategicChoicesMetrics(answers: List.of(_answerMetrics)),
+          );
+      ref.read(emotionalRegulationSessionProvider.notifier).keep(updated);
+      if (!mounted) return;
+      setState(() {
+        _session = updated;
+        _serverScore = updated.lastAttempt?.score;
+        _serverBreakdown = updated.scoreBreakdown;
+        _submitting = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _submitError = '$error';
+        _submitting = false;
+      });
+    }
+  }
+
+  /// Tire les situations de la partie, sans répétition.
+  ///
+  /// Un tirage aléatoire plutôt qu'un ordre fixe : jouer toujours les dix
+  /// mêmes fiches sur soixante ferait qu'un joueur repassant l'épreuve
+  /// retrouverait exactement les situations qu'il connaît déjà.
+  List<StrategicChoiceScenario> _drawScenarios(StrategicChoicesBank bank) {
+    final pool = List<StrategicChoiceScenario>.of(bank.scenarios)
+      ..shuffle(math.Random());
+    return pool.take(kStrategicChoicesPerJourney).toList();
+  }
+
+  Future<void> _startJourney() async {
     _reflectionTimer?.cancel();
     _savedTimer?.cancel();
     // Nouvelle partie = nouveau droit de pause.
     _pauseAllowance.reset();
+    final bank = await StrategicChoicesBankLoader.load();
+    if (!mounted) return;
+    // La session est ouverte au démarrage, comme pour les autres jeux : sans
+    // elle, la partie se jouerait puis n'aurait nulle part où être remontée.
+    final sessionStore = ref.read(emotionalRegulationSessionProvider.notifier);
+    final session =
+        sessionStore.reusableFor(MiniGame.strategicChoicesCore) ??
+        await ref
+            .read(gamesRepositoryProvider)
+            .startSession(GameType.emotionalRegulation);
+    sessionStore.keep(session);
+    if (!mounted) return;
     setState(() {
+      _session = session;
+      _scenarios = _drawScenarios(bank);
+      _answerMetrics.clear();
+      _serverScore = null;
+      _serverBreakdown = const [];
+      _submitError = null;
+      _situationShownAt = DateTime.now();
       _stage = _StrategicStage.gameplay;
       _scenarioPhase = _ScenarioPhase.reading;
       _situationIndex = 0;
@@ -208,6 +313,22 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
     } else {
       _answers[_situationIndex] = selected;
     }
+
+    final shownAt = _situationShownAt;
+    final situation = _scenarios[_situationIndex];
+    final mesure = StrategicChoiceAnswerMetric(
+      situationId: situation.id,
+      selectedStrategy: selected,
+      responseTimeMs: shownAt == null
+          ? 0
+          : DateTime.now().difference(shownAt).inMilliseconds,
+      medium: situation.medium,
+    );
+    if (_answerMetrics.length == _situationIndex) {
+      _answerMetrics.add(mesure);
+    } else {
+      _answerMetrics[_situationIndex] = mesure;
+    }
     setState(() => _stage = _StrategicStage.saved);
 
     final delay = _reducedMotion
@@ -215,8 +336,9 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
         : widget.savedTransitionDuration;
     _savedTimer = Timer(delay, () {
       if (!mounted) return;
-      if (_situationIndex + 1 >= StrategicChoicesContent.situations.length) {
+      if (_situationIndex + 1 >= _scenarios.length) {
         setState(() => _stage = _StrategicStage.results);
+        unawaited(_submitJourney());
         return;
       }
       setState(() {
@@ -225,6 +347,7 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
         _reflectionRemaining = widget.reflectionDuration;
         _scenarioPhase = _ScenarioPhase.reading;
         _stage = _StrategicStage.gameplay;
+        _situationShownAt = DateTime.now();
       });
     });
   }
@@ -313,7 +436,8 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
             _RuleLine('4', 'Save your answer and continue.'),
             SizedBox(height: 12),
             Text(
-              'There is no immediate right/wrong correction. This front-only preview does not calculate a score.',
+              'Aucune correction immédiate pendant le parcours : le score est '
+              'calculé à la fin, par le serveur.',
               style: TextStyle(color: _muted, height: 1.4),
             ),
           ],
@@ -402,8 +526,8 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
                 _StrategicStage.gameplay => GameplayMusic(
                   child: _GameplayView(
                     key: ValueKey('strategic-gameplay-$_situationIndex'),
-                    situation:
-                        StrategicChoicesContent.situations[_situationIndex],
+                    situation: _scenarios[_situationIndex],
+                    totalSituations: _scenarios.length,
                     situationNumber: _situationIndex + 1,
                     phase: _scenarioPhase,
                     reflectionRemaining: _reflectionRemaining,
@@ -421,6 +545,11 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
                 ),
                 _StrategicStage.results => _ResultsView(
                   key: const ValueKey('strategic-results'),
+                  score: _serverScore,
+                  breakdown: _serverBreakdown,
+                  submitting: _submitting,
+                  errorMessage: _submitError,
+                  onRetry: _submitJourney,
                   answerCount: _answers.length,
                   onBack: _handleBack,
                   onInsights: () => _setStage(_StrategicStage.insights),
@@ -562,14 +691,13 @@ class _CoverView extends StatelessWidget {
           spacing: 8,
           runSpacing: 8,
           children: [
-            // Annonçait « 10 situations » en dur. Le jeu en joue onze — tout le
-            // reste de l'écran compte déjà sur `situations.length`, seule cette
-            // pastille avait son propre chiffre, et il était faux.
-            _FeatureChip(
-              label: '${StrategicChoicesContent.situations.length} situations',
+            // Le chiffre suit la constante de partie : l'écrire en dur l'avait
+            // déjà laissé faux une fois.
+            const _FeatureChip(
+              label: '$kStrategicChoicesPerJourney situations',
               color: _blue,
             ),
-            const _FeatureChip(label: 'Text preview', color: _magenta),
+            const _FeatureChip(label: 'Vidéo à venir', color: _magenta),
             const _FeatureChip(label: 'Final insights', color: _green),
           ],
         ),
@@ -594,14 +722,20 @@ class _IntroView extends StatelessWidget {
       onBack: onBack,
       title: 'Train the pause before action',
       subtitle:
-          'You will face 10 realistic stressful situations. Choose the coping strategy that best supports thoughtful emotional regulation.',
+          'Vous affronterez $kStrategicChoicesPerJourney situations de '
+          'tension. Choisissez la stratégie qui vous paraît la plus adaptée.',
       buttonLabel: 'Continue',
       onButton: onContinue,
       children: const [
         _AccentInfoCard(
           color: _magenta,
-          title: '10 situations',
-          description: 'Conflict, failure, delay, criticism, and overload.',
+          title: '$kStrategicChoicesPerJourney situations',
+          // L'ancienne liste — « conflit, échec, retard, critique, surcharge » —
+          // reprenait les catégories des dix situations inventées. La banque du
+          // client n'en a aucune : annoncer une taxonomie qui n'existe plus
+          // ferait chercher au joueur une structure absente.
+          description:
+              'Tirées au hasard dans une banque de 60 situations de travail.',
         ),
         _AccentInfoCard(
           color: _blue,
@@ -643,7 +777,8 @@ class _TutorialView extends StatelessWidget {
         _NoticePanel(
           title: 'No immediate correction',
           description:
-              'No right/wrong feedback appears during the journey. This front-only preview also leaves scoring uncalculated.',
+              'Aucun retour juste/faux pendant le parcours. Le score est '
+              'calculé à la fin, par le serveur.',
           outlined: true,
         ),
       ],
@@ -761,6 +896,7 @@ class _GameplayView extends StatelessWidget {
   const _GameplayView({
     super.key,
     required this.situation,
+    required this.totalSituations,
     required this.situationNumber,
     required this.phase,
     required this.reflectionRemaining,
@@ -772,7 +908,10 @@ class _GameplayView extends StatelessWidget {
     required this.affordance,
   });
 
-  final StrategicChoiceSituation situation;
+  final StrategicChoiceScenario situation;
+
+  /// Nombre de situations de la partie, pour l'entête et la progression.
+  final int totalSituations;
   final int situationNumber;
   final _ScenarioPhase phase;
   final Duration reflectionRemaining;
@@ -819,7 +958,7 @@ class _GameplayView extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Situation $situationNumber / ${StrategicChoicesContent.situations.length}',
+                      'Situation $situationNumber / $totalSituations',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
@@ -852,8 +991,7 @@ class _GameplayView extends StatelessWidget {
             borderRadius: BorderRadius.circular(99),
             child: LinearProgressIndicator(
               minHeight: 6,
-              value:
-                  situationNumber / StrategicChoicesContent.situations.length,
+              value: situationNumber / totalSituations,
               color: _magenta,
               backgroundColor: const Color(0xFF817AEC),
             ),
@@ -871,7 +1009,16 @@ class _GameplayView extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        _FeatureChip(label: situation.type, color: _blue),
+                        // Le titre de la fiche remplace l'ancienne étiquette
+                        // de catégorie : la banque du client n'en a pas, et en
+                        // inventer une reviendrait à classer les situations à
+                        // la place du psychologue.
+                        Flexible(
+                          child: _FeatureChip(
+                            label: situation.title,
+                            color: _blue,
+                          ),
+                        ),
                         const Spacer(),
                         if (phase == _ScenarioPhase.reflecting)
                           Semantics(
@@ -915,25 +1062,80 @@ class _GameplayView extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text(
-                            phase == _ScenarioPhase.reading
-                                ? 'TEXT SCENARIO'
-                                : 'SITUATION READ',
-                            style: const TextStyle(
-                              color: Color(0xFFB8F3D6),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w800,
-                            ),
+                          Row(
+                            children: [
+                              Icon(
+                                situation.medium ==
+                                        StrategicChoiceMedium.written
+                                    ? Icons.chat_bubble_outline_rounded
+                                    : Icons.videocam_outlined,
+                                size: 16,
+                                color: const Color(0xFFB8F3D6),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                situation.medium ==
+                                        StrategicChoiceMedium.written
+                                    ? 'MESSAGE REÇU'
+                                    : 'SCÈNE EN FACE À FACE',
+                                style: const TextStyle(
+                                  color: Color(0xFFB8F3D6),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 18),
+                          const SizedBox(height: 14),
+                          // Emplacement du média, tant que la banque vidéo
+                          // n'est pas livrée — même parti pris que le radar et
+                          // le Temps Réflexif. La description de scène tient
+                          // lieu de situation jouable en attendant ; sans
+                          // elle, il n'y aurait rien à lire.
+                          if (situation.medium == StrategicChoiceMedium.video)
+                            Semantics(
+                              label: 'Emplacement de la vidéo, non disponible',
+                              child: Container(
+                                width: double.infinity,
+                                height: 96,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.06),
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.18),
+                                  ),
+                                ),
+                                child: const Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.movie_outlined,
+                                      color: _muted,
+                                      size: 26,
+                                    ),
+                                    SizedBox(height: 6),
+                                    Text(
+                                      'Vidéo à venir',
+                                      style: TextStyle(
+                                        color: _muted,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          const SizedBox(height: 14),
                           Text(
-                            situation.prompt,
+                            situation.scene,
                             key: const ValueKey('strategic-situation-prompt'),
                             style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 20,
-                              height: 1.22,
-                              fontWeight: FontWeight.w800,
+                              fontSize: 16,
+                              height: 1.35,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],
@@ -1209,7 +1411,7 @@ class _SavedView extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                situationNumber < StrategicChoicesContent.situations.length
+                situationNumber < kStrategicChoicesPerJourney
                     ? 'Moving to the next situation...'
                     : 'Preparing your journey recap...',
                 textAlign: TextAlign.center,
@@ -1231,11 +1433,24 @@ class _ResultsView extends StatelessWidget {
   const _ResultsView({
     super.key,
     required this.answerCount,
+    required this.score,
+    required this.breakdown,
+    required this.submitting,
+    required this.errorMessage,
+    required this.onRetry,
     required this.onBack,
     required this.onInsights,
   });
 
   final int answerCount;
+
+  /// Score calculé par le SERVEUR. `null` tant que la remontée n'a pas abouti.
+  final GameScore? score;
+
+  final List<ScoreBreakdownLine> breakdown;
+  final bool submitting;
+  final String? errorMessage;
+  final Future<void> Function() onRetry;
   final VoidCallback onBack;
   final VoidCallback onInsights;
 
@@ -1255,9 +1470,12 @@ class _ResultsView extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        const Text(
-          'A front-only journey recap. No psychometric score is calculated from your choices yet.',
-          style: TextStyle(color: _muted, fontSize: 16, height: 1.45),
+        Text(
+          score == null
+              ? 'Votre parcours est terminé. Le score est calculé par le serveur.'
+              : 'Chaque situation cote ses huit stratégies de 0 à 3 ; '
+                    'le serveur additionne les cotations que vous avez retenues.',
+          style: const TextStyle(color: _muted, fontSize: 16, height: 1.45),
         ),
         const SizedBox(height: 14),
         Container(
@@ -1285,7 +1503,12 @@ class _ResultsView extends StatelessWidget {
                 runSpacing: 8,
                 children: [
                   Text(
-                    '$answerCount / ${StrategicChoicesContent.situations.length}',
+                    // Le score du serveur prend la place du décompte dès qu'il
+                    // arrive ; avant, le décompte dit au moins où en est la
+                    // partie.
+                    score == null
+                        ? '$answerCount / $kStrategicChoicesPerJourney'
+                        : '${score!.rawPoints} / ${score!.maxPoints}',
                     key: const ValueKey('strategic-answer-count'),
                     style: const TextStyle(
                       color: Colors.white,
@@ -1302,9 +1525,9 @@ class _ResultsView extends StatelessWidget {
                       color: _magenta,
                       borderRadius: BorderRadius.circular(99),
                     ),
-                    child: const Text(
-                      'Preview',
-                      style: TextStyle(
+                    child: Text(
+                      score?.level ?? 'Calcul…',
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
@@ -1314,14 +1537,39 @@ class _ResultsView extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Scoring remains unavailable until the calibration rules are validated and connected to the backend.',
-                style: TextStyle(
-                  color: Color(0xFFC9D3EA),
-                  fontSize: 13,
-                  height: 1.4,
+              if (errorMessage != null) ...[
+                Text(
+                  // Un échec de remontée ne doit pas se lire comme un score
+                  // nul : on le nomme, et on propose de renvoyer la même partie.
+                  'Score non calculé — $errorMessage',
+                  key: const ValueKey('strategic-submit-error'),
+                  style: const TextStyle(
+                    color: Color(0xFFFFC9D8),
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
                 ),
-              ),
+                const SizedBox(height: 10),
+                TextButton(
+                  onPressed: submitting ? null : () => onRetry(),
+                  child: const Text(
+                    'Renvoyer le résultat',
+                    style: TextStyle(color: Colors.white, fontSize: 14),
+                  ),
+                ),
+              ] else
+                Text(
+                  submitting
+                      ? 'Calcul du score en cours…'
+                      : 'Barème PROVISOIRE : reconstruit par inférence à partir '
+                            'des titres, sans visionnage des vidéos. À valider '
+                            'par le psychologue.',
+                  style: const TextStyle(
+                    color: Color(0xFFC9D3EA),
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
+                ),
             ],
           ),
         ),
@@ -1422,7 +1670,8 @@ class _InsightsView extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         const Text(
-          'Descriptive observations only. They do not diagnose, rank, or score your emotional regulation.',
+          'Observations descriptives. Elles complètent le score, elles ne le '
+          'remplacent pas, et ne posent aucun diagnostic.',
           style: TextStyle(color: _muted, fontSize: 16, height: 1.45),
         ),
         const SizedBox(height: 18),
@@ -1436,7 +1685,9 @@ class _InsightsView extends StatelessWidget {
           color: _green,
           title: 'Current scope',
           description:
-              'Your choices were kept only for this on-screen recap. No strength is inferred without a validated scoring model.',
+              'Vos réponses sont envoyées au serveur, qui calcule le score. '
+              'Le barème reste provisoire : il a été reconstruit sans '
+              'visionnage des vidéos et attend une validation clinique.',
         ),
         const SizedBox(height: 12),
         const _InsightCard(
@@ -1835,7 +2086,7 @@ class _PendingMetricBar extends StatelessWidget {
               ),
             ),
             const Text(
-              'Not scored',
+              'Barème provisoire',
               style: TextStyle(
                 color: _muted,
                 fontSize: 12,

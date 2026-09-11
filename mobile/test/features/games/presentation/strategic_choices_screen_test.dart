@@ -4,14 +4,31 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zennyt/core/storage/shared_preferences_provider.dart';
 import 'package:zennyt/features/auth/presentation/current_user_provider.dart';
+import 'package:zennyt/features/games/data/strategic_choices_bank_loader.dart';
 import 'package:zennyt/features/games/domain/config/strategic_choices_content.dart';
+import 'package:zennyt/features/games/domain/entities/strategic_choices_bank.dart';
 import 'package:zennyt/features/games/presentation/view/strategic_choices_screen.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  // La banque des 60 situations vient d'un asset : on la précharge une fois
+  // pour que l'écran la retrouve en cache.
+  late StrategicChoicesBank bank;
+  setUpAll(() async {
+    StrategicChoicesBankLoader.resetForTest();
+    bank = await StrategicChoicesBankLoader.load();
+  });
+
   Future<void> pumpGame(WidgetTester tester, {double textScale = 1}) async {
     SharedPreferences.setMockInitialValues({});
     final preferences = await SharedPreferences.getInstance();
-    tester.view.physicalSize = const Size(390 * 3, 844 * 3);
+    // Surface haute : la carte de situation porte désormais l'emplacement du
+    // média et la description de scène du client, bien plus longue que les
+    // phrases inventées d'avant. Sur 844 points, la bande d'état du bas sort du
+    // cadre — et une liste paresseuse ne construit pas ce qu'elle n'affiche
+    // pas, si bien que le test cherchait un texte qui n'existait pas encore.
+    tester.view.physicalSize = const Size(390 * 3, 1500 * 3);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -95,17 +112,14 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  test('catalogue public contains the exact ten text situations', () {
-    expect(StrategicChoicesContent.situations, hasLength(10));
+  test('la banque du client remplace les dix situations inventées', () {
+    // L'écran jouait dix situations écrites à la main en anglais
+    // (STRATEGIC_01 à 10). Elles ne venaient pas du client.
+    expect(bank.scenarios, hasLength(60));
+    expect(bank.scenarios.map((s) => s.id).toSet(), hasLength(60));
     expect(StrategicChoicesContent.strategies, hasLength(8));
-    expect(
-      StrategicChoicesContent.situations.first.prompt,
-      'A colleague criticizes your work in front of the whole team.',
-    );
-    expect(
-      StrategicChoicesContent.situations.last.prompt,
-      'Two team members argue openly during a meeting you are facilitating.',
-    );
+    expect(kStrategicChoicesPerJourney, 10);
+    expect(bank.byId('CS-001').title, 'La réunion interrompue');
   });
 
   testWidgets('cover, tutorial and purple PNG follow the supplied flow', (
@@ -174,7 +188,7 @@ void main() {
     );
   });
 
-  testWidgets('ten choices reach a non-scored recap and descriptive insights', (
+  testWidgets('dix choix mènent au score du serveur et aux observations', (
     tester,
   ) async {
     await pumpGame(tester);
@@ -190,13 +204,28 @@ void main() {
       find.byKey(const ValueKey('strategic-answer-count')),
       findsOneWidget,
     );
-    expect(find.text('10 / 10'), findsOneWidget);
-    expect(find.text('Not scored'), findsWidgets);
-    expect(find.text('82 / 100'), findsNothing);
+    // Le récapitulatif n'est plus « front-only » : le serveur note la partie.
+    // Le joueur coche « Breathe / pause » partout ; sur les dix situations
+    // tirées, le total dépend donc de la banque — on vérifie la FORME du score
+    // et sa cohérence, pas une valeur que le tirage rendrait aléatoire.
+    final compteur = tester.widget<Text>(
+      find.byKey(const ValueKey('strategic-answer-count')),
+    );
+    expect(
+      compteur.data,
+      matches(RegExp(r'^\d+ / 30$')),
+      reason: 'dix situations cotées sur 3 chacune',
+    );
+    final obtenus = int.parse(compteur.data!.split(' / ').first);
+    expect(obtenus, inInclusiveRange(0, 30));
+
     expect(
       find.textContaining('No psychometric score is calculated'),
-      findsOneWidget,
+      findsNothing,
+      reason: 'le barème est branché',
     );
+    // Le barème reste provisoire, et l'écran doit le dire.
+    expect(find.textContaining('PROVISOIRE'), findsOneWidget);
 
     await tester.scrollUntilVisible(
       find.text('See detailed insights'),
@@ -209,6 +238,57 @@ void main() {
     expect(find.text('Most used strategy'), findsOneWidget);
     expect(find.text('Breathe / pause'), findsOneWidget);
     expect(find.text('Trap tendencies'), findsOneWidget);
+  });
+
+  testWidgets('aucun écran ne prétend plus que le jeu ne calcule pas de score', (
+    tester,
+  ) async {
+    // Le jeu a longtemps été « front-only ». Ses pages de règles, son
+    // récapitulatif et ses observations l'annonçaient — et le disaient encore
+    // après le branchement du barème. Le plus grave était la promesse que les
+    // réponses « restaient sur l'écran » : elles partent maintenant au serveur.
+    const mensonges = [
+      'front-only',
+      'does not calculate a score',
+      'leaves scoring uncalculated',
+      'Not scored',
+      'kept only for this on-screen recap',
+      'No psychometric score',
+      // La taxonomie des dix situations inventées ; la banque du client n'a
+      // aucune catégorie.
+      'Conflict, failure, delay, criticism, and overload',
+    ];
+
+    void verifier(String etape) {
+      for (final phrase in mensonges) {
+        expect(
+          find.textContaining(phrase),
+          findsNothing,
+          reason: '$etape : « $phrase » n\'est plus vrai',
+        );
+      }
+    }
+
+    await pumpGame(tester);
+    verifier('couverture');
+
+    await reachGameplay(tester);
+    verifier('règles et gameplay');
+
+    for (var index = 0; index < 10; index++) {
+      await completeCurrentSituation(tester);
+    }
+    await tester.pumpAndSettle();
+    verifier('récapitulatif');
+
+    await tester.scrollUntilVisible(
+      find.text('See detailed insights'),
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('See detailed insights'));
+    await tester.pumpAndSettle();
+    verifier('observations');
   });
 
   testWidgets('390x844 at 200% text remains scrollable without overflow', (

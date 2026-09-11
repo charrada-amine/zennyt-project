@@ -1,7 +1,9 @@
 package com.zennyt.games.application.usecase;
 
+import com.zennyt.games.domain.config.EmotionalRadarV2Config;
 import com.zennyt.games.application.command.SubmitGameResultCommand;
 import com.zennyt.games.domain.catalog.DecisionScenarioCatalog;
+import com.zennyt.games.domain.catalog.StrategicChoicesCatalog;
 import com.zennyt.games.domain.catalog.DecisionFormCatalog;
 import com.zennyt.games.domain.event.GameResultRecordedEvent;
 import com.zennyt.games.domain.model.GameSession;
@@ -79,24 +81,28 @@ class EmotionalRadarV2SessionUseCaseTest {
         var activated = useCase.activateNextAt(SESSION_ID, PLAYER_ID, START);
         assertThat(activated.currentScene().sceneOrder()).isEqualTo(1);
         assertThat(activated.currentChoices()).hasSize(6);
+        // DÉMO : les trois premières scènes visent les émotions filmées, elles
+        // arrivent donc avec leur vidéo. Les suivantes restent des placeholders
+        // tant que la banque de 135 n'est pas livrée.
         assertThat(activated.currentScene().mediaStatus())
-            .isEqualTo(RadarMediaStatus.PLACEHOLDER_PENDING);
-        assertThat(activated.currentScene().mediaUrl()).isNull();
+            .isEqualTo(RadarMediaStatus.READY);
+        assertThat(activated.currentScene().mediaUrl()).isNotBlank();
         assertThat(activated.mediaLibraryReady()).isFalse();
         assertThat(activated.scoringProvisional()).isTrue();
         assertThat(activated.fitScorePublished()).isFalse();
-        assertThat(activated.currentSceneRemainingResponseTimeMs()).isEqualTo(8000);
+        assertThat(activated.currentSceneRemainingResponseTimeMs())
+            .isEqualTo(EmotionalRadarV2Config.MAX_RESPONSE_TIME_MS);
         assertThat(scenes.values).hasSize(1);
 
         var idempotent = useCase.activateNextAt(
             SESSION_ID, PLAYER_ID, START.plusMillis(1500));
         assertThat(idempotent.currentScene().servedAt()).isEqualTo(START);
-        assertThat(idempotent.currentSceneRemainingResponseTimeMs()).isEqualTo(6500);
+        assertThat(idempotent.currentSceneRemainingResponseTimeMs()).isEqualTo(EmotionalRadarV2Config.MAX_RESPONSE_TIME_MS - 1500);
         assertThat(scenes.values).hasSize(1);
 
         var resumed = useCase.getStateAt(SESSION_ID, PLAYER_ID, START.plusMillis(1500));
         assertThat(resumed.currentScene().servedAt()).isEqualTo(START);
-        assertThat(resumed.currentSceneRemainingResponseTimeMs()).isEqualTo(6500);
+        assertThat(resumed.currentSceneRemainingResponseTimeMs()).isEqualTo(EmotionalRadarV2Config.MAX_RESPONSE_TIME_MS - 1500);
         assertThat(scenes.values).hasSize(1);
 
         var expired = useCase.getStateAt(SESSION_ID, PLAYER_ID, START.plusSeconds(30));
@@ -131,7 +137,8 @@ class EmotionalRadarV2SessionUseCaseTest {
         var next = useCase.activateNextAt(SESSION_ID, PLAYER_ID, nextDisplayedAt);
         assertThat(next.currentScene().sceneOrder()).isEqualTo(2);
         assertThat(next.currentScene().servedAt()).isEqualTo(nextDisplayedAt);
-        assertThat(next.currentSceneRemainingResponseTimeMs()).isEqualTo(8000);
+        assertThat(next.currentSceneRemainingResponseTimeMs())
+            .isEqualTo(EmotionalRadarV2Config.MAX_RESPONSE_TIME_MS);
         assertThat(scenes.values).hasSize(2);
 
         assertThatThrownBy(() -> useCase.answerAt(
@@ -144,6 +151,23 @@ class EmotionalRadarV2SessionUseCaseTest {
     }
 
     @Test
+    void emptyExplanationIsAcceptedSinceTheThirdQuestionWasRemoved() {
+        // L'écran ne demande plus de justification écrite : il envoie une chaîne
+        // vide. Si le serveur la refusait, plus AUCUNE manche ne pourrait être
+        // répondue en ligne — d'où ce test, qui garde le contrat ouvert.
+        var current = useCase.activateNextAt(
+            SESSION_ID, PLAYER_ID, START).currentScene();
+
+        var result = useCase.answerAt(
+            SESSION_ID, PLAYER_ID, 1, current.correctEmotionKey(),
+            current.stimulusIntensity(), "", START.plusSeconds(2));
+
+        assertThat(result.feedback().correct()).isTrue();
+        assertThat(scenes.values.get(0).explanation()).isEmpty();
+        assertThat(EmotionalRadarV2Config.REQUIRE_EXPLANATION).isFalse();
+    }
+
+    @Test
     void serverTimingCapsTimeoutAndMakesLateCorrectChoiceIncorrect() {
         var current = useCase.activateNextAt(
             SESSION_ID, PLAYER_ID, START).currentScene();
@@ -151,10 +175,14 @@ class EmotionalRadarV2SessionUseCaseTest {
         var result = useCase.answerAt(
             SESSION_ID, PLAYER_ID, 1, current.correctEmotionKey(),
             current.stimulusIntensity(), "Réponse arrivée trop tard.",
-            START.plusMillis(8001));
+            // Une milliseconde après le budget, quel qu'il soit. Le chiffre en
+            // dur — 8001 — avait survécu au passage du budget à 30 s : le test
+            // ne mesurait alors plus rien.
+            START.plusMillis(EmotionalRadarV2Config.MAX_RESPONSE_TIME_MS + 1));
 
         assertThat(result.feedback().timedOut()).isTrue();
-        assertThat(result.feedback().responseTimeMs()).isEqualTo(8000);
+        assertThat(result.feedback().responseTimeMs())
+            .isEqualTo(EmotionalRadarV2Config.MAX_RESPONSE_TIME_MS);
         assertThat(result.feedback().correct()).isFalse();
         assertThat(result.feedback().impulsive()).isFalse();
     }
@@ -271,7 +299,8 @@ class EmotionalRadarV2SessionUseCaseTest {
             mock(ObjectLocationMetricsRepository.class),
             publisher,
             mock(DecisionScenarioCatalog.class),
-            mock(DecisionFormCatalog.class));
+            mock(DecisionFormCatalog.class),
+            mock(StrategicChoicesCatalog.class));
 
         submit.execute(new SubmitGameResultCommand(
             SESSION_ID, PLAYER_ID, MiniGame.REFLECTIVE_PAUSE_CORE,
@@ -283,7 +312,9 @@ class EmotionalRadarV2SessionUseCaseTest {
         assertThat(sessions.value.attempts())
             .extracting(attempt -> attempt.miniGame())
             .containsExactly(MiniGame.REFLECTIVE_PAUSE_CORE);
-        assertThat(event.coverageRatio()).isEqualTo(50);
+        // Un mini-jeu sur les TROIS du module depuis l'arrivée de « Choix
+        // Stratégiques » : la couverture tombe de 50 à 33 %.
+        assertThat(event.coverageRatio()).isEqualTo(33);
         assertThat(event.compositeRaw()).isEqualTo(10);
         assertThat(event.compositeMax()).isEqualTo(10);
         assertThat(event.normalizedScore()).isEqualTo(100.0);
@@ -292,15 +323,18 @@ class EmotionalRadarV2SessionUseCaseTest {
     private static ReflectivePauseMetrics perfectReflectivePauseMetrics() {
         List<ReflectivePauseMomentMetric> moments = new ArrayList<>();
         for (int i = 1; i <= 10; i++) {
+            // Réaction la mieux cotée de TR-001 à TR-010, comme dans
+            // ReflectivePauseScoringTest. Les identifiants PRESSURE_* étaient
+            // ceux des dix moments inventés, remplacés par la banque du client.
             ReflectivePauseResponseType response = switch (i) {
-                case 1, 5, 9 -> ReflectivePauseResponseType.BREATHE_ANALYZE;
-                case 2, 4, 10 -> ReflectivePauseResponseType.ASK_FOR_MORE_INFORMATION;
-                case 3, 7 -> ReflectivePauseResponseType.WAIT;
-                case 6, 8 -> ReflectivePauseResponseType.REFORMULATE_CALMLY;
+                case 1, 5, 8 -> ReflectivePauseResponseType.REFORMULATE_CALMLY;
+                case 2, 3, 4 -> ReflectivePauseResponseType.ASK_FOR_MORE_INFORMATION;
+                case 7, 9 -> ReflectivePauseResponseType.BREATHE_ANALYZE;
+                case 6, 10 -> ReflectivePauseResponseType.WAIT;
                 default -> throw new IllegalStateException("moment inattendu");
             };
             moments.add(new ReflectivePauseMomentMetric(
-                "PRESSURE_%02d".formatted(i), response, 3000, true));
+                "TR-%03d".formatted(i), response, 3000, true));
         }
         return new ReflectivePauseMetrics(moments);
     }

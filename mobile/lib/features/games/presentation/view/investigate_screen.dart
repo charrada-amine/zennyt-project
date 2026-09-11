@@ -1529,17 +1529,17 @@ class _RecallView extends StatelessWidget {
     return Column(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
+        // Meme consigne de manche que du cote des images : meme vert, meme
+        // clignotement unique. Elle etait en blanc plat, sans appel — or c'est
+        // ici que l'ordre bascule du direct a l'inverse, et rien ne signalait
+        // le changement. [MemoryPrompt] rejoue son clignotement a chaque
+        // nouveau texte : le passage SAME -> REVERSE se remarque de lui-meme.
+        MemoryPrompt(
           afterDistraction
               ? 'Now recall the digits you memorized'
               : reverse
               ? 'Type the sequence in REVERSE order'
               : 'Type the sequence in the SAME order',
-          textAlign: TextAlign.center,
-          style: AppTypography.titleMedium.copyWith(
-            color: Colors.white,
-            letterSpacing: 0,
-          ),
         ),
         const SizedBox(height: AppSpacing.base),
         // Slots de saisie (l'original reste caché).

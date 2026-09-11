@@ -14,7 +14,7 @@ Chaque **jeu** correspond à un `GameType` (un domaine cognitif = une fiche) et 
 | Jeu / mini-jeu | `GameType` | `MiniGame` | Catégorie évaluée | Statut | Rendu |
 |----------------|------------|------------|-------------------|--------|-------|
 | **Planifik #1 — Chemin Optimal** | `PLANIFIK` | `OPTIMAL_PATH` | Planification — chemin optimal (déviation ±10 %, essais, zones coûteuses, objectifs) | 🟢 Jouable **/10** — multi-niveaux (4), limite dure 3 essais | **Flame** + Flutter |
-| **Planifik #2 — Ordonnancement de tâches / Day Stack** | `PLANIFIK` | `TASK_SCHEDULING` | Planification — dépendances + contraintes horaires + cohérence + réajustements | 🟢 Jouable **/10**, plateau responsive et reprise après consultation des règles | Flutter (tap-to-place) |
+| **Planifik #2 — Ordonnancement de tâches / Day Stack** | `PLANIFIK` | `TASK_SCHEDULING` | Planification — dépendances + contraintes horaires + cohérence + réajustements | 🟢 Jouable **/10**, liste complète à réordonner, glissements sans pénalité et validation explicite | Flutter (appui maintenu sur la carte) |
 | **Planifik #3 — Tour de Hanoï** | `PLANIFIK` | `PREVISION_PUZZLE` | Planification — anticipation / planning prévisionnel | 🟢 Jouable **/10** — 3 niveaux (3→4→5 disques) | Flutter custom |
 | ↳ **Planifik — « Je planifie » (domaine)** | `PLANIFIK` | *(les 3 mini-jeux ci-dessus)* | Planification | 🟢 **Complet** — profil global **/30** | Flame + Flutter |
 | **Move Fast — « Je bouge »** | `MOVE_FAST` | `MOVE_FAST_CORE` | Flexibilité cognitive — switching de règles (niveau unique : Orientation ⇄ Mouvement **aléatoire**) | 🟢 **Complet** — barème d'escalade (50 × mult., streak 4, bonus 250) | Flutter custom |
@@ -260,6 +260,15 @@ Le mini-jeu enchaîne plusieurs niveaux. Le client envoie `levels[]` (une entré
 - **Cohérence du planning** (`planning_coherence`) : 0 désordonné · 1 partiel · 2 clair → **0 à 2 pts**
 - **Réajustements** (score dérivé du nombre brut `adjustment_count`) : **<2 → 2 pts** · **2 à 4 → 1 pt** · **>4 → 0 pt** (⚠️ la valeur **2** tombe dans « 2 à 4 » = **1 pt**, pas 2)
 - Total = somme = **/10** ; interprétation mini-jeu partagée (0–3/4–6/7–10). Mock répliqué (`_scoreTaskScheduling`).
+
+**Day Stack — interaction du 2026-09-11 (choix utilisateur)** : chaque déplacement
+aboutissant à un nouveau rang est compté localement, sans alimenter
+`proactiveAdjustments` / `reactiveAdjustments` (restent à zéro). Les formules serveur/mock
+actuelles sont conservées : la composante d’autorégulation ne pénalise donc plus les
+réorganisations. Dépendances, horaires, collisions et temps morts ne sont évalués qu’à
+« Valider » ; le dernier niveau déclenche immédiatement la soumission cumulée.
+Le débrief reste consultable avant l’affichage du score reçu. La latence initiale est
+mesurée au premier déplacement, ou à la validation si le joueur conserve l’ordre initial.
 
 **Profil Planifik global — /30** : ≤10 *Très faible* · ≤17 *Moyen faible* · ≤23 *Moyen* · ≤27 *Bon* · sinon *Excellent* — les 3 mini-jeux étant jouables, le composite est bien **/30**.
 
@@ -799,6 +808,7 @@ sur l'onglet Careers/Progress ; les routes de jeu restent plein écran.
 | **Je place** | `presentation/view/je_place_screen.dart` | Parcours complet `cover → onboarding ×3 → pratique → ready → 3–8 objets → résultat`, timers monotones à échéances absolues, plateau 4×4 mauve responsive, tap/drag, aucun feedback mesuré ni score client. |
 | | `presentation/widgets/je_place_pause_dialog.dart` | Pratique gelable/reprenable ; une pause mesurée persiste d'abord l'audit technique puis permet le redémarrage du run, avec règles et sortie. |
 | | `assets/games icons/Je Place.png` · `Je Place Object 01.png`…`20.png` | Logo et catalogue PNG 512×512 RGBA transparent, style Zennyt flat 2.5D, contrôlés à 48 px. |
+| **Memory Quest Image — concepts visuels** | `assets/games icons/Memory Quest Image Concept v2.png` · `Memory Quest Image Concept v3 Minimal.png` · `Memory Quest Image Concept v4 Objects.png` | Trois propositions originales 1254×1254 : piste flat 2.5D à fond transparent (chambre/cartes/rappel), piste minimaliste transparente (prisme et formes ordonnées), puis piste directement liée au gameplay (pomme, clé et tasse mémorisées sur trois emplacements, clé revenant à sa place) sur fond lavande. Concepts livrés pour validation, non branchés au hub et créés sans utiliser les logos Memory Quest Image/Digits existants comme références. |
 | | `test/features/games/domain/object_location_config_test.dart` | Constantes, zones de réserve et vecteur golden déterministe partagé avec Java. |
 | | `test/features/games/data/object_location_scoring_test.dart` | Rejeu, classification exclusive, score/validité, progression et rejets identiques au backend. |
 | | `test/features/games/presentation/je_place_screen_test.dart` | Flow, payload brut, pause/audit/retry, accessibilité et non-débordement 390×844 / texte 200 %. |
@@ -809,7 +819,7 @@ sur l'onglet Careers/Progress ; les routes de jeu restent plein écran.
 | | `presentation/view/je_decide_gameplay.dart` | Gameplay piloté par les **30 items servis** : chrono DT sur le temps imparti renvoyé par le serveur, paires CS enchaînées, écrans de transition aux seules frontières de dimension, pause/règles, checkpoint. Mesure `responseTimeMs` (à la validation, via `package:clock`) et `decisionChangesCount`. XP visuel uniquement ; aucun score calculé. |
 | | `presentation/view/je_decide_results.dart` | Résultats : fin de parcours, préparation, radar accessible, score-ring, détail par dimension, export. `DecisionProfile.fromSession` projette la **réponse serveur** (SCW /100, niveau, /18 par dimension, marqueur de notation provisoire) — rien n'est calculé côté client. |
 | | `presentation/view/planifik_screen.dart` | Flow complet **Optimal Path** (intro Path Mind, How To Play, gameplay **multi-niveaux**, score, comparaison) + HUD stations, **menu pause** (`_PauseDialog`), légende, contrôles + bouton « Continue to scheduling » (→ Planifik #2). Voir [Flow Optimal Path](#-flow-optimal-path-mobile). |
-| | `presentation/view/task_scheduling_screen.dart` | **Planifik #2 « Ordonnancement de tâches »** : tap-to-place d'un lot de tâches (dépendances + échéances affichées), mesure (deps/horaires/cohérence/réajustements), soumet via le repo, `ScoreDetailPanel`, enchaîne vers #3. |
+| | `presentation/view/task_scheduling_screen.dart` | **Day Stack** : toutes les tâches mélangées dans une liste pleine largeur ; numéros de position, appui maintenu directement sur la carte et auto-scroll natif. Déplacements comptés localement sans pénalité ; mesures figées à « Valider », soumission au dernier niveau, débrief puis score serveur/mock. |
 | | `presentation/view/move_fast_screen.dart` | Écran complet « Je bouge » (intro, tutoriels, gameplay **niveau unique à règle aléatoire**, résultats). Voir [Niveau Move Fast](#-niveau-move-fast-mobile). |
 | | `presentation/view/predictive_puzzle_screen.dart` | Écran complet **Predictive Puzzle** : intro, règles, planification Tower of Hanoi, exécution auto, résultats, comparaison. Voir [Flow Predictive Puzzle](#-flow-predictive-puzzle-mobile). |
 | | `presentation/widgets/game_system_components.dart` | Design system jeux : palette, boutons, HUD, ruban de séries, contrôles directionnels, avion, tuiles de résultat. |
@@ -1172,7 +1182,7 @@ Les quatre jeux demandés sont accessibles dans les sélecteurs de catégorie ex
 
 | Jeu | Contenu fixe / dynamique | Démo et amélioration |
 |-----|--------------------------|---------------------|
-| Day Stack | 9 tâches fixes, ordre du plateau de sélection mélangé, placements et retrait interactifs | Plateau et réserve défilent séparément, validation visible, règles sans réinitialisation de session. |
+| Day Stack | 11–12 tâches par univers, toutes présentes et mélangées, 3 manches | Liste unique, appui maintenu sur toute la carte, défilement tactile et automatique aux bords ; bouton Valider fixe, aucun feedback avant validation, règles conservant l’ordre. |
 | Emotional Radar | 3 situations fixes, réponses famille/nuance/intensité interactives | 3 vidéos locales de substitution, description textuelle, pause/relecture/plein écran. |
 | Reflective Pause | 10 situations fixes, réflexion et réponses chronométrées | Largeur lisible sur tablette et contraste des réponses verrouillées amélioré. |
 | Strategic Choices | 10 situations fixes, 8 stratégies, réflexion et récapitulatif interactifs | Choix de hauteur flexible et action principale fixe ; toujours sans score. |
@@ -1241,7 +1251,7 @@ ArchUnit ne s'exécutent pas car la compilation des tests Recruitment échoue su
 | Predictive Puzzle — **barème catégoriel de la fiche** (1er essai/erreurs/coups superflus), remplace l'ancienne formule inventée | 🟢 Fait |
 | Predictive Puzzle — cumul multi-niveaux (moyenne /10, 1 `Attempt`) + `globalPlanSuccess` hors score | 🟢 Fait |
 | Predictive Puzzle — `puzzle_levels` [3,4,5] & `max_sequence_errors` [3,2,1] | 🟠 Décisions produit **à valider** (fiche : 3 constant) |
-| **Planifik #2 `TASK_SCHEDULING` — « Ordonnancement de tâches »** (barème /10 : dépendances 3/0 + horaires 3/0 + cohérence 0–2 + réajustements dérivés) + écran mobile tap-to-place + parité mock | 🟢 Fait — Planifik complet **/30** sur ses 3 mini-jeux |
+| **Planifik #2 `TASK_SCHEDULING` — « Ordonnancement de tâches »** (barème /10 : dépendances 3/0 + horaires 3/0 + cohérence 0–2 + réajustements dérivés) + écran mobile à liste réordonnable + parité mock | 🟢 Fait — Planifik complet **/30** sur ses 3 mini-jeux |
 | **Planifik — jeu complet** (Chemin Optimal + Ordonnancement + Tour de Hanoï, profil global **/30**) | 🟢 **Complet** |
 | **« J'investigue » (`MEMORY_QUEST`) — Mission A Digit Span** (observe → rappel même ordre → rappel inverse → résultats), écran Flutter custom, timers data-driven (900 ms / ISI 250 ms), input-lock, clavier accessible (≥48 px), score **mock** (0–5/tâche → composite /100) | 🟡 Fait (mobile, hors-ligne) — tuile hub + route `/games/investigate` + catalogue d'objets (21) |
 | **« J'investigue » — Mission B (manipulation d'objets)** : observe l'ordre initial (5 s, verrouillé) → manipulations automatiques (échanges) → **restaurer l'ordre INITIAL** en tap-to-place ; objets par forme+libellé (accessibilité), score restauration → composite /100 | 🟡 Fait (mobile, hors-ligne) — enchaîné après la Mission A |
@@ -1352,6 +1362,12 @@ Décisions additionnelles du 2026-09-06 :
 - **59 — Références UI démo** : accord explicite pour reprendre les écrans et composants
   existants de Day Stack, Radar et Strategic Choices en l'absence de maquettes complètes.
   « Day Stack » est le libellé demandé de `TASK_SCHEDULING`, pas un nouveau mini-jeu.
+
+- **60 — Day Stack, réorganisation libre (2026-09-11)** : décision explicitement
+  autorisée par le demandeur : liste complète mélangée, déplacements sans pénalité,
+  évaluation uniquement à la validation. Les déplacements sont un compteur local par
+  manche, hors payload de corrections. La portée psychométrique de l’autorégulation
+  sans retraits reste à valider ; aucune nouvelle formule de score n’est introduite.
 
 **Conforme à la fiche, NE PAS toucher** : profil global Planifik /30 (`interpretGlobal`), cœur du barème Move Fast (50 × multiplicateur, streak 4, bonus 250), barème catégoriel « Predictive Puzzle » (seule fiche validée), architecture par Domain Events.
 
@@ -1882,6 +1898,49 @@ doublons de la branche sont supprimés). Côté mobile, les fichiers UI en confl
 auth, navigation) adoptent la **design system de `main`** ; le correctif anti-overflow
 `Row`→`Wrap` de l'écran d'inscription est conservé.
 
-**Dernière mise à jour** : 2026-09-10 — **(57)** merge `origin/main` + renumérotation Flyway ; **(56)** nettoyage du dépôt ;
+**Changelog (58)** — 2026-09-11 : création d'un concept de logo original pour **Memory Quest
+Image**, après analyse des autres logos Games et du contexte du mini-jeu. Le symbole associe une
+chambre de mémoire, trois cartes-images et un ruban de rappel dans la charte Zennyt flat 2.5D.
+Export PNG RGBA 1254×1254 à fond réellement transparent, non intégré au hub ; les logos existants
+Memory Quest Image/Digits ont été explicitement exclus des références. Aucun code, barème,
+contrat, endpoint, event, `pom.xml` ou `pubspec.yaml` modifié. Zones protégées inchangées.
+
+**Changelog (59)** — 2026-09-11 : seconde piste de logo **Memory Quest Image**, volontairement
+différente de la première : emblème minimal à prisme ouvert, formes visuelles dispersées puis
+réordonnées, sans boîte, cartes, ruban orbital ni perspective 2.5D. Export PNG RGBA 1254×1254 à
+fond transparent, conservé comme concept non intégré. Aucun code, barème, contrat, endpoint,
+event, `pom.xml` ou `pubspec.yaml` modifié. Zones protégées inchangées.
+
+**Changelog (60)** — 2026-09-11 : troisième piste de logo **Memory Quest Image**, recentrée sur
+la mécanique de mémorisation d'objets : pomme, clé et tasse occupent trois emplacements ; la clé
+et ses échos de mouvement matérialisent le changement d'ordre puis le retour à la position
+initiale. Aucun langage visuel de quiz (question, choix, coche ou score). Export PNG 1254×1254 sur
+fond lavande, concept non intégré. Aucun code, barème, contrat, endpoint, event, `pom.xml` ou
+`pubspec.yaml` modifié. Zones protégées inchangées.
+
+**Changelog (61)** — 2026-09-11 : Day Stack passe à une liste unique de toutes les
+tâches mélangées et cartes pleine largeur numérotées, directement déplaçables par
+appui maintenu. La poignée à trois points est supprimée sur demande utilisateur.
+La carte conserve ses coins arrondis lorsqu’elle est soulevée et déplacée.
+Défilement naturel sur les cartes, auto-scroll aux bords, bouton « Valider » fixe et
+protégé pendant le dépôt ; annulation de drag et consultation des règles préservent
+l’ordre. Déplacements comptés sans pénalité sur accord utilisateur, aucune alerte avant
+validation ; mesures figées à la validation et soumission dès la dernière validation.
+Tests widget adaptés au geste sur toute la carte, à l’annulation, aux petits écrans et au
+texte 200 %.
+Validation : **74 tests Flutter ciblés verts**, analyse des deux fichiers Dart modifiés
+sans diagnostic ; captures vérifiées à 320×568, 390×844 (texte 200 %) et 1024×768.
+Le geste d’appui maintenu sur la carte est couvert par un test widget ; l’écran est aussi
+contrôlé visuellement dans le simulateur iOS 26.1.
+Analyse globale : 73 diagnostics hors de ces fichiers. Backend/ArchUnit tentés sous
+Java 21, bloqués avant exécution par les tests Recruitment (`saveIfNotOlder` /
+`upsertIfNotOlder` absents) ; aucun correctif hors périmètre.
+Aucun backend, contrat, asset, dépendance, core/shared ou barème protégé modifié.
+
+**Dernière mise à jour** : 2026-09-11 — **(61)** Day Stack : liste réordonnable, validation sans pénalité ;
+**(60)** piste Memory Quest centrée sur la mémorisation d'objets ;
+**(59)** seconde piste minimaliste de logo Memory Quest Image ;
+**(58)** premier concept de logo Memory Quest Image non intégré ;
+**(57)** merge `origin/main` + renumérotation Flyway ; **(56)** nettoyage du dépôt ;
 **(55)** démo Day Stack, Emotional Radar, Reflective Pause
 et Strategic Choices ; layouts améliorés et vidéos locales provisoires. Barèmes protégés conservés.

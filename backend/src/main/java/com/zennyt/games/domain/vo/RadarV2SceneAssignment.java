@@ -98,8 +98,12 @@ public record RadarV2SceneAssignment(
                 || selectedIntensity >= EmotionalRadarV2Config.INTENSITY_SCALE.size()) {
                 throw new IllegalArgumentException("intensité perçue hors 0..2");
             }
-            if (explanation.isBlank() || explanation.length() > 2000) {
-                throw new IllegalArgumentException("explication requise (1..2000 caractères)");
+            // Justification FACULTATIVE — décision produit, écart assumé au
+            // référentiel qui la demandait après chaque réponse. Le champ reste
+            // au contrat pour que la mesure redevienne possible sans migration,
+            // mais une réponse sans texte n'est plus refusée.
+            if (explanation.length() > 2000) {
+                throw new IllegalArgumentException("explication trop longue (max 2000)");
             }
             if (responseTimeMs < 0 || responseTimeMs > EmotionalRadarV2Config.MAX_RESPONSE_TIME_MS) {
                 throw new IllegalArgumentException("temps de réponse hors plage");
@@ -118,6 +122,25 @@ public record RadarV2SceneAssignment(
             sessionId, sceneOrder, level, EmotionalRadarV2Config.level(level).targetDistance(),
             choiceKeys, sceneDifficulty, correctEmotionKey, stimulusType, stimulusIntensity,
             RadarMediaStatus.PLACEHOLDER_PENDING, null, null, sensitiveContentFlag, servedAt,
+            null, null, null, null, null, null, null, null);
+    }
+
+    /**
+     * Scène servie avec un média réel.
+     *
+     * <p>Les invariants du constructeur canonique restent l'autorité : un
+     * {@code READY} sans URL, ou un stimulus contextuel sans légende, est
+     * rejeté ici comme ailleurs.
+     */
+    public static RadarV2SceneAssignment ready(
+            UUID sessionId, int sceneOrder, int level, List<String> choiceKeys,
+            double sceneDifficulty, String correctEmotionKey, StimulusType stimulusType,
+            int stimulusIntensity, boolean sensitiveContentFlag, Instant servedAt,
+            String mediaUrl, String contextualCaption) {
+        return new RadarV2SceneAssignment(
+            sessionId, sceneOrder, level, EmotionalRadarV2Config.level(level).targetDistance(),
+            choiceKeys, sceneDifficulty, correctEmotionKey, stimulusType, stimulusIntensity,
+            RadarMediaStatus.READY, mediaUrl, contextualCaption, sensitiveContentFlag, servedAt,
             null, null, null, null, null, null, null, null);
     }
 
@@ -141,10 +164,13 @@ public record RadarV2SceneAssignment(
             || perceivedIntensity >= EmotionalRadarV2Config.INTENSITY_SCALE.size()) {
             throw new IllegalArgumentException("intensité perçue hors 0..2");
         }
-        String normalizedExplanation = rawExplanation == null ? null : rawExplanation.trim();
-        if (normalizedExplanation == null || normalizedExplanation.isBlank()
-            || normalizedExplanation.length() > 2000) {
-            throw new IllegalArgumentException("explication requise (1..2000 caractères)");
+        // Justification FACULTATIVE — même écart assumé que dans le compact
+        // ci-dessus : l'écran ne pose plus la troisième question et envoie une
+        // chaîne vide. Un `null` devient "" plutôt qu'une erreur, pour qu'un
+        // ancien client qui omet le champ passe aussi.
+        String normalizedExplanation = rawExplanation == null ? "" : rawExplanation.trim();
+        if (normalizedExplanation.length() > 2000) {
+            throw new IllegalArgumentException("explication trop longue (max 2000)");
         }
         long nonNegativeElapsed = Math.max(0L, serverElapsedMs);
         boolean didTimeOut = nonNegativeElapsed > EmotionalRadarV2Config.MAX_RESPONSE_TIME_MS;

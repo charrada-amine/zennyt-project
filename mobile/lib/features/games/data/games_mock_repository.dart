@@ -1,6 +1,7 @@
 import '../domain/config/emotional_radar_config.dart';
 import '../domain/config/emotional_radar_provisional_rules.dart';
 import '../domain/config/emotional_radar_v2_config.dart';
+import '../domain/service/day_stack_scoring.dart';
 import '../domain/config/emotional_radar_v2_provisional_rules.dart';
 import '../domain/config/emotional_radar_v2_referential.dart';
 import '../domain/config/memory_quest_config.dart';
@@ -23,6 +24,10 @@ import '../domain/entities/move_fast_metrics.dart';
 import '../domain/entities/planifik_metrics.dart';
 import '../domain/entities/prevision_puzzle_metrics.dart';
 import '../domain/entities/reflective_pause_metrics.dart';
+import '../domain/entities/strategic_choices_bank.dart';
+import '../domain/entities/strategic_choices_metrics.dart';
+import '../domain/service/strategic_choices_scoring.dart';
+import 'strategic_choices_bank_loader.dart';
 import '../domain/entities/score_breakdown.dart';
 import '../domain/entities/task_scheduling_metrics.dart';
 import '../domain/repositories/games_repository.dart';
@@ -170,9 +175,12 @@ class GamesMockRepository
     if (pending == null || pending.sceneOrder != sceneOrder) {
       throw StateError('Aucune scène V2 courante pour l’ordre $sceneOrder.');
     }
+    // Justification FACULTATIVE : la troisième question a été retirée de
+    // l'écran. Le champ reste au contrat — la mesure redeviendra possible sans
+    // migration — mais une réponse sans texte n'est plus refusée.
     final normalizedExplanation = explanation.trim();
-    if (normalizedExplanation.isEmpty || normalizedExplanation.length > 2000) {
-      throw ArgumentError('explication requise (1..2000 caractères)');
+    if (normalizedExplanation.length > 2000) {
+      throw ArgumentError('explication trop longue (max 2000)');
     }
     if (!pending.choices.any((choice) => choice.key == selectedEmotionKey)) {
       throw ArgumentError('émotion non proposée : $selectedEmotionKey');
@@ -261,17 +269,29 @@ class GamesMockRepository
       fitScorePublished: false,
       currentScene: pending == null
           ? null
-          : EmotionalRadarV2Scene(
-              sceneOrder: pending.sceneOrder,
-              level: pending.level,
-              choicesCount: pending.choices.length,
-              choices: pending.choices,
-              mediaStatus: 'PLACEHOLDER_PENDING',
-              maxResponseTimeMs: EmotionalRadarV2Config.maxResponseTimeMs,
-              remainingResponseTimeMs: remaining,
-              impulsiveThresholdMs: EmotionalRadarV2Config.minImpulsiveTimeMs,
-            ),
+          : _radarV2Scene(pending, remaining),
       report: radar.completed ? _radarV2Report(radar.outcomes) : null,
+    );
+  }
+
+  /// Expose la scène courante, avec sa vidéo si l'émotion cible en a une.
+  ///
+  /// Le rattachement se fait ici, du côté qui connaît la cible — jamais dans
+  /// l'UI, qui l'ignore par construction.
+  EmotionalRadarV2Scene _radarV2Scene(_MockRadarV2Pending pending, int remaining) {
+    final footage =
+        EmotionalRadarV2ProvisionalRules.demoFootage[pending.expected.key];
+    return EmotionalRadarV2Scene(
+      sceneOrder: pending.sceneOrder,
+      level: pending.level,
+      choicesCount: pending.choices.length,
+      choices: pending.choices,
+      mediaStatus: footage == null ? 'PLACEHOLDER_PENDING' : 'READY',
+      mediaUrl: footage?.mediaUrl,
+      contextualCaption: footage?.contextualCaption,
+      maxResponseTimeMs: EmotionalRadarV2Config.maxResponseTimeMs,
+      remainingResponseTimeMs: remaining,
+      impulsiveThresholdMs: EmotionalRadarV2Config.minImpulsiveTimeMs,
     );
   }
 
@@ -532,6 +552,9 @@ class GamesMockRepository
       MiniGame.reflectivePauseCore => _scoreReflectivePause(
         metrics as ReflectivePauseMetrics,
       ),
+      MiniGame.strategicChoicesCore => _scoreStrategicChoices(
+        metrics as StrategicChoicesMetrics,
+      ),
       MiniGame.continuousAttentionCore => continuousAttentionResult!.score,
       MiniGame.coordinationTrackingCore => coordinationTrackingResult!.score,
       MiniGame.objectLocationBindingCore => objectLocationResult!.score,
@@ -698,25 +721,31 @@ class GamesMockRepository
   /// (PlanifikScoringService.scoreTaskScheduling / TaskSchedulingConfig).
   /// Dépendances 3/0 + contraintes 3/0 + cohérence 0–2 + réajustements (dérivé).
   GameScore _scoreTaskScheduling(TaskSchedulingMetrics m) {
-    var points = 0;
-    if (m.dependenciesRespected) points += 3;
-    if (m.timeConstraintsRespected) points += 3;
-    points += m.planningCoherence.clamp(0, 2);
-    points += _adjustmentScore(m.adjustmentCount);
+    final points =
+        dayStackDependencyScore(
+          m.dependencyEdgesRespected,
+          m.dependencyEdgeCount,
+          m.directDependencyViolations,
+        ) +
+        dayStackTimeScore(m.timingConstraintsRespected, m.timingConstraintCount) +
+        dayStackCoherenceScore(m.collisionFree, m.deadTimeRatio) +
+        dayStackSelfRegulationScore(
+          m.proactiveAdjustments,
+          m.reactiveAdjustments,
+          m.levelsPlayed,
+        );
+    // Arrondi comme côté serveur : `GameScore.rawPoints` est entier, alors que
+    // les composantes produisent des décimales.
+    final rounded = points.round().clamp(0, 10);
     return GameScore(
-      rawPoints: points,
+      rawPoints: rounded,
       maxPoints: 10,
-      normalized: points * 10.0,
-      level: _interpretMiniGame(points),
+      normalized: rounded * 10.0,
+      level: _interpretMiniGame(rounded),
     );
   }
 
   /// <2 réajustements → 2 pts · 2 à 4 → 1 pt · >4 → 0 pt (⚠️ 2 est inclus dans 2-4).
-  int _adjustmentScore(int count) {
-    if (count < 2) return 2;
-    if (count <= 4) return 1;
-    return 0;
-  }
 
   GameScore _scoreMoveFast(MoveFastMetrics m) {
     final points = _replayMoveFastScore(m.correctResponses);
@@ -845,6 +874,9 @@ class GamesMockRepository
       MiniGame.reflectivePauseCore => _breakdownReflectivePause(
         metrics as ReflectivePauseMetrics,
         score,
+      ),
+      MiniGame.strategicChoicesCore => _breakdownStrategicChoices(
+        metrics as StrategicChoicesMetrics,
       ),
       MiniGame.continuousAttentionCore => _breakdownContinuousAttention(
         metrics as ContinuousAttentionMetrics,
@@ -1386,49 +1418,6 @@ class GamesMockRepository
     return lines;
   }
 
-  List<ScoreBreakdownLine> _breakdownTaskScheduling(
-    TaskSchedulingMetrics m,
-    GameScore score,
-  ) {
-    final coherenceLabel = switch (m.planningCoherence) {
-      2 => 'clair',
-      1 => 'partiel',
-      _ => 'désordonné',
-    };
-    return [
-      _crit(
-        'Dépendances respectées',
-        m.dependenciesRespected ? 'oui' : 'non',
-        m.dependenciesRespected ? 3 : 0,
-        3,
-      ),
-      _crit(
-        'Contraintes horaires',
-        m.timeConstraintsRespected ? 'oui' : 'non',
-        m.timeConstraintsRespected ? 3 : 0,
-        3,
-      ),
-      _crit(
-        'Cohérence du planning',
-        coherenceLabel,
-        m.planningCoherence.clamp(0, 2),
-        2,
-      ),
-      _crit(
-        'Réajustements',
-        '${m.adjustmentCount}',
-        _adjustmentScore(m.adjustmentCount),
-        2,
-      ),
-      ScoreBreakdownLine(
-        kind: ScoreBreakdownKind.total,
-        label: 'Total',
-        points: score.rawPoints,
-        maxPoints: score.maxPoints,
-      ),
-    ];
-  }
-
   ScoreBreakdownLine _crit(String label, String detail, int points, int max) =>
       ScoreBreakdownLine(
         kind: ScoreBreakdownKind.criterion,
@@ -1469,6 +1458,58 @@ class GamesMockRepository
     };
   }
 
+
+  List<ScoreBreakdownLine> _breakdownTaskScheduling(
+    TaskSchedulingMetrics m,
+    GameScore score,
+  ) {
+    return [
+      _crit(
+        'Dépendances respectées',
+        '${m.dependencyEdgesRespected}/${m.dependencyEdgeCount}'
+            '${m.directDependencyViolations > 0 ? ' · ${m.directDependencyViolations} violation(s) directe(s)' : ''}',
+        dayStackDependencyScore(
+          m.dependencyEdgesRespected,
+          m.dependencyEdgeCount,
+          m.directDependencyViolations,
+        ).round(),
+        3,
+      ),
+      _crit(
+        'Gestion du temps',
+        '${m.timingConstraintsRespected}/${m.timingConstraintCount}',
+        dayStackTimeScore(
+          m.timingConstraintsRespected,
+          m.timingConstraintCount,
+        ).round(),
+        3,
+      ),
+      _crit(
+        'Cohérence séquentielle',
+        '${m.collisionFree ? 'sans collision' : 'collision'} · '
+            '${(m.deadTimeRatio * 100).round()} % de temps mort',
+        dayStackCoherenceScore(m.collisionFree, m.deadTimeRatio).round(),
+        2,
+      ),
+      _crit(
+        'Autorégulation',
+        '${m.proactiveAdjustments} proactive(s) · '
+            '${m.reactiveAdjustments} réactive(s)',
+        dayStackSelfRegulationScore(
+          m.proactiveAdjustments,
+          m.reactiveAdjustments,
+        ).round(),
+        2,
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.total,
+        label: 'Total',
+        points: score.rawPoints,
+        maxPoints: score.maxPoints,
+      ),
+    ];
+  }
+
   static int _remainingStaticMax(
     GameType gameType,
     List<GameAttempt> attempts,
@@ -1498,6 +1539,124 @@ class GamesMockRepository
   // ══════════════════════════════════════════════════════════════════════════
   // « Reflective Pause » — miroir EXACT de ReflectivePauseScoringService.java
   // ══════════════════════════════════════════════════════════════════════════
+
+  /// Banque « Choix Stratégiques », déjà chargée par l'écran.
+  ///
+  /// Le mock est synchrone : il lit le cache du chargeur plutôt que de relire
+  /// l'asset. L'écran charge la banque avant de démarrer la partie, elle est
+  /// donc là — et si elle ne l'était pas, mieux vaut le dire que noter une
+  /// partie sur un barème absent.
+  StrategicChoicesBank get _strategicBank {
+    final bank = StrategicChoicesBankLoader.cached;
+    if (bank == null) {
+      throw StateError(
+        'Banque « Choix Stratégiques » non chargée : impossible de noter.',
+      );
+    }
+    return bank;
+  }
+
+  String _part(StrategicChoicesReport report, CopingFamily family) {
+    final count = report.copingProfile[family] ?? 0;
+    return '$count/${report.situationsPlayed} '
+        '(${report.sharePercent(family).round()} %)';
+  }
+
+  GameScore _scoreStrategicChoices(StrategicChoicesMetrics metrics) {
+    final report = strategicChoicesReport(metrics, _strategicBank);
+    return GameScore(
+      rawPoints: report.rawPoints,
+      maxPoints: report.maxPoints,
+      normalized: report.maxPoints == 0
+          ? 0
+          : report.rawPoints * 100.0 / report.maxPoints,
+      level: report.level,
+    );
+  }
+
+  List<ScoreBreakdownLine> _breakdownStrategicChoices(
+    StrategicChoicesMetrics metrics,
+  ) {
+    final report = strategicChoicesReport(metrics, _strategicBank);
+    final played = report.situationsPlayed;
+    return [
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.note,
+        label:
+            'Chaque situation cote ses huit stratégies de 0 à 3 ; le score est '
+            'la somme des cotations retenues, sur $played × 3.',
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.info,
+        label: 'Stratégie optimale retenue',
+        detail: '${report.optimalChoices}/$played',
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.info,
+        label: 'Réponses contre-productives',
+        detail: '${report.counterProductiveChoices}/$played',
+      ),
+      // Profil de coping (Carver) — la sortie défendable : les familles
+      // décrivent la conduite, elles ne la classent pas.
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.note,
+        label:
+            'Profil de coping (Carver, 1989/1997) : les familles décrivent la '
+            'conduite, elles ne la classent pas — l\'efficacité d\'une '
+            'stratégie dépend du contexte (Lazarus & Folkman, 1984).',
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.info,
+        label: 'Centré problème',
+        detail: _part(report, CopingFamily.problemFocused),
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.info,
+        label: 'Centré émotion',
+        detail: _part(report, CopingFamily.emotionFocused),
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.info,
+        label: 'Dysfonctionnel',
+        detail: _part(report, CopingFamily.dysfunctional),
+      ),
+      if ((report.copingProfile[CopingFamily.unresolved] ?? 0) > 0)
+        ScoreBreakdownLine(
+          kind: ScoreBreakdownKind.info,
+          label: 'Correspondance non tranchée',
+          detail: _part(report, CopingFamily.unresolved),
+        ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.info,
+        label: 'Écart au hasard',
+        detail:
+            '${report.chanceCorrectedPercent.round()} % (le hasard vaudrait '
+            '${report.chanceBaseline.round()}/${report.maxPoints})',
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.info,
+        label: 'Stratégies mobilisées',
+        detail: '${report.distinctStrategiesUsed}/8'
+            '${report.mostUsedStrategy == null ? '' : ' — la plus employée : '
+                '${report.mostUsedStrategy!.label}'}',
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.note,
+        label:
+            'Barème PROVISOIRE : reconstruit par inférence à partir des titres, '
+            'sans visionnage des vidéos. À valider par le psychologue'
+            '${report.situationsAwaitingReview.isEmpty ? '.' : ' — dont '
+                '${report.situationsAwaitingReview.join(', ')} '
+                'dans cette partie.'}',
+      ),
+      ScoreBreakdownLine(
+        kind: ScoreBreakdownKind.total,
+        label: 'Total',
+        points: report.rawPoints,
+        maxPoints: report.maxPoints,
+      ),
+    ];
+  }
 
   GameScore _scoreReflectivePause(ReflectivePauseMetrics metrics) {
     _validateReflectivePause(metrics);
@@ -1931,13 +2090,22 @@ double _radarV2Percent(int numerator, int denominator) {
   return (numerator * 1000 / denominator).round() / 10;
 }
 
+/// Séquence des 15 cibles hors ligne.
+///
+/// DÉMO : les trois premières sont les émotions qui ont une vidéo, dans le même
+/// ordre que `EmotionalRadarV2ProvisionalRules.DEMO_FOOTAGE_ORDER` côté serveur
+/// — la parité mock/serveur est ce qui permet de démontrer le jeu hors ligne
+/// sans qu'il se comporte autrement. À remettre dans un ordre quelconque quand
+/// la banque de 135 vidéos sera livrée.
 const _radarV2ExpectedKeys = [
+  'SADNESS',
+  'ANXIETY',
+  'LONELINESS',
   'JOY',
   'AMUSEMENT',
   'SATISFACTION',
   'INTEREST',
   'SURPRISE',
-  'SADNESS',
   'ANGER',
   'FEAR',
   'DISGUST',
@@ -1945,6 +2113,4 @@ const _radarV2ExpectedKeys = [
   'CONTEMPT',
   'DISAPPOINTMENT',
   'PAIN',
-  'EXCITEMENT',
-  'TRIUMPH',
 ];

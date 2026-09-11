@@ -19,7 +19,9 @@ import com.zennyt.games.domain.vo.PlanifikMetrics;
 import com.zennyt.games.domain.vo.PrevisionPuzzleLevel;
 import com.zennyt.games.domain.vo.PrevisionPuzzleMetrics;
 import com.zennyt.games.domain.vo.ReflectivePauseMetrics;
+import com.zennyt.games.domain.vo.CopingFamily;
 import com.zennyt.games.domain.vo.Score;
+import com.zennyt.games.domain.vo.StrategicChoicesReport;
 import com.zennyt.games.domain.vo.TaskSchedulingMetrics;
 import com.zennyt.games.domain.vo.ScoreBreakdown;
 import com.zennyt.games.domain.vo.ScoreBreakdown.Line;
@@ -151,6 +153,72 @@ public class ScoreBreakdownService {
     }
 
     /**
+     * « Choix Stratégiques » — somme des cotations retenues, sur situations × 3.
+     *
+     * <p>Le détail vient du {@link StrategicChoicesReport} et non des seules
+     * métriques : la cotation appartient au catalogue serveur, que les métriques
+     * ne portent pas. D'où une signature dédiée, comme pour « Je Décide ».
+     */
+    public ScoreBreakdown strategicChoices(StrategicChoicesReport report, Score score) {
+        List<Line> lines = new ArrayList<>();
+        lines.add(Line.note("Chaque situation cote ses huit stratégies de 0 à 3 ; le score "
+            + "est la somme des cotations retenues, sur " + report.situationsPlayed()
+            + " × 3."));
+        lines.add(Line.info("Stratégie optimale retenue",
+            report.optimalChoices() + "/" + report.situationsPlayed()));
+        lines.add(Line.info("Réponses contre-productives",
+            report.counterProductiveChoices() + "/" + report.situationsPlayed()));
+
+        // Profil de coping (Carver) — la sortie défendable. Carver regroupe ses
+        // échelles en familles sans jamais les ordonner : décrire une conduite
+        // dit davantage qu'une note, surtout avec un barème encore provisoire.
+        lines.add(Line.note("Profil de coping (Carver, 1989/1997) : les familles "
+            + "décrivent la conduite, elles ne la classent pas — l'efficacité "
+            + "d'une stratégie dépend du contexte (Lazarus & Folkman, 1984)."));
+        lines.add(Line.info("Centré problème",
+            share(report, CopingFamily.PROBLEM_FOCUSED)));
+        lines.add(Line.info("Centré émotion",
+            share(report, CopingFamily.EMOTION_FOCUSED)));
+        lines.add(Line.info("Dysfonctionnel",
+            share(report, CopingFamily.DYSFUNCTIONAL)));
+        if (report.copingProfile().getOrDefault(CopingFamily.UNRESOLVED, 0) > 0) {
+            // « Seek support » et « Breathe / pause » n'ont pas d'équivalent
+            // univoque : les ranger d'office fausserait le profil.
+            lines.add(Line.info("Correspondance non tranchée",
+                share(report, CopingFamily.UNRESOLVED)));
+        }
+
+        // Le score brut ne se lit pas seul : le hasard en rapporte déjà 38 %.
+        lines.add(Line.info("Écart au hasard",
+            Math.round(report.chanceCorrectedPercent()) + " % (le hasard vaudrait "
+                + Math.round(report.chanceBaseline()) + "/" + report.maxPoints() + ")"));
+        // Un joueur qui coche toujours le même libellé obtient déjà 67 % du
+        // plafond sans lire les scènes : le dire empêche de confondre une
+        // stratégie constante avec une conduite adaptée.
+        lines.add(Line.info("Stratégies mobilisées",
+            report.distinctStrategiesUsed() + "/8"
+                + (report.mostUsedStrategy() == null
+                    ? ""
+                    : " — la plus employée : " + report.mostUsedStrategy())));
+        if (report.provisionalScoring()) {
+            lines.add(Line.note("Barème PROVISOIRE : reconstruit par inférence à partir des "
+                + "titres, sans visionnage des vidéos. À valider par le psychologue"
+                + (report.situationsAwaitingReview().isEmpty()
+                    ? "."
+                    : " — dont " + String.join(", ", report.situationsAwaitingReview())
+                        + " dans cette partie.")));
+        }
+        lines.add(Line.total("Total", score.rawPoints(), score.maxPoints()));
+        return new ScoreBreakdown(lines);
+    }
+
+    private static String share(StrategicChoicesReport report, CopingFamily family) {
+        int count = report.copingProfile().getOrDefault(family, 0);
+        return count + "/" + report.situationsPlayed()
+            + " (" + Math.round(report.sharePercent(family)) + " %)";
+    }
+
+    /**
      * « Je Décide » — une ligne par dimension /18, puis brut /90, puis SCW /100.
      * Le détail par dimension vient du {@link DecisionReport} (catalogue serveur),
      * pas des seules métriques : d'où une signature dédiée.
@@ -248,24 +316,48 @@ public class ScoreBreakdownService {
     }
 
     /** Ordonnancement de tâches — 4 critères (3 + 3 + 2 + 2) → /10. */
+    /**
+     * Détail du barème « Planning journalier ».
+     *
+     * <p>Les composantes valent des décimales — un demi-point de temps mort, un
+     * prorata sur sept contraintes — que {@link ScoreBreakdown.Line} ne sait pas
+     * porter. Chaque ligne affiche donc ses points arrondis, et son libellé
+     * garde la valeur exacte : sans cela, un joueur verrait quatre lignes dont
+     * la somme ne fait pas son total.
+     */
     public ScoreBreakdown taskScheduling(TaskSchedulingMetrics m, Score score) {
-        int coherencePts = Math.max(0, Math.min(
-            TaskSchedulingConfig.PLANNING_COHERENCE_MAX_POINTS, m.planningCoherence()));
-        int adjustmentPts = TaskSchedulingConfig.adjustmentScore(m.adjustmentCount());
+        double dependency = TaskSchedulingConfig.dependencyScore(
+            m.dependencyEdgesRespected(), m.dependencyEdgeCount(),
+            m.directDependencyViolations());
+        double timing = TaskSchedulingConfig.timeScore(
+            m.timingConstraintsRespected(), m.timingConstraintCount());
+        double coherence = TaskSchedulingConfig.coherenceScore(
+            m.collisionFree(), m.deadTimeRatio());
+        double selfRegulation = TaskSchedulingConfig.selfRegulationScore(
+            m.proactiveAdjustments(), m.reactiveAdjustments(), m.levelsPlayed());
+
         List<Line> lines = new ArrayList<>();
         lines.add(Line.criterion("Dépendances respectées",
-            m.dependenciesRespected() ? "oui" : "non",
-            m.dependenciesRespected() ? TaskSchedulingConfig.DEPENDENCIES_POINTS : 0,
-            TaskSchedulingConfig.DEPENDENCIES_POINTS));
-        lines.add(Line.criterion("Contraintes horaires",
-            m.timeConstraintsRespected() ? "oui" : "non",
-            m.timeConstraintsRespected() ? TaskSchedulingConfig.TIME_CONSTRAINTS_POINTS : 0,
-            TaskSchedulingConfig.TIME_CONSTRAINTS_POINTS));
-        lines.add(Line.criterion("Cohérence du planning",
-            coherenceLabel(m.planningCoherence()), coherencePts,
-            TaskSchedulingConfig.PLANNING_COHERENCE_MAX_POINTS));
-        lines.add(Line.criterion("Réajustements", String.valueOf(m.adjustmentCount()),
-            adjustmentPts, TaskSchedulingConfig.ADJUSTMENT_MAX_POINTS));
+            m.dependencyEdgesRespected() + "/" + m.dependencyEdgeCount()
+                + (m.directDependencyViolations() > 0
+                    ? " · " + m.directDependencyViolations() + " violation(s) directe(s)"
+                    : ""),
+            (int) Math.round(dependency),
+            (int) TaskSchedulingConfig.DEPENDENCIES_POINTS));
+        lines.add(Line.criterion("Gestion du temps",
+            m.timingConstraintsRespected() + "/" + m.timingConstraintCount(),
+            (int) Math.round(timing),
+            (int) TaskSchedulingConfig.TIME_CONSTRAINTS_POINTS));
+        lines.add(Line.criterion("Cohérence séquentielle",
+            (m.collisionFree() ? "sans collision" : "collision")
+                + " · " + Math.round(m.deadTimeRatio() * 100) + " % de temps mort",
+            (int) Math.round(coherence),
+            (int) TaskSchedulingConfig.PLANNING_COHERENCE_MAX_POINTS));
+        lines.add(Line.criterion("Autorégulation",
+            m.proactiveAdjustments() + " proactive(s) · "
+                + m.reactiveAdjustments() + " réactive(s)",
+            (int) Math.round(selfRegulation),
+            (int) TaskSchedulingConfig.ADJUSTMENT_MAX_POINTS));
         lines.add(Line.total("Total", score.rawPoints(), score.maxPoints()));
         return new ScoreBreakdown(lines);
     }

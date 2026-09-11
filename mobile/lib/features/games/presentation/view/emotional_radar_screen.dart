@@ -1,22 +1,24 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/audio/sound_service.dart';
-import '../../domain/config/emotional_radar_config.dart';
-import '../../domain/entities/emotional_radar.dart';
+import '../../domain/config/emotional_radar_v2_config.dart';
+import '../../domain/entities/emotional_radar_v2.dart';
 import '../../domain/entities/game_session.dart';
 import '../../domain/entities/game_type.dart';
 import '../../domain/entities/mini_game.dart';
+import '../../domain/repositories/emotional_radar_v2_repository.dart';
 import '../emotional_regulation_session_provider.dart';
 import '../games_providers.dart';
 import '../widgets/emotional_game_pause_dialog.dart';
 import '../widgets/game_system_components.dart';
 import '../widgets/emotional_radar_components.dart';
-import '../widgets/emotional_radar_video.dart';
-import 'emotional_radar_gameplay.dart';
+import 'emotional_radar_v2_gameplay.dart';
 
-/// Étapes du parcours, calquées sur « Prototype logic » (Developer handoff) :
-/// Cover → Tutorial → Gameplay → Feedback → Transition → … → Results.
+/// Étapes du parcours : Cover → Tutorial → Gameplay → Feedback → … → Results.
 enum _Stage {
   cover,
   tutorial,
@@ -28,14 +30,18 @@ enum _Stage {
   error,
 }
 
-/// Écran complet d'« Emotional Radar » (régulation émotionnelle, « Je gère »).
+/// Écran d'« Emotional Radar » — parcours v2 (référentiel Cowen & Keltner).
 ///
-/// Le contenu des scènes (texte, image, vidéo) vient du **backend** : c'est le
-/// premier jeu du module dont le matériel n'est pas embarqué dans l'app.
+/// Le serveur est l'unique autorité : il tire la scène, choisit les
+/// distracteurs selon la distance sémantique visée, tient le budget de réponse,
+/// corrige, fait monter ou descendre le niveau et produit le rapport final.
+/// L'écran ne calcule aucun score et ne conserve aucune clé de correction :
+/// il l'apprend dans la réponse HTTP, après coup.
 ///
-/// ⚠️ Le score n'est jamais calculé ici. L'écran envoie chaque réponse au serveur,
-/// qui la note et renvoie la correction ; à la fin, il ne soumet que des mesures
-/// comportementales (temps, aide, plein écran).
+/// ⚠️ En phase A, ce parcours **ne soumet aucun résultat**. Le serveur refuse
+/// une session déjà marquée par le parcours v1 (`rejectLegacyAttempt`), et il
+/// s'interdit lui-même d'enregistrer une tentative tant que les stimuli sont
+/// des placeholders — sinon un score non normé remonterait dans Recruitment.
 class EmotionalRadarScreen extends ConsumerStatefulWidget {
   const EmotionalRadarScreen({super.key});
 
@@ -48,35 +54,45 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
   _Stage _stage = _Stage.cover;
 
   GameSession? _session;
-  EmotionalRadarSceneSet? _sceneSet;
-  int _sceneIndex = 0;
-  int _score = 0;
+  EmotionalRadarV2State? _radar;
   String? _errorMessage;
 
   // Sélection de la scène courante.
-  BasicEmotion? _emotion;
-  EmotionalNuance? _nuance;
-  int? _intensity;
+  String? _emotionKey;
+  EmotionalRadarV2Intensity? _intensity;
   bool _validating = false;
-  EmotionalRadarFeedback? _feedback;
+  EmotionalRadarV2Feedback? _feedback;
 
-  // Mesures comportementales (les seules données envoyées à la fin).
-  final List<EmotionalRadarSceneMetric> _metrics = [];
-  DateTime? _sceneStartedAt;
-  bool _helpOpenedThisScene = false;
-  bool _fullscreenOpenedThisScene = false;
+  /// Budget de réponse restant, en millisecondes.
+  ///
+  /// Simple reflet de l'horloge serveur — le serveur date la scène à sa
+  /// création et recalcule l'écoulé à la réponse. Ce compteur n'arrête donc
+  /// rien : il ne fait qu'afficher ce qui est déjà décidé ailleurs.
+  int _remainingMs = 0;
+  Timer? _budgetTicker;
+
+  /// Route plein écran en cours, pour pouvoir la refermer d'autorité quand le
+  /// budget de réponse expire : rester en plein écran après l'échéance
+  /// laisserait le joueur regarder une vidéo qu'il ne peut plus utiliser.
+  ModalRoute<void>? _fullscreenRoute;
 
   // Options de la carte Pause.
   bool _buttonsInput = true;
 
-  EmotionalRadarScene? get _scene {
-    final set = _sceneSet;
-    if (set == null || _sceneIndex >= set.scenes.length) return null;
-    return set.scenes[_sceneIndex];
+  EmotionalRadarV2Scene? get _scene => _radar?.currentScene;
+
+  int get _totalScenes => _radar?.totalScenes ?? EmotionalRadarV2Config.totalScenes;
+
+  /// Numéro affiché : la scène en cours est la suivante de celles répondues.
+  int get _sceneNumber {
+    final radar = _radar;
+    if (radar == null) return 1;
+    final order = radar.currentScene?.sceneOrder ?? radar.answeredScenes;
+    return order.clamp(1, _totalScenes);
   }
 
-  int get _totalScenes =>
-      _sceneSet?.totalScenes ?? EmotionalRadarConfig.pointsPerScene;
+  int get _currentLevel =>
+      _radar?.currentLevel ?? EmotionalRadarV2Config.startingLevel;
 
   bool get _reducedMotion =>
       (MediaQuery.maybeDisableAnimationsOf(context) ?? false) ||
@@ -106,13 +122,46 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
       ) ??
       900;
 
+  EmotionalRadarV2Repository get _radarRepo =>
+      ref.read(gamesRepositoryProvider) as EmotionalRadarV2Repository;
+
   // ── Cycle de jeu ──────────────────────────────────────────────────────────
 
   /// Droit de pause de la partie : une ouverture, 30 s (CdC pause §2-3).
   final GamePauseAllowance _pauseAllowance = GamePauseAllowance();
 
+  /// Orientations du jeu hors plein écran.
+  ///
+  /// Tout l'écran est dessiné en portrait — grille de 6 ou 9 propositions et
+  /// échelle d'intensité. Le plein écran est la seule exception, et il doit
+  /// rendre le portrait en sortant.
+  static const List<DeviceOrientation> _portrait = [DeviceOrientation.portraitUp];
+
+  @override
+  void initState() {
+    super.initState();
+    // Le verrou est posé ici et levé dans [dispose] : il ne dépasse donc pas
+    // l'écran du jeu. L'app n'imposait aucune orientation avant, et elle n'en
+    // imposera aucune après.
+    unawaited(SystemChrome.setPreferredOrientations(_portrait));
+  }
+
+  @override
+  void dispose() {
+    _budgetTicker?.cancel();
+    // Liste vide = aucune préférence : on rend la main aux orientations
+    // déclarées dans Info.plist, comme avant l'entrée dans le jeu.
+    unawaited(SystemChrome.setPreferredOrientations(const []));
+    unawaited(
+      SystemChrome.setEnabledSystemUIMode(
+        SystemUiMode.manual,
+        overlays: SystemUiOverlay.values,
+      ),
+    );
+    super.dispose();
+  }
+
   Future<void> _startGame() async {
-    // Nouvelle partie = nouveau droit de pause.
     _pauseAllowance.reset();
     setState(() {
       _stage = _Stage.loading;
@@ -128,49 +177,57 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
           sharedSession ??
           await repo.startSession(GameType.emotionalRegulation);
       ref.read(emotionalRegulationSessionProvider.notifier).keep(session);
-      final sceneSet = await repo.emotionalRadarScenes(session.id);
+
+      // Une seule opération d'activation : c'est elle qui démarre le budget
+      // serveur de la scène. On ne la déclenche donc jamais à l'avance.
+      final state = await _radarRepo.activateNextEmotionalRadarV2Scene(
+        session.id,
+      );
 
       if (!mounted) return;
       setState(() {
         _session = session;
-        _sceneSet = sceneSet;
-        _sceneIndex = 0;
-        _score = 0;
-        _metrics.clear();
+        _radar = state;
         _stage = _Stage.gameplay;
       });
       _beginScene();
     } catch (error) {
-      if (!mounted) return;
-      setState(() {
-        _stage = _Stage.error;
-        _errorMessage = '$error';
-      });
+      _failWith(error);
     }
   }
 
   void _beginScene() {
+    final scene = _scene;
     setState(() {
-      _emotion = null;
-      _nuance = null;
+      _emotionKey = null;
       _intensity = null;
       _feedback = null;
-      _helpOpenedThisScene = false;
-      _fullscreenOpenedThisScene = false;
-      _sceneStartedAt = DateTime.now();
+      _remainingMs = scene?.remainingResponseTimeMs ?? 0;
+    });
+    _startBudgetTicker();
+  }
+
+  void _startBudgetTicker() {
+    _budgetTicker?.cancel();
+    if (_remainingMs <= 0) return;
+    const tick = Duration(milliseconds: 100);
+    _budgetTicker = Timer.periodic(tick, (timer) {
+      if (!mounted) return timer.cancel();
+      final next = _remainingMs - tick.inMilliseconds;
+      setState(() => _remainingMs = next <= 0 ? 0 : next);
+      if (next <= 0) {
+        timer.cancel();
+        _closeFullscreenIfOpen();
+      }
     });
   }
 
   Future<void> _validate() async {
     final session = _session;
     final scene = _scene;
-    final emotion = _emotion;
-    final nuance = _nuance;
+    final emotionKey = _emotionKey;
     final intensity = _intensity;
-    if (session == null ||
-        scene == null ||
-        emotion == null ||
-        nuance == null ||
+    if (session == null || scene == null || emotionKey == null ||
         intensity == null) {
       return;
     }
@@ -178,105 +235,78 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
     setState(() => _validating = true);
 
     try {
-      // La correction est faite SERVEUR : l'écran ne connaît la réponse
-      // attendue qu'à cet instant, dans la réponse HTTP.
-      final feedback = await ref
-          .read(gamesRepositoryProvider)
-          .answerEmotionalRadarScene(
-            sessionId: session.id,
-            sceneId: scene.id,
-            emotion: emotion,
-            nuanceKey: nuance.key,
-            intensity: intensity,
-          );
-
-      _metrics.add(
-        EmotionalRadarSceneMetric(
-          sceneId: scene.id,
-          responseTimeMs: _sceneStartedAt == null
-              ? 0
-              : DateTime.now().difference(_sceneStartedAt!).inMilliseconds,
-          helpOpened: _helpOpenedThisScene,
-          fullscreenOpened: _fullscreenOpenedThisScene,
-          reducedMotion: _reducedMotion,
-        ),
+      // La correction est faite SERVEUR : l'écran n'apprend l'émotion attendue
+      // qu'ici, dans la réponse HTTP.
+      final result = await _radarRepo.answerEmotionalRadarV2Scene(
+        sessionId: session.id,
+        sceneOrder: scene.sceneOrder,
+        selectedEmotionKey: emotionKey,
+        selectedIntensity: intensity,
+        // Champ conservé au contrat, vide : la troisième question a été retirée
+        // de l'écran à la demande du client. Le garder permet de rétablir la
+        // mesure sans migration si elle revient.
+        explanation: '',
       );
 
       if (!mounted) return;
+      _budgetTicker?.cancel();
       final showFeedback = _feedbackEnabled;
       setState(() {
-        _feedback = feedback;
-        // Le score est mis à jour DÈS la validation : la maquette claire le
-        // laissait à 0 sur la carte de feedback alors que la planche sombre
-        // l'incrémentait (9 → 18). C'est cette dernière qui est cohérente.
-        _score = feedback.totalPoints;
+        _feedback = result.feedback;
+        _radar = result.state;
         _validating = false;
         _stage = showFeedback ? _Stage.feedback : _Stage.gameplay;
       });
       if (!showFeedback) await _nextScene();
     } catch (error) {
       if (!mounted) return;
-      setState(() {
-        _validating = false;
-        _errorMessage = '$error';
-        _stage = _Stage.error;
-      });
+      setState(() => _validating = false);
+      _failWith(error);
     }
   }
 
   Future<void> _nextScene() async {
-    final set = _sceneSet;
-    if (set == null) return;
+    final session = _session;
+    final radar = _radar;
+    if (session == null || radar == null) return;
 
-    final isLast = _sceneIndex >= set.scenes.length - 1;
-    if (isLast) {
-      await _finish();
+    if (radar.completed) {
+      // Le rapport arrive avec le dernier état : rien à soumettre, rien à
+      // recalculer côté client.
+      setState(() => _stage = _Stage.results);
       return;
     }
 
-    setState(() {
-      _sceneIndex += 1;
-      _stage = _Stage.transition;
-    });
-
-    // Transition courte (200–300 ms de la maquette ; ici un temps de lecture),
-    // supprimée en mouvement réduit.
+    setState(() => _stage = _Stage.transition);
     if (!_reducedMotion) {
       await Future<void>.delayed(Duration(milliseconds: _transitionDurationMs));
     }
     if (!mounted) return;
-    setState(() => _stage = _Stage.gameplay);
-    _beginScene();
+
+    try {
+      // Activation tardive, volontaire : le budget de la scène ne doit pas
+      // s'écouler pendant la transition ni derrière la carte de feedback.
+      final state = await _radarRepo.activateNextEmotionalRadarV2Scene(
+        session.id,
+      );
+      if (!mounted) return;
+      setState(() {
+        _radar = state;
+        _stage = _Stage.gameplay;
+      });
+      _beginScene();
+    } catch (error) {
+      _failWith(error);
+    }
   }
 
-  Future<void> _finish() async {
-    final session = _session;
-    if (session == null) return;
-
-    setState(() => _stage = _Stage.loading);
-    try {
-      // Ne remonte QUE des mesures comportementales : le score est reconstruit
-      // serveur depuis les réponses déjà notées (AGENTS.md §7.4).
-      final updated = await ref
-          .read(gamesRepositoryProvider)
-          .submitResult(
-            sessionId: session.id,
-            miniGame: MiniGame.emotionalRadarCore,
-            metrics: EmotionalRadarMetrics(scenes: List.of(_metrics)),
-          );
-      if (!mounted) return;
-      ref.read(emotionalRegulationSessionProvider.notifier).keep(updated);
-      setState(() {
-        _session = updated;
-        _stage = _Stage.results;
-      });
-    } catch (error) {
-      if (!mounted) return;
-      setState(() {
-        _errorMessage = '$error';
-        _stage = _Stage.error;
-      });
-    }
+  void _failWith(Object error) {
+    if (!mounted) return;
+    _budgetTicker?.cancel();
+    setState(() {
+      _errorMessage = '$error';
+      _stage = _Stage.error;
+    });
   }
 
   // ── Overlays ──────────────────────────────────────────────────────────────
@@ -340,8 +370,6 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
       if (!mounted) return;
       if (_pauseAllowance.canReopen) return _openPause(reopen: true);
     }
-    // La partie repart : le temps passé en pause rejoint le budget consommé, et
-    // le bouton reste « Pause » tant qu'il en reste.
     _pauseAllowance.close();
     if (mounted) setState(() {});
   }
@@ -350,7 +378,6 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
 
   Future<void> _showHelp() async {
     if (!_helpEnabled) return;
-    setState(() => _helpOpenedThisScene = true);
     await showDialog<void>(
       context: context,
       barrierColor: const Color(0xCC1B1B4B),
@@ -363,17 +390,63 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
   Future<void> _showFullscreen() async {
     final scene = _scene;
     if (scene == null) return;
-    setState(() => _fullscreenOpenedThisScene = true);
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        fullscreenDialog: true,
-        builder: (_) => _FullscreenSceneView(
-          scene: scene,
-          sceneNumber: _sceneIndex + 1,
-          totalScenes: _totalScenes,
-        ),
+
+    // Le plein écran bascule en paysage : les stimuli sont filmés en 16:9, et
+    // en portrait la vidéo n'occupe qu'une bande au milieu de l'écran.
+    await SystemChrome.setPreferredOrientations(const [
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+    // Barres système masquées : un lecteur plein écran ne laisse pas l'heure
+    // et la batterie par-dessus l'image.
+    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    // La bascule d'orientation est asynchrone : l'écran a pu être quitté
+    // pendant ce temps. On rend alors la main aux orientations d'origine
+    // plutôt que de laisser l'app bloquée en paysage.
+    if (!mounted) {
+      await _leaveFullscreenChrome();
+      return;
+    }
+
+    final route = MaterialPageRoute<void>(
+      fullscreenDialog: true,
+      builder: (_) => RadarFullscreenSceneView(
+        scene: scene,
+        sceneNumber: _sceneNumber,
+        totalScenes: _totalScenes,
       ),
     );
+    _fullscreenRoute = route;
+    try {
+      await Navigator.of(context).push(route);
+    } finally {
+      _fullscreenRoute = null;
+      await _leaveFullscreenChrome();
+    }
+  }
+
+  /// Rend le portrait et les barres système en quittant le plein écran.
+  ///
+  /// Regroupé pour que les deux sorties — fermeture normale et abandon parce
+  /// que l'écran a été quitté pendant la bascule — restaurent exactement la
+  /// même chose. Une liste d'orientations vide ne suffisait pas : sans
+  /// préférence, iOS n'a aucune raison de repivoter, et le jeu restait couché.
+  Future<void> _leaveFullscreenChrome() async {
+    await SystemChrome.setPreferredOrientations(_portrait);
+    await SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.manual,
+      overlays: SystemUiOverlay.values,
+    );
+  }
+
+  /// Referme le plein écran quand le budget de réponse est épuisé.
+  void _closeFullscreenIfOpen() {
+    if (!mounted) return;
+    final route = _fullscreenRoute;
+    // `isCurrent` évite de fermer autre chose : si une boîte de dialogue s'est
+    // ouverte par-dessus, ce n'est plus notre route qui est au sommet.
+    if (route == null || !route.isCurrent) return;
+    Navigator.of(context).pop();
   }
 
   // ── Rendu ─────────────────────────────────────────────────────────────────
@@ -394,17 +467,17 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
       _Stage.gameplay => GameplayMusic(child: _buildGameplay()),
       _Stage.feedback => _buildFeedback(),
       _Stage.results => _ResultsView(
-        session: _session,
-        scenesPlayed: _metrics.length,
+        report: _radar?.report,
+        scoringProvisional: _radar?.scoringProvisional ?? true,
+        mediaLibraryReady: _radar?.mediaLibraryReady ?? false,
         onReplay: _startGame,
       ),
       _Stage.error => _ErrorView(message: _errorMessage, onRetry: _startGame),
     };
   }
 
-  /// Coquille commune du gameplay : en-tête « Scene n / N », score, aide, barre.
+  /// Coquille commune du gameplay : « Scene n / N », niveau, aide, barre.
   Widget _buildShell({required Widget child}) {
-    final sceneNumber = (_sceneIndex + 1).clamp(1, _totalScenes);
     return _GameScaffold(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -413,7 +486,7 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
             children: [
               Expanded(
                 child: Text(
-                  'Scene $sceneNumber / $_totalScenes',
+                  'Scene $_sceneNumber / $_totalScenes',
                   style: const TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w700,
@@ -421,15 +494,6 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
                   ),
                 ),
               ),
-              Text(
-                'Score $_score',
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(width: 10),
               if (_helpEnabled) ...[
                 _HelpPill(onTap: _openHelp),
                 const SizedBox(width: 6),
@@ -451,7 +515,18 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
             ],
           ),
           const SizedBox(height: 10),
-          _ProgressBar(value: sceneNumber / _totalScenes),
+          _ProgressBar(value: _sceneNumber / _totalScenes),
+          const SizedBox(height: 12),
+          // Aucun score courant affiché : le référentiel n'en définit aucun en
+          // cours de partie, et le rapport /10 n'existe qu'à la fin. Le niveau,
+          // lui, change en jeu — c'est la seule information de progression qui
+          // ait un sens ici.
+          RadarLevelBanner(
+            level: _currentLevel,
+            choicesCount:
+                _scene?.choicesCount ??
+                EmotionalRadarV2Config.choicesForLevel(_currentLevel),
+          ),
           const SizedBox(height: 16),
           Expanded(
             child: SingleChildScrollView(
@@ -466,37 +541,26 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
 
   Widget _buildGameplay() {
     final scene = _scene;
-    final set = _sceneSet;
-    if (scene == null || set == null) {
+    if (scene == null) {
       return const _GameScaffold(child: _CenteredSpinner());
     }
     return _buildShell(
       child: Column(
         children: [
-          SceneCard(
+          RadarSceneStage(
             scene: scene,
+            remainingMs: _remainingMs,
             onOpenFullscreen: _openFullscreen,
             playbackEnabled: _videoOverlayDepth == 0,
           ),
           const SizedBox(height: 14),
-          AnswerPanel(
-            sceneSet: set,
-            selectedEmotion: _emotion,
-            selectedNuance: _nuance,
+          RadarAnswerPanel(
+            scene: scene,
+            selectedEmotionKey: _emotionKey,
             selectedIntensity: _intensity,
             validating: _validating,
-            onSelectEmotion: (e) => setState(() {
-              _emotion = e;
-              // Changer de famille invalide la nuance et l'intensité :
-              // une nuance n'a de sens que dans sa famille.
-              _nuance = null;
-              _intensity = null;
-            }),
-            onSelectNuance: (n) => setState(() {
-              _nuance = n;
-              _intensity = null;
-            }),
-            onSelectIntensity: (i) => setState(() => _intensity = i),
+            onSelectEmotion: (key) => setState(() => _emotionKey = key),
+            onSelectIntensity: (value) => setState(() => _intensity = value),
             onValidate: _validate,
           ),
         ],
@@ -505,31 +569,22 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
   }
 
   Widget _buildFeedback() {
-    final scene = _scene;
     final feedback = _feedback;
-    if (scene == null || feedback == null) {
+    final radar = _radar;
+    if (feedback == null || radar == null) {
       return const _GameScaffold(child: _CenteredSpinner());
     }
-    final isLast = _sceneIndex >= (_sceneSet?.scenes.length ?? 1) - 1;
     return _buildShell(
       child: Column(
         children: [
-          SceneCard(
-            scene: scene,
-            onOpenFullscreen: _openFullscreen,
-            playbackEnabled: _videoOverlayDepth == 0,
-          ),
-          const SizedBox(height: 14),
-          FeedbackCard(
+          RadarFeedbackCard(
             feedback: feedback,
-            selectedEmotion: _emotion!,
-            selectedNuance: _nuance!,
+            selectedEmotionKey: _emotionKey!,
             selectedIntensity: _intensity!,
           ),
           const SizedBox(height: 18),
           _MagentaButton(
-            // « Next scene » partout : la planche sombre disait « Continue ».
-            label: isLast ? 'See my results' : 'Next scene',
+            label: radar.completed ? 'See my results' : 'Next scene',
             onPressed: _nextScene,
           ),
         ],
@@ -811,8 +866,8 @@ class _CoverView extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               const Text(
-                'Observe each scene, identify the basic emotion, choose the '
-                'nuance, then rate its intensity.',
+                'Watch each scene, name the dominant emotion among the '
+                'options, then rate how strong it is.',
                 style: TextStyle(
                   fontSize: 16,
                   height: 1.45,
@@ -922,9 +977,14 @@ class _TutorialView extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'A calm five-step flow. You can review it at any time.',
-                style: TextStyle(
+              Text(
+                // Le nombre suit la liste : l'écrire en dur l'avait laissé à
+                // « Five » après le retrait de la justification, en
+                // contradiction avec les quatre étapes affichées juste en
+                // dessous.
+                '${emotionalRadarSteps.length} calm steps. '
+                'You can review them at any time.',
+                style: const TextStyle(
                   fontSize: 16,
                   height: 1.4,
                   color: EmotionalRadarPalette.muted,
@@ -1125,179 +1185,29 @@ class _HelpDialog extends StatelessWidget {
   }
 }
 
-/// Vue plein écran d'une scène image (écran « 13C »).
-class _FullscreenSceneView extends StatelessWidget {
-  const _FullscreenSceneView({
-    required this.scene,
-    required this.sceneNumber,
-    required this.totalScenes,
-  });
-
-  final EmotionalRadarScene scene;
-  final int sceneNumber;
-  final int totalScenes;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: EmotionalRadarPalette.canvas,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Scene $sceneNumber / $totalScenes',
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                  const Text(
-                    'Full screen',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Semantics(
-                    button: true,
-                    label: 'Close full screen',
-                    child: IconButton(
-                      onPressed: () {
-                        SoundService.instance.playSfx(GameSfx.buttonClick);
-                        Navigator.of(context).pop();
-                      },
-                      icon: const Icon(Icons.close, color: Colors.white),
-                      style: IconButton.styleFrom(
-                        backgroundColor: Colors.white24,
-                        minimumSize: const Size(48, 48),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF141338),
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        scene.mediaType == SceneMediaType.video
-                            ? 'Video full screen'
-                            : 'Image full screen',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Expanded(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child:
-                              scene.mediaType == SceneMediaType.video &&
-                                  scene.mediaUrl != null
-                              ? SingleChildScrollView(
-                                  child: GamePanel(
-                                    child: EmotionalRadarVideo(
-                                      source: scene.mediaUrl!,
-                                    ),
-                                  ),
-                                )
-                              : InteractiveViewer(
-                                  maxScale: 4,
-                                  child: EmotionalRadarSceneImage(
-                                    scene: scene,
-                                    fit: BoxFit.contain,
-                                    width: double.infinity,
-                                    fallback: Container(
-                                      color: const Color(0xFF23224F),
-                                      alignment: Alignment.center,
-                                      child: const Icon(
-                                        Icons.image_outlined,
-                                        size: 48,
-                                        color: Colors.white54,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF23224F),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          scene.transcript ??
-                              scene.altText ??
-                              scene.instructionText,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            height: 1.4,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 14),
-              const Text(
-                'Close full screen anytime.',
-                style: TextStyle(fontSize: 14, color: Colors.white70),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ══════════════════════════════════════════════════════════════════════════
-// Résultats & erreur
-// ══════════════════════════════════════════════════════════════════════════
-
-/// Résultats : score serveur + détail du score (panneau « d'où viennent mes points »).
+/// Rapport de fin de session, tel que le serveur le renvoie.
+///
+/// Les deux axes de difficulté du référentiel sont restitués séparément —
+/// `accuracy_by_choice_count` et `accuracy_by_semantic_distance` — parce que
+/// c'est précisément ce que la séparation des niveaux 3 et 4 sert à mesurer :
+/// savoir si le joueur bute sur le nombre de propositions ou sur la finesse de
+/// discrimination.
 class _ResultsView extends StatelessWidget {
   const _ResultsView({
-    required this.session,
-    required this.scenesPlayed,
+    required this.report,
+    required this.scoringProvisional,
+    required this.mediaLibraryReady,
     required this.onReplay,
   });
 
-  final GameSession? session;
-  final int scenesPlayed;
+  final EmotionalRadarV2Report? report;
+  final bool scoringProvisional;
+  final bool mediaLibraryReady;
   final VoidCallback onReplay;
 
   @override
   Widget build(BuildContext context) {
-    final attempt = session?.attempts
-        .where((a) => a.miniGame == MiniGame.emotionalRadarCore)
-        .lastOrNull;
-    final score = attempt?.score;
-
+    final data = report;
     return Scaffold(
       backgroundColor: EmotionalRadarPalette.canvas,
       body: SafeArea(
@@ -1316,79 +1226,303 @@ class _ResultsView extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                '$scenesPlayed scenes completed',
+                data == null
+                    ? 'Session interrompue'
+                    : '${data.totalScenes} scènes · niveau '
+                          '${data.startingLevel} → ${data.finalLevel}',
                 style: const TextStyle(fontSize: 15, color: Colors.white70),
               ),
               const SizedBox(height: 20),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 28),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: Column(
-                  children: [
-                    const Text(
-                      'Emotional recognition score',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: EmotionalRadarPalette.muted,
-                      ),
+              if (data == null)
+                const _RadarResultCard(
+                  child: Text(
+                    'Aucun rapport disponible pour cette session.',
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: EmotionalRadarPalette.muted,
                     ),
-                    const SizedBox(height: 10),
-                    Text(
-                      score == null
-                          ? '—'
-                          : '${score.rawPoints} / ${score.maxPoints}',
-                      style: const TextStyle(
-                        fontSize: 40,
-                        fontWeight: FontWeight.w800,
-                        color: EmotionalRadarPalette.ink,
+                  ),
+                )
+              else ...[
+                _RadarScoreCard(report: data),
+                const SizedBox(height: 14),
+                _RadarResultCard(
+                  title: 'Reconnaissance',
+                  child: Column(
+                    children: [
+                      _RadarStatRow(
+                        label: 'Émotions correctes',
+                        value:
+                            '${data.correctEmotions} / ${data.totalScenes}'
+                            '  (${data.emotionAccuracyPercent.round()} %)',
                       ),
-                    ),
-                    if (score != null) ...[
-                      const SizedBox(height: 6),
-                      Text(
-                        score.level,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: EmotionalRadarPalette.magenta,
-                        ),
+                      _RadarStatRow(
+                        label: 'Intensité juste',
+                        value: '${data.intensityMatchPercent.round()} %',
+                      ),
+                      _RadarStatRow(
+                        label: 'Temps de réponse moyen',
+                        value:
+                            '${(data.averageResponseTimeMs / 1000).toStringAsFixed(1)} s',
+                      ),
+                      _RadarStatRow(
+                        label: 'Réponses impulsives',
+                        value: '${data.impulsiveResponsesPercent.round()} %',
+                        last: true,
                       ),
                     ],
-                  ],
+                  ),
                 ),
-              ),
-              // Le détail de la formule de calcul du score a été retiré du
-              // tableau de score sur retour client. Le barème reste calculé et
-              // exposé côté serveur — seul son AFFICHAGE disparaît ici.
+                const SizedBox(height: 14),
+                // Charge cognitive isolée : 6 propositions contre 9.
+                if (data.accuracyByChoiceCount.isNotEmpty)
+                  _RadarResultCard(
+                    title: 'Selon le nombre de propositions',
+                    child: Column(
+                      children: [
+                        for (final entry
+                            in data.accuracyByChoiceCount.entries.toList()
+                              ..sort((a, b) => a.key.compareTo(b.key)))
+                          _RadarStatRow(
+                            label: '${entry.key} propositions',
+                            value: '${entry.value.round()} %',
+                            last:
+                                entry.key ==
+                                data.accuracyByChoiceCount.keys.reduce(
+                                  (a, b) => a > b ? a : b,
+                                ),
+                          ),
+                      ],
+                    ),
+                  ),
+                if (data.semanticDistanceScoringAvailable &&
+                    data.accuracyBySemanticDistance.isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  _RadarResultCard(
+                    title: 'Selon la finesse de discrimination',
+                    child: Column(
+                      children: [
+                        for (final entry
+                            in data.accuracyBySemanticDistance.entries.toList())
+                          _RadarStatRow(
+                            label: _distanceLabel(entry.key),
+                            value: '${entry.value.round()} %',
+                            last:
+                                entry.key ==
+                                data.accuracyBySemanticDistance.keys.last,
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+                if (scoringProvisional || !mediaLibraryReady) ...[
+                  const SizedBox(height: 14),
+                  _RadarProvisionalNotice(
+                    mediaLibraryReady: mediaLibraryReady,
+                  ),
+                ],
+              ],
               const SizedBox(height: 22),
               _MagentaButton(label: 'Play again', onPressed: onReplay),
               const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: TextButton(
-                  onPressed: () {
-                    SoundService.instance.playSfx(GameSfx.buttonClick);
-                    Navigator.of(context).maybePop();
-                  },
-                  child: const Text(
-                    'Back to games',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
+              _WhiteOutlineButton(
+                label: 'Back to games',
+                onPressed: () => Navigator.of(context).maybePop(),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  /// Les clés viennent du serveur (`HIGH`/`MEDIUM`/`LOW`) : on les traduit du
+  /// point de vue du joueur, où une distance élevée est le cas FACILE.
+  static String _distanceLabel(String key) => switch (key.toUpperCase()) {
+    'HIGH' => 'Émotions bien distinctes',
+    'MEDIUM' => 'Émotions assez proches',
+    'LOW' => 'Émotions très proches',
+    _ => key,
+  };
+}
+
+class _RadarScoreCard extends StatelessWidget {
+  const _RadarScoreCard({required this.report});
+
+  final EmotionalRadarV2Report report;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 26, horizontal: 18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        children: [
+          const Text(
+            'Score de reconnaissance émotionnelle',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: EmotionalRadarPalette.muted,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            '${report.radarEmotionScore} / 10',
+            style: const TextStyle(
+              fontSize: 40,
+              fontWeight: FontWeight.w800,
+              color: EmotionalRadarPalette.ink,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            decoration: BoxDecoration(
+              color: EmotionalRadarPalette.selectTint,
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              'Niveau émotionnel : ${report.emotionalLevel}',
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: EmotionalRadarPalette.selectBlue,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RadarResultCard extends StatelessWidget {
+  const _RadarResultCard({required this.child, this.title});
+
+  final String? title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final heading = title;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (heading != null) ...[
+            Text(
+              heading,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                color: EmotionalRadarPalette.ink,
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+class _RadarStatRow extends StatelessWidget {
+  const _RadarStatRow({
+    required this.label,
+    required this.value,
+    this.last = false,
+  });
+
+  final String label;
+  final String value;
+  final bool last;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: last ? 0 : 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 13.5,
+                color: EmotionalRadarPalette.muted,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            value,
+            textAlign: TextAlign.right,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: EmotionalRadarPalette.ink,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Avertissement affiché tant que le jeu n'est pas normé.
+///
+/// Le référentiel conditionne l'usage des scores à un norming par panel
+/// indépendant (Kappa ≥ 0,70). Tant que le serveur annonce
+/// `scoringProvisional`, le rapport se lit comme un entraînement, pas comme une
+/// mesure — et le taire serait laisser croire l'inverse.
+class _RadarProvisionalNotice extends StatelessWidget {
+  const _RadarProvisionalNotice({required this.mediaLibraryReady});
+
+  final bool mediaLibraryReady;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white24),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.science_outlined, size: 18, color: Colors.white70),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              mediaLibraryReady
+                  ? 'Score provisoire : le barème n\'est pas encore normé.'
+                  : 'Score provisoire : la bibliothèque vidéo n\'est pas '
+                        'complète et le barème n\'est pas encore normé. '
+                        'À lire comme un entraînement.',
+              style: const TextStyle(
+                fontSize: 12.5,
+                height: 1.35,
+                color: Colors.white70,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

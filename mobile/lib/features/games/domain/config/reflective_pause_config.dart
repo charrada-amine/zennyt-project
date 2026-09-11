@@ -15,20 +15,202 @@ class ReflectivePauseConfig {
   static const stepBackMax = 3;
   static const totalMax = 10;
 
+  /// Réaction la mieux cotée de chaque situation — miroir exact du serveur.
+  ///
+  /// Engendrée depuis `reflective_pause_bank.json` : la banque cote chaque
+  /// réponse de 0 à 3, la « recommandée » est celle qui porte la cotation
+  /// maximale de sa fiche. Neuf situations ont deux réponses à égalité, toutes
+  /// deux acceptées.
   static const Map<String, Set<ReflectivePauseResponseType>> recommended = {
-    'PRESSURE_01': {ReflectivePauseResponseType.breatheAnalyze},
-    'PRESSURE_02': {ReflectivePauseResponseType.askForMoreInformation},
-    'PRESSURE_03': {
+    'TR-001': {
+      ReflectivePauseResponseType.reformulateCalmly,
+    },
+    'TR-002': {
+      ReflectivePauseResponseType.askForMoreInformation,
+    },
+    'TR-003': {
+      ReflectivePauseResponseType.askForMoreInformation,
+    },
+    'TR-004': {
+      ReflectivePauseResponseType.askForMoreInformation,
+    },
+    'TR-005': {
+      ReflectivePauseResponseType.reformulateCalmly,
+    },
+    'TR-006': {
       ReflectivePauseResponseType.wait,
       ReflectivePauseResponseType.reformulateCalmly,
     },
-    'PRESSURE_04': {ReflectivePauseResponseType.askForMoreInformation},
-    'PRESSURE_05': {ReflectivePauseResponseType.breatheAnalyze},
-    'PRESSURE_06': {ReflectivePauseResponseType.reformulateCalmly},
-    'PRESSURE_07': {ReflectivePauseResponseType.wait},
-    'PRESSURE_08': {ReflectivePauseResponseType.reformulateCalmly},
-    'PRESSURE_09': {ReflectivePauseResponseType.breatheAnalyze},
-    'PRESSURE_10': {ReflectivePauseResponseType.askForMoreInformation},
+    'TR-007': {
+      ReflectivePauseResponseType.breatheAnalyze,
+    },
+    'TR-008': {
+      ReflectivePauseResponseType.reformulateCalmly,
+    },
+    'TR-009': {
+      ReflectivePauseResponseType.breatheAnalyze,
+    },
+    'TR-010': {
+      ReflectivePauseResponseType.wait,
+    },
+    'TR-011': {
+      ReflectivePauseResponseType.reformulateCalmly,
+    },
+    'TR-012': {
+      ReflectivePauseResponseType.reformulateCalmly,
+    },
+    'TR-013': {
+      ReflectivePauseResponseType.breatheAnalyze,
+    },
+    'TR-014': {
+      ReflectivePauseResponseType.breatheAnalyze,
+      ReflectivePauseResponseType.askForMoreInformation,
+    },
+    'TR-015': {
+      ReflectivePauseResponseType.breatheAnalyze,
+      ReflectivePauseResponseType.askForMoreInformation,
+    },
+    'TR-016': {
+      ReflectivePauseResponseType.reformulateCalmly,
+    },
+    'TR-017': {
+      ReflectivePauseResponseType.reformulateCalmly,
+    },
+    'TR-018': {
+      ReflectivePauseResponseType.askForMoreInformation,
+    },
+    'TR-019': {
+      ReflectivePauseResponseType.askForMoreInformation,
+    },
+    'TR-020': {
+      ReflectivePauseResponseType.breatheAnalyze,
+    },
+    'TR-021': {
+      ReflectivePauseResponseType.reformulateCalmly,
+    },
+    'TR-022': {
+      ReflectivePauseResponseType.reformulateCalmly,
+    },
+    'TR-023': {
+      ReflectivePauseResponseType.reformulateCalmly,
+    },
+    'TR-024': {
+      ReflectivePauseResponseType.askForMoreInformation,
+    },
+    'TR-025': {
+      ReflectivePauseResponseType.askForMoreInformation,
+    },
+    'TR-026': {
+      ReflectivePauseResponseType.askForMoreInformation,
+    },
+    'TR-027': {
+      ReflectivePauseResponseType.wait,
+    },
+    'TR-028': {
+      ReflectivePauseResponseType.wait,
+    },
+    'TR-029': {
+      ReflectivePauseResponseType.breatheAnalyze,
+      ReflectivePauseResponseType.askForMoreInformation,
+    },
+    'TR-030': {
+      ReflectivePauseResponseType.reformulateCalmly,
+    },
+    'TR-031': {
+      ReflectivePauseResponseType.breatheAnalyze,
+      ReflectivePauseResponseType.askForMoreInformation,
+    },
+    'TR-032': {
+      ReflectivePauseResponseType.breatheAnalyze,
+      ReflectivePauseResponseType.askForMoreInformation,
+    },
+    'TR-033': {
+      ReflectivePauseResponseType.wait,
+    },
+    'TR-034': {
+      ReflectivePauseResponseType.askForMoreInformation,
+    },
+    'TR-035': {
+      ReflectivePauseResponseType.askForMoreInformation,
+    },
+    'TR-036': {
+      ReflectivePauseResponseType.askForMoreInformation,
+    },
+    'TR-037': {
+      ReflectivePauseResponseType.breatheAnalyze,
+      ReflectivePauseResponseType.askForMoreInformation,
+    },
+    'TR-038': {
+      ReflectivePauseResponseType.wait,
+    },
+    'TR-039': {
+      ReflectivePauseResponseType.reformulateCalmly,
+    },
+    'TR-040': {
+      ReflectivePauseResponseType.askForMoreInformation,
+    },
+    'TR-041': {
+      ReflectivePauseResponseType.askForMoreInformation,
+    },
+    'TR-042': {
+      ReflectivePauseResponseType.breatheAnalyze,
+    },
+    'TR-043': {
+      ReflectivePauseResponseType.askForMoreInformation,
+    },
+    'TR-044': {
+      ReflectivePauseResponseType.reformulateCalmly,
+    },
+    'TR-045': {
+      ReflectivePauseResponseType.reformulateCalmly,
+    },
+    'TR-046': {
+      ReflectivePauseResponseType.breatheAnalyze,
+    },
+    'TR-047': {
+      ReflectivePauseResponseType.breatheAnalyze,
+    },
+    'TR-048': {
+      ReflectivePauseResponseType.breatheAnalyze,
+      ReflectivePauseResponseType.askForMoreInformation,
+    },
+    'TR-049': {
+      ReflectivePauseResponseType.reformulateCalmly,
+    },
+    'TR-050': {
+      ReflectivePauseResponseType.wait,
+    },
+    'TR-051': {
+      ReflectivePauseResponseType.wait,
+    },
+    'TR-052': {
+      ReflectivePauseResponseType.askForMoreInformation,
+    },
+    'TR-053': {
+      ReflectivePauseResponseType.wait,
+    },
+    'TR-054': {
+      ReflectivePauseResponseType.reformulateCalmly,
+    },
+    'TR-055': {
+      ReflectivePauseResponseType.askForMoreInformation,
+    },
+    'TR-056': {
+      ReflectivePauseResponseType.reformulateCalmly,
+    },
+    'TR-057': {
+      ReflectivePauseResponseType.reformulateCalmly,
+    },
+    'TR-058': {
+      ReflectivePauseResponseType.breatheAnalyze,
+    },
+    'TR-059': {
+      ReflectivePauseResponseType.reformulateCalmly,
+    },
+    'TR-060': {
+      ReflectivePauseResponseType.breatheAnalyze,
+      ReflectivePauseResponseType.askForMoreInformation,
+    },
   };
 
   static bool isRecommended(

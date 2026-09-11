@@ -1,4 +1,5 @@
 import 'game_metrics.dart';
+import 'reflective_pause_bank.dart';
 
 /// Réponse brute choisie dans « Reflective Pause ».
 enum ReflectivePauseResponseType {
@@ -20,6 +21,7 @@ class ReflectivePauseMomentMetric {
     required this.selectedResponse,
     required this.responseTimeMs,
     required this.minimumTimerReached,
+    this.medium,
   });
 
   final String momentId;
@@ -27,11 +29,23 @@ class ReflectivePauseMomentMetric {
   final int responseTimeMs;
   final bool minimumTimerReached;
 
+  /// Support par lequel la situation a été présentée — `VIDEO` ou `WRITTEN`.
+  ///
+  /// Le client l'exige au même titre que le choix et le délai : lire un message
+  /// et regarder une scène ne demandent pas le même temps, et comparer deux
+  /// délais suppose de savoir lequel des deux supports le joueur a eu.
+  ///
+  /// Facultatif au contrat : une session enregistrée avant l'intégration de la
+  /// banque n'en a pas, et l'absence se lit alors comme « non renseigné »
+  /// plutôt que comme un support par défaut qui fausserait la comparaison.
+  final ReflectivePauseMedium? medium;
+
   Map<String, dynamic> toJson() => {
     'momentId': momentId,
     'selectedResponse': selectedResponse.wire,
     'responseTimeMs': responseTimeMs,
     'minimumTimerReached': minimumTimerReached,
+    if (medium != null) 'medium': medium!.wire,
   };
 }
 

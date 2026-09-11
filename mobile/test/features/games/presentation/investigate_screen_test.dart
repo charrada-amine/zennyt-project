@@ -777,6 +777,65 @@ void main() {
       expect(label.style?.color, kMemoryPromptColor);
       await tester.pump(MemoryPrompt.blinkDuration);
     });
+
+    // La consigne de rappel des CHIFFRES était restée en blanc plat, sans
+    // clignotement : le basculement de l'ordre direct vers l'ordre inverse ne
+    // se signalait pas. Elle suit désormais la même règle que du côté images.
+    testWidgets('le rappel des chiffres porte la même consigne', (
+      tester,
+    ) async {
+      useLargeSurface(tester);
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: InvestigateScreen(seed: seed, mode: InvestigateMode.digits),
+          ),
+        ),
+      );
+      await startGame(tester);
+      await watchSequence(tester, level1Seq.length);
+
+      // ── Rappel direct : même vert, et le clignotement est en cours ───────
+      expect(find.text('Type the sequence in the SAME order'), findsOneWidget);
+      final direct = tester.widget<Text>(
+        find.descendant(
+          of: find.byType(MemoryPrompt),
+          matching: find.byType(Text),
+        ),
+      );
+      expect(
+        direct.style?.color,
+        kMemoryPromptColor,
+        reason: 'la consigne des chiffres était restée blanche',
+      );
+
+      await tester.pump(MemoryPrompt.blinkDuration ~/ 4);
+      expect(
+        opacityOf(tester),
+        lessThan(0.9),
+        reason: 'elle arrive sans clignoter',
+      );
+      await tester.pump(MemoryPrompt.blinkDuration);
+      expect(opacityOf(tester), closeTo(1, 0.001));
+
+      // ── Passage à l'ordre inverse : le clignotement se rejoue ────────────
+      await typeDigits(tester, level1Seq);
+      await tester.tap(find.text('Validate'));
+      await tester.pump();
+
+      expect(find.text('Type the sequence in REVERSE order'), findsOneWidget);
+      await tester.pump(MemoryPrompt.blinkDuration ~/ 4);
+      expect(
+        opacityOf(tester),
+        lessThan(0.9),
+        reason: 'l\'ordre bascule sans que rien ne l\'annonce',
+      );
+      await tester.pump(MemoryPrompt.blinkDuration);
+      expect(opacityOf(tester), closeTo(1, 0.001));
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+    });
   });
 
   group('taille des cartes', () {

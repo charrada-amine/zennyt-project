@@ -11,6 +11,8 @@ class EmotionalRadarVideo extends StatefulWidget {
   const EmotionalRadarVideo({
     super.key,
     required this.source,
+    this.onDarkBackground = false,
+    this.immersive = false,
     this.playbackEnabled = true,
     this.onFullscreen,
   });
@@ -18,6 +20,20 @@ class EmotionalRadarVideo extends StatefulWidget {
   final String source;
   final bool playbackEnabled;
   final VoidCallback? onFullscreen;
+
+  /// Contrôles posés sur un fond sombre.
+  ///
+  /// Sans cela, le bouton de lecture et le minutage gardent leurs couleurs de
+  /// carte — bleu et encre — et deviennent illisibles.
+  final bool onDarkBackground;
+
+  /// Lecture immersive : la vidéo occupe TOUTE la place disponible et les
+  /// contrôles passent en surimpression, comme un lecteur plein écran.
+  ///
+  /// En mode carte, le lecteur empile la vidéo puis ses contrôles : chacun
+  /// prend sa part de hauteur. Ici on veut l'inverse — rien ne doit rogner
+  /// l'image.
+  final bool immersive;
 
   @override
   State<EmotionalRadarVideo> createState() => _EmotionalRadarVideoState();
@@ -144,6 +160,52 @@ class _EmotionalRadarVideoState extends State<EmotionalRadarVideo>
           );
         }
         final finished = value.position >= value.duration;
+        final ratio = value.aspectRatio > 0 ? value.aspectRatio : 16 / 9;
+
+        if (widget.immersive) {
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              const ColoredBox(color: Colors.black),
+              Center(
+                child: AspectRatio(
+                  aspectRatio: ratio,
+                  child: VideoPlayer(controller),
+                ),
+              ),
+              if (value.isBuffering)
+                const Center(
+                  child: CircularProgressIndicator(
+                    semanticsLabel: 'Buffering video',
+                  ),
+                ),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: DecoratedBox(
+                  // Voile sombre : sur une image claire, des contrôles blancs
+                  // posés à nu deviennent illisibles.
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [Color(0xCC000000), Color(0x00000000)],
+                    ),
+                  ),
+                  child: SafeArea(
+                    top: false,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(8, 24, 16, 8),
+                      child: _controlsRow(context, value, finished),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        }
+
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -163,52 +225,69 @@ class _EmotionalRadarVideoState extends State<EmotionalRadarVideo>
                 ),
               ),
             ),
-            Row(
-              children: [
-                IconButton(
-                  tooltip: value.isPlaying
-                      ? 'Pause video'
-                      : finished
-                      ? 'Replay video'
-                      : 'Play video',
-                  onPressed: widget.playbackEnabled ? _togglePlayback : null,
-                  icon: Icon(
-                    value.isPlaying
-                        ? Icons.pause_rounded
-                        : finished
-                        ? Icons.replay_rounded
-                        : Icons.play_arrow_rounded,
-                  ),
-                  color: ZennytGamePalette.gameBlue,
-                  constraints: const BoxConstraints(
-                    minWidth: 48,
-                    minHeight: 48,
-                  ),
-                ),
-                Expanded(
-                  child: Text(
-                    '${_time(value.position)} / ${_time(value.duration)}',
-                    style: const TextStyle(color: ZennytGamePalette.ink),
-                  ),
-                ),
-                if (widget.onFullscreen != null)
-                  IconButton(
-                    tooltip: 'Fullscreen video',
-                    onPressed: () {
-                      unawaited(controller.pause());
-                      widget.onFullscreen!();
-                    },
-                    icon: const Icon(Icons.fullscreen_rounded),
-                    constraints: const BoxConstraints(
-                      minWidth: 48,
-                      minHeight: 48,
-                    ),
-                  ),
-              ],
-            ),
+            _controlsRow(context, value, finished),
           ],
         );
       },
+    );
+  }
+
+  /// Barre de contrôles, commune au mode carte et au mode immersif.
+  ///
+  /// Une seule définition : c'est elle qui porte lecture, minutage et plein
+  /// écran, et les voir diverger entre les deux modes serait le premier pas
+  /// vers un bouton présent d'un côté et absent de l'autre.
+  Widget _controlsRow(
+    BuildContext context,
+    VideoPlayerValue value,
+    bool finished,
+  ) {
+    return Row(
+      children: [
+        IconButton(
+          tooltip: value.isPlaying
+              ? 'Pause video'
+              : finished
+              ? 'Replay video'
+              : 'Play video',
+          onPressed: widget.playbackEnabled ? _togglePlayback : null,
+          icon: Icon(
+            value.isPlaying
+                ? Icons.pause_rounded
+                : finished
+                ? Icons.replay_rounded
+                : Icons.play_arrow_rounded,
+          ),
+          color: widget.onDarkBackground
+              ? Colors.white
+              : ZennytGamePalette.gameBlue,
+          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+        ),
+        Expanded(
+          child: Text(
+            '${_time(value.position)} / ${_time(value.duration)}',
+            style: TextStyle(
+              color: widget.onDarkBackground
+                  ? Colors.white
+                  : ZennytGamePalette.ink,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        if (widget.onFullscreen != null)
+          IconButton(
+            tooltip: 'Fullscreen video',
+            onPressed: () {
+              unawaited(_controller?.pause());
+              widget.onFullscreen!();
+            },
+            icon: const Icon(Icons.fullscreen_rounded),
+            color: widget.onDarkBackground
+                ? Colors.white
+                : ZennytGamePalette.gameBlue,
+            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+          ),
+      ],
     );
   }
 }
