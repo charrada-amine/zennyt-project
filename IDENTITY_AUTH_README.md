@@ -105,3 +105,9 @@ un point d’intégration ouvert, sans prétendre modifier un réglage serveur.
    ouvre le dialogue OTP quand l'e-mail/le téléphone change, puis un écran « Changes saved ».
    Le canal SMS reste une décision à valider (fournisseur + module de résolution
    destinataire → numéro).
+
+5. **2026-09-11** — Option de développement pour ignorer la vérification à l'inscription :
+   `SKIP_SIGNUP_VERIFICATION=true` (via `--dart-define` ou `mobile/.env`, gitignoré). L'écran
+   OTP d'inscription est purement visuel (le backend n'expose aucune vérification e-mail/SMS
+   à l'enregistrement), donc le flag route directement vers la configuration du profil.
+   **À ne jamais activer en production.**
