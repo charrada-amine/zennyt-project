@@ -32,7 +32,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class DecisionSeedParityTest {
 
     private static final String JSON = "games/decision_scenarios.json";
-    private static final String SQL = "db/migration/V59__games_decision_scenarios.sql";
+    // Renumérotée V59 -> V67 par le merge de la PR #8, qui a décalé tout le bloc
+    // de migrations « games ». Le test cherchait encore l'ancien nom.
+    private static final String SQL = "db/migration/V67__games_decision_scenarios.sql";
 
     /** `('uuid', 'II-1', 'II', 'STANDARD', …` — en-tête d'une ligne de scénario. */
     private static final Pattern SCENARIO_ROW = Pattern.compile(

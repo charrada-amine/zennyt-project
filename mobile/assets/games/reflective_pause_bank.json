@@ -1,0 +1,3125 @@
+{
+  "source": "Temps_Reflexif_Banque_60_Situations_prompts_positifs.docx",
+  "situations": [
+    {
+      "id": "TR-001",
+      "title": "Le message d'équipe sarcastique",
+      "categoryNumber": 1,
+      "category": "Message provocateur ou remarque déplacée",
+      "difficulty": "LOW",
+      "pilotValidated": true,
+      "capability": "Inhibition d'une réaction impulsive face à une provocation mineure et publique",
+      "context": "Léa reçoit, dans le chat d'équipe visible par tous, un message sarcastique de son collègue Marc sous-entendant qu'elle a encore manqué un délai — ce qui est faux.",
+      "trigger": "Une notification apparaît sur l'écran de Léa ; elle lit le message sarcastique de Marc, visible par toute l'équipe.",
+      "question": "Que fait Léa maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 14,
+      "wordsToRead": 38,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Répondre sur le même ton, dans le chat.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Contre-productif : envenime publiquement un enjeu mineur",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Prendre un instant avant de réagir.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Adapté mais incomplet : évite l'impulsivité, ne résout rien seul",
+          "score": 2
+        },
+        {
+          "letter": "C",
+          "text": "Ne rien faire pour l'instant.",
+          "responseType": "WAIT",
+          "rationale": "Laisse une affirmation publique incorrecte sans réponse",
+          "score": 1
+        },
+        {
+          "letter": "D",
+          "text": "Écrire en privé à Marc pour comprendre.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Clarifie l'intention, mais sans corriger la perception de l'équipe",
+          "score": 2
+        },
+        {
+          "letter": "E",
+          "text": "Répondre calmement dans le chat, avec les faits.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Corrige factuellement et publiquement, proportionné à l'enjeu",
+          "score": 3
+        }
+      ]
+    },
+    {
+      "id": "TR-002",
+      "title": "L'accusation en réunion",
+      "categoryNumber": 2,
+      "category": "Critique soudaine ou accusation injuste",
+      "difficulty": "MODERATE",
+      "pilotValidated": true,
+      "capability": "Gestion de l'impulsivité face à une accusation publique injuste ; recherche d'informations avant réaction",
+      "context": "En pleine réunion d'équipe, un collègue affirme publiquement que Sami est responsable d'un retard — ce qui est inexact.",
+      "trigger": "Karim déclare publiquement que le retard vient de Sami ; les regards du groupe se tournent vers lui.",
+      "question": "Que fait Sami maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 13,
+      "wordsToRead": 30,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Se défendre tout de suite, fermement.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Légitime dans le principe mais confrontationnel, risque l'escalade publique",
+          "score": 1
+        },
+        {
+          "letter": "B",
+          "text": "Respirer avant de répondre.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Limite l'impulsivité, bonne première étape, incomplet seul",
+          "score": 2
+        },
+        {
+          "letter": "C",
+          "text": "Ne rien dire pour l'instant.",
+          "responseType": "WAIT",
+          "rationale": "Laisse une accusation publique incorrecte s'installer — contre-productif ici",
+          "score": 0
+        },
+        {
+          "letter": "D",
+          "text": "Demander sur quoi Karim se base.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Le plus adapté : clarifie sans nier ni attaquer, rigoureux",
+          "score": 3
+        },
+        {
+          "letter": "E",
+          "text": "Corriger calmement, avec les faits.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Très adapté mais suppose Sami déjà certain des faits, légèrement moins prudent que D",
+          "score": 2
+        }
+      ]
+    },
+    {
+      "id": "TR-003",
+      "title": "La panne juste avant le direct",
+      "categoryNumber": 3,
+      "category": "Imprévu nécessitant une décision rapide",
+      "difficulty": "HIGH",
+      "pilotValidated": true,
+      "capability": "Tolérance au stress et action décisive sous imprévu opérationnel ; équilibre rapidité/qualité",
+      "context": "Quelques minutes avant une présentation client en direct, l'écran de partage de Nora cesse brusquement de fonctionner.",
+      "trigger": "L'écran de partage se fige puis devient noir au moment où Nora s'apprête à présenter.",
+      "question": "Que fait Nora maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 14,
+      "wordsToRead": 32,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Improviser tout de suite, sans réfléchir.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Risque élevé de perte de contrôle face au client",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer une seconde avant d'agir.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Utile mais insuffisant seul vu l'urgence réelle",
+          "score": 2
+        },
+        {
+          "letter": "C",
+          "text": "Attendre que ça se résolve seul.",
+          "responseType": "WAIT",
+          "rationale": "Contre-productif : le client reste sans nouvelles",
+          "score": 0
+        },
+        {
+          "letter": "D",
+          "text": "Demander à Yohan s'il peut résoudre ça vite.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Le plus adapté : mobilise une ressource disponible immédiatement",
+          "score": 3
+        },
+        {
+          "letter": "E",
+          "text": "Expliquer calmement au client le contretemps.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Très adapté relationnellement, mais ne résout pas le problème technique seul",
+          "score": 2
+        }
+      ]
+    },
+    {
+      "id": "TR-004",
+      "title": "Le message ambigu du responsable",
+      "categoryNumber": 6,
+      "category": "Information incomplète ou ambiguë",
+      "difficulty": "MODERATE",
+      "pilotValidated": true,
+      "capability": "Recherche d'informations avant de décider ; tolérance à l'incertitude",
+      "context": "Karim reçoit un message bref et ambigu de son responsable lui demandant de « revoir complètement le dossier avant ce soir », sans autre précision.",
+      "trigger": "Karim lit le message ambigu de son responsable.",
+      "question": "Que fait Karim maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 13,
+      "wordsToRead": 32,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Tout refaire dans la précipitation.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Travail potentiellement inutile, risque de perte de temps",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer et relire le dossier calmement.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Positif mais ne traite pas la source réelle de l'ambiguïté",
+          "score": 1
+        },
+        {
+          "letter": "C",
+          "text": "Ne rien faire pour l'instant.",
+          "responseType": "WAIT",
+          "rationale": "Risqué face à une échéance le jour même",
+          "score": 0
+        },
+        {
+          "letter": "D",
+          "text": "Demander au responsable ce qu'il faut revoir.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Le plus adapté : clarifie la source de l'ambiguïté avant d'agir",
+          "score": 3
+        },
+        {
+          "letter": "E",
+          "text": "Reformuler sa compréhension par message.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Bonne alternative à la demande directe, un peu moins rapide",
+          "score": 2
+        }
+      ]
+    },
+    {
+      "id": "TR-005",
+      "title": "L'ordre pressant du directeur",
+      "categoryNumber": 10,
+      "category": "Pression sociale ou hiérarchique",
+      "difficulty": "HIGH",
+      "pilotValidated": true,
+      "capability": "Gestion de l'impulsivité et maintien de la posture professionnelle sous pression hiérarchique directe",
+      "context": "En pleine réunion, le directeur interrompt Julie sur un ton sec et lui demande de changer immédiatement une décision qu'elle vient de justifier posément.",
+      "trigger": "Le directeur la coupe sèchement, sans la laisser terminer.",
+      "question": "Que fait Julie maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 14,
+      "wordsToRead": 30,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Répliquer aussitôt, sur la défensive.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Risque d'escalade hiérarchique disproportionnée devant témoins",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer avant de répondre.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Bonne première étape face à une pression hiérarchique forte",
+          "score": 2
+        },
+        {
+          "letter": "C",
+          "text": "Ne rien dire pour l'instant.",
+          "responseType": "WAIT",
+          "rationale": "Renonce à défendre un raisonnement déjà posé, sous-optimal",
+          "score": 1
+        },
+        {
+          "letter": "D",
+          "text": "Demander pourquoi ce changement est nécessaire.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Légitime et calme, mais risque d'être perçu comme une remise en cause frontale",
+          "score": 2
+        },
+        {
+          "letter": "E",
+          "text": "Répondre calmement en expliquant son choix.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Le plus adapté : préserve la relation hiérarchique et la légitimité professionnelle",
+          "score": 3
+        }
+      ]
+    },
+    {
+      "id": "TR-006",
+      "title": "Le clin d'œil moqueur en pause café",
+      "categoryNumber": 1,
+      "category": "Message provocateur ou remarque déplacée",
+      "difficulty": "LOW",
+      "pilotValidated": false,
+      "capability": "Tolérance à une taquinerie mineure sans sur-réagir ni sous-réagir",
+      "context": "Pendant la pause café, un collègue fait une remarque moqueuse sur les nouvelles chaussures de Théo, devant deux autres collègues.",
+      "trigger": "Bruno fait une remarque moqueuse sur les chaussures de Théo ; les deux autres rient.",
+      "question": "Que fait Théo maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 14,
+      "wordsToRead": 38,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Répondre par une pique plus dure.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Escalade disproportionnée pour une taquinerie mineure et bienveillante",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Prendre un instant avant de répondre.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Léger excès de régulation pour un enjeu très mineur, sans être contre-productif",
+          "score": 1
+        },
+        {
+          "letter": "C",
+          "text": "Ne rien dire et se resservir un café.",
+          "responseType": "WAIT",
+          "rationale": "Laisser passer une taquinerie mineure et amicale est tout aussi proportionné que d'y répondre calmement sur le même ton",
+          "score": 3
+        },
+        {
+          "letter": "D",
+          "text": "Demander ce qu'il veut dire exactement.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Excessif pour une remarque légère entre collègues, fait artificiellement monter l'enjeu",
+          "score": 1
+        },
+        {
+          "letter": "E",
+          "text": "Répondre calmement, sur le même ton léger.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Le plus adapté : reste dans le registre léger et détend l'atmosphère",
+          "score": 3
+        }
+      ]
+    },
+    {
+      "id": "TR-007",
+      "title": "Le commentaire sur le rapport en réunion d'équipe",
+      "categoryNumber": 1,
+      "category": "Message provocateur ou remarque déplacée",
+      "difficulty": "MODERATE",
+      "pilotValidated": false,
+      "capability": "Gestion de l'impulsivité face à une remarque publique désobligeante sur le travail",
+      "context": "En réunion d'équipe, un collègue commente publiquement que le dernier rapport de Sarah était « clairement bâclé », sur un ton moqueur.",
+      "trigger": "Denis commente publiquement, sur un ton moqueur, que le rapport de Sarah était bâclé.",
+      "question": "Que fait Sarah maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 15,
+      "wordsToRead": 37,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Répliquer sèchement, devant tout le monde.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Risque d'escalade publique disproportionnée à la moquerie",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer avant de répondre.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Face à une moquerie plutôt qu'une accusation factuelle stricte, respirer pour ne pas réagir à chaud est le geste le plus immédiatement utile",
+          "score": 3
+        },
+        {
+          "letter": "C",
+          "text": "Ne rien dire et continuer la réunion.",
+          "responseType": "WAIT",
+          "rationale": "Laisse une critique publique désobligeante sans réponse, un peu passif",
+          "score": 1
+        },
+        {
+          "letter": "D",
+          "text": "Demander ce qui a posé problème précisément.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Demander une précision reste une bonne option mais secondaire face à une remarque encore ambiguë entre moquerie et critique réelle",
+          "score": 2
+        },
+        {
+          "letter": "E",
+          "text": "Répondre calmement que le rapport répondait au brief.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Adapté, défend le travail sans agressivité, légèrement moins constructif que D",
+          "score": 2
+        }
+      ]
+    },
+    {
+      "id": "TR-008",
+      "title": "La remarque sur l'accent au déjeuner",
+      "categoryNumber": 1,
+      "category": "Message provocateur ou remarque déplacée",
+      "difficulty": "MODERATE",
+      "pilotValidated": false,
+      "capability": "Gestion de l'impulsivité face à une remarque déplacée sur l'apparence, en groupe",
+      "context": "Au restaurant d'entreprise, un collègue fait une remarque déplacée sur l'accent de Yasmine devant plusieurs collègues attablés.",
+      "trigger": "Fabrice imite l'accent de Yasmine devant la tablée, provoquant quelques rires gênés.",
+      "question": "Que fait Yasmine maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 15,
+      "wordsToRead": 37,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Répondre sèchement devant tout le monde.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Risque de tendre inutilement l'ambiance du déjeuner",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer et choisir calmement sa réaction.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Adapté face à un moment d'humiliation légère en groupe",
+          "score": 2
+        },
+        {
+          "letter": "C",
+          "text": "Ignorer et reprendre son histoire.",
+          "responseType": "WAIT",
+          "rationale": "Peut minimiser la remarque sans jamais poser de limite, sous-optimal si cela devient récurrent",
+          "score": 1
+        },
+        {
+          "letter": "D",
+          "text": "Demander à Fabrice ce qu'il trouve drôle.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Pousse Fabrice à assumer sa remarque devant le groupe, efficace mais un peu confrontant",
+          "score": 2
+        },
+        {
+          "letter": "E",
+          "text": "Dire calmement que la remarque n'était pas agréable.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Le plus adapté : pose une limite claire sans faire d'esclandre",
+          "score": 3
+        }
+      ]
+    },
+    {
+      "id": "TR-009",
+      "title": "La moquerie répétée devant le client",
+      "categoryNumber": 1,
+      "category": "Message provocateur ou remarque déplacée",
+      "difficulty": "HIGH",
+      "pilotValidated": false,
+      "capability": "Maîtrise de l'impulsivité face à une provocation répétée et publique",
+      "context": "Devant un client important, un collègue fait une deuxième remarque moqueuse sur une erreur mineure d'Adama, après une première déjà faite plus tôt dans la journée.",
+      "trigger": "Grégoire fait une deuxième remarque moqueuse sur la même erreur, cette fois devant le client.",
+      "question": "Que fait Adama maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 17,
+      "wordsToRead": 40,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Répliquer sèchement à Grégoire devant le client.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Risque élevé d'endommager l'image professionnelle devant le client",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer et continuer sa présentation.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Le plus adapté dans l'instant : protège la présentation en cours devant le client",
+          "score": 3
+        },
+        {
+          "letter": "C",
+          "text": "Ne rien dire et laisser filer, encore une fois.",
+          "responseType": "WAIT",
+          "rationale": "Laisse un comportement répété s'installer sans y répondre, risque à moyen terme",
+          "score": 1
+        },
+        {
+          "letter": "D",
+          "text": "Demander à Grégoire de clarifier, devant le client.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Expose davantage le conflit devant le client, contre-productif dans l'instant",
+          "score": 0
+        },
+        {
+          "letter": "E",
+          "text": "Reformuler calmement et poursuivre la présentation.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Très adapté également, protège la présentation tout en marquant le sujet",
+          "score": 2
+        }
+      ]
+    },
+    {
+      "id": "TR-010",
+      "title": "Le message sarcastique de la responsable",
+      "categoryNumber": 1,
+      "category": "Message provocateur ou remarque déplacée",
+      "difficulty": "HIGH",
+      "pilotValidated": false,
+      "capability": "Maîtrise de l'impulsivité face à un message provocateur venant d'un supérieur",
+      "context": "Léo reçoit un message sarcastique de sa responsable dans un fil de discussion visible par toute l'équipe, remettant en question sa gestion d'un dossier.",
+      "trigger": "Léo lit un message sarcastique de Nathalie dans le fil d'équipe, mettant en doute sa gestion d'un dossier.",
+      "question": "Que fait Léo maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 17,
+      "wordsToRead": 41,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Répondre sur le même ton dans le fil.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Risque élevé compte tenu du rapport hiérarchique et de la visibilité publique",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer avant de décider quoi faire.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Bonne première étape face à une provocation hiérarchique publique",
+          "score": 2
+        },
+        {
+          "letter": "C",
+          "text": "Ne rien répondre dans le fil pour l'instant.",
+          "responseType": "WAIT",
+          "rationale": "Ne pas répondre publiquement dans l'immédiat est déjà la mesure la plus sûre pour éviter toute escalade visible par l'équipe",
+          "score": 3
+        },
+        {
+          "letter": "D",
+          "text": "Aller voir Nathalie en privé pour comprendre.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Aller voir Nathalie en privé reste une bonne option mais peut suivre de quelques instants, la priorité immédiate étant de ne pas répondre publiquement",
+          "score": 2
+        },
+        {
+          "letter": "E",
+          "text": "Répondre calmement et factuellement dans le fil.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Adapté mais risque de prolonger l'exposition publique du désaccord hiérarchique",
+          "score": 1
+        }
+      ]
+    },
+    {
+      "id": "TR-011",
+      "title": "Le reproche sur l'e-mail non lu",
+      "categoryNumber": 2,
+      "category": "Critique soudaine ou accusation injuste",
+      "difficulty": "LOW",
+      "pilotValidated": false,
+      "capability": "Gestion d'une critique mineure et rapidement vérifiable",
+      "context": "Un collègue reproche à Camille de ne pas avoir répondu à un e-mail qu'elle n'a en réalité jamais reçu.",
+      "trigger": "Julien reproche à Camille de ne pas avoir répondu à un e-mail qu'elle n'a jamais reçu.",
+      "question": "Que fait Camille maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 15,
+      "wordsToRead": 41,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Répondre sèchement qu'elle n'a rien reçu.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Ton défensif disproportionné pour un simple malentendu probable",
+          "score": 1
+        },
+        {
+          "letter": "B",
+          "text": "Respirer avant de répondre.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Excessif pour un malentendu mineur et facilement vérifiable",
+          "score": 1
+        },
+        {
+          "letter": "C",
+          "text": "Ne rien dire et vérifier plus tard.",
+          "responseType": "WAIT",
+          "rationale": "Laisse le malentendu non résolu sans raison, alors qu'une vérification est immédiate",
+          "score": 1
+        },
+        {
+          "letter": "D",
+          "text": "Vérifier tout de suite et lui dire qu'elle n'a rien reçu.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Pour un malentendu factuel simple, vérifier directement est un peu plus rapide et définitif qu'une annonce d'intention à vérifier",
+          "score": 2
+        },
+        {
+          "letter": "E",
+          "text": "Répondre calmement qu'elle va vérifier sa boîte mail.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Également très adapté, ton posé et orienté résolution",
+          "score": 3
+        }
+      ]
+    },
+    {
+      "id": "TR-012",
+      "title": "Le reproche sur le tableau mal rempli",
+      "categoryNumber": 2,
+      "category": "Critique soudaine ou accusation injuste",
+      "difficulty": "LOW",
+      "pilotValidated": false,
+      "capability": "Gestion d'une critique mineure sur une tâche partagée",
+      "context": "Un collègue reproche à Karim d'avoir mal rempli un tableau de suivi partagé, alors que la case en question a été modifiée par quelqu'un d'autre après lui.",
+      "trigger": "Élise reproche à Karim une erreur dans le tableau partagé, sur un ton neutre mais direct.",
+      "question": "Que fait Karim maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 13,
+      "wordsToRead": 33,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Nier fermement, sans regarder le tableau.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Réaction défensive avant même de vérifier les faits",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer avant de répondre.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Utile mais insuffisant seul face à une question factuelle vérifiable",
+          "score": 1
+        },
+        {
+          "letter": "C",
+          "text": "Ne rien dire et regarder ailleurs.",
+          "responseType": "WAIT",
+          "rationale": "Évite une clarification simple et rapide, peu constructif",
+          "score": 0
+        },
+        {
+          "letter": "D",
+          "text": "Regarder l'historique des modifications avec elle.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Pour une erreur factuelle vérifiable, regarder l'historique ensemble reste un peu plus rapide qu'annoncer une vérification à venir",
+          "score": 2
+        },
+        {
+          "letter": "E",
+          "text": "Dire calmement qu'il va vérifier l'historique.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Très adapté également, ton posé et orienté vérification",
+          "score": 3
+        }
+      ]
+    },
+    {
+      "id": "TR-013",
+      "title": "La critique du client en visioconférence",
+      "categoryNumber": 2,
+      "category": "Critique soudaine ou accusation injuste",
+      "difficulty": "MODERATE",
+      "pilotValidated": false,
+      "capability": "Gestion de l'impulsivité face à une critique publique sur un livrable",
+      "context": "Lors d'une visioconférence, un client critique sèchement la qualité d'un livrable devant toute l'équipe projet de Malik.",
+      "trigger": "Le client critique sèchement le livrable, en visioconférence, devant toute l'équipe projet.",
+      "question": "Que fait Malik maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 16,
+      "wordsToRead": 39,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Se justifier immédiatement et fermement.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Une justification précipitée sans écoute complète peut sembler défensive",
+          "score": 1
+        },
+        {
+          "letter": "B",
+          "text": "Respirer avant de répondre au client.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Face à un client mécontent, respirer avant de répondre est la priorité immédiate pour ne pas réagir sous le coup de l'émotion",
+          "score": 3
+        },
+        {
+          "letter": "C",
+          "text": "Laisser un collègue répondre à sa place.",
+          "responseType": "WAIT",
+          "rationale": "Évite le sujet plutôt que d'y répondre, peu adapté pour un enjeu qui le concerne directement",
+          "score": 0
+        },
+        {
+          "letter": "D",
+          "text": "Demander au client ce qui pose problème précisément.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Demander une précision au client reste très pertinent mais vient juste après ce temps de régulation initiale",
+          "score": 2
+        },
+        {
+          "letter": "E",
+          "text": "Répondre calmement que l'équipe va revoir le livrable.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Adapté mais s'engage un peu vite sans connaître précisément le problème",
+          "score": 2
+        }
+      ]
+    },
+    {
+      "id": "TR-014",
+      "title": "L'accusation de favoritisme en réunion générale",
+      "categoryNumber": 2,
+      "category": "Critique soudaine ou accusation injuste",
+      "difficulty": "HIGH",
+      "pilotValidated": false,
+      "capability": "Maîtrise de l'impulsivité face à une accusation grave et publique",
+      "context": "Lors d'une réunion générale, un collègue accuse publiquement Inès d'avoir favorisé un fournisseur pour des raisons personnelles, ce qui est faux et potentiellement dommageable pour sa réputation.",
+      "trigger": "Bertrand accuse publiquement Inès de favoritisme dans le choix d'un fournisseur, devant toute l'équipe élargie.",
+      "question": "Que fait Inès maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 17,
+      "wordsToRead": 42,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Se lever et répliquer avec colère.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Risque élevé de donner l'impression de sur-réagir devant un large public",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer avant de prendre la parole.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Essentiel face à une accusation grave et publique de cette ampleur",
+          "score": 3
+        },
+        {
+          "letter": "C",
+          "text": "Ne rien dire pour l'instant, en pleine réunion.",
+          "responseType": "WAIT",
+          "rationale": "Une accusation grave et publique de ce niveau ne peut raisonnablement rester sans réponse immédiate",
+          "score": 0
+        },
+        {
+          "letter": "D",
+          "text": "Demander sur quoi repose cette affirmation, devant le groupe.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Très adapté également : oblige Bertrand à justifier une accusation grave devant témoins",
+          "score": 3
+        },
+        {
+          "letter": "E",
+          "text": "Répondre calmement en expliquant le processus de sélection.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Adapté, mais répondre avant d'avoir demandé le fondement de l'accusation peut sembler précipité",
+          "score": 2
+        }
+      ]
+    },
+    {
+      "id": "TR-015",
+      "title": "L'accusation du directeur régional",
+      "categoryNumber": 2,
+      "category": "Critique soudaine ou accusation injuste",
+      "difficulty": "HIGH",
+      "pilotValidated": false,
+      "capability": "Maîtrise de l'impulsivité face à une accusation injuste venant d'un supérieur",
+      "context": "Le directeur régional accuse publiquement Farida d'être responsable de la perte d'un client important, lors d'une réunion avec plusieurs cadres, alors que la décision du client est indépendante de son travail.",
+      "trigger": "Le directeur régional accuse publiquement Farida d'être responsable de la perte d'un client important.",
+      "question": "Que fait Farida maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 16,
+      "wordsToRead": 36,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Se défendre immédiatement avec véhémence.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Risque élevé face à un supérieur, dans un cadre très formel",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer avant de prendre la parole.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Essentiel avant de répondre à un supérieur sur une accusation grave et publique",
+          "score": 3
+        },
+        {
+          "letter": "C",
+          "text": "Ne rien dire pour l'instant.",
+          "responseType": "WAIT",
+          "rationale": "Une accusation directe d'un supérieur, publique, ne peut raisonnablement rester sans réponse",
+          "score": 0
+        },
+        {
+          "letter": "D",
+          "text": "Demander sur quels éléments se base cette affirmation.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Le plus adapté : rigoureux et factuel, sans nier ni se soumettre",
+          "score": 3
+        },
+        {
+          "letter": "E",
+          "text": "Expliquer calmement le déroulé réel du dossier.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Adapté mais suppose de connaître exactement ce qui est reproché, risque d'être hors-sujet",
+          "score": 2
+        }
+      ]
+    },
+    {
+      "id": "TR-016",
+      "title": "L'imprimante en panne juste avant l'envoi",
+      "categoryNumber": 3,
+      "category": "Imprévu nécessitant une décision rapide",
+      "difficulty": "LOW",
+      "pilotValidated": false,
+      "capability": "Action décisive face à un imprévu logistique mineur",
+      "context": "Juste avant de devoir remettre un dossier imprimé à un collègue, l'imprimante de bureau de Paul tombe en panne.",
+      "trigger": "L'imprimante affiche une erreur au moment où Paul s'apprête à imprimer le dossier.",
+      "question": "Que fait Paul maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 15,
+      "wordsToRead": 40,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Frapper l'imprimante pour la faire fonctionner.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Geste inefficace et contre-productif face à un problème technique",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer avant de chercher une solution.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Utile mais insuffisant seul face à un problème purement logistique",
+          "score": 1
+        },
+        {
+          "letter": "C",
+          "text": "Attendre que l'imprimante se réinitialise seule.",
+          "responseType": "WAIT",
+          "rationale": "Peut fonctionner mais fait perdre du temps sans certitude de résultat",
+          "score": 1
+        },
+        {
+          "letter": "D",
+          "text": "Demander à un collègue s'il peut imprimer depuis son poste.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Appeler pour informer du retard reste la priorité la plus immédiate ; terminer à pied dépend d'une distance non garantie",
+          "score": 2
+        },
+        {
+          "letter": "E",
+          "text": "Envoyer le dossier par e-mail en attendant.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Également très adapté, solution de repli rapide et fiable",
+          "score": 3
+        }
+      ]
+    },
+    {
+      "id": "TR-017",
+      "title": "Le vélo de service crevé",
+      "categoryNumber": 3,
+      "category": "Imprévu nécessitant une décision rapide",
+      "difficulty": "LOW",
+      "pilotValidated": false,
+      "capability": "Action décisive face à un imprévu logistique mineur en extérieur",
+      "context": "Léa, livreuse à vélo, constate une crevaison alors qu'elle doit livrer une commande urgente dans les 10 minutes.",
+      "trigger": "Léa découvre que son pneu arrière est crevé, avec une livraison urgente à effectuer.",
+      "question": "Que fait Léa maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 15,
+      "wordsToRead": 41,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Continuer à rouler sur la roue à plat.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Risque d'endommager le vélo et de perdre encore plus de temps",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer avant de décider quoi faire.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Utile mais insuffisant seul face à une urgence de livraison concrète",
+          "score": 1
+        },
+        {
+          "letter": "C",
+          "text": "Attendre sur place que quelqu'un l'aide.",
+          "responseType": "WAIT",
+          "rationale": "Passif et peu fiable pour résoudre une urgence de livraison",
+          "score": 0
+        },
+        {
+          "letter": "D",
+          "text": "Appeler le service client pour signaler le retard.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Prévenir le service client reste utile mais secondaire une fois la livraison en cours de résolution concrète",
+          "score": 2
+        },
+        {
+          "letter": "E",
+          "text": "Terminer la livraison à pied avec la commande.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Terminer la livraison à pied est la solution la plus rapide et directement productive si la distance le permet",
+          "score": 3
+        }
+      ]
+    },
+    {
+      "id": "TR-018",
+      "title": "La salle double-réservée pour l'entretien",
+      "categoryNumber": 3,
+      "category": "Imprévu nécessitant une décision rapide",
+      "difficulty": "MODERATE",
+      "pilotValidated": false,
+      "capability": "Action décisive et communication sous imprévu opérationnel",
+      "context": "Manon découvre que la salle réservée pour un entretien de recrutement dans 5 minutes est occupée par une autre réunion qui déborde.",
+      "trigger": "Manon découvre que la salle réservée pour l'entretien est occupée par une réunion qui n'est pas terminée.",
+      "question": "Que fait Manon maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 18,
+      "wordsToRead": 46,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Entrer dans la salle et interrompre la réunion.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Solution brusque qui pourrait être évitée par une approche plus mesurée",
+          "score": 1
+        },
+        {
+          "letter": "B",
+          "text": "Respirer et réfléchir à une alternative.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Utile mais le temps presse, une action concrète est nécessaire rapidement",
+          "score": 1
+        },
+        {
+          "letter": "C",
+          "text": "Attendre dans le couloir que la salle se libère.",
+          "responseType": "WAIT",
+          "rationale": "Risqué si la réunion se prolonge, pas de solution de repli engagée",
+          "score": 0
+        },
+        {
+          "letter": "D",
+          "text": "Demander rapidement à un collègue une autre salle libre.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Le plus adapté : trouve activement une solution de repli en mobilisant une ressource disponible",
+          "score": 3
+        },
+        {
+          "letter": "E",
+          "text": "Accueillir le candidat dans un espace informel en attendant.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Bonne solution de repli également, moins optimale pour la première impression que d'avoir une vraie salle",
+          "score": 2
+        }
+      ]
+    },
+    {
+      "id": "TR-019",
+      "title": "L'intervenant absent au dernier moment",
+      "categoryNumber": 3,
+      "category": "Imprévu nécessitant une décision rapide",
+      "difficulty": "MODERATE",
+      "pilotValidated": false,
+      "capability": "Action décisive face à un imprévu affectant un événement en cours",
+      "context": "Quelques minutes avant le début d'un atelier interne, Thomas apprend que l'intervenant prévu vient d'annuler pour raison personnelle.",
+      "trigger": "Thomas apprend par téléphone que l'intervenant prévu ne pourra pas venir.",
+      "question": "Que fait Thomas maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 17,
+      "wordsToRead": 44,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Annoncer l'annulation de l'atelier sur-le-champ.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Décision précipitée sans avoir cherché d'alternative",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer et réfléchir à une solution.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Utile mais le temps presse, une action concrète est nécessaire rapidement",
+          "score": 1
+        },
+        {
+          "letter": "C",
+          "text": "Attendre de voir si l'intervenant se libère finalement.",
+          "responseType": "WAIT",
+          "rationale": "Peu fiable, retarde une décision nécessaire alors que les participants sont déjà là",
+          "score": 0
+        },
+        {
+          "letter": "D",
+          "text": "Appeler rapidement un collègue capable d'animer une partie du contenu.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Le plus adapté : mobilise activement une solution de repli avant l'heure de début",
+          "score": 3
+        },
+        {
+          "letter": "E",
+          "text": "Informer les participants d'un léger contretemps en cherchant une solution.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Bonne gestion de la communication, complémentaire mais ne résout pas seul le problème de fond",
+          "score": 2
+        }
+      ]
+    },
+    {
+      "id": "TR-020",
+      "title": "L'erreur de livraison découverte à l'ouverture du magasin",
+      "categoryNumber": 3,
+      "category": "Imprévu nécessitant une décision rapide",
+      "difficulty": "HIGH",
+      "pilotValidated": false,
+      "capability": "Tolérance au stress et décision rapide sous forte pression opérationnelle",
+      "context": "À l'ouverture du magasin, Sophie découvre que la livraison du matin ne correspond pas du tout à la commande, alors que les premiers clients arrivent déjà.",
+      "trigger": "Sophie réalise que la livraison ne correspond pas à la commande, alors que le magasin vient d'ouvrir.",
+      "question": "Que fait Sophie maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 19,
+      "wordsToRead": 47,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Improviser une réorganisation du rayon sans vérifier l'ampleur du problème.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Risque de complications supplémentaires sans évaluation préalable",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer un instant avant d'agir.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Face à la pression immédiate de la clientèle qui arrive, respirer et garder son calme pour agir efficacement est prioritaire dans l'instant",
+          "score": 3
+        },
+        {
+          "letter": "C",
+          "text": "Laisser le rayon tel quel et s'en occuper plus tard.",
+          "responseType": "WAIT",
+          "rationale": "Risque commercial important si le rayon reste visiblement incomplet aux heures d'affluence",
+          "score": 0
+        },
+        {
+          "letter": "D",
+          "text": "Appeler immédiatement le fournisseur pour clarifier l'erreur.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Contacter le fournisseur reste nécessaire mais peut suivre de quelques instants, une fois le calme retrouvé pour agir efficacement",
+          "score": 2
+        },
+        {
+          "letter": "E",
+          "text": "Réorganiser le rayon avec ce qui est disponible en attendant.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Très adapté également, gère l'urgence commerciale immédiate en parallèle",
+          "score": 2
+        }
+      ]
+    },
+    {
+      "id": "TR-021",
+      "title": "La faute de calcul dans le tableau",
+      "categoryNumber": 4,
+      "category": "Erreur découverte sous pression",
+      "difficulty": "LOW",
+      "pilotValidated": false,
+      "capability": "Action décisive et responsabilisation face à une erreur mineure",
+      "context": "Nadia découvre une erreur de calcul mineure dans un tableau qu'elle a préparé, quelques minutes avant de le transmettre à un collègue.",
+      "trigger": "Nadia repère une erreur de calcul dans le tableau qu'elle s'apprêtait à envoyer.",
+      "question": "Que fait Nadia maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 14,
+      "wordsToRead": 37,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Envoyer quand même, en espérant que ça passe.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Risque de transmettre une erreur identifiée, contre-productif",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer avant de corriger.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Utile mais l'action de correction est simple et directe ici",
+          "score": 1
+        },
+        {
+          "letter": "C",
+          "text": "Laisser l'erreur et la signaler plus tard.",
+          "responseType": "WAIT",
+          "rationale": "Inutilement risqué alors que la correction est immédiate et simple",
+          "score": 0
+        },
+        {
+          "letter": "D",
+          "text": "Vérifier une deuxième fois l'origine exacte de l'erreur.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Bonne pratique mais peut retarder inutilement une correction déjà identifiée",
+          "score": 2
+        },
+        {
+          "letter": "E",
+          "text": "Corriger directement l'erreur avant l'envoi.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Le plus adapté : résout directement le problème identifié, gain de temps optimal",
+          "score": 3
+        }
+      ]
+    },
+    {
+      "id": "TR-022",
+      "title": "Le double rendez-vous dans l'agenda",
+      "categoryNumber": 4,
+      "category": "Erreur découverte sous pression",
+      "difficulty": "LOW",
+      "pilotValidated": false,
+      "capability": "Action décisive et responsabilisation face à une erreur mineure de planning",
+      "context": "Hugo réalise qu'il a accidentellement programmé deux rendez-vous au même horaire cet après-midi.",
+      "trigger": "Hugo découvre qu'il a deux rendez-vous programmés à la même heure.",
+      "question": "Que fait Hugo maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 15,
+      "wordsToRead": 41,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Annuler au hasard l'un des deux rendez-vous.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Décision précipitée sans évaluer l'importance relative des deux rendez-vous",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer avant de décider.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Utile mais une vérification concrète est plus efficace ici",
+          "score": 1
+        },
+        {
+          "letter": "C",
+          "text": "Laisser les deux rendez-vous et voir sur le moment.",
+          "responseType": "WAIT",
+          "rationale": "Risque de rater l'un des deux rendez-vous faute d'anticipation",
+          "score": 0
+        },
+        {
+          "letter": "D",
+          "text": "Vérifier l'importance de chaque rendez-vous avant de trancher.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Vérifier les disponibilités avant de recontacter tout le monde évite un aller-retour, légèrement plus efficace qu'un message d'excuse sans nouvelle date déjà en main",
+          "score": 2
+        },
+        {
+          "letter": "E",
+          "text": "Contacter directement l'un des deux interlocuteurs pour reporter.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Très adapté également, résout concrètement le conflit d'agenda",
+          "score": 3
+        }
+      ]
+    },
+    {
+      "id": "TR-023",
+      "title": "Le chiffre erroné transmis au client",
+      "categoryNumber": 4,
+      "category": "Erreur découverte sous pression",
+      "difficulty": "MODERATE",
+      "pilotValidated": false,
+      "capability": "Gestion de l'impulsivité et de la responsabilisation face à une erreur ayant un impact sur un collègue",
+      "context": "Clara réalise qu'elle a transmis un prix erroné à un client il y a une heure, et que son collègue est actuellement en appel avec ce même client.",
+      "trigger": "Clara réalise que le prix transmis au client est erroné, alors qu'Ismaël est en ce moment même en appel avec ce client.",
+      "question": "Que fait Clara maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 15,
+      "wordsToRead": 38,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Interrompre bruyamment l'appel d'Ismaël.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Risque de perturber l'appel de façon visible et non professionnelle devant le client au téléphone",
+          "score": 1
+        },
+        {
+          "letter": "B",
+          "text": "Respirer avant d'agir.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Le temps presse ici, une action rapide reste nécessaire",
+          "score": 1
+        },
+        {
+          "letter": "C",
+          "text": "Attendre la fin de l'appel pour prévenir Ismaël.",
+          "responseType": "WAIT",
+          "rationale": "Risque que le mauvais prix soit déjà confirmé au client avant la fin de l'appel",
+          "score": 0
+        },
+        {
+          "letter": "D",
+          "text": "Lui glisser discrètement un mot écrit pendant son appel.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Bonne solution discrète, un peu moins immédiate qu'un message direct sur écran",
+          "score": 2
+        },
+        {
+          "letter": "E",
+          "text": "Lui envoyer immédiatement un message discret sur son écran.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Le plus adapté : alerte immédiatement et discrètement, sans perturber l'appel en cours",
+          "score": 3
+        }
+      ]
+    },
+    {
+      "id": "TR-024",
+      "title": "Le mauvais créneau réservé pour la formation",
+      "categoryNumber": 4,
+      "category": "Erreur découverte sous pression",
+      "difficulty": "MODERATE",
+      "pilotValidated": false,
+      "capability": "Gestion de l'impulsivité et responsabilisation face à une erreur de planning affectant l'équipe",
+      "context": "Omar réalise qu'il a réservé la formation d'équipe sur un créneau qui chevauche un jour férié, alors que les invitations ont déjà été envoyées à quinze personnes.",
+      "trigger": "Omar découvre que la formation est programmée un jour férié, après l'envoi des invitations.",
+      "question": "Que fait Omar maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 17,
+      "wordsToRead": 44,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Annuler la formation sans explication.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Solution radicale et précipitée alors qu'un simple report suffirait probablement",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer avant de décider quoi faire.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Utile mais une action de correction concrète est nécessaire rapidement",
+          "score": 1
+        },
+        {
+          "letter": "C",
+          "text": "Laisser la formation telle quelle et voir qui vient.",
+          "responseType": "WAIT",
+          "rationale": "Risque une faible participation et une mauvaise organisation évitable",
+          "score": 0
+        },
+        {
+          "letter": "D",
+          "text": "Vérifier les disponibilités de l'équipe pour un autre créneau.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Le plus adapté : permet de proposer un nouveau créneau réaliste avant de recontacter tout le monde",
+          "score": 3
+        },
+        {
+          "letter": "E",
+          "text": "Envoyer tout de suite un message d'excuse annonçant un report.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Bonne pratique de communication, mais gagnerait à être accompagnée d'un nouveau créneau déjà identifié",
+          "score": 2
+        }
+      ]
+    },
+    {
+      "id": "TR-025",
+      "title": "Le virement envoyé au mauvais bénéficiaire",
+      "categoryNumber": 4,
+      "category": "Erreur découverte sous pression",
+      "difficulty": "HIGH",
+      "pilotValidated": false,
+      "capability": "Tolérance au stress et responsabilisation face à une erreur ayant un impact financier direct",
+      "context": "Yannick, comptable, réalise qu'il vient de valider un virement important vers le mauvais bénéficiaire, quelques minutes avant la clôture bancaire de la journée.",
+      "trigger": "Yannick réalise que le virement vient d'être validé vers le mauvais bénéficiaire, juste avant la clôture bancaire.",
+      "question": "Que fait Yannick maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 19,
+      "wordsToRead": 47,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Retenter frénétiquement d'annuler seul sans être sûr de la procédure.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Risque d'aggraver la situation par une mauvaise manipulation sous pression",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer un instant pour ne pas paniquer avant d'agir.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Utile pour garder les idées claires, mais chaque minute compte avant la clôture",
+          "score": 2
+        },
+        {
+          "letter": "C",
+          "text": "Attendre demain pour voir si ça peut se régler.",
+          "responseType": "WAIT",
+          "rationale": "Fortement contre-productif : la fenêtre d'action se ferme à la clôture du jour même",
+          "score": 0
+        },
+        {
+          "letter": "D",
+          "text": "Appeler immédiatement la banque pour tenter un blocage.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Le plus adapté : seule action ayant une chance réelle d'empêcher la finalisation du virement",
+          "score": 3
+        },
+        {
+          "letter": "E",
+          "text": "Prévenir calmement son responsable de l'erreur.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Nécessaire mais secondaire dans l'instant : la priorité absolue est la fenêtre bancaire qui se ferme",
+          "score": 2
+        }
+      ]
+    },
+    {
+      "id": "TR-026",
+      "title": "La mauvaise version du document projetée en conférence",
+      "categoryNumber": 4,
+      "category": "Erreur découverte sous pression",
+      "difficulty": "HIGH",
+      "pilotValidated": false,
+      "capability": "Tolérance au stress et responsabilisation face à une erreur publique ayant un impact sur un événement en cours",
+      "context": "Pendant une conférence interne devant 80 personnes, Élodie réalise que c'est une version obsolète et incorrecte du document qui est projetée à l'écran.",
+      "trigger": "Élodie réalise que la version projetée à l'écran, devant 80 personnes, contient des chiffres obsolètes et incorrects.",
+      "question": "Que fait Élodie maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 18,
+      "wordsToRead": 43,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Se lever et interrompre bruyamment la présentation.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Risque de créer une perturbation disproportionnée devant 80 personnes",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer avant de décider comment intervenir.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Utile pour choisir un mode d'intervention approprié plutôt que de réagir à chaud",
+          "score": 2
+        },
+        {
+          "letter": "C",
+          "text": "Ne rien dire et laisser la conférence continuer.",
+          "responseType": "WAIT",
+          "rationale": "Laisse une information incorrecte être diffusée à 80 personnes, risqué selon l'enjeu du contenu",
+          "score": 1
+        },
+        {
+          "letter": "D",
+          "text": "Envoyer discrètement un message au présentateur pour le prévenir.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Le plus adapté : corrige la situation rapidement et discrètement sans perturber la conférence",
+          "score": 3
+        },
+        {
+          "letter": "E",
+          "text": "Attendre une pause naturelle pour signaler discrètement l'erreur.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Également adapté, mais retarde la correction si la pause tarde à venir",
+          "score": 2
+        }
+      ]
+    },
+    {
+      "id": "TR-027",
+      "title": "Le désaccord sur la température de la salle",
+      "categoryNumber": 5,
+      "category": "Désaccord ou tension interpersonnelle",
+      "difficulty": "LOW",
+      "pilotValidated": false,
+      "capability": "Gestion d'un désaccord mineur sans escalade",
+      "context": "Deux collègues partageant un bureau ne sont pas d'accord sur la climatisation : l'un veut la baisser, l'autre veut la garder telle quelle.",
+      "trigger": "Victor insiste pour baisser la climatisation alors qu'Aline a déjà exprimé le contraire.",
+      "question": "Que fait Aline maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 14,
+      "wordsToRead": 36,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Refuser fermement et sur un ton agacé.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Réaction disproportionnée pour un désaccord aussi mineur",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer avant de répondre.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Excessif pour un enjeu aussi mineur du quotidien",
+          "score": 1
+        },
+        {
+          "letter": "C",
+          "text": "Ne rien dire et le laisser faire.",
+          "responseType": "WAIT",
+          "rationale": "Pour un désaccord aussi mineur et quotidien, laisser filer est la réponse la plus proportionnée à l'enjeu réel",
+          "score": 3
+        },
+        {
+          "letter": "D",
+          "text": "Demander un compromis, par exemple une température intermédiaire.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Proposer un compromis reste une bonne option mais ajoute un enjeu de négociation là où il n'y en a pas vraiment besoin",
+          "score": 2
+        },
+        {
+          "letter": "E",
+          "text": "Répéter calmement sa préférence initiale.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Adapté, mais ne propose pas de solution concrète au désaccord",
+          "score": 2
+        }
+      ]
+    },
+    {
+      "id": "TR-028",
+      "title": "Le désaccord sur l'ordre du jour",
+      "categoryNumber": 5,
+      "category": "Désaccord ou tension interpersonnelle",
+      "difficulty": "LOW",
+      "pilotValidated": false,
+      "capability": "Gestion d'un désaccord mineur sur une organisation partagée",
+      "context": "Deux collègues préparant une réunion commune ne sont pas d'accord sur l'ordre des sujets à traiter.",
+      "trigger": "Lucie propose un ordre du jour différent de celui déjà préparé par Simon, sur un ton assez direct.",
+      "question": "Que fait Simon maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 15,
+      "wordsToRead": 39,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Refuser catégoriquement de changer l'ordre.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Rigidité disproportionnée pour un désaccord d'organisation mineur",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer avant de répondre.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Excessif pour un enjeu d'organisation aussi mineur",
+          "score": 1
+        },
+        {
+          "letter": "C",
+          "text": "Ne rien dire et laisser l'ordre tel quel.",
+          "responseType": "WAIT",
+          "rationale": "Pour un désaccord d'organisation aussi mineur, garder l'ordre initial sans en faire un sujet de discussion est une réponse proportionnée à l'enjeu réel",
+          "score": 3
+        },
+        {
+          "letter": "D",
+          "text": "Demander pourquoi elle préfère commencer par le budget.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Comprendre la logique de Lucie reste une bonne pratique mais n'est pas indispensable pour un désaccord de pure organisation aussi mineur",
+          "score": 2
+        },
+        {
+          "letter": "E",
+          "text": "Proposer de garder son ordre mais raccourcir le planning.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Compromis raisonnable, mais proposé avant même d'avoir entendu l'argument de Lucie",
+          "score": 2
+        }
+      ]
+    },
+    {
+      "id": "TR-029",
+      "title": "Le désaccord avec le partenaire de projet",
+      "categoryNumber": 5,
+      "category": "Désaccord ou tension interpersonnelle",
+      "difficulty": "MODERATE",
+      "pilotValidated": false,
+      "capability": "Gestion de l'impulsivité face à un désaccord affectif dans un cadre professionnel",
+      "context": "Deux collègues qui collaborent étroitement depuis des mois expriment un désaccord de plus en plus tendu sur l'orientation d'un projet commun.",
+      "trigger": "Antoine hausse le ton en expliquant pourquoi il n'est pas d'accord avec l'approche de Chloé.",
+      "question": "Que fait Chloé maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 16,
+      "wordsToRead": 41,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Répondre sur le même ton, avec agacement.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Risque d'aggraver la tension entre deux collègues qui doivent continuer à collaborer",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer avant de répondre.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Le plus adapté : essentiel pour désamorcer une tension montante entre partenaires de travail",
+          "score": 3
+        },
+        {
+          "letter": "C",
+          "text": "Ne rien dire et quitter la pièce.",
+          "responseType": "WAIT",
+          "rationale": "Peut couper court à l'escalade mais laisse le désaccord de fond totalement non traité",
+          "score": 1
+        },
+        {
+          "letter": "D",
+          "text": "Demander à Antoine ce qui l'inquiète précisément dans l'approche actuelle.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Très adapté également, cherche à comprendre la source réelle de la tension",
+          "score": 3
+        },
+        {
+          "letter": "E",
+          "text": "Répéter calmement les raisons de son approche initiale.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Adapté mais risque de renforcer l'impasse sans traiter l'inquiétude d'Antoine",
+          "score": 1
+        }
+      ]
+    },
+    {
+      "id": "TR-030",
+      "title": "Le désaccord sur l'organisation familiale",
+      "categoryNumber": 5,
+      "category": "Désaccord ou tension interpersonnelle",
+      "difficulty": "MODERATE",
+      "pilotValidated": false,
+      "capability": "Gestion de l'impulsivité face à une tension avec un membre de la famille dans un contexte organisé",
+      "context": "Lors de la préparation d'un événement familial, la sœur de Marc conteste ouvertement les choix d'organisation qu'il a déjà faits, sur un ton agacé.",
+      "trigger": "Camille conteste sur un ton agacé les choix d'organisation déjà faits par Marc pour l'événement familial.",
+      "question": "Que fait Marc maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 15,
+      "wordsToRead": 38,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Répondre sèchement que c'est toujours pareil avec elle.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Risque de faire dériver le désaccord organisationnel vers un conflit familial plus large",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer avant de répondre.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Bonne première étape face à une tension familiale émergente",
+          "score": 2
+        },
+        {
+          "letter": "C",
+          "text": "Ne rien dire et continuer son travail.",
+          "responseType": "WAIT",
+          "rationale": "Risque d'être perçu comme un désintérêt total pour le ressenti de sa sœur",
+          "score": 0
+        },
+        {
+          "letter": "D",
+          "text": "Demander ce qu'elle aurait souhaité faire différemment.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Demander ce qu'elle aurait souhaité faire différemment ouvre le dialogue ; reconnaître directement le manque de concertation reste tout aussi constructif mais un peu moins exploratoire",
+          "score": 2
+        },
+        {
+          "letter": "E",
+          "text": "Reconnaître calmement qu'il aurait dû la consulter.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Très adapté également, reconnaît directement le point soulevé par Camille",
+          "score": 3
+        }
+      ]
+    },
+    {
+      "id": "TR-031",
+      "title": "Le désaccord ouvert en réunion de direction",
+      "categoryNumber": 5,
+      "category": "Désaccord ou tension interpersonnelle",
+      "difficulty": "HIGH",
+      "pilotValidated": false,
+      "capability": "Maîtrise de l'impulsivité face à un désaccord public et tendu avec un pair de même niveau hiérarchique",
+      "context": "Lors d'une réunion de direction, un pair de même niveau hiérarchique que Valérie conteste ouvertement et fermement sa proposition stratégique, devant les autres cadres.",
+      "trigger": "Rachid conteste fermement et publiquement la proposition de Valérie, devant les autres cadres.",
+      "question": "Que fait Valérie maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 16,
+      "wordsToRead": 36,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Répondre avec fermeté et un ton cassant.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Risque d'envenimer un désaccord stratégique en conflit personnel devant la direction",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer avant de répondre.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Essentiel face à un désaccord public et ferme de cette ampleur",
+          "score": 3
+        },
+        {
+          "letter": "C",
+          "text": "Ne rien dire pour l'instant.",
+          "responseType": "WAIT",
+          "rationale": "Un silence prolongé face à une contestation ferme et publique de ce niveau risque d'affaiblir sa position",
+          "score": 0
+        },
+        {
+          "letter": "D",
+          "text": "Demander à Rachid de préciser les points de désaccord.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Très adapté également : ramène la discussion sur des éléments concrets plutôt que sur l'opposition personnelle",
+          "score": 3
+        },
+        {
+          "letter": "E",
+          "text": "Répondre calmement en réexpliquant sa proposition.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Adapté, mais répéter sans clarifier les objections précises de Rachid risque d'être moins constructif",
+          "score": 2
+        }
+      ]
+    },
+    {
+      "id": "TR-032",
+      "title": "Le désaccord pendant le dîner avec des amis",
+      "categoryNumber": 5,
+      "category": "Désaccord ou tension interpersonnelle",
+      "difficulty": "HIGH",
+      "pilotValidated": false,
+      "capability": "Maîtrise de l'impulsivité face à un désaccord tendu avec un partenaire dans un cadre personnel exposé",
+      "context": "Lors d'un dîner avec des amis, le partenaire de Nadia exprime un désaccord tendu sur une décision qu'ils avaient prise ensemble, devant les invités.",
+      "trigger": "Karim exprime, sur un ton tendu, un désaccord sur une décision commune, devant les invités.",
+      "question": "Que fait Nadia maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 16,
+      "wordsToRead": 37,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Répondre sèchement devant les invités.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Risque d'exposer davantage une tension de couple devant des tiers",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer avant de répondre.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Le plus adapté dans l'instant : évite une réaction disproportionnée devant les invités",
+          "score": 3
+        },
+        {
+          "letter": "C",
+          "text": "Ne rien dire et changer de sujet.",
+          "responseType": "WAIT",
+          "rationale": "Peut désamorcer l'instant présent, mais évite totalement le sujet plutôt que de le reporter clairement",
+          "score": 2
+        },
+        {
+          "letter": "D",
+          "text": "Demander à Karim d'en reparler après le dîner.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Très adapté également, propose un cadre plus approprié sans ignorer le sujet",
+          "score": 3
+        },
+        {
+          "letter": "E",
+          "text": "Répondre calmement sur le fond, devant les invités.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Risque de prolonger l'exposition d'un désaccord de couple devant des tiers, même sur un ton calme",
+          "score": 1
+        }
+      ]
+    },
+    {
+      "id": "TR-033",
+      "title": "La consigne incomplète sur le dossier partagé",
+      "categoryNumber": 6,
+      "category": "Information incomplète ou ambiguë",
+      "difficulty": "LOW",
+      "pilotValidated": false,
+      "capability": "Recherche d'information avant de décider, tolérance à l'incertitude mineure",
+      "context": "Wassim reçoit une note post-it sur son bureau lui demandant de « finir le dossier », sans préciser lequel parmi les trois en cours.",
+      "trigger": "Wassim lit le post-it lui demandant de finir « le dossier », sans préciser lequel des trois dossiers en cours.",
+      "question": "Que fait Wassim maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 17,
+      "wordsToRead": 49,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Commencer au hasard l'un des trois dossiers.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Risque de travailler sur le mauvais dossier en priorité",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer et réfléchir à quel dossier il s'agit.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Peu utile seul : la réponse à l'ambiguïté n'est pas dans sa propre réflexion",
+          "score": 1
+        },
+        {
+          "letter": "C",
+          "text": "Ne rien faire en attendant une précision.",
+          "responseType": "WAIT",
+          "rationale": "Pour une ambiguïté aussi mineure et à faible enjeu, patienter un instant qu'une précision spontanée arrive reste une option tout aussi raisonnable",
+          "score": 3
+        },
+        {
+          "letter": "D",
+          "text": "Demander directement à la personne qui a laissé le mot.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Demander directement reste la solution la plus rapide mais n'est pas strictement indispensable si l'enjeu est très mineur et qu'une clarification peut arriver spontanément",
+          "score": 2
+        },
+        {
+          "letter": "E",
+          "text": "Choisir le dossier qui lui semble le plus logique et vérifier ensuite.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Solution pragmatique mais risque de perdre du temps si le choix est incorrect",
+          "score": 1
+        }
+      ]
+    },
+    {
+      "id": "TR-034",
+      "title": "L'instruction orale incomplète du responsable",
+      "categoryNumber": 6,
+      "category": "Information incomplète ou ambiguë",
+      "difficulty": "LOW",
+      "pilotValidated": false,
+      "capability": "Recherche d'information avant de décider face à une consigne orale ambiguë",
+      "context": "En passant rapidement, le responsable de Léna lui demande de « préparer les documents pour la réunion » sans préciser laquelle des deux réunions prévues cet après-midi.",
+      "trigger": "Le responsable donne une consigne orale incomplète avant de repartir rapidement, sans que Léna ait pu poser de question.",
+      "question": "Que fait Léna maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 17,
+      "wordsToRead": 47,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Préparer les documents pour la première réunion venue, au hasard.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Risque de préparer les mauvais documents",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer et essayer de deviner laquelle il voulait dire.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Peu utile seul : deviner reste risqué sur une ambiguïté simple à vérifier",
+          "score": 1
+        },
+        {
+          "letter": "C",
+          "text": "Ne rien préparer en attendant qu'il repasse.",
+          "responseType": "WAIT",
+          "rationale": "Risque de perdre un temps précieux si le responsable ne repasse pas rapidement",
+          "score": 0
+        },
+        {
+          "letter": "D",
+          "text": "Lui envoyer un message rapide pour clarifier.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Le plus adapté : lève l'ambiguïté rapidement sans attendre son retour physique",
+          "score": 3
+        },
+        {
+          "letter": "E",
+          "text": "Préparer les documents communs aux deux réunions en attendant.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Solution pragmatique intermédiaire, utile si applicable mais ne résout pas totalement l'ambiguïté",
+          "score": 2
+        }
+      ]
+    },
+    {
+      "id": "TR-035",
+      "title": "Le brief client contradictoire",
+      "categoryNumber": 6,
+      "category": "Information incomplète ou ambiguë",
+      "difficulty": "MODERATE",
+      "pilotValidated": false,
+      "capability": "Recherche d'information avant de décider face à une consigne de projet ambiguë et à enjeu",
+      "context": "Emma reçoit un brief client qui contient deux instructions contradictoires sur le budget alloué à un projet, sans qu'il soit clair laquelle est la bonne.",
+      "trigger": "Emma repère deux chiffres budgétaires contradictoires dans le même document de brief.",
+      "question": "Que fait Emma maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 18,
+      "wordsToRead": 48,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Se lancer avec le chiffre le plus élevé, sans vérifier.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Risque de travailler sur une base budgétaire incorrecte",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer et relire une nouvelle fois le document.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Utile mais insuffisant seul : la contradiction vient du document, pas d'une mauvaise lecture",
+          "score": 1
+        },
+        {
+          "letter": "C",
+          "text": "Ne rien faire en attendant une clarification spontanée.",
+          "responseType": "WAIT",
+          "rationale": "Risque de retarder le projet sans raison, alors qu'une clarification active est possible immédiatement",
+          "score": 0
+        },
+        {
+          "letter": "D",
+          "text": "Contacter le client pour clarifier le budget exact.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Le plus adapté : résout directement et officiellement la contradiction avant tout engagement",
+          "score": 3
+        },
+        {
+          "letter": "E",
+          "text": "Choisir le chiffre le plus prudent en attendant confirmation.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Solution pragmatique raisonnable, mais reste une supposition tant que le client n'a pas confirmé",
+          "score": 2
+        }
+      ]
+    },
+    {
+      "id": "TR-036",
+      "title": "L'instruction ambiguë avant une décision d'investissement",
+      "categoryNumber": 6,
+      "category": "Information incomplète ou ambiguë",
+      "difficulty": "HIGH",
+      "pilotValidated": false,
+      "capability": "Recherche d'information avant de décider sous forte incertitude et enjeu élevé",
+      "context": "Juste avant une réunion décisive, Fabien reçoit du comité de direction une instruction ambiguë sur le montant exact à engager pour un investissement stratégique.",
+      "trigger": "Fabien réalise que l'instruction reçue du comité de direction est ambiguë sur le montant exact à engager, alors que la réunion décisive commence dans quelques minutes.",
+      "question": "Que fait Fabien maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 19,
+      "wordsToRead": 47,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Annoncer un montant en réunion sans être sûr.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Risque élevé d'engager l'entreprise sur une base incertaine",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer avant la réunion pour rester calme.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Utile pour la posture en réunion, mais ne résout pas l'ambiguïté elle-même",
+          "score": 1
+        },
+        {
+          "letter": "C",
+          "text": "Entrer en réunion et improviser sur place.",
+          "responseType": "WAIT",
+          "rationale": "Risqué sur un enjeu stratégique élevé sans base claire pour décider",
+          "score": 0
+        },
+        {
+          "letter": "D",
+          "text": "Appeler immédiatement un membre du comité pour clarifier avant d'entrer.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Le plus adapté : sécurise l'information cruciale avant un engagement stratégique majeur",
+          "score": 3
+        },
+        {
+          "letter": "E",
+          "text": "Entrer en réunion en annonçant clairement le point à clarifier.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Bonne alternative si le temps manque pour appeler, gère la transparence sur l'incertitude",
+          "score": 2
+        }
+      ]
+    },
+    {
+      "id": "TR-037",
+      "title": "Le signal ambigu avant l'annonce de restructuration",
+      "categoryNumber": 6,
+      "category": "Information incomplète ou ambiguë",
+      "difficulty": "HIGH",
+      "pilotValidated": false,
+      "capability": "Recherche d'information avant de décider sous forte incertitude relationnelle et professionnelle",
+      "context": "Sarah, cadre intermédiaire, reçoit une convocation ambiguë de la direction juste avant une période où des rumeurs de restructuration circulent dans l'entreprise.",
+      "trigger": "Sarah reçoit une convocation formelle et ambiguë de la direction, dans un contexte de rumeurs de restructuration.",
+      "question": "Que fait Sarah maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 19,
+      "wordsToRead": 46,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Envoyer un message inquiet à plusieurs collègues.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Risque de propager une inquiétude non confirmée à d'autres personnes",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer pour ne pas se laisser envahir par l'anxiété.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Très adapté : essentiel pour aborder l'entretien avec calme malgré l'incertitude",
+          "score": 3
+        },
+        {
+          "letter": "C",
+          "text": "Ne rien faire et attendre l'entretien de l'après-midi.",
+          "responseType": "WAIT",
+          "rationale": "Peut être adapté si aucune clarification supplémentaire n'est réellement possible avant l'entretien",
+          "score": 2
+        },
+        {
+          "letter": "D",
+          "text": "Demander discrètement à son propre responsable s'il a des informations.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Le plus adapté : cherche une clarification légitime sans propager de rumeur",
+          "score": 3
+        },
+        {
+          "letter": "E",
+          "text": "Se préparer calmement à plusieurs scénarios possibles.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Bonne préparation mentale, complémentaire mais ne réduit pas l'incertitude elle-même",
+          "score": 2
+        }
+      ]
+    },
+    {
+      "id": "TR-038",
+      "title": "La double demande de la matinée",
+      "categoryNumber": 7,
+      "category": "Demande urgente et priorités contradictoires",
+      "difficulty": "LOW",
+      "pilotValidated": false,
+      "capability": "Gestion de priorités contradictoires mineures",
+      "context": "Deux collègues demandent à Iris de l'aide sur des tâches différentes, presque en même temps, sans que ni l'une ni l'autre ne soit réellement urgente.",
+      "trigger": "Deux collègues sollicitent l'aide d'Iris presque simultanément, pour des tâches différentes.",
+      "question": "Que fait Iris maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 17,
+      "wordsToRead": 48,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Commencer à aider le premier qui a parlé, sans réfléchir.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Peut fonctionner mais ignore l'urgence relative réelle de chaque demande",
+          "score": 1
+        },
+        {
+          "letter": "B",
+          "text": "Respirer avant de choisir.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Excessif pour un enjeu aussi mineur du quotidien",
+          "score": 1
+        },
+        {
+          "letter": "C",
+          "text": "Ne rien faire et laisser les deux attendre.",
+          "responseType": "WAIT",
+          "rationale": "Aucune des deux demandes n'étant réellement urgente, un court instant d'attente avant de répondre aux deux est parfaitement proportionné",
+          "score": 3
+        },
+        {
+          "letter": "D",
+          "text": "Demander à chacun combien de temps sa demande prendrait.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Demander le temps nécessaire à chacun reste une bonne option mais n'est pas indispensable si aucune des deux demandes n'est urgente",
+          "score": 2
+        },
+        {
+          "letter": "E",
+          "text": "Proposer de traiter les deux l'une après l'autre, dans l'ordre choisi ensemble.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Très adapté également, solution collaborative simple",
+          "score": 2
+        }
+      ]
+    },
+    {
+      "id": "TR-039",
+      "title": "Les deux demandes des enfants",
+      "categoryNumber": 7,
+      "category": "Demande urgente et priorités contradictoires",
+      "difficulty": "LOW",
+      "pilotValidated": false,
+      "capability": "Gestion de priorités contradictoires mineures dans un cadre familial",
+      "context": "En préparant le dîner, Farid est sollicité presque en même temps par ses deux enfants pour deux choses différentes.",
+      "trigger": "Les deux enfants sollicitent Farid presque simultanément pour des demandes différentes.",
+      "question": "Que fait Farid maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 16,
+      "wordsToRead": 43,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Répondre au premier qui a parlé, sans réfléchir.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Peut fonctionner mais ignore ce qui compte réellement le plus pour chacun",
+          "score": 1
+        },
+        {
+          "letter": "B",
+          "text": "Respirer avant de répondre.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Excessif pour un enjeu familial aussi mineur",
+          "score": 1
+        },
+        {
+          "letter": "C",
+          "text": "Continuer de cuisiner sans répondre pour l'instant.",
+          "responseType": "WAIT",
+          "rationale": "Peu adapté : les deux enfants attendent une réponse immédiate",
+          "score": 0
+        },
+        {
+          "letter": "D",
+          "text": "Demander à chacun ce qui est le plus important pour lui maintenant.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Clarifier l'urgence réelle en quelques secondes reste la solution la plus fiable, légèrement plus rapide qu'un message de report",
+          "score": 2
+        },
+        {
+          "letter": "E",
+          "text": "Proposer de s'occuper d'eux l'un après l'autre.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Également adapté, solution simple et équitable",
+          "score": 3
+        }
+      ]
+    },
+    {
+      "id": "TR-040",
+      "title": "Les deux demandes urgentes du même après-midi",
+      "categoryNumber": 7,
+      "category": "Demande urgente et priorités contradictoires",
+      "difficulty": "MODERATE",
+      "pilotValidated": false,
+      "capability": "Gestion de priorités contradictoires professionnelles avec enjeu de délai",
+      "context": "Deux collègues de départements différents demandent à Karine de traiter chacun un dossier urgent, tous deux à rendre en fin de journée.",
+      "trigger": "Karine reçoit deux demandes urgentes et incompatibles à traiter avant la fin de journée, à quelques minutes d'intervalle.",
+      "question": "Que fait Karine maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 18,
+      "wordsToRead": 48,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Commencer la première demande sans évaluer l'autre.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Risque de négliger une demande potentiellement plus critique",
+          "score": 1
+        },
+        {
+          "letter": "B",
+          "text": "Respirer avant de décider.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Utile mais insuffisant seul face à un vrai conflit de délais à trancher",
+          "score": 1
+        },
+        {
+          "letter": "C",
+          "text": "Attendre de voir laquelle des deux devient plus pressante.",
+          "responseType": "WAIT",
+          "rationale": "Risqué : les deux échéances sont déjà fixées à la fin de journée",
+          "score": 0
+        },
+        {
+          "letter": "D",
+          "text": "Clarifier avec chacun le degré d'urgence réel et les conséquences d'un retard.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Le plus adapté : permet une priorisation objective sur la base de l'impact réel",
+          "score": 3
+        },
+        {
+          "letter": "E",
+          "text": "Proposer de déléguer l'une des deux tâches à un autre collègue.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Bonne solution alternative si applicable, mais dépend de la disponibilité d'un tiers",
+          "score": 2
+        }
+      ]
+    },
+    {
+      "id": "TR-041",
+      "title": "L'appel de l'école pendant une échéance de travail",
+      "categoryNumber": 7,
+      "category": "Demande urgente et priorités contradictoires",
+      "difficulty": "MODERATE",
+      "pilotValidated": false,
+      "capability": "Gestion de priorités contradictoires entre engagement professionnel et personnel",
+      "context": "En pleine finalisation d'un dossier à rendre dans l'heure, Odile reçoit un appel de l'école de son enfant pour un motif non précisé comme urgent ou non.",
+      "trigger": "Odile reçoit un appel de l'école de son enfant alors qu'elle est en pleine finalisation d'un dossier urgent.",
+      "question": "Que fait Odile maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 17,
+      "wordsToRead": 43,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Ignorer l'appel sans même regarder qui appelle.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Risque de manquer une urgence réelle concernant son enfant",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer avant de décider quoi faire.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Utile mais un appel de l'école mérite une réponse rapide, positive ou non",
+          "score": 1
+        },
+        {
+          "letter": "C",
+          "text": "Laisser sonner et rappeler après le dossier.",
+          "responseType": "WAIT",
+          "rationale": "Risqué si l'appel concerne une urgence réelle nécessitant une réponse immédiate",
+          "score": 1
+        },
+        {
+          "letter": "D",
+          "text": "Décrocher brièvement pour évaluer le degré d'urgence réel.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Le plus adapté : permet de savoir en quelques secondes si c'est réellement urgent avant de décider",
+          "score": 3
+        },
+        {
+          "letter": "E",
+          "text": "Répondre par message pour dire qu'elle rappelle dans 5 minutes.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Bonne alternative si l'appel n'est pas explicitement marqué urgent, mais retarde une éventuelle urgence réelle",
+          "score": 2
+        }
+      ]
+    },
+    {
+      "id": "TR-042",
+      "title": "Les trois urgences simultanées avant la clôture",
+      "categoryNumber": 7,
+      "category": "Demande urgente et priorités contradictoires",
+      "difficulty": "HIGH",
+      "pilotValidated": false,
+      "capability": "Gestion de priorités contradictoires sous forte pression, avec enjeux professionnels multiples",
+      "context": "Dans les dernières minutes avant la clôture mensuelle, Julien reçoit coup sur coup trois sollicitations urgentes de trois équipes différentes, chacune affirmant être prioritaire.",
+      "trigger": "Trois sollicitations urgentes arrivent presque simultanément, chacune revendiquant la priorité absolue.",
+      "question": "Que fait Julien maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 20,
+      "wordsToRead": 51,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Répondre à la première sollicitation, en ignorant les deux autres pour l'instant.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Risque de traiter en premier la demande la moins critique des trois",
+          "score": 1
+        },
+        {
+          "letter": "B",
+          "text": "Respirer un instant avant de trancher.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Sous surcharge à ce point, la priorité immédiate est d'éviter la panique avant de pouvoir clarifier quoi que ce soit efficacement",
+          "score": 3
+        },
+        {
+          "letter": "C",
+          "text": "Laisser les trois en attente le temps de reprendre son calme.",
+          "responseType": "WAIT",
+          "rationale": "Risqué avec une échéance de clôture aussi proche et trois demandes déjà urgentes",
+          "score": 0
+        },
+        {
+          "letter": "D",
+          "text": "Demander rapidement à chacun l'impact réel d'un retard.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Clarifier l'impact de chaque demande reste nécessaire mais vient juste après avoir repris son calme face à la surcharge",
+          "score": 2
+        },
+        {
+          "letter": "E",
+          "text": "Répartir les trois demandes avec l'aide d'un collègue disponible.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Bonne solution si un collègue est réellement disponible, mais dépend d'une ressource externe incertaine",
+          "score": 2
+        }
+      ]
+    },
+    {
+      "id": "TR-043",
+      "title": "Les demandes contradictoires des deux associés",
+      "categoryNumber": 7,
+      "category": "Demande urgente et priorités contradictoires",
+      "difficulty": "HIGH",
+      "pilotValidated": false,
+      "capability": "Gestion de priorités contradictoires sous pression hiérarchique multiple",
+      "context": "Les deux associés fondateurs de l'entreprise, tous deux supérieurs directs d'Elena, lui donnent des instructions contradictoires sur la même échéance, à quelques minutes d'intervalle.",
+      "trigger": "Les deux associés donnent des instructions contradictoires sur la même échéance, à quelques minutes d'intervalle.",
+      "question": "Que fait Elena maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 20,
+      "wordsToRead": 51,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Suivre la première instruction reçue, sans en parler à l'autre associé.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Risque de mécontenter l'un des deux associés sans qu'ils aient pu s'aligner entre eux",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer avant de décider quoi faire.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Utile mais insuffisant seul face à un vrai conflit d'autorité entre deux supérieurs",
+          "score": 1
+        },
+        {
+          "letter": "C",
+          "text": "Ne rien faire en attendant qu'ils se mettent d'accord entre eux.",
+          "responseType": "WAIT",
+          "rationale": "Peut fonctionner si l'échéance le permet, mais risqué si les deux associés ne communiquent pas entre eux spontanément",
+          "score": 1
+        },
+        {
+          "letter": "D",
+          "text": "Signaler le conflit d'instructions aux deux associés en même temps.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Le plus adapté : évite de choisir seule entre deux figures d'autorité égales, transparent et professionnel",
+          "score": 3
+        },
+        {
+          "letter": "E",
+          "text": "Proposer une solution intermédiaire de son propre chef.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Risqué : décider seule d'un compromis entre deux instructions de supérieurs directs sans les consulter",
+          "score": 1
+        }
+      ]
+    },
+    {
+      "id": "TR-044",
+      "title": "La demande de congé refusée",
+      "categoryNumber": 8,
+      "category": "Frustration, refus ou obstacle inattendu",
+      "difficulty": "LOW",
+      "pilotValidated": false,
+      "capability": "Gestion d'une frustration mineure face à un refus administratif simple",
+      "context": "Nora reçoit une réponse automatique refusant sa demande de congé pour une date qu'elle pensait disponible.",
+      "trigger": "Nora découvre que sa demande de congé a été refusée, sans explication détaillée.",
+      "question": "Que fait Nora maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 15,
+      "wordsToRead": 41,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Envoyer un message agacé à son responsable.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Réaction disproportionnée avant même de connaître la raison du refus",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer avant de décider quoi faire.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Bonne première étape face à une déception, mais une clarification reste utile ensuite",
+          "score": 2
+        },
+        {
+          "letter": "C",
+          "text": "Ne rien faire et laisser tomber la demande.",
+          "responseType": "WAIT",
+          "rationale": "Renonce sans même connaître la raison du refus, potentiellement évitable",
+          "score": 1
+        },
+        {
+          "letter": "D",
+          "text": "Demander à son responsable la raison du refus.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Comprendre la raison du refus reste utile mais peut se faire en parallèle d'une nouvelle proposition déjà avancée",
+          "score": 2
+        },
+        {
+          "letter": "E",
+          "text": "Proposer calmement une autre date de congé.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Proposer directement une alternative est une action constructive immédiate qui relance la démarche sans attendre",
+          "score": 3
+        }
+      ]
+    },
+    {
+      "id": "TR-045",
+      "title": "La commande refusée en caisse",
+      "categoryNumber": 8,
+      "category": "Frustration, refus ou obstacle inattendu",
+      "difficulty": "LOW",
+      "pilotValidated": false,
+      "capability": "Gestion d'une frustration mineure face à un obstacle matériel",
+      "context": "Tarek, en caisse d'un magasin, voit un paiement client être refusé pour une raison technique non précisée, avec une file d'attente derrière.",
+      "trigger": "Le paiement du client est refusé par le terminal, sans raison claire affichée.",
+      "question": "Que fait Tarek maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 17,
+      "wordsToRead": 47,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Dire sèchement au client que sa carte ne fonctionne pas.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Ton sec potentiellement blessant pour un problème possiblement technique et non lié au client",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer avant de réagir.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Excessif pour un incident technique mineur et courant en caisse",
+          "score": 1
+        },
+        {
+          "letter": "C",
+          "text": "Laisser le client réessayer seul plusieurs fois.",
+          "responseType": "WAIT",
+          "rationale": "Peu proactif, prolonge inutilement l'attente sans chercher de solution",
+          "score": 1
+        },
+        {
+          "letter": "D",
+          "text": "Proposer calmement de réessayer ou un autre moyen de paiement.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Le plus adapté : gère la situation avec tact, propose une solution concrète immédiate",
+          "score": 3
+        },
+        {
+          "letter": "E",
+          "text": "Demander à un collègue si le terminal a un problème connu.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Bonne vérification technique, utile en parallèle mais ne répond pas immédiatement au client qui attend",
+          "score": 2
+        }
+      ]
+    },
+    {
+      "id": "TR-046",
+      "title": "Le refus de budget pour le projet préparé",
+      "categoryNumber": 8,
+      "category": "Frustration, refus ou obstacle inattendu",
+      "difficulty": "MODERATE",
+      "pilotValidated": false,
+      "capability": "Gestion de la frustration face à un refus budgétaire affectant un projet préparé",
+      "context": "Après plusieurs semaines de préparation, Yohan apprend par e-mail que le budget demandé pour son projet a été refusé, sans réunion préalable pour en discuter.",
+      "trigger": "Yohan apprend le refus de budget de son projet par e-mail, après plusieurs semaines de préparation.",
+      "question": "Que fait Yohan maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 17,
+      "wordsToRead": 44,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Répondre immédiatement par un e-mail sec et frustré.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Risque de nuire à l'image professionnelle sans obtenir plus d'explications",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer avant de décider comment réagir.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Face à une déception professionnelle après plusieurs semaines de préparation, respirer avant de décider comment réagir est la priorité immédiate",
+          "score": 3
+        },
+        {
+          "letter": "C",
+          "text": "Ne rien faire et abandonner le projet.",
+          "responseType": "WAIT",
+          "rationale": "Renonce sans avoir cherché à comprendre ni à faire valoir le travail déjà investi",
+          "score": 0
+        },
+        {
+          "letter": "D",
+          "text": "Demander un rendez-vous pour comprendre les raisons du refus.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Demander un rendez-vous pour comprendre les raisons reste très pertinent mais vient juste après cette régulation initiale",
+          "score": 2
+        },
+        {
+          "letter": "E",
+          "text": "Répondre calmement en réexpliquant l'intérêt du projet par e-mail.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Adapté mais risque d'être moins efficace qu'un échange direct pour comprendre le refus",
+          "score": 2
+        }
+      ]
+    },
+    {
+      "id": "TR-047",
+      "title": "La troisième panne du même logiciel",
+      "categoryNumber": 8,
+      "category": "Frustration, refus ou obstacle inattendu",
+      "difficulty": "MODERATE",
+      "pilotValidated": false,
+      "capability": "Gestion de la frustration face à un obstacle technique récurrent",
+      "context": "Pour la troisième fois de la semaine, Élise voit le logiciel dont elle dépend pour son travail planter, lui faisant perdre du travail non sauvegardé.",
+      "trigger": "Le logiciel plante pour la troisième fois de la semaine, faisant perdre du travail non sauvegardé.",
+      "question": "Que fait Élise maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 16,
+      "wordsToRead": 40,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Frapper son bureau de frustration.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Réaction compréhensible mais qui ne résout rien et peut être mal perçue par les collègues",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer profondément avant de continuer.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Face à une frustration accumulée après trois occurrences, respirer avant d'agir est la priorité immédiate pour éviter une réaction disproportionnée",
+          "score": 3
+        },
+        {
+          "letter": "C",
+          "text": "Refermer l'ordinateur et faire une pause sans rien signaler.",
+          "responseType": "WAIT",
+          "rationale": "Une pause peut être utile mais ne traite pas le problème récurrent qui continuera de se reproduire",
+          "score": 1
+        },
+        {
+          "letter": "D",
+          "text": "Signaler formellement le problème récurrent au support informatique.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Signaler le problème reste tout aussi nécessaire mais dans un second temps, une fois la frustration immédiate régulée",
+          "score": 2
+        },
+        {
+          "letter": "E",
+          "text": "Reprendre le travail perdu en sauvegardant plus fréquemment.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Bonne mesure d'adaptation immédiate, mais ne résout pas la cause technique sous-jacente",
+          "score": 2
+        }
+      ]
+    },
+    {
+      "id": "TR-048",
+      "title": "Le refus de financement après un an de préparation",
+      "categoryNumber": 8,
+      "category": "Frustration, refus ou obstacle inattendu",
+      "difficulty": "HIGH",
+      "pilotValidated": false,
+      "capability": "Tolérance à la frustration face à un refus institutionnel à fort enjeu",
+      "context": "Après un an de préparation, Camille apprend que la demande de financement de son projet a été définitivement refusée par le comité, sans possibilité de recours annoncée.",
+      "trigger": "Camille apprend le refus définitif du financement de son projet après un an de préparation.",
+      "question": "Que fait Camille maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 17,
+      "wordsToRead": 40,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Répondre immédiatement par un e-mail rempli de colère.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Risque de nuire durablement à la relation avec le comité malgré une déception légitime",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer profondément avant toute décision.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Le plus adapté dans l'instant : essentiel face à une déception professionnelle de cette ampleur",
+          "score": 3
+        },
+        {
+          "letter": "C",
+          "text": "Abandonner immédiatement le projet.",
+          "responseType": "WAIT",
+          "rationale": "Décision définitive prise sous le choc, sans avoir exploré d'éventuelles alternatives",
+          "score": 0
+        },
+        {
+          "letter": "D",
+          "text": "Demander s'il existe une possibilité de révision ou d'autres pistes de financement.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Très adapté également : explore les options avant d'accepter une décision présentée comme définitive",
+          "score": 3
+        },
+        {
+          "letter": "E",
+          "text": "Reformuler calmement une nouvelle demande immédiatement.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Prématuré : se relancer immédiatement sans avoir digéré la décision ni exploré les raisons du refus",
+          "score": 1
+        }
+      ]
+    },
+    {
+      "id": "TR-049",
+      "title": "L'annulation du projet porté par toute l'équipe",
+      "categoryNumber": 8,
+      "category": "Frustration, refus ou obstacle inattendu",
+      "difficulty": "HIGH",
+      "pilotValidated": false,
+      "capability": "Tolérance à la frustration face à un obstacle collectif affectant toute une équipe",
+      "context": "Après des mois de travail collectif, la direction annonce par message groupé l'annulation pure et simple du projet porté par toute l'équipe de Mathis, sans explication détaillée.",
+      "trigger": "Toute l'équipe reçoit simultanément l'annonce de l'annulation du projet sur lequel elle travaille depuis des mois.",
+      "question": "Que fait Mathis maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 19,
+      "wordsToRead": 49,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Répondre immédiatement et publiquement, avec colère, dans le fil de discussion.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Risque d'entraîner toute l'équipe dans une réaction collective non maîtrisée",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer avant de réagir.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Bonne première étape face à une déception collective de cette ampleur",
+          "score": 2
+        },
+        {
+          "letter": "C",
+          "text": "Ne rien dire et continuer à travailler comme si de rien n'était.",
+          "responseType": "WAIT",
+          "rationale": "Ignore une déception légitime partagée par toute l'équipe, peu adapté socialement",
+          "score": 0
+        },
+        {
+          "letter": "D",
+          "text": "Demander directement à la direction les raisons de cette décision.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Signaler le conflit d'instructions reste la solution la plus transparente et professionnelle pour ce type de désaccord hiérarchique",
+          "score": 2
+        },
+        {
+          "letter": "E",
+          "text": "Proposer à l'équipe d'en discuter ensemble calmement.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Très adapté également : rassemble l'équipe autour d'une réaction collectiveconstruite plutôt que dispersée",
+          "score": 3
+        }
+      ]
+    },
+    {
+      "id": "TR-050",
+      "title": "Le changement de salle à la dernière minute",
+      "categoryNumber": 9,
+      "category": "Interruption ou changement de dernière minute",
+      "difficulty": "LOW",
+      "pilotValidated": false,
+      "capability": "Adaptation rapide à un changement mineur de dernière minute",
+      "context": "Cinq minutes avant une réunion interne, Yasmine reçoit un message l'informant que la salle a changé, sans précision immédiate sur la nouvelle salle.",
+      "trigger": "Yasmine reçoit une notification de dernière minute annonçant un changement de salle, sans précision immédiate.",
+      "question": "Que fait Yasmine maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 17,
+      "wordsToRead": 47,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Partir au hasard vers une salle qu'elle connaît.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Risque de se rendre dans la mauvaise salle et d'arriver en retard malgré tout",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer avant de chercher l'information.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Excessif pour une simple recherche d'information rapide",
+          "score": 1
+        },
+        {
+          "letter": "C",
+          "text": "Rester sur place en attendant plus de précisions.",
+          "responseType": "WAIT",
+          "rationale": "Un changement de salle annoncé juste avant une réunion se clarifie généralement de lui-même en restant à portée du groupe quelques instants",
+          "score": 3
+        },
+        {
+          "letter": "D",
+          "text": "Consulter le fil de discussion ou demander la nouvelle salle.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Consulter le fil de discussion reste une bonne option mais n'est pas indispensable pour un imprévu aussi mineur et généralement de courte durée",
+          "score": 2
+        },
+        {
+          "letter": "E",
+          "text": "Se diriger calmement vers le point de rassemblement habituel en attendant.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Solution pragmatique intermédiaire, utile mais moins directe que la vérification immédiate",
+          "score": 2
+        }
+      ]
+    },
+    {
+      "id": "TR-051",
+      "title": "La coupure de connexion pendant une lecture",
+      "categoryNumber": 9,
+      "category": "Interruption ou changement de dernière minute",
+      "difficulty": "LOW",
+      "pilotValidated": false,
+      "capability": "Adaptation rapide à une interruption mineure du quotidien",
+      "context": "Pendant qu'il consulte un document en ligne nécessaire à sa tâche en cours, Baptiste voit sa connexion internet couper brièvement.",
+      "trigger": "La connexion internet de Baptiste coupe brièvement pendant sa lecture.",
+      "question": "Que fait Baptiste maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 15,
+      "wordsToRead": 40,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Cliquer frénétiquement partout sur l'écran.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Geste inefficace face à un problème de connexion réseau",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer avant de réagir.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Excessif pour un incident technique aussi mineur et courant",
+          "score": 1
+        },
+        {
+          "letter": "C",
+          "text": "Attendre que la connexion revienne d'elle-même.",
+          "responseType": "WAIT",
+          "rationale": "Une coupure de connexion mineure et généralement temporaire se résout souvent d'elle-même en quelques instants",
+          "score": 3
+        },
+        {
+          "letter": "D",
+          "text": "Vérifier le routeur ou demander si d'autres ont le même problème.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Vérifier l'ampleur du problème reste une bonne option mais n'est pas indispensable pour un incident aussi mineur et courant",
+          "score": 2
+        },
+        {
+          "letter": "E",
+          "text": "Passer sur son téléphone en attendant que ça revienne.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Solution pragmatique de contournement temporaire, utile mais ne résout pas la cause",
+          "score": 2
+        }
+      ]
+    },
+    {
+      "id": "TR-052",
+      "title": "Le changement d'audience juste avant la présentation",
+      "categoryNumber": 9,
+      "category": "Interruption ou changement de dernière minute",
+      "difficulty": "MODERATE",
+      "pilotValidated": false,
+      "capability": "Adaptation rapide à un changement de dernière minute affectant une présentation préparée",
+      "context": "Cinq minutes avant sa présentation, Diane apprend que l'audience prévue a changé : ce ne sont plus les mêmes interlocuteurs que ceux pour lesquels elle avait préparé son contenu.",
+      "trigger": "Diane apprend que l'audience de sa présentation a changé juste avant d'entrer en salle.",
+      "question": "Que fait Diane maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 17,
+      "wordsToRead": 44,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Entrer et présenter le contenu tel quel, sans ajustement.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Risque de présenter un contenu mal calibré pour le nouveau public sans même l'évaluer",
+          "score": 1
+        },
+        {
+          "letter": "B",
+          "text": "Respirer avant d'entrer en salle.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Utile pour aborder l'imprévu calmement, mais une clarification reste nécessaire",
+          "score": 2
+        },
+        {
+          "letter": "C",
+          "text": "Reporter la présentation à plus tard.",
+          "responseType": "WAIT",
+          "rationale": "Solution radicale et probablement disproportionnée pour un changement d'audience gérable",
+          "score": 0
+        },
+        {
+          "letter": "D",
+          "text": "Demander rapidement qui sera présent pour ajuster mentalement son propos.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Le plus adapté : permet d'ajuster rapidement le contenu au bon niveau avant d'entrer",
+          "score": 3
+        },
+        {
+          "letter": "E",
+          "text": "Entrer et annoncer qu'elle adaptera son propos en direct.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Bonne alternative si le temps manque pour se renseigner, transparente et flexible",
+          "score": 2
+        }
+      ]
+    },
+    {
+      "id": "TR-053",
+      "title": "La coupure de courant pendant la clôture",
+      "categoryNumber": 9,
+      "category": "Interruption ou changement de dernière minute",
+      "difficulty": "MODERATE",
+      "pilotValidated": false,
+      "capability": "Adaptation rapide à une interruption affectant une tâche en cours à enjeu",
+      "context": "En pleine finalisation d'un document important, une coupure de courant soudaine éteint l'ordinateur de Rania, avec un risque de perte du travail non sauvegardé.",
+      "trigger": "Une coupure de courant soudaine éteint l'ordinateur de Rania en pleine finalisation d'un document.",
+      "question": "Que fait Rania maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 16,
+      "wordsToRead": 42,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Redémarrer frénétiquement l'ordinateur plusieurs fois de suite.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Geste inutile et potentiellement contre-productif face à une coupure générale",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer avant de réagir.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Bonne première étape face à un imprévu générant une inquiétude légitime",
+          "score": 2
+        },
+        {
+          "letter": "C",
+          "text": "Attendre calmement que le courant revienne.",
+          "responseType": "WAIT",
+          "rationale": "Une coupure générale hors de son contrôle rend l'attente calme la réponse la plus proportionnée dans l'instant",
+          "score": 3
+        },
+        {
+          "letter": "D",
+          "text": "Demander à des collègues si la coupure est générale ou locale.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Vérifier l'ampleur de la coupure reste utile mais secondaire si rien d'actionnable n'en découle immédiatement",
+          "score": 2
+        },
+        {
+          "letter": "E",
+          "text": "Chercher immédiatement une prise ou un appareil de secours.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Action concrète utile si disponible, mais ne résout pas une coupure générale du bâtiment",
+          "score": 1
+        }
+      ]
+    },
+    {
+      "id": "TR-054",
+      "title": "Le changement de format à cinq minutes du lancement",
+      "categoryNumber": 9,
+      "category": "Interruption ou changement de dernière minute",
+      "difficulty": "HIGH",
+      "pilotValidated": false,
+      "capability": "Adaptation rapide à un changement majeur de dernière minute à fort enjeu",
+      "context": "Cinq minutes avant le lancement en direct d'un événement suivi par plusieurs centaines de personnes en ligne, Thibault apprend que le format prévu doit changer radicalement pour des raisons techniques.",
+      "trigger": "Thibault apprend que le format prévu doit changer radicalement, à cinq minutes du lancement en direct.",
+      "question": "Que fait Thibault maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 18,
+      "wordsToRead": 45,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Décider seul d'un nouveau format sans consulter personne.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Risque de décision précipitée sans évaluer les options techniques réellement disponibles",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer un instant avant de décider.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Utile pour garder son calme, mais le temps est très compté avant le direct",
+          "score": 1
+        },
+        {
+          "letter": "C",
+          "text": "Retarder le direct de quelques minutes sans explication.",
+          "responseType": "WAIT",
+          "rationale": "Peut être nécessaire mais reste une solution de repli plutôt qu'une décision active immédiate",
+          "score": 1
+        },
+        {
+          "letter": "D",
+          "text": "Demander immédiatement au technicien les options concrètes disponibles.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Demander les raisons à la direction reste la démarche la plus directe pour comprendre une décision aussi lourde",
+          "score": 2
+        },
+        {
+          "letter": "E",
+          "text": "Proposer immédiatement de basculer sur un format de secours connu.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Très adapté si un format de secours existe déjà et est fiable, aussi rapide que D dans ce cas",
+          "score": 3
+        }
+      ]
+    },
+    {
+      "id": "TR-055",
+      "title": "L'absence surprise de l'intervenant principal",
+      "categoryNumber": 9,
+      "category": "Interruption ou changement de dernière minute",
+      "difficulty": "HIGH",
+      "pilotValidated": false,
+      "capability": "Adaptation rapide à un changement de dernière minute impliquant une personne clé absente",
+      "context": "Quelques minutes avant une conférence importante devant 200 personnes, l'intervenant principal prévenu par Léa se révèle finalement injoignable et absent.",
+      "trigger": "Léa réalise que l'intervenant principal est injoignable et probablement absent, juste avant l'ouverture au public.",
+      "question": "Que fait Léa maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 20,
+      "wordsToRead": 52,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Annuler la conférence sur-le-champ sans chercher d'alternative.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Décision radicale et précipitée alors que d'autres options n'ont pas été explorées",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer un instant avant d'agir.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Utile pour garder son calme, mais une action rapide reste nécessaire vu l'urgence",
+          "score": 1
+        },
+        {
+          "letter": "C",
+          "text": "Laisser la salle se remplir en espérant que l'intervenant arrive finalement.",
+          "responseType": "WAIT",
+          "rationale": "Risqué : repousse une décision nécessaire alors que le public arrive déjà",
+          "score": 0
+        },
+        {
+          "letter": "D",
+          "text": "Contacter rapidement un intervenant de secours ou un collègue capable de le remplacer.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Le plus adapté : mobilise activement une solution de repli avant l'ouverture des portes",
+          "score": 3
+        },
+        {
+          "letter": "E",
+          "text": "Préparer une introduction pour gagner du temps en attendant une solution.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Bonne action complémentaire pour gagner quelques minutes, mais ne résout pas le problème de fond",
+          "score": 2
+        }
+      ]
+    },
+    {
+      "id": "TR-056",
+      "title": "La pression amicale pour rester plus tard",
+      "categoryNumber": 10,
+      "category": "Pression sociale ou hiérarchique",
+      "difficulty": "LOW",
+      "pilotValidated": false,
+      "capability": "Gestion d'une pression sociale mineure dans un cadre informel",
+      "context": "Après le travail, un groupe de collègues insiste amicalement mais avec insistance pour que Naïma reste boire un verre, alors qu'elle avait prévu de partir tôt.",
+      "trigger": "Le groupe insiste plusieurs fois pour que Naïma reste, malgré son intention initiale de partir tôt.",
+      "question": "Que fait Naïma maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 16,
+      "wordsToRead": 43,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Céder immédiatement pour éviter toute discussion.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Renonce à son plan initial sans même exprimer sa préférence",
+          "score": 1
+        },
+        {
+          "letter": "B",
+          "text": "Respirer avant de répondre.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Excessif pour une pression sociale aussi mineure et amicale",
+          "score": 1
+        },
+        {
+          "letter": "C",
+          "text": "Ne rien dire et rester malgré elle.",
+          "responseType": "WAIT",
+          "rationale": "Cède à la pression sans exprimer son besoin, peu affirmé",
+          "score": 0
+        },
+        {
+          "letter": "D",
+          "text": "Demander si elle peut les rejoindre une prochaine fois.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Bonne alternative sociale, mais moins directe qu'une réponse assumée sur l'instant",
+          "score": 2
+        },
+        {
+          "letter": "E",
+          "text": "Dire calmement qu'elle doit partir mais les rejoindra volontiers une prochaine fois.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Le plus adapté : exprime clairement son besoin tout en maintenant la relation sociale",
+          "score": 3
+        }
+      ]
+    },
+    {
+      "id": "TR-057",
+      "title": "La pression du groupe pour le choix du restaurant",
+      "categoryNumber": 10,
+      "category": "Pression sociale ou hiérarchique",
+      "difficulty": "LOW",
+      "pilotValidated": false,
+      "capability": "Gestion d'une pression sociale mineure autour d'une décision de groupe",
+      "context": "Dans un groupe d'amis choisissant un restaurant, la majorité pousse pour une option que Vincent n'apprécie pas particulièrement, sans lui laisser vraiment le temps de proposer une alternative.",
+      "trigger": "Le groupe se dirige déjà vers le restaurant choisi par la majorité, sans que Vincent ait eu l'occasion de donner son avis.",
+      "question": "Que fait Vincent maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 16,
+      "wordsToRead": 44,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Suivre le groupe sans rien dire, en étant agacé intérieurement.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Cède sans exprimer son avis, risque d'accumuler une frustration silencieuse",
+          "score": 1
+        },
+        {
+          "letter": "B",
+          "text": "Respirer avant de décider quoi faire.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Excessif pour une décision de groupe aussi mineure",
+          "score": 1
+        },
+        {
+          "letter": "C",
+          "text": "Suivre le groupe sans rien dire, tout simplement.",
+          "responseType": "WAIT",
+          "rationale": "Acceptable pour un enjeu très mineur si cela n'est pas systématique",
+          "score": 2
+        },
+        {
+          "letter": "D",
+          "text": "Demander si une autre option est encore possible.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Demander un instant pour vérifier les contraintes précises reste légèrement plus prudent qu'une affirmation immédiate que le délai n'est pas réaliste",
+          "score": 2
+        },
+        {
+          "letter": "E",
+          "text": "Proposer calmement son restaurant préféré comme alternative.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Également très adapté, exprime directement sa préférence",
+          "score": 3
+        }
+      ]
+    },
+    {
+      "id": "TR-058",
+      "title": "La pression du responsable pour travailler le week-end",
+      "categoryNumber": 10,
+      "category": "Pression sociale ou hiérarchique",
+      "difficulty": "MODERATE",
+      "pilotValidated": false,
+      "capability": "Gestion de la pression hiérarchique face à une demande de disponibilité excessive",
+      "context": "Le vendredi en fin de journée, le responsable de Malo lui demande, sur un ton qui laisse peu de place au refus, de travailler samedi sur un dossier non explicitement urgent.",
+      "trigger": "Le responsable demande à Malo de travailler le samedi, sur un ton qui laisse peu de place à la discussion.",
+      "question": "Que fait Malo maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 17,
+      "wordsToRead": 43,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Accepter immédiatement sans poser de question.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Cède sans même vérifier si c'est réellement nécessaire ni exprimer une contrainte personnelle éventuelle",
+          "score": 1
+        },
+        {
+          "letter": "B",
+          "text": "Respirer avant de répondre.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Respirer avant de répondre à une demande hiérarchique qui empiète sur le week-end est la priorité immédiate avant de formuler sa position",
+          "score": 3
+        },
+        {
+          "letter": "C",
+          "text": "Ne rien répondre tout de suite et changer de sujet.",
+          "responseType": "WAIT",
+          "rationale": "Évite la question sans y répondre clairement, risque d'être perçu comme un accord tacite",
+          "score": 0
+        },
+        {
+          "letter": "D",
+          "text": "Demander si c'est vraiment nécessaire pour ce délai précis.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Demander si c'est vraiment nécessaire reste très pertinent mais vient juste après ce temps de régulation initiale",
+          "score": 2
+        },
+        {
+          "letter": "E",
+          "text": "Répondre calmement qu'il a déjà des engagements ce week-end.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Adapté, exprime directement une limite personnelle, sans avoir vérifié le degré d'urgence réel",
+          "score": 2
+        }
+      ]
+    },
+    {
+      "id": "TR-059",
+      "title": "La pression du groupe pour valider une décision douteuse",
+      "categoryNumber": 10,
+      "category": "Pression sociale ou hiérarchique",
+      "difficulty": "MODERATE",
+      "pilotValidated": false,
+      "capability": "Gestion de la pression sociale face à une demande de conformité de groupe",
+      "context": "En réunion d'équipe, le groupe s'apprête à valider rapidement une décision que Sami trouve risquée, sous une pression sociale implicite de ne pas casser le consensus apparent.",
+      "trigger": "Le groupe s'apprête à valider rapidement une décision que Sami juge risquée, sans qu'aucune objection n'ait été soulevée.",
+      "question": "Que fait Sami maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 18,
+      "wordsToRead": 46,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Interrompre brusquement pour dire que c'est une mauvaise idée.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "Ton abrupt qui pourrait être perçu comme excessif par rapport à une objection constructive",
+          "score": 1
+        },
+        {
+          "letter": "B",
+          "text": "Respirer avant de décider s'il prend la parole.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Bonne première étape face à une pression de conformité de groupe",
+          "score": 2
+        },
+        {
+          "letter": "C",
+          "text": "Ne rien dire et valider comme les autres.",
+          "responseType": "WAIT",
+          "rationale": "Cède à la pression sociale sans exprimer une réserve légitime, risqué si le doute est fondé",
+          "score": 0
+        },
+        {
+          "letter": "D",
+          "text": "Demander si les risques identifiés ont bien été discutés.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Demander l'impact réel de chaque sollicitation reste la méthode la plus fiable de priorisation, même en situation de forte pression",
+          "score": 2
+        },
+        {
+          "letter": "E",
+          "text": "Exprimer calmement sa réserve avant la validation.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Également très adapté, affirme directement son point de vue de façon posée",
+          "score": 3
+        }
+      ]
+    },
+    {
+      "id": "TR-060",
+      "title": "L'insistance du directeur devant toute l'équipe",
+      "categoryNumber": 10,
+      "category": "Pression sociale ou hiérarchique",
+      "difficulty": "HIGH",
+      "pilotValidated": false,
+      "capability": "Maîtrise de l'impulsivité face à une pression hiérarchique publique et insistante",
+      "context": "Devant toute l'équipe réunie, le directeur insiste publiquement et de façon pressante pour que Léna s'engage immédiatement sur un délai qu'elle sait irréaliste.",
+      "trigger": "Le directeur insiste publiquement pour que Léna s'engage sur-le-champ sur un délai qu'elle sait irréaliste.",
+      "question": "Que fait Léna maintenant ?",
+      "medium": "VIDEO",
+      "responseDeadlineSec": 19,
+      "wordsToRead": 48,
+      "choices": [
+        {
+          "letter": "A",
+          "text": "Dire oui immédiatement pour ne pas contrarier le directeur devant tous.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "rationale": "S'engage publiquement sur un délai qu'elle sait irréaliste, risque professionnel important",
+          "score": 0
+        },
+        {
+          "letter": "B",
+          "text": "Respirer avant de répondre.",
+          "responseType": "BREATHE_ANALYZE",
+          "rationale": "Essentiel face à une pression publique aussi directe et insistante",
+          "score": 3
+        },
+        {
+          "letter": "C",
+          "text": "Ne rien répondre pour l'instant, en pleine réunion.",
+          "responseType": "WAIT",
+          "rationale": "Une question directe et publique de ce niveau appelle une réponse, le silence prolongé est difficilement tenable",
+          "score": 0
+        },
+        {
+          "letter": "D",
+          "text": "Demander un instant pour vérifier les contraintes précises avant de s'engager.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "rationale": "Très adapté également : évite un engagement précipité sans se dérober à la question",
+          "score": 3
+        },
+        {
+          "letter": "E",
+          "text": "Répondre calmement que le délai proposé n'est pas réaliste.",
+          "responseType": "REFORMULATE_CALMLY",
+          "rationale": "Également adapté et direct, mais peut sembler plus confrontant sans avoir d'abord demandé un instant de vérification",
+          "score": 2
+        }
+      ]
+    }
+  ]
+}

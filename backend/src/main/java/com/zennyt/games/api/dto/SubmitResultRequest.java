@@ -41,9 +41,14 @@ import com.zennyt.games.domain.vo.ObjectLocationPlacementAction;
 import com.zennyt.games.domain.vo.PlanifikMetrics;
 import com.zennyt.games.domain.vo.PrevisionPuzzleLevel;
 import com.zennyt.games.domain.vo.PrevisionPuzzleMetrics;
+import com.zennyt.games.domain.vo.ReflectivePauseMedium;
 import com.zennyt.games.domain.vo.ReflectivePauseMetrics;
 import com.zennyt.games.domain.vo.ReflectivePauseMomentMetric;
 import com.zennyt.games.domain.vo.ReflectivePauseResponseType;
+import com.zennyt.games.domain.vo.StrategicChoiceAnswerMetric;
+import com.zennyt.games.domain.vo.StrategicChoiceMedium;
+import com.zennyt.games.domain.vo.StrategicChoiceStrategy;
+import com.zennyt.games.domain.vo.StrategicChoicesMetrics;
 import com.zennyt.games.domain.vo.SecondaryObjectivesReached;
 import com.zennyt.games.domain.vo.TaskSchedulingMetrics;
 import jakarta.validation.Valid;
@@ -99,10 +104,21 @@ public record SubmitResultRequest(
         Boolean sessionCompleted,
         @Valid List<MemoryTaskPayload> tasks,
         // « Ordonnancement de tâches » (TASK_SCHEDULING) — mesures brutes.
-        Boolean dependenciesRespected,
-        Boolean timeConstraintsRespected,
-        @Min(0) Integer planningCoherence,
-        @Min(0) Integer adjustmentCount,
+        // « Planning journalier » — mesures brutes, jamais des points. Des
+        // compteurs et non des booléens : les trois premières composantes du
+        // barème se calculent sur des ratios.
+        String universeId,
+        @Min(0) Integer dependencyEdgeCount,
+        @Min(0) Integer dependencyEdgesRespected,
+        @Min(0) Integer directDependencyViolations,
+        @Min(0) Integer timingConstraintCount,
+        @Min(0) Integer timingConstraintsRespected,
+        Boolean collisionFree,
+        Double deadTimeRatio,
+        @Min(0) Integer proactiveAdjustments,
+        @Min(0) Integer reactiveAdjustments,
+        @Min(1) Integer levelsPlayed,
+        @Min(0) Integer planningLatencyMs,
         // « Je Décide » (DECISION_CORE) — mesures par item + contexte de session.
         @Size(min = 1) @Valid List<DecisionItemPayload> decisionItems,
         String sessionLanguage,
@@ -117,6 +133,8 @@ public record SubmitResultRequest(
         // « Reflective Pause » — 10 choix + timings bruts, aucun point.
         @Size(min = 10, max = 10) @Valid
         List<ReflectivePauseMomentPayload> reflectivePauseMoments,
+        // « Choix Stratégiques » — une entrée par situation jouée.
+        @Size(min = 1) @Valid List<StrategicChoiceAnswerPayload> strategicChoiceAnswers,
         // « Je continue » — protocole Long Rosvold complet, mesures brutes.
         String protocolVersion,
         @Size(min = 44, max = 44) @Valid
@@ -226,7 +244,18 @@ public record SubmitResultRequest(
         @NotNull String momentId,
         @NotNull ReflectivePauseResponseType selectedResponse,
         @NotNull @Min(0) Integer responseTimeMs,
-        @NotNull Boolean minimumTimerReached
+        @NotNull Boolean minimumTimerReached,
+        // Facultatif : absent d'une session antérieure à la banque client.
+        ReflectivePauseMedium medium
+    ) {}
+
+    /** Réponse à une situation de « Choix Stratégiques ». Aucune cotation n'y circule. */
+    public record StrategicChoiceAnswerPayload(
+        @NotNull String situationId,
+        @NotNull StrategicChoiceStrategy selectedStrategy,
+        @NotNull @Min(0) Integer responseTimeMs,
+        // Facultatif : la banque ne décrit aujourd'hui que des mini-vidéos.
+        StrategicChoiceMedium medium
     ) {}
 
     /** Socle de calibrage appareil (optionnel). Le score n'en dépend pas pour Move Fast. */
@@ -347,10 +376,21 @@ public record SubmitResultRequest(
                     .map(SubmitResultRequest::toPuzzleLevel).toList());
             case MEMORY_QUEST_CORE -> toMemoryQuestMetrics(metrics);
             case TASK_SCHEDULING -> new TaskSchedulingMetrics(
-                required(metrics.dependenciesRespected(), "dependenciesRespected"),
-                required(metrics.timeConstraintsRespected(), "timeConstraintsRespected"),
-                required(metrics.planningCoherence(), "planningCoherence"),
-                required(metrics.adjustmentCount(), "adjustmentCount"));
+                required(metrics.universeId(), "universeId"),
+                required(metrics.dependencyEdgeCount(), "dependencyEdgeCount"),
+                required(metrics.dependencyEdgesRespected(), "dependencyEdgesRespected"),
+                required(metrics.directDependencyViolations(), "directDependencyViolations"),
+                required(metrics.timingConstraintCount(), "timingConstraintCount"),
+                required(metrics.timingConstraintsRespected(), "timingConstraintsRespected"),
+                required(metrics.collisionFree(), "collisionFree"),
+                required(metrics.deadTimeRatio(), "deadTimeRatio"),
+                required(metrics.proactiveAdjustments(), "proactiveAdjustments"),
+                required(metrics.reactiveAdjustments(), "reactiveAdjustments"),
+                // Facultatif : absent, il vaut 1 planning — l'ancien barème.
+                metrics.levelsPlayed() == null ? 1 : metrics.levelsPlayed(),
+                // Diagnostique et facultative : une session sans placement n'en
+                // a pas, et ce n'est pas une erreur.
+                metrics.planningLatencyMs());
             case DECISION_CORE -> new DecisionMetrics(
                 required(metrics.decisionItems(), "decisionItems").stream()
                     .map(SubmitResultRequest::toDecisionItem).toList(),
@@ -361,6 +401,9 @@ public record SubmitResultRequest(
             case EMOTIONAL_RADAR_CORE -> new EmotionalRadarMetrics(
                 required(metrics.emotionalRadarScenes(), "emotionalRadarScenes").stream()
                     .map(SubmitResultRequest::toEmotionalRadarScene).toList());
+            case STRATEGIC_CHOICES_CORE -> new StrategicChoicesMetrics(
+                required(metrics.strategicChoiceAnswers(), "strategicChoiceAnswers").stream()
+                    .map(SubmitResultRequest::toStrategicChoiceAnswer).toList());
             case REFLECTIVE_PAUSE_CORE -> new ReflectivePauseMetrics(
                 required(metrics.reflectivePauseMoments(), "reflectivePauseMoments").stream()
                     .map(SubmitResultRequest::toReflectivePauseMoment).toList());
@@ -471,13 +514,23 @@ public record SubmitResultRequest(
             required(payload.interrupted(), "interrupted"));
     }
 
+    private static StrategicChoiceAnswerMetric toStrategicChoiceAnswer(
+            StrategicChoiceAnswerPayload payload) {
+        return new StrategicChoiceAnswerMetric(
+            required(payload.situationId(), "situationId"),
+            required(payload.selectedStrategy(), "selectedStrategy"),
+            required(payload.responseTimeMs(), "responseTimeMs"),
+            payload.medium());
+    }
+
     private static ReflectivePauseMomentMetric toReflectivePauseMoment(
             ReflectivePauseMomentPayload payload) {
         return new ReflectivePauseMomentMetric(
             required(payload.momentId(), "momentId"),
             required(payload.selectedResponse(), "selectedResponse"),
             required(payload.responseTimeMs(), "responseTimeMs"),
-            required(payload.minimumTimerReached(), "minimumTimerReached"));
+            required(payload.minimumTimerReached(), "minimumTimerReached"),
+            payload.medium());
     }
 
     private static EmotionalRadarSceneMetric toEmotionalRadarScene(EmotionalRadarScenePayload p) {

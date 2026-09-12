@@ -857,7 +857,7 @@ components:
         inside/outside ni distance calculée par le client n'est accepté.
         OBJECT_LOCATION_BINDING_CORE ne reçoit ni grille attendue, ni position
         d'origine, ni score : le serveur les reconstruit.
-      enum: [OPTIMAL_PATH, TASK_SCHEDULING, PREVISION_PUZZLE, MOVE_FAST_CORE, MEMORY_QUEST_CORE, DECISION_CORE, EMOTIONAL_RADAR_CORE, REFLECTIVE_PAUSE_CORE, CONTINUOUS_ATTENTION_CORE, COORDINATION_TRACKING_CORE, OBJECT_LOCATION_BINDING_CORE]
+      enum: [OPTIMAL_PATH, TASK_SCHEDULING, PREVISION_PUZZLE, MOVE_FAST_CORE, MEMORY_QUEST_CORE, DECISION_CORE, EMOTIONAL_RADAR_CORE, REFLECTIVE_PAUSE_CORE, CONTINUOUS_ATTENTION_CORE, COORDINATION_TRACKING_CORE, OBJECT_LOCATION_BINDING_CORE, STRATEGIC_CHOICES_CORE]
 
     SessionStatus:
       type: string
@@ -2306,27 +2306,88 @@ components:
     TaskSchedulingMetrics:
       type: object
       description: >
-        Métriques objectives du mini-jeu « Ordonnancement de tâches » (Planifik #2).
-        Le serveur applique le barème /10 : dépendances (tout-ou-rien) + contraintes
-        horaires (tout-ou-rien) + cohérence (0–2) + réajustements (score dérivé du
-        nombre brut). Le client n'envoie jamais de points.
-      required: [dependenciesRespected, timeConstraintsRespected, planningCoherence, adjustmentCount]
+        Métriques objectives du mini-jeu « Planning journalier » (Planifik #2).
+        Le serveur applique le barème /10 en quatre composantes : dépendances (3,
+        au prorata moins les violations directes) + gestion du temps (3, au prorata
+        du n RÉEL de l'univers tiré) + cohérence séquentielle (2, collisions et
+        temps mort) + autorégulation (2, corrections proactives vs réactives).
+        Des compteurs et non des booléens : huit contraintes tenues sur neuf ne
+        valent pas zéro. Le client n'envoie jamais de points.
+      required:
+        - universeId
+        - dependencyEdgeCount
+        - dependencyEdgesRespected
+        - directDependencyViolations
+        - timingConstraintCount
+        - timingConstraintsRespected
+        - collisionFree
+        - deadTimeRatio
+        - proactiveAdjustments
+        - reactiveAdjustments
       properties:
-        dependenciesRespected:
-          type: boolean
-          description: "Toutes les dépendances entre tâches respectées (tout-ou-rien → 3 pts / 0)."
-        timeConstraintsRespected:
-          type: boolean
-          description: "Toutes les contraintes horaires respectées (tout-ou-rien → 3 pts / 0)."
-        planningCoherence:
+        universeId:
+          type: string
+          description: "Univers tiré (restaurant, gestion, chantier…), pour la traçabilité."
+        dependencyEdgeCount:
           type: integer
           minimum: 0
-          maximum: 2
-          description: "0 désordonné · 1 partiellement logique · 2 clair et structuré (0–2 pts)."
-        adjustmentCount:
+          description: "Nombre total d'arêtes de dépendance de l'univers."
+        dependencyEdgesRespected:
           type: integer
           minimum: 0
-          description: "Nombre BRUT de réajustements ; score dérivé serveur (<2→2 · 2-4→1 · >4→0)."
+          description: "Arêtes effectivement respectées (prérequis terminé avant le dépendant)."
+        directDependencyViolations:
+          type: integer
+          minimum: 0
+          description: >
+            Tâches lancées sans que leur prérequis soit terminé. Pénalité de 1 pt
+            chacune : le référentiel traite la violation de règle comme une erreur
+            distincte d'un simple sous-optimum d'ordre.
+        timingConstraintCount:
+          type: integer
+          minimum: 0
+          description: >
+            n RÉEL de contraintes horaires de l'univers (5 à 7 selon l'univers).
+            Le calcul doit diviser par ce n, jamais par une constante, sans quoi
+            deux passations ne seraient pas comparables.
+        timingConstraintsRespected:
+          type: integer
+          minimum: 0
+          description: "Contraintes horaires tenues, tolérance ±5 min sur les blocs fixes."
+        collisionFree:
+          type: boolean
+          description: "Aucun bloc horaire fixe empêché de démarrer à son heure."
+        deadTimeRatio:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1
+          description: "Part de temps mort sur l'amplitude du planning (<10 % → 1 pt · 10-25 % → 0,5 · >25 % → 0)."
+        proactiveAdjustments:
+          type: integer
+          minimum: 0
+          description: "Corrections décidées AVANT que le jeu n'ait signalé une erreur."
+        reactiveAdjustments:
+          type: integer
+          minimum: 0
+          description: "Corrections déclenchées APRÈS un signal d'erreur du système."
+        levelsPlayed:
+          type: integer
+          minimum: 1
+          default: 1
+          description: >
+            Nombre de plannings joués dans la partie. Les seuils d'autorégulation
+            du référentiel (1 puis 3 corrections) valent PAR planning : les
+            compteurs ci-dessus étant cumulés sur la partie, le serveur met les
+            seuils à cette échelle. Absent, il vaut 1.
+        planningLatencyMs:
+          type: integer
+          minimum: 0
+          nullable: true
+          description: >
+            Temps de réflexion avant le premier placement. Métrique DIAGNOSTIQUE :
+            à remonter au profil qualitatif, explicitement HORS du score — elle
+            distingue un profil impulsif d'un profil délibératif à score égal.
 
     BasicEmotion:
       type: string
@@ -2513,8 +2574,10 @@ components:
       properties:
         momentId:
           type: string
-          description: Identifiant stable du catalogue de 10 moments.
-          example: PRESSURE_01
+          description: >
+            Identifiant de la situation dans la banque « Temps Réflexif »
+            (TR-001 à TR-060). Une partie en joue dix, distinctes.
+          example: TR-001
         selectedResponse: { $ref: '#/components/schemas/ReflectivePauseResponseType' }
         responseTimeMs:
           type: integer
@@ -2525,12 +2588,69 @@ components:
           description: >
             Doit être cohérent avec responseTimeMs >= 3000 ; le domaine rejette
             toute incohérence.
+        medium:
+          type: string
+          enum: [VIDEO, WRITTEN]
+          description: >
+            Support par lequel la situation a été présentée : scène en face à
+            face (VIDEO) ou message SMS/chat/e-mail (WRITTEN). Facultatif —
+            absent d'une session antérieure à l'intégration de la banque, où il
+            se lit « non renseigné » plutôt qu'un support par défaut.
+
+    StrategicChoiceStrategy:
+      type: string
+      description: Stratégie de régulation retenue, parmi les huit du référentiel.
+      enum:
+        [AVOID_FLEE, RUMINATE, BREATHE_PAUSE, COGNITIVE_REAPPRAISAL,
+         ASSERTIVE_COMMUNICATION, HUMOR, SEEK_SUPPORT, DIRECT_ACTION]
+
+    StrategicChoiceAnswer:
+      type: object
+      description: >
+        Réponse à une situation de « Choix Stratégiques ». Aucune cotation n'y
+        circule : le client dit ce qu'il a vu et ce qu'il a choisi, le serveur
+        note d'après son catalogue.
+      required: [situationId, selectedStrategy, responseTimeMs]
+      properties:
+        situationId:
+          type: string
+          description: >
+            Identifiant de la situation dans la banque « Choix Stratégiques »
+            (CS-001 à CS-060). Une partie en joue dix, distinctes.
+          example: CS-001
+        selectedStrategy: { $ref: '#/components/schemas/StrategicChoiceStrategy' }
+        responseTimeMs:
+          type: integer
+          minimum: 0
+          description: Temps entre l'affichage de la situation et la validation.
+        medium:
+          type: string
+          enum: [VIDEO, WRITTEN]
+          description: >
+            Support de présentation. Facultatif — la banque ne décrit
+            aujourd'hui que des mini-vidéos.
+
+    StrategicChoicesMetrics:
+      type: object
+      description: >
+        Métriques objectives de « Choix Stratégiques ». Les 10 situations d'une
+        partie sont obligatoires, distinctes et connues du catalogue serveur —
+        qui en compte 60. Le score vaut la somme des cotations retenues, sur
+        situations × 3 ; aucun point n'est accepté du client.
+      required: [strategicChoiceAnswers]
+      properties:
+        strategicChoiceAnswers:
+          type: array
+          minItems: 10
+          maxItems: 10
+          items: { $ref: '#/components/schemas/StrategicChoiceAnswer' }
 
     ReflectivePauseMetrics:
       type: object
       description: >
-        Métriques objectives de Reflective Pause. Les 10 moments sont obligatoires,
-        uniques et connus du catalogue serveur. Aucun score n'est accepté du client.
+        Métriques objectives de Reflective Pause. Les 10 moments d'une partie sont
+        obligatoires, distincts et connus du catalogue serveur — qui compte 60
+        situations. Aucun score n'est accepté du client.
       required: [reflectivePauseMoments]
       properties:
         reflectivePauseMoments:

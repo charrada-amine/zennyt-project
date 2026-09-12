@@ -47,6 +47,13 @@ public enum MiniGame {
      */
     REFLECTIVE_PAUSE_CORE(GameType.EMOTIONAL_REGULATION, 10, true),
     /**
+     * « Choix Stratégiques » — stratégies de régulation sous tension. Barème
+     * <b>dynamique</b> (d'où {@code maxPoints = 0}) : le maximum vaut
+     * {@code situations jouées × 3}, et le {@code Score} le porte lui-même. Les
+     * cotations viennent du catalogue serveur, jamais du client.
+     */
+    STRATEGIC_CHOICES_CORE(GameType.EMOTIONAL_REGULATION, 0, true),
+    /**
      * « Je continue » — protocole Long Rosvold X/AX. Le score provisoire /100
      * ne dépend que des balanced accuracies des deux phases de test.
      */

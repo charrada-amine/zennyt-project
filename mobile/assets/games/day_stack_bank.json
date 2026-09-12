@@ -1,0 +1,1818 @@
+{
+  "version": 1,
+  "source": "Banque de tâches par univers — Nejmeddine LABIDI",
+  "note": "Généré depuis le JSON client. Dépendances résolues en identifiants, durées en minutes, contraintes horaires typées.",
+  "universes": [
+    {
+      "id": "restaurant",
+      "name": "Restaurant / Cuisine professionnelle",
+      "tasks": [
+        {
+          "id": "reception_livraison",
+          "variants": [
+            "Réceptionner la livraison de produits frais",
+            "Réceptionner la commande de poissons frais",
+            "Contrôler et réceptionner les caisses de fruits et légumes",
+            "Réceptionner la livraison de viandes du boucher"
+          ],
+          "durationMin": 15,
+          "restMin": 0,
+          "deps": [],
+          "priority": "HIGH",
+          "category": "Réception & transport",
+          "icon": "ti-truck-delivery",
+          "constraint": {
+            "kind": "window",
+            "startMin": 420,
+            "endMin": 480,
+            "fixedBlock": false,
+            "raw": "Livraison 7h-8h"
+          }
+        },
+        {
+          "id": "inventaire_stock",
+          "variants": [
+            "Faire l'inventaire du stock",
+            "Vérifier les stocks de la chambre froide",
+            "Contrôler les stocks d'épicerie sèche",
+            "Faire le point sur les stocks de la cave"
+          ],
+          "durationMin": 10,
+          "restMin": 0,
+          "deps": [
+            "reception_livraison"
+          ],
+          "priority": "MEDIUM",
+          "category": "Stock & contrôle",
+          "icon": "ti-clipboard-list",
+          "constraint": {
+            "kind": "none"
+          }
+        },
+        {
+          "id": "achat_marche",
+          "variants": [
+            "Acheter les ingrédients manquants au marché",
+            "Compléter les achats chez le grossiste",
+            "Faire un saut au marché pour les herbes fraîches",
+            "Acheter les produits manquants chez le primeur"
+          ],
+          "durationMin": 30,
+          "restMin": 0,
+          "deps": [
+            "inventaire_stock"
+          ],
+          "priority": "HIGH",
+          "category": "Achats & commandes",
+          "icon": "ti-shopping-cart",
+          "constraint": {
+            "kind": "window",
+            "startMin": 420,
+            "endMin": 720,
+            "fixedBlock": false,
+            "raw": "Marché 7h-12h"
+          }
+        },
+        {
+          "id": "nettoyage_poste",
+          "variants": [
+            "Nettoyer et préparer le poste de travail",
+            "Désinfecter les plans de travail",
+            "Ranger et organiser la cuisine",
+            "Aiguiser et disposer les couteaux de travail"
+          ],
+          "durationMin": 15,
+          "restMin": 0,
+          "deps": [],
+          "priority": "MEDIUM",
+          "category": "Production & réalisation",
+          "icon": "ti-spray",
+          "constraint": {
+            "kind": "none"
+          }
+        },
+        {
+          "id": "decoupe_legumes",
+          "variants": [
+            "Éplucher et découper les légumes",
+            "Tailler les légumes pour la garniture",
+            "Préparer la brunoise de légumes",
+            "Éplucher et émincer les légumes racines"
+          ],
+          "durationMin": 40,
+          "restMin": 0,
+          "deps": [
+            "achat_marche"
+          ],
+          "priority": "HIGH",
+          "category": "Production & réalisation",
+          "icon": "ti-cut",
+          "constraint": {
+            "kind": "none"
+          }
+        },
+        {
+          "id": "sauces_bases",
+          "variants": [
+            "Préparer les sauces et bases",
+            "Confectionner le fond de veau",
+            "Monter la sauce béarnaise",
+            "Préparer le jus de cuisson et les fonds"
+          ],
+          "durationMin": 30,
+          "restMin": 0,
+          "deps": [
+            "decoupe_legumes"
+          ],
+          "priority": "HIGH",
+          "category": "Production & réalisation",
+          "icon": "ti-soup",
+          "constraint": {
+            "kind": "none"
+          }
+        },
+        {
+          "id": "marinade",
+          "variants": [
+            "Mariner viandes / poissons",
+            "Faire mariner le poulet aux épices",
+            "Laisser mariner le poisson au citron et aux herbes",
+            "Mariner le magret de canard"
+          ],
+          "durationMin": 20,
+          "restMin": 60,
+          "deps": [
+            "achat_marche"
+          ],
+          "priority": "HIGH",
+          "category": "Production & réalisation",
+          "icon": "ti-meat",
+          "constraint": {
+            "kind": "minDelay",
+            "minDelayMin": 60,
+            "fixedBlock": false,
+            "raw": "Repos mini. 1h avant cuisson · Repos : 60 min"
+          }
+        },
+        {
+          "id": "mise_en_place",
+          "variants": [
+            "Dresser la mise en place",
+            "Organiser les ingrédients avant service",
+            "Préparer les stations de dressage",
+            "Mettre en place les postes chaud et froid"
+          ],
+          "durationMin": 20,
+          "restMin": 0,
+          "deps": [
+            "sauces_bases",
+            "marinade"
+          ],
+          "priority": "MEDIUM",
+          "category": "Production & réalisation",
+          "icon": "ti-layout-grid",
+          "constraint": {
+            "kind": "none"
+          }
+        },
+        {
+          "id": "cuisson",
+          "variants": [
+            "Cuire les plats",
+            "Cuire les viandes à point",
+            "Cuire les poissons vapeur",
+            "Cuire les plats mijotés du jour"
+          ],
+          "durationMin": 45,
+          "restMin": 0,
+          "deps": [
+            "mise_en_place"
+          ],
+          "priority": "CRITICAL",
+          "category": "Production & réalisation",
+          "icon": "ti-flame",
+          "constraint": {
+            "kind": "deadline",
+            "beforeMin": 705,
+            "fixedBlock": false,
+            "raw": "Terminé avant 11h45"
+          }
+        },
+        {
+          "id": "dressage_assiettes",
+          "variants": [
+            "Dresser les assiettes",
+            "Finaliser la présentation des plats",
+            "Ajouter les touches de finition",
+            "Dresser les assiettes et napper les sauces"
+          ],
+          "durationMin": 15,
+          "restMin": 0,
+          "deps": [
+            "cuisson"
+          ],
+          "priority": "HIGH",
+          "category": "Production & réalisation",
+          "icon": "ti-chef-hat",
+          "constraint": {
+            "kind": "none"
+          }
+        },
+        {
+          "id": "briefing_salle",
+          "variants": [
+            "Briefer l'équipe de salle",
+            "Faire le point avec les serveurs",
+            "Annoncer le menu du jour à l'équipe",
+            "Présenter les plats du jour aux serveurs"
+          ],
+          "durationMin": 10,
+          "restMin": 0,
+          "deps": [],
+          "priority": "MEDIUM",
+          "category": "Communication & coordination",
+          "icon": "ti-users",
+          "constraint": {
+            "kind": "deadline",
+            "beforeMin": 690,
+            "fixedBlock": false,
+            "raw": "Avant 11h30"
+          }
+        },
+        {
+          "id": "service",
+          "variants": [
+            "Servir le service de midi",
+            "Assurer le coup de feu du déjeuner",
+            "Gérer le service en salle",
+            "Assurer le service du midi complet"
+          ],
+          "durationMin": 60,
+          "restMin": 0,
+          "deps": [
+            "dressage_assiettes",
+            "briefing_salle"
+          ],
+          "priority": "CRITICAL",
+          "category": "Communication & coordination",
+          "icon": "ti-bell",
+          "constraint": {
+            "kind": "anchor",
+            "startMin": 720,
+            "toleranceMin": 5,
+            "fixedBlock": true,
+            "raw": "Démarre à 12h00 pile · Bloc horaire fixe"
+          }
+        }
+      ]
+    },
+    {
+      "id": "gestion",
+      "name": "Gestion de projet / Bureau",
+      "tasks": [
+        {
+          "id": "tri_emails",
+          "variants": [
+            "Trier et consulter les emails",
+            "Faire le tri de la boîte mail du matin",
+            "Consulter et classer les messages reçus",
+            "Trier les emails et identifier les priorités"
+          ],
+          "durationMin": 20,
+          "restMin": 0,
+          "deps": [],
+          "priority": "HIGH",
+          "category": "Communication & coordination",
+          "icon": "ti-mail",
+          "constraint": {
+            "kind": "deadline",
+            "beforeMin": 570,
+            "fixedBlock": false,
+            "raw": "Avant 9h30"
+          }
+        },
+        {
+          "id": "reponse_urgents",
+          "variants": [
+            "Répondre aux emails urgents",
+            "Répondre aux demandes prioritaires du matin",
+            "Traiter les emails signalés urgents",
+            "Répondre aux clients en attente de réponse"
+          ],
+          "durationMin": 15,
+          "restMin": 0,
+          "deps": [
+            "tri_emails"
+          ],
+          "priority": "HIGH",
+          "category": "Communication & coordination",
+          "icon": "ti-mail-fast",
+          "constraint": {
+            "kind": "none"
+          }
+        },
+        {
+          "id": "prep_ordre_jour",
+          "variants": [
+            "Préparer l'ordre du jour de la réunion",
+            "Rédiger l'ordre du jour de la réunion d'équipe",
+            "Préparer les points à aborder en réunion",
+            "Lister les sujets prioritaires de la réunion"
+          ],
+          "durationMin": 20,
+          "restMin": 0,
+          "deps": [],
+          "priority": "HIGH",
+          "category": "Documents & rapports",
+          "icon": "ti-list-details",
+          "constraint": {
+            "kind": "relative",
+            "beforeTaskId": "reunion_equipe",
+            "fixedBlock": false,
+            "raw": "Avant la réunion"
+          }
+        },
+        {
+          "id": "reunion_equipe",
+          "variants": [
+            "Réunion d'équipe hebdomadaire",
+            "Animer la réunion d'équipe",
+            "Participer à la réunion de suivi de projet",
+            "Réunion de point d'avancement hebdomadaire"
+          ],
+          "durationMin": 45,
+          "restMin": 0,
+          "deps": [
+            "prep_ordre_jour"
+          ],
+          "priority": "CRITICAL",
+          "category": "Communication & coordination",
+          "icon": "ti-users",
+          "constraint": {
+            "kind": "window",
+            "startMin": 600,
+            "endMin": 660,
+            "fixedBlock": true,
+            "raw": "Salle 10h-11h · Bloc horaire fixe"
+          }
+        },
+        {
+          "id": "recup_donnees",
+          "variants": [
+            "Récupérer les données comptables",
+            "Récupérer les chiffres auprès du service finance",
+            "Obtenir les données de vente du mois",
+            "Récupérer les indicateurs auprès du service compta"
+          ],
+          "durationMin": 15,
+          "restMin": 0,
+          "deps": [],
+          "priority": "MEDIUM",
+          "category": "Stock & contrôle",
+          "icon": "ti-database",
+          "constraint": {
+            "kind": "window",
+            "startMin": 540,
+            "endMin": 720,
+            "fixedBlock": false,
+            "raw": "Service dispo. 9h-12h"
+          }
+        },
+        {
+          "id": "analyse_donnees",
+          "variants": [
+            "Analyser les données collectées",
+            "Analyser les chiffres du trimestre",
+            "Traiter et interpréter les données reçues",
+            "Analyser les indicateurs de performance"
+          ],
+          "durationMin": 30,
+          "restMin": 0,
+          "deps": [
+            "recup_donnees"
+          ],
+          "priority": "HIGH",
+          "category": "Stock & contrôle",
+          "icon": "ti-chart-bar",
+          "constraint": {
+            "kind": "none"
+          }
+        },
+        {
+          "id": "pause_dejeuner",
+          "variants": [
+            "Pause déjeuner",
+            "Pause déjeuner avec un collègue",
+            "Pause déjeuner à la cantine",
+            "Pause déjeuner rapide au bureau"
+          ],
+          "durationMin": 60,
+          "restMin": 0,
+          "deps": [],
+          "priority": "NONE",
+          "category": "Repas & pause",
+          "icon": "ti-coffee",
+          "constraint": {
+            "kind": "window",
+            "startMin": 720,
+            "endMin": 780,
+            "fixedBlock": true,
+            "raw": "Entre 12h et 13h · Bloc horaire fixe"
+          }
+        },
+        {
+          "id": "redaction_rapport",
+          "variants": [
+            "Rédiger la première version du rapport",
+            "Rédiger le rapport d'activité",
+            "Rédiger la synthèse du projet",
+            "Rédiger le compte-rendu détaillé"
+          ],
+          "durationMin": 50,
+          "restMin": 0,
+          "deps": [
+            "analyse_donnees",
+            "reunion_equipe"
+          ],
+          "priority": "HIGH",
+          "category": "Documents & rapports",
+          "icon": "ti-file-text",
+          "constraint": {
+            "kind": "none"
+          }
+        },
+        {
+          "id": "relecture_rapport",
+          "variants": [
+            "Relire et corriger le rapport",
+            "Vérifier et corriger le document final",
+            "Relire le rapport avant envoi",
+            "Corriger les fautes et incohérences du rapport"
+          ],
+          "durationMin": 20,
+          "restMin": 0,
+          "deps": [
+            "redaction_rapport"
+          ],
+          "priority": "MEDIUM",
+          "category": "Documents & rapports",
+          "icon": "ti-file-search",
+          "constraint": {
+            "kind": "none"
+          }
+        },
+        {
+          "id": "demande_validation",
+          "variants": [
+            "Demander la validation au responsable",
+            "Soumettre le rapport à la direction",
+            "Obtenir l'accord du manager",
+            "Demander la validation à la hiérarchie"
+          ],
+          "durationMin": 10,
+          "restMin": 0,
+          "deps": [
+            "relecture_rapport"
+          ],
+          "priority": "CRITICAL",
+          "category": "Communication & coordination",
+          "icon": "ti-send",
+          "constraint": {
+            "kind": "window",
+            "startMin": 840,
+            "endMin": 960,
+            "fixedBlock": false,
+            "raw": "Responsable 14h-16h"
+          }
+        },
+        {
+          "id": "integration_retours",
+          "variants": [
+            "Intégrer les retours de validation",
+            "Appliquer les corrections demandées",
+            "Intégrer les remarques du responsable",
+            "Mettre à jour le rapport selon les retours"
+          ],
+          "durationMin": 15,
+          "restMin": 0,
+          "deps": [
+            "demande_validation"
+          ],
+          "priority": "HIGH",
+          "category": "Documents & rapports",
+          "icon": "ti-edit",
+          "constraint": {
+            "kind": "none"
+          }
+        },
+        {
+          "id": "envoi_final",
+          "variants": [
+            "Envoyer le dossier final au client",
+            "Transmettre le rapport final au client",
+            "Envoyer le dossier finalisé au client par email",
+            "Envoyer le livrable final avant deadline"
+          ],
+          "durationMin": 10,
+          "restMin": 0,
+          "deps": [
+            "integration_retours"
+          ],
+          "priority": "CRITICAL",
+          "category": "Documents & rapports",
+          "icon": "ti-file-upload",
+          "constraint": {
+            "kind": "deadline",
+            "beforeMin": 1020,
+            "fixedBlock": false,
+            "raw": "Deadline 17h00"
+          }
+        }
+      ]
+    },
+    {
+      "id": "organisation",
+      "name": "Organisation d'un événement",
+      "tasks": [
+        {
+          "id": "budget_theme",
+          "variants": [
+            "Définir le budget et le thème",
+            "Fixer le budget et choisir le thème de la soirée",
+            "Définir l'enveloppe budgétaire et l'ambiance de l'événement",
+            "Choisir le thème et cadrer le budget global"
+          ],
+          "durationMin": 20,
+          "restMin": 0,
+          "deps": [],
+          "priority": "HIGH",
+          "category": "Achats & commandes",
+          "icon": "ti-report-money",
+          "constraint": {
+            "kind": "none"
+          }
+        },
+        {
+          "id": "reservation_salle",
+          "variants": [
+            "Réserver la salle",
+            "Réserver la salle des fêtes",
+            "Confirmer la réservation du lieu de réception",
+            "Réserver l'espace pour l'événement"
+          ],
+          "durationMin": 25,
+          "restMin": 0,
+          "deps": [
+            "budget_theme"
+          ],
+          "priority": "CRITICAL",
+          "category": "Achats & commandes",
+          "icon": "ti-building",
+          "constraint": {
+            "kind": "window",
+            "startMin": 540,
+            "endMin": 720,
+            "fixedBlock": false,
+            "raw": "Bureau ouvert 9h-12h"
+          }
+        },
+        {
+          "id": "choix_traiteur",
+          "variants": [
+            "Choisir un prestataire traiteur",
+            "Sélectionner le traiteur pour le buffet",
+            "Comparer et choisir un prestataire traiteur",
+            "Valider le choix du traiteur"
+          ],
+          "durationMin": 30,
+          "restMin": 0,
+          "deps": [
+            "reservation_salle"
+          ],
+          "priority": "HIGH",
+          "category": "Achats & commandes",
+          "icon": "ti-tools-kitchen-2",
+          "constraint": {
+            "kind": "none"
+          }
+        },
+        {
+          "id": "commande_materiel",
+          "variants": [
+            "Commander le matériel (chaises, son, déco)",
+            "Commander le matériel de sonorisation et l'éclairage",
+            "Passer commande des chaises et tables",
+            "Commander la décoration et le matériel technique"
+          ],
+          "durationMin": 20,
+          "restMin": 0,
+          "deps": [
+            "reservation_salle"
+          ],
+          "priority": "HIGH",
+          "category": "Achats & commandes",
+          "icon": "ti-shopping-cart",
+          "constraint": {
+            "kind": "window",
+            "startMin": 540,
+            "endMin": 1020,
+            "fixedBlock": false,
+            "raw": "Fournisseur 9h-17h"
+          }
+        },
+        {
+          "id": "liste_invites",
+          "variants": [
+            "Préparer la liste des invités",
+            "Établir la liste définitive des invités",
+            "Constituer la liste des participants",
+            "Finaliser la liste des invités"
+          ],
+          "durationMin": 20,
+          "restMin": 0,
+          "deps": [],
+          "priority": "MEDIUM",
+          "category": "Documents & rapports",
+          "icon": "ti-list",
+          "constraint": {
+            "kind": "none"
+          }
+        },
+        {
+          "id": "envoi_invitations",
+          "variants": [
+            "Préparer et envoyer les invitations",
+            "Envoyer les invitations par email",
+            "Concevoir et diffuser les invitations",
+            "Envoyer les cartons d'invitation"
+          ],
+          "durationMin": 30,
+          "restMin": 0,
+          "deps": [
+            "liste_invites"
+          ],
+          "priority": "HIGH",
+          "category": "Communication & coordination",
+          "icon": "ti-mail",
+          "constraint": {
+            "kind": "none"
+          }
+        },
+        {
+          "id": "reception_materiel",
+          "variants": [
+            "Réceptionner la livraison du matériel",
+            "Réceptionner la livraison de la sonorisation",
+            "Contrôler la livraison des chaises et tables",
+            "Réceptionner le matériel de décoration"
+          ],
+          "durationMin": 20,
+          "restMin": 0,
+          "deps": [
+            "commande_materiel"
+          ],
+          "priority": "CRITICAL",
+          "category": "Réception & transport",
+          "icon": "ti-truck-delivery",
+          "constraint": {
+            "kind": "window",
+            "startMin": 780,
+            "endMin": 900,
+            "fixedBlock": false,
+            "raw": "Livraison 13h-15h"
+          }
+        },
+        {
+          "id": "installation_deco",
+          "variants": [
+            "Installer décoration et signalétique",
+            "Installer la décoration de la salle",
+            "Mettre en place la signalétique et les tables",
+            "Décorer la salle selon le thème choisi"
+          ],
+          "durationMin": 40,
+          "restMin": 0,
+          "deps": [
+            "reception_materiel"
+          ],
+          "priority": "MEDIUM",
+          "category": "Production & réalisation",
+          "icon": "ti-sparkles",
+          "constraint": {
+            "kind": "none"
+          }
+        },
+        {
+          "id": "test_sono",
+          "variants": [
+            "Tester sonorisation et éclairage",
+            "Faire les essais son et lumière",
+            "Vérifier le bon fonctionnement de la sono",
+            "Tester la playlist et les enceintes"
+          ],
+          "durationMin": 20,
+          "restMin": 0,
+          "deps": [
+            "installation_deco"
+          ],
+          "priority": "HIGH",
+          "category": "Production & réalisation",
+          "icon": "ti-volume",
+          "constraint": {
+            "kind": "relative",
+            "beforeTaskId": "accueil_invites",
+            "fixedBlock": false,
+            "raw": "Avant arrivée des invités"
+          }
+        },
+        {
+          "id": "briefing_accueil",
+          "variants": [
+            "Briefer l'équipe d'accueil",
+            "Faire un point avec l'équipe d'accueil",
+            "Donner les consignes à l'équipe bénévole",
+            "Briefer les hôtes et hôtesses"
+          ],
+          "durationMin": 15,
+          "restMin": 0,
+          "deps": [],
+          "priority": "MEDIUM",
+          "category": "Communication & coordination",
+          "icon": "ti-users",
+          "constraint": {
+            "kind": "deadline",
+            "beforeMin": 1065,
+            "fixedBlock": false,
+            "raw": "Avant 17h45"
+          }
+        },
+        {
+          "id": "verif_buffet",
+          "variants": [
+            "Vérifier le buffet à son arrivée",
+            "Contrôler la livraison du buffet",
+            "Vérifier la mise en place du buffet",
+            "Contrôler la qualité et la quantité du buffet"
+          ],
+          "durationMin": 15,
+          "restMin": 0,
+          "deps": [],
+          "priority": "HIGH",
+          "category": "Stock & contrôle",
+          "icon": "ti-checklist",
+          "constraint": {
+            "kind": "window",
+            "startMin": 1020,
+            "endMin": 1050,
+            "fixedBlock": false,
+            "raw": "Traiteur 17h-17h30"
+          }
+        },
+        {
+          "id": "accueil_invites",
+          "variants": [
+            "Accueillir les invités",
+            "Accueillir les premiers invités",
+            "Ouvrir les portes et accueillir le public",
+            "Accueillir et orienter les invités"
+          ],
+          "durationMin": 60,
+          "restMin": 0,
+          "deps": [
+            "test_sono",
+            "briefing_accueil",
+            "verif_buffet"
+          ],
+          "priority": "CRITICAL",
+          "category": "Communication & coordination",
+          "icon": "ti-heart-handshake",
+          "constraint": {
+            "kind": "anchor",
+            "startMin": 1080,
+            "toleranceMin": 5,
+            "fixedBlock": true,
+            "raw": "Démarre à 18h00 pile · Bloc horaire fixe"
+          }
+        }
+      ]
+    },
+    {
+      "id": "chantier",
+      "name": "Chantier de construction",
+      "tasks": [
+        {
+          "id": "etude_plans",
+          "variants": [
+            "Étudier les plans et le permis de construire",
+            "Vérifier les plans architecte et le permis",
+            "Étudier le dossier technique du chantier",
+            "Analyser les plans avant le début des travaux"
+          ],
+          "durationMin": 30,
+          "restMin": 0,
+          "deps": [],
+          "priority": "CRITICAL",
+          "category": "Documents & rapports",
+          "icon": "ti-ruler-2",
+          "constraint": {
+            "kind": "none"
+          }
+        },
+        {
+          "id": "securisation_terrain",
+          "variants": [
+            "Sécuriser et clôturer le terrain",
+            "Mettre en place la clôture de chantier",
+            "Sécuriser le périmètre du chantier",
+            "Installer les barrières de sécurité"
+          ],
+          "durationMin": 30,
+          "restMin": 0,
+          "deps": [],
+          "priority": "HIGH",
+          "category": "Santé & sécurité",
+          "icon": "ti-shield-check",
+          "constraint": {
+            "kind": "none"
+          }
+        },
+        {
+          "id": "commande_materiaux",
+          "variants": [
+            "Commander les matériaux",
+            "Passer commande du béton et des matériaux",
+            "Commander les matériaux de construction",
+            "Commander le ciment, sable et gravier"
+          ],
+          "durationMin": 25,
+          "restMin": 0,
+          "deps": [
+            "etude_plans"
+          ],
+          "priority": "HIGH",
+          "category": "Achats & commandes",
+          "icon": "ti-shopping-cart",
+          "constraint": {
+            "kind": "window",
+            "startMin": 480,
+            "endMin": 720,
+            "fixedBlock": false,
+            "raw": "Fournisseur 8h-12h"
+          }
+        },
+        {
+          "id": "reception_materiaux",
+          "variants": [
+            "Réceptionner la livraison des matériaux",
+            "Contrôler la livraison du béton",
+            "Réceptionner et vérifier les matériaux livrés",
+            "Réceptionner la livraison de parpaings"
+          ],
+          "durationMin": 20,
+          "restMin": 0,
+          "deps": [
+            "commande_materiaux"
+          ],
+          "priority": "CRITICAL",
+          "category": "Réception & transport",
+          "icon": "ti-truck-delivery",
+          "constraint": {
+            "kind": "window",
+            "startMin": 540,
+            "endMin": 660,
+            "fixedBlock": false,
+            "raw": "Livraison 9h-11h"
+          }
+        },
+        {
+          "id": "coulage_fondations",
+          "variants": [
+            "Couler les fondations",
+            "Couler le béton des fondations",
+            "Réaliser le coulage des fondations",
+            "Couler la dalle de fondation"
+          ],
+          "durationMin": 90,
+          "restMin": 0,
+          "deps": [
+            "reception_materiaux",
+            "securisation_terrain"
+          ],
+          "priority": "CRITICAL",
+          "category": "Production & réalisation",
+          "icon": "ti-building",
+          "constraint": {
+            "kind": "none"
+          }
+        },
+        {
+          "id": "sechage_beton",
+          "variants": [
+            "Temps de séchage du béton",
+            "Laisser sécher le béton des fondations",
+            "Temps de prise du béton",
+            "Attendre le durcissement du béton"
+          ],
+          "durationMin": 120,
+          "restMin": 0,
+          "deps": [
+            "coulage_fondations"
+          ],
+          "priority": "NONE",
+          "category": "Production & réalisation",
+          "icon": "ti-clock-hour-4",
+          "constraint": {
+            "kind": "minDelay",
+            "minDelayMin": 120,
+            "fixedBlock": false,
+            "raw": "Mini. 2h avant la suite"
+          }
+        },
+        {
+          "id": "montage_structure",
+          "variants": [
+            "Monter la structure porteuse",
+            "Monter l'ossature du bâtiment",
+            "Ériger la structure porteuse",
+            "Monter les poteaux et poutres porteuses"
+          ],
+          "durationMin": 60,
+          "restMin": 0,
+          "deps": [
+            "sechage_beton"
+          ],
+          "priority": "CRITICAL",
+          "category": "Production & réalisation",
+          "icon": "ti-tool",
+          "constraint": {
+            "kind": "none"
+          }
+        },
+        {
+          "id": "montage_murs",
+          "variants": [
+            "Monter les murs",
+            "Monter les murs en parpaings",
+            "Élever les murs porteurs",
+            "Construire les cloisons et murs extérieurs"
+          ],
+          "durationMin": 90,
+          "restMin": 0,
+          "deps": [
+            "montage_structure"
+          ],
+          "priority": "HIGH",
+          "category": "Production & réalisation",
+          "icon": "ti-wall",
+          "constraint": {
+            "kind": "none"
+          }
+        },
+        {
+          "id": "passage_reseaux",
+          "variants": [
+            "Faire passer les réseaux (élec / plomberie)",
+            "Installer les gaines électriques et plomberie",
+            "Faire passer les réseaux techniques",
+            "Poser les canalisations et câbles électriques"
+          ],
+          "durationMin": 45,
+          "restMin": 0,
+          "deps": [
+            "montage_murs"
+          ],
+          "priority": "HIGH",
+          "category": "Production & réalisation",
+          "icon": "ti-plug",
+          "constraint": {
+            "kind": "relative",
+            "beforeTaskId": "demande_inspection",
+            "fixedBlock": false,
+            "raw": "Avant inspection"
+          }
+        },
+        {
+          "id": "demande_inspection",
+          "variants": [
+            "Demander l'inspection du chantier",
+            "Faire venir l'inspecteur pour contrôle",
+            "Solliciter le contrôle de conformité",
+            "Demander l'inspection technique du bâtiment"
+          ],
+          "durationMin": 20,
+          "restMin": 0,
+          "deps": [
+            "passage_reseaux"
+          ],
+          "priority": "CRITICAL",
+          "category": "Communication & coordination",
+          "icon": "ti-clipboard-check",
+          "constraint": {
+            "kind": "window",
+            "startMin": 900,
+            "endMin": 1020,
+            "fixedBlock": false,
+            "raw": "Inspecteur 15h-17h"
+          }
+        },
+        {
+          "id": "correction_remarques",
+          "variants": [
+            "Corriger les remarques de l'inspection",
+            "Reprendre les points signalés par l'inspecteur",
+            "Corriger les non-conformités relevées",
+            "Effectuer les retouches demandées"
+          ],
+          "durationMin": 30,
+          "restMin": 0,
+          "deps": [
+            "demande_inspection"
+          ],
+          "priority": "MEDIUM",
+          "category": "Production & réalisation",
+          "icon": "ti-edit",
+          "constraint": {
+            "kind": "none"
+          }
+        }
+      ]
+    },
+    {
+      "id": "logistique",
+      "name": "Logistique / Entrepôt",
+      "tasks": [
+        {
+          "id": "consulter_commandes",
+          "variants": [
+            "Consulter les commandes du jour",
+            "Prendre connaissance des commandes à préparer",
+            "Consulter la liste des commandes du matin",
+            "Vérifier les commandes reçues durant la nuit"
+          ],
+          "durationMin": 15,
+          "restMin": 0,
+          "deps": [],
+          "priority": "HIGH",
+          "category": "Documents & rapports",
+          "icon": "ti-file-text",
+          "constraint": {
+            "kind": "deadline",
+            "beforeMin": 480,
+            "fixedBlock": false,
+            "raw": "Avant 8h"
+          }
+        },
+        {
+          "id": "verif_stock",
+          "variants": [
+            "Vérifier les stocks disponibles",
+            "Contrôler les stocks en rayonnage",
+            "Vérifier la disponibilité des articles",
+            "Faire le point sur les stocks de l'entrepôt"
+          ],
+          "durationMin": 15,
+          "restMin": 0,
+          "deps": [
+            "consulter_commandes"
+          ],
+          "priority": "MEDIUM",
+          "category": "Stock & contrôle",
+          "icon": "ti-clipboard-list",
+          "constraint": {
+            "kind": "none"
+          }
+        },
+        {
+          "id": "commande_reappro",
+          "variants": [
+            "Commander le réapprovisionnement manquant",
+            "Passer commande auprès du fournisseur",
+            "Commander les articles en rupture",
+            "Relancer le fournisseur pour le réapprovisionnement"
+          ],
+          "durationMin": 20,
+          "restMin": 0,
+          "deps": [
+            "verif_stock"
+          ],
+          "priority": "HIGH",
+          "category": "Achats & commandes",
+          "icon": "ti-shopping-cart",
+          "constraint": {
+            "kind": "window",
+            "startMin": 480,
+            "endMin": 600,
+            "fixedBlock": false,
+            "raw": "Fournisseur 8h-10h"
+          }
+        },
+        {
+          "id": "reception_reappro",
+          "variants": [
+            "Réceptionner la livraison de réapprovisionnement",
+            "Contrôler la livraison du fournisseur",
+            "Réceptionner et vérifier les palettes livrées",
+            "Réceptionner le réassort du matin"
+          ],
+          "durationMin": 20,
+          "restMin": 0,
+          "deps": [
+            "commande_reappro"
+          ],
+          "priority": "CRITICAL",
+          "category": "Réception & transport",
+          "icon": "ti-truck-delivery",
+          "constraint": {
+            "kind": "window",
+            "startMin": 540,
+            "endMin": 660,
+            "fixedBlock": false,
+            "raw": "Livraison 9h-11h"
+          }
+        },
+        {
+          "id": "prep_zones_picking",
+          "variants": [
+            "Préparer les zones de picking",
+            "Organiser les allées de prélèvement",
+            "Ranger les zones de préparation de commandes",
+            "Préparer le poste de picking"
+          ],
+          "durationMin": 15,
+          "restMin": 0,
+          "deps": [],
+          "priority": "MEDIUM",
+          "category": "Production & réalisation",
+          "icon": "ti-map-pin",
+          "constraint": {
+            "kind": "none"
+          }
+        },
+        {
+          "id": "picking",
+          "variants": [
+            "Prélever les articles en zone de stockage",
+            "Effectuer le picking des commandes",
+            "Prélever les produits commandés",
+            "Collecter les articles pour les commandes du jour"
+          ],
+          "durationMin": 45,
+          "restMin": 0,
+          "deps": [
+            "reception_reappro",
+            "prep_zones_picking"
+          ],
+          "priority": "HIGH",
+          "category": "Production & réalisation",
+          "icon": "ti-package",
+          "constraint": {
+            "kind": "none"
+          }
+        },
+        {
+          "id": "controle_conformite",
+          "variants": [
+            "Contrôler la conformité des commandes",
+            "Vérifier que les commandes sont complètes",
+            "Contrôler la correspondance commande/colis",
+            "Vérifier la conformité avant emballage"
+          ],
+          "durationMin": 30,
+          "restMin": 0,
+          "deps": [
+            "picking"
+          ],
+          "priority": "HIGH",
+          "category": "Stock & contrôle",
+          "icon": "ti-checklist",
+          "constraint": {
+            "kind": "none"
+          }
+        },
+        {
+          "id": "emballage_colis",
+          "variants": [
+            "Emballer les colis",
+            "Conditionner les commandes pour l'expédition",
+            "Emballer et protéger les articles fragiles",
+            "Préparer les colis pour le transport"
+          ],
+          "durationMin": 40,
+          "restMin": 0,
+          "deps": [
+            "controle_conformite"
+          ],
+          "priority": "HIGH",
+          "category": "Production & réalisation",
+          "icon": "ti-box",
+          "constraint": {
+            "kind": "none"
+          }
+        },
+        {
+          "id": "etiquetage_scan",
+          "variants": [
+            "Étiqueter et scanner les colis",
+            "Coller les étiquettes d'expédition",
+            "Scanner les colis avant chargement",
+            "Étiqueter les colis par destination"
+          ],
+          "durationMin": 20,
+          "restMin": 0,
+          "deps": [
+            "emballage_colis"
+          ],
+          "priority": "MEDIUM",
+          "category": "Production & réalisation",
+          "icon": "ti-barcode",
+          "constraint": {
+            "kind": "none"
+          }
+        },
+        {
+          "id": "edition_documents",
+          "variants": [
+            "Éditer les documents de transport",
+            "Préparer les bordereaux de livraison",
+            "Éditer les bons de transport",
+            "Imprimer les documents de livraison"
+          ],
+          "durationMin": 15,
+          "restMin": 0,
+          "deps": [],
+          "priority": "MEDIUM",
+          "category": "Documents & rapports",
+          "icon": "ti-printer",
+          "constraint": {
+            "kind": "relative",
+            "beforeTaskId": "chargement_camion",
+            "fixedBlock": false,
+            "raw": "Avant chargement"
+          }
+        },
+        {
+          "id": "chargement_camion",
+          "variants": [
+            "Charger le camion",
+            "Charger les colis dans le camion",
+            "Charger la marchandise sur le quai",
+            "Charger le véhicule de livraison"
+          ],
+          "durationMin": 30,
+          "restMin": 0,
+          "deps": [
+            "etiquetage_scan",
+            "edition_documents"
+          ],
+          "priority": "CRITICAL",
+          "category": "Réception & transport",
+          "icon": "ti-truck",
+          "constraint": {
+            "kind": "window",
+            "startMin": 780,
+            "endMin": 900,
+            "fixedBlock": false,
+            "raw": "Quai de chargement 13h-15h"
+          }
+        },
+        {
+          "id": "depart_camion",
+          "variants": [
+            "Départ du camion",
+            "Faire partir le camion en livraison",
+            "Valider le départ du transporteur",
+            "Envoyer le camion en tournée"
+          ],
+          "durationMin": 15,
+          "restMin": 0,
+          "deps": [
+            "chargement_camion"
+          ],
+          "priority": "CRITICAL",
+          "category": "Réception & transport",
+          "icon": "ti-truck",
+          "constraint": {
+            "kind": "anchor",
+            "startMin": 900,
+            "toleranceMin": 5,
+            "fixedBlock": true,
+            "raw": "Démarre à 15h00 pile · Bloc horaire fixe"
+          }
+        }
+      ]
+    },
+    {
+      "id": "soins",
+      "name": "Soins à domicile / Aide-soignant",
+      "tasks": [
+        {
+          "id": "consulter_dossier",
+          "variants": [
+            "Consulter le dossier des patients du jour",
+            "Prendre connaissance des dossiers de la tournée",
+            "Consulter les fiches de soins des patients",
+            "Vérifier les consignes médicales du jour"
+          ],
+          "durationMin": 15,
+          "restMin": 0,
+          "deps": [],
+          "priority": "HIGH",
+          "category": "Documents & rapports",
+          "icon": "ti-file-text",
+          "constraint": {
+            "kind": "deadline",
+            "beforeMin": 480,
+            "fixedBlock": false,
+            "raw": "Avant 8h"
+          }
+        },
+        {
+          "id": "prep_trousse",
+          "variants": [
+            "Préparer la trousse de soins",
+            "Préparer le matériel médical",
+            "Vérifier et compléter la trousse de soins",
+            "Préparer le matériel d'hygiène et de soins"
+          ],
+          "durationMin": 15,
+          "restMin": 0,
+          "deps": [],
+          "priority": "MEDIUM",
+          "category": "Production & réalisation",
+          "icon": "ti-first-aid-kit",
+          "constraint": {
+            "kind": "none"
+          }
+        },
+        {
+          "id": "trajet_patient_a",
+          "variants": [
+            "Se rendre chez le premier patient",
+            "Se déplacer au domicile du premier patient",
+            "Rejoindre le premier patient de la tournée",
+            "Se rendre au domicile du premier patient"
+          ],
+          "durationMin": 20,
+          "restMin": 0,
+          "deps": [
+            "consulter_dossier"
+          ],
+          "priority": "MEDIUM",
+          "category": "Réception & transport",
+          "icon": "ti-car",
+          "constraint": {
+            "kind": "none"
+          }
+        },
+        {
+          "id": "medicament_a",
+          "variants": [
+            "Administrer les médicaments du matin",
+            "Donner le traitement du matin au patient",
+            "Administrer le traitement matinal",
+            "Distribuer les médicaments prescrits"
+          ],
+          "durationMin": 15,
+          "restMin": 0,
+          "deps": [
+            "trajet_patient_a"
+          ],
+          "priority": "CRITICAL",
+          "category": "Santé & sécurité",
+          "icon": "ti-pill",
+          "constraint": {
+            "kind": "window",
+            "startMin": 480,
+            "endMin": 540,
+            "fixedBlock": false,
+            "raw": "Fenêtre médicament 8h-9h"
+          }
+        },
+        {
+          "id": "soins_hygiene_a",
+          "variants": [
+            "Réaliser les soins d'hygiène",
+            "Aider à la toilette du patient",
+            "Effectuer les soins d'hygiène quotidiens",
+            "Assister le patient pour sa toilette"
+          ],
+          "durationMin": 30,
+          "restMin": 0,
+          "deps": [
+            "medicament_a"
+          ],
+          "priority": "HIGH",
+          "category": "Santé & sécurité",
+          "icon": "ti-droplet",
+          "constraint": {
+            "kind": "none"
+          }
+        },
+        {
+          "id": "trajet_patient_b",
+          "variants": [
+            "Se rendre chez le second patient",
+            "Se déplacer chez le second patient",
+            "Rejoindre le second patient de la tournée",
+            "Se rendre au domicile du second patient"
+          ],
+          "durationMin": 25,
+          "restMin": 0,
+          "deps": [
+            "soins_hygiene_a"
+          ],
+          "priority": "MEDIUM",
+          "category": "Réception & transport",
+          "icon": "ti-car",
+          "constraint": {
+            "kind": "none"
+          }
+        },
+        {
+          "id": "aide_repas_b",
+          "variants": [
+            "Aider à la prise du repas",
+            "Accompagner le patient pour le déjeuner",
+            "Aider à la prise du repas de midi",
+            "Assister le patient pendant son repas"
+          ],
+          "durationMin": 30,
+          "restMin": 0,
+          "deps": [
+            "trajet_patient_b"
+          ],
+          "priority": "HIGH",
+          "category": "Repas & pause",
+          "icon": "ti-tools-kitchen-2",
+          "constraint": {
+            "kind": "window",
+            "startMin": 720,
+            "endMin": 780,
+            "fixedBlock": false,
+            "raw": "Repas 12h-13h"
+          }
+        },
+        {
+          "id": "medicament_b",
+          "variants": [
+            "Administrer les médicaments de midi",
+            "Donner le traitement de midi au patient",
+            "Administrer le traitement du déjeuner",
+            "Distribuer les médicaments de la mi-journée"
+          ],
+          "durationMin": 10,
+          "restMin": 0,
+          "deps": [
+            "aide_repas_b"
+          ],
+          "priority": "CRITICAL",
+          "category": "Santé & sécurité",
+          "icon": "ti-pill",
+          "constraint": {
+            "kind": "window",
+            "startMin": 750,
+            "endMin": 810,
+            "fixedBlock": false,
+            "raw": "Fenêtre médicament 12h30-13h30"
+          }
+        },
+        {
+          "id": "compte_rendu",
+          "variants": [
+            "Rédiger le compte-rendu de tournée",
+            "Rédiger les notes de suivi des patients",
+            "Compléter le cahier de liaison",
+            "Rédiger le rapport de visite"
+          ],
+          "durationMin": 20,
+          "restMin": 0,
+          "deps": [
+            "medicament_b"
+          ],
+          "priority": "MEDIUM",
+          "category": "Documents & rapports",
+          "icon": "ti-file-text",
+          "constraint": {
+            "kind": "none"
+          }
+        },
+        {
+          "id": "appel_medecin",
+          "variants": [
+            "Appeler le médecin traitant si besoin",
+            "Contacter le médecin en cas d'anomalie",
+            "Signaler une observation au médecin traitant",
+            "Appeler le médecin pour un ajustement de traitement"
+          ],
+          "durationMin": 15,
+          "restMin": 0,
+          "deps": [
+            "compte_rendu"
+          ],
+          "priority": "HIGH",
+          "category": "Communication & coordination",
+          "icon": "ti-phone",
+          "constraint": {
+            "kind": "deadline",
+            "beforeMin": 1020,
+            "fixedBlock": false,
+            "raw": "Avant 17h"
+          }
+        },
+        {
+          "id": "transmission_rapport",
+          "variants": [
+            "Transmettre le rapport à l'infirmière coordinatrice",
+            "Transmettre le compte-rendu à la coordination",
+            "Envoyer le rapport de tournée à l'infirmière référente",
+            "Transmettre les informations de suivi à l'équipe"
+          ],
+          "durationMin": 10,
+          "restMin": 0,
+          "deps": [
+            "appel_medecin"
+          ],
+          "priority": "CRITICAL",
+          "category": "Documents & rapports",
+          "icon": "ti-file-upload",
+          "constraint": {
+            "kind": "deadline",
+            "beforeMin": 1050,
+            "fixedBlock": true,
+            "raw": "Deadline 17h30 · Bloc horaire fixe"
+          }
+        }
+      ]
+    },
+    {
+      "id": "demenagement",
+      "name": "Déménagement",
+      "tasks": [
+        {
+          "id": "inventaire_meubles",
+          "variants": [
+            "Établir l'inventaire des meubles à déménager",
+            "Faire l'inventaire du mobilier",
+            "Lister les meubles et cartons à déménager",
+            "Recenser les objets à déménager"
+          ],
+          "durationMin": 20,
+          "restMin": 0,
+          "deps": [],
+          "priority": "MEDIUM",
+          "category": "Stock & contrôle",
+          "icon": "ti-clipboard-list",
+          "constraint": {
+            "kind": "none"
+          }
+        },
+        {
+          "id": "reservation_camion",
+          "variants": [
+            "Réserver le camion de déménagement",
+            "Louer un camion de déménagement",
+            "Réserver un véhicule utilitaire",
+            "Confirmer la réservation du camion"
+          ],
+          "durationMin": 20,
+          "restMin": 0,
+          "deps": [
+            "inventaire_meubles"
+          ],
+          "priority": "CRITICAL",
+          "category": "Achats & commandes",
+          "icon": "ti-truck",
+          "constraint": {
+            "kind": "window",
+            "startMin": 480,
+            "endMin": 600,
+            "fixedBlock": false,
+            "raw": "Loueur ouvert 8h-10h"
+          }
+        },
+        {
+          "id": "reservation_ascenseur",
+          "variants": [
+            "Réserver l'ascenseur de l'immeuble",
+            "Bloquer l'ascenseur auprès du syndic",
+            "Réserver le monte-charge de l'immeuble",
+            "Obtenir un créneau d'ascenseur"
+          ],
+          "durationMin": 15,
+          "restMin": 0,
+          "deps": [],
+          "priority": "HIGH",
+          "category": "Achats & commandes",
+          "icon": "ti-building",
+          "constraint": {
+            "kind": "window",
+            "startMin": 480,
+            "endMin": 540,
+            "fixedBlock": false,
+            "raw": "Syndic ouvert 8h-9h"
+          }
+        },
+        {
+          "id": "emballage_fragile",
+          "variants": [
+            "Emballer les cartons fragiles",
+            "Emballer la vaisselle et les objets fragiles",
+            "Protéger et emballer les objets fragiles",
+            "Conditionner les affaires fragiles"
+          ],
+          "durationMin": 45,
+          "restMin": 0,
+          "deps": [
+            "inventaire_meubles"
+          ],
+          "priority": "HIGH",
+          "category": "Production & réalisation",
+          "icon": "ti-box",
+          "constraint": {
+            "kind": "none"
+          }
+        },
+        {
+          "id": "demontage_meubles",
+          "variants": [
+            "Démonter les meubles",
+            "Démonter l'armoire et le lit",
+            "Démonter les meubles volumineux",
+            "Préparer les meubles pour le transport"
+          ],
+          "durationMin": 40,
+          "restMin": 0,
+          "deps": [
+            "inventaire_meubles"
+          ],
+          "priority": "HIGH",
+          "category": "Production & réalisation",
+          "icon": "ti-tool",
+          "constraint": {
+            "kind": "none"
+          }
+        },
+        {
+          "id": "recuperation_camion",
+          "variants": [
+            "Récupérer le camion loué",
+            "Aller chercher le camion chez le loueur",
+            "Récupérer le véhicule de location",
+            "Prendre possession du camion loué"
+          ],
+          "durationMin": 20,
+          "restMin": 0,
+          "deps": [
+            "reservation_camion"
+          ],
+          "priority": "CRITICAL",
+          "category": "Réception & transport",
+          "icon": "ti-truck",
+          "constraint": {
+            "kind": "window",
+            "startMin": 600,
+            "endMin": 1080,
+            "fixedBlock": false,
+            "raw": "Créneau location 10h-18h"
+          }
+        },
+        {
+          "id": "chargement_camion",
+          "variants": [
+            "Charger le camion",
+            "Charger les cartons et meubles dans le camion",
+            "Charger le mobilier dans le camion",
+            "Remplir le camion de déménagement"
+          ],
+          "durationMin": 60,
+          "restMin": 0,
+          "deps": [
+            "emballage_fragile",
+            "demontage_meubles",
+            "recuperation_camion",
+            "reservation_ascenseur"
+          ],
+          "priority": "CRITICAL",
+          "category": "Réception & transport",
+          "icon": "ti-truck",
+          "constraint": {
+            "kind": "window",
+            "startMin": 600,
+            "endMin": 660,
+            "fixedBlock": false,
+            "raw": "Ascenseur réservé 10h-11h"
+          }
+        },
+        {
+          "id": "trajet_nouveau_logement",
+          "variants": [
+            "Faire le trajet vers le nouveau logement",
+            "Effectuer le trajet jusqu'au nouveau domicile",
+            "Conduire jusqu'à la nouvelle adresse",
+            "Rejoindre le nouveau logement en camion"
+          ],
+          "durationMin": 45,
+          "restMin": 0,
+          "deps": [
+            "chargement_camion"
+          ],
+          "priority": "HIGH",
+          "category": "Réception & transport",
+          "icon": "ti-route",
+          "constraint": {
+            "kind": "unspecified",
+            "fixedBlock": true,
+            "raw": "Bloc horaire fixe"
+          }
+        },
+        {
+          "id": "dechargement_camion",
+          "variants": [
+            "Décharger le camion",
+            "Décharger les meubles et cartons",
+            "Sortir les affaires du camion",
+            "Décharger le mobilier au nouveau logement"
+          ],
+          "durationMin": 50,
+          "restMin": 0,
+          "deps": [
+            "trajet_nouveau_logement"
+          ],
+          "priority": "HIGH",
+          "category": "Réception & transport",
+          "icon": "ti-truck",
+          "constraint": {
+            "kind": "none"
+          }
+        },
+        {
+          "id": "remontage_meubles",
+          "variants": [
+            "Remonter les meubles",
+            "Remonter l'armoire et le lit",
+            "Réassembler les meubles démontés",
+            "Remonter le mobilier dans les pièces"
+          ],
+          "durationMin": 40,
+          "restMin": 0,
+          "deps": [
+            "dechargement_camion"
+          ],
+          "priority": "MEDIUM",
+          "category": "Production & réalisation",
+          "icon": "ti-tool",
+          "constraint": {
+            "kind": "none"
+          }
+        },
+        {
+          "id": "restitution_camion",
+          "variants": [
+            "Restituer le camion de location",
+            "Rendre le camion au loueur",
+            "Ramener le véhicule loué",
+            "Restituer le camion avant la fermeture"
+          ],
+          "durationMin": 15,
+          "restMin": 0,
+          "deps": [
+            "remontage_meubles"
+          ],
+          "priority": "CRITICAL",
+          "category": "Réception & transport",
+          "icon": "ti-truck",
+          "constraint": {
+            "kind": "deadline",
+            "beforeMin": 1080,
+            "fixedBlock": false,
+            "raw": "Avant 18h00"
+          }
+        },
+        {
+          "id": "etat_lieux",
+          "variants": [
+            "Faire l'état des lieux et signaler les dommages",
+            "Réaliser l'état des lieux du nouveau logement",
+            "Signaler les dommages constatés",
+            "Effectuer l'état des lieux d'entrée"
+          ],
+          "durationMin": 20,
+          "restMin": 0,
+          "deps": [
+            "restitution_camion"
+          ],
+          "priority": "CRITICAL",
+          "category": "Documents & rapports",
+          "icon": "ti-clipboard-check",
+          "constraint": {
+            "kind": "anchor",
+            "startMin": 1080,
+            "toleranceMin": 5,
+            "fixedBlock": true,
+            "raw": "Démarre à 18h00 pile · Bloc horaire fixe"
+          }
+        }
+      ]
+    }
+  ]
+}

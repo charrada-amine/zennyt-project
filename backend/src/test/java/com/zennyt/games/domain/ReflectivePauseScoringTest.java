@@ -6,6 +6,7 @@ import com.zennyt.games.domain.model.MiniGame;
 import com.zennyt.games.domain.service.PlanifikScoringService;
 import com.zennyt.games.domain.service.ReflectivePauseScoringService;
 import com.zennyt.games.domain.vo.GameType;
+import com.zennyt.games.domain.vo.ReflectivePauseMedium;
 import com.zennyt.games.domain.vo.ReflectivePauseMetrics;
 import com.zennyt.games.domain.vo.ReflectivePauseMomentMetric;
 import com.zennyt.games.domain.vo.ReflectivePauseReport;
@@ -30,12 +31,22 @@ class ReflectivePauseScoringTest {
     private final ReflectivePauseScoringService scoring =
         new ReflectivePauseScoringService();
 
+    /**
+     * Réaction la mieux cotée de TR-001 à TR-010, relevée à la main dans le
+     * document du client.
+     *
+     * <p>Écrite en dur exprès. La lire depuis {@link ReflectivePauseConfig}
+     * rendrait le test tautologique : il confirmerait que la table est égale à
+     * elle-même. Ces valeurs viennent des justifications psychométriques des
+     * fiches — « E corrige factuellement » pour TR-001, « D le plus adapté »
+     * pour TR-002 — et attrapent donc une table mal engendrée.
+     */
     private static ReflectivePauseResponseType recommended(int index) {
         return switch (index) {
-            case 1, 5, 9 -> ReflectivePauseResponseType.BREATHE_ANALYZE;
-            case 2, 4, 10 -> ReflectivePauseResponseType.ASK_FOR_MORE_INFORMATION;
-            case 3, 7 -> ReflectivePauseResponseType.WAIT;
-            case 6, 8 -> ReflectivePauseResponseType.REFORMULATE_CALMLY;
+            case 1, 5, 8 -> ReflectivePauseResponseType.REFORMULATE_CALMLY;
+            case 2, 3, 4 -> ReflectivePauseResponseType.ASK_FOR_MORE_INFORMATION;
+            case 7, 9 -> ReflectivePauseResponseType.BREATHE_ANALYZE;
+            case 6, 10 -> ReflectivePauseResponseType.WAIT;
             default -> throw new IllegalArgumentException();
         };
     }
@@ -44,7 +55,7 @@ class ReflectivePauseScoringTest {
         List<ReflectivePauseMomentMetric> moments = new ArrayList<>();
         for (int i = 1; i <= ReflectivePauseConfig.TOTAL_MOMENTS; i++) {
             moments.add(new ReflectivePauseMomentMetric(
-                "PRESSURE_%02d".formatted(i),
+                "TR-%03d".formatted(i),
                 recommended(i),
                 4_000,
                 true));
@@ -73,18 +84,21 @@ class ReflectivePauseScoringTest {
         List<ReflectivePauseMomentMetric> moments =
             new ArrayList<>(perfectMetrics().moments());
         moments.set(0, new ReflectivePauseMomentMetric(
-            "PRESSURE_01",
+            "TR-001",
             ReflectivePauseResponseType.RESPOND_IMPULSIVELY,
             2_000,
             false));
+        // TR-008 attend « reformuler » : attendre reste posé mais non recommandé.
         moments.set(7, new ReflectivePauseMomentMetric(
-            "PRESSURE_08",
+            "TR-008",
             ReflectivePauseResponseType.WAIT,
             2_000,
             false));
+        // TR-010 attend « attendre » : il faut donc une AUTRE réponse posée
+        // pour rester à sept recommandations.
         moments.set(9, new ReflectivePauseMomentMetric(
-            "PRESSURE_10",
-            ReflectivePauseResponseType.WAIT,
+            "TR-010",
+            ReflectivePauseResponseType.BREATHE_ANALYZE,
             4_000,
             true));
         ReflectivePauseMetrics metrics = new ReflectivePauseMetrics(moments);
@@ -102,7 +116,7 @@ class ReflectivePauseScoringTest {
     @DisplayName("Le booléen du timer ne peut pas contredire le temps brut")
     void timerFlagMustMatchResponseTime() {
         assertThatThrownBy(() -> new ReflectivePauseMomentMetric(
-            "PRESSURE_01",
+            "TR-001",
             ReflectivePauseResponseType.BREATHE_ANALYZE,
             2_999,
             true))
@@ -123,7 +137,57 @@ class ReflectivePauseScoringTest {
     }
 
     @Test
-    @DisplayName("Emotional Regulation : Radar /27 + Reflective /10 → composite provisoire /37")
+    @DisplayName("Le catalogue porte les 60 situations de la banque client")
+    void catalogHoldsTheSixtySituations() {
+        // La table était écrite à la main sur dix moments inventés
+        // (PRESSURE_01 à PRESSURE_10). Ces identifiants n'existent plus côté
+        // écran, et un identifiant inconnu fait LEVER le domaine : une partie
+        // jouée sur la vraie banque échouait à l'enregistrement.
+        assertThat(ReflectivePauseConfig.momentIds()).hasSize(60);
+        assertThat(ReflectivePauseConfig.momentIds()).contains("TR-001", "TR-060");
+
+        assertThatThrownBy(() -> new ReflectivePauseMomentMetric(
+            "PRESSURE_01",
+            ReflectivePauseResponseType.BREATHE_ANALYZE,
+            4_000,
+            true))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("inconnu");
+    }
+
+    @Test
+    @DisplayName("Dix situations parmi soixante suffisent, le catalogue entier n'est pas exigé")
+    void aDrawOfTenIsEnough() {
+        // L'ancienne règle exigeait que les identifiants remontés soient ÉGAUX
+        // au catalogue. Avec soixante situations dont une partie n'en joue que
+        // dix, elle rejetait toute partie réelle.
+        List<ReflectivePauseMomentMetric> moments = new ArrayList<>();
+        for (int i = 51; i <= 60; i++) {
+            moments.add(new ReflectivePauseMomentMetric(
+                "TR-0%d".formatted(i),
+                ReflectivePauseResponseType.BREATHE_ANALYZE,
+                4_000,
+                true,
+                ReflectivePauseMedium.VIDEO));
+        }
+
+        ReflectivePauseMetrics metrics = new ReflectivePauseMetrics(moments);
+        assertThat(metrics.moments()).hasSize(10);
+        assertThat(metrics.moments().get(0).medium())
+            .isEqualTo(ReflectivePauseMedium.VIDEO);
+    }
+
+    @Test
+    @DisplayName("Le support reste facultatif et vaut « non renseigné »")
+    void mediumStaysOptional() {
+        ReflectivePauseMomentMetric sansSupport = new ReflectivePauseMomentMetric(
+            "TR-001", ReflectivePauseResponseType.BREATHE_ANALYZE, 4_000, true);
+
+        assertThat(sansSupport.medium()).isNull();
+    }
+
+    @Test
+    @DisplayName("Emotional Regulation : Radar /27 + Reflective /10 → /37, module encore ouvert")
     void emotionalRegulationCompletesAfterBothMiniGames() {
         GameSession session = GameSession.start(
             UUID.randomUUID(), GameType.EMOTIONAL_REGULATION);
@@ -144,15 +208,18 @@ class ReflectivePauseScoringTest {
             new Score(8, 10, "Very good self-control"),
             global);
 
-        assertThat(session.status()).isEqualTo(SessionStatus.COMPLETED);
+        // Le module compte TROIS mini-jeux depuis l'arrivée de « Choix
+        // Stratégiques » : deux ne suffisent plus à le clore.
+        assertThat(session.status()).isEqualTo(SessionStatus.IN_PROGRESS);
         assertThat(session.compositeRaw()).isEqualTo(35);
+        // 27 (radar joué) + 10 (reflective joué) + 0 (choix stratégiques, barème
+        // dynamique donc maximum encore inconnu).
         assertThat(session.compositeMax()).isEqualTo(37);
-        // F14 — un événement par mini-jeu : le premier portait une couverture de 50 %
-        // (1 des 2 mini-jeux du module), le second la porte à 100 %.
+        // F14 — un événement par mini-jeu ; la couverture suit le module.
         assertThat(session.domainEvents()).hasSize(2);
         var premier = (com.zennyt.games.domain.event.GameResultRecordedEvent) session.domainEvents().get(0);
         var second = (com.zennyt.games.domain.event.GameResultRecordedEvent) session.domainEvents().get(1);
-        assertThat(premier.coverageRatio()).isEqualTo(50);
-        assertThat(second.coverageRatio()).isEqualTo(100);
+        assertThat(premier.coverageRatio()).isEqualTo(33);
+        assertThat(second.coverageRatio()).isEqualTo(67);
     }
 }

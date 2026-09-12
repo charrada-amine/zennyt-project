@@ -1136,6 +1136,25 @@ class _ScenarioDensity {
     ),
   );
 
+  /// Consigne rappelée sur l'écran de choix.
+  ///
+  /// [titleStyle] ne convient pas ici : il porte `_decisionInk` et un gras
+  /// extra, parce qu'il est dessiné pour la carte BLANCHE. Posé tel quel sur
+  /// l'indigo du plateau, il donnait un pavé sombre à peine lisible — le
+  /// contraste tombait sous le seuil, et l'extra-gras faisait lire un titre là
+  /// où il ne s'agit que d'un rappel.
+  ///
+  /// Même corps que [titleStyle] : la hauteur du bloc ne change donc pas, et le
+  /// budget de mise en page prédit reste valable. Seuls la couleur et la graisse
+  /// bougent.
+  TextStyle get recallStyle => _effective(
+    AppTypography.headlineSmall.copyWith(
+      color: Colors.white,
+      fontSize: titleSize,
+      fontWeight: FontWeight.w600,
+    ),
+  );
+
   TextStyle get bodyStyle => _effective(
     AppTypography.bodyMedium.copyWith(
       color: _decisionInk,
@@ -1397,7 +1416,10 @@ class _ScenarioFit {
     _ScenarioDensity density,
     double width,
     TextScaler textScaler,
-  ) => textHeight(data.title, density.titleStyle, width, textScaler);
+    // Mesuré avec le style RÉELLEMENT rendu : mesurer avec `titleStyle` et
+    // rendre avec `recallStyle` ferait diverger prédiction et affichage, et
+    // c'est cette prédiction qui garantit l'absence de défilement.
+  ) => textHeight(data.title, density.recallStyle, width, textScaler);
 
   static double _cardHeight(
     _ScenarioData data,
@@ -1551,7 +1573,7 @@ class _ScenarioView extends StatelessWidget {
             Text(
               scenario.title,
               key: const ValueKey('decision-task-recall'),
-              style: density.titleStyle,
+              style: density.recallStyle,
             )
           else
             _ScenarioCard(data: scenario, density: density),

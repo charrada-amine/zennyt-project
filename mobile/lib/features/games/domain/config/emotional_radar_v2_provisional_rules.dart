@@ -22,6 +22,32 @@ class EmotionalRadarV2ProvisionalRules {
   static const bool decisionalUseAllowed = false; // PROVISOIRE — NE PAS activer
   static const int minItemsForReliableTheta = 20;
 
+  /// Les seules vidéos réellement produites : 3 des 135 attendues. PROVISOIRE.
+  ///
+  /// Miroir de `EmotionalRadarV2ProvisionalRules.DEMO_FOOTAGE` côté backend —
+  /// la parité mock/serveur est ce qui permet de jouer hors ligne sans que le
+  /// jeu se comporte différemment.
+  ///
+  /// Le rattachement se fait par ÉMOTION, jamais par ordre de scène : un clip
+  /// posé sur « la scène 1 » montrerait une femme inquiète alors que la réponse
+  /// attendue serait « Joie ». La vidéo contredirait la correction — pire qu'un
+  /// placeholder. Ce choix appartient à l'autorité de correction, pas à l'UI,
+  /// qui ignore la cible et doit continuer à l'ignorer.
+  static const Map<String, RadarDemoFootage> demoFootage = {
+    'SADNESS': RadarDemoFootage(
+      'assets/games_demo/emotional_radar/phone_call.mp4',
+    ),
+    'ANXIETY': RadarDemoFootage(
+      'assets/games_demo/emotional_radar/night_apartment.mp4',
+    ),
+    // Stimulus contextuel : le référentiel exige une légende. Factuelle, sans
+    // mot d'émotion — « aucun texte ne doit révéler l'émotion à identifier ».
+    'LONELINESS': RadarDemoFootage(
+      'assets/games_demo/emotional_radar/park_bench.mp4',
+      contextualCaption: 'Un parc, en fin de journée.',
+    ),
+  };
+
   // Bandes d'interprétation (/100). PROVISOIRE.
   static String interpret(double normalized) {
     if (normalized < 40) return 'Très faible';
@@ -30,4 +56,13 @@ class EmotionalRadarV2ProvisionalRules {
     if (normalized < 90) return 'Bon';
     return 'Excellent';
   }
+}
+
+/// Un clip de démonstration : son chemin embarqué, et sa légende si le stimulus
+/// l'exige.
+class RadarDemoFootage {
+  const RadarDemoFootage(this.mediaUrl, {this.contextualCaption});
+
+  final String mediaUrl;
+  final String? contextualCaption;
 }

@@ -3,6 +3,7 @@ package com.zennyt.games.application;
 import com.zennyt.games.application.command.SubmitGameResultCommand;
 import com.zennyt.games.application.usecase.SubmitGameResultUseCase;
 import com.zennyt.games.domain.catalog.DecisionFormCatalog;
+import com.zennyt.games.domain.catalog.StrategicChoicesCatalog;
 import com.zennyt.games.domain.catalog.DecisionScenarioCatalog;
 import com.zennyt.games.domain.event.GameResultRecordedEvent;
 import com.zennyt.games.domain.model.GameSession;
@@ -60,7 +61,8 @@ class SubmitGameResultUseCaseEventTest {
             mock(ObjectLocationMetricsRepository.class),
             eventPublisher,
             mock(DecisionScenarioCatalog.class),
-            mock(DecisionFormCatalog.class));
+            mock(DecisionFormCatalog.class),
+            mock(StrategicChoicesCatalog.class));
 
         session = GameSession.start(JOUEUR, GameType.MEMORY_QUEST);
         // Depuis le verrou de ligne posé par Games, le cas d'usage lit la session via

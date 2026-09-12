@@ -20,6 +20,10 @@ import com.zennyt.games.domain.service.EmotionalRadarScoringService;
 import com.zennyt.games.domain.service.MemoryQuestScoringService;
 import com.zennyt.games.domain.service.PlanifikScoringService;
 import com.zennyt.games.domain.service.ReflectivePauseScoringService;
+import com.zennyt.games.domain.catalog.StrategicChoicesCatalog;
+import com.zennyt.games.domain.service.StrategicChoicesScoringService;
+import com.zennyt.games.domain.vo.StrategicChoicesMetrics;
+import com.zennyt.games.domain.vo.StrategicChoicesReport;
 import com.zennyt.games.domain.service.ScoreBreakdownService;
 import com.zennyt.games.domain.vo.DecisionItemResponse;
 import com.zennyt.games.domain.vo.DecisionMetrics;
@@ -88,6 +92,7 @@ public class SubmitGameResultUseCase {
     private final EmotionalRadarScoringService emotionalRadar = new EmotionalRadarScoringService();
     private final ReflectivePauseScoringService reflectivePause =
         new ReflectivePauseScoringService();
+    private final StrategicChoicesScoringService strategicChoices;
     private final ContinuousAttentionScoringService continuousAttention =
         new ContinuousAttentionScoringService();
     private final CoordinationScoringService coordination =
@@ -105,7 +110,8 @@ public class SubmitGameResultUseCase {
                                    ObjectLocationMetricsRepository objectLocationMetrics,
                                    ApplicationEventPublisher eventPublisher,
                                    DecisionScenarioCatalog decisionCatalog,
-                                   DecisionFormCatalog decisionForms) {
+                                   DecisionFormCatalog decisionForms,
+                                   StrategicChoicesCatalog strategicChoicesCatalog) {
         this.repository = repository;
         this.calibrationRepository = calibrationRepository;
         this.emotionalRadarAnswers = emotionalRadarAnswers;
@@ -119,6 +125,11 @@ public class SubmitGameResultUseCase {
         // DatabaseDecisionScenarioCatalog (banque de 120 items, V59).
         this.decision = new DecisionScoringService(decisionCatalog);
         this.decisionForms = decisionForms;
+        // Le barème est du Java pur ; c'est Spring qui lui passe son catalogue,
+        // de sorte que la couche application ne construise aucune classe
+        // d'infrastructure.
+        this.strategicChoices =
+            new StrategicChoicesScoringService(strategicChoicesCatalog);
     }
 
     /**
@@ -204,6 +215,9 @@ public class SubmitGameResultUseCase {
             scoreBreakdown = breakdown.decision(decisionReport, score);
         } else if (command.miniGame() == MiniGame.EMOTIONAL_RADAR_CORE) {
             scoreBreakdown = breakdown.emotionalRadar(gradedAnswers(command), score);
+        } else if (command.miniGame() == MiniGame.STRATEGIC_CHOICES_CORE) {
+            scoreBreakdown = breakdown.strategicChoices(
+                strategicChoicesReport(command), score);
         } else {
             scoreBreakdown = breakdown.build(command.metrics(), score);
         }
@@ -445,6 +459,15 @@ public class SubmitGameResultUseCase {
         return reflectivePause.report(metrics);
     }
 
+    /** Dérive le retour pédagogique des choix stratégiques ; null sinon. */
+    private StrategicChoicesReport strategicChoicesReport(SubmitGameResultCommand command) {
+        if (command.miniGame() != MiniGame.STRATEGIC_CHOICES_CORE
+            || !(command.metrics() instanceof StrategicChoicesMetrics metrics)) {
+            return null;
+        }
+        return strategicChoices.report(metrics);
+    }
+
     /** Dérive les indicateurs de reconnaissance émotionnelle ; null sinon. */
     private EmotionalRadarReport emotionalRadarReport(SubmitGameResultCommand command) {
         if (command.miniGame() != MiniGame.EMOTIONAL_RADAR_CORE
@@ -521,6 +544,8 @@ public class SubmitGameResultUseCase {
             }
             case REFLECTIVE_PAUSE_CORE -> reflectivePause.score(
                 expectMetrics(command, ReflectivePauseMetrics.class));
+            case STRATEGIC_CHOICES_CORE -> strategicChoices.score(
+                expectMetrics(command, StrategicChoicesMetrics.class));
             case CONTINUOUS_ATTENTION_CORE -> continuousAttention.score(
                 continuousAttention.report(command.sessionId(),
                     expectMetrics(command, ContinuousAttentionMetrics.class)));

@@ -77,6 +77,64 @@ public final class EmotionalRadarV2ProvisionalRules {
         return (0.5 - semanticDistance) * IRT_DIFFICULTY_SCALE; // PROVISOIRE
     }
 
+    // ═══ Footage de démonstration ════════════════════════════════════════════
+
+    /**
+     * Les seules vidéos réellement disponibles : 3 des 135 attendues. PROVISOIRE.
+     *
+     * <p>Le rattachement se fait par <b>émotion</b>, jamais par ordre de scène.
+     * Rattacher un clip à « la scène 1 » montrerait une femme inquiète alors que
+     * la réponse attendue serait « Joie » : la vidéo contredirait la correction,
+     * ce qui est pire qu'un placeholder. Ce choix appartient au serveur parce
+     * que le client ignore l'émotion cible — et doit continuer à l'ignorer.
+     *
+     * <p>Les trois clips couvrent par chance les trois cadrages du référentiel :
+     * facial, corporel et contextuel. Le contextuel exige une légende, fournie
+     * ici — factuelle, sans mot d'émotion, conformément à la consigne « aucun
+     * texte ne doit révéler l'émotion à identifier ».
+     *
+     * <p>Le chemin est un asset embarqué dans l'application, pas une URL
+     * distante : {@code EmotionalRadarVideo} sait lire un préfixe {@code assets/}.
+     * La banque normée passera par Cloudinary et remplacera cette table.
+     */
+    /**
+     * Ordre de passage des clips en démonstration. PROVISOIRE.
+     *
+     * <p>Sert avec {@link #DEMO_FOOTAGE_FIRST} : les scènes 1, 2 et 3 visent ces
+     * émotions-là, dans cet ordre, pour qu'une démonstration montre les trois
+     * vidéos à coup sûr. Sans cela, une session de 15 scènes tirées dans 45
+     * émotions n'en montrerait aucune une fois sur trois.
+     */
+    public static final java.util.List<String> DEMO_FOOTAGE_ORDER =
+        java.util.List.of("SADNESS", "ANXIETY", "LONELINESS");
+
+    /**
+     * Place les émotions filmées en tête de session. PROVISOIRE — DÉMO UNIQUEMENT.
+     *
+     * <p>Ce drapeau <b>casse volontairement l'équiprobabilité</b> des cibles :
+     * un joueur qui connaît l'algorithme sait ce que visent les trois premières
+     * scènes. C'est acceptable tant que le jeu ne mesure rien — la mesure est
+     * déjà coupée par {@link #MEDIA_LIBRARY_READY} et {@link #SCORING_PROVISIONAL},
+     * et aucune tentative n'est enregistrée. À repasser à {@code false} dès que
+     * la banque de 135 vidéos est livrée : le tirage redevient alors uniforme
+     * sans autre modification.
+     */
+    public static final boolean DEMO_FOOTAGE_FIRST = true; // PROVISOIRE — DÉMO
+
+    public static final java.util.Map<String, DemoFootage> DEMO_FOOTAGE =
+        java.util.Map.of(
+            "SADNESS", new DemoFootage(
+                "assets/games_demo/emotional_radar/phone_call.mp4", null),
+            "ANXIETY", new DemoFootage(
+                "assets/games_demo/emotional_radar/night_apartment.mp4", null),
+            "LONELINESS", new DemoFootage(
+                "assets/games_demo/emotional_radar/park_bench.mp4",
+                "Un parc, en fin de journée."));
+
+    /** Un clip de démonstration : son chemin, et sa légende si le stimulus l'exige. */
+    public record DemoFootage(String mediaUrl, String contextualCaption) {
+    }
+
     // ═══ Bandes d'interprétation de la reconnaissance émotionnelle (/100) ════
     // PROVISOIRE — alignées sur les autres jeux tant que le psychologue n'a pas tranché.
 

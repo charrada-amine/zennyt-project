@@ -1,9 +1,15 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zennyt/features/games/data/games_mock_repository.dart';
+import 'package:zennyt/features/games/domain/config/emotional_radar_v2_config.dart';
 import 'package:zennyt/features/games/domain/config/emotional_radar_v2_referential.dart';
 import 'package:zennyt/features/games/domain/entities/emotional_radar_v2.dart';
 import 'package:zennyt/features/games/domain/entities/game_type.dart';
 import 'package:zennyt/features/games/domain/repositories/emotional_radar_v2_repository.dart';
+
+/// Budget de réponse lu dans la config plutôt que recopié : le nombre en dur
+/// faisait échouer ces tests à chaque ajustement — c'est arrivé au passage de
+/// 8 s à 30 s.
+const _maxMs = EmotionalRadarV2Config.maxResponseTimeMs;
 
 void main() {
   late GamesMockRepository games;
@@ -41,30 +47,24 @@ void main() {
     expect(state.fitScorePublished, isFalse);
   });
 
-  test('rejects replay and requires a non-empty explanation', () async {
+  test('accepts an empty explanation, rejects a replay', () async {
     final state = await radar.activateNextEmotionalRadarV2Scene(sessionId);
     final scene = state.currentScene!;
-    final correct = scene.choices.firstWhere((choice) => choice.key == 'JOY');
+    final correct = scene.choices.firstWhere((choice) => choice.key == 'SADNESS');
 
-    expect(
-      () => radar.answerEmotionalRadarV2Scene(
-        sessionId: sessionId,
-        sceneOrder: scene.sceneOrder,
-        selectedEmotionKey: correct.key,
-        selectedIntensity: EmotionalRadarV2Intensity.low,
-        explanation: '   ',
-      ),
-      throwsArgumentError,
-    );
-
+    // La troisième question a été retirée de l'écran : celui-ci envoie
+    // désormais une justification vide. Le mock doit l'accepter, sans quoi
+    // aucune manche ne passerait hors ligne.
     await radar.answerEmotionalRadarV2Scene(
       sessionId: sessionId,
       sceneOrder: scene.sceneOrder,
       selectedEmotionKey: correct.key,
       selectedIntensity: EmotionalRadarV2Intensity.low,
-      explanation: 'Visible cues.',
+      explanation: '',
     );
 
+    // Le verrou de rejeu, lui, ne bouge pas : une scène déjà répondue reste
+    // close.
     expect(
       () => radar.answerEmotionalRadarV2Scene(
         sessionId: sessionId,
@@ -98,7 +98,7 @@ void main() {
     expect(next.currentScene!.sceneOrder, 2);
     expect(
       next.currentScene!.remainingResponseTimeMs,
-      inInclusiveRange(7900, 8000),
+      inInclusiveRange(_maxMs - 100, _maxMs),
     );
     final samePending = await radar.activateNextEmotionalRadarV2Scene(
       sessionId,
@@ -109,7 +109,7 @@ void main() {
   test(
     'mock monotonic clock matches impulsive and timeout boundaries',
     () async {
-      for (final elapsedMs in [399, 400, 8000, 8001]) {
+      for (final elapsedMs in [399, 400, _maxMs, _maxMs + 1]) {
         var nowMs = 0;
         final timedGames = GamesMockRepository(
           emotionalRadarV2ClockMs: () => nowMs,
@@ -125,16 +125,16 @@ void main() {
         final feedback = (await timedGames.answerEmotionalRadarV2Scene(
           sessionId: timedSessionId,
           sceneOrder: scene.sceneOrder,
-          selectedEmotionKey: 'JOY',
+          selectedEmotionKey: 'SADNESS',
           selectedIntensity: EmotionalRadarV2Intensity.low,
           explanation: 'Visible cues.',
         )).feedback;
 
         expect(feedback.impulsive, elapsedMs < 400, reason: '$elapsedMs ms');
-        expect(feedback.timedOut, elapsedMs > 8000, reason: '$elapsedMs ms');
+        expect(feedback.timedOut, elapsedMs > _maxMs, reason: '$elapsedMs ms');
         expect(
           feedback.responseTimeMs,
-          elapsedMs.clamp(0, 8000),
+          elapsedMs.clamp(0, _maxMs),
           reason: '$elapsedMs ms',
         );
       }
@@ -145,7 +145,7 @@ void main() {
     var state = await radar.activateNextEmotionalRadarV2Scene(sessionId);
     for (var scene = 0; scene < 3; scene++) {
       final current = state.currentScene!;
-      final expectedKey = ['JOY', 'AMUSEMENT', 'SATISFACTION'][scene];
+      final expectedKey = ['SADNESS', 'ANXIETY', 'LONELINESS'][scene];
       final choice = current.choices.firstWhere(
         (candidate) => candidate.key == expectedKey,
       );
@@ -208,13 +208,17 @@ void main() {
   );
 }
 
+// DÉMO : les trois émotions filmées ouvrent la session (voir
+// `_radarV2ExpectedKeys` et `DEMO_FOOTAGE_ORDER`).
 const _expectedKeys = [
+  'SADNESS',
+  'ANXIETY',
+  'LONELINESS',
   'JOY',
   'AMUSEMENT',
   'SATISFACTION',
   'INTEREST',
   'SURPRISE',
-  'SADNESS',
   'ANGER',
   'FEAR',
   'DISGUST',
@@ -222,6 +226,4 @@ const _expectedKeys = [
   'CONTEMPT',
   'DISAPPOINTMENT',
   'PAIN',
-  'EXCITEMENT',
-  'TRIUMPH',
 ];

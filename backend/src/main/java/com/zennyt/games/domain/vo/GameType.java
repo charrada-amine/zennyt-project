@@ -22,8 +22,9 @@ public enum GameType {
     DECISION,
     /**
      * « Je gère » — régulation émotionnelle. Héberge les mini-jeux
-     * {@code EMOTIONAL_RADAR_CORE} et {@code REFLECTIVE_PAUSE_CORE}, sur le
-     * modèle de {@link #PLANIFIK} qui héberge ses trois mini-jeux.
+     * {@code EMOTIONAL_RADAR_CORE}, {@code REFLECTIVE_PAUSE_CORE} et
+     * {@code STRATEGIC_CHOICES_CORE}, sur le modèle de {@link #PLANIFIK} qui
+     * héberge ses trois mini-jeux.
      */
     EMOTIONAL_REGULATION,
     /**

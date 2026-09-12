@@ -87,11 +87,23 @@ flutter_launcher_icons:
   remove_alpha_ios: true
 
 flutter:
+  # agora_rtc_engine 6.6.3 n'est pas empaquete correctement pour Swift Package
+  # Manager : son podspec epingle l'Iris SDK 4.6.2-build.1, mais son
+  # Package.swift reste sur 4.5.2-build.1 — build qui ne contient pas
+  # AgoraPIPController.h. Or AgoraRtcNgPlugin.h l'importe, donc tout build iOS
+  # passant par SPM echoue sur « file not found ».
+  #
+  # On force donc CocoaPods, seul chemin ou la version de l'Iris SDK correspond
+  # aux sources du plugin. A retirer quand le plugin aligne son Package.swift.
+  config:
+    enable-swift-package-manager: false
+
   uses-material-design: true
 
   generate: true
 
   assets:
+    - assets/games/
     - assets/images/
     - assets/04 Predictive Puzzle/
     - assets/04 Je Décide/02 Mobile/Welcome/

@@ -9,8 +9,9 @@ import java.util.Set;
 /**
  * Métriques d'une session complète « Reflective Pause ».
  *
- * <p>Les dix moments sont obligatoires et uniques. Les points ne circulent
- * jamais dans ce payload.
+ * <p>Les dix moments d'une partie sont obligatoires, distincts et tirés du
+ * catalogue — qui en compte soixante depuis l'intégration de la banque client.
+ * Les points ne circulent jamais dans ce payload.
  */
 public record ReflectivePauseMetrics(
     List<ReflectivePauseMomentMetric> moments
@@ -33,10 +34,11 @@ public record ReflectivePauseMetrics(
                     "Moment Reflective Pause dupliqué : " + moment.momentId());
             }
         }
-        if (!ids.equals(ReflectivePauseConfig.momentIds())) {
-            throw new IllegalArgumentException(
-                "Le catalogue complet des moments Reflective Pause est requis");
-        }
+        // Les dix moments doivent être CONNUS et distincts, plus « égaux au
+        // catalogue ». La banque client compte soixante situations dont une
+        // partie n'en joue que dix : exiger le catalogue entier rejetterait
+        // toute partie réelle. Chaque identifiant est déjà vérifié à la
+        // construction du moment.
     }
 
     public int controlledReactionCount() {

@@ -91,27 +91,40 @@ public class PlanifikScoringService {
      *   <li>Réajustements (nombre brut) : &lt;2 → 2 pts · 2-4 → 1 pt · &gt;4 → 0 pt</li>
      * </ul>
      */
+    /**
+     * Barème /10 du « Planning journalier », en quatre composantes.
+     *
+     * <p>Conforme au référentiel client : 3 pts de dépendances au prorata moins
+     * les violations directes, 3 pts de gestion du temps au prorata du n RÉEL de
+     * l'univers, 2 pts de cohérence séquentielle (collisions + temps mort), 2 pts
+     * d'autorégulation distinguant corrections proactives et réactives.
+     *
+     * <p><b>Arrondi.</b> Les composantes produisent des décimales — un demi-point
+     * de temps mort, un prorata sur sept contraintes — alors que {@link Score}
+     * ne porte que des entiers. Le total est donc arrondi au plus proche, comme
+     * {@code scoreOptimalPath} le fait déjà. Un 8,5 devient un 9 : à revoir si le
+     * client veut la précision décimale, ce qui demanderait d'élargir
+     * {@link Score} pour tous les jeux.
+     *
+     * <p>La latence de planification n'entre PAS dans ce calcul : le référentiel
+     * la veut au profil qualitatif, pas au score.
+     */
     public Score scoreTaskScheduling(TaskSchedulingMetrics m) {
-        int points = 0;
+        double points =
+            TaskSchedulingConfig.dependencyScore(
+                m.dependencyEdgesRespected(),
+                m.dependencyEdgeCount(),
+                m.directDependencyViolations())
+            + TaskSchedulingConfig.timeScore(
+                m.timingConstraintsRespected(), m.timingConstraintCount())
+            + TaskSchedulingConfig.coherenceScore(
+                m.collisionFree(), m.deadTimeRatio())
+            + TaskSchedulingConfig.selfRegulationScore(
+                m.proactiveAdjustments(), m.reactiveAdjustments(), m.levelsPlayed());
 
-        // Dépendances respectées (tout-ou-rien, critère le plus lourd)
-        if (m.dependenciesRespected()) {
-            points += TaskSchedulingConfig.DEPENDENCIES_POINTS;
-        }
-
-        // Contraintes horaires respectées (tout-ou-rien)
-        if (m.timeConstraintsRespected()) {
-            points += TaskSchedulingConfig.TIME_CONSTRAINTS_POINTS;
-        }
-
-        // Cohérence du planning (0–2)
-        points += Math.max(0, Math.min(
-            TaskSchedulingConfig.PLANNING_COHERENCE_MAX_POINTS, m.planningCoherence()));
-
-        // Réajustements (score dérivé du nombre brut)
-        points += TaskSchedulingConfig.adjustmentScore(m.adjustmentCount());
-
-        return new Score(points, TaskSchedulingConfig.MAX_POINTS, interpretMiniGame(points));
+        int rounded = (int) Math.round(points);
+        rounded = Math.max(0, Math.min(TaskSchedulingConfig.MAX_POINTS, rounded));
+        return new Score(rounded, TaskSchedulingConfig.MAX_POINTS, interpretMiniGame(rounded));
     }
 
     /**

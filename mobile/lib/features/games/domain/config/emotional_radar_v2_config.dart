@@ -47,11 +47,22 @@ class EmotionalRadarV2Config {
   static const int evaluationWindowMax = 4;
   static const int startingLevel = 1;
 
-  static const int maxResponseTimeMs = 8000;
+  /// Budget de réponse d'une scène.
+  ///
+  /// Le référentiel écrit 8 000 ms ; porté à 30 000 ms à la demande du client.
+  /// Ce budget couvre le visionnage PUIS la réponse, et les clips existants
+  /// vont jusqu'à 12 s — 8 s ne laissaient même pas voir la scène en entier.
+  static const int maxResponseTimeMs = 30000;
   static const int minImpulsiveTimeMs = 400;
 
   static const bool normingRequiredBeforeUse = true;
-  static const bool requireExplanation = true;
+  /// Justification écrite demandée au joueur.
+  ///
+  /// Passé à `false` : le client a retiré la troisième question de l'écran. Le
+  /// référentiel la demandait après chaque réponse — l'écart est assumé, et
+  /// `justificationScoringAvailable` reste faux côté serveur tant qu'aucun
+  /// texte n'est collecté, de sorte que le rapport ne prétende pas la noter.
+  static const bool requireExplanation = false;
   static const int justificationMinScore = 0;
   static const int justificationMaxScore = 5;
 

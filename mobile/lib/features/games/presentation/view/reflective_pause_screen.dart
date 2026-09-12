@@ -15,6 +15,8 @@ import '../../domain/entities/game_runtime_snapshot.dart';
 import '../../domain/config/game_presentation_timing.dart';
 import '../../domain/entities/game_type.dart';
 import '../../domain/entities/mini_game.dart';
+import '../../data/reflective_pause_bank_loader.dart';
+import '../../domain/entities/reflective_pause_bank.dart';
 import '../../domain/entities/reflective_pause_metrics.dart';
 import '../emotional_regulation_session_provider.dart';
 import '../games_providers.dart';
@@ -43,100 +45,23 @@ enum _ReflectiveStage {
   error,
 }
 
-class _PressureMoment {
-  const _PressureMoment({
-    required this.id,
-    required this.context,
-    required this.message,
-  });
-
-  final String id;
-  final String context;
-  final String message;
-}
-
-const _moments = <_PressureMoment>[
-  _PressureMoment(
-    id: 'PRESSURE_01',
-    context: 'Your manager sends a tense message before a deadline.',
-    message: 'Why is this still not finished?\nThis is unacceptable.',
-  ),
-  _PressureMoment(
-    id: 'PRESSURE_02',
-    context: 'You receive unexpected criticism about your work.',
-    message: 'This does not meet the standard I expected.',
-  ),
-  _PressureMoment(
-    id: 'PRESSURE_03',
-    context: 'A last-minute problem changes your priorities.',
-    message: 'We need a new solution right now.',
-  ),
-  _PressureMoment(
-    id: 'PRESSURE_04',
-    context: 'A misunderstanding makes a conversation tense.',
-    message: 'That is not what I said. Why did you do that?',
-  ),
-  _PressureMoment(
-    id: 'PRESSURE_05',
-    context: 'A stressful request arrives while you are already busy.',
-    message: 'Can you handle this immediately?',
-  ),
-  _PressureMoment(
-    id: 'PRESSURE_06',
-    context: 'A client sends a direct complaint.',
-    message: 'I am unhappy with what was delivered.',
-  ),
-  _PressureMoment(
-    id: 'PRESSURE_07',
-    context: 'Someone interrupts you repeatedly in a meeting.',
-    message: 'Let me finish — I already know what you are going to say.',
-  ),
-  _PressureMoment(
-    id: 'PRESSURE_08',
-    context: 'You are blamed publicly for a shared problem.',
-    message: 'This delay is your responsibility.',
-  ),
-  _PressureMoment(
-    id: 'PRESSURE_09',
-    context: 'A plan changes suddenly just before execution.',
-    message: 'We are changing direction. Start over.',
-  ),
-  _PressureMoment(
-    id: 'PRESSURE_10',
-    context: 'Someone questions your competence under pressure.',
-    message: 'Are you sure you can manage this?',
-  ),
-];
-
-const _responses = <ReflectivePauseResponseType>[
-  ReflectivePauseResponseType.respondImpulsively,
-  ReflectivePauseResponseType.breatheAnalyze,
-  ReflectivePauseResponseType.wait,
-  ReflectivePauseResponseType.askForMoreInformation,
-  ReflectivePauseResponseType.reformulateCalmly,
-];
-
-extension on ReflectivePauseResponseType {
-  String get label => switch (this) {
-    ReflectivePauseResponseType.respondImpulsively => 'Respond immediately',
-    ReflectivePauseResponseType.breatheAnalyze => 'Breathe and analyze',
-    ReflectivePauseResponseType.wait => 'Wait before answering',
-    ReflectivePauseResponseType.askForMoreInformation =>
-      'Ask for more information',
-    ReflectivePauseResponseType.reformulateCalmly => 'Reformulate calmly',
-  };
-}
-
 /// Parcours complet « Reflective Pause ».
 ///
 /// Le client mesure le temps de réponse et le choix brut. Le score et les trois
 /// indicateurs affichés aux résultats sont exclusivement renvoyés par le
 /// backend (ou par son miroir exact en mode mock).
 class ReflectivePauseScreen extends ConsumerStatefulWidget {
-  const ReflectivePauseScreen({super.key, this.now});
+  const ReflectivePauseScreen({super.key, this.now, this.situationIds});
 
   /// Horloge injectable pour rendre le timer déterministe en test.
   final DateTime Function()? now;
+
+  /// Situations imposées, au lieu du tirage.
+  ///
+  /// Le tirage est aléatoire par construction : sans ce crochet, le score d'un
+  /// parcours de test dépendrait des dix situations sorties, et l'assertion ne
+  /// mesurerait plus le barème mais la chance.
+  final List<String>? situationIds;
 
   @override
   ConsumerState<ReflectivePauseScreen> createState() =>
@@ -146,6 +71,18 @@ class ReflectivePauseScreen extends ConsumerStatefulWidget {
 class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
   _ReflectiveStage _stage = _ReflectiveStage.cover;
   GameSession? _session;
+
+  /// Les dix situations de la partie, tirées dans la banque des soixante.
+  List<ReflectivePauseSituation> _situations = const [];
+
+  /// Graine du mélange des réponses, fixée à l'ouverture de la partie.
+  ///
+  /// Dans la banque livrée, la position encode la catégorie : « A » est la
+  /// réponse impulsive dans les soixante situations. Affiché tel quel, l'ordre
+  /// s'apprend en deux situations. La graine dépend de la partie, l'ordre
+  /// diffère donc aussi d'une passation à l'autre.
+  int _shuffleSeed = 0;
+
   int _momentIndex = 0;
   ReflectivePauseResponseType? _selectedResponse;
   final List<ReflectivePauseMomentMetric> _metrics = [];
@@ -207,9 +144,15 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
               .read(gamesRepositoryProvider)
               .startSession(GameType.emotionalRegulation);
       sessionStore.keep(session);
+      final bank = await ReflectivePauseBankLoader.load();
       if (!mounted) return;
       setState(() {
         _session = session;
+        _situations = _drawSituations(bank);
+        // `_now()`, pas `DateTime.now()` : l'écran a déjà une horloge
+        // injectable, et s'en écarter ici rendait l'ordre des réponses
+        // imprévisible en test — donc les parcours de test intermittents.
+        _shuffleSeed = _now().microsecondsSinceEpoch & 0xFFFFF;
         _momentIndex = 0;
         _metrics.clear();
         _stage = _ReflectiveStage.gameplay;
@@ -223,6 +166,37 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
       });
     }
   }
+
+  /// Tire les dix situations de la partie, une par catégorie.
+  ///
+  /// La banque compte dix catégories de six situations. Une par catégorie
+  /// couvre donc tout le référentiel en une partie, là où un tirage libre
+  /// pourrait donner trois fois « critique injuste » et jamais « pression
+  /// hiérarchique » — et ne mesurerait plus la même chose d'un joueur à
+  /// l'autre.
+  List<ReflectivePauseSituation> _drawSituations(ReflectivePauseBank bank) {
+    final imposees = widget.situationIds;
+    if (imposees != null) return [for (final id in imposees) bank.byId(id)];
+
+    final random = math.Random();
+    final parCategorie = <int, List<ReflectivePauseSituation>>{};
+    for (final situation in bank.situations) {
+      parCategorie
+          .putIfAbsent(situation.categoryNumber, () => [])
+          .add(situation);
+    }
+    final numeros = parCategorie.keys.toList()..sort();
+    final tirees = [
+      for (final numero in numeros)
+        parCategorie[numero]![random.nextInt(parCategorie[numero]!.length)],
+    ];
+    // L'ordre des catégories ne doit pas être toujours le même non plus : la
+    // difficulté monterait alors de façon prévisible d'une passation à l'autre.
+    tirees.shuffle(random);
+    return tirees;
+  }
+
+  ReflectivePauseSituation get _situation => _situations[_momentIndex];
 
   void _beginMoment() {
     _clock?.cancel();
@@ -323,12 +297,17 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
     final response = _selectedResponse;
     if (!_minimumReached || response == null || _submitting) return;
     _freezeClock();
-    final moment = _moments[_momentIndex];
+    final moment = _situation;
     _metrics.add(
       ReflectivePauseMomentMetric(
         momentId: moment.id,
         selectedResponse: response,
         responseTimeMs: _elapsedMs,
+        // Le client demande d'enregistrer le SUPPORT au même titre que le choix
+        // et le délai : lire un message et regarder une scène ne sollicitent
+        // pas la même charge, et le comparer suppose de savoir lequel des deux
+        // le joueur a eu.
+        medium: moment.medium,
         // The server's protected scoring threshold stays at 3 s even when
         // the presentation policy asks the player to think longer.
         minimumTimerReached: _elapsedMs >= ReflectivePauseConfig.minimumPauseMs,
@@ -342,7 +321,7 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
       );
     }
     if (!mounted) return;
-    if (_momentIndex == _moments.length - 1) {
+    if (_momentIndex == _situations.length - 1) {
       await _finish();
       return;
     }
@@ -448,7 +427,9 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
               _ReflectiveStage.gameplay => GameplayMusic(
                 child: _GameplayView(
                   key: ValueKey('reflective-gameplay-$_momentIndex'),
-                  moment: _moments[_momentIndex],
+                  situation: _situation,
+                  totalMoments: _situations.length,
+                  shuffleSeed: _shuffleSeed,
                   momentNumber: _momentIndex + 1,
                   elapsedMs: _elapsedMs,
                   thinkingTimeMs: _timing.reflectiveThinkingTimeMs,
@@ -463,6 +444,7 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
                 ),
               ),
               _ReflectiveStage.saved => _SavedView(
+                totalMoments: _situations.length,
                 key: ValueKey('reflective-saved-$_momentIndex'),
                 momentNumber: _momentIndex + 1,
               ),
@@ -672,7 +654,7 @@ class _CoverView extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               const Text(
-                'Face pressure moments, pause before reacting, and choose a calm response.',
+                'Face pressure moments, pause before reacting, and choose the response that feels most natural.',
                 style: TextStyle(color: _muted, fontSize: 17, height: 1.45),
               ),
               const SizedBox(height: 18),
@@ -776,16 +758,17 @@ class _TutorialView extends StatelessWidget {
     return _InfoPage(
       onBack: onBack,
       title: 'How it works',
-      subtitle: 'Each pressure moment follows the same calm four-step rhythm.',
+      subtitle:
+          'You will complete 10 pressure moments. Each one follows the same four-step rhythm.',
       icon: Icons.self_improvement_rounded,
       items: const [
-        ('Pause', 'Wait for the short timer before choosing.'),
-        ('Think', 'Read the moment without rushing.'),
-        ('Choose', 'Pick the response that feels most natural.'),
-        ('Respond', 'Validate once your choice is selected.'),
+        ('Read', 'Read the complete situation while the countdown runs.'),
+        ('Wait', 'Responses unlock only when the countdown ends.'),
+        ('Choose', 'Pick one response that feels most natural to you.'),
+        ('Validate', 'Save your choice and continue to the next moment.'),
       ],
       footnote:
-          'There is no immediate correction. Your pattern is revealed only at the end.',
+          'There is no immediate right/wrong feedback. Your score and response pattern are shown after all 10 moments.',
       buttonLabel: 'Start mission',
       onButton: onStart,
     );
@@ -960,7 +943,9 @@ class _InstructionCard extends StatelessWidget {
 class _GameplayView extends StatelessWidget {
   const _GameplayView({
     super.key,
-    required this.moment,
+    required this.situation,
+    required this.totalMoments,
+    required this.shuffleSeed,
     required this.momentNumber,
     required this.elapsedMs,
     required this.thinkingTimeMs,
@@ -973,7 +958,9 @@ class _GameplayView extends StatelessWidget {
     required this.affordance,
   });
 
-  final _PressureMoment moment;
+  final ReflectivePauseSituation situation;
+  final int totalMoments;
+  final int shuffleSeed;
   final int momentNumber;
   final int elapsedMs;
   final int thinkingTimeMs;
@@ -998,7 +985,7 @@ class _GameplayView extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(24, 18, 24, 12),
           child: _TopBar(
             onBack: onBack,
-            title: 'Moment $momentNumber / ${_moments.length}',
+            title: 'Moment $momentNumber / $totalMoments',
             onPause: onPause,
             affordance: affordance,
           ),
@@ -1008,7 +995,7 @@ class _GameplayView extends StatelessWidget {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(999),
             child: LinearProgressIndicator(
-              value: momentNumber / _moments.length,
+              value: momentNumber / totalMoments,
               minHeight: 7,
               backgroundColor: const Color(0xFFE9EDF6),
               color: _magenta,
@@ -1017,39 +1004,10 @@ class _GameplayView extends StatelessWidget {
         ),
         Expanded(
           child: ListView(
+            key: const ValueKey('reflective-scroll'),
             padding: const EdgeInsets.fromLTRB(24, 18, 24, 18),
             children: [
-              Container(
-                padding: const EdgeInsets.all(22),
-                decoration: BoxDecoration(
-                  color: _canvas,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: _border),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      moment.context,
-                      style: const TextStyle(
-                        color: _muted,
-                        fontSize: 14,
-                        height: 1.4,
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    Text(
-                      moment.message,
-                      style: const TextStyle(
-                        color: _ink,
-                        fontSize: 22,
-                        height: 1.25,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              _SituationCard(situation: situation),
               const SizedBox(height: 16),
               Semantics(
                 liveRegion: true,
@@ -1079,7 +1037,14 @@ class _GameplayView extends StatelessWidget {
                       Expanded(
                         child: Text(
                           minimumReached
-                              ? 'Take the response that feels most natural.'
+                              // Le délai de la fiche, celui sur lequel le
+                              // psychologue a calculé le nombre de mots à lire.
+                              // Il varie de 13 à 20 s : l'afficher évite que le
+                              // joueur se croie sans limite, sans pour autant
+                              // couper — le document le donne comme
+                              // « recommandé », à valider par prétest.
+                              ? 'Temps conseillé : '
+                                    '${situation.responseDeadlineSec} s'
                               : 'Pause for $remainingSeconds…',
                           style: TextStyle(
                             color: minimumReached ? _green : _magenta,
@@ -1093,12 +1058,24 @@ class _GameplayView extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              for (final response in _responses) ...[
+              // Ordre mélangé : dans la banque livrée, « A » est la réponse
+              // impulsive des soixante situations et « B » toujours
+              // « respirer ». Affichée telle quelle, la grille s'apprend en
+              // deux situations et se répond sans lire la scène.
+              for (final choice in situation.choicesInDisplayOrder(
+                shuffleSeed,
+              )) ...[
                 _ResponseCard(
-                  response: response,
+                  // Clé sur la RÉACTION, pas sur la position : l'ordre est
+                  // mélangé à dessein, et un test qui viserait « la deuxième
+                  // carte » ne saurait pas ce qu'il coche.
+                  key: ValueKey(
+                    'reflective-choice-${choice.responseType.wire}',
+                  ),
+                  choice: choice,
                   enabled: minimumReached,
-                  selected: selectedResponse == response,
-                  onTap: () => onSelect(response),
+                  selected: selectedResponse == choice.responseType,
+                  onTap: () => onSelect(choice.responseType),
                 ),
                 const SizedBox(height: 10),
               ],
@@ -1119,15 +1096,179 @@ class _GameplayView extends StatelessWidget {
   }
 }
 
+/// Présentation d'une situation, selon son support.
+///
+/// Le client attend « selon le scénario, une vidéo OU un message écrit, puis
+/// les choix de réaction écrits ». Les deux supports partagent le même cadre et
+/// la même question, et ne diffèrent que par la façon dont la scène arrive.
+///
+/// ⚠️ Aujourd'hui, AUCUNE situation n'emprunte le chemin écrit : les soixante
+/// fiches de la banque déclarent un support vidéo, y compris celles dont la
+/// scène est un SMS — TR-001 est une notification lue à l'écran, spécifiée
+/// comme une vidéo dont le prompt interdit de rendre le texte lisible.
+///
+/// Le chemin écrit est conservé parce que le client l'attend au cahier des
+/// charges (« SMS, chat ou e-mail »), et qu'il suffira de fiches marquées
+/// `WRITTEN` pour l'emprunter. Il lui manquera alors une chose que la banque ne
+/// fournit pas : le texte littéral du message. On n'en invente aucun — une
+/// phrase forgée ici changerait la situation que le psychologue a cotée.
+class _SituationCard extends StatelessWidget {
+  const _SituationCard({required this.situation});
+
+  final ReflectivePauseSituation situation;
+
+  bool get _written => situation.medium == ReflectivePauseMedium.written;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: _canvas,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                _written
+                    ? Icons.chat_bubble_outline_rounded
+                    : Icons.videocam_outlined,
+                size: 18,
+                color: _magenta,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                _written ? 'Message reçu' : 'Scène en face à face',
+                style: const TextStyle(
+                  color: _magenta,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Text(
+            situation.context,
+            style: const TextStyle(color: _muted, fontSize: 14, height: 1.45),
+          ),
+          const SizedBox(height: 16),
+          if (_written)
+            _MessageBubble(text: situation.trigger)
+          else
+            _VideoPlaceholder(trigger: situation.trigger),
+          const SizedBox(height: 18),
+          Text(
+            situation.question,
+            style: const TextStyle(
+              color: _ink,
+              fontSize: 21,
+              height: 1.25,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Bulle de message, pour les situations qui arrivent par SMS, chat ou e-mail.
+class _MessageBubble extends StatelessWidget {
+  const _MessageBubble({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(4),
+          topRight: Radius.circular(16),
+          bottomLeft: Radius.circular(16),
+          bottomRight: Radius.circular(16),
+        ),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(color: _ink, fontSize: 16, height: 1.4),
+      ),
+    );
+  }
+}
+
+/// Emplacement du média, tant que la banque vidéo n'est pas livrée.
+///
+/// Même parti pris que le radar émotionnel : l'emplacement est réservé et dit
+/// franchement qu'il attend la scène, plutôt que de laisser croire à un média
+/// cassé. Le texte de l'événement déclencheur tient lieu de scène en
+/// attendant — sans lui, la situation serait injouable.
+class _VideoPlaceholder extends StatelessWidget {
+  const _VideoPlaceholder({required this.trigger});
+
+  final String trigger;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Semantics(
+          label: 'Emplacement de la vidéo, non disponible',
+          child: Container(
+            width: double.infinity,
+            height: 132,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: _border),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.movie_outlined, color: _muted, size: 30),
+                const SizedBox(height: 8),
+                Text(
+                  'Vidéo à venir',
+                  style: const TextStyle(
+                    color: _muted,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          trigger,
+          style: const TextStyle(color: _ink, fontSize: 16, height: 1.4),
+        ),
+      ],
+    );
+  }
+}
+
 class _ResponseCard extends StatelessWidget {
   const _ResponseCard({
-    required this.response,
+    super.key,
+    required this.choice,
     required this.enabled,
     required this.selected,
     required this.onTap,
   });
 
-  final ReflectivePauseResponseType response;
+  final ReflectivePauseChoice choice;
   final bool enabled;
   final bool selected;
   final VoidCallback onTap;
@@ -1138,7 +1279,7 @@ class _ResponseCard extends StatelessWidget {
       button: true,
       enabled: enabled,
       selected: selected,
-      label: response.label,
+      label: choice.text,
       child: Material(
         color: selected ? const Color(0xFFFFF1F7) : Colors.white,
         borderRadius: BorderRadius.circular(15),
@@ -1160,7 +1301,7 @@ class _ResponseCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    response.label,
+                    choice.text,
                     style: TextStyle(
                       color: enabled ? _ink : _muted,
                       fontSize: 15,
@@ -1185,9 +1326,14 @@ class _ResponseCard extends StatelessWidget {
 }
 
 class _SavedView extends StatelessWidget {
-  const _SavedView({super.key, required this.momentNumber});
+  const _SavedView({
+    super.key,
+    required this.momentNumber,
+    required this.totalMoments,
+  });
 
   final int momentNumber;
+  final int totalMoments;
 
   @override
   Widget build(BuildContext context) {
@@ -1218,7 +1364,7 @@ class _SavedView extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              momentNumber < _moments.length
+              momentNumber < totalMoments
                   ? 'Moving calmly to the next moment.'
                   : 'Your response pattern is ready.',
               style: const TextStyle(color: _muted, fontSize: 16),
@@ -1660,20 +1806,22 @@ class _ReflectiveRulesDialog extends StatelessWidget {
             const SizedBox(height: 20),
             const _InstructionCard(
               number: 1,
-              title: 'Pause',
-              description: 'Wait for the three-second timer.',
+              title: 'Read and wait',
+              description:
+                  'Read the complete situation. Responses unlock when the countdown ends.',
             ),
             const SizedBox(height: 10),
             const _InstructionCard(
               number: 2,
               title: 'Choose',
-              description: 'Pick only one natural response.',
+              description: 'Pick one response that feels most natural to you.',
             ),
             const SizedBox(height: 10),
             const _InstructionCard(
               number: 3,
-              title: 'Continue',
-              description: 'Your answer is saved without immediate correction.',
+              title: 'Validate',
+              description:
+                  'Save your answer and continue. Results appear after 10 moments.',
             ),
             const SizedBox(height: 20),
             GamePrimaryButton(

@@ -603,6 +603,38 @@ void main() {
       }
     });
 
+    /// Retour client : « comment les questions sont séparées, c'est trop
+    /// vulgaire ». Le rappel de consigne empruntait le style de la carte —
+    /// encre sombre, graisse extra — alors qu'il est posé à nu sur l'indigo du
+    /// plateau. Résultat : un pavé sombre sur fond sombre, lu comme un titre.
+    testWidgets('le rappel de consigne est lisible sur le plateau', (
+      tester,
+    ) async {
+      await pumpItem(tester, worstCaseItem(), screen: const Size(390, 844));
+
+      final reveal = find.byKey(const ValueKey('decision-reveal-choices'));
+      if (reveal.evaluate().isNotEmpty) {
+        await tester.tap(reveal);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+      }
+
+      final recall = find.byKey(const ValueKey('decision-task-recall'));
+      expect(recall, findsOneWidget, reason: 'on est bien sur l\'écran de choix');
+
+      final style = tester.widget<Text>(recall).style!;
+      expect(
+        style.color,
+        Colors.white,
+        reason: 'posé sur l\'indigo, le rappel doit contraster avec le fond',
+      );
+      expect(
+        style.fontWeight,
+        isNot(FontWeight.w800),
+        reason: 'un rappel n\'est pas un titre : l\'extra-gras le fait crier',
+      );
+    });
+
     /// La compaction a une limite : quand le candidat a agrandi la police de son
     /// téléphone, plus rien ne tient. Le comportement attendu n'est alors pas de
     /// rétrécir le texte — ce serait annuler son réglage d'accessibilité — mais

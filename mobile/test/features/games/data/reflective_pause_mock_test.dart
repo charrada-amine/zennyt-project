@@ -14,17 +14,21 @@ void main() {
 
   setUp(() => repo = GamesMockRepository());
 
+  /// Réaction la mieux cotée de TR-001 à TR-010, relevée dans le document du
+  /// client — mêmes valeurs que le test serveur, et écrites en dur pour la même
+  /// raison : les lire dans la configuration confirmerait seulement qu'elle est
+  /// égale à elle-même.
   const recommended = <ReflectivePauseResponseType>[
-    ReflectivePauseResponseType.breatheAnalyze,
-    ReflectivePauseResponseType.askForMoreInformation,
-    ReflectivePauseResponseType.wait,
-    ReflectivePauseResponseType.askForMoreInformation,
-    ReflectivePauseResponseType.breatheAnalyze,
-    ReflectivePauseResponseType.reformulateCalmly,
-    ReflectivePauseResponseType.wait,
-    ReflectivePauseResponseType.reformulateCalmly,
-    ReflectivePauseResponseType.breatheAnalyze,
-    ReflectivePauseResponseType.askForMoreInformation,
+    ReflectivePauseResponseType.reformulateCalmly, // TR-001
+    ReflectivePauseResponseType.askForMoreInformation, // TR-002
+    ReflectivePauseResponseType.askForMoreInformation, // TR-003
+    ReflectivePauseResponseType.askForMoreInformation, // TR-004
+    ReflectivePauseResponseType.reformulateCalmly, // TR-005
+    ReflectivePauseResponseType.wait, // TR-006
+    ReflectivePauseResponseType.breatheAnalyze, // TR-007
+    ReflectivePauseResponseType.reformulateCalmly, // TR-008
+    ReflectivePauseResponseType.breatheAnalyze, // TR-009
+    ReflectivePauseResponseType.wait, // TR-010
   ];
 
   ReflectivePauseMetrics perfectMetrics() {
@@ -32,7 +36,7 @@ void main() {
       moments: [
         for (var i = 0; i < ReflectivePauseConfig.totalMoments; i++)
           ReflectivePauseMomentMetric(
-            momentId: 'PRESSURE_${(i + 1).toString().padLeft(2, '0')}',
+            momentId: 'TR-${(i + 1).toString().padLeft(3, '0')}',
             selectedResponse: recommended[i],
             responseTimeMs: 3500,
             minimumTimerReached: true,
@@ -69,12 +73,15 @@ void main() {
         final timerReached = i < 8;
         final response = switch (i) {
           7 => ReflectivePauseResponseType.respondImpulsively,
-          8 || 9 => ReflectivePauseResponseType.wait,
+          // TR-009 attend « respirer » et TR-010 « attendre » : il faut donc
+          // une AUTRE réponse posée pour que ces deux moments ne comptent pas
+          // comme des prises de recul.
+          8 || 9 => ReflectivePauseResponseType.askForMoreInformation,
           _ => recommended[i],
         };
         moments.add(
           ReflectivePauseMomentMetric(
-            momentId: 'PRESSURE_${(i + 1).toString().padLeft(2, '0')}',
+            momentId: 'TR-${(i + 1).toString().padLeft(3, '0')}',
             selectedResponse: response,
             responseTimeMs: timerReached ? 3200 : 2500,
             minimumTimerReached: timerReached,

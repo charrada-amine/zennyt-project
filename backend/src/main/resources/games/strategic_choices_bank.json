@@ -1,0 +1,3485 @@
+{
+  "source": "Choix_strategique_OPTIMISE_Independant_60_Situations.docx",
+  "situations": [
+    {
+      "id": "CS-001",
+      "title": "La réunion interrompue",
+      "context": "prise de parole coupée à plusieurs reprises pendant une réunion.",
+      "scene": "Une salle de réunion, en pleine journée de travail. Le personnage principal présente un point à l’équipe lorsqu’un collègue l’interrompt une première fois, puis une seconde fois quelques instants après, avant qu’il/elle n’ait pu terminer sa phrase. Le personnage doit décider comment réagir face à ces interruptions répétées, sous le regard du reste de l’équipe.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 1,
+          "rationale": "Laisser passer une fois est possible mais ne règle rien si récurrent"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "N’apporte rien dans l’instant"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 2,
+          "rationale": "Utile pour ne pas répondre sous le coup de l’agacement"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 1,
+          "rationale": "Utile en soutien, mais pas l’action prioritaire"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 3,
+          "rationale": "Réponse la plus directe et efficace pour reprendre la parole"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 1,
+          "rationale": "Peut détendre mais risque de minimiser le besoin réel"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 0,
+          "rationale": "Enjeu trop mineur et immédiat pour solliciter un tiers"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 2,
+          "rationale": "Reprendre activement le fil est utile, moins ciblé que l’assertivité"
+        }
+      ]
+    },
+    {
+      "id": "CS-002",
+      "title": "Le retour inattendu",
+      "context": "retour surprise d’une personne dans un contexte ayant changé en son absence, source de tension relationnelle.",
+      "scene": "Un lieu partagé (bureau ou domicile) où le personnage a réorganisé certaines choses en l’absence d’un proche ou d’un collègue. Cette personne revient plus tôt que prévu et découvre les changements sans en avoir été informée, provoquant une surprise teintée d’incompréhension. Le personnage doit gérer la réaction immédiate de la personne qui revient.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": true,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 1,
+          "rationale": "Ne résout pas la surprise/le malaise"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Contre-productif"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 2,
+          "rationale": "Utile pour absorber la surprise avant de réagir"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 3,
+          "rationale": "Reformuler la situation évite une réaction excessive"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 3,
+          "rationale": "Exprimer clairement ressenti et besoins est central"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 1,
+          "rationale": "Peut aider selon le ton, mais secondaire"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 1,
+          "rationale": "Peu pertinent si la situation est dyadique"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 1,
+          "rationale": "Moins prioritaire que la communication ici"
+        }
+      ]
+    },
+    {
+      "id": "CS-003",
+      "title": "Le lancement raté",
+      "context": "échec d’un lancement (projet/prise de parole), nécessitant une réponse corrective.",
+      "scene": "Le personnage vient de présenter ou de lancer un projet/produit devant une audience (clients, équipe, hiérarchie), et le lancement se solde par un échec visible (absence de réaction, erreurs techniques, résultats décevants). Le personnage doit décider comment réagir immédiatement après cet échec, devant les autres.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 0,
+          "rationale": "Fuir un échec professionnel est contre-productif"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Aggrave le stress sans effet correctif"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 2,
+          "rationale": "Utile pour retrouver un état propice à l’action"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 2,
+          "rationale": "Aide à relativiser l’échec pour rebondir"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 1,
+          "rationale": "Peu central ici"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Risque de minimiser un enjeu professionnel réel"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 2,
+          "rationale": "Utile mais secondaire par rapport à l’action"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 3,
+          "rationale": "Corriger/relancer est la réponse la plus adaptée"
+        }
+      ]
+    },
+    {
+      "id": "CS-004",
+      "title": "Le train manqué",
+      "context": "pression temporelle liée à un imprévu logistique.",
+      "scene": "Le personnage arrive sur le quai de gare au moment où le train s’ébranle et part sans lui/elle, alors qu’un rendez-vous important l’attend à l’arrivée. Il/elle doit décider comment réagir dans les secondes qui suivent ce contretemps.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 0,
+          "rationale": "Inadapté face à un problème logistique concret"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "N’aide pas à trouver une solution"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 2,
+          "rationale": "Utile pour éviter la panique avant de décider"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 2,
+          "rationale": "Aide à relativiser le contretemps"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 1,
+          "rationale": "Peu pertinent seul face à un problème logistique"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 1,
+          "rationale": "Peut détendre mais non prioritaire"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 1,
+          "rationale": "Utile si alternatives à trouver avec d’autres"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 3,
+          "rationale": "Chercher activement une solution est prioritaire"
+        }
+      ]
+    },
+    {
+      "id": "CS-005",
+      "title": "Les deux urgences",
+      "context": "deux demandes urgentes contradictoires, probablement émises par deux personnes différentes.",
+      "scene": "Le personnage reçoit presque simultanément deux sollicitations urgentes et incompatibles de la part de deux personnes différentes (par exemple deux supérieurs ou deux clients), chacune exigeant une réponse immédiate. Il/elle doit décider comment gérer ce conflit de priorités en temps réel.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 0,
+          "rationale": "Fuir la décision aggrave la situation"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Inefficace sous pression de temps"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 2,
+          "rationale": "Utile avant d’arbitrer"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 2,
+          "rationale": "Aide à prioriser objectivement"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 3,
+          "rationale": "Négocier ouvertement les priorités est la clé"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Non pertinent dans un arbitrage sous tension"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 1,
+          "rationale": "Utile en renfort si conflit d’autorité"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 2,
+          "rationale": "Utile mais doit s’appuyer sur la communication"
+        }
+      ]
+    },
+    {
+      "id": "CS-006",
+      "title": "Le désaccord sur la méthode",
+      "context": "désaccord professionnel sur une façon de faire.",
+      "scene": "En réunion de travail, un collègue conteste ouvertement la méthode choisie par le personnage pour mener un projet, en proposant une approche différente. Le ton reste professionnel mais le désaccord est net. Le personnage doit décider comment répondre.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 1,
+          "rationale": "Évitement temporaire possible mais peu constructif"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Inefficace"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 1,
+          "rationale": "Utile en soutien si tension"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 2,
+          "rationale": "Permet d’envisager la méthode de l’autre"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 3,
+          "rationale": "Exposer son point de vue posément est optimal"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 1,
+          "rationale": "Peut détendre un désaccord bénin"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 1,
+          "rationale": "Utile si blocage persistant"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 2,
+          "rationale": "Utile en complément d’une discussion ouverte"
+        }
+      ]
+    },
+    {
+      "id": "CS-007",
+      "title": "Le malentendu sur les tâches",
+      "context": "confusion sur la répartition du travail.",
+      "scene": "Le personnage découvre qu’une tâche qu’il pensait assignée à un collègue n’a pas été faite, chacun ayant compris différemment la répartition du travail, alors qu’une échéance approche. Il/elle doit décider comment réagir face à ce malentendu.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 0,
+          "rationale": "Laisse le malentendu s’installer"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "N’aide pas à clarifier"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 1,
+          "rationale": "Utile en soutien si frustration"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 1,
+          "rationale": "Secondaire par rapport à la clarification directe"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 3,
+          "rationale": "Clarifier directement résout la source du problème"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Non prioritaire"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 1,
+          "rationale": "Utile si un tiers doit arbitrer la répartition"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 2,
+          "rationale": "Réorganiser concrètement est utile en complément"
+        }
+      ]
+    },
+    {
+      "id": "CS-008",
+      "title": "Le changement décidé sans elle",
+      "context": "décision prise sans consultation, sentiment d’exclusion/dévalorisation.",
+      "scene": "Le personnage apprend qu’une décision importante concernant son propre travail ou son équipe a été prise sans qu’il/elle ait été consulté(e) ni même informé(e) au préalable. Il/elle doit décider comment réagir en découvrant ce changement fait accompli.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 1,
+          "rationale": "Ne répare pas le sentiment d’exclusion"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Aggrave le ressentiment"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 2,
+          "rationale": "Utile pour ne pas réagir à chaud"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 2,
+          "rationale": "Aide à comprendre les raisons possibles de l’exclusion"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 3,
+          "rationale": "Exprimer le besoin d’être consultée est central"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Non pertinent sur un enjeu de reconnaissance"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 1,
+          "rationale": "Secondaire ici"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 1,
+          "rationale": "Moins pertinent qu’une clarification directe"
+        }
+      ]
+    },
+    {
+      "id": "CS-009",
+      "title": "Le ton monte en appel visio",
+      "context": "tension croissante en visioconférence, risque d’escalade émotionnelle.",
+      "scene": "Lors d’une visioconférence professionnelle, un échange s’envenime progressivement : les voix montent, les interruptions se multiplient, la tension devient palpable à l’écran. Le personnage doit décider comment réagir alors que le ton continue de monter.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 1,
+          "rationale": "Se déconnecter abruptement aggrave souvent la tension"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Inadapté en temps réel"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 3,
+          "rationale": "Réponse la plus adaptée pour désamorcer l’escalade"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 1,
+          "rationale": "Utile mais secondaire dans l’instant"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 2,
+          "rationale": "Utile une fois le calme retrouvé"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Risque d’aggraver la tension"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 0,
+          "rationale": "Non pertinent en instantané"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 1,
+          "rationale": "Prématuré avant régulation émotionnelle"
+        }
+      ]
+    },
+    {
+      "id": "CS-010",
+      "title": "Le désaccord qui s’enlise",
+      "context": "conflit prolongé, dans l’impasse.",
+      "scene": "Une discussion professionnelle entre le personnage et un collègue tourne en rond depuis un moment : chacun campe sur sa position, aucun compromis ne se dessine, et la discussion s’enlise sans issue. Le personnage doit décider comment sortir de cette impasse.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 1,
+          "rationale": "Peut temporiser mais ne débloque pas la situation"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Entretient le blocage"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 1,
+          "rationale": "Utile en soutien"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 2,
+          "rationale": "Aide à sortir de la fixation sur sa position"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 2,
+          "rationale": "Nécessaire mais insuffisant si déjà tenté sans succès"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Peu adapté à un blocage installé"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 3,
+          "rationale": "Un regard extérieur/médiation est la solution la plus efficace pour débloquer"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 1,
+          "rationale": "Peu pertinent seul"
+        }
+      ]
+    },
+    {
+      "id": "CS-011",
+      "title": "La pique en pause déjeuner",
+      "context": "remarque désobligeante informelle entre collègues.",
+      "scene": "Pendant une pause déjeuner informelle avec des collègues, l’un d’eux lance une remarque désobligeante déguisée en plaisanterie à l’égard du personnage, devant les autres. Le personnage doit décider comment réagir dans l’instant, dans ce cadre informel.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 1,
+          "rationale": "Possible pour un enjeu mineur mais laisse un malaise"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Disproportionné pour l’enjeu"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 1,
+          "rationale": "Utile en soutien"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 2,
+          "rationale": "Utile pour relativiser une pique mineure"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 2,
+          "rationale": "Efficace mais parfois trop formel pour ce registre"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 3,
+          "rationale": "Registre informel adapté, désamorce sans envenimer"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 0,
+          "rationale": "Disproportionné pour l’enjeu"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 1,
+          "rationale": "Peu pertinent ici"
+        }
+      ]
+    },
+    {
+      "id": "CS-012",
+      "title": "Le désaccord devant le client",
+      "context": "désaccord professionnel exposé devant un client, enjeu d’image.",
+      "scene": "En réunion avec un client important, un collègue du personnage exprime publiquement un désaccord sur une proposition, créant un moment de flottement devant le client. Le personnage doit décider comment gérer ce désaccord affiché en temps réel, sans nuire à l’image professionnelle.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 1,
+          "rationale": "Fuir expose davantage l’image professionnelle"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Inadapté dans l’instant"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 2,
+          "rationale": "Utile pour garder la maîtrise devant le client"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 1,
+          "rationale": "Secondaire dans l’instant"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 2,
+          "rationale": "Utile mais doit rester discret devant le client"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Risqué devant un client"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 0,
+          "rationale": "Non disponible dans l’instant"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 3,
+          "rationale": "Gérer la situation de façon posée et constructive protège la relation client"
+        }
+      ]
+    },
+    {
+      "id": "CS-013",
+      "title": "La remise en cause publique de compétence",
+      "context": "attaque publique sur la compétence professionnelle, menace identitaire forte.",
+      "scene": "Lors d’une réunion ou d’un échange en public, une personne remet ouvertement en cause la compétence professionnelle du personnage, devant plusieurs témoins (collègues, hiérarchie). Le personnage doit décider comment répondre à cette attaque directe sur son professionnalisme.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 0,
+          "rationale": "Le retrait renforce la perception de faiblesse/incompétence"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Aggrave l’atteinte à l’estime de soi"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 2,
+          "rationale": "Nécessaire pour ne pas réagir sous le coup de l’émotion"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 3,
+          "rationale": "Essentiel pour ne pas intérioriser une remise en cause injuste"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 3,
+          "rationale": "Répondre factuellement et calmement restaure la crédibilité"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Risque de paraître désinvolte sur un enjeu identitaire fort"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 1,
+          "rationale": "Utile après coup, pas dans l’instant"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 2,
+          "rationale": "Utile en complément d’une réponse assertive"
+        }
+      ]
+    },
+    {
+      "id": "CS-014",
+      "title": "La négociation qui dérape",
+      "context": "négociation professionnelle qui s’envenime.",
+      "scene": "Le personnage mène une négociation professionnelle (commerciale ou interne) qui commence à mal tourner : l’interlocuteur hausse le ton, les positions se durcissent, le climat devient conflictuel. Le personnage doit décider comment réagir pour ne pas laisser la négociation échouer.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 0,
+          "rationale": "Quitter la négociation abruptement est risqué"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Inadapté en temps réel"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 3,
+          "rationale": "Essentiel pour désamorcer avant que la négociation échoue"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 1,
+          "rationale": "Utile mais secondaire dans l’instant"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 3,
+          "rationale": "Recentrer fermement mais calmement est la clé"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Risqué dans un contexte de négociation tendue"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 0,
+          "rationale": "Non disponible dans l’instant"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 1,
+          "rationale": "Prématuré avant la régulation émotionnelle"
+        }
+      ]
+    },
+    {
+      "id": "CS-015",
+      "title": "La correction sur la copie",
+      "context": "retour correctif sur un travail rendu.",
+      "scene": "Le personnage reçoit en retour un travail rendu (document, copie, dossier) fortement annoté et corrigé par un supérieur ou un enseignant, avec des remarques sévères. Il/elle doit décider comment réagir face à l’ampleur des corrections.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 1,
+          "rationale": "Évitement compréhensible mais peu constructif"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Inefficace"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 1,
+          "rationale": "Utile en soutien"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 2,
+          "rationale": "Aide à recevoir la correction sans la vivre comme un jugement global"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 1,
+          "rationale": "Peu central si l’enjeu est la compréhension, pas le conflit"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Peu pertinent"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 3,
+          "rationale": "Demander des clarifications est la réponse la plus constructive"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 2,
+          "rationale": "Corriger directement est utile une fois la correction comprise"
+        }
+      ]
+    },
+    {
+      "id": "CS-016",
+      "title": "La remarque en passant",
+      "context": "remarque désobligeante brève, contexte professionnel.",
+      "scene": "Alors que le personnage travaille, un collègue passe et lâche une remarque désobligeante en passant, sans s’arrêter, avant de poursuivre son chemin. Le personnage doit décider comment réagir face à cette pique rapide et inattendue.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 1,
+          "rationale": "Laisser passer une fois est envisageable"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Disproportionné"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 1,
+          "rationale": "Utile en soutien"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 2,
+          "rationale": "Permet de ne pas sur-interpréter une remarque isolée"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 3,
+          "rationale": "Réagir clairement évite l’escalade et pose une limite"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 1,
+          "rationale": "Peut fonctionner selon le ton mais moins fiable que l’assertivité"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 0,
+          "rationale": "Disproportionné pour l’enjeu"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 1,
+          "rationale": "Peu pertinent ici"
+        }
+      ]
+    },
+    {
+      "id": "CS-017",
+      "title": "Le commentaire sur le style",
+      "context": "commentaire sur l’apparence/le style personnel ou professionnel.",
+      "scene": "Une personne fait un commentaire sur le style vestimentaire ou la présentation du personnage, dans un cadre professionnel, d’une manière qui peut être perçue comme un jugement plus qu’un simple constat. Le personnage doit décider comment réagir à ce commentaire personnel.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": true,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 1,
+          "rationale": "Possible pour un enjeu mineur"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Disproportionné"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 1,
+          "rationale": "Utile en soutien"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 3,
+          "rationale": "Central pour ne pas laisser un commentaire subjectif affecter l’estime de soi"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 2,
+          "rationale": "Utile en complément si le commentaire est déplacé"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 1,
+          "rationale": "Peut fonctionner selon le registre"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 0,
+          "rationale": "Disproportionné"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 1,
+          "rationale": "Peu pertinent ici"
+        }
+      ]
+    },
+    {
+      "id": "CS-018",
+      "title": "L’e-mail de retour cinglant",
+      "context": "réception d’un e-mail au ton agressif.",
+      "scene": "Le personnage reçoit un e-mail de réponse au ton sec et cinglant de la part d’un collègue ou d’un client, en réaction à un précédent message ou livrable. Il/elle doit décider comment réagir face à cet e-mail avant d’y répondre.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 0,
+          "rationale": "Ignorer indéfiniment n’est pas viable professionnellement"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Alimente la rumination sans agir"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 3,
+          "rationale": "Essentiel : ne jamais répondre à chaud à un e-mail cinglant"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 2,
+          "rationale": "Utile pour ne pas sur-interpréter le ton écrit"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 2,
+          "rationale": "Nécessaire une fois le calme retrouvé, pour répondre posément"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Risqué à l’écrit, peut être mal interprété"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 0,
+          "rationale": "Non nécessaire pour ce niveau d’enjeu"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 1,
+          "rationale": "Prématuré avant la régulation"
+        }
+      ]
+    },
+    {
+      "id": "CS-019",
+      "title": "L’entretien annuel décevant",
+      "context": "évaluation annuelle en deçà des attentes.",
+      "scene": "Lors de son entretien annuel d’évaluation, le personnage reçoit un bilan en deçà de ce qu’il/elle attendait, avec des remarques qui le/la déçoivent. Il/elle doit décider comment réagir face à ce retour décevant, en face à face avec son responsable.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 0,
+          "rationale": "Se soumettre sans réagir laisse le désaccord non exprimé"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Inefficace"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 2,
+          "rationale": "Utile pour encaisser la déception avant de répondre"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 2,
+          "rationale": "Aide à replacer l’évaluation dans son contexte"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 3,
+          "rationale": "Exprimer son désaccord/ses attentes est la réponse la plus constructive"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Non pertinent"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 1,
+          "rationale": "Utile après coup"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 1,
+          "rationale": "Secondaire par rapport au dialogue"
+        }
+      ]
+    },
+    {
+      "id": "CS-020",
+      "title": "La blague qui pique",
+      "context": "plaisanterie blessante en contexte social/professionnel informel.",
+      "scene": "Dans un cadre social ou professionnel informel, une personne fait une blague dont le personnage est la cible, provoquant un moment de flottement et un léger malaise. Le personnage doit décider comment réagir à cette blague qui le/la touche.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 1,
+          "rationale": "Possible pour un enjeu mineur isolé"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Disproportionné"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 1,
+          "rationale": "Utile en soutien"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 2,
+          "rationale": "Aide à distinguer intention et impact"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 2,
+          "rationale": "Efficace pour poser une limite sans rompre le lien"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 3,
+          "rationale": "Répondre sur un registre similaire désamorce souvent le mieux dans ce contexte"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 0,
+          "rationale": "Disproportionné"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 1,
+          "rationale": "Peu pertinent ici"
+        }
+      ]
+    },
+    {
+      "id": "CS-021",
+      "title": "L’accusation infondée en réunion",
+      "context": "accusation publique et injustifiée en réunion.",
+      "scene": "En pleine réunion, une personne accuse publiquement le personnage d’une erreur ou d’un manquement qu’il/elle n’a pas commis, devant l’ensemble des participants. Le personnage doit décider comment réagir face à cette accusation infondée.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 0,
+          "rationale": "Laisser l’accusation sans réponse est risqué pour la réputation"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Inadapté dans l’instant"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 3,
+          "rationale": "Nécessaire pour répondre sans agressivité défensive"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 1,
+          "rationale": "Utile mais secondaire dans l’instant"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 3,
+          "rationale": "Réfuter calmement et factuellement est la réponse optimale"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Risqué sur une accusation sérieuse"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 0,
+          "rationale": "Non disponible dans l’instant"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 2,
+          "rationale": "Utile en complément (apporter des faits/preuves)"
+        }
+      ]
+    },
+    {
+      "id": "CS-022",
+      "title": "Le commentaire critique en ligne",
+      "context": "critique publique sur un espace en ligne (réseau social, avis client, etc.).",
+      "scene": "Le personnage découvre un commentaire critique et négatif publié en ligne (réseau social, plateforme d’avis) à son sujet ou au sujet de son travail. Il/elle doit décider comment réagir face à cette critique publique.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 1,
+          "rationale": "Ignorer peut être défendable pour un commentaire isolé mineur"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Inefficace"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 2,
+          "rationale": "Utile avant de répondre publiquement"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 2,
+          "rationale": "Aide à ne pas sur-réagir à une critique en ligne"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 1,
+          "rationale": "Utile mais moins central qu’une réponse publique posée"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 1,
+          "rationale": "Risqué sans connaître le ton exact de la critique"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 1,
+          "rationale": "Utile en interne avant de répondre"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 3,
+          "rationale": "Répondre de façon posée et constructive protège la réputation"
+        }
+      ]
+    },
+    {
+      "id": "CS-023",
+      "title": "Le bilan à 360° sans filtre",
+      "context": "retours multiples et directs, potentiellement déstabilisants.",
+      "scene": "Le personnage reçoit les résultats d’une évaluation à 360° (retours croisés de collègues, subordonnés, supérieurs), rédigés de façon directe et sans filtre, incluant des critiques marquantes. Il/elle doit décider comment réagir face à la densité de ces retours.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 1,
+          "rationale": "Compréhensible face à un choc émotionnel mais peu constructif"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Risque d’auto-dévalorisation excessive"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 2,
+          "rationale": "Utile pour digérer un retour dense émotionnellement"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 3,
+          "rationale": "Essentiel pour trier les retours utiles sans s’effondrer"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 1,
+          "rationale": "Secondaire à ce stade"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Non pertinent"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 2,
+          "rationale": "Utile pour prendre du recul avec un tiers"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 1,
+          "rationale": "Prématuré avant d’avoir digéré les retours"
+        }
+      ]
+    },
+    {
+      "id": "CS-024",
+      "title": "La faute de frappe envoyée",
+      "context": "erreur mineure (typo) envoyée dans une communication.",
+      "scene": "Le personnage se rend compte qu’il/elle vient d’envoyer un message professionnel contenant une faute de frappe gênante ou ambiguë, à un destinataire important. Il/elle doit décider comment réagir immédiatement après avoir remarqué l’erreur.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 1,
+          "rationale": "Envisageable si l’erreur est bénigne"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Disproportionné pour une erreur mineure"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 1,
+          "rationale": "Utile en soutien"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 2,
+          "rationale": "Aide à relativiser une erreur mineure"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 1,
+          "rationale": "Peu central ici"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 1,
+          "rationale": "Peut détendre selon le contexte"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 0,
+          "rationale": "Disproportionné"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 3,
+          "rationale": "Corriger rapidement est la réponse la plus efficace"
+        }
+      ]
+    },
+    {
+      "id": "CS-025",
+      "title": "Le chiffre inversé",
+      "context": "erreur de saisie/chiffre dans un document professionnel.",
+      "scene": "Le personnage découvre qu’un chiffre a été inversé ou mal saisi dans un document professionnel déjà transmis (rapport, devis, présentation), avec un risque d’impact sur une décision ou un client. Il/elle doit décider comment réagir face à cette erreur découverte après coup.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 0,
+          "rationale": "Laisser une erreur de chiffre non corrigée est risqué"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "N’aide pas à corriger"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 1,
+          "rationale": "Utile en soutien"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 1,
+          "rationale": "Secondaire par rapport à la correction"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 1,
+          "rationale": "Peu pertinent seul"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Non pertinent pour une erreur factuelle"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 1,
+          "rationale": "Utile si l’erreur a des implications larges"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 3,
+          "rationale": "Corriger et signaler rapidement est prioritaire"
+        }
+      ]
+    },
+    {
+      "id": "CS-026",
+      "title": "Le blocage sur l’exercice",
+      "context": "difficulté/blocage dans une tâche ou un apprentissage.",
+      "scene": "Le personnage est bloqué depuis un moment sur un exercice, une tâche ou un problème qu’il/elle n’arrive pas à résoudre seul(e), la frustration montant progressivement. Il/elle doit décider comment réagir face à ce blocage persistant.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 1,
+          "rationale": "Faire une pause peut être utile mais pas résolutif seul"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Alimente la frustration sans débloquer"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 2,
+          "rationale": "Utile pour réduire la frustration avant de reprendre"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 1,
+          "rationale": "Utile en soutien"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 0,
+          "rationale": "Peu pertinent, pas un enjeu relationnel"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Non pertinent"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 3,
+          "rationale": "Demander de l’aide est la réponse la plus efficace face à un blocage"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 2,
+          "rationale": "Utile en complément (réessayer autrement)"
+        }
+      ]
+    },
+    {
+      "id": "CS-027",
+      "title": "La réponse négative attendue",
+      "context": "anticipation d’un refus/d’une mauvaise nouvelle à venir.",
+      "scene": "Le personnage attend une réponse importante (résultat, décision, retour) dont il/elle anticipe qu’elle sera négative, dans les instants précédant l’annonce. Il/elle doit décider comment se comporter dans cette attente anxiogène avant de recevoir la réponse.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 0,
+          "rationale": "Retarder l’échéance n’aide pas à s’y préparer"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Alimente l’anxiété anticipatoire"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 3,
+          "rationale": "Essentiel pour aborder l’échéance avec calme"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 2,
+          "rationale": "Utile pour préparer des scénarios de réponse"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 2,
+          "rationale": "Utile pour se préparer à réagir posément à la réponse"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Non pertinent dans l’anticipation"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 0,
+          "rationale": "Secondaire ici"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 1,
+          "rationale": "Prématuré tant que la réponse n’est pas connue"
+        }
+      ]
+    },
+    {
+      "id": "CS-028",
+      "title": "L’oubli qui retombe sur un collègue",
+      "context": "propre erreur/oubli dont les conséquences retombent sur un collègue.",
+      "scene": "Le personnage réalise qu’un oubli ou une erreur de sa part a eu des conséquences négatives directes pour un collègue, qui en subit les conséquences à sa place. Il/elle doit décider comment réagir en découvrant l’impact de son erreur sur autrui.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 0,
+          "rationale": "Fuir sa responsabilité est contre-productif et délétère pour la relation"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "N’aide pas à réparer"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 1,
+          "rationale": "Utile en soutien"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 1,
+          "rationale": "Secondaire par rapport à la réparation"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 2,
+          "rationale": "Reconnaître l’erreur clairement est nécessaire"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Risque de minimiser l’impact sur le collègue"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 0,
+          "rationale": "Non nécessaire ici"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 3,
+          "rationale": "Réparer/assumer rapidement est la réponse la plus adaptée"
+        }
+      ]
+    },
+    {
+      "id": "CS-029",
+      "title": "Le projet qui n’aboutit pas",
+      "context": "projet en échec progressif, sur la durée.",
+      "scene": "Après plusieurs semaines ou mois d’investissement, le personnage constate que le projet sur lequel il/elle travaille n’avance pas et semble ne pas pouvoir aboutir dans sa forme actuelle. Il/elle doit décider comment réagir face à cette impasse progressive.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 1,
+          "rationale": "Un retrait temporaire réfléchi peut être adapté selon le contexte, mais reste limité"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Aggrave le découragement"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 1,
+          "rationale": "Utile en soutien"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 3,
+          "rationale": "Essentiel pour réévaluer objectifs et attentes face à un échec progressif"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 1,
+          "rationale": "Secondaire ici"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Non pertinent"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 2,
+          "rationale": "Utile pour obtenir un regard extérieur sur le projet"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 2,
+          "rationale": "Utile mais doit s’appuyer sur une réévaluation préalable"
+        }
+      ]
+    },
+    {
+      "id": "CS-030",
+      "title": "L’annonce difficile au directeur",
+      "context": "devoir annoncer une mauvaise nouvelle à un supérieur hiérarchique.",
+      "scene": "Le personnage doit annoncer une mauvaise nouvelle (retard, échec, problème) à son directeur ou à un supérieur hiérarchique important, dans un entretien à fort enjeu. Il/elle doit décider comment aborder et formuler cette annonce difficile.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 0,
+          "rationale": "Retarder l’annonce aggrave généralement la situation"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "N’aide pas à préparer l’annonce"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 2,
+          "rationale": "Utile pour aborder l’annonce avec calme"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 1,
+          "rationale": "Utile en soutien"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 3,
+          "rationale": "Annoncer clairement et factuellement est la réponse optimale"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Risqué dans ce contexte hiérarchique sensible"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 1,
+          "rationale": "Utile en préparation, pas dans l’annonce elle-même"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 2,
+          "rationale": "Utile en complément (proposer des solutions avec l’annonce)"
+        }
+      ]
+    },
+    {
+      "id": "CS-031",
+      "title": "L’échec du lancement produit",
+      "context": "échec collectif d’un lancement produit, enjeu d’équipe.",
+      "scene": "Toute l’équipe du personnage constate, après le lancement d’un nouveau produit, que les résultats sont très en-deçà des attentes, créant une déception et une inquiétude collective. Le personnage doit décider comment réagir face à cet échec partagé avec son équipe.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 0,
+          "rationale": "Contre-productif face à un enjeu collectif"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Aggrave le climat d’équipe"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 1,
+          "rationale": "Utile en soutien individuel"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 2,
+          "rationale": "Utile pour recadrer l’échec comme apprentissage collectif"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 1,
+          "rationale": "Secondaire ici"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Risqué sur un échec professionnel significatif"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 3,
+          "rationale": "Mobiliser l’équipe est essentiel pour un enjeu collectif"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 3,
+          "rationale": "Une réponse corrective concrète est tout aussi prioritaire"
+        }
+      ]
+    },
+    {
+      "id": "CS-032",
+      "title": "Le troisième refus consécutif",
+      "context": "accumulation de refus/rejets successifs, risque de découragement.",
+      "scene": "Le personnage reçoit un troisième refus consécutif (candidature, proposition, demande) après avoir déjà essuyé deux échecs similaires auparavant. Il/elle doit décider comment réagir face à cette accumulation de refus.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 0,
+          "rationale": "Abandonner après trois refus sans recul est prématuré"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Aggrave le découragement"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 3,
+          "rationale": "Essentiel pour ne pas réagir à chaud après une série d’échecs"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 3,
+          "rationale": "Essentiel pour analyser objectivement les raisons des refus"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 1,
+          "rationale": "Secondaire à ce stade"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Non pertinent"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 1,
+          "rationale": "Utile en complément"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 1,
+          "rationale": "Prématuré sans réévaluation préalable"
+        }
+      ]
+    },
+    {
+      "id": "CS-033",
+      "title": "Le réveil tardif",
+      "context": "retard matinal, pression temporelle.",
+      "scene": "Le personnage se réveille en retard le matin d’un jour important (rendez-vous, réunion, examen), avec très peu de temps pour se préparer et arriver à l’heure. Il/elle doit décider comment réagir face à ce réveil tardif et à la pression temporelle qui en découle.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 0,
+          "rationale": "Non pertinent face à un problème logistique concret"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Fait perdre un temps précieux"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 1,
+          "rationale": "Utile en soutien bref"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 1,
+          "rationale": "Secondaire ici"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 2,
+          "rationale": "Prévenir rapidement les personnes concernées est utile"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Non prioritaire"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 0,
+          "rationale": "Peu pertinent pour ce type d’urgence"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 3,
+          "rationale": "Agir vite et efficacement est la réponse prioritaire"
+        }
+      ]
+    },
+    {
+      "id": "CS-034",
+      "title": "La salle déjà occupée",
+      "context": "imprévu logistique (salle de réunion indisponible).",
+      "scene": "Le personnage arrive à l’heure prévue pour une réunion importante et découvre que la salle réservée est déjà occupée par une autre équipe, sans solution immédiate évidente. Il/elle doit décider comment réagir face à cet imprévu logistique.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 0,
+          "rationale": "Attendre passivement retarde inutilement"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "N’aide pas à résoudre"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 1,
+          "rationale": "Utile en soutien bref"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 1,
+          "rationale": "Secondaire ici"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 2,
+          "rationale": "Utile pour négocier une solution avec les personnes concernées"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Non prioritaire"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 0,
+          "rationale": "Peu nécessaire pour un imprévu mineur"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 3,
+          "rationale": "Trouver rapidement une solution alternative est prioritaire"
+        }
+      ]
+    },
+    {
+      "id": "CS-035",
+      "title": "Le café renversé avant la présentation",
+      "context": "incident mineur et embarrassant juste avant une prise de parole.",
+      "scene": "Quelques minutes avant une présentation importante, le personnage renverse accidentellement du café sur ses vêtements ou ses documents, devant des collègues ou un public. Il/elle doit décider comment réagir face à cet incident embarrassant juste avant de prendre la parole.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 0,
+          "rationale": "Non viable juste avant une présentation"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Aggrave le stress avant de parler"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 2,
+          "rationale": "Utile pour retrouver son calme rapidement"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 2,
+          "rationale": "Utile pour relativiser un incident mineur"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 0,
+          "rationale": "Peu pertinent ici"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 2,
+          "rationale": "Peut désamorcer l’embarras efficacement dans ce registre"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 1,
+          "rationale": "Utile si aide matérielle disponible"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 3,
+          "rationale": "Gérer rapidement l’incident (nettoyer, se réorganiser) est prioritaire"
+        }
+      ]
+    },
+    {
+      "id": "CS-036",
+      "title": "Le fichier introuvable",
+      "context": "problème technique/organisationnel avant une échéance.",
+      "scene": "Juste avant une échéance importante, le personnage se rend compte qu’il/elle ne retrouve plus le fichier essentiel dont il/elle a besoin (document perdu, corrompu, ou introuvable). Il/elle doit décider comment réagir face à ce problème technique urgent.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 0,
+          "rationale": "Non viable face à une échéance"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Fait perdre un temps précieux"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 1,
+          "rationale": "Utile en soutien bref"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 1,
+          "rationale": "Secondaire ici"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 0,
+          "rationale": "Peu pertinent, problème technique et non relationnel"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Non prioritaire"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 2,
+          "rationale": "Utile si quelqu’un peut avoir une copie du fichier"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 3,
+          "rationale": "Chercher activement une solution est prioritaire"
+        }
+      ]
+    },
+    {
+      "id": "CS-037",
+      "title": "La journée qui s’enchaîne mal",
+      "context": "accumulation de petits problèmes sur une même journée.",
+      "scene": "Depuis le début de la journée, le personnage accumule les petits contretemps et problèmes (retards, erreurs, imprévus), qui s’enchaînent les uns après les autres sans répit. Il/elle doit décider comment réagir face à cette accumulation de difficultés.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 0,
+          "rationale": "Non viable, les obligations demeurent"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Aggrave le sentiment de débordement"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 2,
+          "rationale": "Utile pour ne pas se laisser déborder émotionnellement"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 3,
+          "rationale": "Essentiel pour reprendre du recul et réorganiser ses priorités"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 0,
+          "rationale": "Peu central ici"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 1,
+          "rationale": "Peut alléger mais reste secondaire"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 1,
+          "rationale": "Utile en complément"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 2,
+          "rationale": "Utile une fois les priorités réévaluées"
+        }
+      ]
+    },
+    {
+      "id": "CS-038",
+      "title": "Le fournisseur en retard",
+      "context": "retard d’un partenaire externe impactant l’activité.",
+      "scene": "Un fournisseur externe dont dépend le personnage pour une livraison ou une prestation accuse un retard important, mettant en péril un engagement pris auprès d’un client ou d’un projet. Il/elle doit décider comment réagir face à ce retard fournisseur.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 0,
+          "rationale": "Non viable pour un enjeu opérationnel"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "N’aide pas à résoudre"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 1,
+          "rationale": "Utile en soutien bref"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 1,
+          "rationale": "Secondaire ici"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 3,
+          "rationale": "Relancer fermement et clairement le fournisseur est la réponse la plus efficace"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Non pertinent"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 1,
+          "rationale": "Utile si des alternatives internes doivent être mobilisées"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 2,
+          "rationale": "Utile en complément (chercher une solution de repli)"
+        }
+      ]
+    },
+    {
+      "id": "CS-039",
+      "title": "La panne pendant la présentation",
+      "context": "incident technique en plein exposé public.",
+      "scene": "En plein milieu d’une présentation devant un public (client, équipe, direction), le matériel technique (ordinateur, projecteur, connexion) tombe en panne. Le personnage doit décider comment réagir face à cet incident technique devant l’auditoire.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 0,
+          "rationale": "Non viable devant un public"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Aggrave le stress en direct"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 3,
+          "rationale": "Essentiel pour garder son calme devant l’auditoire"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 1,
+          "rationale": "Utile mais secondaire dans l’instant"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 0,
+          "rationale": "Peu pertinent, problème technique"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 2,
+          "rationale": "Peut détendre l’auditoire efficacement dans ce contexte"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 1,
+          "rationale": "Utile si assistance technique disponible"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 3,
+          "rationale": "S’adapter et poursuivre activement est tout aussi prioritaire"
+        }
+      ]
+    },
+    {
+      "id": "CS-040",
+      "title": "L’embouteillage avant l’entretien décisif",
+      "context": "retard subi avant un rendez-vous à fort enjeu.",
+      "scene": "Le personnage est coincé dans un embouteillage alors qu’il/elle se rend à un entretien décisif (recrutement, client majeur, rendez-vous important), avec un retard qui devient inévitable. Il/elle doit décider comment réagir face à ce contretemps avant un rendez-vous à fort enjeu.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 0,
+          "rationale": "Non viable, l’entretien reste à honorer"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Aggrave le stress avant un enjeu important"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 2,
+          "rationale": "Utile pour aborder l’entretien avec calme malgré le retard"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 1,
+          "rationale": "Utile en soutien"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 2,
+          "rationale": "Utile pour gérer l’entretien malgré le contretemps"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Non prioritaire"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 3,
+          "rationale": "Prévenir immédiatement l’interlocuteur est la réponse la plus adaptée"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 2,
+          "rationale": "Utile en complément (chercher un autre itinéraire)"
+        }
+      ]
+    },
+    {
+      "id": "CS-041",
+      "title": "Les deux échéances simultanées",
+      "context": "deux délais à respecter en même temps.",
+      "scene": "Le personnage se retrouve avec deux échéances professionnelles à respecter au même moment, chacune exigeant un temps et une attention qu’il/elle ne peut consacrer aux deux à la fois. Il/elle doit décider comment gérer ce conflit de délais.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 0,
+          "rationale": "Non viable face à des échéances fermes"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Fait perdre un temps précieux"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 1,
+          "rationale": "Utile en soutien bref"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 2,
+          "rationale": "Utile pour prioriser objectivement"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 3,
+          "rationale": "Négocier les délais avec les parties concernées est la réponse la plus efficace"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Non pertinent"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 2,
+          "rationale": "Utile si une aide/délégation est possible"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 2,
+          "rationale": "Utile en complément une fois les priorités clarifiées"
+        }
+      ]
+    },
+    {
+      "id": "CS-042",
+      "title": "La liste qui s’allonge",
+      "context": "accumulation progressive de tâches, surcharge.",
+      "scene": "Tout au long de la journée, la liste des tâches à accomplir par le personnage ne cesse de s’allonger, de nouvelles demandes s’ajoutant sans que les précédentes ne soient traitées. Il/elle doit décider comment réagir face à cette accumulation croissante.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 0,
+          "rationale": "N’arrête pas l’accumulation"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Aggrave le sentiment de débordement"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 3,
+          "rationale": "Essentiel pour ne pas se laisser submerger émotionnellement"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 3,
+          "rationale": "Essentiel pour réorganiser et hiérarchiser sereinement"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 1,
+          "rationale": "Utile en complément si délégation nécessaire"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Non pertinent"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 1,
+          "rationale": "Utile en complément"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 1,
+          "rationale": "Prématuré sans réorganisation préalable"
+        }
+      ]
+    },
+    {
+      "id": "CS-043",
+      "title": "La demande de dernière minute",
+      "context": "nouvelle sollicitation urgente et non prévue.",
+      "scene": "Alors que le personnage pensait sa journée organisée, une nouvelle demande urgente et non planifiée arrive à la dernière minute, bousculant son organisation. Il/elle doit décider comment réagir face à cette sollicitation imprévue.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 1,
+          "rationale": "Ne pas répondre clairement laisse le problème en suspens"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Inefficace"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 1,
+          "rationale": "Utile en soutien bref"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 1,
+          "rationale": "Secondaire ici"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 3,
+          "rationale": "Répondre clairement (accepter, négocier ou refuser) est la réponse la plus adaptée"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Non pertinent"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 1,
+          "rationale": "Utile si arbitrage nécessaire"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 1,
+          "rationale": "Secondaire par rapport à la clarification"
+        }
+      ]
+    },
+    {
+      "id": "CS-044",
+      "title": "Les deux managers",
+      "context": "demandes contradictoires de deux supérieurs hiérarchiques différents.",
+      "scene": "Le personnage reçoit deux consignes contradictoires de la part de deux managers différents, chacun exigeant que sa demande soit traitée en priorité. Il/elle doit décider comment gérer ce conflit d’autorité entre les deux hiérarchies.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 0,
+          "rationale": "Éviter le conflit d’autorité aggrave la situation à terme"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Inefficace"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 1,
+          "rationale": "Utile en soutien bref"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 1,
+          "rationale": "Secondaire ici"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 3,
+          "rationale": "Exposer clairement le conflit de priorités aux deux managers est essentiel"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Non pertinent"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 2,
+          "rationale": "Utile pour faire arbitrer par un niveau supérieur si besoin"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 1,
+          "rationale": "Prématuré sans clarification préalable"
+        }
+      ]
+    },
+    {
+      "id": "CS-045",
+      "title": "La fatigue qui s’installe",
+      "context": "fatigue croissante, signe précurseur d’épuisement.",
+      "scene": "Depuis plusieurs jours ou semaines, le personnage ressent une fatigue croissante liée à la charge de travail, qui commence à affecter sa concentration et son énergie. Il/elle doit décider comment réagir face à ce signal de fatigue qui s’installe durablement.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 1,
+          "rationale": "Un retrait ponctuel peut être utile mais insuffisant seul"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Aggrave l’épuisement"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 3,
+          "rationale": "Réponse la plus adaptée pour un signal précoce de fatigue/épuisement"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 1,
+          "rationale": "Utile en soutien"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 1,
+          "rationale": "Utile en complément si la charge doit être renégociée"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Non pertinent"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 2,
+          "rationale": "Utile pour ne pas rester isolé face à la fatigue"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 1,
+          "rationale": "Secondaire, une régulation est d’abord nécessaire"
+        }
+      ]
+    },
+    {
+      "id": "CS-046",
+      "title": "Le périmètre qui déborde",
+      "context": "élargissement progressif et non maîtrisé des responsabilités (scope creep).",
+      "scene": "Le personnage constate que son périmètre de responsabilités s’est progressivement élargi sans validation ni discussion explicite, dépassant ce qui avait été initialement convenu. Il/elle doit décider comment réagir face à ce débordement progressif de son rôle.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 1,
+          "rationale": "Laisser filer le périmètre aggrave la situation à terme"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Inefficace"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 1,
+          "rationale": "Utile en soutien bref"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 2,
+          "rationale": "Utile pour objectiver l’ampleur réelle du dérapage"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 3,
+          "rationale": "Poser clairement des limites est la réponse la plus efficace"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Non pertinent"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 1,
+          "rationale": "Utile en complément"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 1,
+          "rationale": "Secondaire par rapport à la clarification des limites"
+        }
+      ]
+    },
+    {
+      "id": "CS-047",
+      "title": "Le stage qui s’accumule",
+      "context": "accumulation progressive de travail en retard (stock/backlog).",
+      "scene": "Le travail en attente (dossiers, tâches, retards accumulés) continue de s’accumuler pour le personnage sans qu’il/elle parvienne à le résorber, malgré ses efforts. Il/elle doit décider comment réagir face à cette accumulation persistante.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": true,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 1,
+          "rationale": "N’arrête pas l’accumulation"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Aggrave le sentiment de débordement"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 1,
+          "rationale": "Utile en soutien bref"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 1,
+          "rationale": "Secondaire ici"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 1,
+          "rationale": "Utile en complément si délégation/renégociation nécessaire"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Non pertinent"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 3,
+          "rationale": "Demander de l’aide est la réponse la plus efficace face à une accumulation"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 2,
+          "rationale": "Utile en complément une fois l’aide mobilisée"
+        }
+      ]
+    },
+    {
+      "id": "CS-048",
+      "title": "La demande de trop",
+      "context": "sollicitation supplémentaire dépassant la capacité de charge déjà pleine.",
+      "scene": "Alors que sa charge de travail est déjà pleine, le personnage reçoit une sollicitation supplémentaire qui dépasse clairement sa capacité actuelle. Il/elle doit décider comment réagir face à cette demande de trop.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 1,
+          "rationale": "Ne pas répondre clairement laisse le problème en suspens"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Inefficace"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 1,
+          "rationale": "Utile en soutien bref"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 1,
+          "rationale": "Secondaire ici"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 3,
+          "rationale": "Poser un refus ou une renégociation claire est la réponse la plus adaptée"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Non pertinent"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 1,
+          "rationale": "Utile en complément"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 1,
+          "rationale": "Secondaire par rapport à la clarification"
+        }
+      ]
+    },
+    {
+      "id": "CS-049",
+      "title": "L’appel professionnel un soir de famille",
+      "context": "sollicitation professionnelle empiétant sur la vie privée, enjeu de frontières.",
+      "scene": "En pleine soirée en famille, le personnage reçoit un appel professionnel urgent qui vient empiéter sur ce moment personnel important. Il/elle doit décider comment réagir face à cette sollicitation professionnelle hors des horaires de travail.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 1,
+          "rationale": "Ignorer l’appel est parfois légitime mais ne clarifie pas la limite pour l’avenir"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Inefficace"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 2,
+          "rationale": "Utile pour évaluer sereinement l’urgence réelle avant de répondre"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 1,
+          "rationale": "Secondaire ici"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 3,
+          "rationale": "Poser clairement sa limite professionnelle/personnelle est la réponse la plus adaptée"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Non pertinent"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 0,
+          "rationale": "Peu pertinent pour cet enjeu individuel"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 1,
+          "rationale": "Secondaire par rapport à la clarification de la limite"
+        }
+      ]
+    },
+    {
+      "id": "CS-050",
+      "title": "L’équipe au bord de la rupture",
+      "context": "crise managériale, tension collective forte au sein d’une équipe.",
+      "scene": "Le personnage, en position de responsabilité, constate que son équipe est à bout, avec des tensions internes fortes et un risque réel de rupture (démissions, conflits ouverts, épuisement collectif). Il/elle doit décider comment réagir face à cette crise d’équipe.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 0,
+          "rationale": "Fuir sa responsabilité managériale est particulièrement délétère ici"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Aggrave la crise sans agir"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 1,
+          "rationale": "Utile en soutien individuel"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 2,
+          "rationale": "Utile pour analyser objectivement les causes de la crise"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 2,
+          "rationale": "Nécessaire pour clarifier la situation avec l’équipe"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Risqué face à une crise sérieuse"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 2,
+          "rationale": "Utile pour mobiliser des ressources RH/hiérarchiques"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 3,
+          "rationale": "Une intervention managériale concrète et rapide est prioritaire"
+        }
+      ]
+    },
+    {
+      "id": "CS-051",
+      "title": "La conversation qui continue sans elle",
+      "context": "sentiment d’exclusion lors d’un échange social/professionnel.",
+      "scene": "Le personnage revient dans un groupe (réunion, pause, discussion) après une brève absence et constate que la conversation a continué sans lui/elle, sans qu’on prenne le temps de le/la mettre au courant. Il/elle doit décider comment réagir face à ce sentiment d’exclusion ponctuelle.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 1,
+          "rationale": "Se retirer entretient le sentiment d’exclusion"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Aggrave le sentiment de rejet"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 1,
+          "rationale": "Utile en soutien bref"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 2,
+          "rationale": "Utile pour ne pas sur-interpréter une exclusion possiblement non intentionnelle"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 3,
+          "rationale": "Exprimer son ressenti/se réinsérer activement est la réponse la plus constructive"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 1,
+          "rationale": "Peut aider à se réintégrer légèrement"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 0,
+          "rationale": "Disproportionné pour cet enjeu ponctuel"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 1,
+          "rationale": "Secondaire ici"
+        }
+      ]
+    },
+    {
+      "id": "CS-052",
+      "title": "Le message resté sans réponse",
+      "context": "absence de réponse à une sollicitation, incertitude relationnelle.",
+      "scene": "Le personnage a envoyé un message important (professionnel ou personnel) et n’a reçu aucune réponse après un délai qui commence à l’inquiéter ou l’agacer. Il/elle doit décider comment réagir face à ce silence prolongé.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 1,
+          "rationale": "Attendre passivement est parfois légitime à court terme"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Alimente l’anxiété sans clarifier la situation"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 1,
+          "rationale": "Utile en soutien bref"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 2,
+          "rationale": "Utile pour ne pas sur-interpréter un silence"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 2,
+          "rationale": "Relancer clairement si le délai devient problématique est utile"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Non pertinent"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 0,
+          "rationale": "Peu nécessaire pour cet enjeu"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 2,
+          "rationale": "Relancer ou avancer autrement est une réponse pragmatique"
+        }
+      ]
+    },
+    {
+      "id": "CS-053",
+      "title": "L’anniversaire oublié",
+      "context": "oubli d’un événement personnel important, déception relationnelle.",
+      "scene": "Le personnage réalise qu’une personne proche (collègue, ami, partenaire) a oublié son anniversaire, alors que cet événement avait une importance particulière pour lui/elle. Il/elle doit décider comment réagir face à cet oubli qui le/la déçoit.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 1,
+          "rationale": "Ne rien dire entretient une déception non exprimée"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Alimente le ressentiment"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 1,
+          "rationale": "Utile en soutien bref"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 2,
+          "rationale": "Utile pour relativiser un oubli isolé sans le sur-interpréter"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 2,
+          "rationale": "Exprimer sa déception avec calme est constructif"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 3,
+          "rationale": "Registre relationnel proche où l’humour désamorce souvent bien une déception mineure"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 0,
+          "rationale": "Disproportionné"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 1,
+          "rationale": "Peu pertinent ici"
+        }
+      ]
+    },
+    {
+      "id": "CS-054",
+      "title": "Le groupe qui se resserre sans elle",
+      "context": "exclusion sociale progressive et répétée au sein d’un groupe.",
+      "scene": "Depuis quelque temps, le personnage observe qu’un groupe social ou professionnel dont il/elle faisait partie se resserre progressivement sans l’y inclure, renforçant un sentiment d’exclusion. Il/elle doit décider comment réagir face à cette mise à l’écart progressive.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 1,
+          "rationale": "Le retrait entretient et aggrave l’exclusion à terme"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Aggrave le sentiment de rejet"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 1,
+          "rationale": "Utile en soutien bref"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 3,
+          "rationale": "Essentiel pour ne pas généraliser une exclusion répétée en jugement global sur soi"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 2,
+          "rationale": "Utile pour exprimer son ressenti au groupe"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Peu adapté à une exclusion installée et répétée"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 1,
+          "rationale": "Utile en complément"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 2,
+          "rationale": "Chercher activement à se réintégrer est une réponse constructive"
+        }
+      ]
+    },
+    {
+      "id": "CS-055",
+      "title": "La décision contestée en coulisses",
+      "context": "critique indirecte d’une décision, non exprimée ouvertement (jeu politique/organisationnel).",
+      "scene": "Le personnage apprend qu’une décision qu’il/elle a prise fait l’objet de critiques informelles et indirectes de la part de collègues, exprimées en coulisses plutôt qu’ouvertement. Il/elle doit décider comment réagir face à cette contestation non assumée.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 1,
+          "rationale": "Ignorer les critiques informelles est risqué à terme"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Alimente l’anxiété sans clarifier"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 1,
+          "rationale": "Utile en soutien bref"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 1,
+          "rationale": "Secondaire ici"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 2,
+          "rationale": "Utile pour clarifier ouvertement la décision si possible"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Non pertinent"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 3,
+          "rationale": "S’appuyer sur des alliés/la hiérarchie pour clarifier la situation est la réponse la plus efficace"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 2,
+          "rationale": "Utile en complément (rendre la décision plus transparente)"
+        }
+      ]
+    },
+    {
+      "id": "CS-056",
+      "title": "Le collègue qui ne répond jamais aux sollicitations",
+      "context": "blocage relationnel récurrent avec un collègue peu réactif.",
+      "scene": "Le personnage doit régulièrement solliciter un collègue pour avancer sur des dossiers communs, mais celui-ci ne répond jamais ou très tardivement à ses demandes, ce qui freine le travail. Il/elle doit décider comment réagir face à ce blocage relationnel récurrent.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 1,
+          "rationale": "Contourner ponctuellement est possible mais ne résout pas le problème récurrent"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Inefficace"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 1,
+          "rationale": "Utile en soutien bref"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 1,
+          "rationale": "Secondaire ici"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 3,
+          "rationale": "Aborder directement le problème récurrent est la réponse la plus efficace"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Non pertinent"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 1,
+          "rationale": "Utile si escalade nécessaire"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 2,
+          "rationale": "Changer de canal/méthode est une réponse pragmatique complémentaire"
+        }
+      ]
+    },
+    {
+      "id": "CS-057",
+      "title": "La réunion informelle sans lui",
+      "context": "exclusion d’un échange informel, sentiment de mise à l’écart.",
+      "scene": "Le personnage apprend qu’une réunion informelle importante a eu lieu entre collègues sans qu’il/elle y ait été convié(e), alors que le sujet le/la concernait directement. Il/elle doit décider comment réagir face à cette exclusion d’un échange informel.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 1,
+          "rationale": "Se retirer entretient le sentiment d’exclusion"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Aggrave le ressentiment"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 1,
+          "rationale": "Utile en soutien bref"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 2,
+          "rationale": "Utile pour ne pas sur-interpréter une exclusion ponctuelle"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 3,
+          "rationale": "Exprimer directement son besoin d’être inclus est la réponse la plus constructive"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Non pertinent"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 1,
+          "rationale": "Utile en complément"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 1,
+          "rationale": "Secondaire ici"
+        }
+      ]
+    },
+    {
+      "id": "CS-058",
+      "title": "Plusieurs semaines sans vraiment s’intégrer",
+      "context": "difficulté d’intégration prolongée (nouvel arrivant).",
+      "scene": "Après plusieurs semaines dans une nouvelle équipe ou un nouvel environnement, le personnage a le sentiment de ne toujours pas vraiment s’être intégré(e), malgré ses efforts. Il/elle doit décider comment réagir face à cette difficulté d’intégration qui perdure.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 1,
+          "rationale": "Le retrait prolongé aggrave la difficulté d’intégration"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Alimente le mal-être sans agir"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 1,
+          "rationale": "Utile en soutien bref"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 2,
+          "rationale": "Utile pour relativiser un temps d’intégration parfois normal"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 2,
+          "rationale": "Utile pour exprimer son besoin de lien"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 1,
+          "rationale": "Peut faciliter les premiers contacts"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 3,
+          "rationale": "Solliciter activement de l’aide/du lien est la réponse la plus efficace face à une intégration difficile"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 1,
+          "rationale": "Secondaire par rapport à la recherche de soutien"
+        }
+      ]
+    },
+    {
+      "id": "CS-059",
+      "title": "Le silence tendu avec l’assistant indispensable",
+      "context": "tension relationnelle avec une personne clé, dont dépend le bon fonctionnement du travail.",
+      "scene": "Le personnage traverse une période de tension silencieuse avec un(e) assistant(e) ou collaborateur(trice) dont le travail quotidien dépend fortement, sans que le sujet n’ait été abordé ouvertement. Il/elle doit décider comment réagir face à ce silence tendu qui pèse sur la relation de travail.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 1,
+          "rationale": "Contourner la relation à coût élevé n’est pas tenable durablement"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Aggrave la tension sans la résoudre"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 2,
+          "rationale": "Utile pour aborder la relation sans réactivité excessive"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 1,
+          "rationale": "Utile en soutien"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 3,
+          "rationale": "Clarifier directement la relation est essentiel vu la dépendance fonctionnelle"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Risqué dans une relation déjà tendue"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 0,
+          "rationale": "Peu pertinent, la relation doit se régler directement"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 1,
+          "rationale": "Secondaire par rapport à la clarification relationnelle"
+        }
+      ]
+    },
+    {
+      "id": "CS-060",
+      "title": "Le conflit entre deux collègues qui rejaillit sur l’équipe",
+      "context": "conflit tiers affectant le collectif, nécessitant une intervention de médiation.",
+      "scene": "Un conflit ouvert entre deux collègues du personnage commence à avoir des répercussions négatives sur l’ambiance et la performance de toute l’équipe. Le personnage, en position de responsabilité, doit décider comment intervenir face à ce conflit qui déborde sur le collectif.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": false,
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 0,
+          "rationale": "Ne pas intervenir aggrave l’impact sur l’équipe"
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Inefficace"
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 1,
+          "rationale": "Utile en soutien individuel"
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 1,
+          "rationale": "Secondaire ici"
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 2,
+          "rationale": "Utile pour poser un cadre clair avec les deux parties"
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Risqué face à un conflit sérieux"
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 1,
+          "rationale": "Utile si RH/niveau supérieur doit être impliqué"
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 3,
+          "rationale": "Une médiation active et rapide est la réponse la plus adaptée pour protéger l’équipe"
+        }
+      ]
+    }
+  ]
+}
