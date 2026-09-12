@@ -34,7 +34,7 @@ and tracked here until an API is added).
 | Account center / personal info / password / privacy | 103-106, 125-128, 264 | 🟡 hardcoded password date; ✅ email/phone-change OTP (Resend, no SMS) |
 | Terms of Use | 120-121, 274-275 | ✅ `TermsOfUseScreen` (static, transcribed 1:1) (2026-09-11) |
 | Wallet | 107,114,116,118,119 | 🧩 wallet balance / transactions / add-change card / withdraw |
-| Referral | 32,102,115,117 | 🧩 referral program, invite friends, referral list/status |
+| Referral | 32,102,115,117 | ✅ referral program: `/referrals` + mobile Referral screen (2026-09-11); REGISTERED/HIRED hooks pending |
 | Hired candidates | 258 | 🧩 list + cancel/status countdown |
 | Plans & Pricing / subscription | 261-263, 316 | 🧩 plans, upgrade, payment states |
 | Notifications | 142, 288-289, 309-310 | ✅ (`NotificationsPage`) |
@@ -72,7 +72,6 @@ on new backend APIs**. Track here; remove a row once the API lands.
 | Feature | Screen(s) | Needed endpoints (proposed) | Module |
 |---|---|---|---|
 | Wallet | 107,114,116,118,119 | `GET /wallet/me`, `GET /wallet/me/transactions`, `POST /wallet/me/cards`, `POST /wallet/me/withdraw` | engagement/identity |
-| Referral | 32,102,115,117 | `GET /referrals/me`, `POST /referrals/invite`, referral-bonus rule | growth/engagement |
 | Hired candidates | 258 | `GET /recruiters/me/hired-candidates`, `POST /hired-candidates/{id}/cancel` | recruitment |
 | Plans & Pricing / subscription | 261-263,316 | `GET /plans`, `POST /subscriptions`, subscription state | billing |
 | Recruitment fee pre-authorization | 290-295 | `POST /recruitment-fees/preauthorize`, `POST /recruitment-fees/{id}/confirm-otp` | billing/recruitment |
@@ -244,6 +243,22 @@ email/phone-change OTP (126-127), analytics/progress, assessment-integrity resul
   `viewsTimeline`, `profileCompleteness`, `avgResponseTimeHours`, `responseRate`.
 - Mobile: no board screen consumes analytics (candidate Progress tab = games; recruiter =
   Careers), so no mobile change; endpoints are ready for a future dashboard.
+
+### 2026-09-11 — Gap fill: Referral (programme Ambassadeur, design 32/102/115/117) — done
+- **Contract (engagement)**: `GET /referrals/me`, `POST /referrals/invite`,
+  `GET /referrals/me/link` + `Referral`/`ReferralInvite`/`ReferralLink`/`ReferralStatus`.
+- **Backend (engagement, no new context)**: migration `V81__engagement_referrals.sql`; domain
+  `Referral` + `ReferralStatus` + repository; JPA entity/adapter; use cases Invite/List/Link;
+  `ReferralController` (`@EngagementAuthenticated`); invitee name/avatar enriched via
+  `ActorDirectory`. `InviteReferralUseCaseTest` + ArchUnit green (JDK 21).
+- **Decision (to validate):** bonus amount is configurable (`zennyt.referral.bonus-amount`,
+  default 800 USD) because the design says "500€" while Terms §12 says 800 USD.
+- **Known limitation:** `REGISTERED`/`HIRED` transitions have no automatic hook yet (signup /
+  recruitment) — referrals stay `INVITED` until those are wired.
+- **Mobile**: new `features/referral` (model, repository, providers, screen 115/117 with
+  link copy/share + referral list); Profile & Settings → Referral now navigates. Parsing test;
+  `flutter analyze` clean.
+
 
 
 

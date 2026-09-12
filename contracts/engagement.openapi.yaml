@@ -554,6 +554,54 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/MediaUpload' }
 
+  /referrals/me:
+    get:
+      tags: [Referrals]
+      operationId: listReferrals
+      summary: Lister les parrainages de l'utilisateur connecté
+      responses:
+        '200':
+          description: Parrainages (les plus récents d'abord)
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Referral' }
+
+  /referrals/invite:
+    post:
+      tags: [Referrals]
+      operationId: inviteReferral
+      summary: Inviter une personne par e-mail (programme Ambassadeur)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReferralInvite' }
+      responses:
+        '201':
+          description: Invitation créée
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Referral' }
+        '409':
+          description: Cette adresse a déjà été invitée
+          content:
+            application/json:
+              schema: { $ref: './common.openapi.yaml#/components/schemas/Error' }
+
+  /referrals/me/link:
+    get:
+      tags: [Referrals]
+      operationId: getReferralLink
+      summary: Lien de parrainage de l'utilisateur connecté
+      responses:
+        '200':
+          description: Lien + montant du bonus (configurable)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReferralLink' }
+
 components:
   securitySchemes:
     bearerAuth: { $ref: './common.openapi.yaml#/components/securitySchemes/bearerAuth' }
@@ -843,3 +891,39 @@ components:
         token: { type: string, description: "Jeton FCM ou APNs" }
         platform: { type: string, enum: [ANDROID, IOS] }
         deviceName: { type: string }
+
+    ReferralStatus:
+      type: string
+      enum: [INVITED, REGISTERED, HIRED, CANCELLED]
+
+    ReferralInvite:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string, format: email, maxLength: 150 }
+
+    Referral:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        inviteeEmail: { type: string, format: email }
+        inviteeName:
+          type: string
+          nullable: true
+          description: Renseigné quand le filleul s'est inscrit (projection acteur).
+        inviteeAvatarUrl: { type: string, nullable: true }
+        status: { $ref: '#/components/schemas/ReferralStatus' }
+        createdAt: { type: string, format: date-time }
+        probationEndsAt: { type: string, format: date-time, nullable: true }
+        daysRemaining:
+          type: integer
+          nullable: true
+          description: Jours restants avant la fin de la période d'essai (statut HIRED).
+
+    ReferralLink:
+      type: object
+      properties:
+        code: { type: string }
+        url: { type: string, format: uri }
+        bonusAmount: { type: integer, example: 800 }
+        bonusCurrency: { type: string, example: USD }

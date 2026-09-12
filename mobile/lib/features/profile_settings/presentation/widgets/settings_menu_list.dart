@@ -42,7 +42,7 @@ class SettingsMenuList extends ConsumerWidget {
           boxColor: AppColors.iconPurple,
           label: recruiter ? l10n.hiredCandidates : l10n.referral,
           trailing: _buildChevron(colors),
-          onTap: null,
+          onTap: recruiter ? null : () => context.push(AppRoutes.referral),
         ),
         _buildDivider(colors),
 

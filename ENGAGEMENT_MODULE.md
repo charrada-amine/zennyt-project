@@ -1,6 +1,6 @@
 # Module Engagement
 
-**Dernière mise à jour :** 2026-08-07 — appels : l'appel sortant initie réellement la session serveur (REST `POST /calls/start`), l'overlay d'appel entrant s'affiche chez le destinataire ; enregistrement : chunks mp4 écrits sur disque (`call_recordings/`), fini le `MediaRecorder` `-5`, et suppression de la reconfiguration audio (`audioProfileMusicHighQualityStereo` + game streaming) qui coupait le son dans l'appel et dans l'enregistrement.
+**Dernière mise à jour :** 2026-09-11 — parrainage (programme Ambassadeur) : `GET/POST /referrals` + écran mobile « Referral ». Historique — appels : l'appel sortant initie réellement la session serveur (REST `POST /calls/start`), l'overlay d'appel entrant s'affiche chez le destinataire ; enregistrement : chunks mp4 écrits sur disque (`call_recordings/`), fini le `MediaRecorder` `-5`, et suppression de la reconfiguration audio (`audioProfileMusicHighQualityStereo` + game streaming) qui coupait le son dans l'appel et dans l'enregistrement.
 
 ## Périmètre
 
@@ -246,3 +246,20 @@ Chaque endpoint porte `@EngagementAuthenticated`. L'acteur doit exister dans la 
     (l'enregistrement bénéficie de la qualité du flux publié). Fichier :
     `call_recording_service.dart`. 27 tests mobile verts, `flutter analyze` sans nouvelle erreur
     ni nouveau warning.
+14. **2026-09-11 — Parrainage (programme Ambassadeur).** Trois opérations ajoutées au contrat
+    engagement : `GET /referrals/me`, `POST /referrals/invite`, `GET /referrals/me/link`.
+    Table `engagement.referrals` (migration V81) : un parrainage par (parrain, e-mail du
+    filleul), statuts `INVITED` → `REGISTERED` → `HIRED` / `CANCELLED`, période d'essai
+    (`probation_ends_at`) pour le décompte `D-xx` de la maquette. Domaine `Referral` +
+    `ReferralRepository`, adapter JPA, use cases `Invite/List/GetReferralLink`, contrôleur
+    `ReferralController` (sécurisé par `@EngagementAuthenticated`, identité issue du JWT). Le
+    lien est `https://www.zennyt.com/invite/{userId}` (code = id public, pas de table). Le
+    montant du bonus est **configurable** (`zennyt.referral.bonus-amount`, défaut 800 USD) :
+    la maquette affiche « 500€ » alors que le §12 des Conditions parle de 800 USD —
+    **décision à valider**, la config tranche sans coder l'un en dur. Les passages
+    `REGISTERED`/`HIRED` ne sont pas encore déclenchés automatiquement (aucun hook
+    inscription/recrutement) : le statut reste `INVITED` tant que ces branchements ne sont
+    pas faits. Côté mobile : feature `referral` (modèle, repository, providers, écran
+    maquettes 115/117 avec copie/partage du lien et liste des filleuls), accessible depuis
+    Profile & Settings → Referral. Tests : `InviteReferralUseCaseTest` (backend) +
+    `referral_parsing_test` (mobile), ArchUnit vert.
