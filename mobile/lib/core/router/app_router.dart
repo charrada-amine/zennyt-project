@@ -48,6 +48,7 @@ import '../../features/jobs/presentation/pages/job_offer_detail_page.dart';
 import '../../features/jobs/presentation/pages/test_taking_page.dart';
 import '../../features/jobs/presentation/pages/recruiter/assessments/assessment_detail_page.dart';
 import '../../features/jobs/presentation/pages/recruiter/assessments/create_assessment_page.dart';
+import '../../features/jobs/presentation/pages/recruiter/assessments/manage_tests_page.dart';
 import '../../features/jobs/presentation/pages/recruiter/assessments/public_test_preview_page.dart';
 import '../../features/jobs/presentation/pages/recruiter/jobs/create/create_job_offer_page.dart';
 import '../../features/jobs/presentation/pages/recruiter/jobs/create/select_assessment_page.dart';
@@ -565,6 +566,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.createAssessment,
         name: AppRoutes.nCreateAssessment,
         builder: (context, state) => const CreateAssessmentPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.manageTests,
+        name: AppRoutes.nManageTests,
+        builder: (context, state) => const ManageTestsPage(),
       ),
       GoRoute(
         path: AppRoutes.assessmentDetail,

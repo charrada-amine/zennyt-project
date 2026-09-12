@@ -52,7 +52,7 @@ and tracked here until an API is added).
 | Careers / home (tests + offers) | 189, 195 | ✅ (`RecruiterHomePage`) |
 | Job offer detail | 190, 192 | 🟡 (`jobDetail` placeholder for candidate side; recruiter detail exists) |
 | Test results (hard skills scores) | 191 | ✅ `HardSkillsResultsPage` wired (`.../test-results[/summary|/{candidateId}]`) (2026-09-11) |
-| Manage tests | 197, 300 | 🟡 list + edit exist; delete added (2026-09-11); full-list rework pending |
+| Manage tests | 197, 300 | ✅ `ManageTestsPage` (`/assessments`) with edit/delete/Add, linked from "Your Tests → See all" (2026-09-11) |
 | Create test | 198-203, 306 | 🟡 (`CreateAssessmentPage`) |
 | Generate test with AI | 301-305 | 🟡 (`CreateAssessmentPage` AI flow) |
 | Add job offer | 204-217 | 🟡 (`CreateJobOfferPage`) |
@@ -176,6 +176,15 @@ email/phone-change OTP (126-127), analytics/progress, assessment-integrity resul
   "Shareable link" card (design 216/306).
 - No contract change (already `security: []`), no migration.
 - Backend test not run locally (project targets Java 21; only JDK 17 installed) — CI covers it.
+
+### 2026-09-11 — Gap fill: Manage tests (197) — done
+- New `ManageTestsPage` (`/assessments`) listing the recruiter's tests with title, question
+  count, duration, edit and delete actions, plus an Add button. Reached from the Careers home
+  "Your Tests → See all". (Design 197.)
+- Add-job-offer (204-217) already covers every field in the design; it uses inline dialogs
+  instead of accordions and adds the required référentiel métier + pondération (F06/F30), so
+  it is left as-is rather than regressing a working flow.
+
 
 
 

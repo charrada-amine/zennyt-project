@@ -83,6 +83,7 @@ class AppRoutes {
   static const String jobResults = '/jobs/:jobId/results';
   static const String jobTest = '/jobs/:jobId/test';
   static const String createAssessment = '/assessments/create';
+  static const String manageTests = '/assessments';
   static const String assessmentDetail = '/assessments/:assessmentId';
   static const String editAssessment = '/assessments/:assessmentId/edit';
   static const String selectAssessment = '/assessments/pick';
@@ -149,6 +150,7 @@ class AppRoutes {
   static const String nJobResults = 'jobResults';
   static const String nJobTest = 'jobTest';
   static const String nCreateAssessment = 'createAssessment';
+  static const String nManageTests = 'manageTests';
   static const String nAssessmentDetail = 'assessmentDetail';
   static const String nEditAssessment = 'editAssessment';
   static const String nSelectAssessment = 'selectAssessment';

@@ -708,3 +708,7 @@ GROQ_API_KEY=<optionnel>
    Aucune migration ni changement de contrat (le contrat déclarait déjà `security: []`).
    Test backend non exécuté localement : le projet cible Java 21, seul le JDK 17 est installé
    dans cet environnement — `PublicTestPermitRuleTest` s'exécute en CI.
+11. 2026-09-11 — Écran **« Your tests »** complet (maquette 197) : `ManageTestsPage`
+   (`/assessments`) liste les évaluations du recruteur (titre, nombre de questions, durée)
+   avec édition, suppression (`DELETE /assessments/{id}`) et ajout, accessible depuis
+   « Your Tests → See all » du hub Careers. Aucun changement de contrat ni d'API.
