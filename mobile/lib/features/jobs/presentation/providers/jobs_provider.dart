@@ -6,6 +6,7 @@ import 'package:zennyt/features/jobs/domain/entities/assessment.dart';
 import 'package:zennyt/features/jobs/domain/entities/job.dart';
 import 'package:zennyt/features/jobs/domain/repositories/jobs_repository.dart';
 import 'package:zennyt/features/jobs/domain/entities/job_position.dart';
+import 'package:zennyt/features/jobs/domain/entities/public_assessment.dart';
 import 'package:zennyt/features/jobs/domain/entities/test_attempt.dart';
 /// Source unique du repository Jobs (backend intégré).
 final jobsRepositoryProvider = Provider<JobsRepository>((ref) {
@@ -124,6 +125,11 @@ final assessmentsProvider = AsyncNotifierProvider<AssessmentsNotifier, List<Asse
 
 final assessmentDetailProvider = FutureProvider.family<Assessment, String>((ref, id) {
   return ref.read(jobsRepositoryProvider).getAssessmentById(id);
+});
+
+/// Public projection of a shared test (`GET /tests/{token}`), no correct answers.
+final publicTestProvider = FutureProvider.family<PublicAssessment, String>((ref, token) {
+  return ref.read(jobsRepositoryProvider).getPublicTest(token);
 });
 
 // ── Hard-skills test attempts & results ─────────────────────────────────────

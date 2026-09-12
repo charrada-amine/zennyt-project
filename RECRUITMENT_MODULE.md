@@ -207,7 +207,7 @@ titre de l'offre est lu à la volée, jamais dupliqué sur le match (V28).
 
 | Méthode | Route | Accès | Comportement |
 |---|---|---|---|
-| GET | `/tests/{token}` | Public prévu | Projection candidat sans réponse correcte ; **encore bloquée** par le filtre global (`401`) tant que la permit-list Shared n'est pas autorisée |
+| GET | `/tests/{token}` | Public | Projection candidat sans réponse correcte ; permit-list Shared autorisée (V, changelog #10) — le lien partagé répond 200 sans JWT |
 
 ### 5.8 Tentatives de test (hard skills) — 3 opérations
 
@@ -536,7 +536,9 @@ GROQ_API_KEY=<optionnel>
 1. Choisir le canal et le fournisseur de livraison de `OtpRequestedEvent`, et le module
    qui résout `recipientUserId` → téléphone/e-mail sans appel direct inter-contexte.
 2. Autoriser l'ajout ciblé de `/api/v1/tests/**` dans `shared/SecurityConfig` (projection
-   publique du test encore bloquée en `401`).
+   publique du test encore bloquée en `401`). ✅ **Fait** (changelog #10, 2026-09-11) : la
+   permit-list contient désormais `GET /api/v1/tests/**`, verrouillée par un test
+   d'architecture (`PublicTestPermitRuleTest`).
 3. Intégrer le PSP et remplacer le paiement simulé.
 4. Fournir/localiser les maquettes Recruitment puis connecter le mobile aux endpoints.
 5. Ajouter les consommateurs Engagement des événements d'opportunité et de paiement.
@@ -696,3 +698,13 @@ GROQ_API_KEY=<optionnel>
 
    Vérifié : `flutter analyze` sans erreur (73 infos/warnings préexistants, inchangé) ;
    nouveau test de parsing `test/features/jobs/data/test_attempt_parsing_test.dart` (5 verts).
+10. 2026-09-11 — Déblocage du lien de test partagé (roadmap §15.2). Le `GET /api/v1/tests/{token}`
+   (projection publique sans réponse correcte, contrat §5.7) est ajouté à la permit-list
+   `shared/SecurityConfig` (`GET /api/v1/tests/**`) : il répond désormais sans JWT au lieu de
+   `401`. Garde-fou : `PublicTestPermitRuleTest` (architecture) verrouille la règle.
+   Côté mobile, l'écran `PublicTestPreviewPage` (`/tests/:token`) affiche exactement ce que
+   reçoit un candidat via le lien, accessible depuis la carte « Shareable link » du détail
+   d'évaluation (bouton **Preview**) ; entité `PublicAssessment` + `JobsRepository.getPublicTest`.
+   Aucune migration ni changement de contrat (le contrat déclarait déjà `security: []`).
+   Test backend non exécuté localement : le projet cible Java 21, seul le JDK 17 est installé
+   dans cet environnement — `PublicTestPermitRuleTest` s'exécute en CI.

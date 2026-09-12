@@ -5,6 +5,7 @@ import 'package:zennyt/features/jobs/domain/entities/assessment.dart';
 import 'package:zennyt/features/jobs/domain/entities/job.dart';
 import 'package:zennyt/features/jobs/domain/repositories/jobs_repository.dart';
 import 'package:zennyt/features/jobs/domain/entities/job_position.dart';
+import 'package:zennyt/features/jobs/domain/entities/public_assessment.dart';
 import 'package:zennyt/features/jobs/domain/entities/test_attempt.dart';
 /// [JobsRepository] backed by Dio, talking to the integrated recruitment API.
 ///
@@ -238,6 +239,14 @@ class JobsRepositoryImpl implements JobsRepository {
   @override
   Future<void> deleteAssessment(String id) {
     return _guard(() => _dio.delete<void>('/assessments/$id'));
+  }
+
+  @override
+  Future<PublicAssessment> getPublicTest(String token) {
+    return _guard(() async {
+      final res = await _dio.get<Map<String, dynamic>>('/tests/$token');
+      return PublicAssessment.fromJson(res.data!);
+    });
   }
 
   @override

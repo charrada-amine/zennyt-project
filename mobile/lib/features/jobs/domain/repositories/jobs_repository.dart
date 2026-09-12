@@ -1,6 +1,7 @@
 import 'package:zennyt/features/jobs/domain/entities/assessment.dart';
 import '../entities/job.dart' show ContractType, WorkplaceType, ExperienceLevel, JobStatus, JobOffer;
 import 'package:zennyt/features/jobs/domain/entities/job_position.dart';
+import 'package:zennyt/features/jobs/domain/entities/public_assessment.dart';
 import 'package:zennyt/features/jobs/domain/entities/test_attempt.dart';
 
 /// Abstraction over the recruitment API's job-offer and assessment
@@ -34,6 +35,10 @@ abstract class JobsRepository {
   Future<Assessment> generateAssessmentAi(GenerateAssessmentAiParams params);
   Future<Assessment> updateAssessment(UpdateAssessmentParams params);
   Future<void> deleteAssessment(String id);
+
+  /// Public projection of a shared test by token (`GET /tests/{token}`), no
+  /// correct answers. Backend permit-list was fixed on 2026-09-11 (§15.2).
+  Future<PublicAssessment> getPublicTest(String token);
 
   Future<JobOffer> assignAssessmentToJob({
     required String jobId,

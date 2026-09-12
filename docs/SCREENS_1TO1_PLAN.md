@@ -29,7 +29,7 @@ and tracked here until an API is added).
 | Search | 87-89, 224 | ✅ recruiter candidate search; ✅ candidate job search wired to public `GET /job-offers` (2026-09-11); tap opens job detail |
 | Fits | 91a-h, 222-223 | 🟡 (`FitsScreen`), recruiter candidate detail + filter levels ✅ |
 | Job detail (candidate) | 91f, 92-95, 146 | ✅ `JobOfferDetailPage` wired to `GET /job-offers/{id}` (2026-09-11) |
-| Assessment quiz (candidate/test taker) | 96, 138-139, 306 | ✅ `TestTakingPage` (test-attempts + submit/abandon) (2026-09-11) — public `/tests/{token}` still blocked (§2) |
+| Assessment quiz (candidate/test taker) | 96, 138-139, 306 | ✅ `TestTakingPage` (test-attempts + submit/abandon) + ✅ public `/tests/{token}` link unblocked (2026-09-11) |
 | Profile & settings | 101-111, 256-265 | ✅ core; ✅ accessibility prefs persisted + applied app-wide, ✅ dark theme persisted, ✅ Terms screen (2026-09-11) |
 | Account center / personal info / password / privacy | 103-106, 125-128, 264 | 🟡 hardcoded password date; email/phone-change OTP 🔴/🧩 |
 | Terms of Use | 120-121, 274-275 | ✅ `TermsOfUseScreen` (static, transcribed 1:1) (2026-09-11) |
@@ -121,8 +121,8 @@ payments (video), notifications, help-chats.
   PATCH, `recruiter` company projection, applicant/success stats).
 - `flutter analyze`: no errors. New test: `test/features/jobs/data/test_attempt_parsing_test.dart` (5).
 - Still open in this cluster: full-list "Manage tests" redesign (197), "Add a job offer"
-  accordion 1:1 (204-217), salary currency/period (dropped server-side), public
-  `/tests/{token}` permit-list in Shared.
+  accordion 1:1 (204-217), salary currency/period (dropped server-side).
+- ✅ Public `/tests/{token}` permit-list resolved in Shared (2026-09-11, see gap log below).
 
 ### 2026-09-11 — Cluster 2 (profile fixes) — done
 - New `TermsOfUseScreen` (17 sections transcribed 1:1 from the board) + route
@@ -166,6 +166,17 @@ email/phone-change OTP (126-127), analytics/progress, assessment-integrity resul
   `JobOfferDetailPage` (→ assessment flow) instead of the generic preview sheet.
 - Profile & Settings "Help Center" row now navigates to the real Help Center (was dead).
 - Notifications empty state already present (`NotificationsPage`).
+
+### 2026-09-11 — Gap fill: public shared-test link (`GET /tests/{token}`) — done
+- **Backend/shared**: `shared/SecurityConfig` now permits `GET /api/v1/tests/**`; the public
+  projection responds without a JWT instead of 401 (roadmap RECRUITMENT_MODULE.md §15.2).
+  Guarded by architecture test `PublicTestPermitRuleTest`.
+- **Mobile**: `PublicAssessment` entity + `JobsRepository.getPublicTest(token)`,
+  `PublicTestPreviewPage` at `/tests/:token`, and a **Preview** button on the assessment
+  "Shareable link" card (design 216/306).
+- No contract change (already `security: []`), no migration.
+- Backend test not run locally (project targets Java 21; only JDK 17 installed) — CI covers it.
+
 
 
 

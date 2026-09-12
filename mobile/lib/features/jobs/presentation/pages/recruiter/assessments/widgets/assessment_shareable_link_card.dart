@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 
+import 'package:zennyt/core/router/app_routes.dart';
 import 'package:zennyt/features/jobs/domain/entities/assessment.dart';
 const _kViolet = Color(0xFF5B4EF5);
 const _kCardBg = Color(0xFFF7F6FF);
@@ -50,19 +52,42 @@ class AssessmentShareableLinkCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 14),
-          OutlinedButton.icon(
-            style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: _kViolet),
-              minimumSize: const Size(0, 40),
-            ),
-            icon: const Icon(Icons.copy, color: _kViolet, size: 16),
-            label: const Text('Copy link', style: TextStyle(color: _kViolet)),
-            onPressed: () {
-              Clipboard.setData(ClipboardData(text: assessment.shareableLink!));
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Link copied!'), backgroundColor: Color(0xFF2AC052)),
-              );
-            },
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: _kViolet),
+                    minimumSize: const Size(0, 40),
+                  ),
+                  icon: const Icon(Icons.copy, color: _kViolet, size: 16),
+                  label: const Text('Copy link', style: TextStyle(color: _kViolet)),
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: assessment.shareableLink!));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Link copied!'), backgroundColor: Color(0xFF2AC052)),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: _kViolet),
+                    minimumSize: const Size(0, 40),
+                  ),
+                  icon: const Icon(Icons.visibility_outlined, color: _kViolet, size: 16),
+                  label: const Text('Preview', style: TextStyle(color: _kViolet)),
+                  // Opens the exact public projection a candidate gets from the
+                  // shared link (token = assessment id, contract §5.7).
+                  onPressed: () => context.pushNamed(
+                    AppRoutes.nPublicTestPreview,
+                    pathParameters: {'token': assessment.id},
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),

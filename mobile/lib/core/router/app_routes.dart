@@ -86,6 +86,7 @@ class AppRoutes {
   static const String assessmentDetail = '/assessments/:assessmentId';
   static const String editAssessment = '/assessments/:assessmentId/edit';
   static const String selectAssessment = '/assessments/pick';
+  static const String publicTestPreview = '/tests/:token';
 
   // Route names (used with context.goNamed / pushNamed).
   static const String nSplash = 'splash';
@@ -151,4 +152,5 @@ class AppRoutes {
   static const String nAssessmentDetail = 'assessmentDetail';
   static const String nEditAssessment = 'editAssessment';
   static const String nSelectAssessment = 'selectAssessment';
+  static const String nPublicTestPreview = 'publicTestPreview';
 }
