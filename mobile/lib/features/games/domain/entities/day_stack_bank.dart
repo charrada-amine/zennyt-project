@@ -161,7 +161,36 @@ class DayStackTask {
   /// Le tirage porte sur le LIBELLÉ seul : durée, dépendances et contraintes ne
   /// bougent jamais, sinon deux sessions du même univers ne seraient plus
   /// comparables.
-  String variantAt(int seed) => variants[seed.abs() % variants.length];
+  /// Libellé tiré pour cette tâche, à partir de la graine de la manche.
+  ///
+  /// La graine est mélangée à l'IDENTIFIANT de la tâche : chaque tâche tire
+  /// donc sa variante indépendamment, comme le demande le document du client —
+  /// « tirer aléatoirement UNE variante PAR ÉTAPE à chaque nouvelle session » —
+  /// et comme le client l'a reconfirmé.
+  ///
+  /// Sans ce mélange, une seule graine servait tout le plateau : les douze
+  /// tâches affichaient toutes la même variante, ce qui ne faisait que quatre
+  /// feuilles possibles par univers au lieu de 4¹².
+  ///
+  /// Le tirage reste STABLE pour une graine donnée : les libellés ne changent
+  /// pas sous les yeux du joueur pendant qu'il réordonne.
+  String variantAt(int seed) =>
+      variants[_avalanche(seed * 0x9E3779B1 ^ id.hashCode) % variants.length];
+
+  /// Brassage de bits (finaliseur MurmurHash3).
+  ///
+  /// Un simple `(seed ^ hash) % 4` ne regardait que les DEUX DERNIERS bits de
+  /// la graine : les bits de poids fort n'atteignaient jamais le reste de la
+  /// division, et tout le plateau restait déterminé par `seed & 3` — quatre
+  /// feuilles possibles, quel que soit le nombre de tâches. Le finaliseur
+  /// propage les bits hauts vers les bas, si bien que chaque graine donne une
+  /// combinaison différente.
+  static int _avalanche(int x) {
+    var h = x & 0xFFFFFFFF;
+    h = ((h ^ (h >> 16)) * 0x85EBCA6B) & 0xFFFFFFFF;
+    h = ((h ^ (h >> 13)) * 0xC2B2AE35) & 0xFFFFFFFF;
+    return (h ^ (h >> 16)) & 0xFFFFFFFF;
+  }
 
   factory DayStackTask.fromJson(Map<String, dynamic> json) {
     final variants = (json['variants'] as List<dynamic>).cast<String>();

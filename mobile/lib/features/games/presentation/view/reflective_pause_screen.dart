@@ -181,7 +181,9 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
     final random = math.Random();
     final parCategorie = <int, List<ReflectivePauseSituation>>{};
     for (final situation in bank.situations) {
-      parCategorie.putIfAbsent(situation.categoryNumber, () => []).add(situation);
+      parCategorie
+          .putIfAbsent(situation.categoryNumber, () => [])
+          .add(situation);
     }
     final numeros = parCategorie.keys.toList()..sort();
     final tirees = [
@@ -442,7 +444,7 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
                 ),
               ),
               _ReflectiveStage.saved => _SavedView(
-              totalMoments: _situations.length,
+                totalMoments: _situations.length,
                 key: ValueKey('reflective-saved-$_momentIndex'),
                 momentNumber: _momentIndex + 1,
               ),
@@ -652,7 +654,7 @@ class _CoverView extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               const Text(
-                'Face pressure moments, pause before reacting, and choose a calm response.',
+                'Face pressure moments, pause before reacting, and choose the response that feels most natural.',
                 style: TextStyle(color: _muted, fontSize: 17, height: 1.45),
               ),
               const SizedBox(height: 18),
@@ -756,16 +758,17 @@ class _TutorialView extends StatelessWidget {
     return _InfoPage(
       onBack: onBack,
       title: 'How it works',
-      subtitle: 'Each pressure moment follows the same calm four-step rhythm.',
+      subtitle:
+          'You will complete 10 pressure moments. Each one follows the same four-step rhythm.',
       icon: Icons.self_improvement_rounded,
       items: const [
-        ('Pause', 'Wait for the short timer before choosing.'),
-        ('Think', 'Read the moment without rushing.'),
-        ('Choose', 'Pick the response that feels most natural.'),
-        ('Respond', 'Validate once your choice is selected.'),
+        ('Read', 'Read the complete situation while the countdown runs.'),
+        ('Wait', 'Responses unlock only when the countdown ends.'),
+        ('Choose', 'Pick one response that feels most natural to you.'),
+        ('Validate', 'Save your choice and continue to the next moment.'),
       ],
       footnote:
-          'There is no immediate correction. Your pattern is revealed only at the end.',
+          'There is no immediate right/wrong feedback. Your score and response pattern are shown after all 10 moments.',
       buttonLabel: 'Start mission',
       onButton: onStart,
     );
@@ -1066,7 +1069,9 @@ class _GameplayView extends StatelessWidget {
                   // Clé sur la RÉACTION, pas sur la position : l'ordre est
                   // mélangé à dessein, et un test qui viserait « la deuxième
                   // carte » ne saurait pas ce qu'il coche.
-                  key: ValueKey('reflective-choice-${choice.responseType.wire}'),
+                  key: ValueKey(
+                    'reflective-choice-${choice.responseType.wire}',
+                  ),
                   choice: choice,
                   enabled: minimumReached,
                   selected: selectedResponse == choice.responseType,
@@ -1801,20 +1806,22 @@ class _ReflectiveRulesDialog extends StatelessWidget {
             const SizedBox(height: 20),
             const _InstructionCard(
               number: 1,
-              title: 'Pause',
-              description: 'Wait for the three-second timer.',
+              title: 'Read and wait',
+              description:
+                  'Read the complete situation. Responses unlock when the countdown ends.',
             ),
             const SizedBox(height: 10),
             const _InstructionCard(
               number: 2,
               title: 'Choose',
-              description: 'Pick only one natural response.',
+              description: 'Pick one response that feels most natural to you.',
             ),
             const SizedBox(height: 10),
             const _InstructionCard(
               number: 3,
-              title: 'Continue',
-              description: 'Your answer is saved without immediate correction.',
+              title: 'Validate',
+              description:
+                  'Save your answer and continue. Results appear after 10 moments.',
             ),
             const SizedBox(height: 20),
             GamePrimaryButton(

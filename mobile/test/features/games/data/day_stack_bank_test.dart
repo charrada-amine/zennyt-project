@@ -225,7 +225,14 @@ void main() {
 
   test('le tirage de variante ne touche qu\'au libellé', () {
     final task = bank.byId('restaurant').byId('reception_livraison');
-    final libelles = {for (var seed = 0; seed < 8; seed++) task.variantAt(seed)};
+    // 64 graines, pas 8. Huit suffisaient tant que le tirage était séquentiel
+    // — `seed % 4` parcourait forcément les quatre rangs. Depuis que chaque
+    // tâche brasse la graine avec son identifiant, huit tirages parmi quatre
+    // valeurs n'en couvrent plus la totalité : c'est un échantillon, plus un
+    // cycle.
+    final libelles = {
+      for (var seed = 0; seed < 64; seed++) task.variantAt(seed),
+    };
     expect(libelles, hasLength(4), reason: 'les quatre variantes sortent');
     for (final libelle in libelles) {
       expect(task.variants, contains(libelle));

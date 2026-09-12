@@ -29,6 +29,52 @@ class EmotionalRadarV2SceneFactoryTest {
         UUID.fromString("00000000-0000-4000-8000-000000000042");
 
     @Test
+    void theThreeClipsAlwaysOpenTheSession() {
+        // Exigence produit : en démonstration, les trois vidéos disponibles
+        // doivent TOUJOURS être les scènes 1, 2 et 3 — dans cet ordre. Une
+        // session qui en manquerait une laisserait un emplacement vide à
+        // l'endroit même où l'on veut montrer le jeu.
+        //
+        // On éprouve deux cents sessions, chacune avec un flux aléatoire
+        // différent : forcer la cible ne doit dépendre ni de la graine ni de
+        // l'ordre de mélange du référentiel.
+        var referential = new JsonEmotionReferential();
+        var distance = new ValenceArousalDistanceModel();
+
+        for (int session = 0; session < 200; session++) {
+            var factory = new EmotionalRadarV2SceneFactory(
+                referential, distance, new Random(session));
+            java.util.Set<String> dejaVues = new java.util.HashSet<>();
+
+            for (int ordre = 1;
+                 ordre <= EmotionalRadarV2ProvisionalRules.DEMO_FOOTAGE_ORDER.size();
+                 ordre++) {
+                var scene = factory.create(
+                    UUID.randomUUID(), ordre, 1, dejaVues, Instant.EPOCH);
+                String attendue =
+                    EmotionalRadarV2ProvisionalRules.DEMO_FOOTAGE_ORDER.get(ordre - 1);
+
+                assertThat(scene.correctEmotionKey())
+                    .as("session %d, scène %d", session, ordre)
+                    .isEqualTo(attendue);
+                // La scène doit être JOUABLE : une cible filmée sans média
+                // servi laisserait l'écran sur un emplacement vide.
+                assertThat(scene.mediaStatus())
+                    .as("session %d, scène %d", session, ordre)
+                    .isEqualTo(RadarMediaStatus.READY);
+                assertThat(scene.mediaUrl())
+                    .as("session %d, scène %d", session, ordre)
+                    .isEqualTo(EmotionalRadarV2ProvisionalRules.DEMO_FOOTAGE
+                        .get(attendue).mediaUrl());
+                // Et la bonne réponse doit bien figurer parmi les propositions.
+                assertThat(scene.choiceKeys()).contains(attendue);
+
+                dejaVues.add(scene.correctEmotionKey());
+            }
+        }
+    }
+
+    @Test
     void publicSessionUuidDoesNotDetermineTargetChoicesOrIntensity() {
         var referential = new JsonEmotionReferential();
         var distance = new ValenceArousalDistanceModel();

@@ -100,14 +100,14 @@ void main() {
     // n'y rendrait jamais la main. On pompe donc jusqu'à voir l'intro.
     for (
       var frame = 0;
-      frame < 20 && find.text('Start').evaluate().isEmpty;
+      frame < 20 && find.text('Commencer').evaluate().isEmpty;
       frame++
     ) {
       await tester.pump(const Duration(milliseconds: 16));
     }
-    expect(find.text('Start'), findsOneWidget, reason: 'banque chargée');
+    expect(find.text('Commencer'), findsOneWidget, reason: 'banque chargée');
 
-    for (final label in ['Start', 'I am ready']) {
+    for (final label in ['Commencer', 'Je suis prêt']) {
       await tester.ensureVisible(find.text(label));
       await tester.tap(find.text(label));
       await tester.pumpAndSettle();
@@ -234,7 +234,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(order(tester).indexOf(movedTask), greaterThan(0));
-    expect(find.text('1 déplacement(s)'), findsOneWidget);
+    expect(find.text('1 déplacement(s) · sans pénalité'), findsOneWidget);
     expect(find.byIcon(Icons.drag_indicator_rounded), findsNothing);
   });
 
@@ -327,7 +327,7 @@ void main() {
     expect(find.textContaining('manche(s)'), findsOneWidget);
   });
 
-  testWidgets('les règles parlent d\'heures, plus de numéros de créneau', (
+  testWidgets('le tutoriel décrit fidèlement les règles et les contrôles', (
     tester,
   ) async {
     await start(tester);
@@ -336,10 +336,14 @@ void main() {
     await tester.tap(find.text('View rules'));
     await tester.pumpAndSettle();
 
-    // Le jeu a une horloge depuis le lot B : « by slot n » décrivait un
-    // mécanisme qui n'existe plus.
+    // Les mots du tutoriel correspondent aux libellés réellement visibles sur
+    // les cartes et au moment où le planning est effectivement évalué.
     expect(find.textContaining('by slot'), findsNothing);
-    expect(find.textContaining('HEURES'), findsOneWidget);
+    expect(find.textContaining('Après : X'), findsOneWidget);
+    expect(find.textContaining('commencer et finir'), findsOneWidget);
+    expect(find.textContaining('sans pénalité'), findsOneWidget);
+    expect(find.textContaining('uniquement quand tu appuies'), findsOneWidget);
+    expect(find.textContaining('Après quatre manches'), findsOneWidget);
   });
 
   testWidgets('une partie enchaîne plusieurs manches', (tester) async {
@@ -363,13 +367,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Manche 2 / 2'), findsOneWidget);
     expect(
-      find.text('0 déplacement(s)'),
+      find.text('0 déplacement(s) · sans pénalité'),
       findsOneWidget,
       reason: 'plateau neuf',
     );
   });
 
-  testWidgets('une partie non truquée compte bien trois manches', (
+  testWidgets('une partie non truquée compte bien quatre manches', (
     tester,
   ) async {
     // Tous les autres tests de progression INJECTENT `levelCount`. Ils
@@ -378,13 +382,21 @@ void main() {
     // signalé — les laisserait tous au vert. Ce test est le seul à regarder
     // la valeur de production.
     await start(tester, levelCount: null);
-    expect(find.text('Manche 1 / 3'), findsOneWidget);
+    // Quatre univers par session : chiffre donné par le client, son document
+    // n'en disait rien.
+    expect(find.text('Manche 1 / 4'), findsOneWidget);
   });
 
-  testWidgets('deux manches ne rejouent pas le même univers', (tester) async {
-    // L'écran exclut les univers déjà joués. Aucun test ne l'exerçait : ils
-    // pinnent tous `universeIndex`, ce qui force justement la répétition que
-    // la règle doit empêcher. On laisse donc le tirage libre ici.
+  testWidgets('les quatre manches jouent quatre univers différents', (
+    tester,
+  ) async {
+    // Règle demandée par le client : une session enchaîne quatre univers, et ils
+    // doivent tous différer. Le test couvrait auparavant deux manches — il
+    // n'aurait pas vu une répétition apparaissant à la troisième ou à la
+    // quatrième, là où la réserve d'univers non joués se réduit.
+    //
+    // On laisse le tirage LIBRE : les autres tests pinnent `universeIndex`, ce
+    // qui force justement la répétition que la règle doit empêcher.
     final bank = await DayStackBankLoader.load();
     final noms = bank.universes.map((u) => u.name).toList();
     String universeAffiche() => noms.firstWhere(
@@ -392,29 +404,27 @@ void main() {
       orElse: () => '(aucun)',
     );
 
-    await start(tester, levelCount: 2, universeIndex: null);
-    final premier = universeAffiche();
-    expect(premier, isNot('(aucun)'), reason: 'un univers est bien affiché');
+    await start(tester, levelCount: null, universeIndex: null);
 
-    // Le plateau fait 11 ou 12 tâches selon l'univers tiré. On lit le nombre
-    // dans la banque : tester la présence de la clé ne dirait rien, une carte
-    // simplement hors écran n'étant pas une carte absente.
-    final combien = bank.universes
-        .firstWhere((u) => u.name == premier)
-        .tasks
-        .length;
-    for (var task = 0; task < combien; task++) {
-      await place(tester, task);
+    final vus = <String>[];
+    for (var manche = 1; manche <= kDayStackLevels; manche++) {
+      final actuel = universeAffiche();
+      expect(actuel, isNot('(aucun)'), reason: 'manche $manche sans univers');
+      vus.add(actuel);
+
+      await tester.tap(find.text('Valider'));
+      await tester.pumpAndSettle();
+      if (manche < kDayStackLevels) {
+        await tester.tap(find.text('Manche ${manche + 1} / $kDayStackLevels'));
+        await tester.pumpAndSettle();
+      }
     }
-    await tester.tap(find.text('Valider'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Manche 2 / 2'));
-    await tester.pumpAndSettle();
 
+    expect(vus, hasLength(kDayStackLevels));
     expect(
-      universeAffiche(),
-      isNot(premier),
-      reason: 'rejouer le même planning ne mesurerait plus rien',
+      vus.toSet(),
+      hasLength(kDayStackLevels),
+      reason: 'univers rejoué dans la même session : ${vus.join(" · ")}',
     );
   });
 
@@ -442,9 +452,7 @@ void main() {
     expect(envoye['universeId'], 'restaurant,restaurant');
   });
 
-  testWidgets('un déplacement ne perd ni ne duplique de tâche', (
-    tester,
-  ) async {
+  testWidgets('un déplacement ne perd ni ne duplique de tâche', (tester) async {
     // Ce test porte sur l'INTÉGRITÉ de la liste, pas sur le comptage des
     // corrections — celui-ci a son propre test juste en dessous. Ici on vérifie
     // qu'un déplacement, dans un sens comme dans l'autre, ne perd ni ne duplique
@@ -497,14 +505,8 @@ void main() {
     expect(envoye['reactiveAdjustments'], 0);
   });
 
-  testWidgets('seul un RETOUR sur une carte compte comme correction', (
-    tester,
-  ) async {
-    // Compter tous les déplacements serait faux : trier douze cartes en demande
-    // sept au minimum, et le barème du client donne 0 point au-delà de neuf sur
-    // une partie. Chacun tomberait à 0/2. Dans ce plateau, glisser une carte
-    // n'est pas une correction — c'est la façon de jouer. Y REVENIR en est une.
-    await start(tester, levelCount: 1, universeIndex: 0);
+  testWidgets('tous les glissements restent hors score', (tester) async {
+    final repo = await start(tester, levelCount: 1, universeIndex: 0);
     final dynamic etat = tester.state<State<TaskSchedulingScreen>>(
       find.byType(TaskSchedulingScreen),
     );
@@ -519,32 +521,22 @@ void main() {
     }
 
     final depart = List<int>.from(etat.slotsForTest as List<int>);
-    final quatre = depart.take(4).toList();
-
-    for (final carte in quatre) {
+    for (final carte in depart.take(4)) {
       await bouger(carte, 8);
     }
-    expect(
-      etat.proactiveAdjustmentsForTest,
-      0,
-      reason: 'quatre cartes différentes : du rangement, aucun retour',
-    );
-
-    // On revient sur la première : c'est une correction.
-    await bouger(quatre.first, 0);
-    expect(etat.proactiveAdjustmentsForTest, 1);
-
-    // Et une seconde fois sur la même.
-    await bouger(quatre.first, 6);
-    expect(etat.proactiveAdjustmentsForTest, 2);
-
-    // Une carte encore jamais touchée ne compte toujours pas.
+    // Même reprendre plusieurs fois la même carte reste un geste de rangement.
+    await bouger(depart.first, 0);
+    await bouger(depart.first, 6);
     await bouger(depart.last, 3);
-    expect(
-      etat.proactiveAdjustmentsForTest,
-      2,
-      reason: 'le premier geste sur une carte reste du rangement',
-    );
+    expect(etat.proactiveAdjustmentsForTest, 0);
+    expect(find.textContaining('sans pénalité'), findsOneWidget);
+
+    await tester.tap(find.text('Valider'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Voir mon score'));
+    await tester.pumpAndSettle();
+    expect(repo.submitted!.proactiveAdjustments, 0);
+    expect(repo.submitted!.reactiveAdjustments, 0);
   });
 
   testWidgets('le nombre de manches jouées part avec les mesures', (
@@ -589,8 +581,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('View rules'));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Resume schedule'));
-    await tester.tap(find.text('Resume schedule'));
+    await tester.ensureVisible(find.text('Reprendre la partie'));
+    await tester.tap(find.text('Reprendre la partie'));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('day-stack-progress')), findsOneWidget);
     expect(order(tester), before);

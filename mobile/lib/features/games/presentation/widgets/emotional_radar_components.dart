@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-
 /// Composants réutilisables d'« Emotional Radar ».
 ///
 /// Contraintes portées ici (planche « Accessibility Compliance ») :
@@ -37,8 +36,8 @@ class EmotionalRadarPalette {
 /// client : le tutoriel ne doit annoncer que ce que le panneau demande
 /// réellement, sous peine de faire chercher au joueur un champ absent.
 const List<String> emotionalRadarSteps = [
-  'Watch the scene.',
-  'Pick the dominant emotion.',
-  'Rate its intensity: low, moderate or intense.',
-  'Validate — the level adapts to you.',
+  'Watch the scene. The 30-second timer includes both viewing and answering.',
+  'Choose the dominant emotion from the 6 or 9 options. The difficulty adapts as you progress.',
+  'Rate its intensity: Faible, Modérée or Intense.',
+  'Validate both choices. If time runs out, answer anyway; the scene counts as missed.',
 ];

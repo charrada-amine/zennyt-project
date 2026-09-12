@@ -81,7 +81,8 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
 
   EmotionalRadarV2Scene? get _scene => _radar?.currentScene;
 
-  int get _totalScenes => _radar?.totalScenes ?? EmotionalRadarV2Config.totalScenes;
+  int get _totalScenes =>
+      _radar?.totalScenes ?? EmotionalRadarV2Config.totalScenes;
 
   /// Numéro affiché : la scène en cours est la suivante de celles répondues.
   int get _sceneNumber {
@@ -135,7 +136,9 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
   /// Tout l'écran est dessiné en portrait — grille de 6 ou 9 propositions et
   /// échelle d'intensité. Le plein écran est la seule exception, et il doit
   /// rendre le portrait en sortant.
-  static const List<DeviceOrientation> _portrait = [DeviceOrientation.portraitUp];
+  static const List<DeviceOrientation> _portrait = [
+    DeviceOrientation.portraitUp,
+  ];
 
   @override
   void initState() {
@@ -227,7 +230,9 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
     final scene = _scene;
     final emotionKey = _emotionKey;
     final intensity = _intensity;
-    if (session == null || scene == null || emotionKey == null ||
+    if (session == null ||
+        scene == null ||
+        emotionKey == null ||
         intensity == null) {
       return;
     }
@@ -866,8 +871,8 @@ class _CoverView extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               const Text(
-                'Watch each scene, name the dominant emotion among the '
-                'options, then rate how strong it is.',
+                'Complete 15 scenes. For each one, choose the dominant emotion '
+                'and its intensity before the response timer ends.',
                 style: TextStyle(
                   fontSize: 16,
                   height: 1.45,
@@ -982,8 +987,8 @@ class _TutorialView extends StatelessWidget {
                 // « Five » après le retrait de la justification, en
                 // contradiction avec les quatre étapes affichées juste en
                 // dessous.
-                '${emotionalRadarSteps.length} calm steps. '
-                'You can review them at any time.',
+                '15 scenes · 30 seconds per scene. Follow these '
+                '${emotionalRadarSteps.length} steps; you can review them at any time.',
                 style: const TextStyle(
                   fontSize: 16,
                   height: 1.4,
@@ -1317,9 +1322,7 @@ class _ResultsView extends StatelessWidget {
                 ],
                 if (scoringProvisional || !mediaLibraryReady) ...[
                   const SizedBox(height: 14),
-                  _RadarProvisionalNotice(
-                    mediaLibraryReady: mediaLibraryReady,
-                  ),
+                  _RadarProvisionalNotice(mediaLibraryReady: mediaLibraryReady),
                 ],
               ],
               const SizedBox(height: 22),

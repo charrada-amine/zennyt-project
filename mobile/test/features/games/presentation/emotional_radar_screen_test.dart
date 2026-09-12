@@ -167,7 +167,8 @@ void main() {
         matching: find.text('Tristesse'),
       ),
       findsOneWidget,
-      reason: 'le seul « Tristesse » de l\'écran doit être un bouton de réponse',
+      reason:
+          'le seul « Tristesse » de l\'écran doit être un bouton de réponse',
     );
     for (final forbidden in ['Scène', 'Situation :', 'Description']) {
       expect(find.textContaining(forbidden), findsNothing);
@@ -271,7 +272,8 @@ void main() {
         matching: find.byType(AspectRatio),
       ),
       findsNothing,
-      reason: 'le lecteur porte sa propre hauteur : rien ne doit la contraindre',
+      reason:
+          'le lecteur porte sa propre hauteur : rien ne doit la contraindre',
     );
     // Le placeholder, lui, n'a pas de taille propre et garde son cadre.
     expect(tester.takeException(), isNull);
@@ -437,7 +439,10 @@ void main() {
     await tester.tap(find.text('Start tutorial'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Pick the dominant emotion.'), findsOneWidget);
+    expect(find.textContaining('30-second timer'), findsOneWidget);
+    expect(find.textContaining('6 or 9 options'), findsOneWidget);
+    expect(find.textContaining('Faible, Modérée or Intense'), findsOneWidget);
+    expect(find.textContaining('answer anyway'), findsOneWidget);
     expect(find.textContaining('nuance'), findsNothing);
   });
 }

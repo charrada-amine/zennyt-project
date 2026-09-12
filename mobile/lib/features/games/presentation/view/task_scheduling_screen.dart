@@ -68,7 +68,12 @@ enum _Stage { loading, intro, howToPlay, gameplay, levelComplete, score }
 /// celui qui lui parle et n'être jamais confronté aux autres. Trois manches, un
 /// univers différent à chaque fois, rendent le score moins dépendant du tirage
 /// — et donnent une durée conforme aux « 10-13 min » annoncés au catalogue.
-const int kDayStackLevels = 3;
+/// Quatre univers par session — réponse du client du 2026-09-11.
+///
+/// Son document n'en disait rien et raisonnait au singulier (« l'univers de la
+/// session ») ; interrogé, il a fixé quatre. La banque en compte sept, et le
+/// tirage exclut ceux déjà joués : une partie ne rejoue donc jamais le même.
+const int kDayStackLevels = 4;
 
 class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen> {
   _Stage _stage = _Stage.loading;
@@ -123,20 +128,9 @@ class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen> {
   Future<GameSession>? _sessionStart;
   GameSession? _serverSession;
 
-  /// Corrections au sens du référentiel : les RETOURS EN ARRIÈRE.
-  ///
-  /// Compter tous les déplacements serait faux. Trier douze cartes mélangées en
-  /// demande sept au minimum, même en jouant parfaitement — vingt et un sur une
-  /// partie de trois manches — alors que le barème du client donne 0 point
-  /// au-delà de neuf. Chacun tomberait à 0/2, le symétrique du défaut qu'on
-  /// corrige. Dans ce plateau, glisser une carte n'est pas une correction :
-  /// c'est la façon de jouer.
-  ///
-  /// Revenir sur une carte DÉJÀ déplacée, en revanche, est bien une correction :
-  /// le joueur défait un ordre qu'il avait lui-même posé. C'est cela que le
-  /// référentiel veut voir — « monitoring et flexibilité cognitive »
-  /// (Miyake et al., 2000), cité par le document du client.
-  int _proactiveAdjustments = 0;
+  /// Les glissements sont le contrôle normal du jeu et restent hors score,
+  /// conformément au choix produit demandé pour cette interface.
+  final int _proactiveAdjustments = 0;
 
   /// Corrections déclenchées par un signal d'erreur du système.
   ///
@@ -146,13 +140,6 @@ class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen> {
   /// jour où le plateau signalerait les erreurs en direct, c'est ce compteur-là
   /// qui s'alimenterait.
   final int _reactiveAdjustments = 0;
-
-  /// Cartes déjà déplacées dans la manche en cours.
-  ///
-  /// Remis à zéro à chaque manche — l'univers change, les cartes aussi. Les
-  /// corrections, elles, s'accumulent sur toute la partie : ce sont des mesures
-  /// de PARTIE, et le serveur met ses seuils à l'échelle du nombre de manches.
-  final Set<int> _movedOnce = <int>{};
 
   /// Instant d'ouverture du plateau, pour la latence de planification.
   DateTime? _boardShownAt;
@@ -202,17 +189,17 @@ class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen> {
       final pool = restants.isEmpty ? bank.universes : restants;
       _universe = pool[random.nextInt(pool.length)];
     }
-    _variantSeed = widget.variantSeed ?? random.nextInt(1 << 20);
+    // 2^32 graines : un univers de 12 tâches compte 4^12 ≈ 16,8 millions de
+    // feuilles, un tirage sur 2^20 n'en aurait atteint que 6 %.
+    _variantSeed = widget.variantSeed ?? random.nextInt(1 << 32);
 
     _slots = List<int>.generate(_universe.tasks.length, (i) => i)..shuffle();
     _validatedSchedule = null;
     _moveCount = 0;
-    _movedOnce.clear();
     _boardShownAt = null;
     // La latence initiale est conservée entre les manches de la partie.
     if (_level == 1) {
       _planningLatencyMs = null;
-      _proactiveAdjustments = 0;
     }
     _serverSession = null;
     _busy = false;
@@ -257,9 +244,6 @@ class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen> {
       final task = _slots.removeAt(from);
       _slots.insert(to, task);
       _moveCount++;
-      // Premier geste sur cette carte : c'est du rangement. Y revenir : c'est
-      // se corriger.
-      if (!_movedOnce.add(task)) _proactiveAdjustments++;
     });
   }
 
@@ -727,11 +711,7 @@ class _GameplayViewState extends State<_GameplayView> {
           ),
           const SizedBox(height: 8),
           Text(
-            // Plus de « sans pénalité » : revenir sur une carte compte
-            // désormais dans l'autorégulation, et l'affirmer serait faux. On
-            // n'annonce pas non plus la règle exacte — le référentiel observe
-            // une conduite spontanée, la dire inviterait à la simuler.
-            '${widget.moveCount} déplacement(s)',
+            '${widget.moveCount} déplacement(s) · sans pénalité',
             key: const ValueKey('day-stack-progress'),
             style: const TextStyle(color: Colors.white, fontSize: 12),
           ),
@@ -1340,7 +1320,7 @@ class _IntroView extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.base),
                 Text(
-                  'Order the tasks so every dependency and deadline is respected.',
+                  'Classe les tâches pour respecter leurs dépendances et leurs horaires.',
                   style: AppTypography.titleMedium.copyWith(
                     color: Colors.white,
                     letterSpacing: 0,
@@ -1353,7 +1333,7 @@ class _IntroView extends StatelessWidget {
           const Row(
             children: [
               Expanded(
-                child: ResultStatTile(label: 'Goal', value: 'Planning'),
+                child: ResultStatTile(label: 'Objectif', value: 'Planifier'),
               ),
               SizedBox(width: AppSpacing.sm),
               Expanded(
@@ -1370,7 +1350,7 @@ class _IntroView extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.xxl),
-          GamePrimaryButton(label: 'Start', onPressed: onStart),
+          GamePrimaryButton(label: 'Commencer', onPressed: onStart),
         ],
       ),
     );
@@ -1433,7 +1413,7 @@ class _HowToPlayView extends StatelessWidget {
           _BackButton(onPressed: onBack),
           const SizedBox(height: AppSpacing.base),
           Text(
-            'How to schedule',
+            'Comment jouer',
             style: AppTypography.displaySmall.copyWith(
               color: ZennytGamePalette.blue,
               letterSpacing: 0,
@@ -1442,28 +1422,36 @@ class _HowToPlayView extends StatelessWidget {
           const SizedBox(height: AppSpacing.lg),
           step(
             Icons.touch_app_outlined,
-            'Ordonne les tâches',
-            'Toutes les tâches sont mélangées au départ. Fais défiler les cartes '
-                'normalement. Pour changer une position, maintiens directement '
-                'la carte puis déplace-la. Garde-la près du bord pour faire '
-                'défiler pendant le déplacement. '
-                'Réorganise autant de fois que nécessaire avant de valider.',
+            'Réorganise les cartes',
+            'Chaque manche commence avec 11 ou 12 tâches mélangées. Maintiens '
+                'une carte puis glisse-la vers sa nouvelle position. Un geste '
+                'court fait défiler la liste ; près du bord, la liste défile '
+                'automatiquement.',
           ),
           step(
             Icons.link_rounded,
-            'Dependencies',
-            'A task must come AFTER the tasks listed in "after: …".',
+            'Respecte les dépendances',
+            'Sous une carte, « Après : X » signifie que la tâche X doit être '
+                'terminée avant celle-ci. Place donc X plus haut dans la liste.',
           ),
           step(
             Icons.schedule_rounded,
-            'Horaires',
-            'Fenêtres, échéances et blocs fixes sont des HEURES. Le planning se '
-                'déroule à partir de l\'ouverture de la journée : une tâche qui '
-                'doit attendre son heure crée un temps mort.',
+            'Respecte les horaires',
+            '« 08h00–09h00 » impose de commencer et finir dans cette fenêtre. '
+                '« avant 17h00 » impose de finir avant cette heure ; « pile » '
+                'impose l\'heure de début. Les tâches s\'enchaînent depuis '
+                'l\'heure affichée et toute attente crée du temps mort.',
+          ),
+          step(
+            Icons.check_circle_outline_rounded,
+            'Valide chaque manche',
+            'Tu peux réorganiser autant de fois que nécessaire, sans pénalité. '
+                'Le planning est évalué uniquement quand tu appuies sur '
+                '« Valider ». Après quatre manches, le jeu affiche ton score.',
           ),
           const SizedBox(height: AppSpacing.lg),
           GamePrimaryButton(
-            label: reviewing ? 'Resume schedule' : 'I am ready',
+            label: reviewing ? 'Reprendre la partie' : 'Je suis prêt',
             onPressed: onStart,
           ),
         ],

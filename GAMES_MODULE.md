@@ -808,7 +808,7 @@ sur l'onglet Careers/Progress ; les routes de jeu restent plein écran.
 | **Je place** | `presentation/view/je_place_screen.dart` | Parcours complet `cover → onboarding ×3 → pratique → ready → 3–8 objets → résultat`, timers monotones à échéances absolues, plateau 4×4 mauve responsive, tap/drag, aucun feedback mesuré ni score client. |
 | | `presentation/widgets/je_place_pause_dialog.dart` | Pratique gelable/reprenable ; une pause mesurée persiste d'abord l'audit technique puis permet le redémarrage du run, avec règles et sortie. |
 | | `assets/games icons/Je Place.png` · `Je Place Object 01.png`…`20.png` | Logo et catalogue PNG 512×512 RGBA transparent, style Zennyt flat 2.5D, contrôlés à 48 px. |
-| **Memory Quest Image — concepts visuels** | `assets/games icons/Memory Quest Image Concept v2.png` · `Memory Quest Image Concept v3 Minimal.png` · `Memory Quest Image Concept v4 Objects.png` | Trois propositions originales 1254×1254 : piste flat 2.5D à fond transparent (chambre/cartes/rappel), piste minimaliste transparente (prisme et formes ordonnées), puis piste directement liée au gameplay (pomme, clé et tasse mémorisées sur trois emplacements, clé revenant à sa place) sur fond lavande. Concepts livrés pour validation, non branchés au hub et créés sans utiliser les logos Memory Quest Image/Digits existants comme références. |
+| **Memory Quest Image — concepts visuels** | `assets/games icons/Memory Quest Image Concept v2.png` · `Memory Quest Image Concept v3 Minimal.png` · `Memory Quest Image Concept v4 Objects.png` · `Memory Quest Image Concept v5 Modern Recall.png` · `Memory Quest Image Concept v6 Modern Tech.png` · `Memory Quest Image Concept v7 Quiz Shapes.png` | Six propositions originales 1254×1254. La piste v7 associe directement les formes du quiz — cercle, triangle, carré arrondi, étoile et hexagone — aux objets modernes à mémoriser : smartphone, caméra hybride et casque sans fil. Elle adopte un emblème géométrique sur fond bleu, sans reprendre la double flèche circulaire précédente. Concepts livrés pour validation, non branchés au hub et créés sans utiliser les logos Memory Quest Image/Digits existants comme références. |
 | | `test/features/games/domain/object_location_config_test.dart` | Constantes, zones de réserve et vecteur golden déterministe partagé avec Java. |
 | | `test/features/games/data/object_location_scoring_test.dart` | Rejeu, classification exclusive, score/validité, progression et rejets identiques au backend. |
 | | `test/features/games/presentation/je_place_screen_test.dart` | Flow, payload brut, pause/audit/retry, accessibilité et non-débordement 390×844 / texte 200 %. |
@@ -1182,7 +1182,7 @@ Les quatre jeux demandés sont accessibles dans les sélecteurs de catégorie ex
 
 | Jeu | Contenu fixe / dynamique | Démo et amélioration |
 |-----|--------------------------|---------------------|
-| Day Stack | 11–12 tâches par univers, toutes présentes et mélangées, 3 manches | Liste unique, appui maintenu sur toute la carte, défilement tactile et automatique aux bords ; bouton Valider fixe, aucun feedback avant validation, règles conservant l’ordre. |
+| Day Stack | 11–12 tâches par univers, toutes présentes et mélangées, 4 manches | Liste unique, appui maintenu sur toute la carte, défilement tactile et automatique aux bords ; bouton Valider fixe, aucun feedback avant validation, règles conservant l’ordre. |
 | Emotional Radar | 3 situations fixes, réponses famille/nuance/intensité interactives | 3 vidéos locales de substitution, description textuelle, pause/relecture/plein écran. |
 | Reflective Pause | 10 situations fixes, réflexion et réponses chronométrées | Largeur lisible sur tablette et contraste des réponses verrouillées amélioré. |
 | Strategic Choices | 10 situations fixes, 8 stratégies, réflexion et récapitulatif interactifs | Choix de hauteur flexible et action principale fixe ; toujours sans score. |
@@ -1926,9 +1926,11 @@ Défilement naturel sur les cartes, auto-scroll aux bords, bouton « Valider » 
 protégé pendant le dépôt ; annulation de drag et consultation des règles préservent
 l’ordre. Déplacements comptés sans pénalité sur accord utilisateur, aucune alerte avant
 validation ; mesures figées à la validation et soumission dès la dernière validation.
+Le tutoriel est harmonisé en français et explique les contrôles, « Après : X », les
+fenêtres/échéances/ancrages horaires, les quatre manches et l’évaluation à la validation.
 Tests widget adaptés au geste sur toute la carte, à l’annulation, aux petits écrans et au
 texte 200 %.
-Validation : **74 tests Flutter ciblés verts**, analyse des deux fichiers Dart modifiés
+Validation : **75 tests Flutter ciblés verts**, analyse des deux fichiers Dart modifiés
 sans diagnostic ; captures vérifiées à 320×568, 390×844 (texte 200 %) et 1024×768.
 Le geste d’appui maintenu sur la carte est couvert par un test widget ; l’écran est aussi
 contrôlé visuellement dans le simulateur iOS 26.1.
@@ -1937,7 +1939,52 @@ Java 21, bloqués avant exécution par les tests Recruitment (`saveIfNotOlder` /
 `upsertIfNotOlder` absents) ; aucun correctif hors périmètre.
 Aucun backend, contrat, asset, dépendance, core/shared ou barème protégé modifié.
 
-**Dernière mise à jour** : 2026-09-11 — **(61)** Day Stack : liste réordonnable, validation sans pénalité ;
+**Changelog (62)** — 2026-09-12 : audit et correction du tutoriel Day Stack contre
+la banque et le moteur réels. L’introduction et les règles sont harmonisées en français ;
+elles expliquent l’appui maintenu, le défilement, « Après : X », les fenêtres, échéances
+et ancrages horaires, les **4 manches**, l’absence de pénalité sur les glissements et
+l’évaluation à « Valider ». Une incohérence d’implémentation est corrigée : reprendre une
+carte déjà déplacée ne renseigne plus `proactiveAdjustments`, conformément à la décision
+utilisateur ; le barème serveur/mock reste inchangé. Test widget du tutoriel et du payload
+sans corrections ajouté, inclus dans **75 tests Flutter ciblés verts** ; analyse ciblée sans
+diagnostic. Aucun backend, contrat, asset, dépendance, core/shared ou barème protégé modifié.
+
+**Changelog (63)** — 2026-09-12 : audit des tutoriels des trois jeux
+d’intelligence émotionnelle contre leurs mécaniques, banques et configurations. Emotional Radar
+annonce désormais les 15 scènes, le budget de 30 s couvrant visionnage + réponse, les 6/9 émotions,
+les trois intensités et la conduite à tenir après expiration. Reflective Pause décrit l’ordre réel
+lecture → attente du délai publié → choix → validation sur 10 moments, sans promettre à tort un
+délai fixe dans l’aide. Strategic Choices précise les 10 situations, les 8 stratégies, le choix
+possible pendant la réflexion de 3 s, la validation débloquée à sa fin et le score serveur
+provisoire. Les tests widget couvrent ces consignes. Aucun mécanisme, backend, contrat, asset,
+dépendance, core/shared ou barème protégé modifié.
+
+**Changelog (64)** — 2026-09-12 : quatrième piste de logo **Memory Quest Image**, construite
+autour des objets modernes du catalogue réel : téléphone, appareil photo, sac à dos et lampe au
+centre, encerclés par deux flèches de mémorisation/rappel et accompagnés de silhouettes d'écho.
+Export PNG RGBA 1254×1254 à fond transparent, conservé comme concept non intégré. Aucun code,
+barème, contrat, endpoint, event, `pom.xml` ou `pubspec.yaml` modifié. Zones protégées inchangées.
+
+**Changelog (65)** — 2026-09-12 : cinquième piste de logo **Memory Quest Image**, avec une
+interprétation plus contemporaine des objets du jeu : smartphone sans bordures, caméra hybride à
+grand objectif, casque audio sans fil et lampe LED articulée au centre de la double flèche de
+mémorisation. Composition simplifiée et export PNG RGBA 1254×1254 à fond transparent, concept non
+intégré. Aucun code, barème, contrat, endpoint, event, `pom.xml` ou `pubspec.yaml` modifié. Zones
+protégées inchangées.
+
+**Changelog (66)** — 2026-09-12 : sixième piste de logo **Memory Quest Image**, dans un style
+géométrique distinct. Les cinq formes réellement présentes dans les quiz — cercle, triangle, carré
+arrondi, étoile et hexagone — encadrent trois objets modernes à mémoriser : smartphone, caméra
+hybride et casque audio sans fil. Export PNG RGB 1254×1254 sur fond bleu nuit, conservé comme
+concept non intégré. Aucun code, barème, contrat, endpoint, event, `pom.xml` ou `pubspec.yaml`
+modifié. Zones protégées inchangées.
+
+**Dernière mise à jour** : 2026-09-12 — **(66)** piste Memory Quest associant formes du quiz et objets modernes ;
+**(65)** piste Memory Quest aux objets technologiques modernisés ;
+**(64)** piste Memory Quest aux objets modernes et flèches circulaires ;
+**(63)** audit des tutoriels d’intelligence émotionnelle ;
+**(62)** audit et correction du tutoriel Day Stack ;
+**(61)** Day Stack : liste réordonnable, validation sans pénalité ;
 **(60)** piste Memory Quest centrée sur la mémorisation d'objets ;
 **(59)** seconde piste minimaliste de logo Memory Quest Image ;
 **(58)** premier concept de logo Memory Quest Image non intégré ;

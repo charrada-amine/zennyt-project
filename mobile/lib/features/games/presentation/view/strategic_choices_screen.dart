@@ -54,13 +54,12 @@ enum _ScenarioPhase { reading, reflecting, ready }
 /// et le tirage change d'une passation à l'autre.
 const int kStrategicChoicesPerJourney = 10;
 
-/// Front-only implementation of the Strategic Choices handoff.
+/// Parcours « Strategic Choices » relié au moteur Games.
 ///
-/// The supplied material does not include videos or a validated scoring model.
-/// Situations are therefore presented as text cards, choices remain local to
-/// this screen, and the result deliberately exposes no calculated score. This
-/// boundary prevents a visual preview from being mistaken for a psychometric
-/// result or reaching the Games backend/Fit Score pipeline.
+/// Les vidéos ne sont pas encore livrées : les situations restent lisibles via
+/// leur texte complet. Le client envoie uniquement les choix bruts ; le serveur
+/// applique la cotation provisoire de la banque et renvoie le score et le
+/// rapport. L'écran signale explicitement ce caractère provisoire.
 class StrategicChoicesScreen extends ConsumerStatefulWidget {
   const StrategicChoicesScreen({
     super.key,
@@ -431,13 +430,19 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
           mainAxisSize: MainAxisSize.min,
           children: [
             _RuleLine('1', 'Read the complete situation.'),
-            _RuleLine('2', 'Let the 3-second reflection timer finish.'),
-            _RuleLine('3', 'Choose exactly one coping strategy.'),
-            _RuleLine('4', 'Save your answer and continue.'),
+            _RuleLine(
+              '2',
+              'Start the 3-second reflection. You may choose while it runs.',
+            ),
+            _RuleLine(
+              '3',
+              'Choose exactly one of the eight coping strategies.',
+            ),
+            _RuleLine('4', 'When the countdown ends, validate and continue.'),
             SizedBox(height: 12),
             Text(
-              'Aucune correction immédiate pendant le parcours : le score est '
-              'calculé à la fin, par le serveur.',
+              'There is no immediate right/wrong feedback. After 10 answers, '
+              'the server returns the provisional score.',
               style: TextStyle(color: _muted, height: 1.4),
             ),
           ],
@@ -769,7 +774,7 @@ class _TutorialView extends StatelessWidget {
       onBack: onBack,
       title: 'How the mission works',
       subtitle:
-          'Each situation follows the same rhythm. Read, pause, choose, then save your answer.',
+          'You will complete 10 situations. Read, start the reflection, choose one strategy, then validate.',
       buttonLabel: 'Start situation',
       onButton: onStart,
       children: const [
@@ -777,8 +782,8 @@ class _TutorialView extends StatelessWidget {
         _NoticePanel(
           title: 'No immediate correction',
           description:
-              'Aucun retour juste/faux pendant le parcours. Le score est '
-              'calculé à la fin, par le serveur.',
+              'There is no immediate right/wrong feedback. After 10 answers, '
+              'the server returns the provisional score.',
           outlined: true,
         ),
       ],
@@ -847,25 +852,26 @@ class _TutorialGrid extends StatelessWidget {
             color: _magenta,
             icon: Icons.article_outlined,
             title: 'Read',
-            description: 'Take in the complete situation.',
+            description: 'Read the complete situation.',
           ),
           _TutorialCard(
             color: _blue,
             icon: Icons.timer_outlined,
             title: 'Reflect',
-            description: 'Let the timer finish.',
+            description:
+                'Start the 3-second countdown. You may choose while it runs.',
           ),
           _TutorialCard(
             color: _green,
             icon: Icons.checklist_rounded,
             title: 'Choose',
-            description: 'Pick one strategy.',
+            description: 'Pick exactly one of the eight strategies.',
           ),
           _TutorialCard(
             color: _navy,
             icon: Icons.check_rounded,
             title: 'Validate',
-            description: 'Save and continue.',
+            description: 'Validate after the countdown ends.',
           ),
         ];
         if (singleColumn) {

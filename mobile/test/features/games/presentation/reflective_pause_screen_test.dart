@@ -17,11 +17,19 @@ class _LongReflectionRepository extends GamesMockRepository {
   @override
   Future<GameSession> startSession(GameType gameType) async {
     final session = await super.startSession(gameType);
-    return GameSession(id: session.id, gameType: session.gameType,
-      status: session.status, compositeRaw: session.compositeRaw,
-      compositeMax: session.compositeMax, normalized: session.normalized,
-      attempts: session.attempts, startedAt: session.startedAt,
-      runtime: const GameRuntimeSnapshot(settings: {'reflectiveThinkingTimeMs': 6000}));
+    return GameSession(
+      id: session.id,
+      gameType: session.gameType,
+      status: session.status,
+      compositeRaw: session.compositeRaw,
+      compositeMax: session.compositeMax,
+      normalized: session.normalized,
+      attempts: session.attempts,
+      startedAt: session.startedAt,
+      runtime: const GameRuntimeSnapshot(
+        settings: {'reflectiveThinkingTimeMs': 6000},
+      ),
+    );
   }
 }
 
@@ -60,12 +68,22 @@ void main() {
   /// « reformuler », TR-002 « demander ». Un parcours qui coche « respirer »
   /// partout obtient donc exactement huit recommandations sur dix.
   const situationsImposees = [
-    'TR-007', 'TR-009', 'TR-013', 'TR-020',
-    'TR-042', 'TR-046', 'TR-047', 'TR-058',
-    'TR-001', 'TR-002',
+    'TR-007',
+    'TR-009',
+    'TR-013',
+    'TR-020',
+    'TR-042',
+    'TR-046',
+    'TR-047',
+    'TR-058',
+    'TR-001',
+    'TR-002',
   ];
 
-  Future<void> pumpGame(WidgetTester tester, {GamesMockRepository? repository}) async {
+  Future<void> pumpGame(
+    WidgetTester tester, {
+    GamesMockRepository? repository,
+  }) async {
     SharedPreferences.setMockInitialValues({});
     final preferences = await SharedPreferences.getInstance();
     // Surface haute : la carte de situation porte désormais l'emplacement du
@@ -78,7 +96,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          gamesRepositoryProvider.overrideWithValue(repository ?? GamesMockRepository()),
+          gamesRepositoryProvider.overrideWithValue(
+            repository ?? GamesMockRepository(),
+          ),
           sharedPreferencesProvider.overrideWithValue(preferences),
           currentUserProvider.overrideWithValue(null),
         ],
@@ -121,19 +141,23 @@ void main() {
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
     expect(find.text('How it works'), findsOneWidget);
-    expect(find.text('Pause'), findsOneWidget);
-    expect(find.text('Think'), findsOneWidget);
+    expect(find.text('Read'), findsOneWidget);
+    expect(find.text('Wait'), findsOneWidget);
     expect(find.text('Choose'), findsOneWidget);
     await tester.scrollUntilVisible(
-      find.text('Respond'),
+      find.text('Validate'),
       180,
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pump();
-    expect(find.text('Respond'), findsOneWidget);
+    expect(find.text('Validate'), findsOneWidget);
+    expect(find.textContaining('Responses unlock only'), findsOneWidget);
+    expect(find.textContaining('after all 10 moments'), findsOneWidget);
   });
 
-  testWidgets('published thinking time extends the input lock and countdown', (tester) async {
+  testWidgets('published thinking time extends the input lock and countdown', (
+    tester,
+  ) async {
     await pumpGame(tester, repository: _LongReflectionRepository());
     await reachGameplay(tester);
     await tester.pump(const Duration(milliseconds: 3100));
@@ -162,10 +186,7 @@ void main() {
 
     await tester.pump(const Duration(milliseconds: 3100));
     await tester.pump();
-    expect(
-      find.textContaining('Temps conseillé'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('Temps conseillé'), findsOneWidget);
 
     await tapChoice(tester, ReflectivePauseResponseType.breatheAnalyze);
     final validate = find.text('Validate response');

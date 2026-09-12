@@ -151,6 +151,9 @@ void main() {
     expect(find.text('Reflect'), findsOneWidget);
     expect(find.text('Choose'), findsOneWidget);
     expect(find.text('Validate'), findsOneWidget);
+    expect(find.textContaining('You may choose while it runs'), findsOneWidget);
+    expect(find.textContaining('eight strategies'), findsOneWidget);
+    expect(find.textContaining('provisional score'), findsOneWidget);
   });
 
   testWidgets('pause freezes reflection and offers no restart action', (
