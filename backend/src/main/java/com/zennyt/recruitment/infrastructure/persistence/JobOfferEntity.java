@@ -21,6 +21,8 @@ public class JobOfferEntity {
     private String locationCountry;
     private Double salaryMin;
     private Double salaryMax;
+    @Column(name = "salary_currency", length = 3) private String salaryCurrency;
+    @Enumerated(EnumType.STRING) @Column(name = "salary_period", length = 10) private SalaryPeriod salaryPeriod;
 
     @Enumerated(EnumType.STRING) @Column(nullable = false) private ContractType contractType;
     @Enumerated(EnumType.STRING) @Column(nullable = false) private WorkplaceType workplaceType;
@@ -58,6 +60,10 @@ public class JobOfferEntity {
     public void setSalaryMin(Double v) { this.salaryMin = v; }
     public Double getSalaryMax() { return salaryMax; }
     public void setSalaryMax(Double v) { this.salaryMax = v; }
+    public String getSalaryCurrency() { return salaryCurrency; }
+    public void setSalaryCurrency(String v) { this.salaryCurrency = v; }
+    public SalaryPeriod getSalaryPeriod() { return salaryPeriod; }
+    public void setSalaryPeriod(SalaryPeriod v) { this.salaryPeriod = v; }
     public ContractType getContractType() { return contractType; }
     public void setContractType(ContractType v) { this.contractType = v; }
     public WorkplaceType getWorkplaceType() { return workplaceType; }

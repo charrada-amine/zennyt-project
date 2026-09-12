@@ -39,9 +39,7 @@ class HardSkillsResultsPage extends ConsumerWidget {
               data: (job) => _JobHeaderCard(
                 title: job.title,
                 subtitle: '${job.companyName.isEmpty ? job.locationDisplay : job.companyName} · ${job.locationDisplay}',
-                salary: job.salaryMin > 0
-                    ? '\$${(job.salaryMin / 1000).toStringAsFixed(0)}K'
-                    : null,
+                salary: job.salaryMin > 0 ? job.salaryDisplay : null,
                 chips: [job.contractType.label, job.experienceLevel.label],
               ),
             ),

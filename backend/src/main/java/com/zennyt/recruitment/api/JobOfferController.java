@@ -77,6 +77,7 @@ public class JobOfferController {
         Location location = new Location(req.city(), req.country());
         JobOffer offer = createUseCase.execute(recruiterId, new CreateJobOfferUseCase.Command(
             req.title(), location, req.salaryMin(), req.salaryMax(),
+            req.salaryCurrency(), req.salaryPeriod(),
             req.contractType(), req.workplaceType(), req.experienceLevel(),
             req.description(), req.responsibilities(),
             req.minimumQualifications(), req.preferredQualifications(),
@@ -188,6 +189,7 @@ public class JobOfferController {
         Location location = new Location(req.city(), req.country());
         JobOffer offer = replaceUseCase.execute(id, recruiterId, new ReplaceJobOfferUseCase.Command(
             req.title(), location, req.salaryMin(), req.salaryMax(),
+            req.salaryCurrency(), req.salaryPeriod(),
             req.contractType(), req.workplaceType(), req.experienceLevel(),
             req.description(), req.responsibilities(),
             req.minimumQualifications(), req.preferredQualifications(),

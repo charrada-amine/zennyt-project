@@ -55,7 +55,7 @@ and tracked here until an API is added).
 | Manage tests | 197, 300 | ✅ `ManageTestsPage` (`/assessments`) with edit/delete/Add, linked from "Your Tests → See all" (2026-09-11) |
 | Create test | 198-203, 306 | 🟡 (`CreateAssessmentPage`) |
 | Generate test with AI | 301-305 | 🟡 (`CreateAssessmentPage` AI flow) |
-| Add job offer | 204-217 | 🟡 (`CreateJobOfferPage`) |
+| Add job offer | 204-217 | ✅ fields complete; ✅ salary currency + period (2026-09-11); inline dialogs vs accordions |
 | Fits / filter / candidate profile | 222-238, 251-254 | 🟡/✅ |
 | Recruiter profile / edit | 251-254 | ✅ (`RecruiterProfileView`, `RecruiterEditProfileScreen`) |
 | Recruiter notifications | 143-149 | ✅ |
@@ -119,9 +119,9 @@ payments (video), notifications, help-chats.
 - Fixed jobs data layer to match the merged recruitment contract (create payload, PUT vs
   PATCH, `recruiter` company projection, applicant/success stats).
 - `flutter analyze`: no errors. New test: `test/features/jobs/data/test_attempt_parsing_test.dart` (5).
-- Still open in this cluster: full-list "Manage tests" redesign (197), "Add a job offer"
-  accordion 1:1 (204-217), salary currency/period (dropped server-side).
-- ✅ Public `/tests/{token}` permit-list resolved in Shared (2026-09-11, see gap log below).
+- Still open in this cluster: "Add a job offer" accordion 1:1 (204-217) — fields complete.
+- ✅ Manage-tests (197), ✅ salary currency/period, ✅ public `/tests/{token}` resolved
+  (2026-09-11, see gap log below).
 
 ### 2026-09-11 — Cluster 2 (profile fixes) — done
 - New `TermsOfUseScreen` (17 sections transcribed 1:1 from the board) + route
@@ -216,6 +216,21 @@ email/phone-change OTP (126-127), analytics/progress, assessment-integrity resul
   clean; profile-settings/shared suites green.
 - Fix: `preferencesProvider` now skips the network when signed out and times out, so widget
   tests never hang on the real Dio client.
+
+### 2026-09-11 — Gap fill: salary currency + period (design 213) — done
+- **Contract**: `JobOffer`/`JobOfferCreate`/`JobOfferSummary` gained `salaryCurrency`
+  (ISO 4217) and `salaryPeriod` (+ `SalaryPeriod` enum). No new routes (parity unchanged).
+- **Backend**: migration `V79__recruitment_job_offer_salary_currency_period.sql`
+  (defaults EUR/MONTHLY + CHECK constraints); `SalaryPeriod` VO; `JobOffer` fields + a
+  defaults-preserving `rehydrate` overload; entity/adapter/use-cases/DTOs/controller.
+  Compile + parity + `CreateJobOfferUseCaseTest` green (JDK 21).
+- **Mobile**: `JobOffer.salaryCurrency/salaryPeriod` + `SalaryPeriod` enum and
+  `salaryCurrencySymbol`; `salaryDisplay` now renders symbol + `/Mo`·`/Yr`; salary dialog
+  offers currency + period (design 213); cards/detail/results use it. New
+  `job_salary_display_test.dart`; `flutter analyze` clean.
+- **Decision (traceable):** currency set taken from the design (EUR/USD/GBP/MAD/TND),
+  default EUR; period MONTHLY/YEARLY, default MONTHLY.
+
 
 
 

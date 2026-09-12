@@ -124,21 +124,7 @@ class _HeaderCard extends StatelessWidget {
     return source.isEmpty ? 'J' : source[0].toUpperCase();
   }
 
-  String get _salary {
-    String k(double v) {
-      if (v >= 1000) {
-        final value = v / 1000;
-        return '\$${value.toStringAsFixed(value.truncateToDouble() == value ? 0 : 1)}K';
-      }
-      return '\$${v.toStringAsFixed(0)}';
-    }
-
-    if (job.salaryMax > 0 && job.salaryMin > 0) {
-      return '${k(job.salaryMin)} – ${k(job.salaryMax)}';
-    }
-    if (job.salaryMin > 0) return k(job.salaryMin);
-    return '';
-  }
+  String get _salary => job.salaryDisplay;
 
   @override
   Widget build(BuildContext context) {

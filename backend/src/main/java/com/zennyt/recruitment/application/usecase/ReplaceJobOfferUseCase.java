@@ -25,6 +25,7 @@ public class ReplaceJobOfferUseCase {
 
     public record Command(
         String title, Location location, Double salaryMin, Double salaryMax,
+        String salaryCurrency, SalaryPeriod salaryPeriod,
         ContractType contractType, WorkplaceType workplaceType, ExperienceLevel experienceLevel,
         String description, String responsibilities,
         String minimumQualifications, String preferredQualifications,
@@ -58,7 +59,8 @@ public class ReplaceJobOfferUseCase {
             cmd.contractType(), cmd.workplaceType(), cmd.experienceLevel(),
             cmd.description(), cmd.responsibilities(), cmd.minimumQualifications(),
             cmd.preferredQualifications(), cmd.whatWeOffer(), cmd.howToApply(),
-            offer.assessmentId(), cmd.jobPositionId(), cmd.openToInternational());
+            offer.assessmentId(), cmd.jobPositionId(), cmd.openToInternational(),
+            cmd.salaryCurrency(), cmd.salaryPeriod());
         JobOffer saved = repository.save(offer);
         offer.domainEvents().forEach(eventPublisher::publishEvent);
         offer.clearEvents();

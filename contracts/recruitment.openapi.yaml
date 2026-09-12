@@ -1249,6 +1249,11 @@ components:
       type: string
       enum: [ON_SITE, REMOTE, HYBRID]
 
+    SalaryPeriod:
+      type: string
+      description: Périodicité du salaire affiché (montant brut).
+      enum: [MONTHLY, YEARLY]
+
     ExperienceLevel:
       type: string
       description: >
@@ -1422,6 +1427,8 @@ components:
         country: { type: string, example: "TN" }
         salaryMin: { type: number, format: double, example: 40000 }
         salaryMax: { type: number, format: double, example: 70000, description: "Doit être >= salaryMin" }
+        salaryCurrency: { type: string, maxLength: 3, example: EUR, description: "Code ISO 4217 (EUR, USD, GBP, MAD, TND)." }
+        salaryPeriod: { $ref: '#/components/schemas/SalaryPeriod' }
         contractType: { $ref: '#/components/schemas/ContractType' }
         workplaceType: { $ref: '#/components/schemas/WorkplaceType' }
         experienceLevel: { $ref: '#/components/schemas/ExperienceLevel' }
@@ -1485,6 +1492,8 @@ components:
         country: { type: string }
         salaryMin: { type: number, format: double }
         salaryMax: { type: number, format: double, description: "Doit être >= salaryMin" }
+        salaryCurrency: { type: string, maxLength: 3, example: EUR }
+        salaryPeriod: { $ref: '#/components/schemas/SalaryPeriod' }
         contractType: { $ref: '#/components/schemas/ContractType' }
         workplaceType: { $ref: '#/components/schemas/WorkplaceType' }
         experienceLevel: { $ref: '#/components/schemas/ExperienceLevel' }
@@ -1530,6 +1539,8 @@ components:
         country: { type: string }
         salaryMin: { type: number, format: double }
         salaryMax: { type: number, format: double }
+        salaryCurrency: { type: string, maxLength: 3, example: EUR }
+        salaryPeriod: { $ref: '#/components/schemas/SalaryPeriod' }
         contractType: { $ref: '#/components/schemas/ContractType' }
         workplaceType: { $ref: '#/components/schemas/WorkplaceType' }
         experienceLevel: { $ref: '#/components/schemas/ExperienceLevel' }

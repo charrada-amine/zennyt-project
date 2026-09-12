@@ -138,6 +138,7 @@ public class JobOfferRepositoryAdapter implements JobOfferRepository {
             e.setLocationCity(o.location().city()); e.setLocationCountry(o.location().country());
         }
         e.setSalaryMin(o.salaryMin()); e.setSalaryMax(o.salaryMax());
+        e.setSalaryCurrency(o.salaryCurrency()); e.setSalaryPeriod(o.salaryPeriod());
         e.setContractType(o.contractType()); e.setWorkplaceType(o.workplaceType());
         e.setExperienceLevel(o.experienceLevel());
         e.setDescription(o.description()); e.setResponsibilities(o.responsibilities());
@@ -158,6 +159,7 @@ public class JobOfferRepositoryAdapter implements JobOfferRepository {
             e.getMinimumQualifications(), e.getPreferredQualifications(), e.getWhatWeOffer(),
             e.getHowToApply(), e.getAssessmentId(), e.getJobPositionId(),
             e.isOpenToInternational(),
-            e.getStatus(), e.getPostedAt(), e.getUpdatedAt());
+            e.getStatus(), e.getPostedAt(), e.getUpdatedAt(),
+            e.getSalaryCurrency(), e.getSalaryPeriod());
     }
 }

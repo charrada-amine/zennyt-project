@@ -23,6 +23,8 @@ public class JobOffer extends AggregateRoot {
     private Location location;
     private Double salaryMin;
     private Double salaryMax;
+    private String salaryCurrency;
+    private SalaryPeriod salaryPeriod;
     private ContractType contractType;
     private WorkplaceType workplaceType;
     private ExperienceLevel experienceLevel;
@@ -52,6 +54,8 @@ public class JobOffer extends AggregateRoot {
         this.location = location;
         this.status = JobOfferStatus.DRAFT;
         this.openToInternational = false;
+        this.salaryCurrency = "EUR";
+        this.salaryPeriod = SalaryPeriod.MONTHLY;
         this.postedAt = Instant.now();
         this.updatedAt = this.postedAt;
     }
@@ -77,11 +81,32 @@ public class JobOffer extends AggregateRoot {
                                      UUID assessmentId, UUID jobPositionId,
                                      boolean openToInternational,
                                      JobOfferStatus status, Instant postedAt, Instant updatedAt) {
+        return rehydrate(id, recruiterId, hiringContactId, title, location, salaryMin, salaryMax,
+            contractType, workplaceType, experienceLevel, description, responsibilities,
+            minimumQualifications, preferredQualifications, whatWeOffer, howToApply, assessmentId,
+            jobPositionId, openToInternational, status, postedAt, updatedAt, "EUR",
+            SalaryPeriod.MONTHLY);
+    }
+
+    /** Reconstruction complète (devise + périodicité du salaire). */
+    public static JobOffer rehydrate(UUID id, UUID recruiterId, UUID hiringContactId,
+                                     String title, Location location,
+                                     Double salaryMin, Double salaryMax, ContractType contractType,
+                                     WorkplaceType workplaceType, ExperienceLevel experienceLevel,
+                                     String description, String responsibilities,
+                                     String minimumQualifications, String preferredQualifications,
+                                     String whatWeOffer, String howToApply,
+                                     UUID assessmentId, UUID jobPositionId,
+                                     boolean openToInternational,
+                                     JobOfferStatus status, Instant postedAt, Instant updatedAt,
+                                     String salaryCurrency, SalaryPeriod salaryPeriod) {
         JobOffer offer = new JobOffer(id, recruiterId, title, description,
             contractType, workplaceType, experienceLevel, location);
         offer.hiringContactId = hiringContactId;
         offer.salaryMin = salaryMin;
         offer.salaryMax = salaryMax;
+        offer.salaryCurrency = salaryCurrency == null ? "EUR" : salaryCurrency;
+        offer.salaryPeriod = salaryPeriod == null ? SalaryPeriod.MONTHLY : salaryPeriod;
         offer.responsibilities = responsibilities;
         offer.minimumQualifications = minimumQualifications;
         offer.preferredQualifications = preferredQualifications;
@@ -111,11 +136,14 @@ public class JobOffer extends AggregateRoot {
                        String responsibilities, String minimumQualifications,
                        String preferredQualifications, String whatWeOffer, String howToApply,
                        UUID assessmentId, UUID jobPositionId,
-                       boolean openToInternational) {
+                       boolean openToInternational,
+                       String salaryCurrency, SalaryPeriod salaryPeriod) {
         this.title = title;
         this.location = location;
         this.salaryMin = salaryMin;
         this.salaryMax = salaryMax;
+        this.salaryCurrency = salaryCurrency == null ? "EUR" : salaryCurrency;
+        this.salaryPeriod = salaryPeriod == null ? SalaryPeriod.MONTHLY : salaryPeriod;
         this.contractType = contractType;
         this.workplaceType = workplaceType;
         this.experienceLevel = experienceLevel;
@@ -151,6 +179,8 @@ public class JobOffer extends AggregateRoot {
     public Location location() { return location; }
     public Double salaryMin() { return salaryMin; }
     public Double salaryMax() { return salaryMax; }
+    public String salaryCurrency() { return salaryCurrency; }
+    public SalaryPeriod salaryPeriod() { return salaryPeriod; }
     public ContractType contractType() { return contractType; }
     public WorkplaceType workplaceType() { return workplaceType; }
     public ExperienceLevel experienceLevel() { return experienceLevel; }

@@ -49,6 +49,8 @@ class _CreateJobOfferPageState extends ConsumerState<CreateJobOfferPage> {
   ContractType _contractType = ContractType.fullTime;
   WorkplaceType _workplaceType = WorkplaceType.onSite;
   ExperienceLevel _experienceLevel = ExperienceLevel.junior;
+  String _salaryCurrency = 'EUR';
+  SalaryPeriod _salaryPeriod = SalaryPeriod.monthly;
 
   bool _remote = false;
   bool _openToInternational = false;
@@ -86,6 +88,8 @@ class _CreateJobOfferPageState extends ConsumerState<CreateJobOfferPage> {
       _contractType = job.contractType;
       _workplaceType = job.workplaceType;
       _experienceLevel = job.experienceLevel;
+      _salaryCurrency = job.salaryCurrency;
+      _salaryPeriod = job.salaryPeriod;
       _selectedJobPositionId = job.jobPositionId;
       _remote = job.remote;
       _openToInternational = job.openToInternational;
@@ -129,8 +133,11 @@ class _CreateJobOfferPageState extends ConsumerState<CreateJobOfferPage> {
   String _getSalaryDisplay() {
     final min = _salaryMinCtrl.text.trim();
     final max = _salaryMaxCtrl.text.trim();
-    if (min.isNotEmpty && max.isNotEmpty) return '\$$min – \$$max /Mo';
-    if (min.isNotEmpty) return '\$$min /Mo';
+    final symbol = salaryCurrencySymbol(_salaryCurrency);
+    if (min.isNotEmpty && max.isNotEmpty) {
+      return '$symbol$min – $symbol$max ${_salaryPeriod.shortSuffix}';
+    }
+    if (min.isNotEmpty) return '$symbol$min ${_salaryPeriod.shortSuffix}';
     return '';
   }
 
@@ -170,7 +177,12 @@ class _CreateJobOfferPageState extends ConsumerState<CreateJobOfferPage> {
       context,
       minCtrl: _salaryMinCtrl,
       maxCtrl: _salaryMaxCtrl,
-      onSaved: () => setState(() {}),
+      currency: _salaryCurrency,
+      period: _salaryPeriod,
+      onSaved: (currency, period) => setState(() {
+        _salaryCurrency = currency;
+        _salaryPeriod = period;
+      }),
     );
   }
 
@@ -236,6 +248,8 @@ class _CreateJobOfferPageState extends ConsumerState<CreateJobOfferPage> {
                 remote: _remote,
                 salaryMin: double.tryParse(_salaryMinCtrl.text) ?? 0,
                 salaryMax: double.tryParse(_salaryMaxCtrl.text) ?? 0,
+                salaryCurrency: _salaryCurrency,
+                salaryPeriod: _salaryPeriod,
                 contractType: _contractType,
                 workplaceType: _workplaceType,
                 experienceLevel: _experienceLevel,
@@ -267,6 +281,8 @@ class _CreateJobOfferPageState extends ConsumerState<CreateJobOfferPage> {
                 remote: _remote,
                 salaryMin: double.tryParse(_salaryMinCtrl.text) ?? 0,
                 salaryMax: double.tryParse(_salaryMaxCtrl.text) ?? 0,
+                salaryCurrency: _salaryCurrency,
+                salaryPeriod: _salaryPeriod,
                 currency: '/Mo',
                 contractType: _contractType,
                 workplaceType: _workplaceType,

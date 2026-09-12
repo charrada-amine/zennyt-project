@@ -1,5 +1,5 @@
 import 'package:zennyt/features/jobs/domain/entities/assessment.dart';
-import '../entities/job.dart' show ContractType, WorkplaceType, ExperienceLevel, JobStatus, JobOffer;
+import '../entities/job.dart' show ContractType, WorkplaceType, ExperienceLevel, JobStatus, JobOffer, SalaryPeriod;
 import 'package:zennyt/features/jobs/domain/entities/job_position.dart';
 import 'package:zennyt/features/jobs/domain/entities/public_assessment.dart';
 import 'package:zennyt/features/jobs/domain/entities/test_attempt.dart';
@@ -85,6 +85,8 @@ class CreateJobOfferParams {
   final bool remote;
   final double salaryMin;
   final double salaryMax;
+  final String salaryCurrency;
+  final SalaryPeriod salaryPeriod;
   final String currency;
   final ContractType contractType;
   final WorkplaceType workplaceType;
@@ -114,6 +116,8 @@ class CreateJobOfferParams {
     required this.remote,
     required this.salaryMin,
     required this.salaryMax,
+    this.salaryCurrency = 'EUR',
+    this.salaryPeriod = SalaryPeriod.monthly,
     required this.currency,
     required this.contractType,
     required this.workplaceType,
@@ -141,6 +145,8 @@ class UpdateJobOfferParams {
   final bool? remote;
   final double? salaryMin;
   final double? salaryMax;
+  final String? salaryCurrency;
+  final SalaryPeriod? salaryPeriod;
   final String? currency;
   final ContractType? contractType;
   final WorkplaceType? workplaceType;
@@ -167,6 +173,8 @@ class UpdateJobOfferParams {
     this.remote,
     this.salaryMin,
     this.salaryMax,
+    this.salaryCurrency,
+    this.salaryPeriod,
     this.currency,
     this.contractType,
     this.workplaceType,

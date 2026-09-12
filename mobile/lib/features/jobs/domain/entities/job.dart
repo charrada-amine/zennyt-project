@@ -86,6 +86,37 @@ enum JobStatus {
       JobStatus.values.firstWhere((e) => e.value == v, orElse: () => JobStatus.active);
 }
 
+/// Périodicité du salaire affiché (maquette 213).
+enum SalaryPeriod {
+  monthly('MONTHLY'),
+  yearly('YEARLY');
+
+  final String value;
+  const SalaryPeriod(this.value);
+
+  static SalaryPeriod fromString(String? v) =>
+      SalaryPeriod.values.firstWhere((e) => e.value == v, orElse: () => SalaryPeriod.monthly);
+
+  String get label => this == SalaryPeriod.monthly ? 'Monthly' : 'Yearly';
+  String get shortSuffix => this == SalaryPeriod.monthly ? '/Mo' : '/Yr';
+}
+
+/// Devises proposées par la maquette (maquette 213).
+const List<String> kSalaryCurrencies = ['EUR', 'USD', 'GBP', 'MAD', 'TND'];
+
+String salaryCurrencySymbol(String currency) {
+  switch (currency) {
+    case 'EUR':
+      return '€';
+    case 'GBP':
+      return '£';
+    case 'USD':
+      return '\$';
+    default:
+      return '$currency ';
+  }
+}
+
 /// F19 (FITSCORE_REMEDIATION.md §3 index F19) — informational only, never
 /// used in the Fit Score calculation. PORTFOLIO_BASED is distinct from INFO:
 /// it means "no QCM is expected for this creative role, that's normal," not
@@ -114,6 +145,8 @@ class JobOffer extends Equatable {
   final bool remote;
   final double salaryMin;
   final double salaryMax;
+  final String salaryCurrency;
+  final SalaryPeriod salaryPeriod;
   final String currency;
   final ContractType contractType;
   final WorkplaceType workplaceType;
@@ -162,6 +195,8 @@ class JobOffer extends Equatable {
     required this.remote,
     required this.salaryMin,
     required this.salaryMax,
+    this.salaryCurrency = 'EUR',
+    this.salaryPeriod = SalaryPeriod.monthly,
     required this.currency,
     required this.contractType,
     required this.workplaceType,
@@ -196,6 +231,8 @@ class JobOffer extends Equatable {
     bool? remote,
     double? salaryMin,
     double? salaryMax,
+    String? salaryCurrency,
+    SalaryPeriod? salaryPeriod,
     String? currency,
     ContractType? contractType,
     WorkplaceType? workplaceType,
@@ -229,6 +266,8 @@ class JobOffer extends Equatable {
       remote: remote ?? this.remote,
       salaryMin: salaryMin ?? this.salaryMin,
       salaryMax: salaryMax ?? this.salaryMax,
+      salaryCurrency: salaryCurrency ?? this.salaryCurrency,
+      salaryPeriod: salaryPeriod ?? this.salaryPeriod,
       currency: currency ?? this.currency,
       contractType: contractType ?? this.contractType,
       workplaceType: workplaceType ?? this.workplaceType,
@@ -257,14 +296,26 @@ class JobOffer extends Equatable {
   String get locationDisplay => '$city, $country';
 
   String get salaryDisplay {
-    if (salaryMin == salaryMax) return '\$$salaryMin$currency';
-    return '\$$salaryMin - \$$salaryMax$currency';
+    if (salaryMin <= 0 && salaryMax <= 0) return '';
+    final symbol = salaryCurrencySymbol(salaryCurrency);
+    String amount(double v) {
+      if (v >= 1000) {
+        final k = v / 1000;
+        return '${k.toStringAsFixed(k.truncateToDouble() == k ? 0 : 1)}K';
+      }
+      return v.toStringAsFixed(0);
+    }
+
+    final range = (salaryMax <= 0 || salaryMax == salaryMin)
+        ? '$symbol${amount(salaryMin)}'
+        : '$symbol${amount(salaryMin)} - $symbol${amount(salaryMax)}';
+    return '$range ${salaryPeriod.shortSuffix}';
   }
 
   @override
   List<Object?> get props => [
     id, recruiterId, title, companyName, city, country, remote,
-    salaryMin, salaryMax, currency, contractType, workplaceType,
+    salaryMin, salaryMax, salaryCurrency, salaryPeriod, currency, contractType, workplaceType,
     experienceLevel, fieldOfWork, description, responsibilities,
     minimumQualifications, preferredQualifications, whatWeOffer,
     howToApply, companyInfo, assessmentId, jobPositionId, openToInternational,
