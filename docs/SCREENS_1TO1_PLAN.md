@@ -77,7 +77,6 @@ on new backend APIs**. Track here; remove a row once the API lands.
 | Plans & Pricing / subscription | 261-263,316 | `GET /plans`, `POST /subscriptions`, subscription state | billing |
 | Recruitment fee pre-authorization | 290-295 | `POST /recruitment-fees/preauthorize`, `POST /recruitment-fees/{id}/confirm-otp` | billing/recruitment |
 | Candidate search (candidates) | 87-89,224 | `GET /candidates/search` (filters: field, salary, level, experience, workplace, city) | recruitment |
-| Progress / analytics | (progress tab) | `GET /analytics/candidate/me`, `GET /analytics/recruiter/me` (contract exists, no impl) | analytics |
 | Assessment integrity / anti-fraud result | 138-139, 191(?) | `POST /assessment-integrity/...`, result endpoint | recruitment/identity |
 | Help center FAQ/articles | (if added) | `GET /help-center/articles` (contract-optional) | engagement |
 | Legal documents (Terms / Privacy) | 120-121, 274-275, 106 | `GET /legal/{slug}` + versioned content (today hardcoded in-app; no endpoint) | shared/identity |
@@ -230,6 +229,22 @@ email/phone-change OTP (126-127), analytics/progress, assessment-integrity resul
   `job_salary_display_test.dart`; `flutter analyze` clean.
 - **Decision (traceable):** currency set taken from the design (EUR/USD/GBP/MAD/TND),
   default EUR; period MONTHLY/YEARLY, default MONTHLY.
+
+### 2026-09-11 — Gap fill: analytics/progress backend — done
+- **Decision (to validate):** a "candidature" = a candidate's RIGHT swipe on an offer
+  (the `Application` entity was removed in V34). `applicationsByStatus` keys are
+  INTERESTED / MATCHED / TEST_COMPLETED.
+- **Backend (event-sourced, no cross-context calls):** migration `V80__analytics_read_model.sql`
+  (`analytics.job_offer_projection`, `analytics.candidate_activity`); domain read/write ports;
+  JDBC adapters; listeners for `JobOfferCreated/StatusChanged`, `SwipeRecorded`, `MatchCreated`,
+  `TestResultCompleted`; `AnalyticsQueryService` + `AnalyticsController` implementing the
+  existing `analytics.openapi.yaml` (`/analytics/candidate/me`, `/recruiter/me`, `/jobs/{id}`).
+  ArchUnit + unit tests green (JDK 21).
+- Not instrumented yet (returned as 0/empty rather than invented): profile/offer **views**,
+  `viewsTimeline`, `profileCompleteness`, `avgResponseTimeHours`, `responseRate`.
+- Mobile: no board screen consumes analytics (candidate Progress tab = games; recruiter =
+  Careers), so no mobile change; endpoints are ready for a future dashboard.
+
 
 
 
