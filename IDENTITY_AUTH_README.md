@@ -95,3 +95,13 @@ un point d’intégration ouvert, sans prétendre modifier un réglage serveur.
    mobile, les réglages lisent/écrivent ces préférences (les providers locaux restent la
    source d'affichage instantané et du redimensionnement global du texte) ; synchro
    serveur best-effort, repli local hors-ligne.
+
+4. **2026-09-11** — Changement d'e-mail / de téléphone confirmé par OTP :
+   `POST /users/me/email`, `/email/verify`, `/users/me/phone`, `/phone/verify`
+   (table `account_change_codes`, migration V78 ; contrat identity porté à 52 opérations).
+   **Décision : le SMS n'est pas intégré — les deux types de code sont livrés par e-mail
+   (Resend)**, y compris le changement de téléphone, faute de fournisseur SMS. Le code
+   reste hashé SHA-256, TTL 10 min, 5 tentatives. Côté mobile, `PersonalInformationsScreen`
+   ouvre le dialogue OTP quand l'e-mail/le téléphone change, puis un écran « Changes saved ».
+   Le canal SMS reste une décision à valider (fournisseur + module de résolution
+   destinataire → numéro).

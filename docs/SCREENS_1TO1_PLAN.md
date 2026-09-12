@@ -31,7 +31,7 @@ and tracked here until an API is added).
 | Job detail (candidate) | 91f, 92-95, 146 | ✅ `JobOfferDetailPage` wired to `GET /job-offers/{id}` (2026-09-11) |
 | Assessment quiz (candidate/test taker) | 96, 138-139, 306 | ✅ `TestTakingPage` (test-attempts + submit/abandon) + ✅ public `/tests/{token}` link unblocked (2026-09-11) |
 | Profile & settings | 101-111, 256-265 | ✅ core; ✅ accessibility prefs + notifications now server-synced (`/users/me/preferences`), dark theme persisted, Terms screen |
-| Account center / personal info / password / privacy | 103-106, 125-128, 264 | 🟡 hardcoded password date; email/phone-change OTP 🔴/🧩 |
+| Account center / personal info / password / privacy | 103-106, 125-128, 264 | 🟡 hardcoded password date; ✅ email/phone-change OTP (Resend, no SMS) |
 | Terms of Use | 120-121, 274-275 | ✅ `TermsOfUseScreen` (static, transcribed 1:1) (2026-09-11) |
 | Wallet | 107,114,116,118,119 | 🧩 wallet balance / transactions / add-change card / withdraw |
 | Referral | 32,102,115,117 | 🧩 referral program, invite friends, referral list/status |
@@ -76,8 +76,8 @@ on new backend APIs**. Track here; remove a row once the API lands.
 | Hired candidates | 258 | `GET /recruiters/me/hired-candidates`, `POST /hired-candidates/{id}/cancel` | recruitment |
 | Plans & Pricing / subscription | 261-263,316 | `GET /plans`, `POST /subscriptions`, subscription state | billing |
 | Recruitment fee pre-authorization | 290-295 | `POST /recruitment-fees/preauthorize`, `POST /recruitment-fees/{id}/confirm-otp` | billing/recruitment |
-| Email / phone change OTP | 126-127 | `POST /users/me/email`, `POST /users/me/phone`, verify OTP | identity |
-| Candidate search (candidates) | 87-89,224 | `GET /candidates/search` (filters: field, salary, level, experience, workplace, city) | recruitment || Progress / analytics | (progress tab) | `GET /analytics/candidate/me`, `GET /analytics/recruiter/me` (contract exists, no impl) | analytics |
+| Candidate search (candidates) | 87-89,224 | `GET /candidates/search` (filters: field, salary, level, experience, workplace, city) | recruitment |
+| Progress / analytics | (progress tab) | `GET /analytics/candidate/me`, `GET /analytics/recruiter/me` (contract exists, no impl) | analytics |
 | Assessment integrity / anti-fraud result | 138-139, 191(?) | `POST /assessment-integrity/...`, result endpoint | recruitment/identity |
 | Help center FAQ/articles | (if added) | `GET /help-center/articles` (contract-optional) | engagement |
 | Legal documents (Terms / Privacy) | 120-121, 274-275, 106 | `GET /legal/{slug}` + versioned content (today hardcoded in-app; no endpoint) | shared/identity |
@@ -198,6 +198,25 @@ email/phone-change OTP (126-127), analytics/progress, assessment-integrity resul
   and the Settings notifications toggle.
 - Logged exception: this adds an identity DB table, explicitly authorized by the user
   (documented in `IDENTITY_AUTH_README.md` protected-zones note).
+
+### 2026-09-11 — Gap fill: email/phone change OTP (`/users/me/email|phone`) — done
+- **Decision:** SMS is not integrated — both change types deliver the OTP by **e-mail
+  (Resend)**, including phone changes. SMS stays a future decision.
+- **Contract**: `POST /users/me/email`, `/email/verify`, `/users/me/phone`, `/phone/verify`
+  (+ `EmailChangeRequest`/`PhoneChangeRequest`/`VerificationCodeRequest`). Identity now
+  **52** operations; parity test updated and green.
+- **Backend**: migration `V78__identity_account_change_codes.sql`; domain
+  `AccountChangeCode` + `AccountChangeType` (+ tests); repository/JPA/adapter; `User.changeEmail`
+  / `changePhoneNumber`; `IdentityService.request/verifyEmailChange|PhoneChange` (SHA-256,
+  10 min TTL, 5 attempts, `ConflictException` on a taken address); new `EmailPort.sendAccountChangeCode`
+  + Resend rendering. Domain + parity + updated service tests green (JDK 21).
+- **Mobile**: `AuthRepository.request/verifyEmailChange|PhoneChange`; a reusable
+  `AccountChangeOtpDialog`; `PersonalInformationsScreen` now lets the e-mail be edited and
+  triggers the OTP dialog + "Changes saved" flow when e-mail/phone change. `flutter analyze`
+  clean; profile-settings/shared suites green.
+- Fix: `preferencesProvider` now skips the network when signed out and times out, so widget
+  tests never hang on the real Dio client.
+
 
 
 

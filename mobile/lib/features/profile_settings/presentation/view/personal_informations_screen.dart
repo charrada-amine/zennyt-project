@@ -13,6 +13,7 @@ import '../../../../core/upload/file_picking.dart';
 import '../../../auth/presentation/auth_controller.dart';
 import '../../../auth/presentation/auth_providers.dart';
 import '../../../../core/avatar/avatar_service.dart';
+import '../widgets/account_change_otp_dialog.dart';
 
 class PersonalInformationsScreen extends ConsumerStatefulWidget {
   const PersonalInformationsScreen({super.key});
@@ -59,26 +60,66 @@ class _PersonalInformationsScreenState
   }
 
   Future<void> _saveChanges() async {
+    final user = ref.read(authControllerProvider).value;
+    final repo = ref.read(authRepositoryProvider);
+    final newEmail = _emailController.text.trim();
+    final newPhone = _phoneController.text.trim();
+    final emailChanged =
+        user != null && newEmail.isNotEmpty && newEmail.toLowerCase() != user.email.toLowerCase();
+    final phoneChanged = user != null && newPhone.isNotEmpty && newPhone != (user.phone ?? '');
+
     setState(() => _isLoading = true);
 
     try {
-      final repo = ref.read(authRepositoryProvider);
-
+      // Common profile fields first. The phone number is kept as-is here: a phone
+      // change is a separate OTP-confirmed flow below.
       await repo.updateMe(
         firstName: _firstNameController.text.trim(),
         lastName: _lastNameController.text.trim(),
-        phoneNumber: _phoneController.text.trim(),
+        phoneNumber: user?.phone,
         city: _cityController.text.trim().isNotEmpty
             ? _cityController.text.trim()
             : null,
         country: _country,
       );
 
-      // Refresh the user info
+      if (emailChanged) {
+        await repo.requestEmailChange(newEmail);
+        if (!mounted) return;
+        final verified = await AccountChangeOtpDialog.show(
+          context,
+          title: 'Verify your new email',
+          subtitle: 'We sent a confirmation code to $newEmail',
+          onVerify: repo.verifyEmailChange,
+          onResend: () => repo.requestEmailChange(newEmail),
+        );
+        if (verified != true) {
+          if (mounted) setState(() => _isLoading = false);
+          return;
+        }
+      }
+
+      if (phoneChanged) {
+        await repo.requestPhoneChange(newPhone);
+        if (!mounted) return;
+        final verified = await AccountChangeOtpDialog.show(
+          context,
+          title: 'Verify your new phone number',
+          subtitle: 'SMS is not available yet — the code was sent to your e-mail address.',
+          onVerify: repo.verifyPhoneChange,
+          onResend: () => repo.requestPhoneChange(newPhone),
+        );
+        if (verified != true) {
+          if (mounted) setState(() => _isLoading = false);
+          return;
+        }
+      }
+
       await ref.read(authControllerProvider.notifier).refreshUser();
 
       if (mounted) {
-        context.pop();
+        await _showChangesSavedDialog();
+        if (mounted) context.pop();
       }
     } catch (e) {
       if (mounted) {
@@ -94,6 +135,58 @@ class _PersonalInformationsScreenState
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  Future<void> _showChangesSavedDialog() {
+    final colors = context.colors;
+    return showDialog<void>(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: colors.scaffoldBg,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 28, 24, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: colors.success.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.check_rounded, color: colors.success, size: 34),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Changes saved',
+                style: AppTypography.titleLarge.copyWith(
+                  color: colors.primary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: FilledButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: colors.primary,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text(
+                    'Continue',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -190,7 +283,7 @@ class _PersonalInformationsScreenState
                       colors: colors,
                       label: l10n.emailHyphen,
                       controller: _emailController,
-                      readOnly: true,
+                      keyboardType: TextInputType.emailAddress,
                     ),
                     const SizedBox(height: AppSpacing.md),
 

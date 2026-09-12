@@ -67,6 +67,18 @@ abstract class AuthRepository {
   /// `PUT /users/me/preferences`.
   Future<UserPreferences> updatePreferences(UserPreferences preferences);
 
+  /// `POST /users/me/email` — sends an OTP to the new address (no SMS involved).
+  Future<void> requestEmailChange(String newEmail);
+
+  /// `POST /users/me/email/verify` — confirms the change with the OTP.
+  Future<AppUser> verifyEmailChange(String code);
+
+  /// `POST /users/me/phone` — OTP delivered by e-mail for now (SMS not integrated).
+  Future<void> requestPhoneChange(String newPhoneNumber);
+
+  /// `POST /users/me/phone/verify` — confirms the change with the OTP.
+  Future<AppUser> verifyPhoneChange(String code);
+
   /// `POST /users/me/avatar` with multipart/form-data.
   Future<AppUser> uploadAvatar(Uint8List bytes, String filename);
 

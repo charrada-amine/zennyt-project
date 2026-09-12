@@ -263,6 +263,10 @@ public final class IdentityDtos {
         }
     }
 
+    public record EmailChangeRequest(@NotBlank @Email @Size(max = 150) String newEmail) {}
+    public record PhoneChangeRequest(@NotBlank @Size(max = 30) String newPhoneNumber) {}
+    public record VerificationCodeRequest(@NotBlank @Size(min = 4, max = 10) String code) {}
+
     public record UserPreferencesRequest(
         @NotNull Boolean notificationsEnabled,
         @NotNull Boolean highContrast,

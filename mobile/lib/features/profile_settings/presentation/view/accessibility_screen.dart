@@ -25,9 +25,15 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
     final hPadding = Responsive.horizontalPadding(context);
     final l10n = context.l10n;
     final a11y = ref.watch(accessibilityProvider);
-    // Triggers the server preferences load; the notifier mirrors them into the
-    // local accessibility provider so a new device picks up the saved values.
+    // Triggers the server preferences load; when they arrive, mirror them into
+    // the local accessibility provider (a new device picks up the saved values).
     ref.watch(preferencesProvider);
+    ref.listen(preferencesProvider, (previous, next) {
+      next.whenData((prefs) {
+        ref.read(accessibilityProvider.notifier).setHighContrast(prefs.highContrast);
+        ref.read(accessibilityProvider.notifier).setTextSize(prefs.textSizePx.toDouble());
+      });
+    });
     final currentLanguage = Localizations.localeOf(context).languageCode == 'fr' ? 'Français' : 'English';
 
     return Scaffold(

@@ -1,11 +1,13 @@
 package com.zennyt.identity.application;
 
+import com.zennyt.identity.application.port.EmailPort;
 import com.zennyt.identity.application.port.FileStoragePort;
 import com.zennyt.identity.application.port.FileStoragePort.ResourceType;
 import com.zennyt.identity.application.port.TokenService;
 import com.zennyt.identity.domain.model.*;
 import com.zennyt.identity.domain.event.ProfileCvUpdatedEvent;
 import com.zennyt.identity.domain.event.UserAccessStateChangedEvent;
+import com.zennyt.identity.domain.repository.AccountChangeCodeRepository;
 import com.zennyt.identity.domain.repository.OnboardingRepository;
 import com.zennyt.identity.domain.repository.ProfileRepository;
 import com.zennyt.identity.domain.repository.UserPreferencesRepository;
@@ -13,11 +15,20 @@ import com.zennyt.identity.domain.repository.UserRepository;
 import com.zennyt.shared.application.exception.ConflictException;
 import com.zennyt.shared.application.exception.ForbiddenException;
 import com.zennyt.shared.application.exception.NotFoundException;
+import com.zennyt.shared.domain.vo.Email;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.stereotype.Service;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.SecureRandom;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -25,17 +36,27 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class IdentityService {
+    private static final Logger log = LoggerFactory.getLogger(IdentityService.class);
     private static final String CV_FOLDER = "zennyt/cv";
     private static final String AVATAR_FOLDER = "zennyt/avatars";
     private static final String LOGO_FOLDER = "zennyt/logos";
+    private static final int MAX_ACCOUNT_CHANGE_ATTEMPTS = 5;
 
     private final UserRepository users;
     private final OnboardingRepository onboarding;
     private final ProfileRepository profiles;
     private final UserPreferencesRepository preferences;
+    private final AccountChangeCodeRepository accountChangeCodes;
+    private final EmailPort email;
     private final FileStoragePort fileStorage;
     private final TokenService tokens;
     private final ApplicationEventPublisher events;
+
+    /** TTL des codes de changement de coordonnée ; injecté par Spring, défaut 10 min. */
+    @Value("${identity.account-change.code-ttl:PT10M}")
+    private Duration accountChangeCodeTtl = Duration.ofMinutes(10);
+
+    private final SecureRandom secureRandom = new SecureRandom();
 
     @Transactional(readOnly = true)
     public User currentUser(UUID publicId) {
@@ -60,6 +81,118 @@ public class IdentityService {
             .orElseGet(() -> UserPreferences.defaults(user.id()));
         return preferences.save(
             current.with(notificationsEnabled, highContrast, textSizePx, Instant.now()));
+    }
+
+    // ── Changement de coordonnées (OTP par e-mail, SMS non intégré) ──────────
+
+    /** Demande un changement d'e-mail : envoie un OTP à la NOUVELLE adresse. */
+    @Transactional
+    public void requestEmailChange(UUID publicId, String rawNewEmail) {
+        User user = currentUser(publicId);
+        Email newEmail = parseEmail(rawNewEmail);
+        boolean takenByOther = users.findByEmail(newEmail.value())
+            .filter(existing -> !existing.id().equals(user.id()))
+            .isPresent();
+        if (takenByOther) {
+            throw new ConflictException("Cette adresse e-mail est déjà utilisée");
+        }
+        issueAccountChangeCode(user, AccountChangeType.EMAIL, newEmail.value(), newEmail.value());
+    }
+
+    /** Valide le code et applique la nouvelle adresse (marquée vérifiée). */
+    @Transactional
+    public User verifyEmailChange(UUID publicId, String code) {
+        User user = currentUser(publicId);
+        AccountChangeCode change = consumeAccountChangeCode(user.id(), AccountChangeType.EMAIL, code);
+        user.changeEmail(new Email(change.target()));
+        User saved = users.save(user);
+        publishAccessState(saved);
+        return saved;
+    }
+
+    /**
+     * Demande un changement de téléphone. Le canal SMS n'étant pas intégré, le
+     * code est livré par e-mail à l'adresse du compte (provisoire).
+     */
+    @Transactional
+    public void requestPhoneChange(UUID publicId, String newPhoneNumber) {
+        User user = currentUser(publicId);
+        String target = requirePhone(newPhoneNumber);
+        issueAccountChangeCode(user, AccountChangeType.PHONE, target, user.email().value());
+    }
+
+    @Transactional
+    public User verifyPhoneChange(UUID publicId, String code) {
+        User user = currentUser(publicId);
+        AccountChangeCode change = consumeAccountChangeCode(user.id(), AccountChangeType.PHONE, code);
+        user.changePhoneNumber(change.target());
+        User saved = users.save(user);
+        publishAccessState(saved);
+        return saved;
+    }
+
+    private void issueAccountChangeCode(User user, AccountChangeType type, String target,
+                                        String deliveryEmail) {
+        accountChangeCodes.invalidateAllForUserAndType(user.id(), type);
+        String code = generateCode();
+        accountChangeCodes.save(AccountChangeCode.issue(user.id(), type, target, hash(code),
+            Instant.now().plus(accountChangeCodeTtl)));
+        // Un échec d'envoi ne doit pas bloquer la demande : on journalise.
+        try {
+            email.sendAccountChangeCode(deliveryEmail, user.firstName(), code, target);
+        } catch (RuntimeException ex) {
+            log.warn("Échec de l'envoi du code de changement ({}) pour l'utilisateur {}", type,
+                user.id(), ex);
+        }
+    }
+
+    private AccountChangeCode consumeAccountChangeCode(Long userId, AccountChangeType type,
+                                                       String code) {
+        AccountChangeCode change = accountChangeCodes
+            .findLatestActiveByUserIdAndType(userId, type)
+            .filter(value -> value.usableAt(Instant.now()))
+            .orElseThrow(() -> new BadCredentialsException("Code de confirmation invalide ou expiré"));
+        if (change.attempts() >= MAX_ACCOUNT_CHANGE_ATTEMPTS) {
+            throw new BadCredentialsException("Trop de tentatives, demandez un nouveau code");
+        }
+        if (!MessageDigest.isEqual(hash(code).getBytes(StandardCharsets.UTF_8),
+                change.codeHash().getBytes(StandardCharsets.UTF_8))) {
+            accountChangeCodes.save(change.withIncrementedAttempts());
+            throw new BadCredentialsException("Code de confirmation invalide");
+        }
+        return accountChangeCodes.save(change.consume());
+    }
+
+    private Email parseEmail(String raw) {
+        try {
+            return new Email(raw);
+        } catch (RuntimeException invalid) {
+            throw new IllegalArgumentException("Adresse e-mail invalide");
+        }
+    }
+
+    private String requirePhone(String raw) {
+        if (raw == null || raw.isBlank()) {
+            throw new IllegalArgumentException("Le numéro de téléphone est obligatoire");
+        }
+        String trimmed = raw.trim();
+        if (trimmed.length() > 30) {
+            throw new IllegalArgumentException("Le numéro de téléphone est trop long");
+        }
+        return trimmed;
+    }
+
+    private String generateCode() {
+        return String.format("%06d", secureRandom.nextInt(1_000_000));
+    }
+
+    private String hash(String value) {
+        try {
+            return java.util.HexFormat.of().formatHex(
+                MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8)));
+        } catch (Exception ex) {
+            throw new IllegalStateException("SHA-256 indisponible", ex);
+        }
     }
 
     @Transactional

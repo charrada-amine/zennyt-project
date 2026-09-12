@@ -185,6 +185,44 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<void> requestEmailChange(String newEmail) {
+    return _guard(() => _dio.post<void>('/users/me/email', data: {'newEmail': newEmail}));
+  }
+
+  @override
+  Future<AppUser> verifyEmailChange(String code) {
+    return _guard(() async {
+      final res = await _dio.post<Map<String, dynamic>>(
+        '/users/me/email/verify',
+        data: {'code': code},
+      );
+      final user = AppUser.fromJson(res.data!);
+      await _tokenStorage.saveUser(user.encode());
+      return user;
+    });
+  }
+
+  @override
+  Future<void> requestPhoneChange(String newPhoneNumber) {
+    return _guard(
+      () => _dio.post<void>('/users/me/phone', data: {'newPhoneNumber': newPhoneNumber}),
+    );
+  }
+
+  @override
+  Future<AppUser> verifyPhoneChange(String code) {
+    return _guard(() async {
+      final res = await _dio.post<Map<String, dynamic>>(
+        '/users/me/phone/verify',
+        data: {'code': code},
+      );
+      final user = AppUser.fromJson(res.data!);
+      await _tokenStorage.saveUser(user.encode());
+      return user;
+    });
+  }
+
+  @override
   Future<AppUser> uploadAvatar(Uint8List bytes, String filename) async {
     return _guard(() async {
       final formData = FormData.fromMap({

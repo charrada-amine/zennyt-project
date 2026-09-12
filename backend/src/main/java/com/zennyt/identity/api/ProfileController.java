@@ -95,6 +95,36 @@ public class ProfileController {
             request.notificationsEnabled(), request.highContrast(), request.textSizePx()));
     }
 
+    @PostMapping("/users/me/email")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    @Authenticated
+    public void requestEmailChange(@CurrentUserId UUID userId,
+                                   @Valid @RequestBody EmailChangeRequest request) {
+        identity.requestEmailChange(userId, request.newEmail());
+    }
+
+    @PostMapping("/users/me/email/verify")
+    @Authenticated
+    public UserResponse verifyEmailChange(@CurrentUserId UUID userId,
+                                          @Valid @RequestBody VerificationCodeRequest request) {
+        return UserResponse.from(identity.verifyEmailChange(userId, request.code()));
+    }
+
+    @PostMapping("/users/me/phone")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    @Authenticated
+    public void requestPhoneChange(@CurrentUserId UUID userId,
+                                   @Valid @RequestBody PhoneChangeRequest request) {
+        identity.requestPhoneChange(userId, request.newPhoneNumber());
+    }
+
+    @PostMapping("/users/me/phone/verify")
+    @Authenticated
+    public UserResponse verifyPhoneChange(@CurrentUserId UUID userId,
+                                          @Valid @RequestBody VerificationCodeRequest request) {
+        return UserResponse.from(identity.verifyPhoneChange(userId, request.code()));
+    }
+
     @PostMapping("/profiles")
     @CandidateOrStudentOnly
     public ResponseEntity<ProfileResponse> createProfile(@CurrentUserId UUID userId,
