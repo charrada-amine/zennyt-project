@@ -7,22 +7,10 @@ import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/theme.dart';
 import '../../../../core/theme/theme_provider.dart';
 import '../../../auth/presentation/auth_controller.dart';
+import '../../../auth/domain/entities/user_preferences.dart';
 import '../../../../core/audio/sound_service.dart';
 import '../../../../shared/widgets/app_motion.dart';
-
-/// Provider for notifications toggle state.
-class NotificationsEnabledNotifier extends Notifier<bool> {
-  @override
-  bool build() => true;
-
-  void toggle() => state = !state;
-  void set(bool value) => state = value;
-}
-
-final notificationsEnabledProvider =
-    NotifierProvider<NotificationsEnabledNotifier, bool>(
-      NotificationsEnabledNotifier.new,
-    );
+import '../providers/preferences_provider.dart';
 
 /// The settings menu list matching the design screenshot.
 class SettingsMenuList extends ConsumerWidget {
@@ -34,7 +22,9 @@ class SettingsMenuList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final colors = context.colors;
-    final notifEnabled = ref.watch(notificationsEnabledProvider);
+    final preferences = ref.watch(preferencesProvider).value;
+    final bool notifEnabled =
+        preferences?.notificationsEnabled ?? ref.watch(notificationsEnabledProvider);
     final themeMode = ref.watch(themeProvider);
     final isDark =
         themeMode == ThemeMode.dark ||
@@ -79,13 +69,19 @@ class SettingsMenuList extends ConsumerWidget {
                 value: notifEnabled,
                 activeTrackColor: colors.primary,
                 onChanged: (val) {
-                  ref.read(notificationsEnabledProvider.notifier).set(val);
+                  final current = preferences ?? UserPreferences.defaults;
+                  ref
+                      .read(preferencesProvider.notifier)
+                      .save(current.copyWith(notificationsEnabled: val));
                 },
               ),
             ),
           ),
           onTap: () {
-            ref.read(notificationsEnabledProvider.notifier).toggle();
+            final current = preferences ?? UserPreferences.defaults;
+            ref
+                .read(preferencesProvider.notifier)
+                .save(current.copyWith(notificationsEnabled: !current.notificationsEnabled));
           },
         ),
         _buildDivider(colors),

@@ -81,6 +81,20 @@ public class ProfileController {
         return UserResponse.from(identity.changeRole(userId, request.role()));
     }
 
+    @GetMapping("/users/me/preferences")
+    @Authenticated
+    public UserPreferencesResponse getPreferences(@CurrentUserId UUID userId) {
+        return UserPreferencesResponse.from(identity.getPreferences(userId));
+    }
+
+    @PutMapping("/users/me/preferences")
+    @Authenticated
+    public UserPreferencesResponse updatePreferences(@CurrentUserId UUID userId,
+                                                     @Valid @RequestBody UserPreferencesRequest request) {
+        return UserPreferencesResponse.from(identity.updatePreferences(userId,
+            request.notificationsEnabled(), request.highContrast(), request.textSizePx()));
+    }
+
     @PostMapping("/profiles")
     @CandidateOrStudentOnly
     public ResponseEntity<ProfileResponse> createProfile(@CurrentUserId UUID userId,

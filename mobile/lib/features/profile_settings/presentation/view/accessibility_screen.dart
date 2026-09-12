@@ -8,6 +8,8 @@ import '../../../../core/router/app_routes.dart';
 import '../../../../core/settings/accessibility_provider.dart';
 import '../../../../core/theme/theme.dart';
 import '../../../../core/utils/responsive.dart';
+import '../../../auth/domain/entities/user_preferences.dart';
+import '../providers/preferences_provider.dart';
 
 class AccessibilityScreen extends ConsumerStatefulWidget {
   const AccessibilityScreen({super.key});
@@ -23,6 +25,9 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
     final hPadding = Responsive.horizontalPadding(context);
     final l10n = context.l10n;
     final a11y = ref.watch(accessibilityProvider);
+    // Triggers the server preferences load; the notifier mirrors them into the
+    // local accessibility provider so a new device picks up the saved values.
+    ref.watch(preferencesProvider);
     final currentLanguage = Localizations.localeOf(context).languageCode == 'fr' ? 'Français' : 'English';
 
     return Scaffold(
@@ -77,6 +82,7 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
                               ref
                                   .read(accessibilityProvider.notifier)
                                   .setHighContrast(val);
+                              _persist();
                             },
                           ),
                         ),
@@ -126,6 +132,7 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
                                       ref
                                           .read(accessibilityProvider.notifier)
                                           .setTextSize(a11y.textSizePx - 1);
+                                      _persist();
                                     }
                                   },
                                 ),
@@ -150,6 +157,7 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
                                         ref
                                             .read(accessibilityProvider.notifier)
                                             .setTextSize(val);
+                                        _persist();
                                       },
                                     ),
                                   ),
@@ -163,6 +171,7 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
                                       ref
                                           .read(accessibilityProvider.notifier)
                                           .setTextSize(a11y.textSizePx + 1);
+                                      _persist();
                                     }
                                   },
                                 ),
@@ -210,6 +219,19 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
         ),
       ),
     );
+  }
+
+  /// Pushes the current local accessibility + notification values to the server
+  /// (best-effort; the local state already reflects the change).
+  void _persist() {
+    final a11y = ref.read(accessibilityProvider);
+    ref.read(preferencesProvider.notifier).save(
+          UserPreferences(
+            notificationsEnabled: ref.read(notificationsEnabledProvider),
+            highContrast: a11y.highContrast,
+            textSizePx: a11y.textSizePx.round(),
+          ),
+        );
   }
 
   Widget _buildTopBar(BuildContext context, AppColorScheme colors, String title) {

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import '../../../../core/enums/user_role.dart';
 import '../../../profile_settings/domain/entities/recruiter_profile.dart';
 import '../entities/app_user.dart';
+import '../entities/user_preferences.dart';
 
 /// Abstraction over authentication + identity onboarding. The presentation layer
 /// depends only on this interface. Implementations handle token persistence.
@@ -59,6 +60,12 @@ abstract class AuthRepository {
 
   /// `DELETE /users/me`. Permanently deletes the account.
   Future<void> deleteAccount();
+
+  /// `GET /users/me/preferences` — server-synced accessibility/notification prefs.
+  Future<UserPreferences> getPreferences();
+
+  /// `PUT /users/me/preferences`.
+  Future<UserPreferences> updatePreferences(UserPreferences preferences);
 
   /// `POST /users/me/avatar` with multipart/form-data.
   Future<AppUser> uploadAvatar(Uint8List bytes, String filename);

@@ -30,7 +30,7 @@ and tracked here until an API is added).
 | Fits | 91a-h, 222-223 | 🟡 (`FitsScreen`), recruiter candidate detail + filter levels ✅ |
 | Job detail (candidate) | 91f, 92-95, 146 | ✅ `JobOfferDetailPage` wired to `GET /job-offers/{id}` (2026-09-11) |
 | Assessment quiz (candidate/test taker) | 96, 138-139, 306 | ✅ `TestTakingPage` (test-attempts + submit/abandon) + ✅ public `/tests/{token}` link unblocked (2026-09-11) |
-| Profile & settings | 101-111, 256-265 | ✅ core; ✅ accessibility prefs persisted + applied app-wide, ✅ dark theme persisted, ✅ Terms screen (2026-09-11) |
+| Profile & settings | 101-111, 256-265 | ✅ core; ✅ accessibility prefs + notifications now server-synced (`/users/me/preferences`), dark theme persisted, Terms screen |
 | Account center / personal info / password / privacy | 103-106, 125-128, 264 | 🟡 hardcoded password date; email/phone-change OTP 🔴/🧩 |
 | Terms of Use | 120-121, 274-275 | ✅ `TermsOfUseScreen` (static, transcribed 1:1) (2026-09-11) |
 | Wallet | 107,114,116,118,119 | 🧩 wallet balance / transactions / add-change card / withdraw |
@@ -81,7 +81,6 @@ on new backend APIs**. Track here; remove a row once the API lands.
 | Assessment integrity / anti-fraud result | 138-139, 191(?) | `POST /assessment-integrity/...`, result endpoint | recruitment/identity |
 | Help center FAQ/articles | (if added) | `GET /help-center/articles` (contract-optional) | engagement |
 | Legal documents (Terms / Privacy) | 120-121, 274-275, 106 | `GET /legal/{slug}` + versioned content (today hardcoded in-app; no endpoint) | shared/identity |
-| Accessibility & notification prefs | 110/259, 256/257 | `GET/PUT /users/me/preferences` (today local SharedPreferences only) | identity |
 
 Already-existing endpoints that are **unwired** and must be connected (not gaps):
 `GET /job-offers/{id}`, `GET /job-offers/{jobId}/test-results[/summary|/{candidateId}]`,
@@ -184,6 +183,22 @@ email/phone-change OTP (126-127), analytics/progress, assessment-integrity resul
 - Add-job-offer (204-217) already covers every field in the design; it uses inline dialogs
   instead of accordions and adds the required référentiel métier + pondération (F06/F30), so
   it is left as-is rather than regressing a working flow.
+
+### 2026-09-11 — Gap fill: identity preferences (`/users/me/preferences`) — done
+- **Contract** (`identity.openapi.yaml`): added `GET/PUT /users/me/preferences` +
+  `UserPreferences`/`UserPreferencesUpdate` schemas. Identity now 48 operations; runtime/
+  contract parity test updated and green.
+- **Backend**: migration `V77__identity_user_preferences.sql`; pure domain record
+  `UserPreferences` (+ range validation, defaults); `UserPreferencesRepository` + JPA
+  entity/repo/adapter; `IdentityService.getPreferences/updatePreferences`; controller
+  endpoints. Domain + updated service tests green (JDK 21).
+- **Mobile**: `UserPreferences` model + `AuthRepository.getPreferences/updatePreferences`;
+  `preferencesProvider` loads server prefs and mirrors them into the local accessibility +
+  notifications providers, saving best-effort on change. Wired into the Accessibility screen
+  and the Settings notifications toggle.
+- Logged exception: this adds an identity DB table, explicitly authorized by the user
+  (documented in `IDENTITY_AUTH_README.md` protected-zones note).
+
 
 
 

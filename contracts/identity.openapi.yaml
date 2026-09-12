@@ -253,6 +253,39 @@ paths:
         '204': { description: Account deactivated }
         '401': { $ref: './common.openapi.yaml#/components/responses/Unauthorized' }
 
+  /users/me/preferences:
+    get:
+      operationId: getUsersMePreferences
+      tags: [Users]
+      summary: Read the current account's app preferences
+      description: >
+        Accessibility and notification preferences, synced server-side so they
+        survive a reinstall or a new device. Returns defaults when the account
+        has never saved any.
+      responses:
+        '200':
+          description: Preferences
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserPreferences' }
+        '401': { $ref: './common.openapi.yaml#/components/responses/Unauthorized' }
+    put:
+      operationId: putUsersMePreferences
+      tags: [Users]
+      summary: Update the current account's app preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UserPreferencesUpdate' }
+      responses:
+        '200':
+          description: Preferences updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserPreferences' }
+        '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
+
   /users/me/role:
     patch:
       operationId: patchUsersMeRole
@@ -894,6 +927,29 @@ components:
             emailVerified: { type: boolean }
             active: { type: boolean }
             createdAt: { type: string, format: date-time }
+            updatedAt: { type: string, format: date-time }
+
+    UserPreferencesUpdate:
+      type: object
+      required: [notificationsEnabled, highContrast, textSizePx]
+      properties:
+        notificationsEnabled: { type: boolean }
+        highContrast: { type: boolean }
+        textSizePx:
+          type: integer
+          minimum: 10
+          maximum: 30
+          description: Accessibility base font size in px (18 = default).
+
+    UserPreferences:
+      allOf:
+        - $ref: '#/components/schemas/UserPreferencesUpdate'
+        - type: object
+          required: [notificationsEnabled, highContrast, textSizePx, updatedAt]
+          properties:
+            notificationsEnabled: { type: boolean }
+            highContrast: { type: boolean }
+            textSizePx: { type: integer, minimum: 10, maximum: 30 }
             updatedAt: { type: string, format: date-time }
 
     CandidateStudentOnboardingInput:

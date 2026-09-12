@@ -23,7 +23,7 @@ class ApiContractRouteParityTest {
             AuthController.class, OnboardingController.class,
             ProfileController.class, CvParseController.class));
 
-        assertThat(runtime).hasSize(46);
+        assertThat(runtime).hasSize(48);
         assertThat(contractRoutes("identity.openapi.yaml")).isEqualTo(runtime);
     }
 

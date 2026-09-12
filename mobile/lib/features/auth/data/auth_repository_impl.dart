@@ -6,6 +6,7 @@ import '../../../core/enums/user_role.dart';
 import '../../../core/error/api_exception.dart';
 import '../../../core/storage/token_storage.dart';
 import '../domain/entities/app_user.dart';
+import '../domain/entities/user_preferences.dart';
 import '../../profile_settings/domain/entities/recruiter_profile.dart';
 import '../domain/repositories/auth_repository.dart';
 import 'dtos/auth_tokens.dart';
@@ -161,6 +162,25 @@ class AuthRepositoryImpl implements AuthRepository {
     return _guard(() async {
       await _dio.delete<void>('/users/me');
       await _tokenStorage.clear();
+    });
+  }
+
+  @override
+  Future<UserPreferences> getPreferences() {
+    return _guard(() async {
+      final res = await _dio.get<Map<String, dynamic>>('/users/me/preferences');
+      return UserPreferences.fromJson(res.data!);
+    });
+  }
+
+  @override
+  Future<UserPreferences> updatePreferences(UserPreferences preferences) {
+    return _guard(() async {
+      final res = await _dio.put<Map<String, dynamic>>(
+        '/users/me/preferences',
+        data: preferences.toJson(),
+      );
+      return UserPreferences.fromJson(res.data!);
     });
   }
 

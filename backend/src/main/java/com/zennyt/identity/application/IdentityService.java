@@ -8,6 +8,7 @@ import com.zennyt.identity.domain.event.ProfileCvUpdatedEvent;
 import com.zennyt.identity.domain.event.UserAccessStateChangedEvent;
 import com.zennyt.identity.domain.repository.OnboardingRepository;
 import com.zennyt.identity.domain.repository.ProfileRepository;
+import com.zennyt.identity.domain.repository.UserPreferencesRepository;
 import com.zennyt.identity.domain.repository.UserRepository;
 import com.zennyt.shared.application.exception.ConflictException;
 import com.zennyt.shared.application.exception.ForbiddenException;
@@ -31,6 +32,7 @@ public class IdentityService {
     private final UserRepository users;
     private final OnboardingRepository onboarding;
     private final ProfileRepository profiles;
+    private final UserPreferencesRepository preferences;
     private final FileStoragePort fileStorage;
     private final TokenService tokens;
     private final ApplicationEventPublisher events;
@@ -40,6 +42,24 @@ public class IdentityService {
         return users.findByPublicId(publicId)
             .filter(User::active)
             .orElseThrow(() -> new ForbiddenException("Compte inactif ou introuvable"));
+    }
+
+    /** Préférences d'application ; valeurs par défaut si jamais enregistrées. */
+    @Transactional(readOnly = true)
+    public UserPreferences getPreferences(UUID publicId) {
+        User user = currentUser(publicId);
+        return preferences.findByUserId(user.id())
+            .orElseGet(() -> UserPreferences.defaults(user.id()));
+    }
+
+    @Transactional
+    public UserPreferences updatePreferences(UUID publicId, boolean notificationsEnabled,
+                                             boolean highContrast, int textSizePx) {
+        User user = currentUser(publicId);
+        UserPreferences current = preferences.findByUserId(user.id())
+            .orElseGet(() -> UserPreferences.defaults(user.id()));
+        return preferences.save(
+            current.with(notificationsEnabled, highContrast, textSizePx, Instant.now()));
     }
 
     @Transactional
