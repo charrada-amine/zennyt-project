@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:dartz/dartz.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../core/error/exceptions.dart';
@@ -25,7 +27,7 @@ class HelpChatRepositoryImpl implements HelpChatRepository {
       } on ServerException catch (e) {
         return Left(mapStatusCodeToFailure(e.statusCode, e.message));
       } catch (e) {
-        print("Erreur de formatage JSON dans le Repository helpChats: $e");
+        log("Erreur de formatage JSON dans le Repository helpChats: $e");
         return Left(DataParsingFailure("Impossible de lire le JSON: $e"));
       }
     } else {

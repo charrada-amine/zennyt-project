@@ -44,7 +44,7 @@ final webSocketConnectionProvider = Provider<void>((ref) {
       }
     },
     loading: () {},
-    error: (_, __) => ws.disconnect(),
+    error: (_, _) => ws.disconnect(),
   );
 });
 

@@ -20,37 +20,37 @@ final jobOffersProvider = FutureProvider<List<JobOffer>>((ref) {
 });
 
 @immutable
-class _HistoryEntry<T> {
+class HistoryEntry<T> {
   final T item;
   final SwipeResult? result;
-  const _HistoryEntry(this.item, this.result);
+  const HistoryEntry(this.item, this.result);
 
-  _HistoryEntry<T> withResult(SwipeResult result) => _HistoryEntry(item, result);
+  HistoryEntry<T> withResult(SwipeResult result) => HistoryEntry(item, result);
 }
 
 @immutable
 class SwipeDeckState<T> {
   final List<T> remaining;
-  final List<_HistoryEntry<T>> _history;
+  final List<HistoryEntry<T>> history;
   final T? pendingMatch;
 
   const SwipeDeckState({
     required this.remaining,
-    List<_HistoryEntry<T>> history = const [],
+    this.history = const [],
     this.pendingMatch,
-  }) : _history = history;
+  });
 
-  bool get canUndo => _history.isNotEmpty;
+  bool get canUndo => history.isNotEmpty;
 
   SwipeDeckState<T> copyWith({
     List<T>? remaining,
-    List<_HistoryEntry<T>>? history,
+    List<HistoryEntry<T>>? history,
     T? pendingMatch,
     bool clearMatch = false,
   }) {
     return SwipeDeckState(
       remaining: remaining ?? this.remaining,
-      history: history ?? _history,
+      history: history ?? this.history,
       pendingMatch: clearMatch ? null : (pendingMatch ?? this.pendingMatch),
     );
   }
@@ -92,11 +92,11 @@ abstract class BaseSwipeDeckNotifier<T> extends AsyncNotifier<SwipeDeckState<T>>
 
     final item = current.remaining.first;
     final params = buildSwipeParams(item, direction);
-    final entryIndex = current._history.length;
+    final entryIndex = current.history.length;
 
     state = AsyncData(current.copyWith(
       remaining: current.remaining.sublist(1),
-      history: [...current._history, _HistoryEntry<T>(item, null)],
+      history: [...current.history, HistoryEntry<T>(item, null)],
       clearMatch: true,
     ));
 
@@ -109,7 +109,7 @@ abstract class BaseSwipeDeckNotifier<T> extends AsyncNotifier<SwipeDeckState<T>>
           );
       final now = state.asData?.value;
       if (now == null) return;
-      final updatedHistory = List<_HistoryEntry<T>>.from(now._history);
+      final updatedHistory = List<HistoryEntry<T>>.from(now.history);
       if (entryIndex < updatedHistory.length) {
         updatedHistory[entryIndex] = updatedHistory[entryIndex].withResult(swipeResult);
       }
@@ -131,20 +131,20 @@ abstract class BaseSwipeDeckNotifier<T> extends AsyncNotifier<SwipeDeckState<T>>
 
     state = AsyncData(current.copyWith(
       remaining: current.remaining.sublist(1),
-      history: [...current._history, _HistoryEntry<T>(item, null)],
+      history: [...current.history, HistoryEntry<T>(item, null)],
       clearMatch: true,
     ));
   }
 
   Future<void> undo() async {
     final current = state.asData?.value;
-    if (current == null || current._history.isEmpty) return;
+    if (current == null || current.history.isEmpty) return;
 
-    final last = current._history.last;
+    final last = current.history.last;
 
     state = AsyncData(current.copyWith(
       remaining: [last.item, ...current.remaining],
-      history: current._history.sublist(0, current._history.length - 1),
+      history: current.history.sublist(0, current.history.length - 1),
       clearMatch: true,
     ));
 

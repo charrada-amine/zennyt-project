@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../../core/constants.dart';
-import '../../core/theme/app_color_scheme.dart';
 
 class PlatformScaffold extends StatelessWidget {
   final PreferredSizeWidget? appBar;

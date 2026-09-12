@@ -2,10 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
-import 'package:go_router/go_router.dart';
-import 'package:zennyt/core/network/websocket_service.dart';
 import 'package:zennyt/core/router/app_router.dart';
-import 'package:zennyt/features/call/data/repositories/call_signaling_repository_impl.dart';
 import 'package:zennyt/features/call/domain/repositories/call_signaling_repository.dart';
 import 'package:zennyt/features/call/presentation/providers/call_provider.dart';
 import 'package:zennyt/features/home/presentation/providers/home_providers.dart';
@@ -53,11 +50,10 @@ class IncomingCallState {
 
 class IncomingCallNotifier extends StateNotifier<IncomingCallState> {
   final CallSignalingRepository _signaling;
-  final WebSocketService _webSocketService;
   final Ref _ref;
   Timer? _timeoutTimer;
 
-  IncomingCallNotifier(this._signaling, this._webSocketService, this._ref)
+  IncomingCallNotifier(this._signaling, this._ref)
     : super(const IncomingCallState()) {
        debugPrint('🎯 IncomingCallNotifier created, listening for invites');
     _listenForInvites();
@@ -133,7 +129,6 @@ final incomingCallProvider =
     StateNotifierProvider<IncomingCallNotifier, IncomingCallState>((ref) {
       return IncomingCallNotifier(
         ref.read(callSignalingRepositoryProvider),
-        ref.read(webSocketServiceProvider),
         ref,
       );
     });

@@ -59,7 +59,7 @@ class FitsRepositoryImpl implements FitsRepository {
     return _guard(() async {
       final res = await _dio.get<List<dynamic>>(
         '/swipes/targets',
-        queryParameters: {if (jobOfferId != null) 'jobOfferId': jobOfferId},
+        queryParameters: {'jobOfferId': ?jobOfferId},
       );
       return res.data!.map((e) => e.toString()).toList();
     });
@@ -112,7 +112,7 @@ class FitsRepositoryImpl implements FitsRepository {
     return _guard(() async {
       final res = await _dio.get<List<dynamic>>(
         '/recruiters/me/matches',
-        queryParameters: {if (jobOfferId != null) 'jobOfferId': jobOfferId},
+        queryParameters: {'jobOfferId': ?jobOfferId},
       );
       return res.data!
           .map((e) => _matchFromJson(e as Map<String, dynamic>))

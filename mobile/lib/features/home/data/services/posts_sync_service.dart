@@ -8,8 +8,7 @@ class PostsSyncService {
 
   static const _syncInterval = Duration(minutes: 10);
 
-  PostsSyncService({required PostRepository repository})
-      : _repository = repository;
+  PostsSyncService({required this._repository});
 
   void startPeriodicSync() {
     _timer?.cancel();

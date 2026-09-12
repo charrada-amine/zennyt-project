@@ -471,6 +471,7 @@ class CallPageController {
     onStateChanged();
 
     if (navigateBack) {
+      if (!context.mounted) return;
       context.pop();
     }
   }
