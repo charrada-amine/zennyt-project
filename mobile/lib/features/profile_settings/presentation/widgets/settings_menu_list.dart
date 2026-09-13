@@ -139,7 +139,7 @@ class SettingsMenuList extends ConsumerWidget {
             boxColor: AppColors.iconPink,
             label: l10n.plansAndPricing,
             trailing: _buildChevron(colors),
-            onTap: null,
+            onTap: () => context.push(AppRoutes.plans),
           ),
           _buildDivider(colors),
         ],

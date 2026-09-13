@@ -36,7 +36,7 @@ and tracked here until an API is added).
 | Wallet | 107,114,116,118,119 | ✅ balance/transactions/card/withdraw (`/wallet`) + mobile screen (2026-09-11) |
 | Referral | 32,102,115,117 | ✅ referral program: `/referrals` + mobile Referral screen (2026-09-11); REGISTERED/HIRED hooks pending |
 | Hired candidates | 258 | ✅ list + probation countdown + cancel (`/hired-candidates`) (2026-09-11) |
-| Plans & Pricing / subscription | 261-263, 316 | 🧩 plans, upgrade, payment states |
+| Plans & Pricing / subscription | 261-263, 316 | ✅ store IAP: `/plans` + `/subscriptions/me` + `/purchases/verify` + Plans screen (2026-09-11) |
 | Notifications | 142, 288-289, 309-310 | ✅ (`NotificationsPage`) |
 | Chats | 129-132, 280-283 | ✅ (`ChatsPage`, `ChatDetailPage`) |
 | Video call / integrity | 133-139 | 🟡 call ✅; recording-consent overlay + integrity result modals 🧩/🔴 |
@@ -71,8 +71,7 @@ on new backend APIs**. Track here; remove a row once the API lands.
 
 | Feature | Screen(s) | Needed endpoints (proposed) | Module |
 |---|---|---|---|
-| Plans & Pricing / subscription | 261-263,316 | `GET /plans`, `POST /subscriptions`, subscription state | billing |
-| Recruitment fee pre-authorization | 290-295 | `POST /recruitment-fees/preauthorize`, `POST /recruitment-fees/{id}/confirm-otp` | billing/recruitment |
+| Recruitment fee pre-authorization | 290-295 | store IAP consumable (video interview) replaces the card/OTP pre-auth | billing |
 | Candidate search (candidates) | 87-89,224 | `GET /candidates/search` (filters: field, salary, level, experience, workplace, city) | recruitment |
 | Assessment integrity / anti-fraud result | 138-139, 191(?) | `POST /assessment-integrity/...`, result endpoint | recruitment/identity |
 | Help center FAQ/articles | (if added) | `GET /help-center/articles` (contract-optional) | engagement |
@@ -286,6 +285,26 @@ email/phone-change OTP (126-127), analytics/progress, assessment-integrity resul
 - **Mobile**: `HiredCandidate` entity + repository methods + provider; `HiredCandidatesPage`
   (`/hired-candidates`) with `D-xx` badge and cancel; recruiter Settings row now navigates.
   Parsing test; `flutter analyze` clean.
+
+### 2026-09-11 — Gap fill: Plans & Pricing via store IAP (design 261-263/316) — done
+- **Decision (approved):** payments use **App Store / Google Play in-app purchases** (no PSP,
+  no card entry). The card/OTP checkout screens (284-295) are superseded by the store sheet;
+  the recruitment pre-auth becomes a store consumable.
+- **Dependency:** added `in_app_purchase` to `mobile/pubspec.yaml` (explicitly authorized).
+- **Contract (engagement)**: `GET /plans`, `GET /subscriptions/me`, `POST /purchases/verify`
+  (+ `Plan`/`Subscription`/`PurchaseVerify`/`PurchaseResult`, enums `PlanPeriod`/`StorePlatform`/
+  `SubscriptionStatus`/`PurchaseKind`).
+- **Backend**: `PlanCatalog` (Pro €39/mo, Team €99/mo popular, video 9,99€, bundle 19,99€);
+  migration `V83__engagement_billing.sql` (`subscriptions`, `store_purchases`, no raw receipt);
+  `VerifyPurchaseUseCase` (idempotent by transaction, +30d provisional); `BillingController`.
+  `StoreReceiptVerifierPort` with a **provisional stub** — real Apple/Google server validation
+  needs credentials. `VerifyPurchaseUseCaseTest` + ArchUnit green.
+- **Mobile**: `features/billing` (model, repository, `StoreIapService` over `in_app_purchase`,
+  Plans & Pricing screen); Settings row wired. Parsing test; `flutter analyze` clean.
+- **Open:** create the store products with these `productId`s in App Store Connect / Play
+  Console; add iOS StoreKit config + Android billing permission for device testing; replace the
+  stub verifier with real server validation.
+
 
 
 

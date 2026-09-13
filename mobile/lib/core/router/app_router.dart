@@ -54,6 +54,7 @@ import '../../features/jobs/presentation/pages/recruiter/assessments/manage_test
 import '../../features/jobs/presentation/pages/recruiter/assessments/public_test_preview_page.dart';
 import '../../features/jobs/presentation/pages/recruiter/jobs/create/create_job_offer_page.dart';
 import '../../features/jobs/presentation/pages/recruiter/jobs/create/select_assessment_page.dart';
+import '../../features/billing/presentation/view/plans_screen.dart';
 import '../../features/jobs/presentation/pages/recruiter/jobs/hard_skills_results_page.dart';
 import '../../features/jobs/presentation/pages/recruiter/jobs/hired_candidates_page.dart';
 
@@ -514,6 +515,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.hiredCandidates,
         name: AppRoutes.nHiredCandidates,
         builder: (context, state) => const HiredCandidatesPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.plans,
+        name: AppRoutes.nPlans,
+        builder: (context, state) => const PlansScreen(),
       ),
       GoRoute(
         path: AppRoutes.userProfile,

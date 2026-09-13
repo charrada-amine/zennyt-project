@@ -277,3 +277,19 @@ Chaque endpoint porte `@EngagementAuthenticated`. L'acteur doit exister dans la 
     Withdraw/Change Card/Share Link, écritures — + dialogue carte 107/119), accessible
     depuis les cartes d'action du profil (« Add your card » → Wallet, « Invite Friends » →
     Referral). Tests : `WalletTest` (backend), ArchUnit vert.
+16. **2026-09-11 — Abonnements & achats via App Store / Google Play.** Décision produit : le
+    paiement passe par les achats in-app du store (pas de PSP, pas de saisie de carte). Contrat
+    engagement : `GET /plans`, `GET /subscriptions/me`, `POST /purchases/verify` (+ schémas
+    `Plan`/`Subscription`/`PurchaseVerify`/`PurchaseResult` et enums `PlanPeriod`/`StorePlatform`/
+    `SubscriptionStatus`/`PurchaseKind`). Catalogue statique `PlanCatalog` (Recruiter Pro 39 €/mois,
+    Recruiter Team 99 €/mois « Most Popular », Video-interview 9,99 €, bundle 19,99 €) ; les
+    `productId` doivent être créés dans les consoles de store. Tables
+    `engagement.subscriptions` + `engagement.store_purchases` (migration V83) ; le reçu brut n'est
+    **jamais** persisté, seulement `transaction_id`. `VerifyPurchaseUseCase` est idempotent par
+    transaction et active l'abonnement (+30 jours, provisoire). **Vérification de reçu réelle
+    Apple/Google à brancher** (`StoreReceiptVerifierPort`) : en attendant,
+    `StubStoreReceiptVerifier` accepte l'achat (marqué provisoire, loggé). Tests :
+    `VerifyPurchaseUseCaseTest`, ArchUnit vert. Mobile : dépendance `in_app_purchase` ajoutée
+    (autorisée), feature `billing` (modèle, repository, `StoreIapService`, écran Plans & Pricing
+    maquettes 261/263/316) ; ligne Settings « Plans & Pricing » branchée. Les écrans de checkout
+    carte/OTP (284-295) sont **remplacés** par la feuille d'achat du store.

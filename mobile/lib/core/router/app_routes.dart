@@ -73,6 +73,7 @@ class AppRoutes {
   static const String referral = '/referral';
   static const String wallet = '/wallet';
   static const String hiredCandidates = '/hired-candidates';
+  static const String plans = '/plans';
   static const String cvCameraCapture = '/cv-camera-capture';
   static const String cvProcessing = '/cv-processing';
   static const String cvReview = '/cv-review';
@@ -146,6 +147,7 @@ class AppRoutes {
   static const String nReferral = 'referral';
   static const String nWallet = 'wallet';
   static const String nHiredCandidates = 'hiredCandidates';
+  static const String nPlans = 'plans';
   static const String nCvCameraCapture = 'cvCameraCapture';
   static const String nCvProcessing = 'cvProcessing';
   static const String nCvReview = 'cvReview';

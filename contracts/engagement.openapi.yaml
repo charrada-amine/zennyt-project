@@ -667,6 +667,55 @@ paths:
               schema: { $ref: '#/components/schemas/Wallet' }
         '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
 
+  /plans:
+    get:
+      tags: [Billing]
+      operationId: listPlans
+      summary: Catalogue d'offres (affichage ; les prix font foi dans les stores)
+      responses:
+        '200':
+          description: Offres
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Plan' }
+
+  /subscriptions/me:
+    get:
+      tags: [Billing]
+      operationId: getMySubscription
+      summary: Abonnement courant de l'utilisateur (null si aucun)
+      responses:
+        '200':
+          description: Abonnement ou null
+          content:
+            application/json:
+              schema:
+                allOf: [{ $ref: '#/components/schemas/Subscription' }]
+                nullable: true
+
+  /purchases/verify:
+    post:
+      tags: [Billing]
+      operationId: verifyPurchase
+      summary: Enregistrer un achat après vérification auprès du store
+      description: >
+        Le reçu brut n'est jamais conservé. Vérification serveur Apple/Google à
+        brancher ; en attendant, un vérificateur provisoire accepte l'achat.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PurchaseVerify' }
+      responses:
+        '200':
+          description: Achat enregistré
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PurchaseResult' }
+        '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
+
 components:
   securitySchemes:
     bearerAuth: { $ref: './common.openapi.yaml#/components/securitySchemes/bearerAuth' }
@@ -1036,3 +1085,59 @@ components:
       required: [amount]
       properties:
         amount: { type: number, format: double, minimum: 0.01, description: "Montant en unités majeures (ex. 150.00)." }
+
+    PlanPeriod:
+      type: string
+      enum: [MONTHLY, NONE]
+
+    StorePlatform:
+      type: string
+      enum: [APPLE, GOOGLE]
+
+    SubscriptionStatus:
+      type: string
+      enum: [ACTIVE, EXPIRED, CANCELLED]
+
+    PurchaseKind:
+      type: string
+      enum: [SUBSCRIPTION, CONSUMABLE]
+
+    Plan:
+      type: object
+      properties:
+        code: { type: string }
+        productId: { type: string, description: "Identifiant produit configuré dans les consoles de store." }
+        name: { type: string }
+        description: { type: string }
+        priceCents: { type: integer }
+        currency: { type: string, example: EUR }
+        period: { $ref: '#/components/schemas/PlanPeriod' }
+        popular: { type: boolean }
+
+    Subscription:
+      type: object
+      properties:
+        planCode: { type: string }
+        status: { $ref: '#/components/schemas/SubscriptionStatus' }
+        store: { $ref: '#/components/schemas/StorePlatform' }
+        purchasedAt: { type: string, format: date-time, nullable: true }
+        expiresAt: { type: string, format: date-time, nullable: true }
+        autoRenewing: { type: boolean }
+
+    PurchaseVerify:
+      type: object
+      required: [productId, store, receipt, transactionId]
+      properties:
+        productId: { type: string }
+        store: { $ref: '#/components/schemas/StorePlatform' }
+        receipt: { type: string, description: "Reçu/token du store — jamais persisté." }
+        transactionId: { type: string }
+
+    PurchaseResult:
+      type: object
+      properties:
+        subscription:
+          allOf: [{ $ref: '#/components/schemas/Subscription' }]
+          nullable: true
+        productId: { type: string, nullable: true }
+        kind: { $ref: '#/components/schemas/PurchaseKind' }
