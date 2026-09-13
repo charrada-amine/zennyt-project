@@ -55,6 +55,50 @@ class FitsRepositoryImpl implements FitsRepository {
   }
 
   @override
+  Future<List<CandidateProfile>> searchCandidates({String? query, String? location}) {
+    return _guard(() async {
+      final res = await _dio.get<List<dynamic>>('/candidates/search', queryParameters: {
+        if (query != null && query.trim().isNotEmpty) 'q': query.trim(),
+        if (location != null && location.trim().isNotEmpty) 'location': location.trim(),
+      });
+      return res.data!
+          .map((e) => _candidateFromSearchJson(e as Map<String, dynamic>))
+          .toList();
+    });
+  }
+
+  CandidateProfile _candidateFromSearchJson(Map<String, dynamic> json) {
+    final fullName = (json['fullName'] as String?)?.trim() ?? '';
+    final parts = fullName.isEmpty ? const <String>[] : fullName.split(' ');
+    final first = parts.isEmpty ? 'Candidate' : parts.first;
+    final last = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+    final city = json['city'] as String?;
+    final country = json['country'] as String?;
+    final location = [city, country]
+        .where((v) => v != null && v.isNotEmpty)
+        .join(', ');
+    final contract = json['contractTypePreference'] as String?;
+    return CandidateProfile(
+      user: AppUser(
+        id: json['id']?.toString() ?? '',
+        firstName: first,
+        lastName: last,
+        email: '',
+        profileImageUrl: json['avatarUrl'] as String?,
+      ),
+      targetRole: json['lookingFor'] as String? ?? '',
+      seniority: '',
+      fitScore: 0,
+      location: location,
+      softSkillsLevel: '',
+      hardSkills: const {},
+      partialData: false,
+      contractTypes: contract != null ? [contract] : const [],
+      isImmediate: false,
+    );
+  }
+
+  @override
   Future<List<String>> getSwipedTargetIds({String? jobOfferId}) {
     return _guard(() async {
       final res = await _dio.get<List<dynamic>>(

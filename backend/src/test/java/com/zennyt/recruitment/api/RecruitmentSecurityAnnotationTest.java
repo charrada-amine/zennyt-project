@@ -22,6 +22,7 @@ class RecruitmentSecurityAnnotationTest {
         FitScoreController.class,
         IdentityVerificationController.class, JobOfferController.class,
         JobOpportunityOfferController.class, HiredCandidateController.class,
+        CandidateSearchController.class,
         JobPositionController.class, JobRoleProfileController.class,
         MatchController.class,
         PaymentController.class, PublicTestController.class, SwipeController.class,
@@ -40,7 +41,7 @@ class RecruitmentSecurityAnnotationTest {
                 .map(method -> new Endpoint(type, method)))
             .toList();
 
-        assertThat(endpoints).hasSize(58);
+        assertThat(endpoints).hasSize(59);
         assertThat(endpoints)
             .allSatisfy(endpoint -> assertThat(isProtected(endpoint.method())
                 || INTENTIONALLY_PUBLIC.contains(endpoint.key()))

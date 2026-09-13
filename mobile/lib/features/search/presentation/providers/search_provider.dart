@@ -57,11 +57,17 @@ final searchQueryProvider =
 /// Candidats fit-scorés de l'offre actuellement sourcée (même sélection que
 /// l'onglet Fits) — le backend intégré n'expose pas de liste "tous
 /// candidats" indépendante d'une offre.
+/// Candidats pour l'onglet Search recruteur : le feed fit-scoré de l'offre
+/// sourcée s'il y en a une, sinon la recherche générale de candidats
+/// (`GET /candidates/search`), indépendante d'une offre.
 final _allCandidatesProvider =
     FutureProvider.autoDispose<List<CandidateProfile>>((ref) async {
   final job = ref.watch(activeJobContextProvider);
-  if (job == null) return const [];
-  return ref.watch(fitsRepositoryProvider).getCandidateFeed(job.id);
+  if (job != null) {
+    return ref.watch(fitsRepositoryProvider).getCandidateFeed(job.id);
+  }
+  final query = ref.watch(searchQueryProvider);
+  return ref.watch(fitsRepositoryProvider).searchCandidates(query: query);
 });
 
 /// Offres actives, lues via le contrat public `GET /job-offers` (le deck de

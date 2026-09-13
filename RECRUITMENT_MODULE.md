@@ -732,3 +732,11 @@ GROQ_API_KEY=<optionnel>
    opérations (tests de parité + sécurité mis à jour). Tests : `CancelHireUseCaseTest`,
    ArchUnit vert. Côté mobile : `HiredCandidatesPage` (`/hired-candidates`) avec annulation,
    accessible depuis Profile & Settings → Hired Candidates (recruteur).
+14. 2026-09-11 — **Recherche générale de candidats** (maquette 87-89, onglet recruteur) :
+    `GET /candidates/search?q=&location=` sur la projection `actors` (candidats/étudiants
+    actifs, filtre nom/intitulé + ville/pays), indépendante d'une offre — le feed fit-scoré
+    reste utilisé quand une offre est sourcée. Contrat : schéma `CandidateSearchResult` ;
+    parité runtime portée à 59 opérations. `SearchCandidatesUseCase` + ArchUnit vert. Côté
+    mobile, `FitsRepository.searchCandidates` alimente l'onglet Search recruteur quand
+    aucune offre n'est active (les scores de fit ne s'affichent alors pas — pas d'offre de
+    référence).

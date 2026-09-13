@@ -26,7 +26,7 @@ and tracked here until an API is added).
 | Play & discover your talent | 31-33, 67-76 | 🟡 `GamesHubScreen` exists; design wants Coverage %, 5-6 dimension cards, consent + referral modals |
 | Home feed | 77-79, 241-243, 314 | ✅ (`HomePage`); recruiters see polls |
 | Create post / poll / media | 61-62, 80-86, 244-250, 311-313 | ✅ (`CreatePostPage`, `MediaPickerPage`, `CreatePollPage`) |
-| Search | 87-89, 224 | ✅ recruiter candidate search; ✅ candidate job search wired to public `GET /job-offers` (2026-09-11); tap opens job detail |
+| Search | 87-89, 224 | ✅ recruiter candidate search incl. general `/candidates/search`; ✅ candidate job search via `GET /job-offers`; tap opens detail |
 | Fits | 91a-h, 222-223 | 🟡 (`FitsScreen`), recruiter candidate detail + filter levels ✅ |
 | Job detail (candidate) | 91f, 92-95, 146 | ✅ `JobOfferDetailPage` wired to `GET /job-offers/{id}` (2026-09-11) |
 | Assessment quiz (candidate/test taker) | 96, 138-139, 306 | ✅ `TestTakingPage` (test-attempts + submit/abandon) + ✅ public `/tests/{token}` link unblocked (2026-09-11) |
@@ -72,7 +72,6 @@ on new backend APIs**. Track here; remove a row once the API lands.
 | Feature | Screen(s) | Needed endpoints (proposed) | Module |
 |---|---|---|---|
 | Recruitment fee pre-authorization | 290-295 | store IAP consumable (video interview) replaces the card/OTP pre-auth | billing |
-| Candidate search (candidates) | 87-89,224 | `GET /candidates/search` (filters: field, salary, level, experience, workplace, city) | recruitment |
 | Assessment integrity / anti-fraud result | 138-139, 191(?) | `POST /assessment-integrity/...`, result endpoint | recruitment/identity |
 | Help center FAQ/articles | (if added) | `GET /help-center/articles` (contract-optional) | engagement |
 | Legal documents (Terms / Privacy) | 120-121, 274-275, 106 | `GET /legal/{slug}` + versioned content (today hardcoded in-app; no endpoint) | shared/identity |
@@ -304,6 +303,18 @@ email/phone-change OTP (126-127), analytics/progress, assessment-integrity resul
 - **Open:** create the store products with these `productId`s in App Store Connect / Play
   Console; add iOS StoreKit config + Android billing permission for device testing; replace the
   stub verifier with real server validation.
+
+### 2026-09-11 — Gap fill: general candidate search (design 87-89) — done
+- **Contract (recruitment)**: `GET /candidates/search?q=&location=` + `CandidateSearchResult`;
+  parity now 59 operations (parity + security tests updated).
+- **Backend**: `RecruitmentActorRepository.searchCandidates` (active candidates/students,
+  name/lookingFor + city/country filter) over the `actors` projection;
+  `SearchCandidatesUseCase` + `CandidateSearchController` (`@RecruiterOnly`). ArchUnit green.
+- **Mobile**: `FitsRepository.searchCandidates`; the recruiter Search tab now falls back to it
+  when no offer is sourced (the fit-scored feed is still used when an offer is active). No fit
+  score is shown without an offer of reference — documented. `flutter analyze` clean; suite green
+  (only pre-existing games failures).
+
 
 
 

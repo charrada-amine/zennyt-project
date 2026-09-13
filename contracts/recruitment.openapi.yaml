@@ -1047,6 +1047,26 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
 
+  /candidates/search:
+    get:
+      operationId: searchCandidates
+      tags: [JobOpportunityOffers]
+      summary: Recherche générale de candidats (recruteur), hors offre
+      parameters:
+        - { name: q, in: query, description: Nom ou intitulé recherché, schema: { type: string } }
+        - { name: location, in: query, schema: { type: string } }
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: Candidats correspondants
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/CandidateSearchResult' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
   # ═══════════════════════════════════════════════════════════════
   # IDENTITY VERIFICATIONS
   # ═══════════════════════════════════════════════════════════════
@@ -2091,6 +2111,22 @@ components:
           nullable: true
           description: Jours restants avant la fin de la période d'essai (90 jours ≈ 3 mois).
         cancellable: { type: boolean }
+
+    CandidateSearchResult:
+      type: object
+      description: Candidat de la recherche générale (projection acteur, hors offre).
+      properties:
+        id: { type: string, format: uuid }
+        fullName: { type: string, nullable: true }
+        avatarUrl: { type: string, nullable: true }
+        city: { type: string, nullable: true }
+        country: { type: string, nullable: true }
+        lookingFor: { type: string, nullable: true }
+        yearsOfExperience: { type: integer, nullable: true }
+        workplaceTypePreference: { $ref: '#/components/schemas/WorkplaceType' }
+        contractTypePreference: { $ref: '#/components/schemas/ContractType' }
+        targetLocation: { type: string, nullable: true }
+        openInternationally: { type: boolean }
 
     # ── Identity Verification ──────────────────────────────────
 

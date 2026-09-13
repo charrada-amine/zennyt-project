@@ -18,6 +18,9 @@ abstract class FitsRepository {
   /// deck for one offer, enriched with name/avatar/location by the backend.
   Future<List<CandidateProfile>> getCandidateFeed(String jobOfferId);
 
+  /// Recherche générale de candidats (recruteur), indépendante d'une offre.
+  Future<List<CandidateProfile>> searchCandidates({String? query, String? location});
+
   /// `GET /swipes/targets` — ids already swiped, to exclude from the deck.
   Future<List<String>> getSwipedTargetIds({String? jobOfferId});
 
