@@ -35,7 +35,7 @@ and tracked here until an API is added).
 | Terms of Use | 120-121, 274-275 | ✅ `TermsOfUseScreen` (static, transcribed 1:1) (2026-09-11) |
 | Wallet | 107,114,116,118,119 | ✅ balance/transactions/card/withdraw (`/wallet`) + mobile screen (2026-09-11) |
 | Referral | 32,102,115,117 | ✅ referral program: `/referrals` + mobile Referral screen (2026-09-11); REGISTERED/HIRED hooks pending |
-| Hired candidates | 258 | 🧩 list + cancel/status countdown |
+| Hired candidates | 258 | ✅ list + probation countdown + cancel (`/hired-candidates`) (2026-09-11) |
 | Plans & Pricing / subscription | 261-263, 316 | 🧩 plans, upgrade, payment states |
 | Notifications | 142, 288-289, 309-310 | ✅ (`NotificationsPage`) |
 | Chats | 129-132, 280-283 | ✅ (`ChatsPage`, `ChatDetailPage`) |
@@ -71,7 +71,6 @@ on new backend APIs**. Track here; remove a row once the API lands.
 
 | Feature | Screen(s) | Needed endpoints (proposed) | Module |
 |---|---|---|---|
-| Hired candidates | 258 | `GET /recruiters/me/hired-candidates`, `POST /hired-candidates/{id}/cancel` | recruitment |
 | Plans & Pricing / subscription | 261-263,316 | `GET /plans`, `POST /subscriptions`, subscription state | billing |
 | Recruitment fee pre-authorization | 290-295 | `POST /recruitment-fees/preauthorize`, `POST /recruitment-fees/{id}/confirm-otp` | billing/recruitment |
 | Candidate search (candidates) | 87-89,224 | `GET /candidates/search` (filters: field, salary, level, experience, workplace, city) | recruitment |
@@ -275,6 +274,19 @@ email/phone-change OTP (126-127), analytics/progress, assessment-integrity resul
 - NOTE: `flutter test`/`flutter build` were hanging at commit time (in-progress Flutter
   upgrade / a running app holding the build lock) — verified environmental (a previously
   green test also hung); `flutter analyze` passed and backend tests ran green on JDK 21.
+
+### 2026-09-11 — Gap fill: Hired candidates (design 258) — done
+- **Contract (recruitment)**: `GET /recruiters/me/hired-candidates`,
+  `POST /hired-candidates/{id}/cancel`; enum `JobOpportunityStatus.CANCELLED`; schema
+  `HiredCandidate`. Recruitment parity now 58 operations (parity + security tests updated).
+- **Backend**: `JobOpportunityOffer.cancel()` + `probationEndsAt()` (3 months ≈ **90 days**,
+  provisional); repository `findByRecruiterIdAndStatusIn`; `ListHiredCandidatesUseCase` +
+  `CancelHireUseCase`; `HiredCandidateController` (`@RecruiterOnly`) joining candidate
+  name/avatar via the `actors` projection. `CancelHireUseCaseTest` + ArchUnit green.
+- **Mobile**: `HiredCandidate` entity + repository methods + provider; `HiredCandidatesPage`
+  (`/hired-candidates`) with `D-xx` badge and cancel; recruiter Settings row now navigates.
+  Parsing test; `flutter analyze` clean.
+
 
 
 

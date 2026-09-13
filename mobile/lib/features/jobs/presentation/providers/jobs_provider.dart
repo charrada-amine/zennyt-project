@@ -8,6 +8,7 @@ import 'package:zennyt/features/jobs/domain/repositories/jobs_repository.dart';
 import 'package:zennyt/features/jobs/domain/entities/job_position.dart';
 import 'package:zennyt/features/jobs/domain/entities/public_assessment.dart';
 import 'package:zennyt/features/jobs/domain/entities/test_attempt.dart';
+import 'package:zennyt/features/jobs/domain/entities/hired_candidate.dart';
 /// Source unique du repository Jobs (backend intégré).
 final jobsRepositoryProvider = Provider<JobsRepository>((ref) {
   return JobsRepositoryImpl(ref.watch(dioProvider));
@@ -157,4 +158,31 @@ final jobTestResultDetailProvider =
         jobOfferId: args.jobOfferId,
         candidateId: args.candidateId,
       ),
+);
+
+// ── Hired candidates (design 258) ───────────────────────────────────────────
+
+class HiredCandidatesNotifier extends AsyncNotifier<List<HiredCandidate>> {
+  @override
+  Future<List<HiredCandidate>> build() {
+    return ref.read(jobsRepositoryProvider).getHiredCandidates();
+  }
+
+  Future<void> refresh() async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(
+      () => ref.read(jobsRepositoryProvider).getHiredCandidates(),
+    );
+  }
+
+  Future<void> cancel(String id) async {
+    final updated = await ref.read(jobsRepositoryProvider).cancelHire(id);
+    final current = state.value ?? [];
+    state = AsyncData(current.map((h) => h.id == updated.id ? updated : h).toList());
+  }
+}
+
+final hiredCandidatesProvider =
+    AsyncNotifierProvider<HiredCandidatesNotifier, List<HiredCandidate>>(
+  HiredCandidatesNotifier.new,
 );

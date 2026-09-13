@@ -33,12 +33,13 @@ class ApiContractRouteParityTest {
             AssessmentController.class, CallbackController.class, CandidateResumeController.class,
             FitScoreController.class,
             IdentityVerificationController.class, JobOfferController.class,
-            JobOpportunityOfferController.class, JobPositionController.class, JobRoleProfileController.class,
+            JobOpportunityOfferController.class, HiredCandidateController.class,
+            JobPositionController.class, JobRoleProfileController.class,
             MatchController.class,
             PaymentController.class, PublicTestController.class, SwipeController.class,
             TestAttemptController.class, TestResultController.class));
 
-        assertThat(runtime).hasSize(56);
+        assertThat(runtime).hasSize(58);
         assertThat(contractRoutes("recruitment.openapi.yaml")).isEqualTo(runtime);
     }
 

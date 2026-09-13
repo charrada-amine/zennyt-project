@@ -4,6 +4,7 @@ import 'package:zennyt/core/error/api_exception.dart';
 import 'package:zennyt/features/jobs/domain/entities/assessment.dart';
 import 'package:zennyt/features/jobs/domain/entities/job.dart';
 import 'package:zennyt/features/jobs/domain/repositories/jobs_repository.dart';
+import 'package:zennyt/features/jobs/domain/entities/hired_candidate.dart';
 import 'package:zennyt/features/jobs/domain/entities/job_position.dart';
 import 'package:zennyt/features/jobs/domain/entities/public_assessment.dart';
 import 'package:zennyt/features/jobs/domain/entities/test_attempt.dart';
@@ -344,6 +345,24 @@ class JobsRepositoryImpl implements JobsRepository {
         '/job-offers/$jobOfferId/test-results/$candidateId',
       );
       return TestResultDetail.fromJson(res.data!);
+    });
+  }
+
+  @override
+  Future<List<HiredCandidate>> getHiredCandidates() {
+    return _guard(() async {
+      final res = await _dio.get<List<dynamic>>('/recruiters/me/hired-candidates');
+      return res.data!
+          .map((e) => HiredCandidate.fromJson(e as Map<String, dynamic>))
+          .toList();
+    });
+  }
+
+  @override
+  Future<HiredCandidate> cancelHire(String id) {
+    return _guard(() async {
+      final res = await _dio.post<Map<String, dynamic>>('/hired-candidates/$id/cancel');
+      return HiredCandidate.fromJson(res.data!);
     });
   }
 

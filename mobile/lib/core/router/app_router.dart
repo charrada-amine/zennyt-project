@@ -55,6 +55,7 @@ import '../../features/jobs/presentation/pages/recruiter/assessments/public_test
 import '../../features/jobs/presentation/pages/recruiter/jobs/create/create_job_offer_page.dart';
 import '../../features/jobs/presentation/pages/recruiter/jobs/create/select_assessment_page.dart';
 import '../../features/jobs/presentation/pages/recruiter/jobs/hard_skills_results_page.dart';
+import '../../features/jobs/presentation/pages/recruiter/jobs/hired_candidates_page.dart';
 
 import '../../features/call/presentation/pages/call_page.dart';
 
@@ -508,6 +509,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.wallet,
         name: AppRoutes.nWallet,
         builder: (context, state) => const WalletScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.hiredCandidates,
+        name: AppRoutes.nHiredCandidates,
+        builder: (context, state) => const HiredCandidatesPage(),
       ),
       GoRoute(
         path: AppRoutes.userProfile,

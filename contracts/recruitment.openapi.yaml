@@ -1016,6 +1016,37 @@ paths:
               schema: { $ref: '#/components/schemas/JobOpportunityOffer' }
         '404': { $ref: '#/components/responses/NotFound' }
 
+  /recruiters/me/hired-candidates:
+    get:
+      operationId: getRecruitersMeHiredCandidates
+      tags: [JobOpportunityOffers]
+      summary: Recrutements confirmés du recruteur (maquette 258)
+      responses:
+        '200':
+          description: Recrutements (confirmés + annulés)
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/HiredCandidate' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /hired-candidates/{id}/cancel:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      operationId: postHiredCandidatesByIdCancel
+      tags: [JobOpportunityOffers]
+      summary: Annuler un recrutement (possible tant que la période d'essai court)
+      responses:
+        '200':
+          description: Recrutement annulé
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HiredCandidate' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
   # ═══════════════════════════════════════════════════════════════
   # IDENTITY VERIFICATIONS
   # ═══════════════════════════════════════════════════════════════
@@ -1347,7 +1378,7 @@ components:
 
     JobOpportunityStatus:
       type: string
-      enum: [PENDING, CONFIRMED, REJECTED]
+      enum: [PENDING, CONFIRMED, REJECTED, CANCELLED]
 
     IdentityVerificationStatus:
       type: string
@@ -2039,6 +2070,27 @@ components:
         otpVerified: { type: boolean }
         sentAt: { type: string, format: date-time }
         respondedAt: { type: string, format: date-time, nullable: true }
+
+    HiredCandidate:
+      type: object
+      description: Recrutement confirmé (maquette 258), avec compte à rebours d'essai.
+      properties:
+        id: { type: string, format: uuid }
+        candidateId: { type: string, format: uuid }
+        fullName: { type: string, nullable: true }
+        avatarUrl: { type: string, nullable: true }
+        title: { type: string }
+        salaryMin: { type: number, format: double, nullable: true }
+        salaryMax: { type: number, format: double, nullable: true }
+        salaryCurrency: { type: string, nullable: true }
+        status: { $ref: '#/components/schemas/JobOpportunityStatus' }
+        hiredAt: { type: string, format: date-time, nullable: true }
+        probationEndsAt: { type: string, format: date-time, nullable: true }
+        daysRemaining:
+          type: integer
+          nullable: true
+          description: Jours restants avant la fin de la période d'essai (90 jours ≈ 3 mois).
+        cancellable: { type: boolean }
 
     # ── Identity Verification ──────────────────────────────────
 

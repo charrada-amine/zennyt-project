@@ -712,3 +712,23 @@ GROQ_API_KEY=<optionnel>
    (`/assessments`) liste les évaluations du recruteur (titre, nombre de questions, durée)
    avec édition, suppression (`DELETE /assessments/{id}`) et ajout, accessible depuis
    « Your Tests → See all » du hub Careers. Aucun changement de contrat ni d'API.
+12. 2026-09-11 — **Devise + périodicité du salaire** (maquette 213) : l'offre porte
+   désormais `salaryCurrency` (ISO 4217, valeurs maquette EUR/USD/GBP/MAD/TND, défaut EUR)
+   et `salaryPeriod` (`MONTHLY`/`YEARLY`, défaut MONTHLY), migration V79 avec contraintes.
+   Contrat `JobOffer`/`JobOfferCreate`/`JobOfferSummary` enrichis (+ enum `SalaryPeriod`) ;
+   domaine, entité, adaptateur, use cases create/replace, DTOs et contrôleur mis à jour.
+   L'ancien `rehydrate` est conservé en surcharge (défauts) pour ne pas casser les appels
+   existants. Côté mobile, le dialogue salaire propose devise + périodicité et
+   `JobOffer.salaryDisplay` formate symbole + `/Mo`·`/Yr` (test dédié). Aucune route
+   ajoutée (parité runtime inchangée).
+13. 2026-09-11 — **Hired Candidates** (maquette 258) : `GET /recruiters/me/hired-candidates`
+   et `POST /hired-candidates/{id}/cancel` (recruteur propriétaire). Le recrutement est une
+   `JobOpportunityOffer` `CONFIRMED` ; un nouveau statut `CANCELLED` permet l'annulation tant
+   que la période d'essai court (3 mois ≈ **90 jours**, valeur provisoire). `cancel()` refuse
+   l'annulation d'un recrutement non confirmé, d'un tiers, ou après la fin de l'essai ;
+   `probationEndsAt()`/`daysRemaining` alimentent le badge `D-xx` de la maquette. DTO
+   `HiredCandidate` (nom/avatar joints via la projection `actors`). Contrat : enum
+   `JobOpportunityStatus.CANCELLED` + schéma `HiredCandidate` ; parité runtime portée à 58
+   opérations (tests de parité + sécurité mis à jour). Tests : `CancelHireUseCaseTest`,
+   ArchUnit vert. Côté mobile : `HiredCandidatesPage` (`/hired-candidates`) avec annulation,
+   accessible depuis Profile & Settings → Hired Candidates (recruteur).

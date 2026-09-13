@@ -1,5 +1,6 @@
 import 'package:zennyt/features/jobs/domain/entities/assessment.dart';
 import '../entities/job.dart' show ContractType, WorkplaceType, ExperienceLevel, JobStatus, JobOffer, SalaryPeriod;
+import 'package:zennyt/features/jobs/domain/entities/hired_candidate.dart';
 import 'package:zennyt/features/jobs/domain/entities/job_position.dart';
 import 'package:zennyt/features/jobs/domain/entities/public_assessment.dart';
 import 'package:zennyt/features/jobs/domain/entities/test_attempt.dart';
@@ -75,6 +76,14 @@ abstract class JobsRepository {
     required String jobOfferId,
     required String candidateId,
   });
+
+  // ── Hired candidates (design 258) ─────────────────────────────────────────
+
+  /// `GET /recruiters/me/hired-candidates`
+  Future<List<HiredCandidate>> getHiredCandidates();
+
+  /// `POST /hired-candidates/{id}/cancel`
+  Future<HiredCandidate> cancelHire(String id);
 }
 
 class CreateJobOfferParams {
