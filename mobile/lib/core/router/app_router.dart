@@ -15,6 +15,7 @@ import '../../features/profile_setup/presentation/view/field_of_work_screen.dart
 import '../../features/profile_setup/presentation/view/profile_setup_screen.dart';
 import '../../features/profile_settings/presentation/view/accessibility_screen.dart';
 import '../../features/referral/presentation/view/referral_screen.dart';
+import '../../features/wallet/presentation/view/wallet_screen.dart';
 import '../../features/profile_settings/presentation/view/language_settings_screen.dart';
 import '../../features/profile_settings/presentation/view/profile_settings_screen.dart';
 import '../../features/profile_settings/presentation/view/user_profile_screen.dart';
@@ -502,6 +503,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.referral,
         name: AppRoutes.nReferral,
         builder: (context, state) => const ReferralScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.wallet,
+        name: AppRoutes.nWallet,
+        builder: (context, state) => const WalletScreen(),
       ),
       GoRoute(
         path: AppRoutes.userProfile,

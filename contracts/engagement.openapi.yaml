@@ -602,6 +602,71 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/ReferralLink' }
 
+  /wallet/me:
+    get:
+      tags: [Wallet]
+      operationId: getWallet
+      summary: Portefeuille de l'utilisateur connecté (solde + carte)
+      responses:
+        '200':
+          description: Portefeuille
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Wallet' }
+
+  /wallet/me/transactions:
+    get:
+      tags: [Wallet]
+      operationId: listWalletTransactions
+      summary: Écritures du portefeuille (les plus récentes d'abord)
+      responses:
+        '200':
+          description: Écritures
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/WalletTransaction' }
+
+  /wallet/me/card:
+    put:
+      tags: [Wallet]
+      operationId: putWalletCard
+      summary: Enregistrer ou remplacer la carte de retrait
+      description: >
+        Le numéro complet et le CVV ne sont jamais persistés : seuls les 4
+        derniers chiffres et la marque sont conservés.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/WalletCardInput' }
+      responses:
+        '200':
+          description: Carte enregistrée
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WalletCard' }
+        '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
+
+  /wallet/me/withdraw:
+    post:
+      tags: [Wallet]
+      operationId: withdrawWallet
+      summary: Retirer un montant (refusé si solde insuffisant)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/WalletWithdraw' }
+      responses:
+        '200':
+          description: Retrait enregistré, portefeuille mis à jour
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Wallet' }
+        '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
+
 components:
   securitySchemes:
     bearerAuth: { $ref: './common.openapi.yaml#/components/securitySchemes/bearerAuth' }
@@ -927,3 +992,47 @@ components:
         url: { type: string, format: uri }
         bonusAmount: { type: integer, example: 800 }
         bonusCurrency: { type: string, example: USD }
+
+    WalletCard:
+      type: object
+      properties:
+        last4: { type: string, minLength: 4, maxLength: 4 }
+        brand: { type: string, enum: [VISA, MASTERCARD, UNKNOWN] }
+        expiryMonth: { type: integer, minimum: 1, maximum: 12 }
+        expiryYear: { type: integer }
+        cardholderName: { type: string }
+
+    WalletCardInput:
+      type: object
+      required: [cardNumber, expiryMonth, expiryYear, cvv, cardholderName]
+      properties:
+        cardNumber: { type: string, description: "Jamais persisté (seuls last4 + marque)." }
+        expiryMonth: { type: integer, minimum: 1, maximum: 12 }
+        expiryYear: { type: integer }
+        cvv: { type: string, description: "Jamais persisté." }
+        cardholderName: { type: string, maxLength: 150 }
+
+    WalletTransaction:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        amountCents: { type: integer, description: "Signé : positif = crédit." }
+        currency: { type: string }
+        kind: { type: string, enum: [CREDIT, DEBIT, WITHDRAWAL] }
+        label: { type: string }
+        createdAt: { type: string, format: date-time }
+
+    Wallet:
+      type: object
+      properties:
+        balanceCents: { type: integer, minimum: 0 }
+        currency: { type: string }
+        card:
+          allOf: [{ $ref: '#/components/schemas/WalletCard' }]
+          nullable: true
+
+    WalletWithdraw:
+      type: object
+      required: [amount]
+      properties:
+        amount: { type: number, format: double, minimum: 0.01, description: "Montant en unités majeures (ex. 150.00)." }

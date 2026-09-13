@@ -33,7 +33,7 @@ and tracked here until an API is added).
 | Profile & settings | 101-111, 256-265 | ✅ core; ✅ accessibility prefs + notifications now server-synced (`/users/me/preferences`), dark theme persisted, Terms screen |
 | Account center / personal info / password / privacy | 103-106, 125-128, 264 | 🟡 hardcoded password date; ✅ email/phone-change OTP (Resend, no SMS) |
 | Terms of Use | 120-121, 274-275 | ✅ `TermsOfUseScreen` (static, transcribed 1:1) (2026-09-11) |
-| Wallet | 107,114,116,118,119 | 🧩 wallet balance / transactions / add-change card / withdraw |
+| Wallet | 107,114,116,118,119 | ✅ balance/transactions/card/withdraw (`/wallet`) + mobile screen (2026-09-11) |
 | Referral | 32,102,115,117 | ✅ referral program: `/referrals` + mobile Referral screen (2026-09-11); REGISTERED/HIRED hooks pending |
 | Hired candidates | 258 | 🧩 list + cancel/status countdown |
 | Plans & Pricing / subscription | 261-263, 316 | 🧩 plans, upgrade, payment states |
@@ -71,7 +71,6 @@ on new backend APIs**. Track here; remove a row once the API lands.
 
 | Feature | Screen(s) | Needed endpoints (proposed) | Module |
 |---|---|---|---|
-| Wallet | 107,114,116,118,119 | `GET /wallet/me`, `GET /wallet/me/transactions`, `POST /wallet/me/cards`, `POST /wallet/me/withdraw` | engagement/identity |
 | Hired candidates | 258 | `GET /recruiters/me/hired-candidates`, `POST /hired-candidates/{id}/cancel` | recruitment |
 | Plans & Pricing / subscription | 261-263,316 | `GET /plans`, `POST /subscriptions`, subscription state | billing |
 | Recruitment fee pre-authorization | 290-295 | `POST /recruitment-fees/preauthorize`, `POST /recruitment-fees/{id}/confirm-otp` | billing/recruitment |
@@ -258,6 +257,25 @@ email/phone-change OTP (126-127), analytics/progress, assessment-integrity resul
 - **Mobile**: new `features/referral` (model, repository, providers, screen 115/117 with
   link copy/share + referral list); Profile & Settings → Referral now navigates. Parsing test;
   `flutter analyze` clean.
+
+### 2026-09-11 — Gap fill: Wallet (design 107/114/118/119) — done
+- **Contract (engagement)**: `GET /wallet/me`, `GET /wallet/me/transactions`,
+  `PUT /wallet/me/card`, `POST /wallet/me/withdraw` + `Wallet`/`WalletCard`/`WalletTransaction`.
+- **Backend (engagement)**: migration `V82__engagement_wallet.sql`; domain `Wallet`
+  (credit/debit, refuses overdraft), `WalletTransaction`, `WalletCard` (last4 + brand only,
+  never the PAN/CVV), `WalletRepository`; JPA entities/adapter; `Get/List/SaveCard/Withdraw`
+  use cases; `WalletController` (`@EngagementAuthenticated`). `WalletTest` + ArchUnit green.
+  No real PSP: withdraw records the ledger entry; balance starts at 0 and will be credited by
+  referral bonuses once `HIRED` is hooked.
+- **Mobile**: new `features/wallet` (model, repository, providers, screen 114/118 with balance
+  card, Withdraw/Change Card/Share Link and the ledger; card dialog 107/119). Profile action
+  cards now navigate: "Add your card" → Wallet, "Invite Friends" → Referral.
+- **iOS build**: deployment targets forced to 15.0 (Podfile `post_install` + Runner pbxproj)
+  so Xcode 27 accepts the pods; a Flutter-upgrade was in progress during this work.
+- NOTE: `flutter test`/`flutter build` were hanging at commit time (in-progress Flutter
+  upgrade / a running app holding the build lock) — verified environmental (a previously
+  green test also hung); `flutter analyze` passed and backend tests ran green on JDK 21.
+
 
 
 

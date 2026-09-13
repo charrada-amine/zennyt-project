@@ -263,3 +263,17 @@ Chaque endpoint porte `@EngagementAuthenticated`. L'acteur doit exister dans la 
     maquettes 115/117 avec copie/partage du lien et liste des filleuls), accessible depuis
     Profile & Settings → Referral. Tests : `InviteReferralUseCaseTest` (backend) +
     `referral_parsing_test` (mobile), ArchUnit vert.
+15. **2026-09-11 — Portefeuille (Wallet).** Quatre opérations ajoutées au contrat engagement :
+    `GET /wallet/me`, `GET /wallet/me/transactions`, `PUT /wallet/me/card`,
+    `POST /wallet/me/withdraw`. Tables `engagement.wallets` (solde en **centimes**), 
+    `engagement.wallet_transactions` (écritures signées), `engagement.wallet_cards`
+    (migration V82). Domaine `Wallet` (crédit/débit, refus si solde insuffisant) +
+    `WalletTransaction` + `WalletCard` (last4 + marque uniquement, **jamais** le numéro
+    complet ni le CVV) + `WalletRepository`. Use cases `Get/List/SaveCard/Withdraw`,
+    `WalletController` (`@EngagementAuthenticated`). Pas de PSP réel : le retrait
+    matérialise l'écriture, le virement bancaire reste à intégrer ; le solde démarre à 0
+    et sera crédité par le bonus de parrainage quand les hooks `HIRED` existeront. Côté
+    mobile : feature `wallet` (modèle, repository, providers, écran 114/118 — solde, carte,
+    Withdraw/Change Card/Share Link, écritures — + dialogue carte 107/119), accessible
+    depuis les cartes d'action du profil (« Add your card » → Wallet, « Invite Friends » →
+    Referral). Tests : `WalletTest` (backend), ArchUnit vert.
