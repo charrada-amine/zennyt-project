@@ -21,9 +21,9 @@ class ApiContractRouteParityTest {
     void identityContractMatchesAllRuntimeRoutes() throws IOException {
         Set<String> runtime = runtimeRoutes(List.of(
             AuthController.class, OnboardingController.class,
-            ProfileController.class, CvParseController.class));
+            ProfileController.class, CvParseController.class, LegalController.class));
 
-        assertThat(runtime).hasSize(52);
+        assertThat(runtime).hasSize(53);
         assertThat(contractRoutes("identity.openapi.yaml")).isEqualTo(runtime);
     }
 

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import '../../../../core/enums/user_role.dart';
 import '../../../profile_settings/domain/entities/recruiter_profile.dart';
 import '../entities/app_user.dart';
+import '../entities/legal_document.dart';
 import '../entities/user_preferences.dart';
 
 /// Abstraction over authentication + identity onboarding. The presentation layer
@@ -66,6 +67,9 @@ abstract class AuthRepository {
 
   /// `PUT /users/me/preferences`.
   Future<UserPreferences> updatePreferences(UserPreferences preferences);
+
+  /// `GET /legal/{slug}` — document légal public (`terms-of-use`, `privacy-policy`).
+  Future<LegalDocument> getLegalDocument(String slug);
 
   /// `POST /users/me/email` — sends an OTP to the new address (no SMS involved).
   Future<void> requestEmailChange(String newEmail);

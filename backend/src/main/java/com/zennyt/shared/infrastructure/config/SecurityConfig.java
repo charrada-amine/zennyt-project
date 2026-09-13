@@ -74,6 +74,8 @@ public class SecurityConfig {
                 // (sans aucune réponse correcte, contrat §5.7). Débloque la
                 // roadmap RECRUITMENT_MODULE.md §15.2.
                 .requestMatchers(HttpMethod.GET, "/api/v1/tests/**").permitAll()
+                // Documents légaux publics (Conditions d'utilisation, confidentialité).
+                .requestMatchers(HttpMethod.GET, "/api/v1/legal/**").permitAll()
                 .requestMatchers("/api/v1/callbacks/**").permitAll()
                 .requestMatchers(new RegexRequestMatcher("^/api/v1/profiles/\\d+$", "GET")).permitAll()
                 .requestMatchers("/actuator/health", "/actuator/info").permitAll()

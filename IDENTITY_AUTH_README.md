@@ -111,3 +111,11 @@ un point d’intégration ouvert, sans prétendre modifier un réglage serveur.
    OTP d'inscription est purement visuel (le backend n'expose aucune vérification e-mail/SMS
    à l'enregistrement), donc le flag route directement vers la configuration du profil.
    **À ne jamais activer en production.**
+
+6. **2026-09-11** — Documents légaux publics : `GET /legal/{slug}` (`terms-of-use`,
+   `privacy-policy`), servis depuis le classpath (`resources/legal/*.json`) via
+   `LegalDocumentService`. Contrat identity porté à 53 opérations (parité vérifiée) ;
+   `GET /api/v1/legal/**` ajouté à la permit-list de `shared/SecurityConfig` (document public).
+   Slug restreint à `[a-z0-9-]+` (pas de traversée de chemin). Le contenu peut ainsi être mis à
+   jour sans publier l'app ; côté mobile, les écrans Terms / Privacy lisent l'API avec le texte
+   embarqué comme repli hors-ligne.

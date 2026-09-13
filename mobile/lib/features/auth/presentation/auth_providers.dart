@@ -5,6 +5,7 @@ import '../../../../core/network/dio_client.dart';
 import '../../../../core/network/websocket_service.dart';
 import '../../../../core/storage/token_storage.dart';
 import '../data/auth_repository_impl.dart';
+import '../domain/entities/legal_document.dart';
 import '../domain/repositories/auth_repository.dart';
 import '../presentation/auth_controller.dart';
 
@@ -51,4 +52,10 @@ final webSocketConnectionProvider = Provider<void>((ref) {
 /// WebSocket service singleton for real-time features (calls, messages, etc.)
 final webSocketServiceProvider = Provider<WebSocketService>((ref) {
   return WebSocketService();
+});
+
+/// Document légal public (`GET /legal/{slug}`), ex. `terms-of-use`.
+final legalDocumentProvider =
+    FutureProvider.family<LegalDocument, String>((ref, slug) {
+  return ref.read(authRepositoryProvider).getLegalDocument(slug);
 });

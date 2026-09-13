@@ -866,6 +866,22 @@ paths:
       responses:
         '204': { description: Education record deleted }
 
+  /legal/{slug}:
+    parameters:
+      - { name: slug, in: path, required: true, schema: { type: string }, example: terms-of-use }
+    get:
+      operationId: getLegalDocument
+      tags: [Legal]
+      summary: Document légal public (conditions d'utilisation, confidentialité)
+      security: []
+      responses:
+        '200':
+          description: Document
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LegalDocument' }
+        '404': { $ref: './common.openapi.yaml#/components/responses/NotFound' }
+
 components:
   securitySchemes:
     bearerAuth: { $ref: './common.openapi.yaml#/components/securitySchemes/bearerAuth' }
@@ -1047,6 +1063,22 @@ components:
             highContrast: { type: boolean }
             textSizePx: { type: integer, minimum: 10, maximum: 30 }
             updatedAt: { type: string, format: date-time }
+
+    LegalSection:
+      type: object
+      properties:
+        heading: { type: string }
+        body: { type: string }
+
+    LegalDocument:
+      type: object
+      properties:
+        slug: { type: string }
+        title: { type: string }
+        lastUpdated: { type: string }
+        sections:
+          type: array
+          items: { $ref: '#/components/schemas/LegalSection' }
 
     CandidateStudentOnboardingInput:
       type: object

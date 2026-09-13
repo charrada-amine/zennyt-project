@@ -6,6 +6,7 @@ import '../../../core/enums/user_role.dart';
 import '../../../core/error/api_exception.dart';
 import '../../../core/storage/token_storage.dart';
 import '../domain/entities/app_user.dart';
+import '../domain/entities/legal_document.dart';
 import '../domain/entities/user_preferences.dart';
 import '../../profile_settings/domain/entities/recruiter_profile.dart';
 import '../domain/repositories/auth_repository.dart';
@@ -181,6 +182,14 @@ class AuthRepositoryImpl implements AuthRepository {
         data: preferences.toJson(),
       );
       return UserPreferences.fromJson(res.data!);
+    });
+  }
+
+  @override
+  Future<LegalDocument> getLegalDocument(String slug) {
+    return _guard(() async {
+      final res = await _dio.get<Map<String, dynamic>>('/legal/$slug');
+      return LegalDocument.fromJson(res.data!);
     });
   }
 

@@ -293,3 +293,11 @@ Chaque endpoint porte `@EngagementAuthenticated`. L'acteur doit exister dans la 
     (autorisée), feature `billing` (modèle, repository, `StoreIapService`, écran Plans & Pricing
     maquettes 261/263/316) ; ligne Settings « Plans & Pricing » branchée. Les écrans de checkout
     carte/OTP (284-295) sont **remplacés** par la feuille d'achat du store.
+17. **2026-09-11 — Paiement de l'entretien vidéo branché dans le chat (maquette 282).** Le bouton
+    vidéo d'une conversation déclenche, pour un recruteur, la feuille de frais
+    (`VideoInterviewPaywall`) : elle affiche le prix du produit `video_interview_single`
+    (catalogue backend) et « Pay now » ouvre l'achat consommable du store via `StoreIapService`.
+    Après lancement de l'achat, l'appel vidéo démarre ; la vérification du reçu reste côté
+    serveur (flux d'achat). **Provisoire** : l'appel n'est pas encore strictement bloqué tant que
+    le reçu n'est pas vérifié (le store peut être lent) — à durcir avec la vérification serveur
+    réelle.

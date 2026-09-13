@@ -1,18 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/theme.dart';
+import '../../../auth/presentation/auth_providers.dart';
 
 /// Terms of Use & Conditions (design screens 120, 274-275).
 ///
-/// Static legal content transcribed 1:1 from the design board. No backend
-/// endpoint serves legal documents yet — see `docs/SCREENS_1TO1_PLAN.md` §2.
-class TermsOfUseScreen extends StatelessWidget {
+/// Content is fetched from `GET /legal/terms-of-use`; the in-app transcription
+/// stays as an offline fallback (see `docs/SCREENS_1TO1_PLAN.md`).
+class TermsOfUseScreen extends ConsumerWidget {
   const TermsOfUseScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.colors;
+    final async = ref.watch(legalDocumentProvider('terms-of-use'));
+    final sections = async.maybeWhen(
+      data: (document) => document.sections.map((s) => (s.heading, s.body)).toList(),
+      orElse: () => _sections,
+    );
+    final lastUpdated = async.maybeWhen(
+      data: (document) => document.lastUpdated,
+      orElse: () => 'September 10, 2025',
+    );
 
     return Scaffold(
       backgroundColor: colors.scaffoldBg,
@@ -59,14 +70,14 @@ class TermsOfUseScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Last Updated: September 10, 2025',
+                      'Last Updated: $lastUpdated',
                       style: AppTypography.bodySmall.copyWith(
                         color: colors.textSecondary,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                     const SizedBox(height: AppSpacing.xl),
-                    for (final s in _sections) _buildSection(colors, s.$1, s.$2),
+                    for (final s in sections) _buildSection(colors, s.$1, s.$2),
                     const SizedBox(height: AppSpacing.xxl),
                   ],
                 ),

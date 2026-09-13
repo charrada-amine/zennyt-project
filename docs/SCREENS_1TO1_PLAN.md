@@ -32,7 +32,7 @@ and tracked here until an API is added).
 | Assessment quiz (candidate/test taker) | 96, 138-139, 306 | ✅ `TestTakingPage` (test-attempts + submit/abandon) + ✅ public `/tests/{token}` link unblocked (2026-09-11) |
 | Profile & settings | 101-111, 256-265 | ✅ core; ✅ accessibility prefs + notifications now server-synced (`/users/me/preferences`), dark theme persisted, Terms screen |
 | Account center / personal info / password / privacy | 103-106, 125-128, 264 | 🟡 hardcoded password date; ✅ email/phone-change OTP (Resend, no SMS) |
-| Terms of Use | 120-121, 274-275 | ✅ `TermsOfUseScreen` (static, transcribed 1:1) (2026-09-11) |
+| Terms of Use | 120-121, 274-275 | ✅ `TermsOfUseScreen` — now fetched from `GET /legal/terms-of-use` with in-app fallback |
 | Wallet | 107,114,116,118,119 | ✅ balance/transactions/card/withdraw (`/wallet`) + mobile screen (2026-09-11) |
 | Referral | 32,102,115,117 | ✅ referral program: `/referrals` + mobile Referral screen (2026-09-11); REGISTERED/HIRED hooks pending |
 | Hired candidates | 258 | ✅ list + probation countdown + cancel (`/hired-candidates`) (2026-09-11) |
@@ -71,10 +71,9 @@ on new backend APIs**. Track here; remove a row once the API lands.
 
 | Feature | Screen(s) | Needed endpoints (proposed) | Module |
 |---|---|---|---|
-| Recruitment fee pre-authorization | 290-295 | store IAP consumable (video interview) replaces the card/OTP pre-auth | billing |
+| Recruitment fee pre-authorization | 290-295 | ✅ store IAP consumable (`video_interview_single`) triggered from the chat (design 282) | billing |
 | Assessment integrity / anti-fraud result | 138-139, 191(?) | `POST /assessment-integrity/...`, result endpoint | recruitment/identity |
 | Help center FAQ/articles | (if added) | `GET /help-center/articles` (contract-optional) | engagement |
-| Legal documents (Terms / Privacy) | 120-121, 274-275, 106 | `GET /legal/{slug}` + versioned content (today hardcoded in-app; no endpoint) | shared/identity |
 
 Already-existing endpoints that are **unwired** and must be connected (not gaps):
 `GET /job-offers/{id}`, `GET /job-offers/{jobId}/test-results[/summary|/{candidateId}]`,
@@ -314,6 +313,19 @@ email/phone-change OTP (126-127), analytics/progress, assessment-integrity resul
   when no offer is sourced (the fit-scored feed is still used when an offer is active). No fit
   score is shown without an offer of reference — documented. `flutter analyze` clean; suite green
   (only pre-existing games failures).
+
+### 2026-09-11 — Gap fill: video-interview paywall (282) + legal-docs endpoint — done
+- **(a) Video interview via store IAP:** the chat video button now shows a fee sheet for
+  recruiters (`VideoInterviewPaywall`) that opens the `video_interview_single` consumable
+  purchase; the call starts after the store sheet. Provisional: not yet strictly gated on
+  server receipt verification (documented in `ENGAGEMENT_MODULE.md` #17).
+- **(b) Legal documents:** identity `GET /legal/{slug}` served from
+  `backend/src/main/resources/legal/{terms-of-use,privacy-policy}.json` via
+  `LegalDocumentService` (slug `[a-z0-9-]+`); identity parity 53 ops; `shared/SecurityConfig`
+  permits `GET /api/v1/legal/**`. Mobile `AuthRepository.getLegalDocument` + `legalDocumentProvider`;
+  Terms and Privacy screens fetch from the API and fall back to the in-app transcription offline.
+  `LegalDocumentServiceTest` + ArchUnit green; mobile parsing test green.
+
 
 
 
