@@ -3,6 +3,8 @@ import 'dart:typed_data';
 import '../../../../core/enums/user_role.dart';
 import '../../../profile_settings/domain/entities/recruiter_profile.dart';
 import '../entities/app_user.dart';
+import '../entities/legal_document.dart';
+import '../entities/user_preferences.dart';
 
 /// Abstraction over authentication + identity onboarding. The presentation layer
 /// depends only on this interface. Implementations handle token persistence.
@@ -59,6 +61,27 @@ abstract class AuthRepository {
 
   /// `DELETE /users/me`. Permanently deletes the account.
   Future<void> deleteAccount();
+
+  /// `GET /users/me/preferences` — server-synced accessibility/notification prefs.
+  Future<UserPreferences> getPreferences();
+
+  /// `PUT /users/me/preferences`.
+  Future<UserPreferences> updatePreferences(UserPreferences preferences);
+
+  /// `GET /legal/{slug}` — document légal public (`terms-of-use`, `privacy-policy`).
+  Future<LegalDocument> getLegalDocument(String slug);
+
+  /// `POST /users/me/email` — sends an OTP to the new address (no SMS involved).
+  Future<void> requestEmailChange(String newEmail);
+
+  /// `POST /users/me/email/verify` — confirms the change with the OTP.
+  Future<AppUser> verifyEmailChange(String code);
+
+  /// `POST /users/me/phone` — OTP delivered by e-mail for now (SMS not integrated).
+  Future<void> requestPhoneChange(String newPhoneNumber);
+
+  /// `POST /users/me/phone/verify` — confirms the change with the OTP.
+  Future<AppUser> verifyPhoneChange(String code);
 
   /// `POST /users/me/avatar` with multipart/form-data.
   Future<AppUser> uploadAvatar(Uint8List bytes, String filename);

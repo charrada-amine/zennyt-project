@@ -14,6 +14,8 @@ import '../../features/onboarding/presentation/view/onboarding_screen.dart';
 import '../../features/profile_setup/presentation/view/field_of_work_screen.dart';
 import '../../features/profile_setup/presentation/view/profile_setup_screen.dart';
 import '../../features/profile_settings/presentation/view/accessibility_screen.dart';
+import '../../features/referral/presentation/view/referral_screen.dart';
+import '../../features/wallet/presentation/view/wallet_screen.dart';
 import '../../features/profile_settings/presentation/view/language_settings_screen.dart';
 import '../../features/profile_settings/presentation/view/profile_settings_screen.dart';
 import '../../features/profile_settings/presentation/view/user_profile_screen.dart';
@@ -23,6 +25,7 @@ import '../../features/profile_settings/presentation/view/share_post_screen.dart
 import '../../features/profile_settings/presentation/view/account_center_screen.dart';
 import '../../features/profile_settings/presentation/view/personal_informations_screen.dart';
 import '../../features/profile_settings/presentation/view/privacy_policy_screen.dart';
+import '../../features/profile_settings/presentation/view/terms_of_use_screen.dart';
 import '../../features/navigation/presentation/view/main_navigation_screen.dart';
 import '../../features/games/presentation/view/emotional_radar_screen.dart';
 import '../../features/games/presentation/view/continuous_attention_screen.dart';
@@ -43,10 +46,17 @@ import '../../features/profile_settings/cv_autofill/presentation/view/cv_review_
 import '../../features/search/presentation/pages/candidate_filter_page.dart';
 import '../../features/jobs/domain/entities/assessment.dart';
 import '../../features/jobs/domain/entities/job.dart';
+import '../../features/jobs/presentation/pages/job_offer_detail_page.dart';
+import '../../features/jobs/presentation/pages/test_taking_page.dart';
 import '../../features/jobs/presentation/pages/recruiter/assessments/assessment_detail_page.dart';
 import '../../features/jobs/presentation/pages/recruiter/assessments/create_assessment_page.dart';
+import '../../features/jobs/presentation/pages/recruiter/assessments/manage_tests_page.dart';
+import '../../features/jobs/presentation/pages/recruiter/assessments/public_test_preview_page.dart';
 import '../../features/jobs/presentation/pages/recruiter/jobs/create/create_job_offer_page.dart';
 import '../../features/jobs/presentation/pages/recruiter/jobs/create/select_assessment_page.dart';
+import '../../features/billing/presentation/view/plans_screen.dart';
+import '../../features/jobs/presentation/pages/recruiter/jobs/hard_skills_results_page.dart';
+import '../../features/jobs/presentation/pages/recruiter/jobs/hired_candidates_page.dart';
 
 import '../../features/call/presentation/pages/call_page.dart';
 
@@ -492,6 +502,26 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
+        path: AppRoutes.referral,
+        name: AppRoutes.nReferral,
+        builder: (context, state) => const ReferralScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.wallet,
+        name: AppRoutes.nWallet,
+        builder: (context, state) => const WalletScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.hiredCandidates,
+        name: AppRoutes.nHiredCandidates,
+        builder: (context, state) => const HiredCandidatesPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.plans,
+        name: AppRoutes.nPlans,
+        builder: (context, state) => const PlansScreen(),
+      ),
+      GoRoute(
         path: AppRoutes.userProfile,
         name: AppRoutes.nUserProfile,
         builder: (context, state) => const UserProfileScreen(),
@@ -533,10 +563,15 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.jobDetail,
         name: AppRoutes.nJobDetail,
-        builder: (context, state) => _NotYetPortedPage(
-          title: 'Job offer',
-          message: 'The job offer detail page (description, company, assessment tabs) '
-              "hasn't been ported from REC-04 yet.",
+        builder: (context, state) => JobOfferDetailPage(
+          jobId: state.pathParameters['jobId']!,
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.jobTest,
+        name: AppRoutes.nJobTest,
+        builder: (context, state) => TestTakingPage(
+          jobId: state.pathParameters['jobId']!,
         ),
       ),
       GoRoute(
@@ -547,15 +582,19 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.jobResults,
         name: AppRoutes.nJobResults,
-        builder: (context, state) => _NotYetPortedPage(
-          title: 'Results',
-          message: "The hard-skills results page hasn't been ported from REC-04 yet.",
+        builder: (context, state) => HardSkillsResultsPage(
+          jobId: state.pathParameters['jobId']!,
         ),
       ),
       GoRoute(
         path: AppRoutes.createAssessment,
         name: AppRoutes.nCreateAssessment,
         builder: (context, state) => const CreateAssessmentPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.manageTests,
+        name: AppRoutes.nManageTests,
+        builder: (context, state) => const ManageTestsPage(),
       ),
       GoRoute(
         path: AppRoutes.assessmentDetail,
@@ -575,6 +614,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         name: AppRoutes.nSelectAssessment,
         builder: (context, state) => SelectAssessmentPage(
           currentSelectedId: state.extra as String?,
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.publicTestPreview,
+        name: AppRoutes.nPublicTestPreview,
+        builder: (context, state) => PublicTestPreviewPage(
+          token: state.pathParameters['token']!,
         ),
       ),
       GoRoute(
@@ -731,27 +777,12 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           );
         },
       ),
+      GoRoute(
+        path: AppRoutes.termsOfUse,
+        name: AppRoutes.nTermsOfUse,
+        builder: (context, state) => const TermsOfUseScreen(),
+      ),
     ],
   );
 });
 
-/// Placeholder for Careers screens not yet ported from REC-04.
-class _NotYetPortedPage extends StatelessWidget {
-  const _NotYetPortedPage({required this.title, required this.message});
-
-  final String title;
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Text(message, textAlign: TextAlign.center),
-        ),
-      ),
-    );
-  }
-}

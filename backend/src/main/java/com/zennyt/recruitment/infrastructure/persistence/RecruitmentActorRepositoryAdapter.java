@@ -62,4 +62,21 @@ public class RecruitmentActorRepositoryAdapter implements RecruitmentActorReposi
     public long countMatchingDeckForJobOffer(UUID jobOfferId) {
         return jpa.countMatchingDeckForJobOffer(jobOfferId);
     }
+
+    @Override
+    public List<RecruitmentActor> searchCandidates(String query, String location, int page, int size) {
+        return jpa.searchCandidates(blankToNull(query), blankToNull(location),
+                PageRequest.of(page, size))
+            .map(this::toDomain)
+            .getContent();
+    }
+
+    @Override
+    public long countSearchCandidates(String query, String location) {
+        return jpa.countSearchCandidates(blankToNull(query), blankToNull(location));
+    }
+
+    private static String blankToNull(String value) {
+        return (value == null || value.isBlank()) ? null : value.trim();
+    }
 }

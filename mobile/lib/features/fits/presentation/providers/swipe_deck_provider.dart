@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/network/dio_client.dart';
-import '../../../auth/presentation/current_user_provider.dart';
 import '../../../jobs/domain/entities/job.dart';
 import '../../data/fits_repository_impl.dart';
 import '../../domain/entities/candidate_profile.dart';
@@ -20,37 +19,37 @@ final jobOffersProvider = FutureProvider<List<JobOffer>>((ref) {
 });
 
 @immutable
-class _HistoryEntry<T> {
+class HistoryEntry<T> {
   final T item;
   final SwipeResult? result;
-  const _HistoryEntry(this.item, this.result);
+  const HistoryEntry(this.item, this.result);
 
-  _HistoryEntry<T> withResult(SwipeResult result) => _HistoryEntry(item, result);
+  HistoryEntry<T> withResult(SwipeResult result) => HistoryEntry(item, result);
 }
 
 @immutable
 class SwipeDeckState<T> {
   final List<T> remaining;
-  final List<_HistoryEntry<T>> _history;
+  final List<HistoryEntry<T>> history;
   final T? pendingMatch;
 
   const SwipeDeckState({
     required this.remaining,
-    List<_HistoryEntry<T>> history = const [],
+    this.history = const [],
     this.pendingMatch,
-  }) : _history = history;
+  });
 
-  bool get canUndo => _history.isNotEmpty;
+  bool get canUndo => history.isNotEmpty;
 
   SwipeDeckState<T> copyWith({
     List<T>? remaining,
-    List<_HistoryEntry<T>>? history,
+    List<HistoryEntry<T>>? history,
     T? pendingMatch,
     bool clearMatch = false,
   }) {
     return SwipeDeckState(
       remaining: remaining ?? this.remaining,
-      history: history ?? _history,
+      history: history ?? this.history,
       pendingMatch: clearMatch ? null : (pendingMatch ?? this.pendingMatch),
     );
   }
@@ -92,11 +91,11 @@ abstract class BaseSwipeDeckNotifier<T> extends AsyncNotifier<SwipeDeckState<T>>
 
     final item = current.remaining.first;
     final params = buildSwipeParams(item, direction);
-    final entryIndex = current._history.length;
+    final entryIndex = current.history.length;
 
     state = AsyncData(current.copyWith(
       remaining: current.remaining.sublist(1),
-      history: [...current._history, _HistoryEntry<T>(item, null)],
+      history: [...current.history, HistoryEntry<T>(item, null)],
       clearMatch: true,
     ));
 
@@ -109,7 +108,7 @@ abstract class BaseSwipeDeckNotifier<T> extends AsyncNotifier<SwipeDeckState<T>>
           );
       final now = state.asData?.value;
       if (now == null) return;
-      final updatedHistory = List<_HistoryEntry<T>>.from(now._history);
+      final updatedHistory = List<HistoryEntry<T>>.from(now.history);
       if (entryIndex < updatedHistory.length) {
         updatedHistory[entryIndex] = updatedHistory[entryIndex].withResult(swipeResult);
       }
@@ -131,26 +130,31 @@ abstract class BaseSwipeDeckNotifier<T> extends AsyncNotifier<SwipeDeckState<T>>
 
     state = AsyncData(current.copyWith(
       remaining: current.remaining.sublist(1),
-      history: [...current._history, _HistoryEntry<T>(item, null)],
+      history: [...current.history, HistoryEntry<T>(item, null)],
       clearMatch: true,
     ));
   }
 
   Future<void> undo() async {
     final current = state.asData?.value;
-    if (current == null || current._history.isEmpty) return;
+    if (current == null || current.history.isEmpty) return;
 
-    final last = current._history.last;
+    final last = current.history.last;
 
     state = AsyncData(current.copyWith(
       remaining: [last.item, ...current.remaining],
-      history: current._history.sublist(0, current._history.length - 1),
+      history: current.history.sublist(0, current.history.length - 1),
       clearMatch: true,
     ));
 
     if (last.result != null) {
+      final params = buildSwipeParams(last.item, last.result!.direction);
       try {
-        await ref.read(fitsRepositoryProvider).undoSwipe(last.result!.swipeId);
+        await ref.read(fitsRepositoryProvider).undoSwipe(
+              jobOfferId: params.jobOfferId,
+              targetType: params.targetType,
+              targetId: params.targetId,
+            );
       } catch (_) {
         // L'état local reflète déjà l'undo ; l'appel serveur est best-effort.
       }
@@ -199,11 +203,9 @@ class RecruiterSwipeNotifier extends BaseSwipeDeckNotifier<CandidateProfile> {
         (await ref.read(jobOffersProvider.future)).firstOrNull;
     if (job == null) return const [];
 
-    final repo = ref.read(fitsRepositoryProvider);
-    final all = await repo.getCandidateFeed(job.id);
-    final swipedIds =
-        (await repo.getSwipedTargetIds(jobOfferId: job.id)).toSet();
-    return all.where((c) => !swipedIds.contains(c.id)).toList();
+    // The matching-deck endpoint already excludes candidates swiped LEFT or
+    // matched for this offer, so no client-side swipe filtering is needed.
+    return ref.read(fitsRepositoryProvider).getCandidateMatchingDeck(job.id);
   }
 
   @override
@@ -227,14 +229,8 @@ final recruiterSwipeDeckProvider =
 class CandidateSwipeNotifier extends BaseSwipeDeckNotifier<JobOffer> {
   @override
   Future<List<JobOffer>> fetchItems() async {
-    final repo = ref.read(fitsRepositoryProvider);
-    final all = await repo.getCandidateDeck();
-
-    final user = ref.read(currentUserProvider);
-    if (user == null) return all;
-
-    final swipedIds = (await repo.getSwipedTargetIds()).toSet();
-    return all.where((j) => !swipedIds.contains(j.id)).toList();
+    // The matching-deck endpoint already excludes offers swiped LEFT or matched.
+    return ref.read(fitsRepositoryProvider).getCandidateDeck();
   }
 
   @override

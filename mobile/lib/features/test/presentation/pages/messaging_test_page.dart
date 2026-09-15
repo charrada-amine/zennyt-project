@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/network/websocket_service.dart';
@@ -476,7 +475,7 @@ class _MessagingTestPageState extends ConsumerState<MessagingTestPage> {
               boxShadow: _isConnected
                   ? [
                       BoxShadow(
-                        color: Colors.green.withOpacity(0.5),
+                        color: Colors.green.withValues(alpha: 0.5),
                         blurRadius: 6,
                         spreadRadius: 2,
                       ),

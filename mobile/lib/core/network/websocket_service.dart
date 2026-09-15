@@ -1,7 +1,6 @@
 import 'dart:convert';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter/foundation.dart';
 import 'package:stomp_dart_client/stomp_dart_client.dart';
-import '../constants/app_constants.dart';
 import '../storage/token_storage.dart';
 
 class WebSocketService {
@@ -49,21 +48,21 @@ class WebSocketService {
           if (effectiveToken != null) 'Authorization': 'Bearer $effectiveToken',
         },
         onConnect: (StompFrame frame) {
-          print('✅ WebSocket connected! principal=$normalisedUserId');
+          debugPrint('✅ WebSocket connected! principal=$normalisedUserId');
           onConnect?.call();
           _subscribeToUserQueues(normalisedUserId);
         },
         onDisconnect: (StompFrame frame) {
-          print('🔌 WebSocket disconnected');
+          debugPrint('🔌 WebSocket disconnected');
           onDisconnect?.call();
         },
         onWebSocketError: (dynamic error) {
-          print("wsUrl: ${_websocketUrl}");
-          print('❌ WebSocket error: $error');
+          debugPrint('wsUrl: $_websocketUrl');
+          debugPrint('❌ WebSocket error: $error');
           onError?.call(error);
         },
         onWebSocketDone: () {
-          print('WebSocket done');
+          debugPrint('WebSocket done');
         },
         reconnectDelay: const Duration(seconds: 5),
       ),
@@ -150,13 +149,13 @@ class WebSocketService {
     final unsub = _stompClient?.subscribe(
       destination: destination,
       callback: (StompFrame frame) {
-        print('📨 Received on $destination: ${frame.body}');
+        debugPrint('📨 Received on $destination: ${frame.body}');
         if (frame.body != null) {
           try {
             final payload = jsonDecode(frame.body!) as Map<String, dynamic>;
             _subscriptions[key]?.call(payload);
           } catch (e) {
-            print('⚠️  Failed to parse frame body on $destination: $e');
+            debugPrint('⚠️  Failed to parse frame body on $destination: $e');
           }
         }
       },
@@ -187,7 +186,7 @@ class WebSocketService {
 
   void send(String destination, Map<String, dynamic> body) {
     if (_stompClient == null || !(_stompClient!.connected)) {
-      print('⚠️  send() called but STOMP client is not connected yet.');
+      debugPrint('⚠️  send() called but STOMP client is not connected yet.');
       return;
     }
     _stompClient?.send(

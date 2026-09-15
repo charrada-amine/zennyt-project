@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../../core/constants/app_locations.dart';
+import '../../../../../core/config/app_config.dart';
 import '../../../../../core/localization/l10n_extension.dart';
 import '../../../../../core/router/app_routes.dart';
 import '../../../../../core/utils/responsive.dart';
@@ -98,7 +99,15 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
           country: _country,
           termsAccepted: _acceptedTerms,
         );
-    if (ok && mounted) context.push(AppRoutes.otp);
+    if (ok && mounted) {
+      // DEV ONLY: bypass the (visual-only) verification step when enabled.
+      if (AppConfig.skipSignupVerification) {
+        ref.read(signupViewModelProvider.notifier).markVerificationSkipped();
+        context.push(AppRoutes.profileSetup);
+        return;
+      }
+      context.push(AppRoutes.otp);
+    }
   }
 
   @override

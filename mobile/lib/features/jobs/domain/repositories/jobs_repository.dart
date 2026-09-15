@@ -1,12 +1,25 @@
 import 'package:zennyt/features/jobs/domain/entities/assessment.dart';
-import '../entities/job.dart' show ContractType, WorkplaceType, ExperienceLevel, JobStatus, JobOffer;
+import '../entities/job.dart' show ContractType, WorkplaceType, ExperienceLevel, JobStatus, JobOffer, SalaryPeriod;
+import 'package:zennyt/features/jobs/domain/entities/hired_candidate.dart';
 import 'package:zennyt/features/jobs/domain/entities/job_position.dart';
+import 'package:zennyt/features/jobs/domain/entities/public_assessment.dart';
+import 'package:zennyt/features/jobs/domain/entities/test_attempt.dart';
 
 /// Abstraction over the recruitment API's job-offer and assessment
 /// management endpoints. Implementations throw typed `ApiException`s.
 abstract class JobsRepository {
   Future<List<JobOffer>> getJobOffers();
   Future<JobOffer> getJobOfferById(String id);
+
+  /// Public search of ACTIVE offers (`GET /job-offers`) — used by the
+  /// candidate/student Search tab. Returns offer summaries mapped to [JobOffer].
+  Future<List<JobOffer>> searchJobOffers({
+    String? query,
+    String? location,
+    ContractType? contractType,
+    ExperienceLevel? experienceLevel,
+  });
+
   Future<JobOffer> createJobOffer(CreateJobOfferParams params);
   Future<JobOffer> updateJobOffer(UpdateJobOfferParams params);
   Future<void> deleteJobOffer(String id);
@@ -24,10 +37,53 @@ abstract class JobsRepository {
   Future<Assessment> updateAssessment(UpdateAssessmentParams params);
   Future<void> deleteAssessment(String id);
 
+  /// Public projection of a shared test by token (`GET /tests/{token}`), no
+  /// correct answers. Backend permit-list was fixed on 2026-09-11 (§15.2).
+  Future<PublicAssessment> getPublicTest(String token);
+
   Future<JobOffer> assignAssessmentToJob({
     required String jobId,
     required String? assessmentId,
   });
+
+  // ── Hard-skills test attempts & results (contract §5.8/§5.9) ─────────────
+
+  /// Starts the candidate's single, final attempt for an offer. Throws a 409
+  /// `ATTEMPT_ALREADY_CONSUMED` if a result already exists.
+  Future<TestAttemptStarted> startTestAttempt(String jobOfferId);
+
+  /// Submits the candidate's answers (indices in the presented order). The
+  /// server scores; the client never sends a computed score.
+  Future<TestResult> submitTestAttempt({
+    required String attemptId,
+    required List<TestAttemptAnswer> answers,
+  });
+
+  /// Explicit abandon (back navigation / app closed) → `ABANDONED`, score 0.
+  Future<TestResult> abandonTestAttempt(String attemptId);
+
+  /// The candidate's own result for an offer, or null when not attempted yet.
+  Future<TestResult?> getMyTestResult(String jobOfferId);
+
+  /// Recruiter list of results for an owned offer, joined to candidates.
+  Future<TestResultPage> getJobTestResults(String jobOfferId, {int page = 0, int size = 20});
+
+  /// Server-side aggregate over the whole result set (not just the page).
+  Future<TestResultsSummary> getJobTestResultsSummary(String jobOfferId);
+
+  /// Per-question correction for one candidate (recruiter, owner).
+  Future<TestResultDetail> getJobTestResultDetail({
+    required String jobOfferId,
+    required String candidateId,
+  });
+
+  // ── Hired candidates (design 258) ─────────────────────────────────────────
+
+  /// `GET /recruiters/me/hired-candidates`
+  Future<List<HiredCandidate>> getHiredCandidates();
+
+  /// `POST /hired-candidates/{id}/cancel`
+  Future<HiredCandidate> cancelHire(String id);
 }
 
 class CreateJobOfferParams {
@@ -38,6 +94,8 @@ class CreateJobOfferParams {
   final bool remote;
   final double salaryMin;
   final double salaryMax;
+  final String salaryCurrency;
+  final SalaryPeriod salaryPeriod;
   final String currency;
   final ContractType contractType;
   final WorkplaceType workplaceType;
@@ -67,6 +125,8 @@ class CreateJobOfferParams {
     required this.remote,
     required this.salaryMin,
     required this.salaryMax,
+    this.salaryCurrency = 'EUR',
+    this.salaryPeriod = SalaryPeriod.monthly,
     required this.currency,
     required this.contractType,
     required this.workplaceType,
@@ -94,6 +154,8 @@ class UpdateJobOfferParams {
   final bool? remote;
   final double? salaryMin;
   final double? salaryMax;
+  final String? salaryCurrency;
+  final SalaryPeriod? salaryPeriod;
   final String? currency;
   final ContractType? contractType;
   final WorkplaceType? workplaceType;
@@ -107,6 +169,7 @@ class UpdateJobOfferParams {
   final String? howToApply;
   final String? companyInfo;
   final String? assessmentId;
+  final String? jobPositionId;
   final bool? openToInternational;
   final JobStatus? status;
 
@@ -119,6 +182,8 @@ class UpdateJobOfferParams {
     this.remote,
     this.salaryMin,
     this.salaryMax,
+    this.salaryCurrency,
+    this.salaryPeriod,
     this.currency,
     this.contractType,
     this.workplaceType,
@@ -132,6 +197,7 @@ class UpdateJobOfferParams {
     this.howToApply,
     this.companyInfo,
     this.assessmentId,
+    this.jobPositionId,
     this.openToInternational,
     this.status,
   });

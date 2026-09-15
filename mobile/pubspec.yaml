@@ -40,6 +40,9 @@ dependencies:
   pdfrx: ^2.4.7
   flutter_animate: ^4.5.2
 
+  # Paiement (abonnements & achats) via App Store / Google Play.
+  in_app_purchase: ^3.2.0
+
   # Engagement : temps reel, appels, cache local (IntergrationV1, 12/08).
   freezed_annotation: ^3.0.0
   equatable: ^2.0.5
@@ -65,6 +68,9 @@ dependencies:
 
 dev_dependencies:
   flutter_test:
+    sdk: flutter
+
+  integration_test:
     sdk: flutter
 
   flutter_lints: ^6.0.0

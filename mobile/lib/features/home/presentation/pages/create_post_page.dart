@@ -103,6 +103,7 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
 
     final isConnected = await checkInternetWithLoader(context, ref);
     if (!isConnected) return;
+    if (!mounted) return;
 
     final l10n = AppLocalizations.of(context);
     final currentUser = await ref.read(currentUserProvider.future);
@@ -195,7 +196,7 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
                 avatarUrl: effectiveAvatarUrl,
                 onVisibilityChanged: (_) {},
               ),
-              error: (_, __) => CreatePostHeader(
+              error: (_, _) => CreatePostHeader(
                 onPostTap: null,
                 isPostEnabled: false,
                 visibility: visibility,

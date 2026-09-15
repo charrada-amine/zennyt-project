@@ -37,7 +37,30 @@ target 'Runner' do
 end
 
 post_install do |installer|
+  installation_ios_deployment_target = '15.0'
+
+  installer.pods_project.build_configurations.each do |config|
+    config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = installation_ios_deployment_target
+    config.build_settings['ENABLE_BITCODE'] = 'NO'
+  end
+
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
+    target.build_configurations.each do |config|
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = installation_ios_deployment_target
+      config.build_settings['ENABLE_BITCODE'] = 'NO'
+    end
+  end
+
+  # Runner and any aggregate project targets live in the user project, not the
+  # pods project, so raise them here as well.
+  installer.aggregate_targets.each do |aggregate_target|
+    aggregate_target.user_project.native_targets.each do |target|
+      target.build_configurations.each do |config|
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = installation_ios_deployment_target
+        config.build_settings['ENABLE_BITCODE'] = 'NO'
+      end
+    end
+    aggregate_target.user_project.save
   end
 end

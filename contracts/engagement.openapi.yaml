@@ -554,6 +554,168 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/MediaUpload' }
 
+  /referrals/me:
+    get:
+      tags: [Referrals]
+      operationId: listReferrals
+      summary: Lister les parrainages de l'utilisateur connecté
+      responses:
+        '200':
+          description: Parrainages (les plus récents d'abord)
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Referral' }
+
+  /referrals/invite:
+    post:
+      tags: [Referrals]
+      operationId: inviteReferral
+      summary: Inviter une personne par e-mail (programme Ambassadeur)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReferralInvite' }
+      responses:
+        '201':
+          description: Invitation créée
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Referral' }
+        '409':
+          description: Cette adresse a déjà été invitée
+          content:
+            application/json:
+              schema: { $ref: './common.openapi.yaml#/components/schemas/Error' }
+
+  /referrals/me/link:
+    get:
+      tags: [Referrals]
+      operationId: getReferralLink
+      summary: Lien de parrainage de l'utilisateur connecté
+      responses:
+        '200':
+          description: Lien + montant du bonus (configurable)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReferralLink' }
+
+  /wallet/me:
+    get:
+      tags: [Wallet]
+      operationId: getWallet
+      summary: Portefeuille de l'utilisateur connecté (solde + carte)
+      responses:
+        '200':
+          description: Portefeuille
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Wallet' }
+
+  /wallet/me/transactions:
+    get:
+      tags: [Wallet]
+      operationId: listWalletTransactions
+      summary: Écritures du portefeuille (les plus récentes d'abord)
+      responses:
+        '200':
+          description: Écritures
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/WalletTransaction' }
+
+  /wallet/me/card:
+    put:
+      tags: [Wallet]
+      operationId: putWalletCard
+      summary: Enregistrer ou remplacer la carte de retrait
+      description: >
+        Le numéro complet et le CVV ne sont jamais persistés : seuls les 4
+        derniers chiffres et la marque sont conservés.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/WalletCardInput' }
+      responses:
+        '200':
+          description: Carte enregistrée
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WalletCard' }
+        '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
+
+  /wallet/me/withdraw:
+    post:
+      tags: [Wallet]
+      operationId: withdrawWallet
+      summary: Retirer un montant (refusé si solde insuffisant)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/WalletWithdraw' }
+      responses:
+        '200':
+          description: Retrait enregistré, portefeuille mis à jour
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Wallet' }
+        '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
+
+  /plans:
+    get:
+      tags: [Billing]
+      operationId: listPlans
+      summary: Catalogue d'offres (affichage ; les prix font foi dans les stores)
+      responses:
+        '200':
+          description: Offres
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Plan' }
+
+  /subscriptions/me:
+    get:
+      tags: [Billing]
+      operationId: getMySubscription
+      summary: Abonnement courant de l'utilisateur (null si aucun)
+      responses:
+        '200':
+          description: Abonnement ou null
+          content:
+            application/json:
+              schema:
+                allOf: [{ $ref: '#/components/schemas/Subscription' }]
+                nullable: true
+
+  /purchases/verify:
+    post:
+      tags: [Billing]
+      operationId: verifyPurchase
+      summary: Enregistrer un achat après vérification auprès du store
+      description: >
+        Le reçu brut n'est jamais conservé. Vérification serveur Apple/Google à
+        brancher ; en attendant, un vérificateur provisoire accepte l'achat.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PurchaseVerify' }
+      responses:
+        '200':
+          description: Achat enregistré
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PurchaseResult' }
+        '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
+
 components:
   securitySchemes:
     bearerAuth: { $ref: './common.openapi.yaml#/components/securitySchemes/bearerAuth' }
@@ -843,3 +1005,139 @@ components:
         token: { type: string, description: "Jeton FCM ou APNs" }
         platform: { type: string, enum: [ANDROID, IOS] }
         deviceName: { type: string }
+
+    ReferralStatus:
+      type: string
+      enum: [INVITED, REGISTERED, HIRED, CANCELLED]
+
+    ReferralInvite:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string, format: email, maxLength: 150 }
+
+    Referral:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        inviteeEmail: { type: string, format: email }
+        inviteeName:
+          type: string
+          nullable: true
+          description: Renseigné quand le filleul s'est inscrit (projection acteur).
+        inviteeAvatarUrl: { type: string, nullable: true }
+        status: { $ref: '#/components/schemas/ReferralStatus' }
+        createdAt: { type: string, format: date-time }
+        probationEndsAt: { type: string, format: date-time, nullable: true }
+        daysRemaining:
+          type: integer
+          nullable: true
+          description: Jours restants avant la fin de la période d'essai (statut HIRED).
+
+    ReferralLink:
+      type: object
+      properties:
+        code: { type: string }
+        url: { type: string, format: uri }
+        bonusAmount: { type: integer, example: 800 }
+        bonusCurrency: { type: string, example: USD }
+
+    WalletCard:
+      type: object
+      properties:
+        last4: { type: string, minLength: 4, maxLength: 4 }
+        brand: { type: string, enum: [VISA, MASTERCARD, UNKNOWN] }
+        expiryMonth: { type: integer, minimum: 1, maximum: 12 }
+        expiryYear: { type: integer }
+        cardholderName: { type: string }
+
+    WalletCardInput:
+      type: object
+      required: [cardNumber, expiryMonth, expiryYear, cvv, cardholderName]
+      properties:
+        cardNumber: { type: string, description: "Jamais persisté (seuls last4 + marque)." }
+        expiryMonth: { type: integer, minimum: 1, maximum: 12 }
+        expiryYear: { type: integer }
+        cvv: { type: string, description: "Jamais persisté." }
+        cardholderName: { type: string, maxLength: 150 }
+
+    WalletTransaction:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        amountCents: { type: integer, description: "Signé : positif = crédit." }
+        currency: { type: string }
+        kind: { type: string, enum: [CREDIT, DEBIT, WITHDRAWAL] }
+        label: { type: string }
+        createdAt: { type: string, format: date-time }
+
+    Wallet:
+      type: object
+      properties:
+        balanceCents: { type: integer, minimum: 0 }
+        currency: { type: string }
+        card:
+          allOf: [{ $ref: '#/components/schemas/WalletCard' }]
+          nullable: true
+
+    WalletWithdraw:
+      type: object
+      required: [amount]
+      properties:
+        amount: { type: number, format: double, minimum: 0.01, description: "Montant en unités majeures (ex. 150.00)." }
+
+    PlanPeriod:
+      type: string
+      enum: [MONTHLY, NONE]
+
+    StorePlatform:
+      type: string
+      enum: [APPLE, GOOGLE]
+
+    SubscriptionStatus:
+      type: string
+      enum: [ACTIVE, EXPIRED, CANCELLED]
+
+    PurchaseKind:
+      type: string
+      enum: [SUBSCRIPTION, CONSUMABLE]
+
+    Plan:
+      type: object
+      properties:
+        code: { type: string }
+        productId: { type: string, description: "Identifiant produit configuré dans les consoles de store." }
+        name: { type: string }
+        description: { type: string }
+        priceCents: { type: integer }
+        currency: { type: string, example: EUR }
+        period: { $ref: '#/components/schemas/PlanPeriod' }
+        popular: { type: boolean }
+
+    Subscription:
+      type: object
+      properties:
+        planCode: { type: string }
+        status: { $ref: '#/components/schemas/SubscriptionStatus' }
+        store: { $ref: '#/components/schemas/StorePlatform' }
+        purchasedAt: { type: string, format: date-time, nullable: true }
+        expiresAt: { type: string, format: date-time, nullable: true }
+        autoRenewing: { type: boolean }
+
+    PurchaseVerify:
+      type: object
+      required: [productId, store, receipt, transactionId]
+      properties:
+        productId: { type: string }
+        store: { $ref: '#/components/schemas/StorePlatform' }
+        receipt: { type: string, description: "Reçu/token du store — jamais persisté." }
+        transactionId: { type: string }
+
+    PurchaseResult:
+      type: object
+      properties:
+        subscription:
+          allOf: [{ $ref: '#/components/schemas/Subscription' }]
+          nullable: true
+        productId: { type: string, nullable: true }
+        kind: { $ref: '#/components/schemas/PurchaseKind' }

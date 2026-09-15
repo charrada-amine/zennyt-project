@@ -46,4 +46,26 @@ class AppConfig {
 
   /// Network timeout applied to connect/receive/send phases.
   static const Duration networkTimeout = Duration(seconds: 20);
+
+  /// DEV ONLY — skip the signup verification step.
+  ///
+  /// The signup OTP screen is visual-only today (the backend exposes no e-mail/
+  /// SMS verification for registration), so for development this flag routes the
+  /// user straight to profile setup. Enable with either:
+  ///
+  /// ```
+  /// flutter run --dart-define=SKIP_SIGNUP_VERIFICATION=true
+  /// ```
+  /// or `SKIP_SIGNUP_VERIFICATION=true` in `mobile/.env`.
+  ///
+  /// Never enable this in a production build.
+  static bool get skipSignupVerification {
+    if (dotenv.isInitialized) {
+      final fromDotEnv = dotenv.env['SKIP_SIGNUP_VERIFICATION'];
+      if (fromDotEnv != null && fromDotEnv.trim().isNotEmpty) {
+        return fromDotEnv.trim().toLowerCase() == 'true';
+      }
+    }
+    return const bool.fromEnvironment('SKIP_SIGNUP_VERIFICATION', defaultValue: false);
+  }
 }

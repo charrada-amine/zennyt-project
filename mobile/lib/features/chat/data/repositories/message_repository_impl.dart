@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:dartz/dartz.dart';
 
 import '../../../../core/error/failures.dart';
@@ -31,7 +33,7 @@ class MessageRepositoryImpl implements MessageRepository {
         return Left(mapStatusCodeToFailure(e.statusCode, e.message));
       }
       catch (e) {
-        print("Erreur de formatage JSON dans le Repository: $e");
+        log("Erreur de formatage JSON dans le Repository: $e");
         return Left(DataParsingFailure("Impossible de lire le JSON: $e"));
       }
     } else {

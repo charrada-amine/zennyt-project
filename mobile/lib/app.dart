@@ -6,6 +6,7 @@ import 'package:device_preview/device_preview.dart';
 import 'core/localization/l10n_extension.dart';
 import 'core/localization/locale_controller.dart';
 import 'core/router/app_router.dart';
+import 'core/settings/accessibility_provider.dart';
 import 'l10n/gen/app_localizations.dart';
 import 'core/theme/theme.dart';
 import 'core/theme/theme_provider.dart';
@@ -21,6 +22,7 @@ class ZennytApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final locale = ref.watch(localeProvider);
     final themeMode = ref.watch(themeProvider);
+    final a11y = ref.watch(accessibilityProvider);
     final router = ref.watch(goRouterProvider);
 
     ref.watch(webSocketConnectionProvider);
@@ -28,13 +30,19 @@ class ZennytApp extends ConsumerWidget {
     return MaterialApp.router(
       builder: (context, child) {
         final previewChild = DevicePreview.appBuilder(context, child);
+        final scaledChild = MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.linear(a11y.textScale),
+          ),
+          child: previewChild,
+        );
         return DefaultTextStyle(
           style: TextStyle(
             color: Theme.of(context).colorScheme.onSurface,
             decoration: TextDecoration.none,
           ),
           child: NoConnectionOverlay(
-            child: IncomingCallOverlay(child: previewChild),
+            child: IncomingCallOverlay(child: scaledChild),
           ),
         );
       },

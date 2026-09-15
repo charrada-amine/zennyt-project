@@ -23,4 +23,12 @@ public interface RecruitmentActorRepository {
     List<MatchingDeckCandidate> findMatchingDeckForJobOffer(UUID jobOfferId, int page, int size);
 
     long countMatchingDeckForJobOffer(UUID jobOfferId);
+
+    /**
+     * Recherche générale de candidats/étudiants actifs par nom et localisation
+     * (maquette 87-89, onglet recruteur), indépendante d'une offre.
+     */
+    List<RecruitmentActor> searchCandidates(String query, String location, int page, int size);
+
+    long countSearchCandidates(String query, String location);
 }

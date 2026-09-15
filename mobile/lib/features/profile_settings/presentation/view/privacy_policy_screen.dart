@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/theme.dart';
+import '../../../auth/presentation/auth_providers.dart';
 
-class PrivacyPolicyScreen extends StatelessWidget {
+/// Corporate Privacy Policy. Content is fetched from `GET /legal/privacy-policy`
+/// with the in-app transcription as an offline fallback.
+class PrivacyPolicyScreen extends ConsumerWidget {
   const PrivacyPolicyScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.colors;
+    final remote = ref.watch(legalDocumentProvider('privacy-policy')).value;
 
     return Scaffold(
       backgroundColor: colors.scaffoldBg,
@@ -94,6 +99,10 @@ class PrivacyPolicyScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: AppSpacing.xl),
 
+                    if (remote != null)
+                      for (final s in remote.sections)
+                        _buildSection(colors, s.heading, s.body)
+                    else ...[
                     _buildSection(
                       colors,
                       '1. DATA CONTROLLER',
@@ -250,6 +259,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                       'This Privacy Policy may be updated periodically to reflect legal, technical, or operational changes.\n'
                           'Users will be notified via platform notice, dashboard alert, or email when significant changes occur.',
                     ),
+                    ],
 
                     const SizedBox(height: AppSpacing.xxl),
                   ],

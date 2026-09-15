@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/localization/l10n_extension.dart';
+import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/theme.dart';
 
 /// The two action cards below the profile header: "Add your card" and "Invite
-/// Friends".
+/// Friends". Both now navigate to their real screens.
 class ProfileActionCards extends StatelessWidget {
   const ProfileActionCards({super.key});
 
@@ -19,8 +21,8 @@ class ProfileActionCards extends StatelessWidget {
           child: _ActionCard(
             iconAsset: 'assets/images/card plus.png',
             label: l10n.addYourCard,
-            isFilled: true,
             colors: colors,
+            onTap: () => context.push(AppRoutes.wallet),
           ),
         ),
         const SizedBox(width: AppSpacing.md),
@@ -29,8 +31,8 @@ class ProfileActionCards extends StatelessWidget {
             iconAsset:
                 'assets/images/add.png', // Assuming add.png is the user+ icon
             label: l10n.inviteFriends,
-            isFilled: false,
             colors: colors,
+            onTap: () => context.push(AppRoutes.referral),
           ),
         ),
       ],
@@ -42,14 +44,14 @@ class _ActionCard extends StatelessWidget {
   const _ActionCard({
     required this.iconAsset,
     required this.label,
-    required this.isFilled,
     required this.colors,
+    required this.onTap,
   });
 
   final String iconAsset;
   final String label;
-  final bool isFilled;
   final AppColorScheme colors;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +66,7 @@ class _ActionCard extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: null,
+          onTap: onTap,
           borderRadius: BorderRadius.circular(24),
           child: Padding(
             padding: const EdgeInsets.symmetric(
@@ -82,14 +84,6 @@ class _ActionCard extends StatelessWidget {
                   style: AppTypography.labelMedium.copyWith(
                     color: colors.textSecondary,
                     fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  context.l10n.comingSoon,
-                  textAlign: TextAlign.center,
-                  style: AppTypography.labelSmall.copyWith(
-                    color: colors.textSecondary,
                   ),
                 ),
               ],

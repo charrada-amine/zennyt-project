@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zennyt/core/router/app_routes.dart';
+import 'package:zennyt/core/storage/shared_preferences_provider.dart';
 import 'package:zennyt/features/games/presentation/view/games_hub_screen.dart';
 import 'package:zennyt/features/games/presentation/view/investigate_screen.dart';
 
@@ -37,6 +39,17 @@ void main() {
         ],
       );
 
+  Future<ProviderScope> scopedHubApp() async {
+    // Pre-agree to the monitoring consent so tapping a card goes straight to
+    // the game picker (design 76 gate).
+    SharedPreferences.setMockInitialValues({'games_monitoring_consent': true});
+    final prefs = await SharedPreferences.getInstance();
+    return ProviderScope(
+      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      child: MaterialApp.router(routerConfig: buildRouter()),
+    );
+  }
+
   Future<InvestigateMode> openFromHub(
     WidgetTester tester,
     String gameLabel,
@@ -46,11 +59,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(
-      ProviderScope(
-        child: MaterialApp.router(routerConfig: buildRouter()),
-      ),
-    );
+    await tester.pumpWidget(await scopedHubApp());
     await tester.pumpAndSettle();
 
     // Working Memory porte plusieurs jeux → la carte ouvre un sélecteur.
@@ -94,9 +103,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(
-      ProviderScope(child: MaterialApp.router(routerConfig: buildRouter())),
-    );
+    await tester.pumpWidget(await scopedHubApp());
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('game-category-working-memory')));
     await tester.pumpAndSettle();
@@ -137,11 +144,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(
-      ProviderScope(
-        child: MaterialApp.router(routerConfig: buildRouter()),
-      ),
-    );
+    await tester.pumpWidget(await scopedHubApp());
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('game-category-working-memory')));
     await tester.pumpAndSettle();

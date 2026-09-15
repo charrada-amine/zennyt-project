@@ -32,10 +32,9 @@ class CallRecordingService {
   void Function(bool isRecording)? onRecordingStateChanged;
 
   CallRecordingService({
-    required CallRecordingRepositoryImpl repository,
-    required RtcEngine engine,
-  })  : _repository = repository,
-        _engine = engine;
+    required this._repository,
+    required this._engine,
+  });
 
   bool get isRecording => _isRecording;
 
@@ -236,13 +235,6 @@ class CallRecordingService {
       // unawaited(_uploadChunkBackground(chunk));
     } catch (e) {
       debugPrint('Chunk capture error: $e');
-    }
-  }
-
-  Future<void> _uploadChunkBackground(RecordingChunk chunk) async {
-    final result = await _repository.uploadChunk(chunk);
-    if (result.isLeft()) {
-      debugPrint('Chunk ${chunk.sequenceNumber} upload queued for retry');
     }
   }
 

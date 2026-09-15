@@ -1,6 +1,6 @@
 # Module Recruitment
 
-**Dernière mise à jour :** 2026-08-05
+**Dernière mise à jour :** 2026-09-11
 
 ## 1. Rôle du module
 
@@ -207,7 +207,7 @@ titre de l'offre est lu à la volée, jamais dupliqué sur le match (V28).
 
 | Méthode | Route | Accès | Comportement |
 |---|---|---|---|
-| GET | `/tests/{token}` | Public prévu | Projection candidat sans réponse correcte ; **encore bloquée** par le filtre global (`401`) tant que la permit-list Shared n'est pas autorisée |
+| GET | `/tests/{token}` | Public | Projection candidat sans réponse correcte ; permit-list Shared autorisée (V, changelog #10) — le lien partagé répond 200 sans JWT |
 
 ### 5.8 Tentatives de test (hard skills) — 3 opérations
 
@@ -536,7 +536,9 @@ GROQ_API_KEY=<optionnel>
 1. Choisir le canal et le fournisseur de livraison de `OtpRequestedEvent`, et le module
    qui résout `recipientUserId` → téléphone/e-mail sans appel direct inter-contexte.
 2. Autoriser l'ajout ciblé de `/api/v1/tests/**` dans `shared/SecurityConfig` (projection
-   publique du test encore bloquée en `401`).
+   publique du test encore bloquée en `401`). ✅ **Fait** (changelog #10, 2026-09-11) : la
+   permit-list contient désormais `GET /api/v1/tests/**`, verrouillée par un test
+   d'architecture (`PublicTestPermitRuleTest`).
 3. Intégrer le PSP et remplacer le paiement simulé.
 4. Fournir/localiser les maquettes Recruitment puis connecter le mobile aux endpoints.
 5. Ajouter les consommateurs Engagement des événements d'opportunité et de paiement.
@@ -661,3 +663,80 @@ GROQ_API_KEY=<optionnel>
      encore instrumenter. Côté mobile, `flutter analyze`/`flutter test` non exécutés
      (Flutter non installé dans cet environnement) ; changements relus à la main contre le
      contrat.
+9. 2026-09-11 — Première connexion mobile des écrans Recruitment (maquettes fournies,
+   dossier `Progress Careers - Light mode.png`). Écrans auparavant bloqués par
+   `_NotYetPortedPage` désormais branchés sur le contrat :
+   - **Détail d'offre** (`/jobs/:jobId`) — `GET /job-offers/{id}`, onglets
+     Description/Company, stats recruteur (`applicantCount`, `successRate`), édition
+     (`PUT`) et accès résultats. Rôle-aware candidat/recruteur.
+   - **Passation du test hard skills** (`/jobs/:jobId/test`) — `POST
+     /job-offers/{id}/test-attempts`, questions mélangées une par une, `expiresAt`,
+     `POST /test-attempts/{id}/submit` (score serveur), abandon explicite
+     `POST /test-attempts/{id}/abandon`, gate « déjà tenté » via
+     `GET /job-offers/{id}/test-results/me` (404 → pas encore tenté).
+   - **Résultats recruteur** (`/jobs/:jobId/results`) — `GET
+     /job-offers/{id}/test-results/summary` + `…/test-results` + détail de correction
+     par candidat `…/test-results/{candidateId}`.
+   - **Suppression d'un test** depuis le détail d'évaluation (`DELETE /assessments/{id}`).
+   - **Correctif data layer** (le formulaire d'offre envoyait des champs absents du contrat
+     et `fail-on-unknown-properties: true` faisait échouer la requête) :
+     `createJobOffer` n'envoie plus `companyName/currency/remote/fieldOfWork/companyInfo`
+     (retirés du schéma, V32) ; `updateJobOffer` utilise `PUT` pour le contenu et `PATCH`
+     pour `status`/`assessmentId` uniquement ; `companyName/companyInfo` sont lus depuis la
+     projection `recruiter`.
+   - **Reste ouvert** : `GET /tests/{token}` toujours bloqué par le filtre Shared (`401`,
+     §15.2) — le tunnel candidat passe donc par `test-attempts` (JWT), pas par le lien
+     public. Les maquettes « Wallet / Referral / Plans & Pricing / paiement du recrutement »
+     n'ont **aucun endpoint** (voir `docs/SCREENS_1TO1_PLAN.md` §2). Le formulaire de
+     création d'offre reste à aligner 1:1 sur les maquettes 204-217 (accordéon métier,
+     devise/période de salaire).
+
+   - **Recherche d'offres candidat** : le Search candidat/étudiant lit désormais le contrat
+     public `GET /job-offers` (+ `q`/`location`/`contractType`/`experienceLevel`) via
+     `JobsRepository.searchJobOffers`, au lieu du deck fits qui appelait des routes
+     disparues (§15.10). Le tap sur une offre ouvre le détail puis le tunnel de test.
+
+   Vérifié : `flutter analyze` sans erreur (73 infos/warnings préexistants, inchangé) ;
+   nouveau test de parsing `test/features/jobs/data/test_attempt_parsing_test.dart` (5 verts).
+10. 2026-09-11 — Déblocage du lien de test partagé (roadmap §15.2). Le `GET /api/v1/tests/{token}`
+   (projection publique sans réponse correcte, contrat §5.7) est ajouté à la permit-list
+   `shared/SecurityConfig` (`GET /api/v1/tests/**`) : il répond désormais sans JWT au lieu de
+   `401`. Garde-fou : `PublicTestPermitRuleTest` (architecture) verrouille la règle.
+   Côté mobile, l'écran `PublicTestPreviewPage` (`/tests/:token`) affiche exactement ce que
+   reçoit un candidat via le lien, accessible depuis la carte « Shareable link » du détail
+   d'évaluation (bouton **Preview**) ; entité `PublicAssessment` + `JobsRepository.getPublicTest`.
+   Aucune migration ni changement de contrat (le contrat déclarait déjà `security: []`).
+   Test backend non exécuté localement : le projet cible Java 21, seul le JDK 17 est installé
+   dans cet environnement — `PublicTestPermitRuleTest` s'exécute en CI.
+11. 2026-09-11 — Écran **« Your tests »** complet (maquette 197) : `ManageTestsPage`
+   (`/assessments`) liste les évaluations du recruteur (titre, nombre de questions, durée)
+   avec édition, suppression (`DELETE /assessments/{id}`) et ajout, accessible depuis
+   « Your Tests → See all » du hub Careers. Aucun changement de contrat ni d'API.
+12. 2026-09-11 — **Devise + périodicité du salaire** (maquette 213) : l'offre porte
+   désormais `salaryCurrency` (ISO 4217, valeurs maquette EUR/USD/GBP/MAD/TND, défaut EUR)
+   et `salaryPeriod` (`MONTHLY`/`YEARLY`, défaut MONTHLY), migration V79 avec contraintes.
+   Contrat `JobOffer`/`JobOfferCreate`/`JobOfferSummary` enrichis (+ enum `SalaryPeriod`) ;
+   domaine, entité, adaptateur, use cases create/replace, DTOs et contrôleur mis à jour.
+   L'ancien `rehydrate` est conservé en surcharge (défauts) pour ne pas casser les appels
+   existants. Côté mobile, le dialogue salaire propose devise + périodicité et
+   `JobOffer.salaryDisplay` formate symbole + `/Mo`·`/Yr` (test dédié). Aucune route
+   ajoutée (parité runtime inchangée).
+13. 2026-09-11 — **Hired Candidates** (maquette 258) : `GET /recruiters/me/hired-candidates`
+   et `POST /hired-candidates/{id}/cancel` (recruteur propriétaire). Le recrutement est une
+   `JobOpportunityOffer` `CONFIRMED` ; un nouveau statut `CANCELLED` permet l'annulation tant
+   que la période d'essai court (3 mois ≈ **90 jours**, valeur provisoire). `cancel()` refuse
+   l'annulation d'un recrutement non confirmé, d'un tiers, ou après la fin de l'essai ;
+   `probationEndsAt()`/`daysRemaining` alimentent le badge `D-xx` de la maquette. DTO
+   `HiredCandidate` (nom/avatar joints via la projection `actors`). Contrat : enum
+   `JobOpportunityStatus.CANCELLED` + schéma `HiredCandidate` ; parité runtime portée à 58
+   opérations (tests de parité + sécurité mis à jour). Tests : `CancelHireUseCaseTest`,
+   ArchUnit vert. Côté mobile : `HiredCandidatesPage` (`/hired-candidates`) avec annulation,
+   accessible depuis Profile & Settings → Hired Candidates (recruteur).
+14. 2026-09-11 — **Recherche générale de candidats** (maquette 87-89, onglet recruteur) :
+    `GET /candidates/search?q=&location=` sur la projection `actors` (candidats/étudiants
+    actifs, filtre nom/intitulé + ville/pays), indépendante d'une offre — le feed fit-scoré
+    reste utilisé quand une offre est sourcée. Contrat : schéma `CandidateSearchResult` ;
+    parité runtime portée à 59 opérations. `SearchCandidatesUseCase` + ArchUnit vert. Côté
+    mobile, `FitsRepository.searchCandidates` alimente l'onglet Search recruteur quand
+    aucune offre n'est active (les scores de fit ne s'affichent alors pas — pas d'offre de
+    référence).

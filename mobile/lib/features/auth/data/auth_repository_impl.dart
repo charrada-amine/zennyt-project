@@ -6,6 +6,8 @@ import '../../../core/enums/user_role.dart';
 import '../../../core/error/api_exception.dart';
 import '../../../core/storage/token_storage.dart';
 import '../domain/entities/app_user.dart';
+import '../domain/entities/legal_document.dart';
+import '../domain/entities/user_preferences.dart';
 import '../../profile_settings/domain/entities/recruiter_profile.dart';
 import '../domain/repositories/auth_repository.dart';
 import 'dtos/auth_tokens.dart';
@@ -161,6 +163,71 @@ class AuthRepositoryImpl implements AuthRepository {
     return _guard(() async {
       await _dio.delete<void>('/users/me');
       await _tokenStorage.clear();
+    });
+  }
+
+  @override
+  Future<UserPreferences> getPreferences() {
+    return _guard(() async {
+      final res = await _dio.get<Map<String, dynamic>>('/users/me/preferences');
+      return UserPreferences.fromJson(res.data!);
+    });
+  }
+
+  @override
+  Future<UserPreferences> updatePreferences(UserPreferences preferences) {
+    return _guard(() async {
+      final res = await _dio.put<Map<String, dynamic>>(
+        '/users/me/preferences',
+        data: preferences.toJson(),
+      );
+      return UserPreferences.fromJson(res.data!);
+    });
+  }
+
+  @override
+  Future<LegalDocument> getLegalDocument(String slug) {
+    return _guard(() async {
+      final res = await _dio.get<Map<String, dynamic>>('/legal/$slug');
+      return LegalDocument.fromJson(res.data!);
+    });
+  }
+
+  @override
+  Future<void> requestEmailChange(String newEmail) {
+    return _guard(() => _dio.post<void>('/users/me/email', data: {'newEmail': newEmail}));
+  }
+
+  @override
+  Future<AppUser> verifyEmailChange(String code) {
+    return _guard(() async {
+      final res = await _dio.post<Map<String, dynamic>>(
+        '/users/me/email/verify',
+        data: {'code': code},
+      );
+      final user = AppUser.fromJson(res.data!);
+      await _tokenStorage.saveUser(user.encode());
+      return user;
+    });
+  }
+
+  @override
+  Future<void> requestPhoneChange(String newPhoneNumber) {
+    return _guard(
+      () => _dio.post<void>('/users/me/phone', data: {'newPhoneNumber': newPhoneNumber}),
+    );
+  }
+
+  @override
+  Future<AppUser> verifyPhoneChange(String code) {
+    return _guard(() async {
+      final res = await _dio.post<Map<String, dynamic>>(
+        '/users/me/phone/verify',
+        data: {'code': code},
+      );
+      final user = AppUser.fromJson(res.data!);
+      await _tokenStorage.saveUser(user.encode());
+      return user;
     });
   }
 

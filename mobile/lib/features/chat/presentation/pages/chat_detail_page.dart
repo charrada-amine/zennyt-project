@@ -14,6 +14,9 @@ import '../../domain/usecases/send_message.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/job_opportunity_card.dart';
 import '../../../../shared/widgets/platform_scaffold.dart';
+import '../../../../core/enums/user_role.dart';
+import '../../../auth/presentation/auth_controller.dart';
+import '../../../billing/presentation/widgets/video_interview_paywall.dart';
 
 class ChatDetailPage extends ConsumerStatefulWidget {
   final Conversation conversation;
@@ -192,8 +195,16 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
                 borderRadius: BorderRadius.circular(8),
                 splashColor: AppColors.chipSelected.withOpacity(0.3),
                 highlightColor: AppColors.chipSelected.withOpacity(0.1),
-                onTap: () {
-                  
+                onTap: () async {
+                  final isRecruiter =
+                      ref.read(authControllerProvider).value?.role == UserRole.recruiter;
+                  if (isRecruiter) {
+                    final paid = await VideoInterviewPaywall.show(
+                      context,
+                      counterpartName: conversation.counterpartName,
+                    );
+                    if (!paid || !context.mounted) return;
+                  }
                   context.push('/video-call', extra: {
                     'contactName': conversation.counterpartName,
                     'conversationId': conversation.id,
@@ -201,7 +212,7 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
                     'myUserId': currentUser.id,
                     'isVideoCall': true,
                   });
-                  
+
                   //context.push("/test-features");
                 },
                 child: Padding(

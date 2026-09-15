@@ -13,10 +13,9 @@ class PostsCacheService {
   static const int _cacheDays = 3;
 
   PostsCacheService({
-    required PostLocalDataSource localDataSource,
-    required Box syncBox,
-  })  : _localDataSource = localDataSource,
-        _syncBox = syncBox;
+    required this._localDataSource,
+    required this._syncBox,
+  });
 
   Future<void> savePosts(List<PostModel> posts) async {
     if (posts.isEmpty) return;
