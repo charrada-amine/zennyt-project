@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/network/dio_client.dart';
-import '../../../auth/presentation/current_user_provider.dart';
 import '../../../jobs/domain/entities/job.dart';
 import '../../data/fits_repository_impl.dart';
 import '../../domain/entities/candidate_profile.dart';
@@ -149,8 +148,13 @@ abstract class BaseSwipeDeckNotifier<T> extends AsyncNotifier<SwipeDeckState<T>>
     ));
 
     if (last.result != null) {
+      final params = buildSwipeParams(last.item, last.result!.direction);
       try {
-        await ref.read(fitsRepositoryProvider).undoSwipe(last.result!.swipeId);
+        await ref.read(fitsRepositoryProvider).undoSwipe(
+              jobOfferId: params.jobOfferId,
+              targetType: params.targetType,
+              targetId: params.targetId,
+            );
       } catch (_) {
         // L'état local reflète déjà l'undo ; l'appel serveur est best-effort.
       }
@@ -199,11 +203,9 @@ class RecruiterSwipeNotifier extends BaseSwipeDeckNotifier<CandidateProfile> {
         (await ref.read(jobOffersProvider.future)).firstOrNull;
     if (job == null) return const [];
 
-    final repo = ref.read(fitsRepositoryProvider);
-    final all = await repo.getCandidateFeed(job.id);
-    final swipedIds =
-        (await repo.getSwipedTargetIds(jobOfferId: job.id)).toSet();
-    return all.where((c) => !swipedIds.contains(c.id)).toList();
+    // The matching-deck endpoint already excludes candidates swiped LEFT or
+    // matched for this offer, so no client-side swipe filtering is needed.
+    return ref.read(fitsRepositoryProvider).getCandidateMatchingDeck(job.id);
   }
 
   @override
@@ -227,14 +229,8 @@ final recruiterSwipeDeckProvider =
 class CandidateSwipeNotifier extends BaseSwipeDeckNotifier<JobOffer> {
   @override
   Future<List<JobOffer>> fetchItems() async {
-    final repo = ref.read(fitsRepositoryProvider);
-    final all = await repo.getCandidateDeck();
-
-    final user = ref.read(currentUserProvider);
-    if (user == null) return all;
-
-    final swipedIds = (await repo.getSwipedTargetIds()).toSet();
-    return all.where((j) => !swipedIds.contains(j.id)).toList();
+    // The matching-deck endpoint already excludes offers swiped LEFT or matched.
+    return ref.read(fitsRepositoryProvider).getCandidateDeck();
   }
 
   @override

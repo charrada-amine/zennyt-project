@@ -1,0 +1,271 @@
+{
+  "generatedAt": "2026-09-14T09:20:28.028887+00:00",
+  "baseUrl": "http://localhost:8080/api/v1",
+  "summary": {
+    "pass": 61,
+    "fail": 0,
+    "blocked": 3,
+    "total": 64
+  },
+  "steps": [
+    {
+      "step": "auth.register candidate",
+      "status": "PASS"
+    },
+    {
+      "step": "auth.me candidate",
+      "status": "PASS"
+    },
+    {
+      "step": "auth.register recruiter",
+      "status": "PASS"
+    },
+    {
+      "step": "onboarding.candidate-student",
+      "status": "PASS"
+    },
+    {
+      "step": "onboarding.candidate me",
+      "status": "PASS"
+    },
+    {
+      "step": "onboarding.recruiter",
+      "status": "PASS"
+    },
+    {
+      "step": "onboarding.recruiter me",
+      "status": "PASS"
+    },
+    {
+      "step": "profiles.me",
+      "status": "PASS"
+    },
+    {
+      "step": "profiles.me update",
+      "status": "PASS"
+    },
+    {
+      "step": "job-positions",
+      "status": "PASS"
+    },
+    {
+      "step": "job-offers.create",
+      "status": "PASS"
+    },
+    {
+      "step": "job-offers.public list",
+      "status": "PASS"
+    },
+    {
+      "step": "job-offers.detail",
+      "status": "PASS"
+    },
+    {
+      "step": "games.start session",
+      "status": "PASS"
+    },
+    {
+      "step": "games.submit result",
+      "status": "PASS"
+    },
+    {
+      "step": "swipes.matching deck (candidate)",
+      "status": "PASS"
+    },
+    {
+      "step": "swipes.candidate RIGHT",
+      "status": "PASS"
+    },
+    {
+      "step": "swipes.recruiter deck",
+      "status": "PASS"
+    },
+    {
+      "step": "swipes.recruiter RIGHT -> match",
+      "status": "PASS"
+    },
+    {
+      "step": "matches.candidate me",
+      "status": "PASS"
+    },
+    {
+      "step": "fit-scores",
+      "status": "PASS"
+    },
+    {
+      "step": "assessments.create",
+      "status": "PASS"
+    },
+    {
+      "step": "test-attempts.start",
+      "status": "PASS"
+    },
+    {
+      "step": "test-results.me",
+      "status": "PASS"
+    },
+    {
+      "step": "test-results.recruiter",
+      "status": "PASS"
+    },
+    {
+      "step": "test-results.summary",
+      "status": "PASS"
+    },
+    {
+      "step": "candidates.resume",
+      "status": "PASS"
+    },
+    {
+      "step": "recruiters.candidate-feed",
+      "status": "PASS"
+    },
+    {
+      "step": "candidates.search",
+      "status": "PASS"
+    },
+    {
+      "step": "job-opportunity-offers.send",
+      "status": "PASS"
+    },
+    {
+      "step": "job-opportunity-offers.confirm (OTP)",
+      "status": "BLOCKED",
+      "reason": "OTP confirm needs the code; delivery (SMS/e-mail) not wired"
+    },
+    {
+      "step": "hired-candidates.list",
+      "status": "PASS"
+    },
+    {
+      "step": "referrals.invite",
+      "status": "PASS"
+    },
+    {
+      "step": "referrals.me",
+      "status": "PASS"
+    },
+    {
+      "step": "referrals.me.link",
+      "status": "PASS"
+    },
+    {
+      "step": "wallet.me",
+      "status": "PASS"
+    },
+    {
+      "step": "wallet.card",
+      "status": "PASS"
+    },
+    {
+      "step": "wallet.transactions",
+      "status": "PASS"
+    },
+    {
+      "step": "wallet.withdraw (no balance -> 400 expected)",
+      "status": "PASS"
+    },
+    {
+      "step": "plans",
+      "status": "PASS"
+    },
+    {
+      "step": "subscriptions.me",
+      "status": "PASS"
+    },
+    {
+      "step": "purchases.verify (subscription)",
+      "status": "PASS"
+    },
+    {
+      "step": "subscriptions.me after purchase",
+      "status": "PASS"
+    },
+    {
+      "step": "preferences.get",
+      "status": "PASS"
+    },
+    {
+      "step": "preferences.put",
+      "status": "PASS"
+    },
+    {
+      "step": "legal.terms-of-use",
+      "status": "PASS"
+    },
+    {
+      "step": "legal.privacy-policy",
+      "status": "PASS"
+    },
+    {
+      "step": "users.email change request",
+      "status": "BLOCKED",
+      "reason": "code delivered by Resend (no API key); verify step needs the code"
+    },
+    {
+      "step": "posts.create",
+      "status": "PASS"
+    },
+    {
+      "step": "posts.like",
+      "status": "PASS"
+    },
+    {
+      "step": "posts.comment",
+      "status": "PASS"
+    },
+    {
+      "step": "posts.comments list",
+      "status": "PASS"
+    },
+    {
+      "step": "posts.feed",
+      "status": "PASS"
+    },
+    {
+      "step": "post-preferences",
+      "status": "PASS"
+    },
+    {
+      "step": "conversations.ensure",
+      "status": "PASS"
+    },
+    {
+      "step": "conversations.list",
+      "status": "PASS"
+    },
+    {
+      "step": "notifications.list",
+      "status": "PASS"
+    },
+    {
+      "step": "notifications.read-all",
+      "status": "PASS"
+    },
+    {
+      "step": "help-chats.open",
+      "status": "PASS"
+    },
+    {
+      "step": "help-chats.list",
+      "status": "PASS"
+    },
+    {
+      "step": "realtime.negotiate",
+      "status": "PASS"
+    },
+    {
+      "step": "calls.start",
+      "status": "BLOCKED",
+      "reason": "call media requires Agora/WebRTC credentials"
+    },
+    {
+      "step": "job-offers.search (candidate)",
+      "status": "PASS"
+    },
+    {
+      "step": "auth.logout",
+      "status": "PASS"
+    }
+  ]
+}

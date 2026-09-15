@@ -28,6 +28,13 @@ class PlatformAppBar extends StatelessWidget
 
     if (AppConstants.isCupertino) {
       return CupertinoNavigationBar(
+        // Unique Hero tag + no route transition: two pages using PlatformAppBar
+        // at once (e.g. Home + pushed Profile & Settings) otherwise throw
+        // "multiple heroes share the same tag" during the transition. A custom
+        // heroTag is only allowed when transitionBetweenRoutes is false (see
+        // CupertinoNavigationBar's assert).
+        heroTag: UniqueKey(),
+        transitionBetweenRoutes: false,
         middle: title,
         leading: leading ??
             (showBack
