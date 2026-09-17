@@ -28,7 +28,7 @@ const _decisionWarning = Color(0xFFFFA033);
 
 /// Écrans de transition intercalés entre les blocs d'items.
 ///
-/// Purement narratifs : ils rythment les 30 items et ne mesurent rien. Ils sont
+/// Purement narratifs : ils rythment les 24 items et ne mesurent rien. Ils sont
 /// insérés aux frontières de dimension, jamais au milieu d'un bloc — et jamais
 /// entre les deux cadrages d'une paire CS, qui doivent s'enchaîner.
 enum DecisionInterstitial {
@@ -82,7 +82,7 @@ class _PendingAnswer {
   }
 }
 
-/// Boucle de gameplay de « Je Décide » — 30 items servis par le backend.
+/// Boucle de gameplay de « Je Décide » — 24 items actifs servis par le backend.
 ///
 /// Le contenu ne vit plus dans ce fichier : la forme de passation
 /// ([DecisionForm]) est tirée serveur à la création de session et récupérée par
@@ -99,7 +99,7 @@ class DecisionGameplayView extends StatefulWidget {
   final DecisionForm form;
   final VoidCallback onClose;
 
-  /// Appelé avec les réponses des 30 items, prêtes à être soumises.
+  /// Appelé avec les réponses des 24 items, prêtes à être soumises.
   final ValueChanged<List<DecisionItemResponse>> onComplete;
 
   /// Index de reprise (checkpoint sauvegardé).
@@ -125,16 +125,9 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
   int _secondsRemaining = 0;
   bool _timedOut = false;
 
-  /// Mode deux temps : l'écran de choix a-t-il été ouvert pour l'item courant ?
-  /// Toujours vrai sur un item présenté d'un seul tenant.
-  bool _choicesRevealed = false;
-
   /// Compte à rebours restant à démarrer.
   ///
-  /// Il ne peut pas partir depuis [_enterItem] : savoir si l'item est présenté
-  /// en deux temps demande la taille de l'écran, qui n'est connue qu'au premier
-  /// `build`. Le drapeau est consommé dès que l'écran de CHOIX est à l'affiche —
-  /// sur un item d'un seul tenant, c'est immédiatement.
+  /// Consommé au premier rendu de la question, où situation et choix sont visibles.
   bool _countdownPending = false;
 
   @override
@@ -210,7 +203,6 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
     _timeoutAdvance?.cancel();
     _timeoutAdvancePending = false;
     _timedOut = false;
-    _choicesRevealed = false;
 
     // L'horloge de TEMPS DE RÉPONSE part ici, à l'entrée dans l'item, et couvre
     // donc les deux temps quand l'item est découpé : lire la situation fait
@@ -244,14 +236,6 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
       if (mounted && !_timedOut) _startCountdown(reset: false);
     });
   }
-
-  /// Passage « lire la situation » → « choisir » sur un item en deux temps.
-  ///
-  /// N'arrête pas l'horloge de réponse et ne touche pas au compteur de
-  /// changements d'avis : c'est une page tournée, pas un nouvel item.
-  void _revealChoices() => setState(() => _choicesRevealed = true);
-
-  void _backToSituation() => setState(() => _choicesRevealed = false);
 
   void _startCountdown({bool reset = true}) {
     _countdown?.cancel();
@@ -325,11 +309,9 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
     }
 
     final interstitial = _interstitialBefore(next);
-    // Le déverrouillage de badge est l'interstitiel le plus gratifiant du
-    // parcours : il s'affichait en silence. Le son avait bien été ajouté, mais
-    // sur l'écran de RÉSULTATS (révélation du profil) — pas ici, alors que
-    // c'est cet écran-ci qui affiche « Badge unlocked ».
-    if (interstitial == DecisionInterstitial.badge) {
+    // Chaque frontière de catégorie célèbre un jalon, sans juger la réponse.
+    // Émis à l'entrée seulement, jamais au rebuild ni à la sortie du panneau.
+    if (interstitial != null) {
       SoundService.instance.playSfx(GameSfx.badgeUnlocked);
     }
     setState(() {
@@ -551,10 +533,7 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
       textScaler: textScaler,
       ambient: DefaultTextStyle.of(context).style,
     );
-    final twoSteps =
-        _isChoiceStep && plan.layoutOf(_item) == _ScenarioLayout.twoSteps;
-    final readingSituation = twoSteps && !_choicesRevealed;
-    final choicesVisible = _isChoiceStep && !_timedOut && !readingSituation;
+    final choicesVisible = _isChoiceStep && !_timedOut;
     _armCountdownIfVisible(choicesVisible: choicesVisible);
 
     // Le chronomètre ne s'affiche que là où il tourne. Pendant la lecture de la
@@ -581,7 +560,6 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
             onPause: _openMenu,
             affordance: _menuAffordance,
             light: _usesLightShell,
-            onBack: twoSteps && !readingSituation ? _backToSituation : null,
             timerLabel: showTimer ? '$_secondsRemaining sec' : null,
             timerColor: _criticalTime ? _decisionWarning : _decisionTimer,
           ),
@@ -627,43 +605,25 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
                 ),
               ),
               child: KeyedSubtree(
-                key: ValueKey(
-                  '${_interstitial ?? ''}-$_index-$readingSituation',
-                ),
-                child: _buildStep(
-                  density: plan.density,
-                  readingSituation: readingSituation,
-                  twoSteps: twoSteps,
-                ),
+                key: ValueKey('${_interstitial ?? ''}-$_index'),
+                child: _buildStep(density: plan.density),
               ),
             ),
           ),
           if (_isChoiceStep && !_timedOut) ...[
             SizedBox(height: gapBeforeButton),
-            if (readingSituation)
-              GamePrimaryButton(
-                key: const ValueKey('decision-reveal-choices'),
-                label: 'See the options',
-                icon: Icons.arrow_forward_rounded,
-                onPressed: _revealChoices,
-              )
-            else
-              GamePrimaryButton(
-                key: const ValueKey('decision-continue'),
-                label: 'Continue',
-                onPressed: _selection == null ? null : _validate,
-              ),
+            GamePrimaryButton(
+              key: const ValueKey('decision-continue'),
+              label: 'Continue',
+              onPressed: _selection == null ? null : _validate,
+            ),
           ],
         ],
       ),
     );
   }
 
-  Widget _buildStep({
-    required _ScenarioDensity density,
-    required bool readingSituation,
-    required bool twoSteps,
-  }) {
+  Widget _buildStep({required _ScenarioDensity density}) {
     if (_interstitial != null) {
       return switch (_interstitial!) {
         DecisionInterstitial.xpFeedback => _XpFeedbackView(
@@ -691,15 +651,11 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
     if (_timedOut) return const _TimeoutView();
 
     final scenario = _scenarioDataOf(_item);
-    if (readingSituation) {
-      return _SituationStepView(scenario: scenario, density: density);
-    }
     return _ScenarioView(
       scenario: scenario,
       density: density,
       selected: _selection,
       onSelected: _select,
-      recallOnly: twoSteps,
     );
   }
 }
@@ -794,7 +750,6 @@ class _DecisionProgressHeader extends StatelessWidget {
     required this.onPause,
     required this.affordance,
     required this.light,
-    this.onBack,
     this.timerLabel,
     this.timerColor,
   });
@@ -807,11 +762,6 @@ class _DecisionProgressHeader extends StatelessWidget {
   final int totalItems;
   final int xp;
   final VoidCallback onPause;
-
-  /// Retour à l'écran « situation » d'un item présenté en deux temps. Nul
-  /// partout ailleurs : il n'existe pas d'autre retour en arrière dans une
-  /// passation.
-  final VoidCallback? onBack;
 
   /// Ce que propose le bouton, ou `null` s'il n'y en a pas — le seul cas étant
   /// le module « Décision sous Contrainte Temporelle », où ni la pause ni la
@@ -899,11 +849,9 @@ class _DecisionProgressHeader extends StatelessWidget {
     );
   }
 
-  /// Le titre porte le retour en arrière du mode deux temps — plutôt qu'un
-  /// bouton de plus dans la barre, qui ne tiendrait pas à côté de la pause et du
-  /// compteur d'XP sur un écran de 320 dp.
-  Widget _title(BuildContext context) {
-    final label = Text(
+  Widget _title(BuildContext context) => Semantics(
+    header: true,
+    child: Text(
       'Scenario ${scenarioNumber.toString().padLeft(2, '0')} / $totalItems',
       style: AppTypography.titleMedium.copyWith(
         color: light ? _decisionInk : Colors.white,
@@ -911,29 +859,8 @@ class _DecisionProgressHeader extends StatelessWidget {
       ),
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-    );
-    if (onBack == null) return Semantics(header: true, child: label);
-    return Semantics(
-      button: true,
-      label: 'Back to the situation',
-      child: InkWell(
-        key: const ValueKey('decision-back-to-situation'),
-        onTap: onBack,
-        borderRadius: BorderRadius.circular(10),
-        child: Row(
-          children: [
-            Icon(
-              Icons.arrow_back_rounded,
-              size: 20,
-              color: light ? _decisionInk : Colors.white,
-            ),
-            const SizedBox(width: 6),
-            Flexible(child: label),
-          ],
-        ),
-      ),
-    );
-  }
+    ),
+  );
 }
 
 class _JourneyProgress extends StatelessWidget {
@@ -1150,25 +1077,6 @@ class _ScenarioDensity {
     ),
   );
 
-  /// Consigne rappelée sur l'écran de choix.
-  ///
-  /// [titleStyle] ne convient pas ici : il porte `_decisionInk` et un gras
-  /// extra, parce qu'il est dessiné pour la carte BLANCHE. Posé tel quel sur
-  /// l'indigo du plateau, il donnait un pavé sombre à peine lisible — le
-  /// contraste tombait sous le seuil, et l'extra-gras faisait lire un titre là
-  /// où il ne s'agit que d'un rappel.
-  ///
-  /// Même corps que [titleStyle] : la hauteur du bloc ne change donc pas, et le
-  /// budget de mise en page prédit reste valable. Seuls la couleur et la graisse
-  /// bougent.
-  TextStyle get recallStyle => _effective(
-    AppTypography.headlineSmall.copyWith(
-      color: Colors.white,
-      fontSize: titleSize,
-      fontWeight: FontWeight.w600,
-    ),
-  );
-
   TextStyle get bodyStyle => _effective(
     AppTypography.bodyMedium.copyWith(
       color: _decisionInk,
@@ -1187,77 +1095,13 @@ class _ScenarioDensity {
   );
 }
 
-/// Les deux mises en page possibles d'un item.
-///
-/// Retour client, formulé deux fois : « il faut adapter le UI selon la taille de
-/// l'écran afin que le scénario et les choix s'affichent entièrement sans
-/// défilement ; le défilement ajoute de la friction et une perte de temps ».
-///
-/// La première tentative gardait « on défile » comme repli quand un item ne
-/// tenait pas. C'était l'erreur de fond : tant que le défilement est le repli,
-/// la remarque revient au premier item un peu long sur le premier téléphone un
-/// peu petit. Le repli est désormais [twoSteps] — découper, jamais défiler.
-enum _ScenarioLayout {
-  /// Énoncé et choix sur un seul écran. Le cas visé, et le cas de la totalité
-  /// de la banque de démo sur tout le parc mesuré.
-  single,
-
-  /// L'item ne tient pas sur un écran, même à la densité plancher : on le
-  /// présente en deux temps — « lire la situation », puis « choisir ». Chacun
-  /// des deux écrans tient, donc aucun ne défile.
-  ///
-  /// Concerne les 24 items « Intégration d'Information » de la banque serveur
-  /// (jusqu'à 1167 caractères, quatre justifications dont une de 273) : ils ne
-  /// tiennent sur AUCUN téléphone, quelle que soit la densité. Ce n'est pas un
-  /// problème de réglage, c'est de l'arithmétique.
-  twoSteps,
-}
-
-/// ⚠️ PARAMÈTRE PROVISOIRE — plancher dur de lisibilité.
-///
-/// La densité gelée ne descend jamais en dessous : sous ce seuil le corps de
-/// texte passe sous 13,5 px, ce qu'on refuse de servir à un candidat évalué au
-/// temps de réponse. Quand le plancher mord, l'item bascule en [twoSteps] — on
-/// découpe, on ne rend pas de l'illisible.
-///
-/// Non validé à l'œil sur appareil : à confirmer avant de le considérer comme
-/// définitif.
+/// Plancher de lisibilité ; le texte agrandi reste atteignable en défilant.
 const double _kMinDensity = 0.2;
 
-/// Plan d'affichage d'une passation : UNE densité pour toute la session, et la
-/// liste des dimensions présentées en deux temps.
-///
-/// **Pourquoi geler la densité.** « Je décide » mesure des temps de réponse. Si
-/// la taille du texte changeait d'un item au suivant — 15,5 px sur un scénario
-/// court, 13,3 px sur un long — la vitesse de lecture varierait avec elle, et
-/// cette variation entrerait dans le temps mesuré sans rien mesurer de la
-/// décision. La présentation doit être constante pour que seule la décision
-/// varie. La densité suit la taille de l'écran, jamais le scénario affiché.
-///
-/// **Pourquoi calibrer sur le formulaire servi.** La version précédente calibrait
-/// sur une constante écrite à la main (l'item CS-12b, deux options courtes)
-/// alors que les 30 items du build de démo en ont tous QUATRE. La densité
-/// calculée pour un item à deux options était appliquée à des items qui en ont
-/// quatre : environ 200 px de trop, et 27 items sur 27 qui défilaient sur le
-/// parc réel. On mesure désormais le contenu qui sera réellement affiché.
-///
-/// **Pourquoi par dimension et non par item.** Si un seul item d'une dimension
-/// exige deux temps, toute sa dimension y passe : sinon la vitesse de lecture
-/// varierait d'un item à l'autre à l'intérieur d'une même dimension notée —
-/// exactement la variation que le gel de densité existe pour supprimer.
+/// Une densité gelée sur les 24 questions actives, toutes sur un seul écran.
 class _DecisionLayoutPlan {
-  const _DecisionLayoutPlan._({
-    required this.density,
-    required this.twoStepDimensions,
-  });
-
+  const _DecisionLayoutPlan._({required this.density});
   final _ScenarioDensity density;
-  final Set<DecisionDimension> twoStepDimensions;
-
-  _ScenarioLayout layoutOf(DecisionFormItem item) =>
-      twoStepDimensions.contains(item.dimension)
-      ? _ScenarioLayout.twoSteps
-      : _ScenarioLayout.single;
 
   static final Map<String, _DecisionLayoutPlan> _cache = {};
 
@@ -1280,44 +1124,20 @@ class _DecisionLayoutPlan {
         for (final item in form.items) item.itemId: _scenarioDataOf(item),
       };
 
-      // 1. Qui ne tient pas sur un écran, même au plancher ? Sa dimension
-      //    entière passe en deux temps.
       final floor = _ScenarioDensity.at(_kMinDensity, ambient);
-      final twoStep = <DecisionDimension>{};
-      for (final item in form.items) {
-        final needed = _ScenarioFit.singleHeight(
-          data[item.itemId]!,
-          floor,
-          width,
-          textScaler,
-        );
-        if (needed > height) twoStep.add(item.dimension);
-      }
-
-      // 2. La densité la plus confortable où TOUS les items tiennent, chacun
-      //    dans le mode qui vient d'être retenu pour sa dimension.
       for (var i = 0; i < _ScenarioFit._steps; i++) {
         final t = 1 - i / (_ScenarioFit._steps - 1);
         if (t < _kMinDensity) break;
         final density = _ScenarioDensity.at(t, ambient);
         final fits = form.items.every(
-          (item) => _fits(
-            data[item.itemId]!,
-            density,
-            width,
-            height,
-            textScaler,
-            twoStep.contains(item.dimension),
-          ),
+          (item) =>
+              _fits(data[item.itemId]!, density, width, height, textScaler),
         );
         if (fits) {
-          return _DecisionLayoutPlan._(
-            density: density,
-            twoStepDimensions: twoStep,
-          );
+          return _DecisionLayoutPlan._(density: density);
         }
       }
-      return _DecisionLayoutPlan._(density: floor, twoStepDimensions: twoStep);
+      return _DecisionLayoutPlan._(density: floor);
     });
   }
 
@@ -1348,16 +1168,7 @@ class _DecisionLayoutPlan {
     double width,
     double height,
     TextScaler textScaler,
-    bool twoSteps,
-  ) {
-    if (!twoSteps) {
-      return _ScenarioFit.singleHeight(data, density, width, textScaler) <=
-          height;
-    }
-    return _ScenarioFit.situationHeight(data, density, width, textScaler) <=
-            height &&
-        _ScenarioFit.choiceHeight(data, density, width, textScaler) <= height;
-  }
+  ) => _ScenarioFit.singleHeight(data, density, width, textScaler) <= height;
 }
 
 class _ScenarioFit {
@@ -1381,59 +1192,6 @@ class _ScenarioFit {
       density.gapAfterCard +
       _safety +
       optionsHeight(data, density, width, textScaler);
-
-  /// Hauteur de l'écran 1 du mode deux temps : la carte d'énoncé seule, sans
-  /// puce.
-  ///
-  /// La puce (« Scenario », « Quick choice ») saute en mode deux temps : elle
-  /// répète ce que l'en-tête affiche déjà, et ses 36 px décidaient à eux seuls
-  /// du défilement de la plus longue situation de la banque sur un écran de
-  /// 320 dp. Le bouton « Voir les choix » vit dans l'ossature, hors de cette
-  /// mesure, exactement comme le bouton « Continue » de l'écran de choix.
-  static double situationHeight(
-    _ScenarioData data,
-    _ScenarioDensity density,
-    double width,
-    TextScaler textScaler,
-  ) =>
-      _cardHeight(
-        data,
-        density,
-        width,
-        textScaler,
-        withChip: false,
-        withDescription: true,
-      ) +
-      _safety;
-
-  /// Hauteur de l'écran 2 du mode deux temps : la consigne rappelée + les choix.
-  ///
-  /// La situation n'y est PAS reprise — c'est tout l'intérêt du découpage. Seule
-  /// la consigne l'est, parce qu'un candidat qui choisit doit pouvoir relire ce
-  /// qu'on lui demande sans revenir en arrière. Et elle est rappelée en TEXTE
-  /// NU, sans carte : le fond blanc, ses marges et son ombre coûtaient ~55 px
-  /// pour ne rien ajouter à la lecture d'une seule ligne de consigne.
-  static double choiceHeight(
-    _ScenarioData data,
-    _ScenarioDensity density,
-    double width,
-    TextScaler textScaler,
-  ) =>
-      recallHeight(data, density, width, textScaler) +
-      density.gapAfterCard +
-      _safety +
-      optionsHeight(data, density, width, textScaler);
-
-  /// Hauteur de la consigne rappelée en texte nu.
-  static double recallHeight(
-    _ScenarioData data,
-    _ScenarioDensity density,
-    double width,
-    TextScaler textScaler,
-    // Mesuré avec le style RÉELLEMENT rendu : mesurer avec `titleStyle` et
-    // rendre avec `recallStyle` ferait diverger prédiction et affichage, et
-    // c'est cette prédiction qui garantit l'absence de défilement.
-  ) => textHeight(data.title, density.recallStyle, width, textScaler);
 
   static double _cardHeight(
     _ScenarioData data,
@@ -1519,59 +1277,20 @@ class _ScenarioFit {
   }
 }
 
-/// Écran 1 du mode deux temps : la situation, seule, en grand.
-///
-/// Le bouton qui mène aux choix vit dans l'ossature, à la place du bouton
-/// « Continue » : la hauteur réservée en bas de l'écran est ainsi la même sur
-/// les deux temps, et la densité gelée reste valable pour les deux.
-class _SituationStepView extends StatelessWidget {
-  const _SituationStepView({required this.scenario, required this.density});
-
-  final _ScenarioData scenario;
-  final _ScenarioDensity density;
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: _ScenarioCard(
-        key: const ValueKey('decision-situation-card'),
-        data: scenario,
-        density: density,
-        showChip: false,
-      ),
-    );
-  }
-}
-
-/// Écran d'un item : soit l'ensemble énoncé + choix ([_ScenarioLayout.single]),
-/// soit le seul écran de choix du mode deux temps, où la consigne est rappelée
-/// mais pas la situation.
-///
-/// **Pourquoi un [SingleChildScrollView] alors que rien ne doit défiler.** La
-/// hauteur est PRÉDITE, par mesure de texte hors rendu. Une prédiction basse de
-/// deux pixels — une bordure oubliée, un arrondi de police — produirait sinon un
-/// débordement de rendu, c'est-à-dire du contenu définitivement inatteignable.
-/// Le conteneur défilable est un filet de sécurité, pas une mise en page : que
-/// son extension de défilement soit nulle sur les 150 items des deux banques et
-/// sur sept tailles d'écran est vérifié par
-/// `test/features/games/presentation/je_decide_no_scroll_test.dart`.
+/// Situation et réponses intégrales sur une seule page.
+/// Le défilement garde les contenus accessibles sur petit écran ou texte agrandi.
 class _ScenarioView extends StatelessWidget {
   const _ScenarioView({
     required this.scenario,
     required this.density,
     required this.selected,
     required this.onSelected,
-    this.recallOnly = false,
   });
 
   final _ScenarioData scenario;
   final _ScenarioDensity density;
   final int? selected;
   final ValueChanged<int> onSelected;
-
-  /// Vrai sur l'écran de choix du mode deux temps : la carte ne porte que la
-  /// consigne, la situation ayant été lue à l'écran précédent.
-  final bool recallOnly;
 
   @override
   Widget build(BuildContext context) {
@@ -1580,17 +1299,7 @@ class _ScenarioView extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (recallOnly)
-            // Consigne rappelée en texte nu : la carte blanche, ses marges et
-            // son ombre coûtaient ~55 px pour une seule ligne déjà lue à
-            // l'écran précédent.
-            Text(
-              scenario.title,
-              key: const ValueKey('decision-task-recall'),
-              style: density.recallStyle,
-            )
-          else
-            _ScenarioCard(data: scenario, density: density),
+          _ScenarioCard(data: scenario, density: density),
           SizedBox(height: density.gapAfterCard),
           for (var i = 0; i < scenario.options.length; i++) ...[
             _DecisionChoiceCard(
@@ -1610,23 +1319,13 @@ class _ScenarioView extends StatelessWidget {
 }
 
 class _ScenarioCard extends StatelessWidget {
-  const _ScenarioCard({
-    super.key,
-    required this.data,
-    this.density,
-    this.showChip = true,
-  });
+  const _ScenarioCard({required this.data, this.density});
 
   final _ScenarioData data;
 
   /// Absente sur les écrans intercalaires, dont le texte est court et fixe :
   /// ils gardent la densité de confort.
   final _ScenarioDensity? density;
-
-  /// Faux en mode deux temps : la puce répète ce que l'en-tête affiche déjà, et
-  /// ses 36 px décidaient du défilement de la plus longue situation de la
-  /// banque sur un écran de 320 dp.
-  final bool showChip;
 
   @override
   Widget build(BuildContext context) {
@@ -1654,7 +1353,7 @@ class _ScenarioCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (showChip) ...[
+          ...[
             SizedBox(
               height: density.chipHeight,
               child: Row(
@@ -1757,7 +1456,13 @@ class _DecisionChoiceCard extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Expanded(child: Text(data.title, style: density.optionStyle)),
+                Expanded(
+                  child: Text(
+                    data.title,
+                    key: const ValueKey('decision-option-label'),
+                    style: density.optionStyle,
+                  ),
+                ),
                 const SizedBox(width: _optionCheckGap),
                 // Gouttière réservée en permanence : voir [_optionCheckSize].
                 SizedBox(
@@ -2300,7 +2005,7 @@ class _DimensionCompleteView extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              for (final dimension in DecisionDimension.values)
+              for (final dimension in DecisionConfig.dimensions)
                 () {
                   final on = completed.contains(dimension);
                   final milestone = milestoneOf(dimension);

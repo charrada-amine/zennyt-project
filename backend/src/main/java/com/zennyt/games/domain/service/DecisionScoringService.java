@@ -26,7 +26,7 @@ import java.util.UUID;
  *
  * <p><b>Deux couches strictement séparées.</b>
  * <ul>
- *   <li><b>MOTEUR (définitif, fiche)</b> — agrégation /18 → /90, règle DT à double
+ *   <li><b>MOTEUR (définitif, fiche)</b> — agrégation /18 → /72, règle DT à double
  *       ajustement (langue puis calibrage), imputation, textes d'interprétation,
  *       validité de session. Lit ses constantes dans {@link DecisionConfig}.</li>
  *   <li><b>PROVISOIRE (déduit)</b> — étiquetage qualité, poids SCW, bornes de
@@ -117,7 +117,7 @@ public class DecisionScoringService {
         Map<DecisionDimension, List<Integer>> byDimension = new EnumMap<>(DecisionDimension.class);
         Map<DecisionDimension, Integer> answeredCount = new EnumMap<>(DecisionDimension.class);
         Set<DecisionDimension> scoredForReal = EnumSet.noneOf(DecisionDimension.class);
-        for (DecisionDimension d : DecisionDimension.values()) {
+        for (DecisionDimension d : DecisionConfig.dimensions()) {
             byDimension.put(d, new ArrayList<>());
             answeredCount.put(d, 0);
         }
@@ -129,6 +129,7 @@ public class DecisionScoringService {
             DecisionScenarioCatalog.Item item = catalog.item(r.itemId(), bankId)
                 .orElseThrow(() -> new IllegalArgumentException(
                     "Item absent du catalogue « Je Décide » : " + r.itemId()));
+            if (!DecisionConfig.dimensions().contains(item.dimension())) continue;
             OptionQuality quality = item.qualityOf(r.selectedOptionId());
             int points = scoreItem(item.format(), quality, r.responseTimeMs(),
                 languageMultiplier, calibrationOffsetMs);
@@ -145,7 +146,7 @@ public class DecisionScoringService {
         }
 
         Map<DecisionDimension, DimensionOutcome> out = new EnumMap<>(DecisionDimension.class);
-        for (DecisionDimension d : DecisionDimension.values()) {
+        for (DecisionDimension d : DecisionConfig.dimensions()) {
             OptionalInt imputed = DecisionConfig.imputedDimensionScore(byDimension.get(d));
             out.put(d, new DimensionOutcome(
                 imputed.isPresent() ? imputed.getAsInt() : null, answeredCount.get(d),
@@ -211,16 +212,10 @@ public class DecisionScoringService {
         if (scw >= DecisionProvisionalRules.LEVEL_HIGH_MIN) {
             out.add("Fonction décisionnelle élevée.");
         }
-        Integer ii = scoreOf(dims, DecisionDimension.II);
-        Integer cs = scoreOf(dims, DecisionDimension.CS);
         Integer er = scoreOf(dims, DecisionDimension.ER);
         Integer re = scoreOf(dims, DecisionDimension.RE);
         Integer dt = scoreOf(dims, DecisionDimension.DT);
-        if (ii != null && cs != null
-            && DecisionProvisionalRules.isDimensionLow(ii)
-            && DecisionProvisionalRules.isDimensionLow(cs)) {
-            out.add("Difficulté d'analyse et incohérence.");
-        }
+
         if (er != null && re != null
             && DecisionProvisionalRules.isDimensionHigh(er)
             && DecisionProvisionalRules.isDimensionLow(re)) {

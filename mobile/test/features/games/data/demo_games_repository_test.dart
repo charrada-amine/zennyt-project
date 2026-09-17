@@ -1,3 +1,4 @@
+import 'package:zennyt/features/games/domain/config/decision_config.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zennyt/features/games/data/demo_games_repository.dart';
 import 'package:zennyt/features/games/domain/config/decision_provisional_rules.dart';
@@ -22,12 +23,16 @@ void main() {
     return repo.decisionItems(session.id);
   }
 
-  test('la forme de démo sert 30 items, 6 par dimension', () async {
+  test('la forme de démo sert 24 items, 6 par dimension', () async {
     final form = await startAndFetch();
 
-    expect(form.totalItems, 30);
+    expect(form.totalItems, 24);
+    expect(
+      form.items.any((item) => item.dimension == DecisionDimension.ii),
+      isFalse,
+    );
     expect(form.itemsPerDimension, 6);
-    for (final dimension in DecisionDimension.values) {
+    for (final dimension in DecisionConfig.dimensions) {
       expect(
         form.items.where((i) => i.dimension == dimension).length,
         6,
@@ -35,6 +40,51 @@ void main() {
       );
     }
   });
+
+  test(
+    'lecture JSON retire II tout en gardant les quatre dimensions',
+    () async {
+      final form = await startAndFetch();
+      final payload = {
+        'formCode': 'A',
+        'itemsPerDimension': 6,
+        'items': [
+          {
+            'itemId': 'II-1',
+            'dimension': 'II',
+            'format': 'STANDARD',
+            'vignette': 'Archivé',
+            'task': 'Archivé',
+            'options': <dynamic>[],
+          },
+          for (final item in form.items)
+            {
+              'itemId': item.itemId,
+              'dimension': item.dimension.wire,
+              'format': item.format.wire,
+              'vignette': item.vignette,
+              'task': item.task,
+              'pairId': item.pairId,
+              'timeLimitMs': item.timeLimitMs,
+              'options': [
+                for (final option in item.options)
+                  {'optionId': option.optionId, 'label': option.label},
+              ],
+            },
+        ],
+      };
+      final parsed = DecisionForm.fromJson(payload);
+      expect(parsed.totalItems, 24);
+      expect(
+        parsed.items.any((item) => item.dimension == DecisionDimension.ii),
+        isFalse,
+      );
+      expect(
+        parsed.items.map((item) => item.itemId),
+        form.items.map((item) => item.itemId),
+      );
+    },
+  );
 
   test('les items ne portent aucune clé de correction', () async {
     final form = await startAndFetch();
@@ -70,66 +120,70 @@ void main() {
     expect(paired.first.pairId, paired.last.pairId);
   });
 
-  test('tout choisir en premier → score maximal ; en dernier → score nul',
-      () async {
-    Future<int> playPicking(int Function(int optionCount) chooseIndex) async {
-      final session = await repo.startSession(GameType.decision);
-      final form = await repo.decisionItems(session.id);
-      final answers = [
-        for (final item in form.items)
-          DecisionItemResponse(
-            itemId: item.itemId,
-            dimension: item.dimension,
-            selectedOptionId:
-                item.options[chooseIndex(item.options.length)].optionId,
-            responseTimeMs: 4000,
-          ),
-      ];
-      final result = await repo.submitResult(
-        sessionId: session.id,
-        miniGame: MiniGame.decisionCore,
-        metrics: DecisionMetrics(items: answers),
-      );
-      return result.lastAttempt!.score.rawPoints;
-    }
-
-    // La 1ʳᵉ option de chaque item vaut 3 points, la dernière 0 — c'est ainsi
-    // que la banque de démo est écrite.
-    expect(await playPicking((_) => 0), 100);
-    expect(await playPicking((count) => count - 1), 0);
-  });
-
-  test('le profil de résultats se reconstruit depuis la session notée',
-      () async {
-    final session = await repo.startSession(GameType.decision);
-    final form = await repo.decisionItems(session.id);
-    final result = await repo.submitResult(
-      sessionId: session.id,
-      miniGame: MiniGame.decisionCore,
-      metrics: DecisionMetrics(
-        items: [
+  test(
+    'tout choisir en premier → score maximal ; en dernier → score nul',
+    () async {
+      Future<int> playPicking(int Function(int optionCount) chooseIndex) async {
+        final session = await repo.startSession(GameType.decision);
+        final form = await repo.decisionItems(session.id);
+        final answers = [
           for (final item in form.items)
             DecisionItemResponse(
               itemId: item.itemId,
               dimension: item.dimension,
-              selectedOptionId: item.options.first.optionId,
-              responseTimeMs: 3200,
+              selectedOptionId:
+                  item.options[chooseIndex(item.options.length)].optionId,
+              responseTimeMs: 4000,
             ),
-        ],
-      ),
-    );
+        ];
+        final result = await repo.submitResult(
+          sessionId: session.id,
+          miniGame: MiniGame.decisionCore,
+          metrics: DecisionMetrics(items: answers),
+        );
+        return result.lastAttempt!.score.rawPoints;
+      }
 
-    // C'est ce que lit l'écran de résultats : sans lignes `criterion` par
-    // dimension, le radar reste vide.
-    final profile = DecisionProfile.fromSession(result);
-    expect(profile.score, 100);
-    expect(profile.dimensions, hasLength(5));
-    for (final dimension in profile.dimensions) {
-      expect(dimension.exploitable, isTrue, reason: dimension.code);
-      expect(dimension.points, 18);
-      expect(dimension.percent, 100);
-    }
-  });
+      // La 1ʳᵉ option de chaque item vaut 3 points, la dernière 0 — c'est ainsi
+      // que la banque de démo est écrite.
+      expect(await playPicking((_) => 0), 100);
+      expect(await playPicking((count) => count - 1), 0);
+    },
+  );
+
+  test(
+    'le profil de résultats se reconstruit depuis la session notée',
+    () async {
+      final session = await repo.startSession(GameType.decision);
+      final form = await repo.decisionItems(session.id);
+      final result = await repo.submitResult(
+        sessionId: session.id,
+        miniGame: MiniGame.decisionCore,
+        metrics: DecisionMetrics(
+          items: [
+            for (final item in form.items)
+              DecisionItemResponse(
+                itemId: item.itemId,
+                dimension: item.dimension,
+                selectedOptionId: item.options.first.optionId,
+                responseTimeMs: 3200,
+              ),
+          ],
+        ),
+      );
+
+      // C'est ce que lit l'écran de résultats : sans lignes `criterion` par
+      // dimension, le radar reste vide.
+      final profile = DecisionProfile.fromSession(result);
+      expect(profile.score, 100);
+      expect(profile.dimensions, hasLength(4));
+      for (final dimension in profile.dimensions) {
+        expect(dimension.exploitable, isTrue, reason: dimension.code);
+        expect(dimension.points, 18);
+        expect(dimension.percent, 100);
+      }
+    },
+  );
 
   test('une réponse non renseignée ne rapporte aucun point', () async {
     final session = await repo.startSession(GameType.decision);
@@ -202,5 +256,4 @@ void main() {
     // à 57, la couche provisoire dit « Borderline ».
     expect(DecisionProvisionalRules.levelForScw(57), 'Borderline');
   });
-
 }

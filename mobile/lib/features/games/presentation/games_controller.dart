@@ -13,11 +13,14 @@ import 'games_providers.dart';
 /// ignore si les données viennent du backend ou du mock : c'est le repository
 /// injecté qui tranche. Les erreurs remontent en `AsyncError` (ApiException).
 class GamesController extends AsyncNotifier<GameSession?> {
+  GameSession? _retrySession;
+
   @override
   Future<GameSession?> build() async => null;
 
   /// Démarre une nouvelle session pour [gameType].
   Future<void> start(GameType gameType) async {
+    _retrySession = null;
     state = const AsyncLoading();
     state = await AsyncValue.guard(
       () => ref.read(gamesRepositoryProvider).startSession(gameType),
@@ -28,12 +31,14 @@ class GamesController extends AsyncNotifier<GameSession?> {
   Future<void> submit({
     required MiniGame miniGame,
     required GameMetrics metrics,
+    bool preserveSessionOnError = false,
   }) async {
-    final session = state.value;
+    final session =
+        state.value ?? (preserveSessionOnError ? _retrySession : null);
     if (session == null) return;
     // Pas d'AsyncLoading ici : on garde la session (board) affichée pendant
     // l'appel ; l'écran gère son propre indicateur « busy » local.
-    state = await AsyncValue.guard(
+    final result = await AsyncValue.guard(
       () => ref
           .read(gamesRepositoryProvider)
           .submitResult(
@@ -42,6 +47,10 @@ class GamesController extends AsyncNotifier<GameSession?> {
             metrics: metrics,
           ),
     );
+    // Je Décide soumet une seule fois en fin de parcours : conserver la
+    // session permet de réessayer sans perdre les réponses ni rouvrir une partie.
+    _retrySession = result.hasError && preserveSessionOnError ? session : null;
+    state = result;
   }
 }
 

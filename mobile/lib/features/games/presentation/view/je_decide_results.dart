@@ -48,7 +48,7 @@ class DecisionProfile {
   /// Construit le profil à partir de la session soumise.
   ///
   /// Le détail par dimension est lu dans `scoreBreakdown` : une ligne critère par
-  /// dimension (II/ER/DT/CS/RE), notée /18. Une dimension non exploitable
+  /// dimension active (ER/DT/CS/RE), notée /18. Une dimension non exploitable
   /// (> 2 items manquants) arrive en ligne `info` et vaut 0 %.
   factory DecisionProfile.fromSession(GameSession session) {
     final score = session.lastAttempt?.score;
@@ -77,10 +77,9 @@ class DecisionProfile {
     );
   }
 
-  static const _dimensionOrder = ['II', 'ER', 'DT', 'CS', 'RE'];
+  static const _dimensionOrder = ['ER', 'DT', 'CS', 'RE'];
 
   static const _dimensionLabels = {
-    'II': 'Analytical Thinking',
     'ER': 'Risk Balance',
     'DT': 'Quick Choice',
     'CS': 'Decision Stability',
@@ -88,7 +87,6 @@ class DecisionProfile {
   };
 
   static const _dimensionShortLabels = {
-    'II': 'Analytical',
     'ER': 'Risk',
     'DT': 'Quick',
     'CS': 'Stability',
@@ -96,14 +94,19 @@ class DecisionProfile {
   };
 
   static const _dimensionDescriptions = {
-    'II': 'How you identify and compare the constraints of a situation before choosing.',
     'ER': 'How you weigh a guaranteed outcome against an uncertain one.',
     'DT': 'How you decide when time is limited.',
     'CS': 'How stable your choices stay across equivalent situations.',
     'RE': 'How you weigh an immediate reward against a larger delayed one.',
   };
 
-  static const shortLabels = ['Analytical', 'Risk', 'Quick', 'Stability', 'Control'];
+  static const shortLabels = [
+    'Analytical',
+    'Risk',
+    'Quick',
+    'Stability',
+    'Control',
+  ];
 }
 
 /// Résultat d'UNE dimension.
@@ -134,8 +137,9 @@ class DecisionDimensionResult {
 
   bool get exploitable => points != null;
 
-  int get percent =>
-      points == null || maxPoints == 0 ? 0 : (points! * 100 / maxPoints).round();
+  int get percent => points == null || maxPoints == 0
+      ? 0
+      : (points! * 100 / maxPoints).round();
 }
 
 enum DecisionResultsStep {
@@ -195,6 +199,10 @@ class _DecisionResultsFlowState extends State<DecisionResultsFlow> {
   /// Joue le son attaché à l'entrée dans [step], quel que soit le chemin
   /// emprunté pour y arriver (navigation interne ou pas d'entrée initial).
   void _announce(DecisionResultsStep step) {
+    // La dernière catégorie mène directement à la fin du parcours.
+    if (step == DecisionResultsStep.journeyComplete) {
+      SoundService.instance.playSfx(GameSfx.badgeUnlocked);
+    }
     // Révélation du profil = déverrouillage du badge de niveau.
     if (step == DecisionResultsStep.profile) {
       SoundService.instance.playSfx(GameSfx.badgeUnlocked);
@@ -501,6 +509,7 @@ class _ProfileView extends StatelessWidget {
     return GameResultsTemplate(
       onBack: onClose,
       titleKey: const ValueKey('decision-profile-title'),
+      scoreKey: const ValueKey('decision-profile-score'),
       gameName: 'Decision Journey',
       scoreLabel: 'Decision score',
       scorePercent: profile.score,
@@ -514,10 +523,7 @@ class _ProfileView extends StatelessWidget {
           value: profile.level,
           color: ZennytGamePalette.success,
         ),
-        GameResultStat(
-          label: 'Scenarios',
-          value: '$answered / $totalItems',
-        ),
+        GameResultStat(label: 'Scenarios', value: '$answered / $totalItems'),
         GameResultStat(
           label: 'Top dimension',
           value: _strongest?.shortLabel ?? '—',
@@ -1066,7 +1072,8 @@ class _DecisionRadarPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2 + 4);
     final radius = math.min(size.width, size.height) * 0.31;
-    const sides = 5;
+    final sides = values.length;
+    if (sides < 3) return;
     final grid = Paint()
       ..color = _border
       ..style = PaintingStyle.stroke

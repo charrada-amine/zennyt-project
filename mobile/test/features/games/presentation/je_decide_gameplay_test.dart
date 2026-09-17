@@ -39,7 +39,7 @@ void main() {
     formCode: 'A',
     itemsPerDimension: 2,
     items: [
-      item('II-1', DecisionDimension.ii),
+      item('ER-1', DecisionDimension.er),
       item(
         'DT-7',
         DecisionDimension.dt,
@@ -151,7 +151,7 @@ void main() {
             form: DecisionForm(
               formCode: 'A',
               itemsPerDimension: 2,
-              items: [item('II-1', DecisionDimension.ii)],
+              items: [item('ER-1', DecisionDimension.er)],
             ),
             onClose: () {},
             onComplete: (r) => submitted = r,
@@ -195,7 +195,7 @@ void main() {
             form: DecisionForm(
               formCode: 'A',
               itemsPerDimension: 2,
-              items: [item('II-1', DecisionDimension.ii)],
+              items: [item('ER-1', DecisionDimension.er)],
             ),
             onClose: () {},
             onComplete: (r) => submitted = r,
@@ -214,7 +214,7 @@ void main() {
 
     expect(submitted, isNotNull);
     expect(submitted!.single.answered, isTrue);
-    expect(submitted!.single.selectedOptionId, 'II-1-o2');
+    expect(submitted!.single.selectedOptionId, 'ER-1-o2');
   });
 
   // ── La reprise a été retirée ──────────────────────────────────────────────
@@ -344,8 +344,9 @@ void main() {
       reason: 'CS vient d\'être franchie',
     );
 
-    // Quatre pastilles allumées sur cinq, pas deux.
-    for (final d in DecisionDimension.values) {
+    // Trois axes actifs franchis ; II archivé ne produit plus de pastille.
+    expect(find.byKey(const ValueKey('milestone-AE-on')), findsNothing);
+    for (final d in DecisionConfig.dimensions) {
       final code = milestoneOf(d).code;
       final on = d != DecisionDimension.re;
       expect(
@@ -392,11 +393,10 @@ void main() {
   );
 
   /// Le pire cas réel de la banque (item II-18) : 1167 caractères, quatre
-  /// justifications dont une de 273. La dimension « Intégration d'Information »
-  /// est longue par construction — c'est ce qu'elle mesure.
-  DecisionFormItem worstCaseItem() => DecisionFormItem(
-    itemId: 'II-18',
-    dimension: DecisionDimension.ii,
+  /// Contenu archivé utilisé uniquement pour vérifier le texte agrandi et le gel de densité.
+  DecisionFormItem oversizedAccessibilityFixture() => DecisionFormItem(
+    itemId: 'ACCESSIBILITY-LONG',
+    dimension: DecisionDimension.er,
     format: DecisionItemFormat.standard,
     vignette:
         'Vous choisissez un ordinateur portable pour un graphiste de votre '
@@ -565,89 +565,6 @@ void main() {
       },
     );
 
-    /// Les 24 items d'Intégration d'Information — 1167 caractères, quatre
-    /// justifications — ne tiennent pas d'un seul tenant sur un écran étroit.
-    ///
-    /// Ce test disait autrefois : « ce qu'on verrouille n'est pas l'absence de
-    /// défilement — impossible ici — mais l'absence de DÉBORDEMENT ». Il
-    /// entérinait précisément ce que le client refuse. Le repli n'est plus le
-    /// défilement mais le découpage : l'item se lit en deux temps, et ses quatre
-    /// choix restent tous atteignables.
-    testWidgets('le pire item de la banque se lit en deux temps', (
-      tester,
-    ) async {
-      for (final screen in const [
-        Size(320, 568),
-        Size(360, 740),
-        Size(390, 844),
-        Size(412, 915),
-      ]) {
-        await pumpItem(tester, worstCaseItem(), screen: screen);
-        final where = '${screen.width}x${screen.height}';
-        expect(
-          tester.takeException(),
-          isNull,
-          reason: 'aucun débordement de rendu en $where',
-        );
-
-        final reveal = find.byKey(const ValueKey('decision-reveal-choices'));
-        if (reveal.evaluate().isNotEmpty) {
-          expect(
-            find.byKey(const ValueKey('decision-situation-card')),
-            findsOneWidget,
-            reason: 'l\'écran 1 montre la situation seule en $where',
-          );
-          await tester.tap(reveal);
-          await tester.pump();
-          await tester.pump(const Duration(milliseconds: 300));
-        }
-
-        for (var i = 0; i < 4; i++) {
-          expect(
-            find.byKey(ValueKey('decision-option-$i')),
-            findsOneWidget,
-            reason: 'les quatre choix sont rendus en $where',
-          );
-        }
-      }
-    });
-
-    /// Retour client : « comment les questions sont séparées, c'est trop
-    /// vulgaire ». Le rappel de consigne empruntait le style de la carte —
-    /// encre sombre, graisse extra — alors qu'il est posé à nu sur l'indigo du
-    /// plateau. Résultat : un pavé sombre sur fond sombre, lu comme un titre.
-    testWidgets('le rappel de consigne est lisible sur le plateau', (
-      tester,
-    ) async {
-      await pumpItem(tester, worstCaseItem(), screen: const Size(390, 844));
-
-      final reveal = find.byKey(const ValueKey('decision-reveal-choices'));
-      if (reveal.evaluate().isNotEmpty) {
-        await tester.tap(reveal);
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 300));
-      }
-
-      final recall = find.byKey(const ValueKey('decision-task-recall'));
-      expect(
-        recall,
-        findsOneWidget,
-        reason: 'on est bien sur l\'écran de choix',
-      );
-
-      final style = tester.widget<Text>(recall).style!;
-      expect(
-        style.color,
-        Colors.white,
-        reason: 'posé sur l\'indigo, le rappel doit contraster avec le fond',
-      );
-      expect(
-        style.fontWeight,
-        isNot(FontWeight.w800),
-        reason: 'un rappel n\'est pas un titre : l\'extra-gras le fait crier',
-      );
-    });
-
     /// La compaction a une limite : quand le candidat a agrandi la police de son
     /// téléphone, plus rien ne tient. Le comportement attendu n'est alors pas de
     /// rétrécir le texte — ce serait annuler son réglage d'accessibilité — mais
@@ -673,7 +590,7 @@ void main() {
                 form: DecisionForm(
                   formCode: 'A',
                   itemsPerDimension: 1,
-                  items: [worstCaseItem()],
+                  items: [oversizedAccessibilityFixture()],
                 ),
                 onClose: () {},
                 onComplete: (_) {},
@@ -712,7 +629,7 @@ void main() {
             find
                 .descendant(
                   of: find.byKey(const ValueKey('decision-option-0')),
-                  matching: find.byType(Text),
+                  matching: find.byKey(const ValueKey('decision-option-label')),
                 )
                 .first,
           )
@@ -721,7 +638,7 @@ void main() {
 
       await pumpForm(tester, [
         typicalItem(),
-        worstCaseItem(),
+        oversizedAccessibilityFixture(),
       ], screen: const Size(390, 844));
       final onShort = optionFontSize();
 
@@ -827,7 +744,7 @@ void main() {
                       for (var i = 8; i < 16; i++)
                         item(i, DecisionDimension.cs),
                       for (var i = 16; i < 24; i++)
-                        item(i, DecisionDimension.ii),
+                        item(i, DecisionDimension.er),
                       for (var i = 24; i < 32; i++)
                         item(i, DecisionDimension.dt),
                     ],
@@ -901,22 +818,6 @@ void main() {
 
     /// Le pire item n'est ni rapetissé jusqu'à l'illisible, ni rendu défilant :
     /// il est découpé. Aucun de ses deux écrans ne défile.
-    testWidgets('le pire item ne défile sur aucun de ses deux écrans', (
-      tester,
-    ) async {
-      await pumpItem(tester, worstCaseItem(), screen: const Size(412, 915));
-
-      expect(scrollExtent(tester), 0, reason: 'écran de lecture');
-      final reveal = find.byKey(const ValueKey('decision-reveal-choices'));
-      if (reveal.evaluate().isNotEmpty) {
-        await tester.tap(reveal);
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 300));
-      }
-      expect(scrollExtent(tester), 0, reason: 'écran de choix');
-      expect(find.byKey(const ValueKey('decision-option-3')), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    });
   });
 
   testWidgets(
@@ -965,7 +866,7 @@ void main() {
       final first = submitted!.first;
       expect(
         first.selectedOptionId,
-        'II-1-o3',
+        'ER-1-o3',
         reason: 'la réponse validée est le dernier choix',
       );
       expect(

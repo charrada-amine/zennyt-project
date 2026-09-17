@@ -218,13 +218,13 @@ public class ScoreBreakdownService {
     }
 
     /**
-     * « Je Décide » — une ligne par dimension /18, puis brut /90, puis SCW /100.
+     * « Je Décide » — une ligne par dimension /18, puis brut /72, puis SCW /100.
      * Le détail par dimension vient du {@link DecisionReport} (catalogue serveur),
      * pas des seules métriques : d'où une signature dédiée.
      */
     public ScoreBreakdown decision(DecisionReport report, Score score) {
         List<Line> lines = new ArrayList<>();
-        lines.add(Line.note("Chaque dimension est notée /18 (6 items × 3) ; brut = somme /90 ; "
+        lines.add(Line.note("Chaque dimension est notée /18 (6 items × 3) ; brut = somme /72 ; "
             + "SCW = score composite standardisé pondéré /100 (poids provisoires)."));
         for (DecisionReport.DimensionScore d : report.dimensions()) {
             if (d.exploitable() && d.score() != null) {

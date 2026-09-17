@@ -36,17 +36,12 @@ const _border = Color(0xFFD8E2F6);
 const _canvas = Color(0xFFF7F8FE);
 const _magenta = Color(0xFFD52E83);
 const _violet = Color(0xFF4E46E8);
-const _cyan = Color(0xFF17B2C6);
-const _orange = Color(0xFFFF963A);
 const _softPink = Color(0xFFFFF1F7);
 
 const _welcomeAsset = 'assets/games icons/Je Decide transparent.png';
-const _avatarRoot = 'assets/04 Je Décide/07 Mobile/Avatar Selection';
 
 enum _DecisionStage {
   welcome,
-  playerCard,
-  avatar,
   practiceIntro,
   practiceScenario,
   gameplay,
@@ -57,7 +52,7 @@ enum _DecisionStage {
 ///
 /// Les écrans et transitions suivent les maquettes Phases 1–4. Le CONTENU, lui,
 /// vient du backend : la session est ouverte après l’exemple, la forme
-/// de passation (30 items sur les 120 de la banque) est récupérée par
+/// de passation (24 items sur les 120 de la banque) est récupérée par
 /// `GET /decision/items`, et le score est calculé serveur à la soumission. Aucun
 /// barème ne vit côté client — voir l'exception de parité en tête de
 /// `games_mock_repository.dart`.
@@ -69,28 +64,21 @@ class JeDecideScreen extends ConsumerStatefulWidget {
 }
 
 class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
-  final _nicknameController = TextEditingController();
-
   /// Réponses effectivement données, et longueur de la forme jouée.
   int _answeredCount = 0;
   int _submittedCount = 0;
 
   _DecisionStage _stage = _DecisionStage.welcome;
-  int _selectedTheme = 0;
-  int _selectedAvatar = 0;
   int? _selectedChoice;
   DecisionForm? _form;
   bool _loadingForm = false;
   Object? _formError;
+  List<DecisionItemResponse>? _pendingResponses;
+  bool _submitting = false;
+  Object? _submitError;
+  DecisionProfile? _completedProfile;
 
-  static const _themes = [_magenta, _violet, _cyan, _orange];
-
-  @override
-  void initState() {
-    super.initState();
-  }
-
-  /// Ouvre la session puis récupère les 30 items de sa forme.
+  /// Ouvre la session puis récupère les 24 items de sa forme.
   ///
   /// L'ordre est imposé : la forme est tirée serveur à la création de session,
   /// donc il n'y a rien à demander avant d'avoir un identifiant de session.
@@ -123,31 +111,43 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
     }
   }
 
-  /// Fin de partie : les 30 réponses partent au serveur, qui note.
+  /// Fin de partie : les 24 réponses partent au serveur, qui note.
   Future<void> _submitJourney(List<DecisionItemResponse> responses) async {
-    // Retenu pour l'écran de fin, qui annonçait « 30 / 30 » en dur — donc un
-    // sans-faute même quand des questions avaient expiré.
+    if (_submitting) return;
     _answeredCount = responses.where((r) => r.answered).length;
     _submittedCount = responses.length;
-    // Langue capturée AVANT le premier await : le contexte peut disparaître.
     final language = Localizations.localeOf(context).languageCode;
+    setState(() {
+      _pendingResponses = responses;
+      _submitting = true;
+      _submitError = null;
+    });
     await ref
         .read(gamesControllerProvider.notifier)
         .submit(
           miniGame: MiniGame.decisionCore,
           metrics: DecisionMetrics(items: responses, sessionLanguage: language),
+          preserveSessionOnError: true,
         );
     if (!mounted) return;
-    setState(() => _stage = _DecisionStage.results);
+    final result = ref.read(gamesControllerProvider);
+    final session = result.value;
+    final hasScore = session?.lastAttempt?.miniGame == MiniGame.decisionCore;
+    setState(() {
+      _submitting = false;
+      if (result.hasError || !hasScore) {
+        // Une soumission échouée ne doit jamais devenir un faux profil à 0.
+        _submitError =
+            result.error ?? StateError('Decision score unavailable.');
+      } else {
+        _completedProfile = DecisionProfile.fromSession(session!);
+        _pendingResponses = null;
+        _stage = _DecisionStage.results;
+      }
+    });
   }
 
   void _finishResults() => context.go(AppRoutes.games);
-
-  @override
-  void dispose() {
-    _nicknameController.dispose();
-    super.dispose();
-  }
 
   bool get _showBottomNav =>
       _stage != _DecisionStage.practiceScenario &&
@@ -158,14 +158,6 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
     _DecisionStage.welcome => (
       eyebrow: 'Decision Journey',
       title: 'Zennyt Games',
-    ),
-    _DecisionStage.playerCard => (
-      eyebrow: 'Zennyt Games',
-      title: 'Create your player card',
-    ),
-    _DecisionStage.avatar => (
-      eyebrow: 'Zennyt Games',
-      title: 'Choose your avatar',
     ),
     _DecisionStage.practiceIntro => (
       eyebrow: 'Decision Journey',
@@ -190,10 +182,6 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
     switch (_stage) {
       case _DecisionStage.welcome:
         context.go(AppRoutes.games);
-      case _DecisionStage.playerCard:
-        _setStage(_DecisionStage.welcome);
-      case _DecisionStage.avatar:
-        _setStage(_DecisionStage.playerCard);
       case _DecisionStage.practiceIntro:
         _setStage(_DecisionStage.welcome);
       case _DecisionStage.practiceScenario:
@@ -239,7 +227,14 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
       final form = _form;
       return Scaffold(
         backgroundColor: _canvas,
-        body: form == null
+        body: _pendingResponses != null
+            ? _DecisionLoadingView(
+                error: _submitError,
+                submittingResult: true,
+                onRetry: () => _submitJourney(_pendingResponses!),
+                onBack: () => context.go(AppRoutes.games),
+              )
+            : form == null
             ? _DecisionLoadingView(
                 error: _formError,
                 onRetry: _openSessionAndLoadForm,
@@ -255,13 +250,10 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
       );
     }
     if (_stage == _DecisionStage.results) {
-      final session = ref.watch(gamesControllerProvider).value;
       return Scaffold(
         backgroundColor: _canvas,
         body: DecisionResultsFlow(
-          profile: session == null
-              ? const DecisionProfile(score: 0, level: '—', dimensions: [])
-              : DecisionProfile.fromSession(session),
+          profile: _completedProfile!,
           answered: _answeredCount,
           totalItems: _submittedCount,
           onClose: () => context.go(AppRoutes.games),
@@ -352,20 +344,6 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
     return switch (_stage) {
       _DecisionStage.welcome => _WelcomeView(
         onStart: () => _setStage(_DecisionStage.practiceIntro),
-        onCustomize: () => _setStage(_DecisionStage.playerCard),
-      ),
-      _DecisionStage.playerCard => _PlayerCardView(
-        nicknameController: _nicknameController,
-        selectedTheme: _selectedTheme,
-        themes: _themes,
-        onThemeSelected: (index) => setState(() => _selectedTheme = index),
-        onChanged: (_) => setState(() {}),
-        onContinue: () => _setStage(_DecisionStage.avatar),
-      ),
-      _DecisionStage.avatar => _AvatarView(
-        selected: _selectedAvatar,
-        onSelected: (index) => setState(() => _selectedAvatar = index),
-        onContinue: () => _setStage(_DecisionStage.practiceIntro),
       ),
       _DecisionStage.practiceIntro => _PracticeIntroView(
         onStart: () => _setStage(_DecisionStage.practiceScenario),
@@ -518,10 +496,9 @@ class _HeaderButton extends StatelessWidget {
 }
 
 class _WelcomeView extends StatelessWidget {
-  const _WelcomeView({required this.onStart, required this.onCustomize});
+  const _WelcomeView({required this.onStart});
 
   final VoidCallback onStart;
-  final VoidCallback onCustomize;
 
   @override
   Widget build(BuildContext context) {
@@ -623,12 +600,6 @@ class _WelcomeView extends StatelessWidget {
               label: 'Commencer',
               onPressed: onStart,
             ),
-            const SizedBox(height: 10),
-            GameOutlineButton(
-              key: const ValueKey('welcome-customize'),
-              label: 'Personnaliser (facultatif)',
-              onPressed: onCustomize,
-            ),
           ],
         ),
       ),
@@ -678,395 +649,6 @@ class _InfoRow extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _PlayerCardView extends StatelessWidget {
-  const _PlayerCardView({
-    required this.nicknameController,
-    required this.selectedTheme,
-    required this.themes,
-    required this.onThemeSelected,
-    required this.onChanged,
-    required this.onContinue,
-  });
-
-  final TextEditingController nicknameController;
-  final int selectedTheme;
-  final List<Color> themes;
-  final ValueChanged<int> onThemeSelected;
-  final ValueChanged<String> onChanged;
-  final VoidCallback onContinue;
-
-  @override
-  Widget build(BuildContext context) {
-    final nickname = nicknameController.text.trim();
-    return _ScrollableStage(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Choose how you want to appear during this journey.',
-            style: AppTypography.bodyLarge.copyWith(
-              color: _muted,
-              fontSize: 18,
-            ),
-          ),
-          const SizedBox(height: 18),
-          _SurfaceCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const _FieldLabel('Nickname'),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: nicknameController,
-                  onChanged: onChanged,
-                  textInputAction: TextInputAction.done,
-                  decoration: InputDecoration(
-                    hintText: 'Your nickname',
-                    hintStyle: AppTypography.bodyLarge.copyWith(
-                      color: _muted.withValues(alpha: 0.65),
-                    ),
-                    filled: true,
-                    fillColor: _canvas,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 20,
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(18),
-                      borderSide: const BorderSide(color: _border),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(18),
-                      borderSide: const BorderSide(color: _magenta, width: 2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 26),
-                const _FieldLabel('Avatar preview'),
-                const SizedBox(height: 10),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: _canvas,
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: _border),
-                  ),
-                  child: Row(
-                    children: [
-                      _PlayerMark(color: themes[selectedTheme]),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              nickname.isEmpty ? 'Your player card' : nickname,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppTypography.titleLarge.copyWith(
-                                color: _ink,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'Private nickname and guide\nfor the journey.',
-                              style: AppTypography.bodyMedium.copyWith(
-                                color: _muted,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 30),
-                const _FieldLabel('Color theme'),
-                const SizedBox(height: 14),
-                Wrap(
-                  spacing: 18,
-                  children: List.generate(
-                    themes.length,
-                    (index) => Semantics(
-                      button: true,
-                      selected: index == selectedTheme,
-                      label: 'Color theme ${index + 1}',
-                      child: InkWell(
-                        // Pastille de couleur : c'est un choix, il doit
-                        // s'entendre comme les autres sélections.
-                        onTap: () {
-                          SoundService.instance.playSfx(GameSfx.buttonClick);
-                          onThemeSelected(index);
-                        },
-                        customBorder: const CircleBorder(),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 160),
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: themes[index],
-                            shape: BoxShape.circle,
-                            border: index == selectedTheme
-                                ? Border.all(color: _ink, width: 4)
-                                : null,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 34),
-                const _PrivacyNote(),
-              ],
-            ),
-          ),
-          const SizedBox(height: 18),
-          GamePrimaryButton(
-            key: const ValueKey('player-continue'),
-            label: 'Continue',
-            onPressed: onContinue,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FieldLabel extends StatelessWidget {
-  const _FieldLabel(this.label);
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      label,
-      style: AppTypography.titleMedium.copyWith(
-        color: _ink,
-        fontWeight: FontWeight.w700,
-      ),
-    );
-  }
-}
-
-class _PlayerMark extends StatelessWidget {
-  const _PlayerMark({required this.color});
-
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 54,
-      height: 54,
-      decoration: BoxDecoration(
-        color: const Color(0xFFF1F4FF),
-        shape: BoxShape.circle,
-        border: Border.all(color: _border),
-      ),
-      child: Center(
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 13,
-              height: 13,
-              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-            ),
-            Container(
-              width: 13,
-              height: 13,
-              decoration: const BoxDecoration(
-                color: _cyan,
-                shape: BoxShape.circle,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _AvatarView extends StatelessWidget {
-  const _AvatarView({
-    required this.selected,
-    required this.onSelected,
-    required this.onContinue,
-  });
-
-  final int selected;
-  final ValueChanged<int> onSelected;
-  final VoidCallback onContinue;
-
-  static const _avatars = [
-    (
-      label: 'Navigator',
-      icon: '$_avatarRoot/Icon_Avatar_Navigator.png',
-      card: null,
-    ),
-    (
-      label: 'Analyst',
-      icon: null,
-      card: '$_avatarRoot/Avatar card/Analyst.png',
-    ),
-    (
-      label: 'Explorer',
-      icon: '$_avatarRoot/Icon_Avatar_Explorer.png',
-      card: null,
-    ),
-    (
-      label: 'Strategist',
-      icon: '$_avatarRoot/Icon_Avatar_Strategist.png',
-      card: null,
-    ),
-    (
-      label: 'Pathfinder',
-      icon: null,
-      card: '$_avatarRoot/Avatar card/Pathfinder.png',
-    ),
-    (
-      label: 'Observer',
-      icon: '$_avatarRoot/Icon_Avatar_Observer.png',
-      card: null,
-    ),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return _ScrollableStage(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Pick a guide for your decision journey.',
-            style: AppTypography.bodyLarge.copyWith(
-              color: _muted,
-              fontSize: 18,
-            ),
-          ),
-          const SizedBox(height: 22),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: _avatars.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 18,
-              childAspectRatio: 176 / 124,
-            ),
-            itemBuilder: (context, index) {
-              final avatar = _avatars[index];
-              return _AvatarCard(
-                key: ValueKey('avatar-$index'),
-                label: avatar.label,
-                iconAsset: avatar.icon,
-                cardAsset: avatar.card,
-                selected: selected == index,
-                onTap: () => onSelected(index),
-              );
-            },
-          ),
-          const SizedBox(height: 28),
-          GamePrimaryButton(
-            key: const ValueKey('avatar-continue'),
-            label: 'Continue',
-            onPressed: onContinue,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AvatarCard extends StatelessWidget {
-  const _AvatarCard({
-    super.key,
-    required this.label,
-    required this.iconAsset,
-    required this.cardAsset,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final String? iconAsset;
-  final String? cardAsset;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      selected: selected,
-      label: '$label avatar',
-      child: Material(
-        color: selected ? _softPink : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        child: InkWell(
-          // Choix d'avatar : sélection sonorisée comme le reste du parcours.
-          onTap: () {
-            SoundService.instance.playSfx(GameSfx.buttonClick);
-            onTap();
-          },
-          borderRadius: BorderRadius.circular(20),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              if (cardAsset != null)
-                Padding(
-                  padding: const EdgeInsets.all(1),
-                  child: Image.asset(
-                    cardAsset!,
-                    fit: BoxFit.fill,
-                    filterQuality: FilterQuality.high,
-                  ),
-                )
-              else
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Image.asset(
-                      iconAsset!,
-                      width: 52,
-                      height: 52,
-                      fit: BoxFit.contain,
-                      filterQuality: FilterQuality.high,
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      label,
-                      style: AppTypography.titleMedium.copyWith(
-                        color: _ink,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 160),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: selected ? _magenta : _border,
-                    width: selected ? 2.5 : 1,
-                  ),
-                ),
-              ),
-              if (selected)
-                const Positioned(top: 12, right: 12, child: _SelectedMark()),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -1379,8 +961,10 @@ class _DecisionLoadingView extends StatelessWidget {
     required this.error,
     required this.onRetry,
     required this.onBack,
+    this.submittingResult = false,
   });
 
+  final bool submittingResult;
   final Object? error;
   final VoidCallback onRetry;
   final VoidCallback onBack;
@@ -1388,22 +972,28 @@ class _DecisionLoadingView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (error == null) {
-      return const Center(
-        key: ValueKey('decision-loading-form'),
-        child: ZennytLoader(),
+      return Center(
+        key: ValueKey(
+          submittingResult
+              ? 'decision-submitting-result'
+              : 'decision-loading-form',
+        ),
+        child: const ZennytLoader(),
       );
     }
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 28),
         child: Column(
-          key: const ValueKey('decision-form-error'),
+          key: ValueKey(
+            submittingResult ? 'decision-submit-error' : 'decision-form-error',
+          ),
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(Icons.cloud_off_rounded, size: 56, color: _muted),
             const SizedBox(height: 16),
             Text(
-              'Journey unavailable',
+              submittingResult ? 'Score unavailable' : 'Journey unavailable',
               style: AppTypography.headlineSmall.copyWith(
                 color: _ink,
                 fontWeight: FontWeight.w800,
@@ -1411,8 +1001,10 @@ class _DecisionLoadingView extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'The decision scenarios are served by Zennyt and could not be '
-              'loaded. Check your connection and try again.',
+              submittingResult
+                  ? 'Your answers are kept here. Check your connection and try again to receive your score.'
+                  : 'The decision scenarios are served by Zennyt and could not be '
+                        'loaded. Check your connection and try again.',
               textAlign: TextAlign.center,
               style: AppTypography.bodyMedium.copyWith(
                 color: _muted,
@@ -1421,7 +1013,11 @@ class _DecisionLoadingView extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             GamePrimaryButton(
-              key: const ValueKey('decision-retry-form'),
+              key: ValueKey(
+                submittingResult
+                    ? 'decision-retry-result'
+                    : 'decision-retry-form',
+              ),
               label: 'Try again',
               onPressed: onRetry,
             ),

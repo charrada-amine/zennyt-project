@@ -31,10 +31,22 @@ void main() {
       'xyz.luan/audioplayers',
       'xyz.luan/audioplayers.global',
     ]) {
-      messenger.setMockMethodCallHandler(
-        MethodChannel(channel),
-        (_) async => null,
-      );
+      messenger.setMockMethodCallHandler(MethodChannel(channel), (call) async {
+        final playerId = (call.arguments as Map?)?['playerId'] as String?;
+        if (call.method == 'create' && playerId != null) {
+          messenger.setMockStreamHandler(
+            EventChannel('xyz.luan/audioplayers/events/$playerId'),
+            _SilentStreamHandler(playerId),
+          );
+        }
+        if (call.method == 'setSourceUrl') {
+          _SilentStreamHandler.sinks[playerId]?.success({
+            'event': 'audio.onPrepared',
+            'value': true,
+          });
+        }
+        return null;
+      });
     }
     for (final channel in [
       'xyz.luan/audioplayers.global/events',
@@ -43,7 +55,7 @@ void main() {
     ]) {
       messenger.setMockStreamHandler(
         EventChannel(channel),
-        _SilentStreamHandler(),
+        _SilentStreamHandler(channel.split('/').last),
       );
     }
     SoundService.instance.setSfxEnabled(false);
@@ -106,7 +118,7 @@ void main() {
     expect(tester.getRect(header), headerRect);
     expect(tester.getRect(navigation), navigationRect);
     expect(find.byTooltip('Back'), findsOneWidget);
-    final outgoing = find.byKey(const ValueKey('welcome-customize'));
+    final outgoing = find.byKey(const ValueKey('welcome-start'));
     expect(outgoing, findsOneWidget);
     expect(
       tester
@@ -171,7 +183,7 @@ void main() {
   );
 
   testWidgets(
-    'personnalisation facultative, retour accueil et entrée dans la partie',
+    'accueil sans personnalisation, retour des règles et entrée dans la partie',
     (tester) async {
       SharedPreferences.setMockInitialValues({});
       final preferences = await SharedPreferences.getInstance();
@@ -196,25 +208,14 @@ void main() {
       expect(find.text('Decision Journey'), findsOneWidget);
       expect(find.byType(AppBottomNav), findsOneWidget);
 
-      await tapVisible(tester, find.byKey(const ValueKey('welcome-customize')));
-
-      expect(find.text('Create your player card'), findsOneWidget);
-      await tester.enterText(find.byType(TextField), 'Lina');
-      await tapVisible(tester, find.byKey(const ValueKey('player-continue')));
-
-      expect(find.text('Choose your avatar'), findsOneWidget);
-      await tapVisible(tester, find.byKey(const ValueKey('avatar-continue')));
+      expect(find.text('Personnaliser (facultatif)'), findsNothing);
+      expect(find.byType(TextField), findsNothing);
+      await tapVisible(tester, find.byKey(const ValueKey('welcome-start')));
 
       expect(find.text('Comment jouer'), findsOneWidget);
       expect(find.text('Essayer l’exemple'), findsNothing);
       await tapVisible(tester, find.byTooltip('Back'));
       expect(find.text('Commencer'), findsOneWidget);
-      await tapVisible(tester, find.byKey(const ValueKey('welcome-customize')));
-      expect(
-        tester.widget<TextField>(find.byType(TextField)).controller!.text,
-        'Lina',
-      );
-      await tapVisible(tester, find.byTooltip('Back'));
       await tapVisible(tester, find.byKey(const ValueKey('welcome-start')));
       expect(find.text('Étape 1 sur 3'), findsOneWidget);
       for (var page = 0; page < 2; page++) {
@@ -272,7 +273,7 @@ void main() {
       // Le contenu vient du backend : la vignette servie, pas un scénario codé
       // en dur, et le compteur part du premier item.
       expect(find.text('Situation numéro 0.'), findsOneWidget);
-      expect(find.text('Scenario 01 / 30'), findsOneWidget);
+      expect(find.text('Scenario 01 / 24'), findsOneWidget);
       expect(repository.sessionsStarted, 1);
       expect(find.byType(AppBottomNav), findsNothing);
     },
@@ -312,10 +313,10 @@ void main() {
       });
       await tester.pumpAndSettle();
       expect(find.text('Je Décide'), findsOneWidget);
-      expect(find.text('30 questions'), findsOneWidget);
-      expect(find.text('Jusqu’à 30 min'), findsOneWidget);
+      expect(find.text('24 questions'), findsOneWidget);
+      expect(find.text('Jusqu’à 24 min'), findsOneWidget);
       expect(find.text('How it works'), findsNothing);
-      expect(find.text('Personnaliser (facultatif)'), findsOneWidget);
+      expect(find.text('Personnaliser (facultatif)'), findsNothing);
       expect(
         tester
             .widget<RawImage>(
@@ -375,8 +376,9 @@ void main() {
     );
     expect(tester.takeException(), isNull);
     await tapVisible(tester, find.byTooltip('Back'));
-    await tapVisible(tester, find.byKey(const ValueKey('welcome-customize')));
-    expect(find.byType(TextField), findsOneWidget);
+    expect(find.byKey(const ValueKey('welcome-customize')), findsNothing);
+    expect(find.byType(TextField), findsNothing);
+    expect(find.text('Commencer'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -393,96 +395,163 @@ void main() {
   // sauvegarde » dans `je_decide_gameplay_test.dart`, qui les sème justement
   // avant de monter l'écran.
 
-  testWidgets('full journey reaches the final decision profile', (
-    tester,
-  ) async {
-    SharedPreferences.setMockInitialValues({});
-    final preferences = await SharedPreferences.getInstance();
-    final repository = _FakeGamesRepository();
-    tester.view.physicalSize = const Size(390, 844);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
+  for (final variant in ['normal', 'retry', 'missing', 'muted']) {
+    testWidgets('full journey: category SFX and animated score ($variant)', (
+      tester,
+    ) async {
+      final sounds = <GameSfx>[];
+      SoundService.debugOnSfx = sounds.add;
+      SoundService.instance.setSfxEnabled(variant != 'muted');
+      addTearDown(() {
+        SoundService.debugOnSfx = null;
+        SoundService.instance.setSfxEnabled(false);
+      });
+      SharedPreferences.setMockInitialValues({});
+      final preferences = await SharedPreferences.getInstance();
+      final repository = _FakeGamesRepository()
+        ..failNextSubmit = variant == 'retry'
+        ..missingNextScore = variant == 'missing';
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          currentUserProvider.overrideWithValue(null),
-          sharedPreferencesProvider.overrideWithValue(preferences),
-          gamesRepositoryProvider.overrideWithValue(repository),
-        ],
-        child: const MaterialApp(home: JeDecideScreen()),
-      ),
-    );
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            currentUserProvider.overrideWithValue(null),
+            sharedPreferencesProvider.overrideWithValue(preferences),
+            gamesRepositoryProvider.overrideWithValue(repository),
+          ],
+          child: const MaterialApp(home: JeDecideScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
 
-    await tapVisible(tester, find.byKey(const ValueKey('welcome-start')));
-    for (var page = 0; page < 2; page++) {
-      await tapVisible(tester, find.text('Suivant'));
-    }
-    await tapVisible(tester, find.text('Essayer l’exemple'));
-    await tapVisible(tester, find.byKey(const ValueKey('choice-faster')));
-    await tapVisible(tester, find.byKey(const ValueKey('practice-continue')));
+      await tapVisible(tester, find.byKey(const ValueKey('welcome-start')));
+      for (var page = 0; page < 2; page++) {
+        await tapVisible(tester, find.text('Suivant'));
+      }
+      await tapVisible(tester, find.text('Essayer l’exemple'));
+      await tapVisible(tester, find.byKey(const ValueKey('choice-faster')));
+      await tapVisible(tester, find.byKey(const ValueKey('practice-continue')));
 
-    Future<void> choose(int index) async {
-      await tapVisible(tester, find.byKey(ValueKey('decision-option-$index')));
-      await tapVisible(tester, find.byKey(const ValueKey('decision-continue')));
-    }
+      Future<void> choose(int index) async {
+        await tapVisible(
+          tester,
+          find.byKey(ValueKey('decision-option-$index')),
+        );
+        await tapVisible(
+          tester,
+          find.byKey(const ValueKey('decision-continue')),
+        );
+      }
 
-    /// Passe l'écran de transition éventuellement intercalé entre deux blocs.
-    Future<void> skipInterstitial() async {
-      for (final key in const [
-        'decision-next-scenario',
-        'decision-checkpoint-continue',
-        'decision-badge-continue',
-        'decision-dimension-continue',
-        'decision-encouragement-continue',
-      ]) {
-        final finder = find.byKey(ValueKey(key));
-        if (finder.evaluate().isNotEmpty) {
-          await tapVisible(tester, finder);
-          return;
+      /// Passe l'écran de transition éventuellement intercalé entre deux blocs.
+      Future<void> skipInterstitial() async {
+        for (final key in const [
+          'decision-next-scenario',
+          'decision-checkpoint-continue',
+          'decision-badge-continue',
+          'decision-dimension-continue',
+          'decision-encouragement-continue',
+        ]) {
+          final finder = find.byKey(ValueKey(key));
+          if (finder.evaluate().isNotEmpty) {
+            await tapVisible(tester, finder);
+            return;
+          }
         }
       }
-    }
 
-    // Les 30 items de la forme, en alternant les options pour produire des
-    // réponses distinctes.
-    for (var i = 0; i < 30; i++) {
-      await choose(i.isEven ? 0 : 1);
-      await skipInterstitial();
-    }
+      // Les 24 items de la forme, en alternant les options pour produire des
+      // réponses distinctes.
+      for (var i = 0; i < 24; i++) {
+        await choose(i.isEven ? 0 : 1);
+        if (i < 23) {
+          expect(
+            sounds.where((sfx) => sfx == GameSfx.badgeUnlocked).length,
+            variant == 'muted' ? 0 : (i + 1) ~/ 6,
+          );
+          // Rebuilds et sortie d'un panneau ne doivent pas rejouer son son.
+          await tester.pump(const Duration(milliseconds: 100));
+        }
+        await skipInterstitial();
+      }
 
-    // Le client a envoyé une réponse par item, sans jamais calculer de score.
-    expect(repository.submitted, isNotNull);
-    expect(repository.submitted!.items, hasLength(30));
-    expect(repository.submitted!.items.every((item) => item.answered), isTrue);
-    expect(repository.submitted!.items.first.selectedOptionId, 'IT-0-o1');
+      if (variant == 'retry' || variant == 'missing') {
+        expect(
+          find.byKey(const ValueKey('decision-submit-error')),
+          findsOneWidget,
+        );
+        expect(find.text('0%'), findsNothing);
+        expect(
+          find.byKey(const ValueKey('decision-journey-complete')),
+          findsNothing,
+        );
+        final savedResponses = repository.submitted;
+        await tapVisible(
+          tester,
+          find.byKey(const ValueKey('decision-retry-result')),
+        );
+        expect(repository.submitted!.items, savedResponses!.items);
+        expect(repository.submitCalls, 2);
+      }
+      expect(repository.sessionsStarted, 1);
+      expect(
+        sounds.where((sfx) => sfx == GameSfx.badgeUnlocked).length,
+        variant == 'muted' ? 0 : 4,
+      );
+      // Le client a envoyé une réponse par item, sans jamais calculer de score.
+      expect(repository.submitted, isNotNull);
+      expect(repository.submitted!.items, hasLength(24));
+      expect(
+        repository.submitted!.items.every((item) => item.answered),
+        isTrue,
+      );
+      expect(repository.submitted!.items.first.selectedOptionId, 'IT-0-o1');
 
-    expect(
-      find.byKey(const ValueKey('decision-journey-complete')),
-      findsOneWidget,
-    );
-    await tapVisible(
-      tester,
-      find.byKey(const ValueKey('decision-reveal-profile')),
-    );
-    expect(
-      find.byKey(const ValueKey('decision-preparing-profile')),
-      findsOneWidget,
-    );
-    await tester.pump(const Duration(milliseconds: 1500));
-    await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('decision-journey-complete')),
+        findsOneWidget,
+      );
+      await tapVisible(
+        tester,
+        find.byKey(const ValueKey('decision-reveal-profile')),
+      );
+      expect(
+        find.byKey(const ValueKey('decision-preparing-profile')),
+        findsOneWidget,
+      );
+      await tester.pump(const Duration(milliseconds: 1500));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 150));
+      final displayed = tester
+          .widget<Text>(find.byKey(const ValueKey('decision-profile-score')))
+          .data!;
+      final intermediate = int.parse(displayed.replaceAll('%', ''));
+      expect(intermediate, inExclusiveRange(0, 71));
 
-    expect(
-      find.byKey(const ValueKey('decision-profile-title')),
-      findsOneWidget,
-    );
-    expect(find.text('Normal'), findsOneWidget, reason: 'niveau serveur');
-    // Le score s'anime de 0 → 71 : c'est celui renvoyé par le serveur.
-    await tester.pump(const Duration(milliseconds: 1000));
-    expect(find.text('71%'), findsOneWidget);
-  });
+      expect(
+        find.byKey(const ValueKey('decision-profile-title')),
+        findsOneWidget,
+      );
+      expect(find.text('Normal'), findsOneWidget, reason: 'niveau serveur');
+      // Le score s'anime de 0 → 71 : c'est celui renvoyé par le serveur.
+      await tester.pump(const Duration(milliseconds: 1000));
+      expect(find.text('71%'), findsOneWidget);
+      expect(
+        sounds.where((sfx) => sfx == GameSfx.badgeUnlocked).length,
+        variant == 'muted' ? 0 : 5,
+      );
+      expect(
+        sounds.where(
+          (sfx) => sfx == GameSfx.correctChoice || sfx == GameSfx.wrongChoice,
+        ),
+        isEmpty,
+      );
+    });
+  }
 }
 
 /// Backend simulé : « Je Décide » ne peut pas être joué hors ligne (la banque de
@@ -490,13 +559,15 @@ void main() {
 /// servent eux-mêmes une forme et un score.
 class _FakeGamesRepository implements GamesRepository {
   /// Taille de la forme servie — celle de la passation réelle.
-  static const itemCount = 30;
+  static const itemCount = 24;
 
   DecisionMetrics? submitted;
+  bool failNextSubmit = false;
+  bool missingNextScore = false;
+  int submitCalls = 0;
   int sessionsStarted = 0;
 
   static const _dimensions = [
-    DecisionDimension.ii,
     DecisionDimension.er,
     DecisionDimension.dt,
     DecisionDimension.cs,
@@ -552,6 +623,24 @@ class _FakeGamesRepository implements GamesRepository {
     DeviceCalibration? deviceCalibration,
   }) async {
     submitted = metrics as DecisionMetrics;
+    submitCalls++;
+    if (failNextSubmit) {
+      failNextSubmit = false;
+      throw StateError('Network unavailable');
+    }
+    if (missingNextScore) {
+      missingNextScore = false;
+      return GameSession(
+        id: sessionId,
+        gameType: GameType.decision,
+        status: 'IN_PROGRESS',
+        compositeRaw: 0,
+        compositeMax: 100,
+        normalized: 0,
+        attempts: const [],
+        startedAt: DateTime(2026),
+      );
+    }
     return GameSession(
       id: sessionId,
       gameType: GameType.decision,
@@ -628,8 +717,14 @@ class _FakeGamesRepository implements GamesRepository {
 }
 
 class _SilentStreamHandler extends MockStreamHandler {
+  _SilentStreamHandler(this.playerId);
+  final String playerId;
+  static final sinks = <String, MockStreamHandlerEventSink>{};
   @override
-  void onListen(Object? arguments, MockStreamHandlerEventSink events) {}
+  void onListen(Object? arguments, MockStreamHandlerEventSink events) {
+    sinks[playerId] = events;
+  }
+
   @override
   void onCancel(Object? arguments) {}
 }

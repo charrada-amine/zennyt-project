@@ -1,4 +1,5 @@
 import 'decision_metrics.dart';
+import '../config/decision_config.dart';
 
 /// Format d'un item « Je Décide » — miroir de `DecisionItemFormat` du contrat.
 ///
@@ -79,7 +80,7 @@ class DecisionFormItem {
       );
 }
 
-/// Forme de passation assignée à une session : 30 items, 6 par dimension.
+/// Forme de passation assignée à une session : 24 items actifs, 6 par dimension.
 ///
 /// La forme est tirée SERVEUR à la création de la session. [formCode] est
 /// informatif — la notation relit toujours la forme portée par la session, donc
@@ -102,6 +103,7 @@ class DecisionForm {
     itemsPerDimension: json['itemsPerDimension'] as int,
     items: (json['items'] as List<dynamic>)
         .map((i) => DecisionFormItem.fromJson(i as Map<String, dynamic>))
+        .where((item) => DecisionConfig.dimensions.contains(item.dimension))
         .toList(),
   );
 }

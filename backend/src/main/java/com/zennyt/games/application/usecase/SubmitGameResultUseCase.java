@@ -290,7 +290,7 @@ public class SubmitGameResultUseCase {
             throw new IllegalStateException(
                 "Aucune forme « Je Décide » assignée à la session " + session.id());
         }
-        Set<String> allowed = decisionForms.bank(
+        Set<String> allowed = decisionForms.activeBank(
                 session.runtimeSnapshot().bankId(), formCode).stream()
             .map(DecisionFormCatalog.Content::itemId)
             .collect(java.util.stream.Collectors.toSet());

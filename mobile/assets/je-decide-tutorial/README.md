@@ -35,8 +35,9 @@ Trois cartes sont désormais utilisées, dans cet ordre : `Choose` (lire et choi
 `Linked` (histoire en deux parties), `Time` (chronomètre). `Read`, `Practice` et
 `Profile` restent des sources archivées ; leurs fichiers et leur provenance sont conservés.
 L’accueil porte le logo officiel, le but, la durée, les 30 questions et la mention
-du profil à cinq dimensions avec cotations provisoires. Il mène directement aux règles ;
-pseudo et avatar restent disponibles par « Personnaliser (facultatif) ».
+du profil à cinq dimensions avec cotations provisoires. Il mène directement aux règles par « Commencer ».
+La personnalisation (pseudo, thème et avatar) est retirée à la demande de l’utilisateur ;
+les assets originaux d’avatar restent archivés. Décision 75 dans `GAMES_MODULE.md`.
 Un seul exemple d’entraînement suit les trois cartes, avant l’ouverture de session.
 Décision de parcours 73 dans `GAMES_MODULE.md` ; rendu sur appareil à valider.
 

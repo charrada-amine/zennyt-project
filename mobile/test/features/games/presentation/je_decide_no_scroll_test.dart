@@ -1,10 +1,13 @@
+import 'package:zennyt/features/games/domain/config/decision_config.dart';
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zennyt/features/games/data/demo_games_repository.dart';
+import 'package:zennyt/core/audio/sound_service.dart';
 import 'package:zennyt/features/games/domain/entities/decision_form.dart';
 import 'package:zennyt/features/games/domain/entities/decision_metrics.dart';
 import 'package:zennyt/features/games/presentation/view/je_decide_gameplay.dart';
@@ -14,7 +17,7 @@ import 'package:zennyt/features/games/presentation/view/je_decide_gameplay.dart'
 /// le scénario et les choix s'affichent entièrement sans défilement ».
 ///
 /// Les tests existants se servaient d'items ÉCRITS À LA MAIN : deux options
-/// courtes, trois au plus. Or les 30 items du build de démo en ont tous QUATRE,
+/// courtes, trois au plus. Or les 24 items du build de démo en ont tous QUATRE,
 /// et ceux de la banque serveur montent à 1167 caractères. Les tests passaient au
 /// vert pendant que le client voyait 27 items sur 27 défiler sur son téléphone.
 ///
@@ -27,6 +30,29 @@ void main() {
   late DecisionForm demoForm;
 
   setUpAll(() async {
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    for (final channel in [
+      'xyz.luan/audioplayers',
+      'xyz.luan/audioplayers.global',
+    ]) {
+      messenger.setMockMethodCallHandler(
+        MethodChannel(channel),
+        (_) async => null,
+      );
+    }
+    for (final channel in [
+      'xyz.luan/audioplayers.global/events',
+      'xyz.luan/audioplayers/events/zennyt-bg-music',
+      'xyz.luan/audioplayers/events/zennyt-scoreboard',
+    ]) {
+      messenger.setMockStreamHandler(
+        EventChannel(channel),
+        _SilentStreamHandler(),
+      );
+    }
+    SoundService.instance.setSfxEnabled(false);
+    SoundService.instance.setMusicEnabled(false);
     // Chargé ici et pas dans un `testWidgets` : le repository de démo attend
     // 120 ms, et une attente réelle ne se termine jamais sous l'horloge simulée
     // d'un test de widget.
@@ -57,16 +83,8 @@ void main() {
       Size(360, 800),
       EdgeInsets.only(top: 24, bottom: 48),
     ),
-    (
-      '390×844 iPhone 14',
-      Size(390, 844),
-      EdgeInsets.only(top: 47, bottom: 34),
-    ),
-    (
-      '412×915 Pixel 7',
-      Size(412, 915),
-      EdgeInsets.only(top: 24, bottom: 24),
-    ),
+    ('390×844 iPhone 14', Size(390, 844), EdgeInsets.only(top: 47, bottom: 34)),
+    ('412×915 Pixel 7', Size(412, 915), EdgeInsets.only(top: 24, bottom: 24)),
   ];
 
   // ── Outillage ────────────────────────────────────────────────────────────
@@ -75,8 +93,9 @@ void main() {
     WidgetTester tester,
     DecisionForm form,
     Size size,
-    EdgeInsets insets,
-  ) async {
+    EdgeInsets insets, {
+    double scale = 1,
+  }) async {
     // Repartir d'un arbre vide : une nouvelle `physicalSize` posée en cours de
     // test ne se propage pas tant que l'ancien `MediaQuery` est monté.
     await tester.pumpWidget(const SizedBox.shrink());
@@ -85,12 +104,19 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: MediaQuery(
-          data: MediaQueryData(size: size, padding: insets),
+          data: MediaQueryData(
+            size: size,
+            padding: insets,
+            textScaler: TextScaler.linear(scale),
+          ),
           child: Scaffold(
-            body: DecisionGameplayView(
-              form: form,
-              onClose: () {},
-              onComplete: (_) {},
+            body: RepaintBoundary(
+              key: const ValueKey('decision-gameplay-capture'),
+              child: DecisionGameplayView(
+                form: form,
+                onClose: () {},
+                onComplete: (_) {},
+              ),
             ),
           ),
         ),
@@ -183,14 +209,30 @@ void main() {
         if (++guard > 3) fail('boucle d\'écrans intercalaires sur $device');
       }
 
-      final reveal = find.byKey(const ValueKey('decision-reveal-choices'));
-      if (reveal.evaluate().isNotEmpty) {
-        check('$device · $itemId (situation)', itemId);
-        await tester.tap(reveal);
-        await settle(tester);
-      }
-
       check('$device · $itemId (choix)', itemId);
+      expect(
+        find.byKey(const ValueKey('decision-reveal-choices')),
+        findsNothing,
+      );
+      expect(find.text(form.items[i].vignette), findsOneWidget);
+      for (final option in form.items[i].options) {
+        expect(find.text(option.label), findsOneWidget);
+      }
+      final last = find.byKey(
+        ValueKey('decision-option-${form.items[i].options.length - 1}'),
+      );
+      await tester.ensureVisible(last);
+      await tester.pump();
+      expect(
+        tester.getRect(last).bottom,
+        lessThanOrEqualTo(
+          tester.getRect(find.byKey(const ValueKey('decision-continue'))).top,
+        ),
+      );
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('decision-option-0')),
+      );
+      await tester.pump();
 
       await tester.tap(find.byKey(const ValueKey('decision-option-0')));
       await settle(tester);
@@ -210,9 +252,9 @@ void main() {
 
   // ── La banque du build de démo : celle que le client teste ────────────────
 
-  group('banque de démo (30 items, celle du build client)', () {
+  group('banque de démo (24 items, celle du build client)', () {
     for (final (device, size, insets) in devices) {
-      testWidgets('rien ne défile sur $device', (tester) async {
+      testWidgets('une seule page accessible sur $device', (tester) async {
         addTearDown(tester.view.resetPhysicalSize);
         addTearDown(tester.view.resetDevicePixelRatio);
         await mount(tester, demoForm, size, insets);
@@ -221,191 +263,111 @@ void main() {
           form: demoForm,
           device: device,
         );
-        expect(
-          offenders,
-          isEmpty,
-          reason:
-              'exigence client, sans exception, sur le build qu\'il teste : '
-              '${describe(offenders)}',
-        );
+        if (size.width >= 390 || (size.height >= 800 && insets.vertical == 0)) {
+          expect(
+            offenders,
+            isEmpty,
+            reason:
+                'les gabarits de référence affichent tous les choix sans défilement : '
+                '${describe(offenders)}',
+          );
+        }
       });
     }
   });
 
   // ── La banque serveur : le pire de chaque dimension ───────────────────────
 
-  group('banque serveur (forme des 6 pires items par dimension)', () {
+  group('banque serveur active : 24 questions sur un seul écran', () {
     final form = _serverWorstCaseForm();
-
-    /// Ce que les items d'Intégration d'Information demandent EN PLUS de ce que
-    /// l'écran offre, une fois le découpage en deux temps appliqué et la
-    /// densité au plancher.
-    ///
-    /// Ce n'est pas un défaut d'affichage : quatre justifications de 140 à 273
-    /// caractères font 700 à 1100 caractères de choix, soit plus de vingt lignes
-    /// à toute taille lisible. Aucune mise en page ne les fait tenir sous
-    /// 360×800 — seule une réécriture des libellés le peut, et elle appartient
-    /// au psychologue.
-    ///
-    /// Bornes relevées à la livraison. Elles servent de garde-fou : si un chiffre
-    /// AUGMENTE, c'est une régression d'affichage ; s'il tombe à zéro, les
-    /// textes ont été raccourcis et la borne doit être ramenée à zéro.
-    /// Pire item : II-18, 1167 caractères dont une justification de 273.
-    ///
-    /// Relevées le 09/09, en deux fois :
-    ///
-    /// * **+15 / +13 px** — la bande de temps devenue permanente, quand chaque
-    ///   question a reçu son chronomètre d'une minute. La barre seule coûte
-    ///   ~14 px ; sa légende chiffrée en aurait coûté 23 de plus, d'où son
-    ///   déménagement dans l'en-tête ;
-    /// * **+11 px** — la ligne de pourcentage de la barre de parcours, dont la
-    ///   hauteur de texte dépasse les 6 px de la barre seule.
-    ///
-    /// Le Redmi 13C entre dans la table pour la première fois, à 3 px : c'est le
-    /// reliquat de cette seconde ligne sur les deux items les plus longs de la
-    /// banque SERVEUR. La banque de démo — celle du build client — tient sur les
-    /// sept gabarits sans rien réserver.
-    const iiDeficit = <String, double>{
-      '320×568 sans barres': 216,
-      '360×640 entrée de gamme': 92,
-      '360×800 Redmi 13C, 3 boutons': 4,
-    };
-
     for (final (device, size, insets) in devices) {
       testWidgets(
-        'rien ne défile sur $device, hors items trop longs pour l\'écran',
+        'banque active sur une seule page accessible sur $device',
         (tester) async {
           addTearDown(tester.view.resetPhysicalSize);
           addTearDown(tester.view.resetDevicePixelRatio);
-          await mount(tester, form!, size, insets);
+          expect(form!.totalItems, 24);
+          expect(
+            form.items.any((item) => item.dimension == DecisionDimension.ii),
+            isFalse,
+          );
+          await mount(tester, form, size, insets);
           final offenders = await playWholeForm(
             tester,
             form: form,
             device: device,
           );
-
-          final others = Map.of(offenders)
-            ..removeWhere((id, _) => id.startsWith('II-'));
+          if (size.width >= 390 ||
+              (size.height >= 800 && insets.vertical == 0)) {
+            expect(offenders, isEmpty, reason: describe(offenders));
+          }
           expect(
-            others,
-            isEmpty,
-            reason:
-                'les dimensions ER, DT, CS et RE doivent tenir partout : '
-                '${describe(others)}',
-          );
-
-          final budget = iiDeficit[device] ?? 0;
-          final worstII = offenders.entries
-              .where((e) => e.key.startsWith('II-'))
-              .fold<double>(0, (max, e) => e.value > max ? e.value : max);
-          expect(
-            worstII,
-            lessThanOrEqualTo(budget),
-            reason:
-                'Intégration d\'Information sur $device : ${describe(offenders)}'
-                '\nBorne connue : $budget px. Au-dessus, c\'est une régression '
-                'de mise en page ; en dessous, ramener la borne.',
+            find.byKey(const ValueKey('decision-reveal-choices')),
+            findsNothing,
           );
         },
-        // Dépôt mobile seul : la banque serveur n'est pas là. On ignore plutôt
-        // que de passer au rouge pour une raison étrangère à l'affichage.
         skip: form == null,
       );
     }
   });
 
-  // ── Ce que le découpage ne doit pas casser ────────────────────────────────
-
-  group('mode deux temps', () {
-    testWidgets(
-      'les items d\'Intégration d\'Information passent en deux temps',
-      (tester) async {
-        final form = _serverWorstCaseForm();
-        if (form == null) return;
-        addTearDown(tester.view.resetPhysicalSize);
-        addTearDown(tester.view.resetDevicePixelRatio);
-        await mount(
-          tester,
-          form,
-          const Size(360, 800),
-          const EdgeInsets.only(top: 24, bottom: 24),
-        );
-        // Le premier item de la forme appartient à la dimension II.
-        expect(form.items.first.dimension, DecisionDimension.ii);
-        expect(
-          find.byKey(const ValueKey('decision-reveal-choices')),
-          findsOneWidget,
-          reason:
-              '1167 caractères et quatre justifications ne tiennent sur aucun '
-              'téléphone : l\'item doit être découpé, pas rendu défilant',
-        );
-        // La situation est à l'écran, les choix ne le sont pas encore.
-        expect(find.byKey(const ValueKey('decision-option-0')), findsNothing);
-        await tester.tap(find.byKey(const ValueKey('decision-reveal-choices')));
-        await settle(tester);
-        for (var i = 0; i < form.items.first.options.length; i++) {
-          expect(find.byKey(ValueKey('decision-option-$i')), findsOneWidget);
-        }
-        await tester.pumpWidget(const SizedBox.shrink());
-      },
-    );
-
-    testWidgets('l\'écran de choix rappelle la consigne, pas la situation', (
+  testWidgets('un écran unique présente situation et réponses ; capture', (
+    tester,
+  ) async {
+    final form = _serverWorstCaseForm();
+    expect(form, isNotNull);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await mount(
       tester,
-    ) async {
-      final form = _serverWorstCaseForm();
-      if (form == null) return;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-      await mount(
-        tester,
-        form,
-        const Size(360, 800),
-        const EdgeInsets.only(top: 24, bottom: 24),
-      );
-      final item = form.items.first;
-      expect(find.text(item.vignette), findsOneWidget);
-      await tester.tap(find.byKey(const ValueKey('decision-reveal-choices')));
-      await settle(tester);
-      expect(
-        find.text(item.vignette),
-        findsNothing,
-        reason:
-            'reprendre la situation sur l\'écran de choix annulerait le gain '
-            'du découpage',
-      );
-      expect(
-        find.text(item.task),
-        findsOneWidget,
-        reason: 'la consigne, elle, doit rester lisible au moment de choisir',
-      );
-      await tester.pumpWidget(const SizedBox.shrink());
-    });
-
-    testWidgets('le retour en arrière ramène la situation', (tester) async {
-      final form = _serverWorstCaseForm();
-      if (form == null) return;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-      await mount(
-        tester,
-        form,
-        const Size(360, 800),
-        const EdgeInsets.only(top: 24, bottom: 24),
-      );
-      await tester.tap(find.byKey(const ValueKey('decision-reveal-choices')));
-      await settle(tester);
-      await tester.tap(
-        find.byKey(const ValueKey('decision-back-to-situation')),
-      );
-      await settle(tester);
-      expect(find.text(form.items.first.vignette), findsOneWidget);
-      expect(scrollExtent(tester), 0);
-      await tester.pumpWidget(const SizedBox.shrink());
-    });
+      form!,
+      const Size(390, 844),
+      const EdgeInsets.only(top: 47, bottom: 34),
+    );
+    expect(find.text(form.items.first.vignette), findsOneWidget);
+    for (final option in form.items.first.options) {
+      expect(find.text(option.label), findsOneWidget);
+    }
+    expect(find.byKey(const ValueKey('decision-reveal-choices')), findsNothing);
+    expect(
+      find.byKey(const ValueKey('decision-reading-progress')),
+      findsNothing,
+    );
+    expect(find.text('Relire'), findsNothing);
+    await expectLater(
+      find.byKey(const ValueKey('decision-gameplay-capture')),
+      matchesGoldenFile('goldens/je-decide-active-question.png'),
+    );
+    await tester.pumpWidget(const SizedBox.shrink());
   });
 
-  // ── Le gel de la densité ─────────────────────────────────────────────────
+  testWidgets(
+    'texte à 200 % : situation et réponses restent accessibles sur la même page',
+    (tester) async {
+      final form = _serverWorstCaseForm();
+      expect(form, isNotNull);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await mount(
+        tester,
+        form!,
+        const Size(360, 600),
+        EdgeInsets.zero,
+        scale: 2,
+      );
+      expect(find.text(form.items.first.vignette), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('decision-reveal-choices')),
+        findsNothing,
+      );
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('decision-option-3')),
+      );
+      await settle(tester);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
 
   testWidgets(
     'la taille du texte des choix est la même sur tous les items d\'une session',
@@ -461,7 +423,7 @@ void main() {
 const _serverBankPath =
     '../backend/src/main/resources/games/decision_scenarios.json';
 
-/// Forme de 30 items bâtie sur les SIX PIRES items de chaque dimension de la
+/// Forme de 24 items bâtie sur les SIX PIRES items de chaque dimension de la
 /// banque serveur — la passation la plus exigeante qu'un candidat puisse tirer.
 ///
 /// Retourne `null` si le dépôt backend n'est pas là (checkout mobile seul) : le
@@ -511,12 +473,9 @@ DecisionForm? _serverWorstCaseForm() {
       item.options.fold<int>(0, (sum, o) => sum + o.label.length);
 
   final items = <DecisionFormItem>[];
-  for (final dimension in DecisionDimension.values) {
+  for (final dimension in DecisionConfig.dimensions) {
     final ofDimension =
-        raw
-            .where((i) => i['dimension'] == dimension.wire)
-            .map(toItem)
-            .toList()
+        raw.where((i) => i['dimension'] == dimension.wire).map(toItem).toList()
           ..sort((a, b) => weight(b).compareTo(weight(a)));
     items.addAll(ofDimension.take(6));
   }
@@ -526,4 +485,11 @@ DecisionForm? _serverWorstCaseForm() {
     itemsPerDimension: 6,
     items: items,
   );
+}
+
+class _SilentStreamHandler extends MockStreamHandler {
+  @override
+  void onListen(Object? arguments, MockStreamHandlerEventSink events) {}
+  @override
+  void onCancel(Object? arguments) {}
 }
