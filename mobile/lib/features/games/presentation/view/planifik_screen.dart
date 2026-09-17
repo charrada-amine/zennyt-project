@@ -14,10 +14,13 @@ import '../../domain/entities/game_session.dart';
 import '../../domain/entities/game_type.dart';
 import '../../domain/entities/mini_game.dart';
 import '../../domain/entities/planifik_metrics.dart';
+import '../flame/cell_component.dart';
 import '../flame/grid_config.dart';
 import '../flame/planifik_game.dart';
 import '../games_controller.dart';
+import '../widgets/game_results_template.dart';
 import '../widgets/game_system_components.dart';
+import '../widgets/game_tutorial_deck.dart';
 
 /// Jeu « Optimal Path » (Planifik — « Je planifie »).
 ///
@@ -260,9 +263,12 @@ class _PlanifikScreenState extends ConsumerState<PlanifikScreen> {
         onStart: () => setState(() => _stage = _PlanifikStage.howToPlay),
         onBack: () => context.go(AppRoutes.games),
       ),
-      _PlanifikStage.howToPlay => _HowToPlayView(
-        onBack: () => setState(() => _stage = _PlanifikStage.intro),
-        onDone: _beginGame,
+      _PlanifikStage.howToPlay => OptimalPathTutorial(
+        leading: _SquareIconButton(
+          icon: Icons.chevron_left,
+          onTap: () => setState(() => _stage = _PlanifikStage.intro),
+        ),
+        onComplete: _beginGame,
       ),
       _PlanifikStage.gameplay => GameplayMusic(child: _GameplayView(
         key: ValueKey(_level),
@@ -692,295 +698,166 @@ class _SquareIconButton extends StatelessWidget {
 
 // ─────────────────────────── How To Play (tutorial) ───────────────────────────
 
-class _HowToPlayView extends StatefulWidget {
-  const _HowToPlayView({required this.onBack, required this.onDone});
+/// Amélioration des deux pages existantes, avec leur style de stations rondes.
+/// PROVISOIRE — à valider visuellement sur appareil (GAMES_MODULE, décision 71).
+class OptimalPathTutorial extends StatelessWidget {
+  const OptimalPathTutorial({
+    super.key,
+    required this.leading,
+    required this.onComplete,
+  });
 
-  final VoidCallback onBack;
-  final VoidCallback onDone;
-
-  @override
-  State<_HowToPlayView> createState() => _HowToPlayViewState();
-}
-
-class _HowToPlayViewState extends State<_HowToPlayView> {
-  final PageController _controller = PageController();
-  int _index = 0;
-
-  static const _pages = 2;
+  final Widget leading;
+  final VoidCallback onComplete;
 
   @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _back() {
-    if (_index > 0) {
-      _controller.previousPage(
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOut,
-      );
-    } else {
-      widget.onBack();
-    }
-  }
-
-  void _next() {
-    if (_index < _pages - 1) {
-      _controller.nextPage(
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOut,
-      );
-    } else {
-      widget.onDone();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              _SquareIconButton(icon: Icons.chevron_left, onTap: _back),
-              const SizedBox(width: AppSpacing.md),
-              Text(
-                'How To Play',
-                style: AppTypography.displaySmall.copyWith(
-                  color: ZennytGamePalette.ink,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          Expanded(
-            child: PageView(
-              controller: _controller,
-              onPageChanged: (i) => setState(() => _index = i),
-              children: const [_HowToPlayPage1(), _HowToPlayPage2()],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          _TrailingArrowButton(label: 'Next', onPressed: _next),
-        ],
+  Widget build(BuildContext context) => GameTutorialDeck(
+    leading: leading,
+    onComplete: onComplete,
+    completionLabel: 'Commencer le parcours',
+    steps: const [
+      GameTutorialStep(
+        title: 'Relie LAB à MTG',
+        description:
+            'Glisse ou touche les stations voisines, sans diagonale. '
+            'Évite les blocs rouges. Glisse en arrière pour effacer un pas.',
+        illustration: _StationsTutorialArt(),
+        illustrationLabel:
+            'Départ LAB : cercle blanc bordé de bleu. Le chemin magenta '
+            'passe par les stations voisines et une étoile, contourne le bloc '
+            'rouge et atteint MTG, le cercle vert. Aucun segment diagonal.',
       ),
-    );
-  }
+      GameTutorialStep(
+        title: 'Choisis un trajet efficace',
+        description:
+            'Privilégie une route courte et peu d’essais. Récupère les étoiles '
+            'sans grand détour. Quand ton trajet est prêt, appuie sur « Validate route ».',
+        illustration: _OptimalScoreArt(),
+        illustrationLabel:
+            'Chaque niveau vaut jusqu’à dix points : route optimale quatre, '
+            'essais trois, zones coûteuses évitées deux, objectifs atteints un. '
+            'Le score du jeu est la moyenne des niveaux.',
+      ),
+    ],
+  );
 }
 
-/// Bouton primaire magenta avec la flèche **après** le texte (« Next → »),
-/// conforme à la maquette Figma.
-class _TrailingArrowButton extends StatelessWidget {
-  const _TrailingArrowButton({required this.label, required this.onPressed});
+class _OptimalTutorialDiagram extends StatelessWidget {
+  const _OptimalTutorialDiagram({required this.child});
 
-  final String label;
-  final VoidCallback onPressed;
+  final Widget child;
 
   @override
-  Widget build(BuildContext context) {
-    return FilledButton(
-      // Bouton « Next » des pages de RÈGLES : style propre à la maquette, donc
-      // hors [GamePrimaryButton] — c'était l'un des « boutons de règles » sans
-      // son signalés par le client.
-      onPressed: () {
-        SoundService.instance.playSfx(GameSfx.buttonClick);
-        onPressed();
-      },
-      style: FilledButton.styleFrom(
-        backgroundColor: ZennytGamePalette.magenta,
-        foregroundColor: Colors.white,
-        minimumSize: const Size.fromHeight(56),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+  Widget build(BuildContext context) => MediaQuery.withNoTextScaling(
+    child: FittedBox(
+      fit: BoxFit.contain,
+      child: SizedBox(width: 300, height: 270, child: child),
+    ),
+  );
+}
+
+class _StationsTutorialArt extends StatelessWidget {
+  const _StationsTutorialArt();
+
+  @override
+  Widget build(BuildContext context) => _OptimalTutorialDiagram(
+    child: Column(
+      children: [
+        Text(
+          'De station en station',
+          style: AppTypography.titleMedium.copyWith(
+            color: ZennytGamePalette.ink,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0,
+          ),
         ),
-        textStyle: AppTypography.buttonLarge.copyWith(letterSpacing: 0),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(label),
-          const SizedBox(width: AppSpacing.sm),
-          const Icon(Icons.arrow_forward_rounded, size: AppSpacing.iconMd),
-        ],
-      ),
-    );
-  }
+        const SizedBox(height: 10),
+        Expanded(
+          child: CustomPaint(painter: _StationsArt(), size: Size.infinite),
+        ),
+        const SizedBox(height: 12),
+        const Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 16,
+          runSpacing: 6,
+          children: [
+            _MiniLegend(
+              color: BoardPalette.startRing,
+              label: 'Départ',
+              outlined: true,
+            ),
+            _MiniLegend(color: BoardPalette.finish, label: 'Arrivée'),
+            _MiniLegend(color: BoardPalette.blockIcon, label: 'Bloc'),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Text(
+          'Haut · bas · gauche · droite',
+          style: AppTypography.bodyMedium.copyWith(
+            color: ZennytGamePalette.ink,
+            letterSpacing: 0,
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
-class _HowToPlayPage1 extends StatelessWidget {
-  const _HowToPlayPage1();
+class _OptimalScoreArt extends StatelessWidget {
+  const _OptimalScoreArt();
 
   @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF4F6FD),
-              borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-            ),
-            child: Column(
-              children: [
-                Text(
-                  'Connect the Stations',
-                  style: AppTypography.titleLarge.copyWith(
-                    color: ZennytGamePalette.ink,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                SizedBox(
-                  height: 130,
-                  width: double.infinity,
-                  child: CustomPaint(painter: _StationsArt()),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                Text(
-                  'Touch the stations to trace the lines',
-                  style: AppTypography.bodySmall.copyWith(
-                    color: ZennytGamePalette.muted,
-                    letterSpacing: 0,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Wrap(
-                  alignment: WrapAlignment.center,
-                  spacing: AppSpacing.md,
-                  children: const [
-                    _MiniLegend(
-                      color: Color(0xFF9AA4C7),
-                      label: 'Start',
-                      outlined: true,
-                    ),
-                    _MiniLegend(color: Color(0xFF22C55E), label: 'End'),
-                    _MiniLegend(color: Color(0xFFEF5B5B), label: 'Blocked'),
-                  ],
-                ),
-              ],
-            ),
+  Widget build(BuildContext context) => _OptimalTutorialDiagram(
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          'Jusqu’à 10 points par niveau',
+          style: AppTypography.titleMedium.copyWith(
+            color: ZennytGamePalette.ink,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0,
           ),
-          const SizedBox(height: AppSpacing.lg),
-          Text(
-            'Find the optimal route',
-            style: AppTypography.titleLarge.copyWith(
-              color: ZennytGamePalette.ink,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0,
-            ),
+        ),
+        const SizedBox(height: 22),
+        const _ScoringRow(
+          icon: Icons.gps_fixed_rounded,
+          iconColor: BoardPalette.finish,
+          label: 'Route optimale (±10 %)',
+          points: '4 pts',
+          pointsColor: ZennytGamePalette.ink,
+        ),
+        const _ScoringRow(
+          icon: Icons.replay_rounded,
+          iconColor: ZennytGamePalette.cyan,
+          label: 'Peu d’essais',
+          points: '3 pts',
+          pointsColor: ZennytGamePalette.ink,
+        ),
+        const _ScoringRow(
+          icon: Icons.do_not_disturb_rounded,
+          iconColor: BoardPalette.blockIcon,
+          label: 'Zones coûteuses évitées',
+          points: '2 pts',
+          pointsColor: ZennytGamePalette.ink,
+        ),
+        const _ScoringRow(
+          icon: Icons.star_rounded,
+          iconColor: BoardPalette.star,
+          label: 'Objectifs atteints',
+          points: '1 pt',
+          pointsColor: ZennytGamePalette.ink,
+        ),
+        Text(
+          'Score du jeu = moyenne des niveaux',
+          style: AppTypography.labelSmall.copyWith(
+            color: ZennytGamePalette.ink,
+            letterSpacing: 0,
           ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            'Leila starts at the Lab (green) and needs to reach the Meeting '
-            'Room (pink). Slide your finger along the stations — or tap them one '
-            'by one — to trace your path. Each segment costs '
-            '1 move. Avoid red zones (under construction) to save moves. '
-            'You can only move right and left, up and down.',
-            style: AppTypography.bodyMedium.copyWith(
-              color: ZennytGamePalette.muted,
-              letterSpacing: 0,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HowToPlayPage2 extends StatelessWidget {
-  const _HowToPlayPage2();
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF4F6FD),
-              borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-            ),
-            child: Column(
-              children: [
-                Text(
-                  'Scoring Breakdown',
-                  style: AppTypography.titleLarge.copyWith(
-                    color: ZennytGamePalette.ink,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                // Barème réel : chaque niveau est noté /10 (miroir backend),
-                // puis moyenné sur les 4 niveaux → /100.
-                const _ScoringRow(
-                  icon: Icons.gps_fixed_rounded,
-                  iconColor: Color(0xFF22C55E),
-                  label: 'Optimal route (within 10%)',
-                  points: '+4 pts',
-                  pointsColor: Color(0xFF22C55E),
-                ),
-                const _ScoringRow(
-                  icon: Icons.replay_rounded,
-                  iconColor: Color(0xFF00A9D6),
-                  label: 'Attempts (1st / 2nd / 3rd)',
-                  points: '+3 / +2 / +1',
-                  pointsColor: Color(0xFF00A9D6),
-                ),
-                const _ScoringRow(
-                  icon: Icons.do_not_disturb_rounded,
-                  iconColor: Color(0xFFEF5B5B),
-                  label: 'Costly zones avoided',
-                  points: '+2 pts',
-                  pointsColor: ZennytGamePalette.magenta,
-                ),
-                const _ScoringRow(
-                  icon: Icons.star_rounded,
-                  iconColor: Color(0xFFF5B800),
-                  label: 'Documents collected',
-                  points: '+1 pt',
-                  pointsColor: Color(0xFFF5B800),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          Text(
-            'Collect files, earn bonus points',
-            style: AppTypography.titleLarge.copyWith(
-              color: ZennytGamePalette.ink,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            'Yellow star stations hold Leila\'s documents — collecting them '
-            'earns bonus points. Plan your route to grab them without going '
-            'too far out of your way. Fewer moves = higher score!',
-            style: AppTypography.bodyMedium.copyWith(
-              color: ZennytGamePalette.muted,
-              letterSpacing: 0,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
 }
 
 class _ScoringRow extends StatelessWidget {
@@ -1068,88 +945,79 @@ class _MiniLegend extends StatelessWidget {
   }
 }
 
-/// Illustration des stations (page 1) : LAB → A → étoile → MTG, avec un nœud
-/// bloqué (éclair). Lignes en pointillés, style « calm » de la charte.
+/// Même style de stations rondes ; chemin orthogonal conforme au plateau.
 class _StationsArt extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    Offset at(double x, double y) => Offset(size.width * x, size.height * y);
+    Offset at(int col, int row) => Offset(
+      size.width * (0.14 + col * 0.24),
+      size.height * (0.18 + row * 0.32),
+    );
+    final lab = at(0, 2);
+    final bend = at(0, 0);
+    final star = at(2, 0);
+    final mtg = at(3, 0);
+    final blocked = at(1, 1);
+    final radius = math.min(size.width * 0.065, size.height * 0.13);
 
-    final lab = at(0.14, 0.60);
-    final a = at(0.44, 0.30);
-    final star = at(0.66, 0.55);
-    final mtg = at(0.87, 0.42);
-    final blocked = at(0.44, 0.80);
-
-    _dashedLine(canvas, lab, a);
-    _dashedLine(canvas, a, star);
-    _dashedLine(canvas, star, mtg);
-
-    final radius = size.height * 0.155;
-
+    final route = Path()
+      ..moveTo(lab.dx, lab.dy)
+      ..lineTo(bend.dx, bend.dy)
+      ..lineTo(mtg.dx, mtg.dy);
+    canvas.drawPath(
+      route,
+      Paint()
+        ..color = BoardPalette.route
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 4
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round,
+    );
+    for (final point in [at(0, 1), bend, at(1, 0)]) {
+      _node(
+        canvas,
+        point,
+        radius,
+        fill: BoardPalette.nodeInPath,
+        border: BoardPalette.route,
+      );
+    }
     _node(
       canvas,
       lab,
       radius,
-      fill: Colors.white,
-      border: const Color(0xFF6C8CF5),
+      fill: BoardPalette.start,
+      border: BoardPalette.startRing,
       label: 'LAB',
+      labelColor: BoardPalette.startRing,
+      labelSize: radius * 0.62,
     );
-    _node(
-      canvas,
-      a,
-      radius,
-      fill: const Color(0xFF6C8CF5),
-      border: const Color(0xFF6C8CF5),
-      label: 'A',
-      labelColor: Colors.white,
-    );
-    // Station étoile (documents).
     _node(
       canvas,
       star,
       radius,
-      fill: const Color(0xFFF9D9E7),
-      border: ZennytGamePalette.magenta,
+      fill: BoardPalette.nodeInPath,
+      border: BoardPalette.route,
     );
-    _star(canvas, star, radius * 0.62, const Color(0xFFF5B800));
-    // Arrivée MTG.
+    _star(canvas, star, radius * 0.65, BoardPalette.star);
     _node(
       canvas,
       mtg,
       radius,
-      fill: const Color(0xFF22C55E),
-      border: const Color(0xFF22C55E),
+      fill: BoardPalette.finish,
+      border: BoardPalette.finish,
       label: 'MTG',
       labelColor: Colors.white,
-      labelSize: 8,
+      labelSize: radius * 0.62,
     );
-    // Nœud bloqué (éclair).
     _node(
       canvas,
       blocked,
       radius,
-      fill: const Color(0xFFFBE0E0),
-      border: const Color(0xFFEF5B5B),
+      fill: BoardPalette.block,
+      border: BoardPalette.blockIcon,
     );
-    _bolt(canvas, blocked, radius * 0.7, const Color(0xFFEF5B5B));
-  }
-
-  void _dashedLine(Canvas canvas, Offset a, Offset b) {
-    final paint = Paint()
-      ..color = const Color(0xFF8FB0E6)
-      ..strokeWidth = 2.5
-      ..strokeCap = StrokeCap.round;
-    const dash = 6.0, gap = 5.0;
-    final total = (b - a).distance;
-    final dir = (b - a) / total;
-    var d = 0.0;
-    while (d < total) {
-      final p1 = a + dir * d;
-      final p2 = a + dir * (d + dash).clamp(0, total).toDouble();
-      canvas.drawLine(p1, p2, paint);
-      d += dash + gap;
-    }
+    _bolt(canvas, blocked, radius * 0.65, BoardPalette.blockIcon);
   }
 
   void _node(
@@ -1175,10 +1043,11 @@ class _StationsArt extends CustomPainter {
       final tp = TextPainter(
         text: TextSpan(
           text: label,
-          style: TextStyle(
+          style: AppTypography.labelMedium.copyWith(
             color: labelColor,
             fontSize: labelSize,
             fontWeight: FontWeight.w700,
+            letterSpacing: 0,
           ),
         ),
         textDirection: TextDirection.ltr,
@@ -1355,24 +1224,20 @@ class _GameplayViewState extends State<_GameplayView> {
 
   /// Réaffiché après les règles sur le **temps restant** de la fenêtre.
   Future<void> _showPauseMenu() async {
-    final action = await showDialog<GamePauseAction>(
-      context: context,
-      barrierColor: ZennytGamePalette.ink.withValues(alpha: 0.82),
+    final action = await showGamePauseMenu<GamePauseAction>(
+      context,
       builder: (context) => GamePauseScaffold(
         countdown: widget.pauseAllowance.remaining,
         onCountdownExpired: () =>
             Navigator.of(context).pop(GamePauseAction.resume),
-        buttons: [
-          GamePrimaryButton(
-            label: 'Resume',
+        actions: [
+          GamePauseMenuAction.resume(
             onPressed: () => Navigator.of(context).pop(GamePauseAction.resume),
           ),
-          GameOutlineButton(
-            label: 'View rules / Help',
+          GamePauseMenuAction.rules(
             onPressed: () => Navigator.of(context).pop(GamePauseAction.help),
           ),
-          GamePauseExitButton(
-            label: 'Exit mission',
+          GamePauseMenuAction.exit(
             onPressed: () => Navigator.of(context).pop(GamePauseAction.exit),
           ),
         ],
@@ -2033,8 +1898,6 @@ class _ScoreView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final attempt = session?.lastAttempt;
-    final scorePercent = attempt?.score.normalized.round() ?? 0;
-    final rawScore = attempt?.score.rawPoints;
     final routeEfficiency = metrics == null
         ? 0
         : ((metrics!.optimalLength /
@@ -2045,153 +1908,53 @@ class _ScoreView extends StatelessWidget {
         ? 0
         : metrics!.pathLength - metrics!.optimalLength;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 18, 24, 24),
-      child: Column(
-        children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: _SquareIconButton(icon: Icons.chevron_left, onTap: onBack),
-          ),
-          Text(
-            'Results',
-            style: AppTypography.displaySmall.copyWith(
-              color: ZennytGamePalette.blue,
-              letterSpacing: 0,
-            ),
-          ),
-          Text(
-            attempt == null ? 'Synchronizing score...' : 'Path Mind completed',
-            style: AppTypography.bodyMedium.copyWith(
-              color: ZennytGamePalette.muted,
-              letterSpacing: 0,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xl),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(AppSpacing.xl),
-            decoration: BoxDecoration(
-              color: ZennytGamePalette.gameBlue,
-              borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-            ),
-            child: Column(
-              children: [
-                Text(
-                  'Cognitive score',
-                  style: AppTypography.titleSmall.copyWith(
-                    color: Colors.white,
-                    letterSpacing: 0,
-                  ),
-                ),
-                AnimatedCountText(
-                  value: scorePercent,
-                  suffix: '%',
-                  onCompleted: SoundService.instance.stopScoreboard,
-                  style: AppTypography.displayLarge.copyWith(
-                    color: Colors.white,
-                    fontSize: 56,
-                    letterSpacing: 0,
-                  ),
-                ),
-                Text(
-                  rawScore == null
-                      ? 'Planning score is being calculated.'
-                      : '$rawScore points calculated by the server.',
-                  textAlign: TextAlign.center,
-                  style: AppTypography.bodyLarge.copyWith(
-                    color: Colors.white,
-                    letterSpacing: 0,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xl),
-          Row(
-            children: [
-              Expanded(
-                child: ResultStatTile(
-                  label: 'Efficiency',
-                  value: '$routeEfficiency%',
-                  valueColor: ZennytGamePalette.success,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: ResultStatTile(
-                  label: 'Route',
-                  value: metrics == null ? '—' : '${metrics!.pathLength}',
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: ResultStatTile(
-                  label: 'Delta',
-                  value: metrics == null
-                      ? '—'
-                      : delta <= 0
-                      ? 'Optimal'
-                      : '+$delta',
-                  valueColor: delta <= 0
-                      ? ZennytGamePalette.success
-                      : ZennytGamePalette.magenta,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.xxl),
-          GamePanel(
-            backgroundColor: ZennytGamePalette.mist,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Summary insight',
-                  style: AppTypography.titleMedium.copyWith(
-                    color: ZennytGamePalette.blue,
-                    letterSpacing: 0,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                Text(
-                  'The player plans a route under constraints, balances optional objectives, and compares the chosen path with the optimal graph route.',
-                  style: AppTypography.bodyLarge.copyWith(
-                    color: ZennytGamePalette.muted,
-                    letterSpacing: 0,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Le détail de la formule de calcul du score (points par critère,
-          // « ±10 % », « /4 »…) a été retiré du tableau de score sur retour
-          // client : le joueur voit son résultat et l'analyse, pas le barème.
-          // Le calcul reste entier côté serveur (ScoreBreakdownService).
-          const SizedBox(height: AppSpacing.xxl),
-          // Jeu individuel : bouton terminal qui referme Optimal Path.
-          GamePrimaryButton(label: 'Finish', onPressed: onNext),
-          const SizedBox(height: AppSpacing.md),
-          Row(
-            children: [
-              Expanded(
-                child: GameOutlineButton(label: 'Replay', onPressed: onReplay),
-              ),
-              const SizedBox(width: AppSpacing.lg),
-              Expanded(
-                child: GameOutlineButton(
-                  label: 'Compare',
-                  onPressed: onCompare,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+    return GameResultsTemplate(
+      onBack: onBack,
+      gameName: 'Path Mind',
+      pending: attempt == null,
+      scoreLabel: 'Cognitive score',
+      scorePercent: attempt?.score.normalized.round(),
+      points: attempt?.score.rawPoints,
+      maxPoints: attempt?.score.maxPoints,
+      stats: [
+        GameResultStat(
+          label: 'Efficiency',
+          value: '$routeEfficiency%',
+          color: ZennytGamePalette.success,
+        ),
+        GameResultStat(
+          label: 'Route',
+          value: metrics == null ? '—' : '${metrics!.pathLength}',
+        ),
+        GameResultStat(
+          label: 'Delta',
+          value: metrics == null
+              ? '—'
+              : delta <= 0
+              ? 'Optimal'
+              : '+$delta',
+          color: delta <= 0
+              ? ZennytGamePalette.success
+              : ZennytGamePalette.magenta,
+        ),
+      ],
+      // Le détail de la formule de calcul du score (points par critère,
+      // « ±10 % », « /4 »…) a été retiré du tableau de score sur retour
+      // client : le joueur voit son résultat et l'analyse, pas le barème.
+      insight: metrics == null
+          ? null
+          : 'Route of ${metrics!.pathLength} steps for an optimal '
+                '${metrics!.optimalLength}. The player plans a route under '
+                'constraints, balances optional objectives, and compares the '
+                'chosen path with the optimal graph route.',
+      // « Finish » faisait doublon avec le retour, qui ramène déjà au hub.
+      primaryLabel: 'Replay',
+      onPrimary: onReplay,
+      secondaryLabel: 'Compare',
+      onSecondary: onCompare,
     );
   }
 }
-
 
 // ─────────────────────────── Comparison ───────────────────────────
 

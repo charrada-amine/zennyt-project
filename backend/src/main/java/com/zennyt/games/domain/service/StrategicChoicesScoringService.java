@@ -94,7 +94,7 @@ public class StrategicChoicesScoringService {
             true,
             awaitingReview,
             // L'interprétation porte sur l'indice CORRIGÉ, pas sur le
-            // pourcentage brut : celui-ci part de 38 % pour une réponse au
+            // pourcentage brut : celui-ci part de 40 % pour une réponse au
             // hasard, et ne veut donc rien dire tel quel.
             StrategicChoicesConfig.interpret(corrected));
     }

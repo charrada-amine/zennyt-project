@@ -2,11 +2,9 @@ import '../config/strategic_choices_content.dart';
 
 /// Support par lequel une situation « Choix Stratégiques » est présentée.
 ///
-/// Les soixante fiches de la banque décrivent une mini-vidéo ; aucune n'est
-/// livrée comme message écrit. Le champ existe quand même : le cahier des
-/// charges du client prévoit les deux supports, et il remonte avec la réponse
-/// parce qu'il conditionne la façon dont le joueur a pris connaissance de la
-/// scène.
+/// La banque contient 74 scènes vidéo et 6 messages écrits. Le support remonte
+/// avec la réponse parce qu'il conditionne la façon dont le joueur a pris
+/// connaissance de la situation.
 enum StrategicChoiceMedium {
   video('VIDEO'),
   written('WRITTEN');
@@ -54,7 +52,7 @@ class StrategicChoiceOption {
   }
 }
 
-/// Une situation du barème « Choix Stratégiques » (CS-001 à CS-060).
+/// Une situation du barème « Choix Stratégiques » (CS-001 à CS-120).
 class StrategicChoiceScenario {
   const StrategicChoiceScenario({
     required this.id,
@@ -62,6 +60,7 @@ class StrategicChoiceScenario {
     required this.context,
     required this.scene,
     required this.medium,
+    this.message,
     required this.needsPsychologistValidation,
     required this.choices,
   });
@@ -78,6 +77,12 @@ class StrategicChoiceScenario {
   final String scene;
 
   final StrategicChoiceMedium medium;
+
+  /// Texte littéral du message, pour les situations à support écrit.
+  ///
+  /// Les six situations écrites de la proposition le portent, ce qui les rend
+  /// jouables sans attendre la production vidéo.
+  final String? message;
 
   /// Fiche dont le document signale que le contexte inféré est ambigu.
   ///
@@ -96,7 +101,7 @@ class StrategicChoiceScenario {
   ///
   /// C'est la ligne de base contre laquelle le score se lit. Sans elle, un
   /// 15/30 passerait pour « la moitié », alors que le hasard rapporte déjà
-  /// 38 % du maximum sur cette banque.
+  /// 40 % du maximum sur cette banque.
   double get chanceBaseline =>
       choices.map((c) => c.score).reduce((a, b) => a + b) / choices.length;
 
@@ -104,20 +109,31 @@ class StrategicChoiceScenario {
       choices.firstWhere((c) => c.strategy == strategy);
 
   factory StrategicChoiceScenario.fromJson(Map<String, dynamic> json) {
+    final id = json['id'] as String;
+    final medium = StrategicChoiceMedium.fromWire(json['medium'] as String);
+    final message = json['message'] as String?;
+    if (medium == StrategicChoiceMedium.written &&
+        (message == null || message.trim().isEmpty)) {
+      throw ArgumentError('$id : message écrit manquant');
+    }
+    if (medium == StrategicChoiceMedium.video && message != null) {
+      throw ArgumentError(
+        '$id : une situation vidéo ne doit pas avoir de message',
+      );
+    }
     final choices = (json['choices'] as List)
         .map((c) => StrategicChoiceOption.fromJson(c as Map<String, dynamic>))
         .toList();
     if (choices.length != 8) {
-      throw ArgumentError(
-        '${json['id']} : ${choices.length} stratégies au lieu de 8',
-      );
+      throw ArgumentError('$id : ${choices.length} stratégies au lieu de 8');
     }
     return StrategicChoiceScenario(
-      id: json['id'] as String,
+      id: id,
       title: json['title'] as String,
       context: json['context'] as String,
       scene: json['scene'] as String,
-      medium: StrategicChoiceMedium.fromWire(json['medium'] as String),
+      medium: medium,
+      message: message,
       needsPsychologistValidation:
           json['needsPsychologistValidation'] as bool? ?? false,
       choices: choices,
@@ -125,7 +141,7 @@ class StrategicChoiceScenario {
   }
 }
 
-/// Banque complète des 60 situations « Choix Stratégiques ».
+/// Banque complète des 80 situations « Choix Stratégiques ».
 class StrategicChoicesBank {
   const StrategicChoicesBank({required this.scenarios});
 
@@ -137,7 +153,9 @@ class StrategicChoicesBank {
   factory StrategicChoicesBank.fromJson(Map<String, dynamic> json) {
     return StrategicChoicesBank(
       scenarios: (json['situations'] as List)
-          .map((s) => StrategicChoiceScenario.fromJson(s as Map<String, dynamic>))
+          .map(
+            (s) => StrategicChoiceScenario.fromJson(s as Map<String, dynamic>),
+          )
           .toList(),
     );
   }

@@ -1,0 +1,1156 @@
+{
+  "totalExpected": 82,
+  "present": 82,
+  "missing": [],
+  "errors": [],
+  "files": [
+    {
+      "file": "restaurant/reception_livraison.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 1065987,
+      "sha256": "d42fe7d01e3c657fe9124d67e397c9d6b279bda21ad6a645529eb8cacefc6df3",
+      "alphaBounds": [
+        0,
+        81,
+        1253,
+        1230
+      ]
+    },
+    {
+      "file": "restaurant/inventaire_stock.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 971364,
+      "sha256": "c063afcb16af102c806d966c9292c73c19bd6711758cc3032f325e3f3c4ff104",
+      "alphaBounds": [
+        0,
+        3,
+        1248,
+        1134
+      ]
+    },
+    {
+      "file": "restaurant/achat_marche.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 998570,
+      "sha256": "3d5fd3d31cc52b64a5d746cafdedfdd7c804569e8f1538bbc90ee9b12ae0b44a",
+      "alphaBounds": [
+        113,
+        132,
+        1152,
+        1187
+      ]
+    },
+    {
+      "file": "restaurant/nettoyage_poste.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 959756,
+      "sha256": "f3681fb054d090d2dc6d90a34b345ea024380d6779392ea6ec1164d7ffaeb5bf",
+      "alphaBounds": [
+        107,
+        53,
+        1154,
+        1214
+      ]
+    },
+    {
+      "file": "restaurant/decoupe_legumes.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 959336,
+      "sha256": "aad35bc271434a91f9b46a7978d7669d0db8457c4fc32789321cc9d727ce37e7",
+      "alphaBounds": [
+        45,
+        53,
+        1208,
+        1196
+      ]
+    },
+    {
+      "file": "restaurant/sauces_bases.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 853732,
+      "sha256": "72f2c2aed10110f7e3dc702deba068b30ab3d28f31836c06403b368acde91051",
+      "alphaBounds": [
+        111,
+        53,
+        1228,
+        1198
+      ]
+    },
+    {
+      "file": "restaurant/marinade.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 1072584,
+      "sha256": "f96ff44e047297a31a96bf086752d8ba0e2e9ee44f333cba74ed836229ca8878",
+      "alphaBounds": [
+        2,
+        136,
+        1200,
+        1182
+      ]
+    },
+    {
+      "file": "restaurant/mise_en_place.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 915007,
+      "sha256": "a03a63974b769ec3984c01387724822c6f87016aa99418bca4c903c1b97e1bfe",
+      "alphaBounds": [
+        0,
+        53,
+        1213,
+        1037
+      ]
+    },
+    {
+      "file": "restaurant/cuisson.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 937030,
+      "sha256": "fe1d37733ba9c948e320d81e5664fbe37b6bc3c21895b9b4922211896d6f63f5",
+      "alphaBounds": [
+        41,
+        53,
+        1222,
+        1206
+      ]
+    },
+    {
+      "file": "restaurant/dressage_assiettes.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 1179525,
+      "sha256": "95f1881901862fff407f36165004e362e7d06548102feb97278e86753b219232",
+      "alphaBounds": [
+        0,
+        0,
+        1172,
+        1214
+      ]
+    },
+    {
+      "file": "restaurant/briefing_salle.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 947269,
+      "sha256": "b798e175af1ca4659d969a51c4db4466327b56194adb3dc8caa730a85774f984",
+      "alphaBounds": [
+        0,
+        21,
+        1253,
+        1136
+      ]
+    },
+    {
+      "file": "restaurant/service.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 835830,
+      "sha256": "58fefcab1e7e7be891960ac77e124c89885b606bc90e62e5fb3b6dd4bfc9c632",
+      "alphaBounds": [
+        33,
+        184,
+        1224,
+        1254
+      ]
+    },
+    {
+      "file": "gestion/tri_emails.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 884750,
+      "sha256": "0333f216da09dcea3cb48e120983c94b0feb7b093742241862e5df5e7e1db249",
+      "alphaBounds": [
+        49,
+        53,
+        1234,
+        1183
+      ]
+    },
+    {
+      "file": "gestion/reponse_urgents.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 852383,
+      "sha256": "8e0619c8f938c2f474b771e4d5912484b0455d6746bdb134b130b7f4c63018eb",
+      "alphaBounds": [
+        55,
+        224,
+        1192,
+        1182
+      ]
+    },
+    {
+      "file": "gestion/prep_ordre_jour.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 823104,
+      "sha256": "df952b23a6b2a8a3ce330ecd68b5c99e0a2c711c1ccfe85d0d700431500c486d",
+      "alphaBounds": [
+        130,
+        50,
+        1192,
+        1198
+      ]
+    },
+    {
+      "file": "gestion/reunion_equipe.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 849754,
+      "sha256": "71bfb359aca391a90a2f0cc122c80cb1d214a2fb7d8cb9d774c9d96140250161",
+      "alphaBounds": [
+        33,
+        68,
+        1222,
+        1174
+      ]
+    },
+    {
+      "file": "gestion/recup_donnees.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 911918,
+      "sha256": "da617e942b7697b50825589ee9ad88c930cd240fac46bbe9a679b31ed37c9c57",
+      "alphaBounds": [
+        0,
+        53,
+        1168,
+        1198
+      ]
+    },
+    {
+      "file": "gestion/analyse_donnees.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 970219,
+      "sha256": "7894629da1beb3e3e14037ec16745d478e07a08d0696095b68545fd89f96f13f",
+      "alphaBounds": [
+        0,
+        79,
+        1162,
+        1166
+      ]
+    },
+    {
+      "file": "gestion/pause_dejeuner.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 1011884,
+      "sha256": "2e69edaa3673baf2b6b753a4fc68ba5b40797b5b35d9f641558937bb94b79c57",
+      "alphaBounds": [
+        33,
+        88,
+        1182,
+        1182
+      ]
+    },
+    {
+      "file": "gestion/redaction_rapport.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 882737,
+      "sha256": "fa29d7a67f23bf68f3c41bbcba703dbd7be9c26e0f2e388bb3abd948dab23432",
+      "alphaBounds": [
+        43,
+        93,
+        1196,
+        1170
+      ]
+    },
+    {
+      "file": "gestion/relecture_rapport.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 1010151,
+      "sha256": "2581d715057fe61b572b3133cbc01b638f7de9f43ccd95873a3827affaa18cb0",
+      "alphaBounds": [
+        0,
+        53,
+        1175,
+        1134
+      ]
+    },
+    {
+      "file": "gestion/demande_validation.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 913884,
+      "sha256": "23f9a880be84eb32ad5c1526371432a6422a27570a17e064080881f81884ce3f",
+      "alphaBounds": [
+        0,
+        51,
+        1133,
+        1190
+      ]
+    },
+    {
+      "file": "gestion/integration_retours.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 798793,
+      "sha256": "8f6a8f61d5b34c30d84ea8f92e91b1c5b7fcbb4b08cf903fd60f1cec4b0bd4a2",
+      "alphaBounds": [
+        103,
+        187,
+        1195,
+        1207
+      ]
+    },
+    {
+      "file": "gestion/envoi_final.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 887126,
+      "sha256": "673c022d15f69b1602241367206b084fc36f36a15333c6927e160779f42f645e",
+      "alphaBounds": [
+        107,
+        85,
+        1123,
+        1134
+      ]
+    },
+    {
+      "file": "organisation/budget_theme.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 1067892,
+      "sha256": "d7f5b38001cd635dad4164535bc35b685818f3b51d64d30bde42759e4ecd3fc1",
+      "alphaBounds": [
+        0,
+        19,
+        1168,
+        1170
+      ]
+    },
+    {
+      "file": "organisation/reservation_salle.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 963231,
+      "sha256": "8c4f65d869ed3564e10bcaa2447ceced12022c1a205bd912c4dcf299408be2ff",
+      "alphaBounds": [
+        55,
+        23,
+        1198,
+        1190
+      ]
+    },
+    {
+      "file": "organisation/choix_traiteur.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 872174,
+      "sha256": "d75e1bb2451c1997aca1f7c34c11f6bf61c2f7df188789b929b3f0acaadcd26f",
+      "alphaBounds": [
+        0,
+        155,
+        1253,
+        1208
+      ]
+    },
+    {
+      "file": "organisation/commande_materiel.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 932138,
+      "sha256": "10bafcaa0ad2088c24ada958d1656e028ece052cd7b1d3c61c89ed82620ced23",
+      "alphaBounds": [
+        97,
+        134,
+        1180,
+        1182
+      ]
+    },
+    {
+      "file": "organisation/liste_invites.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 936336,
+      "sha256": "beb666b5498e231e57ef4ca8e361e1fc5b92bffc5e37ebca19b308793c74ee44",
+      "alphaBounds": [
+        0,
+        53,
+        1062,
+        1200
+      ]
+    },
+    {
+      "file": "organisation/envoi_invitations.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 859158,
+      "sha256": "be5e984771e79bd917043a1b8ed9cc6ab91812b5ca53a1b61df6fe72f6b14f33",
+      "alphaBounds": [
+        101,
+        133,
+        1206,
+        1176
+      ]
+    },
+    {
+      "file": "organisation/reception_materiel.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 1002630,
+      "sha256": "4ba5f9243757355b819afaa65d1e03687d94ddd0c572eab4df36ba88f545e175",
+      "alphaBounds": [
+        0,
+        89,
+        1253,
+        1152
+      ]
+    },
+    {
+      "file": "organisation/installation_deco.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 570883,
+      "sha256": "63850048855425918c23a6ef6548c9f53e905ac23810d09e9380f2e53f6e09e7",
+      "alphaBounds": [
+        0,
+        0,
+        1216,
+        1182
+      ]
+    },
+    {
+      "file": "organisation/test_sono.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 843791,
+      "sha256": "acd4acfedd2e878199a6ea21705ba86aa998703e2cf3722fcc060ad1ab086238",
+      "alphaBounds": [
+        0,
+        53,
+        1253,
+        1238
+      ]
+    },
+    {
+      "file": "organisation/briefing_accueil.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 822381,
+      "sha256": "6b4a5c059a4ea7de15072a88c80e3991413f2bd23049942ca4545545f6536e4e",
+      "alphaBounds": [
+        57,
+        65,
+        1154,
+        1166
+      ]
+    },
+    {
+      "file": "organisation/verif_buffet.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 884729,
+      "sha256": "104319602a61082dbaa14c46c60f491bc85c8cf6b547f0b8ac4df4879bd9c2ab",
+      "alphaBounds": [
+        49,
+        142,
+        1166,
+        1198
+      ]
+    },
+    {
+      "file": "organisation/accueil_invites.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 871479,
+      "sha256": "196ae3a0ad1231c2f18f0e19b7b98dc236cccc4bfca0998076be1fa3bdcad881",
+      "alphaBounds": [
+        97,
+        9,
+        1200,
+        1228
+      ]
+    },
+    {
+      "file": "chantier/etude_plans.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 964936,
+      "sha256": "8f160f98777318a3b40f7dc1324128f76b1a338778e84642c914f0f780480b0e",
+      "alphaBounds": [
+        49,
+        136,
+        1166,
+        1134
+      ]
+    },
+    {
+      "file": "chantier/securisation_terrain.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 842251,
+      "sha256": "1e5c5c622d61299830531e3038b23c311b6627701c1e9e48e7c1bf363de22a8e",
+      "alphaBounds": [
+        0,
+        53,
+        1200,
+        1198
+      ]
+    },
+    {
+      "file": "chantier/commande_materiaux.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 1084909,
+      "sha256": "99c3cff0c9105fd43c200e9dbdf96f6af40f42be72b1c1efd3ea1d7aea46ca5a",
+      "alphaBounds": [
+        97,
+        53,
+        1202,
+        1254
+      ]
+    },
+    {
+      "file": "chantier/reception_materiaux.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 967770,
+      "sha256": "296dac075914e7500809c9d9592d8e364b40f3b7059c26af6ff339cfdb6dea4b",
+      "alphaBounds": [
+        59,
+        160,
+        1207,
+        1200
+      ]
+    },
+    {
+      "file": "chantier/coulage_fondations.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 835629,
+      "sha256": "81a0b51530d819405025d5c3332b4da35231beb27b416934c9360e8affe47c78",
+      "alphaBounds": [
+        0,
+        56,
+        1095,
+        1188
+      ]
+    },
+    {
+      "file": "chantier/sechage_beton.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 794081,
+      "sha256": "258202f8c3608530f346131fd80c0dcb3deb9ed4bb8b96bedf2d044031cca9f1",
+      "alphaBounds": [
+        103,
+        103,
+        1222,
+        1182
+      ]
+    },
+    {
+      "file": "chantier/montage_structure.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 988523,
+      "sha256": "adf31ad73fb89046d92ae86364bdf743926c0fe44eaa361163c3fe97f13f89b5",
+      "alphaBounds": [
+        0,
+        101,
+        1190,
+        1183
+      ]
+    },
+    {
+      "file": "chantier/montage_murs.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 796943,
+      "sha256": "922842175175aa719529eb6621ffd997ad150e3cfea7710c484916ad842ab9d1",
+      "alphaBounds": [
+        0,
+        52,
+        1196,
+        1198
+      ]
+    },
+    {
+      "file": "chantier/passage_reseaux.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 1038827,
+      "sha256": "aae1246dbd18972b84c705e4d1c0f5bb9835c50e37d322d1055c9b158c7c5f4f",
+      "alphaBounds": [
+        0,
+        68,
+        1224,
+        1220
+      ]
+    },
+    {
+      "file": "chantier/demande_inspection.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 901998,
+      "sha256": "0e5a1d778bf5d9210112ddabf91eb856eb1ebe14a43a373f2dfdddcb68b61ad6",
+      "alphaBounds": [
+        160,
+        53,
+        1130,
+        1174
+      ]
+    },
+    {
+      "file": "chantier/correction_remarques.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 1030189,
+      "sha256": "fe0bca2116caeb1e106b3683c18e26e2941bc2c36b37a7b5e589ccbfff8ac3b4",
+      "alphaBounds": [
+        0,
+        23,
+        1184,
+        1182
+      ]
+    },
+    {
+      "file": "logistique/consulter_commandes.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 944238,
+      "sha256": "1ef0ad52a779df2253f1a939ec13d4c10713120100b7c81e00b5c3061c9c81b3",
+      "alphaBounds": [
+        133,
+        130,
+        1174,
+        1172
+      ]
+    },
+    {
+      "file": "logistique/verif_stock.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 1026990,
+      "sha256": "af1c796ad91adcc43088a78f612780c8f7affe16bb4a7818e149b315b0b65a62",
+      "alphaBounds": [
+        0,
+        53,
+        1161,
+        1198
+      ]
+    },
+    {
+      "file": "logistique/commande_reappro.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 988635,
+      "sha256": "d3ed5d7381337cdf085f0080f0fcfcee261828b9c26f10111e4455b9fb15972d",
+      "alphaBounds": [
+        39,
+        39,
+        1236,
+        1220
+      ]
+    },
+    {
+      "file": "logistique/reception_reappro.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 1003664,
+      "sha256": "1d4e2bf9d00c3d4a9c2f3776e5b394b5c3e03f246b7aa2ca04bd10b44a85813e",
+      "alphaBounds": [
+        0,
+        53,
+        1210,
+        1093
+      ]
+    },
+    {
+      "file": "logistique/prep_zones_picking.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 844404,
+      "sha256": "e0b425608438480bfe8b587b4930ea6c4b243584fe4243be9f71b7f8ba07b84a",
+      "alphaBounds": [
+        59,
+        119,
+        1171,
+        1188
+      ]
+    },
+    {
+      "file": "logistique/picking.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 898341,
+      "sha256": "58f873efe3864af9a9b8dddbfba335c702029679d78c72b9057ef8efb561fb13",
+      "alphaBounds": [
+        105,
+        9,
+        1166,
+        1204
+      ]
+    },
+    {
+      "file": "logistique/controle_conformite.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 963060,
+      "sha256": "25de952190e1e73e50e355562107fbb9ad8aa322477644e21c0c5ecc23c59409",
+      "alphaBounds": [
+        103,
+        70,
+        1165,
+        1182
+      ]
+    },
+    {
+      "file": "logistique/emballage_colis.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 1099233,
+      "sha256": "e26cad60ba2104a3f6d097e8f2c5f1631315c24c7e073facc8d8a6ec82e5d899",
+      "alphaBounds": [
+        81,
+        132,
+        1168,
+        1234
+      ]
+    },
+    {
+      "file": "logistique/etiquetage_scan.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 887343,
+      "sha256": "17fdecbecec94769c1426c6b157aa1120d52edf1feea6a5bb68940aa4659b5e3",
+      "alphaBounds": [
+        0,
+        161,
+        1253,
+        1198
+      ]
+    },
+    {
+      "file": "logistique/edition_documents.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 1083550,
+      "sha256": "3209b52b64477a3271e5ced3eae12a7fade066141f77ad5ee0844e13632f7926",
+      "alphaBounds": [
+        0,
+        47,
+        1194,
+        1190
+      ]
+    },
+    {
+      "file": "logistique/chargement_camion.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 912454,
+      "sha256": "204bc6187ba8a2419b4c7ea3fef5f8242f19867361f962e50b3c5ee66adc68a3",
+      "alphaBounds": [
+        49,
+        182,
+        1253,
+        1119
+      ]
+    },
+    {
+      "file": "logistique/depart_camion.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 660940,
+      "sha256": "3dc6badaa255c2a8b285930d045d73841a05681183cab4fe73a8f0e27fd6a65e",
+      "alphaBounds": [
+        113,
+        53,
+        1192,
+        1069
+      ]
+    },
+    {
+      "file": "soins/consulter_dossier.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 841287,
+      "sha256": "d86004120f26e0ae1e231e07a2e3ea5d979a855ed4fe833e43aab0a17cb08acd",
+      "alphaBounds": [
+        160,
+        133,
+        1105,
+        1101
+      ]
+    },
+    {
+      "file": "soins/prep_trousse.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 1134101,
+      "sha256": "0023db19f93a66394d2b094fc3f3bec390af4ba9b0f4ce80aea6072ff4ddb599",
+      "alphaBounds": [
+        49,
+        39,
+        1134,
+        1198
+      ]
+    },
+    {
+      "file": "soins/trajet_patient_a.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 784967,
+      "sha256": "66140c50760e3f0e22b4b9ad1f8d17f4170502d8eb0298b43c898b3c0ecec749",
+      "alphaBounds": [
+        0,
+        52,
+        1222,
+        1103
+      ]
+    },
+    {
+      "file": "soins/medicament_a.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 818307,
+      "sha256": "b4b331d18859c4a9dc3602ff4f421f18cba32f8475b041b81406afb21dda99d1",
+      "alphaBounds": [
+        105,
+        119,
+        1198,
+        1198
+      ]
+    },
+    {
+      "file": "soins/soins_hygiene_a.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 850988,
+      "sha256": "101423378bc76d2c312fcd0ca0b983bf7936d1a9a093a48f2733dfe2cd13c4ee",
+      "alphaBounds": [
+        130,
+        138,
+        1142,
+        1170
+      ]
+    },
+    {
+      "file": "soins/trajet_patient_b.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 907605,
+      "sha256": "d609f40ac1ab3dedd261baa0ee9f27cd9f765cf072a3feab8f04a7ef913be96c",
+      "alphaBounds": [
+        0,
+        80,
+        1236,
+        1188
+      ]
+    },
+    {
+      "file": "soins/aide_repas_b.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 642980,
+      "sha256": "c387383146fcc19e919e2e4a878a1c2b758b981144034250d89037bd4b4346fb",
+      "alphaBounds": [
+        97,
+        52,
+        1194,
+        1182
+      ]
+    },
+    {
+      "file": "soins/medicament_b.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 788316,
+      "sha256": "ffe167a66343f69a35c541d3ab47902f61af36ec7f48a753b849165936e12a7b",
+      "alphaBounds": [
+        225,
+        147,
+        1103,
+        1150
+      ]
+    },
+    {
+      "file": "soins/compte_rendu.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 984817,
+      "sha256": "108e262c34923dd2f97dafff18655dd5ad232dd1d5269bfcf48d98a613261062",
+      "alphaBounds": [
+        65,
+        53,
+        1204,
+        1204
+      ]
+    },
+    {
+      "file": "soins/appel_medecin.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 915858,
+      "sha256": "cca04a4bef1f24625550df9d7dea05aa2b75fe9c936c750eabbad4be6ecf2f22",
+      "alphaBounds": [
+        33,
+        87,
+        1248,
+        1188
+      ]
+    },
+    {
+      "file": "soins/transmission_rapport.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 732085,
+      "sha256": "f5ec60e95fd927af84d934bad73211a05a2b261545d7b08f25e55656a6f560d4",
+      "alphaBounds": [
+        41,
+        143,
+        1234,
+        1069
+      ]
+    },
+    {
+      "file": "demenagement/inventaire_meubles.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 854093,
+      "sha256": "54efaf33a6d2c826239724b2422670a0285af8a2961c6945593e8dd1f3eb6bdd",
+      "alphaBounds": [
+        103,
+        87,
+        1150,
+        1182
+      ]
+    },
+    {
+      "file": "demenagement/reservation_camion.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 895622,
+      "sha256": "6e5a3de19c8fb25739181fb904f8ef41ee9afce6e536bcaf0317d9a1858865ec",
+      "alphaBounds": [
+        0,
+        205,
+        1178,
+        1078
+      ]
+    },
+    {
+      "file": "demenagement/reservation_ascenseur.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 960810,
+      "sha256": "5736ece0ab89ed8a7b2b5b04f41556a74b29d057dbdce9718a9bbbc8d0bc3d78",
+      "alphaBounds": [
+        49,
+        39,
+        1202,
+        1186
+      ]
+    },
+    {
+      "file": "demenagement/emballage_fragile.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 1117889,
+      "sha256": "4148c88d5eb33cfd8e5d5af6bc57124912f29909cb8a85dd9e41ff3ae8eee360",
+      "alphaBounds": [
+        0,
+        53,
+        1198,
+        1210
+      ]
+    },
+    {
+      "file": "demenagement/demontage_meubles.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 883620,
+      "sha256": "f64dc953bf1e722957a86cea9ad0351fdb03ae6ab96642b2b4418947a490dc1e",
+      "alphaBounds": [
+        51,
+        185,
+        1220,
+        1182
+      ]
+    },
+    {
+      "file": "demenagement/recuperation_camion.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 951628,
+      "sha256": "6838b01bdc9263355501e47550acfea0415a78bf2c6a5e7612d754aec21d862f",
+      "alphaBounds": [
+        0,
+        142,
+        1222,
+        1091
+      ]
+    },
+    {
+      "file": "demenagement/chargement_camion.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 1016226,
+      "sha256": "427a42ac2afb6dba3b4129661ee19ca3b96df5c535e47258735309466c77de49",
+      "alphaBounds": [
+        0,
+        71,
+        1254,
+        1254
+      ]
+    },
+    {
+      "file": "demenagement/trajet_nouveau_logement.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 862884,
+      "sha256": "994b18428413a8c8b1362b436972e0a508506c8953a8500ed1c1c1ac291f05d6",
+      "alphaBounds": [
+        0,
+        113,
+        1253,
+        1184
+      ]
+    },
+    {
+      "file": "demenagement/dechargement_camion.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 934997,
+      "sha256": "2014a27f33162c14049393653505310e78f798890bd153873cfb7ba8cd784a5c",
+      "alphaBounds": [
+        0,
+        178,
+        1222,
+        1231
+      ]
+    },
+    {
+      "file": "demenagement/remontage_meubles.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 968782,
+      "sha256": "b9b51d8edbaf80d77d639b342521846b4a1621dbae5b4e1cddc9069a26c30d3e",
+      "alphaBounds": [
+        59,
+        130,
+        1200,
+        1166
+      ]
+    },
+    {
+      "file": "demenagement/restitution_camion.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 920293,
+      "sha256": "3846912f55d37fabcb88331064943e57160fc5ac54ed87898734a78f766350fb",
+      "alphaBounds": [
+        0,
+        193,
+        1248,
+        1052
+      ]
+    },
+    {
+      "file": "demenagement/etat_lieux.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 1053197,
+      "sha256": "f22075f21290aa8615f9902a797adca8cebf708a0612754feed7807720ccb6a9",
+      "alphaBounds": [
+        33,
+        101,
+        1156,
+        1174
+      ]
+    }
+  ]
+}

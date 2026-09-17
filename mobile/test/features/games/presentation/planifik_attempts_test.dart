@@ -177,7 +177,7 @@ void main() {
   testWidgets('3 chemins incomplets scellent le niveau et passent au niveau suivant', (
     tester,
   ) async {
-    // Surface haute : les boutons (Start, Next, Validate) tiennent dans le
+    // Surface haute : les boutons (Start, Suivant, Validate) tiennent dans le
     // viewport, sinon un tap « rate » (bouton hors-champ) et rien ne se passe.
     tester.view.physicalSize = const Size(1200, 2400);
     tester.view.devicePixelRatio = 1.0;
@@ -191,9 +191,9 @@ void main() {
     // Intro → How To Play → gameplay.
     await tester.tap(find.widgetWithText(FilledButton, 'Start'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Next')); // page 1 → 2
+    await tester.tap(find.text('Suivant')); // carte 1 → 2
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Next')); // → onDone (_beginGame)
+    await tester.tap(find.text('Commencer le parcours')); // → _beginGame
     // Gameplay + Flame : pas de pumpAndSettle (ticker continu).
     await tester.pump();
     await tester.pump(

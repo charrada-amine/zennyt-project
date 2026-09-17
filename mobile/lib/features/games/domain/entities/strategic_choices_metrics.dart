@@ -21,8 +21,7 @@ class StrategicChoiceAnswerMetric {
   /// Temps entre l'affichage de la situation et la validation.
   final int responseTimeMs;
 
-  /// Support de présentation — facultatif, la banque ne décrit aujourd'hui que
-  /// des mini-vidéos.
+  /// Support de présentation — facultatif : vidéo ou message écrit.
   final StrategicChoiceMedium? medium;
 
   Map<String, dynamic> toJson() => {

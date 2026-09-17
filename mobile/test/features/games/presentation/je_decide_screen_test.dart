@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zennyt/core/storage/shared_preferences_provider.dart';
+import 'package:zennyt/core/audio/sound_service.dart';
+import 'package:zennyt/features/auth/presentation/current_user_provider.dart';
 import 'package:zennyt/features/games/domain/entities/decision_form.dart';
 import 'package:zennyt/features/games/domain/entities/decision_metrics.dart';
 import 'package:zennyt/features/games/domain/entities/device_calibration.dart';
@@ -21,6 +24,32 @@ import 'package:zennyt/features/navigation/presentation/widgets/app_bottom_nav.d
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  setUpAll(() {
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    for (final channel in [
+      'xyz.luan/audioplayers',
+      'xyz.luan/audioplayers.global',
+    ]) {
+      messenger.setMockMethodCallHandler(
+        MethodChannel(channel),
+        (_) async => null,
+      );
+    }
+    for (final channel in [
+      'xyz.luan/audioplayers.global/events',
+      'xyz.luan/audioplayers/events/zennyt-bg-music',
+      'xyz.luan/audioplayers/events/zennyt-scoreboard',
+    ]) {
+      messenger.setMockStreamHandler(
+        EventChannel(channel),
+        _SilentStreamHandler(),
+      );
+    }
+    SoundService.instance.setSfxEnabled(false);
+    SoundService.instance.setMusicEnabled(false);
+  });
+
   Future<void> tapVisible(WidgetTester tester, Finder finder) async {
     await tester.ensureVisible(finder);
     await tester.pumpAndSettle();
@@ -28,12 +57,125 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  Future<_FakeGamesRepository> showEntry(
+    WidgetTester tester, {
+    bool reduceMotion = false,
+  }) async {
+    SharedPreferences.setMockInitialValues({});
+    final preferences = await SharedPreferences.getInstance();
+    final repository = _FakeGamesRepository();
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          currentUserProvider.overrideWithValue(null),
+          sharedPreferencesProvider.overrideWithValue(preferences),
+          gamesRepositoryProvider.overrideWithValue(repository),
+        ],
+        child: MaterialApp(
+          home: MediaQuery(
+            data: MediaQueryData(
+              size: const Size(390, 844),
+              disableAnimations: reduceMotion,
+            ),
+            child: const RepaintBoundary(
+              key: ValueKey('je-decide-entry-capture'),
+              child: JeDecideScreen(),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    return repository;
+  }
+
+  testWidgets('cadre stable à l’entrée des règles et au retour accueil', (
+    tester,
+  ) async {
+    final repository = await showEntry(tester);
+    final header = find.byKey(const ValueKey('decision-journey-header'));
+    final navigation = find.byType(AppBottomNav);
+    final headerRect = tester.getRect(header);
+    final navigationRect = tester.getRect(navigation);
+    await tester.tap(find.byKey(const ValueKey('welcome-start')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 160));
+    expect(tester.getRect(header), headerRect);
+    expect(tester.getRect(navigation), navigationRect);
+    expect(find.byTooltip('Back'), findsOneWidget);
+    final outgoing = find.byKey(const ValueKey('welcome-customize'));
+    expect(outgoing, findsOneWidget);
+    expect(
+      tester
+          .widgetList<IgnorePointer>(
+            find.ancestor(of: outgoing, matching: find.byType(IgnorePointer)),
+          )
+          .any((pointer) => pointer.ignoring),
+      isTrue,
+      reason: 'les actions de l’accueil sortant ne répondent plus',
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Comment jouer'), findsOneWidget);
+    expect(find.text('Étape 1 sur 3'), findsOneWidget);
+    final illustration = find.byKey(
+      const ValueKey('je-decide-tutorial-image-0'),
+    );
+    await tester.runAsync(() async {
+      await precacheImage(
+        tester.widget<Image>(illustration).image,
+        tester.element(illustration),
+      );
+    });
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<RawImage>(
+            find.descendant(of: illustration, matching: find.byType(RawImage)),
+          )
+          .image,
+      isNotNull,
+    );
+    await expectLater(
+      find.byKey(const ValueKey('je-decide-entry-capture')),
+      matchesGoldenFile('goldens/je-decide-tutorial-entry.png'),
+    );
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 160));
+    expect(tester.getRect(header), headerRect);
+    expect(tester.getRect(navigation), navigationRect);
+    await tester.pumpAndSettle();
+    expect(find.text('Commencer'), findsOneWidget);
+    expect(repository.sessionsStarted, 0);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
-    'phase 1 enters phase 2, keeps choices neutral and hides bottom nav',
+    'mouvement réduit : accès direct aux règles sans accueil sortant',
+    (tester) async {
+      final repository = await showEntry(tester, reduceMotion: true);
+      await tester.tap(find.byKey(const ValueKey('welcome-start')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('welcome-start')), findsNothing);
+      expect(find.text('Étape 1 sur 3'), findsOneWidget);
+      expect(find.byTooltip('Back'), findsOneWidget);
+      expect(repository.sessionsStarted, 0);
+      await tapVisible(tester, find.byTooltip('Back'));
+      expect(find.text('Commencer'), findsOneWidget);
+      expect(find.text('Étape 1 sur 3'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'personnalisation facultative, retour accueil et entrée dans la partie',
     (tester) async {
       SharedPreferences.setMockInitialValues({});
       final preferences = await SharedPreferences.getInstance();
-    final repository = _FakeGamesRepository();
+      final repository = _FakeGamesRepository();
       tester.view.physicalSize = const Size(390, 844);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
@@ -42,9 +184,10 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-          sharedPreferencesProvider.overrideWithValue(preferences),
-          gamesRepositoryProvider.overrideWithValue(repository),
-        ],
+            currentUserProvider.overrideWithValue(null),
+            sharedPreferencesProvider.overrideWithValue(preferences),
+            gamesRepositoryProvider.overrideWithValue(repository),
+          ],
           child: const MaterialApp(home: JeDecideScreen()),
         ),
       );
@@ -53,22 +196,36 @@ void main() {
       expect(find.text('Decision Journey'), findsOneWidget);
       expect(find.byType(AppBottomNav), findsOneWidget);
 
-      await tapVisible(tester, find.byKey(const ValueKey('welcome-start')));
-
-      for (var page = 0; page < 3; page++) {
-        await tapVisible(tester, find.byKey(const ValueKey('onboarding-next')));
-      }
+      await tapVisible(tester, find.byKey(const ValueKey('welcome-customize')));
 
       expect(find.text('Create your player card'), findsOneWidget);
+      await tester.enterText(find.byType(TextField), 'Lina');
       await tapVisible(tester, find.byKey(const ValueKey('player-continue')));
 
       expect(find.text('Choose your avatar'), findsOneWidget);
       await tapVisible(tester, find.byKey(const ValueKey('avatar-continue')));
 
-      expect(find.text('Practice round'), findsWidgets);
-      await tapVisible(tester, find.byKey(const ValueKey('practice-start')));
+      expect(find.text('Comment jouer'), findsOneWidget);
+      expect(find.text('Essayer l’exemple'), findsNothing);
+      await tapVisible(tester, find.byTooltip('Back'));
+      expect(find.text('Commencer'), findsOneWidget);
+      await tapVisible(tester, find.byKey(const ValueKey('welcome-customize')));
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller!.text,
+        'Lina',
+      );
+      await tapVisible(tester, find.byTooltip('Back'));
+      await tapVisible(tester, find.byKey(const ValueKey('welcome-start')));
+      expect(find.text('Étape 1 sur 3'), findsOneWidget);
+      for (var page = 0; page < 2; page++) {
+        await tapVisible(tester, find.text('Suivant'));
+      }
+      await tapVisible(tester, find.text('Essayer l’exemple'));
 
       expect(find.text('Choosing a route'), findsOneWidget);
+      expect(find.text('Exemple d’entraînement'), findsOneWidget);
+      expect(find.text('Practice 1 / 2'), findsNothing);
+      expect(repository.sessionsStarted, 0);
       expect(find.byType(AppBottomNav), findsNothing);
 
       await tapVisible(
@@ -83,7 +240,7 @@ void main() {
         tester,
         find.byKey(const ValueKey('decision-view-rules')),
       );
-      expect(find.text('How to play'), findsOneWidget);
+      expect(find.text('Comment jouer'), findsOneWidget);
       await tapVisible(
         tester,
         find.byKey(const ValueKey('decision-rules-back')),
@@ -116,9 +273,112 @@ void main() {
       // en dur, et le compteur part du premier item.
       expect(find.text('Situation numéro 0.'), findsOneWidget);
       expect(find.text('Scenario 01 / 30'), findsOneWidget);
+      expect(repository.sessionsStarted, 1);
       expect(find.byType(AppBottomNav), findsNothing);
     },
   );
+
+  testWidgets(
+    'accueil avec logo, texte court et accès direct aux trois règles',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final preferences = await SharedPreferences.getInstance();
+      final repository = _FakeGamesRepository();
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            currentUserProvider.overrideWithValue(null),
+            sharedPreferencesProvider.overrideWithValue(preferences),
+            gamesRepositoryProvider.overrideWithValue(repository),
+          ],
+          child: const MaterialApp(
+            home: RepaintBoundary(
+              key: ValueKey('je-decide-welcome-capture'),
+              child: JeDecideScreen(),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final logo = find.byKey(const ValueKey('je-decide-welcome-logo'));
+      await tester.runAsync(() async {
+        await precacheImage(
+          tester.widget<Image>(logo).image,
+          tester.element(logo),
+        );
+      });
+      await tester.pumpAndSettle();
+      expect(find.text('Je Décide'), findsOneWidget);
+      expect(find.text('30 questions'), findsOneWidget);
+      expect(find.text('Jusqu’à 30 min'), findsOneWidget);
+      expect(find.text('How it works'), findsNothing);
+      expect(find.text('Personnaliser (facultatif)'), findsOneWidget);
+      expect(
+        tester
+            .widget<RawImage>(
+              find.descendant(of: logo, matching: find.byType(RawImage)),
+            )
+            .image,
+        isNotNull,
+      );
+      await expectLater(
+        find.byKey(const ValueKey('je-decide-welcome-capture')),
+        matchesGoldenFile('goldens/je-decide-welcome.png'),
+      );
+      await tapVisible(tester, find.byKey(const ValueKey('welcome-start')));
+      expect(find.text('Étape 1 sur 3'), findsOneWidget);
+      expect(find.byType(TextField), findsNothing);
+      expect(repository.sessionsStarted, 0);
+    },
+  );
+
+  testWidgets('accueil défilable sur petit écran avec texte à 200 %', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final preferences = await SharedPreferences.getInstance();
+    tester.view.physicalSize = const Size(360, 600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          currentUserProvider.overrideWithValue(null),
+          sharedPreferencesProvider.overrideWithValue(preferences),
+        ],
+        child: MaterialApp(
+          home: MediaQuery(
+            data: const MediaQueryData(
+              size: Size(360, 600),
+              textScaler: TextScaler.linear(2),
+            ),
+            child: const JeDecideScreen(),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    await tapVisible(tester, find.byKey(const ValueKey('welcome-start')));
+    expect(find.text('Étape 1 sur 3'), findsOneWidget);
+    for (var page = 0; page < 2; page++) {
+      await tapVisible(tester, find.text('Suivant'));
+      expect(tester.takeException(), isNull);
+    }
+    await tester.ensureVisible(find.text('Essayer l’exemple'));
+    expect(
+      tester.getRect(find.text('Essayer l’exemple')).bottom,
+      lessThan(600),
+    );
+    expect(tester.takeException(), isNull);
+    await tapVisible(tester, find.byTooltip('Back'));
+    await tapVisible(tester, find.byKey(const ValueKey('welcome-customize')));
+    expect(find.byType(TextField), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 
   // Le test « saved checkpoint opens the welcome-back screen » vivait ici.
   //
@@ -147,6 +407,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          currentUserProvider.overrideWithValue(null),
           sharedPreferencesProvider.overrideWithValue(preferences),
           gamesRepositoryProvider.overrideWithValue(repository),
         ],
@@ -156,12 +417,10 @@ void main() {
     await tester.pumpAndSettle();
 
     await tapVisible(tester, find.byKey(const ValueKey('welcome-start')));
-    for (var page = 0; page < 3; page++) {
-      await tapVisible(tester, find.byKey(const ValueKey('onboarding-next')));
+    for (var page = 0; page < 2; page++) {
+      await tapVisible(tester, find.text('Suivant'));
     }
-    await tapVisible(tester, find.byKey(const ValueKey('player-continue')));
-    await tapVisible(tester, find.byKey(const ValueKey('avatar-continue')));
-    await tapVisible(tester, find.byKey(const ValueKey('practice-start')));
+    await tapVisible(tester, find.text('Essayer l’exemple'));
     await tapVisible(tester, find.byKey(const ValueKey('choice-faster')));
     await tapVisible(tester, find.byKey(const ValueKey('practice-continue')));
 
@@ -197,10 +456,7 @@ void main() {
     // Le client a envoyé une réponse par item, sans jamais calculer de score.
     expect(repository.submitted, isNotNull);
     expect(repository.submitted!.items, hasLength(30));
-    expect(
-      repository.submitted!.items.every((item) => item.answered),
-      isTrue,
-    );
+    expect(repository.submitted!.items.every((item) => item.answered), isTrue);
     expect(repository.submitted!.items.first.selectedOptionId, 'IT-0-o1');
 
     expect(
@@ -225,7 +481,7 @@ void main() {
     expect(find.text('Normal'), findsOneWidget, reason: 'niveau serveur');
     // Le score s'anime de 0 → 71 : c'est celui renvoyé par le serveur.
     await tester.pump(const Duration(milliseconds: 1000));
-    expect(find.text('71'), findsOneWidget);
+    expect(find.text('71%'), findsOneWidget);
   });
 }
 
@@ -237,6 +493,7 @@ class _FakeGamesRepository implements GamesRepository {
   static const itemCount = 30;
 
   DecisionMetrics? submitted;
+  int sessionsStarted = 0;
 
   static const _dimensions = [
     DecisionDimension.ii,
@@ -247,19 +504,25 @@ class _FakeGamesRepository implements GamesRepository {
   ];
 
   @override
-  Future<GameSession> startSession(GameType gameType) async => GameSession(
-    id: 'fake-session',
-    gameType: gameType,
-    status: 'IN_PROGRESS',
-    compositeRaw: 0,
-    compositeMax: 100,
-    normalized: 0,
-    attempts: const [],
-    startedAt: DateTime(2026),
-  );
+  Future<GameSession> startSession(GameType gameType) async {
+    sessionsStarted++;
+    return GameSession(
+      id: 'fake-session',
+      gameType: gameType,
+      status: 'IN_PROGRESS',
+      compositeRaw: 0,
+      compositeMax: 100,
+      normalized: 0,
+      attempts: const [],
+      startedAt: DateTime(2026),
+    );
+  }
 
   @override
-  Future<DecisionForm> decisionItems(String sessionId, {String language = 'fr'}) async {
+  Future<DecisionForm> decisionItems(
+    String sessionId, {
+    String language = 'fr',
+  }) async {
     final perDimension = itemCount ~/ _dimensions.length;
     return DecisionForm(
       formCode: 'A',
@@ -362,4 +625,11 @@ class _FakeGamesRepository implements GamesRepository {
     required String nuanceKey,
     required int intensity,
   }) => throw UnimplementedError();
+}
+
+class _SilentStreamHandler extends MockStreamHandler {
+  @override
+  void onListen(Object? arguments, MockStreamHandlerEventSink events) {}
+  @override
+  void onCancel(Object? arguments) {}
 }

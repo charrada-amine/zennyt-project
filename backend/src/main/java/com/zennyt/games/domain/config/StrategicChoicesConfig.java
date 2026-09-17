@@ -14,12 +14,12 @@ import com.zennyt.games.domain.vo.StrategicChoiceStrategy;
  *
  * <p><b>Seuils d'interprétation.</b> Posés en pourcentage du maximum. Sur
  * l'ensemble de la banque, cocher toujours « Assertive communication » rapporte
- * 2,00/3 de moyenne (67 %), contre 1,14 (38 %) au hasard et 2,98 (99 %) pour un
- * jeu parfait : le palier haut à 75 % est donc hors de portée d'une stratégie
- * constante EN MOYENNE.
+ * 1,94/3 de moyenne, contre 1,19 au hasard et 2,99 pour un jeu parfait. Après
+ * correction du hasard, cette conduite constante vaut environ 41 % : le palier
+ * haut à 60 % reste donc hors de portée EN MOYENNE.
  *
  * <p>⚠️ Il ne l'est pas sur un tirage donné, et aucun seuil ne pourrait le
- * rendre tel. « Assertive communication » vaut 3 dans 23 fiches sur 60 : un
+ * rendre tel. « Assertive communication » vaut 3 dans 28 fiches sur 80 : un
  * tirage de dix qui tombe dessus donne 30/30 à un joueur qui n'a rien lu. Le
  * garde-fou n'est pas le seuil mais le rapport, qui compte les stratégies
  * réellement mobilisées — une partie entière menée avec une seule stratégie s'y
@@ -72,7 +72,7 @@ public final class StrategicChoicesConfig {
      * Indice corrigé du hasard, en pourcentage.
      *
      * <p>{@code (obtenu - hasard) / (maximum - hasard)}. Le score brut seul ne
-     * veut rien dire : répondre au hasard rapporte déjà <b>38 %</b> du maximum,
+     * veut rien dire : répondre au hasard rapporte déjà <b>40 %</b> du maximum,
      * parce que la plupart des stratégies sont cotées 1 ou 2. Un joueur à 50 %
      * brut est donc à peine au-dessus du bruit.
      *
@@ -98,7 +98,7 @@ public final class StrategicChoicesConfig {
      * <p>Seuils justifiés par la distribution mesurée sur 4 000 tirages
      * simulés : le hasard vaut 0 par construction, et cocher toujours la
      * stratégie la mieux cotée de la banque (« Assertive communication ») donne
-     * 46 % en moyenne. Le palier haut est donc placé à 60 %, au-dessus de ce
+     * environ 41 % en moyenne. Le palier haut est donc placé à 60 %, au-dessus de ce
      * qu'une stratégie constante rapporte ; en dessous de 25 %, on ne se
      * distingue pas du hasard.
      */

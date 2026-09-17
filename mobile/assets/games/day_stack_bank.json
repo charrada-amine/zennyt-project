@@ -6,6 +6,7 @@
     {
       "id": "restaurant",
       "name": "Restaurant / Cuisine professionnelle",
+      "mission": "Tout doit être prêt pour lancer le service de midi à 12h00 pile.",
       "tasks": [
         {
           "id": "reception_livraison",
@@ -269,6 +270,7 @@
     {
       "id": "gestion",
       "name": "Gestion de projet / Bureau",
+      "mission": "Organise ta journée pour envoyer le dossier final au client avant 17h00.",
       "tasks": [
         {
           "id": "tri_emails",
@@ -533,6 +535,7 @@
     {
       "id": "organisation",
       "name": "Organisation d'un événement",
+      "mission": "Prépare la salle et l’équipe pour accueillir les invités à 18h00 pile.",
       "tasks": [
         {
           "id": "budget_theme",
@@ -799,6 +802,7 @@
     {
       "id": "chantier",
       "name": "Chantier de construction",
+      "mission": "Avance le chantier pour passer l’inspection entre 15h00 et 17h00.",
       "tasks": [
         {
           "id": "etude_plans",
@@ -1040,6 +1044,7 @@
     {
       "id": "logistique",
       "name": "Logistique / Entrepôt",
+      "mission": "Prépare et charge les commandes pour un départ du camion à 15h00 pile.",
       "tasks": [
         {
           "id": "consulter_commandes",
@@ -1304,6 +1309,7 @@
     {
       "id": "soins",
       "name": "Soins à domicile / Aide-soignant",
+      "mission": "Assure la tournée de tes patients et transmets le rapport avant 17h30.",
       "tasks": [
         {
           "id": "consulter_dossier",
@@ -1547,6 +1553,7 @@
     {
       "id": "demenagement",
       "name": "Déménagement",
+      "mission": "Termine le déménagement pour l’état des lieux à 18h00 pile.",
       "tasks": [
         {
           "id": "inventaire_meubles",

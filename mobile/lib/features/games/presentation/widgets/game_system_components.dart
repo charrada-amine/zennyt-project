@@ -1383,9 +1383,14 @@ class AnimatedCountText extends StatelessWidget {
     this.duration = const Duration(milliseconds: 900),
     this.textAlign,
     this.onCompleted,
+    this.textKey,
   });
 
   final int value;
+
+  /// Clé posée sur le [Text] affiché — la clé du widget, elle, ne désigne que
+  /// l'animation : un test qui lit la valeur finale a besoin de celle-ci.
+  final Key? textKey;
   final TextStyle style;
   final String prefix;
   final String suffix;
@@ -1407,6 +1412,7 @@ class AnimatedCountText extends StatelessWidget {
       onEnd: onCompleted,
       builder: (context, animated, _) => Text(
         '$prefix${animated.round()}$suffix',
+        key: textKey,
         style: style,
         textAlign: textAlign,
       ),
@@ -1641,11 +1647,18 @@ class _GamePauseCountdownState extends State<_GamePauseCountdown> {
         children: [
           Icon(Icons.timer_outlined, size: 18, color: color),
           const SizedBox(width: AppSpacing.xs),
-          Text(
-            'Menu closes in ${seconds}s',
-            style: AppTypography.labelMedium.copyWith(
-              color: color,
-              letterSpacing: 0,
+          // Texte agrandi sur petit écran : le libellé rétrécit plutôt que de
+          // déborder de la pastille.
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                'Menu closes in ${seconds}s',
+                style: AppTypography.labelMedium.copyWith(
+                  color: color,
+                  letterSpacing: 0,
+                ),
+              ),
             ),
           ),
         ],
@@ -1750,14 +1763,88 @@ class GameExitConfirmDialog extends StatelessWidget {
   }
 }
 
-/// Coquille visuelle **unique** du menu pause, identique dans tous les jeux :
-/// carte blanche arrondie, titre « Pause », une section optionnelle en tête
-/// (ex. « Input mode »), une description optionnelle, le bloc « Audio options »
-/// puis la pile de boutons d'action fournie par l'écran appelant.
+/// Ouvre un menu pause — **le seul point d'entrée** des jeux.
 ///
-/// Chaque jeu garde son propre enum/handler : il passe simplement ses boutons
-/// (Resume / Restart / View rules / Exit…) via [buttons]. Le rendu reste donc
-/// strictement le même partout — voir la maquette de référence « Je bouge ».
+/// Fixe ce qui divergeait d'un jeu à l'autre : couleur du voile et fermeture
+/// au toucher extérieur. Le menu ne se referme que par une de ses actions ou
+/// par l'expiration de sa fenêtre ([GamePauseScaffold.onCountdownExpired]).
+Future<T?> showGamePauseMenu<T>(
+  BuildContext context, {
+  required WidgetBuilder builder,
+}) {
+  return showDialog<T>(
+    context: context,
+    barrierDismissible: false,
+    barrierColor: ZennytGamePalette.ink.withValues(alpha: 0.82),
+    builder: builder,
+  );
+}
+
+/// Nature d'une action du menu pause : elle fixe son icône et son style, pour
+/// qu'une même action se présente de la même façon dans tous les jeux.
+enum GamePauseActionKind {
+  resume(Icons.play_arrow_rounded),
+  restart(Icons.replay_rounded),
+  rules(Icons.help_outline_rounded),
+  exit(Icons.logout_rounded);
+
+  const GamePauseActionKind(this.icon);
+
+  final IconData icon;
+}
+
+/// Une action du menu pause. Le jeu ne fournit que le libellé et le geste ; le
+/// rendu est celui de [GamePauseScaffold].
+class GamePauseMenuAction {
+  const GamePauseMenuAction({
+    required this.kind,
+    required this.label,
+    required this.onPressed,
+    this.key,
+  });
+
+  const GamePauseMenuAction.resume({
+    required this.onPressed,
+    this.label = 'Resume',
+    this.key,
+  }) : kind = GamePauseActionKind.resume;
+
+  const GamePauseMenuAction.restart({
+    required this.onPressed,
+    this.label = 'Restart',
+    this.key,
+  }) : kind = GamePauseActionKind.restart;
+
+  const GamePauseMenuAction.rules({
+    required this.onPressed,
+    this.label = 'View rules / Help',
+    this.key,
+  }) : kind = GamePauseActionKind.rules;
+
+  const GamePauseMenuAction.exit({
+    required this.onPressed,
+    this.label = 'Exit mission',
+    this.key,
+  }) : kind = GamePauseActionKind.exit;
+
+  final GamePauseActionKind kind;
+  final String label;
+  final VoidCallback onPressed;
+  final Key? key;
+}
+
+/// Coquille visuelle **unique** du menu pause, identique dans tous les jeux :
+/// carte blanche arrondie, titre « Pause », compte à rebours, une section
+/// optionnelle (ex. « Input mode »), une description optionnelle, les options
+/// de retour (son, musique, vibration) puis les actions.
+///
+/// Chaque jeu garde son propre enum/handler et ne décrit que ses [actions] :
+/// le style des boutons n'appartient qu'à ce widget.
+///
+/// **Jamais de défilement.** Le menu est mis en page à la largeur disponible,
+/// puis réduit si besoin pour tenir dans la hauteur de l'écran — petit
+/// téléphone, paysage, tablette ou texte agrandi. Un menu qui défile cachait
+/// « Exit mission » sous la ligne de flottaison sans que rien ne le signale.
 class GamePauseScaffold extends StatelessWidget {
   const GamePauseScaffold({
     super.key,
@@ -1768,7 +1855,7 @@ class GamePauseScaffold extends StatelessWidget {
     this.showAudioOptions = true,
     this.countdown,
     this.onCountdownExpired,
-    required this.buttons,
+    required this.actions,
   });
 
   final String title;
@@ -1784,99 +1871,183 @@ class GamePauseScaffold extends StatelessWidget {
   /// action « resume », puis la partie reprend sans autre pause possible.
   final VoidCallback? onCountdownExpired;
 
-  /// Section optionnelle affichée entre le titre et « Audio options »
+  /// Section optionnelle affichée entre le titre et les options de retour
   /// (ex. le sélecteur « Input mode » de Je bouge / Emotional Radar).
   final Widget? inputMode;
 
   /// Texte d'aide/avertissement optionnel (ex. phase mesurée non reprenable).
   final String? description;
 
-  /// Affiche le bloc « Audio options » (effets + musique). Vrai partout.
+  /// Affiche le bloc des options de retour (effets, musique, vibration).
   final bool showAudioOptions;
 
-  /// Boutons d'action, dans l'ordre (Resume, Restart, View rules, Exit…).
-  final List<Widget> buttons;
+  /// Actions, dans l'ordre (Resume, Restart, View rules, Exit…). La première
+  /// action qui n'est pas une sortie est mise en avant.
+  final List<GamePauseMenuAction> actions;
 
-  /// Hauteur d'écran sous laquelle le menu se resserre.
-  ///
-  /// Sur un iPhone SE (568 px), la carte à espacements pleins dépassait la
-  /// hauteur disponible : « View rules / Help » et « Exit mission » tombaient
-  /// sous la ligne de flottaison. Le menu défilait bien, mais rien ne le
-  /// laissait deviner — d'où un menu pause perçu comme « non fonctionnel ».
+  /// Hauteur disponible sous laquelle les espacements se resserrent, avant
+  /// même toute réduction d'échelle.
   static const double _compactHeight = 700;
+
+  /// Largeur à partir de laquelle un écran en paysage répartit le menu sur deux
+  /// colonnes : réglages à gauche, actions à droite.
+  static const double _twoColumnWidth = 600;
+
+  /// Largeur maximale de la carte : sur tablette, un menu étiré sur toute la
+  /// largeur n'est plus lisible d'un coup d'œil.
+  static const double _maxWidth = 440;
+  static const double _maxWidthTwoColumns = 760;
 
   @override
   Widget build(BuildContext context) {
-    final compact = MediaQuery.sizeOf(context).height < _compactHeight;
+    final screen = MediaQuery.sizeOf(context);
+    final compact = screen.height < _compactHeight;
+    final twoColumns =
+        screen.width > screen.height && screen.width >= _twoColumnWidth;
     final gapLarge = compact ? AppSpacing.md : AppSpacing.xl;
     final gapMedium = compact ? AppSpacing.sm : AppSpacing.lg;
     final gapButtons = compact ? AppSpacing.sm : AppSpacing.md;
+    final padding = compact ? AppSpacing.base : AppSpacing.xl;
+    final inset = compact ? 16.0 : 32.0;
+
+    final header = <Widget>[
+      Text(
+        title,
+        key: titleKey,
+        textAlign: TextAlign.center,
+        style:
+            (compact
+                    ? AppTypography.headlineLarge
+                    : AppTypography.displayMedium)
+                .copyWith(color: ZennytGamePalette.blue, letterSpacing: 0),
+      ),
+      if (countdown != null) ...[
+        SizedBox(height: gapButtons),
+        _GamePauseCountdown(
+          remaining: countdown!,
+          onExpired: onCountdownExpired,
+        ),
+      ],
+    ];
+
+    final settings = <Widget>[
+      if (inputMode != null) ...[SizedBox(height: gapLarge), inputMode!],
+      if (description != null) ...[
+        SizedBox(height: inputMode != null ? gapMedium : gapLarge),
+        Text(
+          description!,
+          textAlign: TextAlign.center,
+          style: AppTypography.bodyMedium.copyWith(
+            color: ZennytGamePalette.muted,
+            height: 1.45,
+          ),
+        ),
+      ],
+      if (showAudioOptions) ...[
+        SizedBox(
+          height: (inputMode != null || description != null)
+              ? gapMedium
+              : gapLarge,
+        ),
+        GamePauseAudioOptions(compact: compact),
+      ],
+    ];
+
+    final primaryIndex = actions.indexWhere(
+      (action) => action.kind != GamePauseActionKind.exit,
+    );
+    final buttons = <Widget>[
+      for (var i = 0; i < actions.length; i++) ...[
+        if (i > 0) SizedBox(height: gapButtons),
+        _GamePauseActionButton(action: actions[i], primary: i == primaryIndex),
+      ],
+    ];
+
+    final Widget content = twoColumns
+        ? Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [...header, ...settings],
+                ),
+              ),
+              const SizedBox(width: AppSpacing.xl),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: buttons,
+                ),
+              ),
+            ],
+          )
+        : Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ...header,
+              ...settings,
+              SizedBox(height: gapButtons),
+              ...buttons,
+            ],
+          );
 
     return Dialog(
       backgroundColor: Colors.white,
-      insetPadding: EdgeInsets.all(compact ? 16 : 32),
+      insetPadding: EdgeInsets.all(inset),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppSpacing.radiusXxl),
       ),
-      child: Padding(
-        padding: EdgeInsets.all(compact ? AppSpacing.base : AppSpacing.xl),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                title,
-                key: titleKey,
-                textAlign: TextAlign.center,
-                style:
-                    (compact
-                            ? AppTypography.headlineLarge
-                            : AppTypography.displayMedium)
-                        .copyWith(
-                          color: ZennytGamePalette.blue,
-                          letterSpacing: 0,
-                        ),
-              ),
-              if (countdown != null) ...[
-                SizedBox(height: gapButtons),
-                _GamePauseCountdown(
-                  remaining: countdown!,
-                  onExpired: onCountdownExpired,
-                ),
-              ],
-              if (inputMode != null) ...[
-                SizedBox(height: gapLarge),
-                inputMode!,
-              ],
-              if (description != null) ...[
-                SizedBox(height: inputMode != null ? gapMedium : gapLarge),
-                Text(
-                  description!,
-                  textAlign: TextAlign.center,
-                  style: AppTypography.bodyMedium.copyWith(
-                    color: ZennytGamePalette.muted,
-                    height: 1.45,
-                  ),
-                ),
-              ],
-              if (showAudioOptions) ...[
-                SizedBox(
-                  height: (inputMode != null || description != null)
-                      ? gapMedium
-                      : gapLarge,
-                ),
-                GamePauseAudioOptions(compact: compact),
-              ],
-              SizedBox(height: gapButtons),
-              for (var i = 0; i < buttons.length; i++) ...[
-                if (i > 0) SizedBox(height: gapButtons),
-                buttons[i],
-              ],
-            ],
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: twoColumns ? _maxWidthTwoColumns : _maxWidth,
+        ),
+        child: Padding(
+          padding: EdgeInsets.all(padding),
+          child: LayoutBuilder(
+            builder: (context, constraints) => FittedBox(
+              // Réduit, n'agrandit jamais : sur un grand écran le menu garde sa
+              // taille nominale ; sur un petit il rétrécit au lieu de défiler.
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.topCenter,
+              child: SizedBox(width: constraints.maxWidth, child: content),
+            ),
           ),
         ),
       ),
     );
+  }
+}
+
+class _GamePauseActionButton extends StatelessWidget {
+  const _GamePauseActionButton({required this.action, required this.primary});
+
+  final GamePauseMenuAction action;
+  final bool primary;
+
+  @override
+  Widget build(BuildContext context) {
+    if (action.kind == GamePauseActionKind.exit) {
+      return GamePauseExitButton(
+        key: action.key,
+        label: action.label,
+        icon: action.kind.icon,
+        onPressed: action.onPressed,
+      );
+    }
+    return primary
+        ? GamePrimaryButton(
+            key: action.key,
+            label: action.label,
+            icon: action.kind.icon,
+            onPressed: action.onPressed,
+          )
+        : GameOutlineButton(
+            key: action.key,
+            label: action.label,
+            icon: action.kind.icon,
+            onPressed: action.onPressed,
+          );
   }
 }
 
@@ -2046,16 +2217,18 @@ class GamePauseExitButton extends StatelessWidget {
     super.key,
     this.label = 'Exit mission',
     required this.onPressed,
+    this.icon,
   });
 
   final String label;
   final VoidCallback onPressed;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      child: OutlinedButton(
+      child: OutlinedButton.icon(
         // Seul bouton du menu pause qui n'était pas sonorisé : il n'utilise pas
         // [GameOutlineButton] (rouge sur fond rosé), donc il n'héritait pas du
         // clic générique.
@@ -2072,8 +2245,163 @@ class GamePauseExitButton extends StatelessWidget {
           ),
           textStyle: AppTypography.buttonMedium.copyWith(letterSpacing: 0),
         ),
-        child: Text(label),
+        icon: icon == null ? const SizedBox.shrink() : Icon(icon),
+        label: Text(label),
       ),
+    );
+  }
+}
+
+/// Texte qui réduit sa police jusqu'à tenir dans son parent, sans jamais être
+/// coupé.
+///
+/// [FittedBox] ne convient pas aux libellés sur deux lignes : il donne à son
+/// enfant une largeur infinie, donc le texte ne passe jamais à la ligne et se
+/// réduit à l'excès. Ici on mesure pour de vrai : la police descend par demi-
+/// points jusqu'à ce que (1) le mot le plus long tienne sur une ligne — sans
+/// quoi « Appréciation » serait coupé au milieu du mot, (2) le texte tienne en
+/// [maxLines] lignes et (3) sa hauteur tienne dans le parent.
+class AutoFitText extends StatelessWidget {
+  const AutoFitText(
+    this.text, {
+    super.key,
+    required this.style,
+    this.maxLines = 2,
+    this.minFontSize = 9,
+    this.textAlign = TextAlign.center,
+  });
+
+  final String text;
+  final TextStyle style;
+  final int maxLines;
+  final double minFontSize;
+  final TextAlign textAlign;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final size = fontSizeFor(
+          context,
+          texts: [text],
+          style: style,
+          constraints: constraints,
+          maxLines: maxLines,
+          minFontSize: minFontSize,
+          textAlign: textAlign,
+        );
+        return Text(
+          text,
+          textAlign: textAlign,
+          maxLines: maxLines,
+          overflow: TextOverflow.ellipsis,
+          style: style.copyWith(fontSize: size),
+        );
+      },
+    );
+  }
+
+  /// Plus grande police (≤ celle de [style]) à laquelle TOUS les [texts]
+  /// tiennent dans [constraints].
+  ///
+  /// Exposée pour les grilles : une taille commune à tous les boutons évite
+  /// qu'un libellé long s'affiche visiblement plus petit que ses voisins.
+  static double fontSizeFor(
+    BuildContext context, {
+    required List<String> texts,
+    required TextStyle style,
+    required BoxConstraints constraints,
+    int maxLines = 2,
+    double minFontSize = 9,
+    TextAlign textAlign = TextAlign.center,
+  }) {
+    var size = style.fontSize ?? 14;
+    if (!constraints.maxWidth.isFinite) return size;
+    final scaler = MediaQuery.textScalerOf(context);
+    final direction = Directionality.maybeOf(context) ?? TextDirection.ltr;
+    bool allFit(double candidate) => texts.every(
+      (text) => _fits(
+        text,
+        style.copyWith(fontSize: candidate),
+        constraints,
+        scaler,
+        direction,
+        maxLines,
+        textAlign,
+      ),
+    );
+    while (size > minFontSize && !allFit(size)) {
+      size -= 0.5;
+    }
+    return size;
+  }
+
+  static bool _fits(
+    String text,
+    TextStyle sized,
+    BoxConstraints constraints,
+    TextScaler scaler,
+    TextDirection direction,
+    int maxLines,
+    TextAlign textAlign,
+  ) {
+    for (final word in text.split(RegExp(r'\s+'))) {
+      final painter = TextPainter(
+        text: TextSpan(text: word, style: sized),
+        textDirection: direction,
+        textScaler: scaler,
+        maxLines: 1,
+      )..layout();
+      final tooWide = painter.width > constraints.maxWidth;
+      painter.dispose();
+      if (tooWide) return false;
+    }
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: sized),
+      textDirection: direction,
+      textScaler: scaler,
+      maxLines: maxLines,
+      textAlign: textAlign,
+    )..layout(maxWidth: constraints.maxWidth);
+    final fits =
+        !painter.didExceedMaxLines &&
+        (!constraints.maxHeight.isFinite ||
+            painter.height <= constraints.maxHeight);
+    painter.dispose();
+    return fits;
+  }
+}
+
+/// Réduit uniformément son contenu pour qu'il tienne dans la hauteur
+/// disponible, sans défilement.
+///
+/// Le contenu garde toute la largeur du parent : seul un écran trop court le
+/// fait rétrécir, et un écran assez haut l'affiche à sa taille normale.
+class GameFitToScreen extends StatelessWidget {
+  const GameFitToScreen({
+    super.key,
+    required this.child,
+    this.alignment = Alignment.topCenter,
+  });
+
+  final Widget child;
+  final AlignmentGeometry alignment;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (!constraints.hasBoundedHeight || !constraints.hasBoundedWidth) {
+          return child;
+        }
+        // Contraintes serrées (Expanded) : occupe toute la place. Contraintes
+        // lâches : épouse le contenu, et ne le réduit que s'il dépasse.
+        return FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: alignment,
+          child: SizedBox(width: constraints.maxWidth, child: child),
+        );
+      },
     );
   }
 }

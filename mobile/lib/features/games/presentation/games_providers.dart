@@ -6,6 +6,8 @@ import '../../../core/router/app_router.dart';
 import '../data/demo_games_repository.dart';
 import '../data/games_mock_repository.dart';
 import '../data/games_repository_impl.dart';
+import '../domain/entities/games_progress.dart';
+import '../domain/repositories/games_progress_repository.dart';
 import '../domain/repositories/games_repository.dart';
 
 /// Bascule mock / backend pour la feature games.
@@ -45,4 +47,20 @@ final gamesRepositoryProvider = Provider<GamesRepository>((ref) {
   if (kLot1DemoBuild) return DemoGamesRepository();
   if (_useMock) return GamesMockRepository();
   return GamesRepositoryImpl(ref.watch(dioProvider));
+});
+
+/// Progression du joueur dans le catalogue (« Coverage n % » du hub).
+///
+/// Relue à chaque retour sur le hub (voir `GamesHubScreen`). Un échec réseau ne
+/// bloque pas le hub : il affiche alors la couverture comme inconnue.
+final gamesProgressProvider = FutureProvider.autoDispose<GamesProgress?>((
+  ref,
+) async {
+  final repository = ref.watch(gamesRepositoryProvider);
+  if (repository is! GamesProgressRepository) return null;
+  try {
+    return await (repository as GamesProgressRepository).gamesProgress();
+  } catch (_) {
+    return null;
+  }
 });

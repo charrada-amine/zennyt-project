@@ -9,7 +9,7 @@ import java.util.Set;
 /**
  * Métriques d'une partie complète de « Choix Stratégiques ».
  *
- * <p>Les situations d'une partie sont distinctes : la banque en compte soixante
+ * <p>Les situations d'une partie sont distinctes : la banque en compte quatre-vingts
  * et une partie en tire dix, rejouer la même fausserait la mesure. Aucun point
  * ne circule dans ce payload.
  */

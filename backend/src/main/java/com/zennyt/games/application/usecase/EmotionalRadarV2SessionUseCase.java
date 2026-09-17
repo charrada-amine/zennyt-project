@@ -1,5 +1,8 @@
 package com.zennyt.games.application.usecase;
 
+import com.zennyt.games.domain.model.CatalogGame;
+import com.zennyt.games.domain.repository.GameCompletionRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import com.zennyt.games.domain.catalog.EmotionReferential;
 import com.zennyt.games.domain.config.EmotionalRadarV2Config;
 import com.zennyt.games.domain.config.EmotionalRadarV2ProvisionalRules;
@@ -62,6 +65,17 @@ public class EmotionalRadarV2SessionUseCase {
         this.sceneFactory = new EmotionalRadarV2SceneFactory(referential, distanceModel);
         this.reports = new EmotionalRadarV2ReportService(
             referential, gameScore, new ThetaIrtService());
+    }
+
+    /**
+     * Historique de progression (« Coverage » du hub). Facultatif : sans lui
+     * (tests unitaires), le parcours se joue sans rien noter.
+     */
+    private GameCompletionRepository completions;
+
+    @Autowired(required = false)
+    public void setCompletions(GameCompletionRepository completions) {
+        this.completions = completions;
     }
 
     @Transactional(readOnly = true)
@@ -144,6 +158,14 @@ public class EmotionalRadarV2SessionUseCase {
         List<RadarV2SceneAssignment> updated = new ArrayList<>(assigned.size() + 1);
         for (RadarV2SceneAssignment scene : assigned) {
             updated.add(scene.sceneOrder() == sceneOrder ? persisted : scene);
+        }
+
+        // Dernière scène répondue : le parcours est terminé. Il ne crée aucun
+        // Attempt en phase A (voir plus bas), mais la partie a bien été jouée
+        // en entier — elle compte pour la couverture du catalogue.
+        if (completions != null
+            && answered(updated).size() == EmotionalRadarV2Config.TOTAL_SCENES) {
+            completions.recordCompletion(playerId, CatalogGame.EMOTIONAL_RADAR, now);
         }
 
         /*

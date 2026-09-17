@@ -3480,6 +3480,1212 @@
           "rationale": "Une médiation active et rapide est la réponse la plus adaptée pour protéger l’équipe"
         }
       ]
+    },
+    {
+      "id": "CS-101",
+      "title": "La réunion qui déborde",
+      "context": "Une réunion s'éternise ; la tension monte et votre concentration décroche.",
+      "scene": "Le débat tourne en rond depuis vingt minutes. Vous sentez l'agacement gagner et vos réponses devenir plus sèches.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": true,
+      "controllability": null,
+      "source": "PROPOSITION_GOODNESS_OF_FIT",
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 1,
+          "rationale": "Aucun enjeu externe : c'est l'état interne qui dégrade la conduite. La régulation physiologique passe avant toute action."
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Aucun enjeu externe : c'est l'état interne qui dégrade la conduite. La régulation physiologique passe avant toute action."
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 3,
+          "rationale": "Aucun enjeu externe : c'est l'état interne qui dégrade la conduite. La régulation physiologique passe avant toute action."
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 2,
+          "rationale": "Aucun enjeu externe : c'est l'état interne qui dégrade la conduite. La régulation physiologique passe avant toute action."
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 2,
+          "rationale": "Aucun enjeu externe : c'est l'état interne qui dégrade la conduite. La régulation physiologique passe avant toute action."
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 1,
+          "rationale": "Aucun enjeu externe : c'est l'état interne qui dégrade la conduite. La régulation physiologique passe avant toute action."
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 0,
+          "rationale": "Aucun enjeu externe : c'est l'état interne qui dégrade la conduite. La régulation physiologique passe avant toute action."
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 1,
+          "rationale": "Aucun enjeu externe : c'est l'état interne qui dégrade la conduite. La régulation physiologique passe avant toute action."
+        }
+      ]
+    },
+    {
+      "id": "CS-102",
+      "title": "Le dossier bloqué chez un tiers",
+      "context": "Votre avancement dépend d'un service qui ne répond plus depuis une semaine.",
+      "scene": "Deux relances sont restées sans réponse. L'échéance approche et vous n'avez aucun levier direct sur ce service.",
+      "medium": "WRITTEN",
+      "needsPsychologistValidation": true,
+      "controllability": null,
+      "source": "PROPOSITION_GOODNESS_OF_FIT",
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 1,
+          "rationale": "Sans levier direct, mobiliser un tiers ayant autorité est la seule voie efficace (soutien instrumental)."
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Sans levier direct, mobiliser un tiers ayant autorité est la seule voie efficace (soutien instrumental)."
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 1,
+          "rationale": "Sans levier direct, mobiliser un tiers ayant autorité est la seule voie efficace (soutien instrumental)."
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 1,
+          "rationale": "Sans levier direct, mobiliser un tiers ayant autorité est la seule voie efficace (soutien instrumental)."
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 2,
+          "rationale": "Sans levier direct, mobiliser un tiers ayant autorité est la seule voie efficace (soutien instrumental)."
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Sans levier direct, mobiliser un tiers ayant autorité est la seule voie efficace (soutien instrumental)."
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 3,
+          "rationale": "Sans levier direct, mobiliser un tiers ayant autorité est la seule voie efficace (soutien instrumental)."
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 2,
+          "rationale": "Sans levier direct, mobiliser un tiers ayant autorité est la seule voie efficace (soutien instrumental)."
+        }
+      ],
+      "message": "« Votre demande a bien été enregistrée. » — seule réponse reçue, il y a huit jours. Vos deux relances depuis sont restées sans réponse."
+    },
+    {
+      "id": "CS-103",
+      "title": "L'erreur signalée publiquement",
+      "context": "Un collègue signale votre erreur devant l'équipe, sur un ton neutre mais devant tous.",
+      "scene": "L'erreur est réelle. Le groupe attend votre réaction.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": true,
+      "controllability": null,
+      "source": "PROPOSITION_GOODNESS_OF_FIT",
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 0,
+          "rationale": "L'erreur étant réelle et publique, la reconnaître et dire la correction rétablit la situation immédiatement."
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 1,
+          "rationale": "L'erreur étant réelle et publique, la reconnaître et dire la correction rétablit la situation immédiatement."
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 2,
+          "rationale": "L'erreur étant réelle et publique, la reconnaître et dire la correction rétablit la situation immédiatement."
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 2,
+          "rationale": "L'erreur étant réelle et publique, la reconnaître et dire la correction rétablit la situation immédiatement."
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 3,
+          "rationale": "L'erreur étant réelle et publique, la reconnaître et dire la correction rétablit la situation immédiatement."
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 1,
+          "rationale": "L'erreur étant réelle et publique, la reconnaître et dire la correction rétablit la situation immédiatement."
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 1,
+          "rationale": "L'erreur étant réelle et publique, la reconnaître et dire la correction rétablit la situation immédiatement."
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 2,
+          "rationale": "L'erreur étant réelle et publique, la reconnaître et dire la correction rétablit la situation immédiatement."
+        }
+      ]
+    },
+    {
+      "id": "CS-104",
+      "title": "Le refus définitif",
+      "context": "Une candidature interne que vous portiez depuis des mois est refusée sans appel.",
+      "scene": "La décision est prise et ne sera pas réexaminée. Vous restez dans la même équipe.",
+      "medium": "WRITTEN",
+      "needsPsychologistValidation": true,
+      "controllability": null,
+      "source": "PROPOSITION_GOODNESS_OF_FIT",
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 1,
+          "rationale": "La situation n'est plus modifiable : le travail porte sur la lecture qu'on en fait, pas sur l'action."
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 1,
+          "rationale": "La situation n'est plus modifiable : le travail porte sur la lecture qu'on en fait, pas sur l'action."
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 2,
+          "rationale": "La situation n'est plus modifiable : le travail porte sur la lecture qu'on en fait, pas sur l'action."
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 3,
+          "rationale": "La situation n'est plus modifiable : le travail porte sur la lecture qu'on en fait, pas sur l'action."
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 1,
+          "rationale": "La situation n'est plus modifiable : le travail porte sur la lecture qu'on en fait, pas sur l'action."
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 1,
+          "rationale": "La situation n'est plus modifiable : le travail porte sur la lecture qu'on en fait, pas sur l'action."
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 2,
+          "rationale": "La situation n'est plus modifiable : le travail porte sur la lecture qu'on en fait, pas sur l'action."
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 0,
+          "rationale": "La situation n'est plus modifiable : le travail porte sur la lecture qu'on en fait, pas sur l'action."
+        }
+      ],
+      "message": "« Après examen, votre candidature n'a pas été retenue pour ce poste. La décision est définitive. »"
+    },
+    {
+      "id": "CS-105",
+      "title": "La panne pendant le service",
+      "context": "Un équipement tombe en panne au moment le plus chargé de la journée.",
+      "scene": "Les clients attendent. Une solution de contournement existe mais demande d'agir tout de suite.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": true,
+      "controllability": null,
+      "source": "PROPOSITION_GOODNESS_OF_FIT",
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 0,
+          "rationale": "Problème solvable, échéance immédiate : l'action directe domine toute régulation émotionnelle."
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Problème solvable, échéance immédiate : l'action directe domine toute régulation émotionnelle."
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 1,
+          "rationale": "Problème solvable, échéance immédiate : l'action directe domine toute régulation émotionnelle."
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 1,
+          "rationale": "Problème solvable, échéance immédiate : l'action directe domine toute régulation émotionnelle."
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 2,
+          "rationale": "Problème solvable, échéance immédiate : l'action directe domine toute régulation émotionnelle."
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Problème solvable, échéance immédiate : l'action directe domine toute régulation émotionnelle."
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 2,
+          "rationale": "Problème solvable, échéance immédiate : l'action directe domine toute régulation émotionnelle."
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 3,
+          "rationale": "Problème solvable, échéance immédiate : l'action directe domine toute régulation émotionnelle."
+        }
+      ]
+    },
+    {
+      "id": "CS-106",
+      "title": "La remarque sur la tenue",
+      "context": "Un collègue fait une remarque déplacée sur votre apparence, en petit comité.",
+      "scene": "Deux personnes sourient. La remarque n'est pas la première du genre.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": true,
+      "controllability": null,
+      "source": "PROPOSITION_GOODNESS_OF_FIT",
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 1,
+          "rationale": "Comportement répété : poser la limite est ce qui l'arrête. Le recadrage cognitif laisserait le comportement intact."
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 1,
+          "rationale": "Comportement répété : poser la limite est ce qui l'arrête. Le recadrage cognitif laisserait le comportement intact."
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 2,
+          "rationale": "Comportement répété : poser la limite est ce qui l'arrête. Le recadrage cognitif laisserait le comportement intact."
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 1,
+          "rationale": "Comportement répété : poser la limite est ce qui l'arrête. Le recadrage cognitif laisserait le comportement intact."
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 3,
+          "rationale": "Comportement répété : poser la limite est ce qui l'arrête. Le recadrage cognitif laisserait le comportement intact."
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 1,
+          "rationale": "Comportement répété : poser la limite est ce qui l'arrête. Le recadrage cognitif laisserait le comportement intact."
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 2,
+          "rationale": "Comportement répété : poser la limite est ce qui l'arrête. Le recadrage cognitif laisserait le comportement intact."
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 1,
+          "rationale": "Comportement répété : poser la limite est ce qui l'arrête. Le recadrage cognitif laisserait le comportement intact."
+        }
+      ]
+    },
+    {
+      "id": "CS-107",
+      "title": "L'attente du verdict",
+      "context": "Vous attendez une décision qui vous concerne et qui tombera dans trois jours.",
+      "scene": "Rien de ce que vous ferez d'ici là n'influencera l'issue. Vous y repensez sans arrêt.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": true,
+      "controllability": null,
+      "source": "PROPOSITION_GOODNESS_OF_FIT",
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 2,
+          "rationale": "Rien n'est actionnable : la régulation de l'état et la mise à distance sont les seules conduites utiles."
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Rien n'est actionnable : la régulation de l'état et la mise à distance sont les seules conduites utiles."
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 3,
+          "rationale": "Rien n'est actionnable : la régulation de l'état et la mise à distance sont les seules conduites utiles."
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 2,
+          "rationale": "Rien n'est actionnable : la régulation de l'état et la mise à distance sont les seules conduites utiles."
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 0,
+          "rationale": "Rien n'est actionnable : la régulation de l'état et la mise à distance sont les seules conduites utiles."
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 2,
+          "rationale": "Rien n'est actionnable : la régulation de l'état et la mise à distance sont les seules conduites utiles."
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 2,
+          "rationale": "Rien n'est actionnable : la régulation de l'état et la mise à distance sont les seules conduites utiles."
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 0,
+          "rationale": "Rien n'est actionnable : la régulation de l'état et la mise à distance sont les seules conduites utiles."
+        }
+      ]
+    },
+    {
+      "id": "CS-108",
+      "title": "La consigne contradictoire",
+      "context": "Deux responsables vous donnent des instructions incompatibles sur le même dossier.",
+      "scene": "Chacun considère la sienne comme prioritaire. Vous ne pouvez pas satisfaire les deux.",
+      "medium": "WRITTEN",
+      "needsPsychologistValidation": true,
+      "controllability": null,
+      "source": "PROPOSITION_GOODNESS_OF_FIT",
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 0,
+          "rationale": "Le conflit appartient aux deux demandeurs : le rendre explicite est l'action adaptée."
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Le conflit appartient aux deux demandeurs : le rendre explicite est l'action adaptée."
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 1,
+          "rationale": "Le conflit appartient aux deux demandeurs : le rendre explicite est l'action adaptée."
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 1,
+          "rationale": "Le conflit appartient aux deux demandeurs : le rendre explicite est l'action adaptée."
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 3,
+          "rationale": "Le conflit appartient aux deux demandeurs : le rendre explicite est l'action adaptée."
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Le conflit appartient aux deux demandeurs : le rendre explicite est l'action adaptée."
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 2,
+          "rationale": "Le conflit appartient aux deux demandeurs : le rendre explicite est l'action adaptée."
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 1,
+          "rationale": "Le conflit appartient aux deux demandeurs : le rendre explicite est l'action adaptée."
+        }
+      ],
+      "message": "« Priorité absolue sur le dossier Legrand aujourd'hui. » — et, dix minutes plus tôt : « Rien avant l'audit, on gèle Legrand. »"
+    },
+    {
+      "id": "CS-109",
+      "title": "Le trajet interminable",
+      "context": "Un incident immobilise votre train ; vous manquerez le début d'une réunion importante.",
+      "scene": "Vous avez prévenu. Le retard est acquis et hors de votre contrôle.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": true,
+      "controllability": null,
+      "source": "PROPOSITION_GOODNESS_OF_FIT",
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 1,
+          "rationale": "Contrainte externe non modifiable et déjà signalée : reste à en réduire la charge pour arriver disponible."
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Contrainte externe non modifiable et déjà signalée : reste à en réduire la charge pour arriver disponible."
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 2,
+          "rationale": "Contrainte externe non modifiable et déjà signalée : reste à en réduire la charge pour arriver disponible."
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 3,
+          "rationale": "Contrainte externe non modifiable et déjà signalée : reste à en réduire la charge pour arriver disponible."
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 1,
+          "rationale": "Contrainte externe non modifiable et déjà signalée : reste à en réduire la charge pour arriver disponible."
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 2,
+          "rationale": "Contrainte externe non modifiable et déjà signalée : reste à en réduire la charge pour arriver disponible."
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 1,
+          "rationale": "Contrainte externe non modifiable et déjà signalée : reste à en réduire la charge pour arriver disponible."
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 1,
+          "rationale": "Contrainte externe non modifiable et déjà signalée : reste à en réduire la charge pour arriver disponible."
+        }
+      ]
+    },
+    {
+      "id": "CS-110",
+      "title": "La blague qui tombe à plat",
+      "context": "Une maladresse de votre part crée un blanc gênant dans un échange informel.",
+      "scene": "Personne n'est blessé, mais le silence s'installe et tout le monde attend.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": true,
+      "controllability": null,
+      "source": "PROPOSITION_GOODNESS_OF_FIT",
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 1,
+          "rationale": "Enjeu social mineur et réparable sur-le-champ : l'humour dissout la gêne mieux qu'une explication."
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Enjeu social mineur et réparable sur-le-champ : l'humour dissout la gêne mieux qu'une explication."
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 1,
+          "rationale": "Enjeu social mineur et réparable sur-le-champ : l'humour dissout la gêne mieux qu'une explication."
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 2,
+          "rationale": "Enjeu social mineur et réparable sur-le-champ : l'humour dissout la gêne mieux qu'une explication."
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 1,
+          "rationale": "Enjeu social mineur et réparable sur-le-champ : l'humour dissout la gêne mieux qu'une explication."
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 3,
+          "rationale": "Enjeu social mineur et réparable sur-le-champ : l'humour dissout la gêne mieux qu'une explication."
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 1,
+          "rationale": "Enjeu social mineur et réparable sur-le-champ : l'humour dissout la gêne mieux qu'une explication."
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 1,
+          "rationale": "Enjeu social mineur et réparable sur-le-champ : l'humour dissout la gêne mieux qu'une explication."
+        }
+      ]
+    },
+    {
+      "id": "CS-111",
+      "title": "La charge qui s'accumule",
+      "context": "Le volume de travail dépasse depuis trois semaines ce qu'une personne peut absorber.",
+      "scene": "Vous tenez le rythme au prix de vos soirées. Rien n'indique que cela va redescendre.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": true,
+      "controllability": null,
+      "source": "PROPOSITION_GOODNESS_OF_FIT",
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 0,
+          "rationale": "Surcharge durable et structurelle : elle se traite par la mobilisation d'un appui, pas par l'effort individuel."
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 1,
+          "rationale": "Surcharge durable et structurelle : elle se traite par la mobilisation d'un appui, pas par l'effort individuel."
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 1,
+          "rationale": "Surcharge durable et structurelle : elle se traite par la mobilisation d'un appui, pas par l'effort individuel."
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 1,
+          "rationale": "Surcharge durable et structurelle : elle se traite par la mobilisation d'un appui, pas par l'effort individuel."
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 2,
+          "rationale": "Surcharge durable et structurelle : elle se traite par la mobilisation d'un appui, pas par l'effort individuel."
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Surcharge durable et structurelle : elle se traite par la mobilisation d'un appui, pas par l'effort individuel."
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 3,
+          "rationale": "Surcharge durable et structurelle : elle se traite par la mobilisation d'un appui, pas par l'effort individuel."
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 2,
+          "rationale": "Surcharge durable et structurelle : elle se traite par la mobilisation d'un appui, pas par l'effort individuel."
+        }
+      ]
+    },
+    {
+      "id": "CS-112",
+      "title": "La critique du client",
+      "context": "Un client signale un défaut réel sur une livraison, par écrit.",
+      "scene": "Le défaut est avéré et corrigeable dans la journée.",
+      "medium": "WRITTEN",
+      "needsPsychologistValidation": true,
+      "controllability": null,
+      "source": "PROPOSITION_GOODNESS_OF_FIT",
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 0,
+          "rationale": "Défaut réel et corrigeable : corriger prime sur toute explication."
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Défaut réel et corrigeable : corriger prime sur toute explication."
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 1,
+          "rationale": "Défaut réel et corrigeable : corriger prime sur toute explication."
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 1,
+          "rationale": "Défaut réel et corrigeable : corriger prime sur toute explication."
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 2,
+          "rationale": "Défaut réel et corrigeable : corriger prime sur toute explication."
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Défaut réel et corrigeable : corriger prime sur toute explication."
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 1,
+          "rationale": "Défaut réel et corrigeable : corriger prime sur toute explication."
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 3,
+          "rationale": "Défaut réel et corrigeable : corriger prime sur toute explication."
+        }
+      ],
+      "message": "« Bonjour, nous venons de réceptionner la livraison : la référence ne correspond pas à la commande. Que prévoyez-vous ? »"
+    },
+    {
+      "id": "CS-113",
+      "title": "Le silence après l'entretien",
+      "context": "Une semaine après un entretien décisif, aucune nouvelle n'arrive.",
+      "scene": "Le délai annoncé n'est pas encore dépassé. Vous y pensez plusieurs fois par jour.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": true,
+      "controllability": null,
+      "source": "PROPOSITION_GOODNESS_OF_FIT",
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 2,
+          "rationale": "Relancer avant le délai annoncé dessert ; la conduite utile est de tenir l'attente."
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Relancer avant le délai annoncé dessert ; la conduite utile est de tenir l'attente."
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 3,
+          "rationale": "Relancer avant le délai annoncé dessert ; la conduite utile est de tenir l'attente."
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 2,
+          "rationale": "Relancer avant le délai annoncé dessert ; la conduite utile est de tenir l'attente."
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 1,
+          "rationale": "Relancer avant le délai annoncé dessert ; la conduite utile est de tenir l'attente."
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 1,
+          "rationale": "Relancer avant le délai annoncé dessert ; la conduite utile est de tenir l'attente."
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 2,
+          "rationale": "Relancer avant le délai annoncé dessert ; la conduite utile est de tenir l'attente."
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 1,
+          "rationale": "Relancer avant le délai annoncé dessert ; la conduite utile est de tenir l'attente."
+        }
+      ]
+    },
+    {
+      "id": "CS-114",
+      "title": "Le collègue qui s'attribue le travail",
+      "context": "En réunion, un collègue présente comme sien un travail que vous avez réalisé.",
+      "scene": "Plusieurs personnes présentes l'ignorent. Le sujet sera tranché à la fin de la réunion.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": true,
+      "controllability": null,
+      "source": "PROPOSITION_GOODNESS_OF_FIT",
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 0,
+          "rationale": "Fenêtre courte et enjeu de reconnaissance : rétablir le fait avant la décision est le seul moment utile."
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 1,
+          "rationale": "Fenêtre courte et enjeu de reconnaissance : rétablir le fait avant la décision est le seul moment utile."
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 2,
+          "rationale": "Fenêtre courte et enjeu de reconnaissance : rétablir le fait avant la décision est le seul moment utile."
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 1,
+          "rationale": "Fenêtre courte et enjeu de reconnaissance : rétablir le fait avant la décision est le seul moment utile."
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 3,
+          "rationale": "Fenêtre courte et enjeu de reconnaissance : rétablir le fait avant la décision est le seul moment utile."
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Fenêtre courte et enjeu de reconnaissance : rétablir le fait avant la décision est le seul moment utile."
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 2,
+          "rationale": "Fenêtre courte et enjeu de reconnaissance : rétablir le fait avant la décision est le seul moment utile."
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 2,
+          "rationale": "Fenêtre courte et enjeu de reconnaissance : rétablir le fait avant la décision est le seul moment utile."
+        }
+      ]
+    },
+    {
+      "id": "CS-115",
+      "title": "Le projet abandonné",
+      "context": "Un projet porté pendant un an est arrêté par la direction.",
+      "scene": "La décision est budgétaire et irrévocable. Vous êtes réaffecté dès la semaine prochaine.",
+      "medium": "WRITTEN",
+      "needsPsychologistValidation": true,
+      "controllability": null,
+      "source": "PROPOSITION_GOODNESS_OF_FIT",
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 1,
+          "rationale": "Perte non réversible : le travail est celui du sens, pas celui de l'action."
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 1,
+          "rationale": "Perte non réversible : le travail est celui du sens, pas celui de l'action."
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 2,
+          "rationale": "Perte non réversible : le travail est celui du sens, pas celui de l'action."
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 3,
+          "rationale": "Perte non réversible : le travail est celui du sens, pas celui de l'action."
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 1,
+          "rationale": "Perte non réversible : le travail est celui du sens, pas celui de l'action."
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 1,
+          "rationale": "Perte non réversible : le travail est celui du sens, pas celui de l'action."
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 2,
+          "rationale": "Perte non réversible : le travail est celui du sens, pas celui de l'action."
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 0,
+          "rationale": "Perte non réversible : le travail est celui du sens, pas celui de l'action."
+        }
+      ],
+      "message": "« Le comité a décidé l'arrêt du projet. Votre réaffectation prend effet lundi prochain. »"
+    },
+    {
+      "id": "CS-116",
+      "title": "L'échéance intenable",
+      "context": "Un délai a été accepté par quelqu'un d'autre à votre place, et il est intenable en l'état.",
+      "scene": "Il reste deux jours. Réduire le périmètre est possible si la décision est prise maintenant.",
+      "medium": "WRITTEN",
+      "needsPsychologistValidation": true,
+      "controllability": null,
+      "source": "PROPOSITION_GOODNESS_OF_FIT",
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 0,
+          "rationale": "Solvable par une décision immédiate de périmètre : agir et le dire valent également, d'où deux stratégies à 3."
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Solvable par une décision immédiate de périmètre : agir et le dire valent également, d'où deux stratégies à 3."
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 1,
+          "rationale": "Solvable par une décision immédiate de périmètre : agir et le dire valent également, d'où deux stratégies à 3."
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 1,
+          "rationale": "Solvable par une décision immédiate de périmètre : agir et le dire valent également, d'où deux stratégies à 3."
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 3,
+          "rationale": "Solvable par une décision immédiate de périmètre : agir et le dire valent également, d'où deux stratégies à 3."
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 0,
+          "rationale": "Solvable par une décision immédiate de périmètre : agir et le dire valent également, d'où deux stratégies à 3."
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 2,
+          "rationale": "Solvable par une décision immédiate de périmètre : agir et le dire valent également, d'où deux stratégies à 3."
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 3,
+          "rationale": "Solvable par une décision immédiate de périmètre : agir et le dire valent également, d'où deux stratégies à 3."
+        }
+      ],
+      "message": "« J'ai confirmé au client pour jeudi. Tu gères ? »"
+    },
+    {
+      "id": "CS-117",
+      "title": "La tension qui traîne",
+      "context": "Un désaccord ancien avec un collègue empoisonne les échanges depuis des mois.",
+      "scene": "Les tentatives directes ont échoué deux fois. Le travail commun en souffre.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": true,
+      "controllability": null,
+      "source": "PROPOSITION_GOODNESS_OF_FIT",
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 1,
+          "rationale": "Les tentatives directes ayant échoué, un tiers médiateur devient la voie la plus réaliste."
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Les tentatives directes ayant échoué, un tiers médiateur devient la voie la plus réaliste."
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 1,
+          "rationale": "Les tentatives directes ayant échoué, un tiers médiateur devient la voie la plus réaliste."
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 2,
+          "rationale": "Les tentatives directes ayant échoué, un tiers médiateur devient la voie la plus réaliste."
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 1,
+          "rationale": "Les tentatives directes ayant échoué, un tiers médiateur devient la voie la plus réaliste."
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 1,
+          "rationale": "Les tentatives directes ayant échoué, un tiers médiateur devient la voie la plus réaliste."
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 3,
+          "rationale": "Les tentatives directes ayant échoué, un tiers médiateur devient la voie la plus réaliste."
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 2,
+          "rationale": "Les tentatives directes ayant échoué, un tiers médiateur devient la voie la plus réaliste."
+        }
+      ]
+    },
+    {
+      "id": "CS-118",
+      "title": "Le reproche fondé",
+      "context": "Votre responsable formule une critique désagréable, mais exacte, sur votre méthode.",
+      "scene": "Le fond est juste ; c'est la forme qui pique.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": true,
+      "controllability": null,
+      "source": "PROPOSITION_GOODNESS_OF_FIT",
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 0,
+          "rationale": "Séparer le fond utile de la forme désagréable est ce qui permet d'en tirer quelque chose."
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 1,
+          "rationale": "Séparer le fond utile de la forme désagréable est ce qui permet d'en tirer quelque chose."
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 2,
+          "rationale": "Séparer le fond utile de la forme désagréable est ce qui permet d'en tirer quelque chose."
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 3,
+          "rationale": "Séparer le fond utile de la forme désagréable est ce qui permet d'en tirer quelque chose."
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 1,
+          "rationale": "Séparer le fond utile de la forme désagréable est ce qui permet d'en tirer quelque chose."
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 1,
+          "rationale": "Séparer le fond utile de la forme désagréable est ce qui permet d'en tirer quelque chose."
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 1,
+          "rationale": "Séparer le fond utile de la forme désagréable est ce qui permet d'en tirer quelque chose."
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 2,
+          "rationale": "Séparer le fond utile de la forme désagréable est ce qui permet d'en tirer quelque chose."
+        }
+      ]
+    },
+    {
+      "id": "CS-119",
+      "title": "L'ambiance pesante",
+      "context": "Après une mauvaise nouvelle, l'équipe travaille dans un silence tendu.",
+      "scene": "Rien de grave n'est en jeu dans l'immédiat, mais l'atmosphère bloque les échanges.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": true,
+      "controllability": null,
+      "source": "PROPOSITION_GOODNESS_OF_FIT",
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 1,
+          "rationale": "Enjeu de climat collectif sans urgence : l'humour relance les échanges là où une analyse les alourdirait."
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 0,
+          "rationale": "Enjeu de climat collectif sans urgence : l'humour relance les échanges là où une analyse les alourdirait."
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 2,
+          "rationale": "Enjeu de climat collectif sans urgence : l'humour relance les échanges là où une analyse les alourdirait."
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 2,
+          "rationale": "Enjeu de climat collectif sans urgence : l'humour relance les échanges là où une analyse les alourdirait."
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 1,
+          "rationale": "Enjeu de climat collectif sans urgence : l'humour relance les échanges là où une analyse les alourdirait."
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 3,
+          "rationale": "Enjeu de climat collectif sans urgence : l'humour relance les échanges là où une analyse les alourdirait."
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 2,
+          "rationale": "Enjeu de climat collectif sans urgence : l'humour relance les échanges là où une analyse les alourdirait."
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 1,
+          "rationale": "Enjeu de climat collectif sans urgence : l'humour relance les échanges là où une analyse les alourdirait."
+        }
+      ]
+    },
+    {
+      "id": "CS-120",
+      "title": "L'interruption de trop",
+      "context": "Pour la cinquième fois de la matinée, on vous coupe dans une tâche qui demande de la concentration.",
+      "scene": "Vous sentez l'irritation monter et vos réponses devenir sèches.",
+      "medium": "VIDEO",
+      "needsPsychologistValidation": true,
+      "controllability": null,
+      "source": "PROPOSITION_GOODNESS_OF_FIT",
+      "choices": [
+        {
+          "strategy": "AVOID_FLEE",
+          "label": "Avoid / flee",
+          "score": 1,
+          "rationale": "L'irritation dégrade déjà la conduite : la réguler précède toute mise au point sur les interruptions."
+        },
+        {
+          "strategy": "RUMINATE",
+          "label": "Ruminate",
+          "score": 1,
+          "rationale": "L'irritation dégrade déjà la conduite : la réguler précède toute mise au point sur les interruptions."
+        },
+        {
+          "strategy": "BREATHE_PAUSE",
+          "label": "Breathe / pause",
+          "score": 3,
+          "rationale": "L'irritation dégrade déjà la conduite : la réguler précède toute mise au point sur les interruptions."
+        },
+        {
+          "strategy": "COGNITIVE_REAPPRAISAL",
+          "label": "Cognitive reappraisal",
+          "score": 2,
+          "rationale": "L'irritation dégrade déjà la conduite : la réguler précède toute mise au point sur les interruptions."
+        },
+        {
+          "strategy": "ASSERTIVE_COMMUNICATION",
+          "label": "Assertive communication",
+          "score": 2,
+          "rationale": "L'irritation dégrade déjà la conduite : la réguler précède toute mise au point sur les interruptions."
+        },
+        {
+          "strategy": "HUMOR",
+          "label": "Humor",
+          "score": 1,
+          "rationale": "L'irritation dégrade déjà la conduite : la réguler précède toute mise au point sur les interruptions."
+        },
+        {
+          "strategy": "SEEK_SUPPORT",
+          "label": "Seek support",
+          "score": 0,
+          "rationale": "L'irritation dégrade déjà la conduite : la réguler précède toute mise au point sur les interruptions."
+        },
+        {
+          "strategy": "DIRECT_ACTION",
+          "label": "Direct action",
+          "score": 2,
+          "rationale": "L'irritation dégrade déjà la conduite : la réguler précède toute mise au point sur les interruptions."
+        }
+      ]
     }
   ]
 }

@@ -1,3 +1,5 @@
+import 'package:zennyt/core/audio/sound_service.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -12,7 +14,7 @@ import 'package:zennyt/features/games/presentation/view/strategic_choices_screen
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  // La banque des 60 situations vient d'un asset : on la précharge une fois
+  // La banque des 80 situations vient d'un asset : on la précharge une fois
   // pour que l'écran la retrouve en cache.
   late StrategicChoicesBank bank;
   setUpAll(() async {
@@ -20,7 +22,11 @@ void main() {
     bank = await StrategicChoicesBankLoader.load();
   });
 
-  Future<void> pumpGame(WidgetTester tester, {double textScale = 1}) async {
+  Future<void> pumpGame(
+    WidgetTester tester, {
+    double textScale = 1,
+    List<StrategicChoiceScenario>? scenarios,
+  }) async {
     SharedPreferences.setMockInitialValues({});
     final preferences = await SharedPreferences.getInstance();
     // Surface haute : la carte de situation porte désormais l'emplacement du
@@ -46,9 +52,10 @@ void main() {
             ).copyWith(textScaler: TextScaler.linear(textScale)),
             child: child!,
           ),
-          home: const StrategicChoicesScreen(
-            reflectionDuration: Duration(milliseconds: 300),
-            savedTransitionDuration: Duration(milliseconds: 10),
+          home: StrategicChoicesScreen(
+            reflectionDuration: const Duration(milliseconds: 300),
+            savedTransitionDuration: const Duration(milliseconds: 10),
+            scenariosForTesting: scenarios,
           ),
         ),
       ),
@@ -58,7 +65,15 @@ void main() {
 
   Future<void> revealScrollableText(WidgetTester tester, String label) async {
     final target = find.text(label);
-    for (var attempt = 0; attempt < 8 && target.evaluate().isEmpty; attempt++) {
+    // La couverture défile ; le tutoriel se parcourt par cartes.
+    // Les commandes restent accessibles sans défiler jusqu’à elles.
+    for (
+      var attempt = 0;
+      attempt < 8 &&
+          target.evaluate().isEmpty &&
+          find.byType(Scrollable).evaluate().isNotEmpty;
+      attempt++
+    ) {
       await tester.drag(find.byType(Scrollable).first, const Offset(0, -220));
       await tester.pump();
     }
@@ -77,7 +92,11 @@ void main() {
     await tester.pumpAndSettle();
     await tapScrollableText(tester, 'Continue');
     await tester.pumpAndSettle();
-    await tapScrollableText(tester, 'Start situation');
+    for (var page = 0; page < 4; page++) {
+      await tester.tap(find.text('Suivant'));
+      await tester.pumpAndSettle();
+    }
+    await tapScrollableText(tester, 'Commencer la partie');
     await tester.pumpAndSettle();
   }
 
@@ -85,38 +104,24 @@ void main() {
     final startReflection = find.byKey(
       const ValueKey('strategic-start-reflection'),
     );
-    await tester.scrollUntilVisible(
-      startReflection,
-      260,
-      scrollable: find.byType(Scrollable).first,
-    );
     await tester.tap(startReflection);
     await tester.pump();
 
     final choice = find.byKey(const ValueKey('strategic-choice-breathePause'));
-    await tester.scrollUntilVisible(
-      choice,
-      180,
-      scrollable: find.byType(Scrollable).first,
-    );
     await tester.tap(choice);
     await tester.pump(const Duration(milliseconds: 350));
 
     final validate = find.byKey(const ValueKey('strategic-validate'));
-    await tester.scrollUntilVisible(
-      validate,
-      220,
-      scrollable: find.byType(Scrollable).first,
-    );
     await tester.tap(validate);
     await tester.pumpAndSettle();
   }
 
-  test('la banque du client remplace les dix situations inventées', () {
+  test('les deux banques remplacent les dix situations inventées', () {
     // L'écran jouait dix situations écrites à la main en anglais
     // (STRATEGIC_01 à 10). Elles ne venaient pas du client.
-    expect(bank.scenarios, hasLength(60));
-    expect(bank.scenarios.map((s) => s.id).toSet(), hasLength(60));
+    // 60 fiches du client + 20 situations de la proposition.
+    expect(bank.scenarios, hasLength(80));
+    expect(bank.scenarios.map((s) => s.id).toSet(), hasLength(80));
     expect(StrategicChoicesContent.strategies, hasLength(8));
     expect(kStrategicChoicesPerJourney, 10);
     expect(bank.byId('CS-001').title, 'La réunion interrompue');
@@ -141,19 +146,57 @@ void main() {
     await tapScrollableText(tester, 'View tutorial');
     await tester.pumpAndSettle();
     expect(find.text('Train the pause before action'), findsOneWidget);
-    await revealScrollableText(tester, 'Text scenarios for now');
-    expect(find.text('Text scenarios for now'), findsOneWidget);
+    await revealScrollableText(tester, 'Written messages and video scenes');
+    expect(find.text('Written messages and video scenes'), findsOneWidget);
 
     await tapScrollableText(tester, 'Continue');
     await tester.pumpAndSettle();
-    expect(find.text('How the mission works'), findsOneWidget);
-    expect(find.text('Read'), findsOneWidget);
-    expect(find.text('Reflect'), findsOneWidget);
-    expect(find.text('Choose'), findsOneWidget);
-    expect(find.text('Validate'), findsOneWidget);
-    expect(find.textContaining('You may choose while it runs'), findsOneWidget);
-    expect(find.textContaining('eight strategies'), findsOneWidget);
-    expect(find.textContaining('provisional score'), findsOneWidget);
+    expect(find.text('Comment jouer'), findsOneWidget);
+    expect(find.text('Lis la situation'), findsOneWidget);
+    expect(
+      find.textContaining('vidéos sont encore en préparation'),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('Suivant'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Start reflection'), findsOneWidget);
+    expect(find.textContaining('choisir pendant'), findsOneWidget);
+    await tester.tap(find.text('Suivant'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('8 stratégies'), findsOneWidget);
+    await tester.tap(find.text('Suivant'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('À la fin du compte à rebours'), findsOneWidget);
+    await tester.tap(find.text('Suivant'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Après 10 situations'), findsOneWidget);
+    expect(find.textContaining('score provisoire'), findsOneWidget);
+    expect(find.textContaining('Aucune correction immédiate'), findsOneWidget);
+  });
+
+  testWidgets('un écrit affiche sa bulle sans emplacement vidéo', (
+    tester,
+  ) async {
+    const message =
+        '« Bonjour, nous venons de réceptionner la livraison : la référence '
+        'ne correspond pas à la commande. Que prévoyez-vous ? »';
+    final videos = bank.scenarios
+        .where((scenario) => scenario.medium == StrategicChoiceMedium.video)
+        .take(kStrategicChoicesPerJourney - 1);
+    await pumpGame(tester, scenarios: [bank.byId('CS-112'), ...videos]);
+    await reachGameplay(tester);
+
+    expect(find.text('MESSAGE REÇU'), findsOneWidget);
+    expect(find.text(message), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('strategic-written-message')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('strategic-video-placeholder')),
+      findsNothing,
+    );
+    expect(find.text('Vidéo à venir'), findsNothing);
   });
 
   testWidgets('pause freezes reflection and offers no restart action', (
@@ -164,11 +207,6 @@ void main() {
 
     final startReflection = find.byKey(
       const ValueKey('strategic-start-reflection'),
-    );
-    await tester.scrollUntilVisible(
-      startReflection,
-      260,
-      scrollable: find.byType(Scrollable).first,
     );
     await tester.tap(startReflection);
     await tester.pump(const Duration(milliseconds: 100));
@@ -191,6 +229,55 @@ void main() {
     );
   });
 
+  testWidgets('l’aide conserve la sélection et gèle la réflexion', (
+    tester,
+  ) async {
+    await pumpGame(tester);
+    await reachGameplay(tester);
+    await tester.tap(find.byKey(const ValueKey('strategic-start-reflection')));
+    await tester.pump();
+    final choice = find.byKey(const ValueKey('strategic-choice-breathePause'));
+    await tester.tap(choice);
+    await tester.pump(const Duration(milliseconds: 100));
+    bool selected() => tester
+        .widget<Semantics>(
+          find
+              .ancestor(
+                of: choice,
+                matching: find.byWidgetPredicate(
+                  (widget) =>
+                      widget is Semantics && widget.properties.selected != null,
+                ),
+              )
+              .first,
+        )
+        .properties
+        .selected!;
+    expect(selected(), isTrue);
+    await tester.tap(find.byTooltip('Pause'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('View rules / Help'));
+    await tester.pumpAndSettle();
+    expect(find.text('Lis la situation'), findsOneWidget);
+    for (var page = 0; page < 4; page++) {
+      await tester.tap(find.text('Suivant'));
+      await tester.pumpAndSettle();
+    }
+    expect(find.text('Commencer la partie'), findsNothing);
+    await tester.tap(find.text('Reprendre la partie'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Resume'));
+    await tester.pump();
+    expect(selected(), isTrue);
+    expect(find.textContaining('Reflection time · choices'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(
+      find.text('Ready to validate · one strategy selected'),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('dix choix mènent au score du serveur et aux observations', (
     tester,
   ) async {
@@ -202,25 +289,33 @@ void main() {
     }
     await tester.pumpAndSettle();
 
+    // Écran « Final summary » de la maquette.
     expect(find.text('Final summary'), findsOneWidget);
     expect(
-      find.byKey(const ValueKey('strategic-answer-count')),
+      find.text(
+        'A coaching report based on your choices across 10 situations.',
+      ),
       findsOneWidget,
     );
     // Le récapitulatif n'est plus « front-only » : le serveur note la partie.
     // Le joueur coche « Breathe / pause » partout ; sur les dix situations
     // tirées, le total dépend donc de la banque — on vérifie la FORME du score
     // et sa cohérence, pas une valeur que le tirage rendrait aléatoire.
-    final compteur = tester.widget<Text>(
+    final global = tester.widget<Text>(
       find.byKey(const ValueKey('strategic-answer-count')),
     );
+    expect(global.data, matches(RegExp(r'^\d+ / 100$')));
     expect(
-      compteur.data,
-      matches(RegExp(r'^\d+ / 30$')),
-      reason: 'dix situations cotées sur 3 chacune',
+      int.parse(global.data!.split(' / ').first),
+      inInclusiveRange(0, 100),
     );
-    final obtenus = int.parse(compteur.data!.split(' / ').first);
-    expect(obtenus, inInclusiveRange(0, 30));
+    // Profil : trois mesures réelles du barème serveur, jamais « Pending ».
+    expect(find.text('Learning profile'), findsOneWidget);
+    expect(find.text('Optimal strategy choices'), findsOneWidget);
+    expect(find.text('Problem-focused coping'), findsOneWidget);
+    expect(find.text('Non-dysfunctional coping'), findsOneWidget);
+    expect(find.text('Pending'), findsNothing);
+    expect(find.textContaining(RegExp(r'^\d+%$')), findsNWidgets(6));
 
     expect(
       find.textContaining('No psychometric score is calculated'),
@@ -230,11 +325,8 @@ void main() {
     // Le barème reste provisoire, et l'écran doit le dire.
     expect(find.textContaining('PROVISOIRE'), findsOneWidget);
 
-    await tester.scrollUntilVisible(
-      find.text('See detailed insights'),
-      250,
-      scrollable: find.byType(Scrollable).first,
-    );
+    // Tout tient sur l'écran, sans défilement.
+    expect(find.text('See detailed insights').hitTestable(), findsOneWidget);
     await tester.tap(find.text('See detailed insights'));
     await tester.pumpAndSettle();
     expect(find.text('Learning insights'), findsOneWidget);
@@ -260,6 +352,9 @@ void main() {
       // La taxonomie des dix situations inventées ; la banque du client n'a
       // aucune catégorie.
       'Conflict, failure, delay, criticism, and overload',
+      // Un effectif écrit en dur : il a déjà menti une fois quand la banque
+      // est passée de 60 à 80 situations.
+      'banque de 60 situations',
     ];
 
     void verifier(String etape) {
@@ -284,17 +379,14 @@ void main() {
     await tester.pumpAndSettle();
     verifier('récapitulatif');
 
-    await tester.scrollUntilVisible(
-      find.text('See detailed insights'),
-      250,
-      scrollable: find.byType(Scrollable).first,
-    );
+    // Tout tient sur l'écran, sans défilement.
+    expect(find.text('See detailed insights').hitTestable(), findsOneWidget);
     await tester.tap(find.text('See detailed insights'));
     await tester.pumpAndSettle();
     verifier('observations');
   });
 
-  testWidgets('390x844 at 200% text remains scrollable without overflow', (
+  testWidgets('390x844 at 200% text stays readable without overflow', (
     tester,
   ) async {
     await pumpGame(tester, textScale: 2);
@@ -305,11 +397,239 @@ void main() {
     await tapScrollableText(tester, 'Start mission');
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
-    await tester.scrollUntilVisible(
-      find.text('Continue'),
-      240,
-      scrollable: find.byType(Scrollable).first,
-    );
-    expect(find.text('Continue'), findsOneWidget);
+    // Tutoriel sur un seul écran : le bouton est visible sans défiler.
+    expect(find.text('Continue').hitTestable(), findsOneWidget);
+  });
+
+  group('écran unique, barre, sons', () {
+    Future<void> useSize(WidgetTester tester, Size size) async {
+      tester.view.physicalSize = size * 3;
+      tester.view.devicePixelRatio = 3;
+      await tester.pumpAndSettle();
+    }
+
+    for (final size in const [Size(360, 640), Size(390, 844)]) {
+      testWidgets('tutoriel et plateau tiennent sur $size', (tester) async {
+        await pumpGame(tester);
+        await useSize(tester, size);
+        await tapScrollableText(tester, 'Start mission');
+        await tester.pumpAndSettle();
+        expect(find.byType(Scrollable), findsNothing, reason: 'intro');
+        expect(find.text('Continue').hitTestable(), findsOneWidget);
+        await tester.tap(find.text('Continue'));
+        await tester.pumpAndSettle();
+        expect(find.byType(PageView), findsOneWidget);
+        for (var page = 0; page < 4; page++) {
+          expect(find.text('Suivant').hitTestable(), findsOneWidget);
+          await tester.tap(find.text('Suivant'));
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
+        }
+        expect(find.text('Commencer la partie').hitTestable(), findsOneWidget);
+        await tester.tap(find.text('Commencer la partie'));
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull, reason: 'aucun débordement');
+        expect(find.byType(Scrollable), findsNothing, reason: 'plateau');
+        for (final strategy in StrategicChoicesContent.strategies) {
+          final card = find.byKey(
+            ValueKey('strategic-choice-${strategy.name}'),
+          );
+          expect(card.hitTestable(), findsOneWidget);
+          final paragraph = tester.renderObject<RenderParagraph>(
+            find.descendant(of: card, matching: find.text(strategy.label)),
+          );
+          expect(paragraph.didExceedMaxLines, isFalse, reason: strategy.label);
+        }
+        expect(
+          find
+              .byKey(const ValueKey('strategic-start-reflection'))
+              .hitTestable(),
+          findsOneWidget,
+        );
+      });
+    }
+
+    testWidgets('la barre suit les situations', (tester) async {
+      await pumpGame(tester);
+      await reachGameplay(tester);
+      double bar() => tester
+          .widget<LinearProgressIndicator>(
+            find.byKey(const ValueKey('strategic-progress')),
+          )
+          .value!;
+      expect(bar(), closeTo(0.1, 0.001));
+      await completeCurrentSituation(tester);
+      expect(find.text('Situation 2 / 10'), findsOneWidget);
+      expect(bar(), closeTo(0.2, 0.001));
+    });
+
+    testWidgets('sons : réflexion, choix et pause', (tester) async {
+      final played = <GameSfx>[];
+      SoundService.debugOnSfx = played.add;
+      addTearDown(() => SoundService.debugOnSfx = null);
+      // Réflexion réelle de 3 s pour entendre 3, 2, 1 puis la fin.
+      SharedPreferences.setMockInitialValues({});
+      final preferences = await SharedPreferences.getInstance();
+      tester.view.physicalSize = const Size(390 * 3, 844 * 3);
+      tester.view.devicePixelRatio = 3;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(preferences),
+            currentUserProvider.overrideWithValue(null),
+          ],
+          child: const MaterialApp(home: StrategicChoicesScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await reachGameplay(tester);
+
+      played.clear();
+      await tester.tap(
+        find.byKey(const ValueKey('strategic-start-reflection')),
+      );
+      await tester.pump();
+      expect(played.where((s) => s == GameSfx.timerDecrease), hasLength(1));
+      expect(
+        find.text('3 s'),
+        findsOneWidget,
+        reason: 'compteur dans la carte',
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('strategic-choice-breathePause')),
+      );
+      await tester.pump();
+      expect(played, contains(GameSfx.buttonClick), reason: 'choix');
+
+      for (var i = 0; i < 32; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(played.where((s) => s == GameSfx.timerDecrease), hasLength(3));
+      expect(played.where((s) => s == GameSfx.timerEnd), hasLength(1));
+
+      played.clear();
+      await tester.tap(find.byTooltip('Pause'));
+      await tester.pump();
+      expect(played, contains(GameSfx.pauseClick));
+    });
+  });
+
+  group('fond noir réservé aux vidéos, titre sur une ligne, score blanc', () {
+    const navy = Color(0xFF071333);
+
+    Color? fillOf(WidgetTester tester, Finder finder) {
+      final box = tester.widget<Container>(
+        find.ancestor(of: finder, matching: find.byType(Container)).first,
+      );
+      return (box.decoration as BoxDecoration?)?.color;
+    }
+
+    testWidgets('un message écrit n\'est pas sur fond noir', (tester) async {
+      final videos = bank.scenarios
+          .where((scenario) => scenario.medium == StrategicChoiceMedium.video)
+          .take(kStrategicChoicesPerJourney - 1);
+      await pumpGame(tester, scenarios: [bank.byId('CS-112'), ...videos]);
+      await reachGameplay(tester);
+
+      final noirs = tester
+          .widgetList<Container>(find.byType(Container))
+          .where((c) => (c.decoration as BoxDecoration?)?.color == navy);
+      expect(noirs, isEmpty, reason: 'aucun fond noir pour un écrit');
+      expect(
+        fillOf(
+          tester,
+          find.byKey(const ValueKey('strategic-situation-prompt')),
+        ),
+        isNot(navy),
+      );
+    });
+
+    testWidgets('seule l\'illustration vidéo est sur fond noir', (
+      tester,
+    ) async {
+      final longTitle = bank.scenarios.reduce(
+        (a, b) => a.title.length >= b.title.length ? a : b,
+      );
+      final others = bank.scenarios
+          .where((s) => s.id != longTitle.id)
+          .take(kStrategicChoicesPerJourney - 1);
+      await pumpGame(tester, scenarios: [longTitle, ...others]);
+      await reachGameplay(tester);
+
+      expect(
+        fillOf(
+          tester,
+          find.byKey(const ValueKey('strategic-situation-prompt')),
+        ),
+        isNot(navy),
+        reason: 'le texte de la scène est sur fond clair',
+      );
+      final placeholder = find.byKey(
+        const ValueKey('strategic-video-placeholder'),
+      );
+      if (placeholder.evaluate().isNotEmpty) {
+        expect(fillOf(tester, find.text('Vidéo à venir')), navy);
+      }
+
+      // Titre le plus long de la banque : toujours une seule ligne.
+      final title = find.text(longTitle.title);
+      final paragraph = tester.renderObject<RenderParagraph>(title);
+      expect(
+        paragraph
+            .getBoxesForSelection(
+              TextSelection(
+                baseOffset: 0,
+                extentOffset: longTitle.title.length,
+              ),
+            )
+            .map((b) => b.top)
+            .toSet(),
+        hasLength(1),
+        reason: 'titre sur une seule ligne',
+      );
+    });
+
+    testWidgets('la carte du score est blanche, texte sombre', (tester) async {
+      await pumpGame(tester);
+      await reachGameplay(tester);
+      for (var index = 0; index < 10; index++) {
+        await completeCurrentSituation(tester);
+      }
+      await tester.pumpAndSettle();
+
+      final label = find.text('Global score');
+      expect(label, findsOneWidget);
+      expect(fillOf(tester, label), Colors.white);
+      expect(tester.widget<Text>(label).style?.color, isNot(Colors.white));
+    });
+  });
+
+  testWidgets('la scène est découpée en phrases, la décision en gras', (
+    tester,
+  ) async {
+    final scene = bank.byId('CS-001');
+    final others = bank.scenarios
+        .where((s) => s.id != scene.id)
+        .take(kStrategicChoicesPerJourney - 1);
+    await pumpGame(tester, scenarios: [scene, ...others]);
+    await reachGameplay(tester);
+
+    final paragraphs = tester
+        .widgetList<Text>(
+          find.descendant(
+            of: find.byKey(const ValueKey('strategic-situation-prompt')),
+            matching: find.byType(Text),
+          ),
+        )
+        .toList();
+    // CS-001 : contexte, action, puis « Le personnage doit décider… ».
+    expect(paragraphs, hasLength(3), reason: 'une phrase par paragraphe');
+    expect(paragraphs.last.data, startsWith('Le personnage doit décider'));
+    expect(paragraphs.last.style?.fontWeight, FontWeight.w700);
+    expect(paragraphs.first.style?.fontWeight, FontWeight.w400);
   });
 }

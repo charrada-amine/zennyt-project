@@ -6,6 +6,8 @@ import '../../../../core/router/app_routes.dart';
 import '../../../../core/router/app_router.dart' show kLot1DemoBuild;
 import '../../../../core/theme/app_typography.dart';
 import '../../../navigation/presentation/viewmodel/nav_tab_provider.dart';
+import '../../domain/entities/games_progress.dart';
+import '../games_providers.dart';
 
 const _ink = Color(0xFF25204A);
 const _blue = Color(0xFF17458F);
@@ -39,6 +41,25 @@ const _logoEmotionalRadar = 'assets/games icons/Emotional Radar.png';
 const _logoReflectivePause = 'assets/games icons/Reflective Pause.png';
 const _logoStrategicChoices = 'assets/games icons/Strategic Choices.png';
 
+/// Libellé de couverture du catalogue.
+///
+/// Pendant un rechargement, la dernière valeur connue reste affichée plutôt
+/// qu'un tiret qui clignoterait à chaque retour sur le hub. Tant qu'aucune
+/// valeur n'est connue (serveur injoignable), un tiret : afficher 0 % laisserait
+/// croire qu'aucune partie n'a été jouée.
+String _coverageLabel(AsyncValue<GamesProgress?> progress) {
+  final percent = progress.value?.coveragePercent;
+  return percent == null ? 'Coverage —' : 'Coverage $percent%';
+}
+
+/// Ouvre un jeu, puis relit la progression au retour : la partie qui vient de
+/// se terminer doit apparaître aussitôt dans la couverture.
+Future<void> _openGame(BuildContext context, String route) async {
+  final container = ProviderScope.containerOf(context, listen: false);
+  await context.push(route);
+  container.invalidate(gamesProgressProvider);
+}
+
 /// Hub des jeux sérieux, aligné sur l'écran Progress / Games de la maquette.
 class GamesHubScreen extends ConsumerWidget {
   const GamesHubScreen({super.key});
@@ -67,7 +88,10 @@ class GamesHubScreen extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(36, 32, 31, 26),
                 children: [
                   Text(
-                    kLot1DemoBuild ? 'Games demo' : 'Coverage 0%',
+                    kLot1DemoBuild
+                        ? 'Games demo'
+                        : _coverageLabel(ref.watch(gamesProgressProvider)),
+                    key: const ValueKey('games-coverage'),
                     style: AppTypography.headlineLarge.copyWith(
                       color: _magenta,
                       fontSize: 24,
@@ -441,7 +465,7 @@ class _GameCategoryCard extends StatelessWidget {
     // Un seul jeu ouvert dans une catégorie qui en compte plusieurs : on montre
     // quand même le sélecteur, pour que le joueur voie ce qui arrive.
     if (games.length == 1) {
-      context.push(playable.first.route);
+      _openGame(context, playable.first.route);
       return;
     }
     _showGamePicker(context, title: title, games: games);
@@ -725,7 +749,7 @@ void _showGamePicker(
                       game: games[index],
                       onTap: () {
                         Navigator.of(sheetContext).pop();
-                        context.push(games[index].route);
+                        _openGame(context, games[index].route);
                       },
                     ),
                   ),

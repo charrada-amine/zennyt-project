@@ -94,7 +94,7 @@ void main() {
     expect(find.text('Normal'), findsOneWidget, reason: 'niveau serveur');
     // Le score s'anime de 0 → 71 (compteur animé) : laisser l'animation finir.
     await tester.pump(const Duration(milliseconds: 1000));
-    expect(find.text('71'), findsOneWidget);
+    expect(find.text('71%'), findsOneWidget);
     await tap(tester, 'decision-view-insights');
 
     expect(find.text('Analytical Thinking'), findsOneWidget);
@@ -115,7 +115,9 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(subject(initialStep: DecisionResultsStep.profile));
+    // Le radar vit sur l'écran de détail : l'écran de score suit le modèle
+    // commun, sans graphique.
+    await tester.pumpWidget(subject(initialStep: DecisionResultsStep.details));
     await tester.pump();
 
     expect(

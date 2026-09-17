@@ -10,6 +10,7 @@ import '../../domain/entities/decision_form.dart';
 import '../../domain/entities/decision_metrics.dart';
 import '../decision_milestones.dart';
 import '../widgets/game_system_components.dart';
+import '../widgets/je_decide_tutorial.dart';
 
 /// XP affiché par réponse. Purement décoratif, mais écrit UNE fois : la vue de
 /// récompense affichait « +12 XP » en dur à côté d'un total calculé avec la
@@ -25,13 +26,18 @@ const _decisionSoftPink = Color(0xFFFFF1F7);
 const _decisionTimer = Color(0xFF2BD06F);
 const _decisionWarning = Color(0xFFFFA033);
 
-
 /// Écrans de transition intercalés entre les blocs d'items.
 ///
 /// Purement narratifs : ils rythment les 30 items et ne mesurent rien. Ils sont
 /// insérés aux frontières de dimension, jamais au milieu d'un bloc — et jamais
 /// entre les deux cadrages d'une paire CS, qui doivent s'enchaîner.
-enum DecisionInterstitial { xpFeedback, checkpoint, encouragement, badge, dimensionComplete }
+enum DecisionInterstitial {
+  xpFeedback,
+  checkpoint,
+  encouragement,
+  badge,
+  dimensionComplete,
+}
 
 /// Réponse en cours de construction pour UN item.
 class _PendingAnswer {
@@ -150,7 +156,8 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
 
   DecisionFormItem get _item => widget.form.items[_index];
 
-  _PendingAnswer get _answer => _answers.putIfAbsent(_item.itemId, _PendingAnswer.new);
+  _PendingAnswer get _answer =>
+      _answers.putIfAbsent(_item.itemId, _PendingAnswer.new);
 
   int? get _selection => _answer.selectedIndex;
 
@@ -193,7 +200,8 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
 
   /// XP purement visuel — aucun rapport avec le score, qui est calculé serveur.
   int get _visualXp =>
-      _answers.values.where((a) => a.selectedIndex != null).length * kXpPerAnswer;
+      _answers.values.where((a) => a.selectedIndex != null).length *
+      kXpPerAnswer;
 
   // ── Cycle de vie d'un item ──────────────────────────────────────────────
 
@@ -364,7 +372,9 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
           return DecisionItemResponse(
             itemId: item.itemId,
             dimension: item.dimension,
-            selectedOptionId: chosen == null ? null : item.options[chosen].optionId,
+            selectedOptionId: chosen == null
+                ? null
+                : item.options[chosen].optionId,
             responseTimeMs: answer?.elapsedMs ?? 0,
             answered: chosen != null,
             decisionChangesCount: answer?.changes ?? 0,
@@ -429,9 +439,8 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
     _timeoutAdvance?.cancel();
     _answer.stop();
 
-    final action = await showDialog<DecisionPauseAction>(
-      context: context,
-      barrierDismissible: false,
+    final action = await showGamePauseMenu<DecisionPauseAction>(
+      context,
       builder: (dialogCtx) => DecisionPauseDialog(
         countdown: _pauseAllowance.remaining,
         onCountdownExpired: () =>
@@ -450,7 +459,10 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
       case DecisionPauseAction.exit:
         // Quitter annule la passation : pas de point de reprise, sinon le
         // message de confirmation serait faux et la règle contournable.
-        if (await GameExitConfirmDialog.show(context, missionLabel: 'journey')) {
+        if (await GameExitConfirmDialog.show(
+          context,
+          missionLabel: 'journey',
+        )) {
           if (mounted) widget.onClose();
           return;
         }
@@ -493,7 +505,8 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
         // sur un grand écran et gardait les marges généreuses alors qu'il n'y
         // avait plus la place — 45 px perdus, mesurés.
         child: LayoutBuilder(
-          builder: (context, shell) => _buildShell(context, shell, animationDuration),
+          builder: (context, shell) =>
+              _buildShell(context, shell, animationDuration),
         ),
       ),
     );
@@ -696,7 +709,8 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
 /// Un test qui rejoue la même forme sur plusieurs tailles d'écran doit repartir
 /// d'un cache propre, sinon il mesure la décision prise au tour précédent.
 @visibleForTesting
-void resetDecisionLayoutPlanCacheForTest() => _DecisionLayoutPlan._cache.clear();
+void resetDecisionLayoutPlanCacheForTest() =>
+    _DecisionLayoutPlan._cache.clear();
 
 /// Hauteur d'ossature en dessous de laquelle on resserre les marges. Mesurée
 /// APRÈS `SafeArea`, et non sur la hauteur brute de la dalle.
@@ -738,7 +752,8 @@ double _timerBandHeight({required bool compact}) => (compact ? 8 : 10) + 7;
 /// quand celle-ci est plus haute.
 double _progressBandHeight(TextScaler textScaler) {
   final label =
-      textScaler.scale(AppTypography.fontSizeSm) * AppTypography.lineHeightNormal;
+      textScaler.scale(AppTypography.fontSizeSm) *
+      AppTypography.lineHeightNormal;
   return label > _kProgressBarHeight ? label : _kProgressBarHeight;
 }
 
@@ -770,7 +785,6 @@ _ScenarioData _scenarioDataOf(DecisionFormItem item) {
     ],
   );
 }
-
 
 class _DecisionProgressHeader extends StatelessWidget {
   const _DecisionProgressHeader({
@@ -2240,8 +2254,6 @@ class _EncouragementView extends StatelessWidget {
   }
 }
 
-
-
 class _DimensionCompleteView extends StatelessWidget {
   const _DimensionCompleteView({
     required this.onContinue,
@@ -2264,10 +2276,7 @@ class _DimensionCompleteView extends StatelessWidget {
     return _LightStepScroll(
       children: [
         const SizedBox(height: 20),
-        _BadgeMark(
-          label: reached?.code ?? '—',
-          color: _decisionMagenta,
-        ),
+        _BadgeMark(label: reached?.code ?? '—', color: _decisionMagenta),
         const SizedBox(height: 20),
         Text(
           'New milestone',
@@ -2366,11 +2375,7 @@ class _BadgeMark extends StatelessWidget {
 }
 
 class _MiniBadge extends StatelessWidget {
-  const _MiniBadge({
-    super.key,
-    required this.label,
-    required this.active,
-  });
+  const _MiniBadge({super.key, required this.label, required this.active});
 
   final String label;
   final bool active;
@@ -2456,20 +2461,18 @@ class DecisionPauseDialog extends StatelessWidget {
       description: gameplayActive
           ? 'Your current choice and timer are safely paused.'
           : 'Take a break, review the rules or leave the journey.',
-      buttons: [
-        GamePrimaryButton(
+      actions: [
+        GamePauseMenuAction.resume(
           key: const ValueKey('decision-pause-dialog-resume'),
           label: gameplayActive ? 'Resume' : 'Continue',
           onPressed: () =>
               Navigator.of(context).pop(DecisionPauseAction.resume),
         ),
-        GameOutlineButton(
+        GamePauseMenuAction.rules(
           key: const ValueKey('decision-view-rules'),
-          label: 'View rules / Help',
-          onPressed: () =>
-              Navigator.of(context).pop(DecisionPauseAction.rules),
+          onPressed: () => Navigator.of(context).pop(DecisionPauseAction.rules),
         ),
-        GamePauseExitButton(
+        GamePauseMenuAction.exit(
           label: gameplayActive ? 'Save and exit' : 'Exit journey',
           onPressed: () => Navigator.of(context).pop(DecisionPauseAction.exit),
         ),
@@ -2482,74 +2485,22 @@ class DecisionRulesDialog extends StatelessWidget {
   const DecisionRulesDialog({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('How to play'),
-      content: const SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _RuleLine(
-              icon: Icons.article_outlined,
-              text: 'Read each everyday scenario.',
-            ),
-            _RuleLine(
-              icon: Icons.touch_app_rounded,
-              text: 'Choose what feels natural — there is no right or wrong.',
-            ),
-            _RuleLine(
-              icon: Icons.timer_outlined,
-              text: 'Quick choices allow 7 seconds and move on calmly.',
-            ),
-            _RuleLine(
-              icon: Icons.link_rounded,
-              text: 'Two-part scenarios always stay together.',
-            ),
-            _RuleLine(
-              icon: Icons.lock_outline_rounded,
-              text: 'Your individual choices stay private.',
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          key: const ValueKey('decision-rules-back'),
-          onPressed: () {
-                  SoundService.instance.playSfx(GameSfx.buttonClick);
-                  Navigator.of(context).pop();
-                },
-          child: const Text('Back'),
-        ),
-      ],
-    );
-  }
-}
-
-class _RuleLine extends StatelessWidget {
-  const _RuleLine({required this.icon, required this.text});
-
-  final IconData icon;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: _decisionMagenta),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(color: _decisionInk, height: 1.35),
-            ),
+  Widget build(BuildContext context) => Dialog.fullscreen(
+    backgroundColor: Colors.white,
+    child: SafeArea(
+      child: GameContentFrame(
+        child: JeDecideTutorial(
+          reviewing: true,
+          leading: BackButton(
+            key: const ValueKey('decision-rules-back'),
+            onPressed: () {
+              SoundService.instance.playSfx(GameSfx.buttonClick);
+              Navigator.of(context).pop();
+            },
           ),
-        ],
+          onComplete: () => Navigator.of(context).pop(),
+        ),
       ),
-    );
-  }
+    ),
+  );
 }

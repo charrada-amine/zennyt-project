@@ -188,13 +188,12 @@ public class ScoreBreakdownService {
                 share(report, CopingFamily.UNRESOLVED)));
         }
 
-        // Le score brut ne se lit pas seul : le hasard en rapporte déjà 38 %.
+        // Le score brut ne se lit pas seul : le hasard en rapporte déjà 40 %.
         lines.add(Line.info("Écart au hasard",
             Math.round(report.chanceCorrectedPercent()) + " % (le hasard vaudrait "
                 + Math.round(report.chanceBaseline()) + "/" + report.maxPoints() + ")"));
-        // Un joueur qui coche toujours le même libellé obtient déjà 67 % du
-        // plafond sans lire les scènes : le dire empêche de confondre une
-        // stratégie constante avec une conduite adaptée.
+        // Une conduite constante peut encore obtenir un score brut élevé sans
+        // lire les scènes : le nombre de stratégies mobilisées le rend visible.
         lines.add(Line.info("Stratégies mobilisées",
             report.distinctStrategiesUsed() + "/8"
                 + (report.mostUsedStrategy() == null

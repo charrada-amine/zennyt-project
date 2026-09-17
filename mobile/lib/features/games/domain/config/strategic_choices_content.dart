@@ -1,14 +1,10 @@
-/// Front-only content for the Strategic Choices experience.
+/// Réglages de présentation de l'expérience Strategic Choices.
 ///
-/// Les situations vivent désormais dans `strategic_choices_bank.json` — les 60
-/// fiches CS-001 à CS-060 du client — et non plus ici : ce fichier ne garde que
-/// les réglages de présentation et la liste des huit stratégies.
+/// Les 80 situations vivent dans `strategic_choices_bank.json`. Ce fichier ne
+/// garde que les réglages de présentation et la liste des huit stratégies.
 ///
-/// La banque apporte une cotation 0-3 par stratégie, mais elle n'est PAS
-/// branchée sur un score : le document la donne lui-même comme « établie
-/// indépendamment du script du psychologue », reconstruite par inférence à
-/// partir des seuls titres, et trois fiches attendent une validation. Le client
-/// ne calcule donc toujours aucun résultat psychométrique.
+/// Le mobile transmet les choix bruts. Le serveur applique la cotation 0-3
+/// provisoire et renvoie le score ; le client ne calcule aucun résultat métier.
 final class StrategicChoicesContent {
   StrategicChoicesContent._();
 
@@ -42,6 +38,6 @@ enum StrategicChoiceStrategy {
   final String label;
 
   /// Nom stable, indépendant du libellé affiché : c'est lui qui relie une
-  /// stratégie à sa cotation dans la banque et, un jour, au serveur.
+  /// stratégie à sa cotation dans la banque et au serveur.
   final String wire;
 }

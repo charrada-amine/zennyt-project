@@ -3,6 +3,7 @@ package com.zennyt.games.application.usecase;
 import com.zennyt.games.application.command.SubmitGameResultCommand;
 import com.zennyt.games.domain.catalog.DecisionFormCatalog;
 import com.zennyt.games.domain.catalog.DecisionScenarioCatalog;
+import com.zennyt.games.domain.model.CatalogGame;
 import com.zennyt.games.domain.model.GameSession;
 import com.zennyt.games.domain.model.MiniGame;
 import com.zennyt.games.domain.repository.DeviceCalibrationRepository;
@@ -10,6 +11,7 @@ import com.zennyt.games.domain.repository.ContinuousAttentionMetricsRepository;
 import com.zennyt.games.domain.repository.CoordinationMetricsRepository;
 import com.zennyt.games.domain.repository.ObjectLocationMetricsRepository;
 import com.zennyt.games.domain.repository.EmotionalRadarAnswerRepository;
+import com.zennyt.games.domain.repository.GameCompletionRepository;
 import com.zennyt.games.domain.repository.GameSessionRepository;
 import com.zennyt.games.domain.service.CalibrationService;
 import com.zennyt.games.domain.service.ContinuousAttentionScoringService;
@@ -54,6 +56,7 @@ import com.zennyt.games.domain.vo.GameType;
 import com.zennyt.games.domain.vo.SessionStatus;
 import com.zennyt.shared.application.exception.ForbiddenException;
 import com.zennyt.shared.application.exception.NotFoundException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -156,8 +159,44 @@ public class SubmitGameResultUseCase {
                           ScoreBreakdown scoreBreakdown) {
     }
 
+    /**
+     * Historique de progression (« Coverage » du hub). Injecté par setter et
+     * facultatif : un use case construit sans lui (tests unitaires) soumet
+     * normalement, sans rien noter.
+     */
+    private GameCompletionRepository completions;
+
+    @Autowired(required = false)
+    public void setCompletions(GameCompletionRepository completions) {
+        this.completions = completions;
+    }
+
     @Transactional
     public Outcome execute(SubmitGameResultCommand command) {
+        Outcome outcome = executeSubmission(command);
+        recordCompletion(command, outcome.session());
+        return outcome;
+    }
+
+    /**
+     * Note les jeux du catalogue terminés par cette soumission.
+     *
+     * <p>Seul un résultat réellement ENREGISTRÉ sur la session compte : une
+     * tentative invalide, conservée pour audit mais sans score, ne fait pas
+     * progresser la couverture.
+     */
+    private void recordCompletion(SubmitGameResultCommand command, GameSession session) {
+        if (completions == null) return;
+        boolean recorded = session.attempts().stream()
+            .anyMatch(attempt -> attempt.miniGame() == command.miniGame());
+        if (!recorded) return;
+        Instant now = Instant.now();
+        for (CatalogGame game : CatalogGame.completedBy(command.miniGame(), command.metrics())) {
+            completions.recordCompletion(command.playerId(), game, now);
+        }
+    }
+
+    private Outcome executeSubmission(SubmitGameResultCommand command) {
         // Sérialise toutes les soumissions d'une même session. Sans ce verrou,
         // un retry invalide concurrent pouvait remplacer l'audit brut d'un
         // résultat déjà validé.

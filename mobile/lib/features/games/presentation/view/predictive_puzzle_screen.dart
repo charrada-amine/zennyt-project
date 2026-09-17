@@ -16,7 +16,9 @@ import '../../domain/entities/game_type.dart';
 import '../../domain/entities/mini_game.dart';
 import '../../domain/entities/prevision_puzzle_metrics.dart';
 import '../games_controller.dart';
+import '../widgets/game_results_template.dart';
 import '../widgets/game_system_components.dart';
+import '../widgets/game_tutorial_deck.dart';
 
 /// A difficulty level of the Predictive Puzzle. Difficulty scales purely by the
 /// number of discs: a standard Tower of Hanoi with `discCount` discs has a
@@ -488,25 +490,21 @@ class _PredictivePuzzleScreenState
     _timer?.cancel();
     _pauseAllowance.open();
 
-    final action = await showDialog<GamePauseAction>(
-      context: context,
-      barrierColor: ZennytGamePalette.ink.withValues(alpha: 0.82),
+    final action = await showGamePauseMenu<GamePauseAction>(
+      context,
       builder: (dialogCtx) => GamePauseScaffold(
         countdown: _pauseAllowance.remaining,
         onCountdownExpired: () =>
             Navigator.of(dialogCtx).pop(GamePauseAction.resume),
-        buttons: [
-          GamePrimaryButton(
-            label: 'Resume',
+        actions: [
+          GamePauseMenuAction.resume(
             onPressed: () =>
                 Navigator.of(dialogCtx).pop(GamePauseAction.resume),
           ),
-          GameOutlineButton(
-            label: 'View rules / Help',
+          GamePauseMenuAction.rules(
             onPressed: () => Navigator.of(dialogCtx).pop(GamePauseAction.help),
           ),
-          GamePauseExitButton(
-            label: 'Exit mission',
+          GamePauseMenuAction.exit(
             onPressed: () => Navigator.of(dialogCtx).pop(GamePauseAction.exit),
           ),
         ],
@@ -583,9 +581,12 @@ class _PredictivePuzzleScreenState
         onBack: () => context.go(AppRoutes.games),
         onStart: () => setState(() => _stage = _PuzzleStage.rule),
       ),
-      _PuzzleStage.rule => _HowToRuleView(
-        onBack: () => setState(() => _stage = _PuzzleStage.intro),
-        onStartGame: _beginGame,
+      _PuzzleStage.rule => PredictivePuzzleTutorial(
+        leading: _SquareIconButton(
+          icon: Icons.chevron_left,
+          onTap: () => setState(() => _stage = _PuzzleStage.intro),
+        ),
+        onComplete: _beginGame,
       ),
       _PuzzleStage.planning || _PuzzleStage.running => GameplayMusic(
         child: _PuzzleGameplayView(
@@ -833,106 +834,142 @@ class _PredictiveIntroView extends StatelessWidget {
   }
 }
 
-class _HowToRuleView extends StatefulWidget {
-  const _HowToRuleView({required this.onBack, required this.onStartGame});
+/// Les deux règles existantes, avec les composants vectoriels du jeu.
+/// PROVISOIRE — à valider visuellement sur appareil (GAMES_MODULE, décision 70).
+class PredictivePuzzleTutorial extends StatelessWidget {
+  const PredictivePuzzleTutorial({
+    super.key,
+    required this.leading,
+    required this.onComplete,
+  });
 
-  final VoidCallback onBack;
-  final VoidCallback onStartGame;
+  final Widget leading;
+  final VoidCallback onComplete;
 
   @override
-  State<_HowToRuleView> createState() => _HowToRuleViewState();
+  Widget build(BuildContext context) => GameTutorialDeck(
+    leading: leading,
+    onComplete: onComplete,
+    completionLabel: 'Commencer à planifier',
+    steps: const [
+      GameTutorialStep(
+        title: 'Petit sur grand, toujours',
+        description:
+            'Déplace le disque du sommet, un à la fois. Pose-le sur une tour vide '
+            'ou un disque plus grand. Objectif : déplacer toute la pile de A vers C.',
+        illustration: _GoldenRuleArt(),
+        illustrationLabel:
+            'Autorisé : le petit disque 1 sur le grand disque 3. '
+            'Interdit : le grand disque 3 sur le petit disque 1. '
+            'La tour B sert de relais entre A et C.',
+      ),
+      GameTutorialStep(
+        title: 'Prépare tout, puis lance',
+        description:
+            'Choisis la source puis la destination et appuie sur « Add Move ». '
+            'Quand la pile atteint C dans l’aperçu, lance « Run Plan ». '
+            'Tu ne peux plus modifier les coups pendant l’exécution.',
+        illustration: _SequencePreviewArt(),
+        illustrationLabel:
+            'Préparer : exemple des trois premiers coups A vers C, A vers B, '
+            'C vers B. Compléter le plan, puis Run Plan lance l’exécution automatique.',
+      ),
+    ],
+  );
 }
 
-class _HowToRuleViewState extends State<_HowToRuleView> {
-  int _page = 0;
+/// Le dessin conserve ses proportions ; le texte de la carte reste accessible.
+class _PuzzleTutorialDiagram extends StatelessWidget {
+  const _PuzzleTutorialDiagram({required this.child});
+
+  final Widget child;
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 36),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
+  Widget build(BuildContext context) => MediaQuery.withNoTextScaling(
+    child: FittedBox(
+      fit: BoxFit.contain,
+      child: SizedBox(width: 300, height: 270, child: child),
+    ),
+  );
+}
+
+class _GoldenRuleArt extends StatelessWidget {
+  const _GoldenRuleArt();
+
+  @override
+  Widget build(BuildContext context) => _PuzzleTutorialDiagram(
+    child: Column(
+      children: [
+        Expanded(
+          child: Row(
             children: [
-              _SquareIconButton(icon: Icons.chevron_left, onTap: widget.onBack),
-              const Expanded(
-                child: Text(
-                  'How to Play',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: ZennytGamePalette.blue,
-                    fontSize: 28,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0,
+              for (final allowed in [true, false]) ...[
+                Expanded(
+                  child: Column(
+                    children: [
+                      Icon(
+                        allowed ? Icons.check_circle : Icons.cancel,
+                        color: allowed
+                            ? ZennytGamePalette.success
+                            : ZennytGamePalette.error,
+                        size: 30,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        allowed ? 'Autorisé' : 'Interdit',
+                        style: AppTypography.titleMedium.copyWith(
+                          color: ZennytGamePalette.blue,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0,
+                        ),
+                      ),
+                      Expanded(
+                        child: _TowerView(
+                          name: '',
+                          discs: allowed ? const [3, 1] : const [1, 3],
+                          maxDiscs: 3,
+                          selected: false,
+                          destination: false,
+                          disabled: true,
+                          onTap: _ignoreTutorialTap,
+                          rodHeight: 90,
+                          foregroundColor: ZennytGamePalette.blue,
+                          label: allowed
+                              ? 'Petit sur grand'
+                              : 'Grand sur petit',
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-              const SizedBox(width: 44),
+                if (allowed) const SizedBox(width: 24),
+              ],
             ],
           ),
-          const SizedBox(height: 54),
-          GamePanel(
-            backgroundColor: ZennytGamePalette.mist,
-            child: Column(
-              children: [
-                Text(
-                  _page == 0 ? 'The Golden Rule' : 'Plan before you act',
-                  style: AppTypography.headlineLarge.copyWith(
-                    color: ZennytGamePalette.blue,
-                    letterSpacing: 0,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xl),
-                if (_page == 0)
-                  SizedBox(
-                    height: 190,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md,
-                      ),
-                      child: Image.asset(
-                        'assets/04 Predictive Puzzle/golden_rule.png',
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                  )
-                else
-                  const _SequencePreviewArt(),
-              ],
-            ),
+        ),
+        const SizedBox(height: 22),
+        Text(
+          'A → C',
+          style: AppTypography.titleLarge.copyWith(
+            color: ZennytGamePalette.magenta,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 0,
           ),
-          const Spacer(),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-            child: Text(
-              _page == 0
-                  ? 'Sophie can never place a larger disc on top of a smaller one. She uses Tower B as a relay. Each move takes the top disc from one tower and places it on another valid tower.'
-                  : 'Sophie fills in the entire sequence before execution. Once launched, no corrections are possible. Difficulty scales each level (3 → 10 discs), the last level needing 1023 optimal moves.',
-              style: AppTypography.bodyLarge.copyWith(
-                color: ZennytGamePalette.muted,
-                height: 1.28,
-                letterSpacing: 0,
-              ),
-            ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Avec B comme relais',
+          style: AppTypography.bodyMedium.copyWith(
+            color: ZennytGamePalette.muted,
+            letterSpacing: 0,
           ),
-          const Spacer(),
-          GamePrimaryButton(
-            label: _page == 0 ? 'Next' : 'Start planning',
-            icon: _page == 0 ? Icons.arrow_forward_rounded : null,
-            onPressed: () {
-              if (_page == 0) {
-                setState(() => _page = 1);
-                return;
-              }
-              widget.onStartGame();
-            },
-          ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
 }
+
+void _ignoreTutorialTap() {}
 
 class _PuzzleGameplayView extends StatelessWidget {
   const _PuzzleGameplayView({
@@ -1268,6 +1305,9 @@ class _TowerView extends StatelessWidget {
     required this.destination,
     required this.disabled,
     required this.onTap,
+    this.rodHeight = 170,
+    this.foregroundColor = Colors.white,
+    this.label,
   });
 
   final String name;
@@ -1277,6 +1317,9 @@ class _TowerView extends StatelessWidget {
   final bool destination;
   final bool disabled;
   final VoidCallback onTap;
+  final double rodHeight;
+  final Color foregroundColor;
+  final String? label;
 
   @override
   Widget build(BuildContext context) {
@@ -1304,7 +1347,6 @@ class _TowerView extends StatelessWidget {
                   // = maxDiscs × pas. L'ancien plancher de 20 px faisait déborder
                   // dès 9 disques (18 + 8 × 20 = 178 > 170) ; il est abaissé à
                   // 11 px pour que 10 disques rentrent encore.
-                  const rodHeight = 170.0;
                   final gap = (rodHeight / maxDiscs)
                       .clamp(11.0, 32.0)
                       .toDouble();
@@ -1324,7 +1366,7 @@ class _TowerView extends StatelessWidget {
                           width: 4,
                           height: rodHeight,
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.6),
+                            color: foregroundColor.withValues(alpha: 0.6),
                             borderRadius: BorderRadius.circular(2),
                           ),
                         ),
@@ -1335,7 +1377,7 @@ class _TowerView extends StatelessWidget {
                           width: columnWidth * 0.94,
                           height: 6,
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.75),
+                            color: foregroundColor.withValues(alpha: 0.75),
                             borderRadius: BorderRadius.circular(999),
                           ),
                         ),
@@ -1355,9 +1397,9 @@ class _TowerView extends StatelessWidget {
               ),
             ),
             Text(
-              'TOWER $name',
+              label ?? 'TOWER $name',
               style: AppTypography.labelMedium.copyWith(
-                color: Colors.white,
+                color: foregroundColor,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 0.5,
               ),
@@ -1598,126 +1640,39 @@ class _PredictiveResultsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final attempt = session?.lastAttempt;
-    final score = attempt?.score.normalized.round() ?? 0;
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 18, 24, 24),
-      child: Column(
-        children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: _SquareIconButton(icon: Icons.chevron_left, onTap: onBack),
-          ),
-          Text(
-            'Results',
-            style: AppTypography.displaySmall.copyWith(
-              color: ZennytGamePalette.blue,
-              letterSpacing: 0,
-            ),
-          ),
-          Text(
-            busy ? 'Synchronizing score...' : 'Predictive Puzzle completed',
-            style: AppTypography.bodyMedium.copyWith(
-              color: ZennytGamePalette.muted,
-              letterSpacing: 0,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xl),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(AppSpacing.xl),
-            decoration: BoxDecoration(
-              color: ZennytGamePalette.gameBlue,
-              borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-            ),
-            child: Column(
-              children: [
-                Text(
-                  'Cognitive score',
-                  style: AppTypography.titleSmall.copyWith(
-                    color: Colors.white,
-                    letterSpacing: 0,
-                  ),
-                ),
-                AnimatedCountText(
-                  value: score,
-                  suffix: '%',
-                  onCompleted: SoundService.instance.stopScoreboard,
-                  style: AppTypography.displayLarge.copyWith(
-                    color: Colors.white,
-                    fontSize: 56,
-                    letterSpacing: 0,
-                  ),
-                ),
-                Text(
-                  targetCompleted
-                      ? 'All $totalLevels levels cleared successfully.'
-                      : 'Cleared $levelsCleared/$totalLevels levels before the '
-                            'error tolerance ran out.',
-                  textAlign: TextAlign.center,
-                  style: AppTypography.bodyLarge.copyWith(
-                    color: Colors.white,
-                    letterSpacing: 0,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xl),
-          Row(
-            children: [
-              Expanded(
-                child: ResultStatTile(
-                  label: 'Levels',
-                  value: '$levelsCleared/$totalLevels',
-                  valueColor: targetCompleted
-                      ? ZennytGamePalette.success
-                      : ZennytGamePalette.error,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: ResultStatTile(label: 'Time', value: elapsed),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: ResultStatTile(
-                  label: 'Errors',
-                  value: '$errors',
-                  valueColor: errors == 0
-                      ? ZennytGamePalette.success
-                      : ZennytGamePalette.magenta,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.xxl),
-          GamePanel(
-            backgroundColor: ZennytGamePalette.mist,
-            child: Text(
-              'The player predicts the complete chain of moves before acting, then observes whether the planned sequence survives execution constraints.',
-              style: AppTypography.bodyLarge.copyWith(
-                color: ZennytGamePalette.muted,
-                letterSpacing: 0,
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xxl),
-          Row(
-            children: [
-              Expanded(
-                child: GamePrimaryButton(label: 'Replay', onPressed: onReplay),
-              ),
-              const SizedBox(width: AppSpacing.lg),
-              Expanded(
-                child: GameOutlineButton(
-                  label: 'Compare',
-                  onPressed: onCompare,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+    return GameResultsTemplate(
+      onBack: onBack,
+      gameName: 'Predictive Puzzle',
+      pending: busy,
+      scoreLabel: 'Cognitive score',
+      scorePercent: attempt?.score.normalized.round(),
+      points: attempt?.score.rawPoints,
+      maxPoints: attempt?.score.maxPoints,
+      stats: [
+        GameResultStat(
+          label: 'Levels',
+          value: '$levelsCleared/$totalLevels',
+          color: targetCompleted
+              ? ZennytGamePalette.success
+              : ZennytGamePalette.error,
+        ),
+        GameResultStat(label: 'Time', value: elapsed),
+        GameResultStat(
+          label: 'Errors',
+          value: '$errors',
+          color: errors == 0
+              ? ZennytGamePalette.success
+              : ZennytGamePalette.magenta,
+        ),
+      ],
+      insight:
+          '${targetCompleted ? 'All $totalLevels levels cleared.' : 'Cleared $levelsCleared/$totalLevels levels before the error tolerance ran out.'} '
+          'The player predicts the complete chain of moves before acting, then '
+          'observes whether the planned sequence survives execution constraints.',
+      primaryLabel: 'Replay',
+      onPrimary: onReplay,
+      secondaryLabel: 'Compare',
+      onSecondary: onCompare,
     );
   }
 }
@@ -1929,127 +1884,118 @@ class _SequencePreviewArt extends StatelessWidget {
   const _SequencePreviewArt();
 
   @override
-  Widget build(BuildContext context) {
-    const moves = ['A->C', 'A->B', 'C->B', 'A->C'];
-    const dotColors = [
-      Color(0xFF22C55E),
-      Color(0xFFF5C518),
-      Color(0xFF22C55E),
-      Color(0xFF2F6BFF),
-    ];
-    return Column(
-      mainAxisSize: MainAxisSize.min,
+  Widget build(BuildContext context) => _PuzzleTutorialDiagram(
+    child: Column(
       children: [
-        for (var i = 0; i < moves.length; i++) ...[
-          _PreviewMove(index: i + 1, label: moves[i], dotColor: dotColors[i]),
-          const SizedBox(height: 8),
-        ],
-        Container(
-          height: 34,
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-          decoration: BoxDecoration(
-            color: Colors.black26,
-            borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-          ),
-          child: Row(
-            children: [
-              Text(
-                '5',
-                style: AppTypography.labelSmall.copyWith(color: Colors.white),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              const Icon(
-                Icons.question_mark_rounded,
-                color: Colors.white,
-                size: 14,
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Text(
-                'plan next',
-                style: AppTypography.labelSmall.copyWith(
-                  color: Colors.white,
-                  letterSpacing: 0,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                '+ add',
-                style: AppTypography.labelSmall.copyWith(
-                  color: ZennytGamePalette.cyan,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 0,
-                ),
-              ),
-            ],
+        Text(
+          '1. Préparer les coups',
+          style: AppTypography.titleMedium.copyWith(
+            color: ZennytGamePalette.blue,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0,
           ),
         ),
-        const SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: 12),
+        const _PreviewMove(index: 1, label: 'A → C', disc: 1),
+        const SizedBox(height: 6),
+        const _PreviewMove(index: 2, label: 'A → B', disc: 2),
+        const SizedBox(height: 6),
+        const _PreviewMove(index: 3, label: 'C → B', disc: 1),
+        const SizedBox(height: 8),
         Text(
-          "Sophie's planned sequence.",
+          '… compléter le plan jusqu’à C',
+          style: AppTypography.bodyMedium.copyWith(
+            color: ZennytGamePalette.muted,
+            letterSpacing: 0,
+          ),
+        ),
+        const Icon(
+          Icons.arrow_downward_rounded,
+          color: ZennytGamePalette.magenta,
+          size: 26,
+        ),
+        const SizedBox(height: 4),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.play_circle_fill_rounded,
+              color: ZennytGamePalette.magenta,
+              size: 28,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '2. Run Plan',
+              style: AppTypography.titleMedium.copyWith(
+                color: ZennytGamePalette.blue,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Exécution automatique',
           style: AppTypography.bodyMedium.copyWith(
             color: ZennytGamePalette.muted,
             letterSpacing: 0,
           ),
         ),
       ],
-    );
-  }
+    ),
+  );
 }
 
 class _PreviewMove extends StatelessWidget {
   const _PreviewMove({
     required this.index,
     required this.label,
-    required this.dotColor,
+    required this.disc,
   });
 
   final int index;
   final String label;
-  final Color dotColor;
+  final int disc;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 34,
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-      decoration: BoxDecoration(
-        color: ZennytGamePalette.cyan.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-      ),
-      child: Row(
-        children: [
-          Text(
-            '$index',
-            style: AppTypography.labelSmall.copyWith(
-              color: ZennytGamePalette.blue,
-              letterSpacing: 0,
-            ),
+  Widget build(BuildContext context) => Container(
+    height: 34,
+    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+      border: Border.all(color: ZennytGamePalette.blue.withValues(alpha: 0.15)),
+    ),
+    child: Row(
+      children: [
+        Text(
+          '$index',
+          style: AppTypography.labelMedium.copyWith(
+            color: ZennytGamePalette.muted,
+            letterSpacing: 0,
           ),
-          const SizedBox(width: AppSpacing.md),
-          Container(
-            width: 14,
-            height: 14,
-            decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 12),
+        _Disc(disc: disc, width: disc == 1 ? 34 : 50, height: 22),
+        const SizedBox(width: 12),
+        Text(
+          label,
+          style: AppTypography.titleMedium.copyWith(
+            color: ZennytGamePalette.blue,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0,
           ),
-          const SizedBox(width: AppSpacing.md),
-          Text(
-            label.replaceAll('->', '→'),
-            style: AppTypography.labelMedium.copyWith(
-              color: ZennytGamePalette.blue,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0,
-            ),
+        ),
+        const Spacer(),
+        Text(
+          'prévu',
+          style: AppTypography.labelSmall.copyWith(
+            color: ZennytGamePalette.muted,
+            letterSpacing: 0,
           ),
-          const Spacer(),
-          Text(
-            'planned',
-            style: AppTypography.labelSmall.copyWith(
-              color: ZennytGamePalette.muted,
-              letterSpacing: 0,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
 }

@@ -164,7 +164,7 @@ void main() {
       expect(metrics.coordinationSegments.first.samples.first.timestampMs, 0);
       expect(metrics.coordinationSegments[2].samples.first.timestampMs, 14000);
       expect(metrics.inputSource, CoordinationInputSource.touch);
-      expect(find.text('Journey complete'), findsOneWidget);
+      expect(find.text('Je coordonne completed'), findsOneWidget);
       expect(find.byKey(const ValueKey('coordination-result-score')), findsOne);
       expect(tester.takeException(), isNull);
     },

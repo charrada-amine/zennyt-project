@@ -58,7 +58,7 @@ CopingFamily strategicCopingFamily(StrategicChoiceStrategy strategy) =>
 /// Indice corrigé du hasard, en pourcentage.
 ///
 /// `(obtenu − hasard) / (maximum − hasard)`. Le score brut seul ne veut rien
-/// dire : répondre au hasard rapporte déjà 38 % du maximum. Plancher à 0 —
+/// dire : répondre au hasard rapporte déjà 40 % du maximum. Plancher à 0 —
 /// « moins bien que le hasard » est du bruit, pas une performance négative.
 double strategicChanceCorrectedPercent(
   int rawPoints,
@@ -77,7 +77,7 @@ int strategicChoicesMaxPoints(int situations) =>
 /// Interprétation, sur l'indice CORRIGÉ.
 ///
 /// Seuils tirés de la distribution mesurée : le hasard vaut 0, une stratégie
-/// constante 46 % en moyenne. Le palier haut est donc à 60 %, au-dessus de ce
+/// constante environ 41 % en moyenne. Le palier haut est donc à 60 %, au-dessus de ce
 /// qu'une stratégie constante rapporte.
 String strategicChoicesInterpret(double chanceCorrectedPercent) {
   if (chanceCorrectedPercent >= kStrategicHighlyAdaptiveThresholdPercent) {
@@ -118,7 +118,7 @@ class StrategicChoicesReport {
   ///
   /// Seul signal qui trahit une partie menée avec un unique libellé : aucun
   /// seuil de score ne peut le faire, « Assertive communication » valant 3
-  /// dans 23 fiches sur 60.
+  /// dans 28 fiches sur 80.
   final int distinctStrategiesUsed;
 
   final int averageResponseTimeMs;

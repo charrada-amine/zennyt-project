@@ -1,0 +1,1133 @@
+{
+  "statut": "PROPOSITION — non validée cliniquement",
+  "situations": [
+    {
+      "id": "TR-101",
+      "title": "Le message qui corrige en public",
+      "categoryNumber": 1,
+      "category": "Message provocateur ou remarque déplacée",
+      "difficulty": "LOW",
+      "medium": "WRITTEN",
+      "context": "Dans le canal d'équipe, un collègue reprend publiquement une phrase que vous venez d'écrire, sur un ton appuyé.",
+      "message": "« Ce n'est pas du tout ça. Tu devrais relire la procédure avant de poster. »",
+      "question": "Que faites-vous maintenant ?",
+      "wordsToRead": 59,
+      "responseDeadlineSec": 20,
+      "pilotValidated": false,
+      "needsPsychologistValidation": true,
+      "choices": [
+        {
+          "text": "Ne rien poster pour l'instant.",
+          "responseType": "WAIT",
+          "score": 1,
+          "rationale": "Évite l'escalade, mais laisse la remarque seule à l'écran."
+        },
+        {
+          "text": "Répondre dans le canal, calmement, avec la référence exacte.",
+          "responseType": "REFORMULATE_CALMLY",
+          "score": 3,
+          "rationale": "Rétablit le fait là où l'erreur a été affirmée, sans attaquer."
+        },
+        {
+          "text": "Répondre sur le même ton, tout de suite.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "score": 0,
+          "rationale": "Transforme un désaccord mineur en affrontement public."
+        },
+        {
+          "text": "Lui écrire en privé pour comprendre ce qu'il vise.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "score": 2,
+          "rationale": "Clarifie l'intention, mais laisse le canal sans réponse."
+        },
+        {
+          "text": "Prendre un instant avant de réagir.",
+          "responseType": "BREATHE_ANALYZE",
+          "score": 1,
+          "rationale": "Coupe l'impulsion, ne règle rien à soi seul."
+        }
+      ]
+    },
+    {
+      "id": "TR-102",
+      "title": "La plaisanterie devant le client",
+      "categoryNumber": 1,
+      "category": "Message provocateur ou remarque déplacée",
+      "difficulty": "HIGH",
+      "medium": "VIDEO",
+      "context": "En réunion avec un client, un collègue glisse une plaisanterie sur votre manière de parler. Deux personnes rient.",
+      "message": null,
+      "question": "Que faites-vous maintenant ?",
+      "wordsToRead": 59,
+      "responseDeadlineSec": 22,
+      "pilotValidated": false,
+      "needsPsychologistValidation": true,
+      "choices": [
+        {
+          "text": "Marquer un temps avant de reprendre la parole.",
+          "responseType": "BREATHE_ANALYZE",
+          "score": 3,
+          "rationale": "Devant un client, la maîtrise visible vaut mieux que la mise au point : elle protège la relation et votre position."
+        },
+        {
+          "text": "Répliquer immédiatement sur le même registre.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "score": 0,
+          "rationale": "Déplace le sujet vers un conflit interne, devant le client."
+        },
+        {
+          "text": "Reprendre le fil en nommant la remarque devant tous.",
+          "responseType": "REFORMULATE_CALMLY",
+          "score": 1,
+          "rationale": "Légitime, mais installe la tension dans la réunion client."
+        },
+        {
+          "text": "Laisser passer et poursuivre la réunion.",
+          "responseType": "WAIT",
+          "score": 2,
+          "rationale": "Préserve la réunion ; demande un retour au collègue ensuite."
+        },
+        {
+          "text": "Demander devant le groupe ce qu'il veut dire.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "score": 1,
+          "rationale": "Force une explication publique, au mauvais moment."
+        }
+      ]
+    },
+    {
+      "id": "TR-103",
+      "title": "Le reproche sur un dossier partagé",
+      "categoryNumber": 2,
+      "category": "Critique soudaine ou accusation injuste",
+      "difficulty": "MODERATE",
+      "medium": "VIDEO",
+      "context": "En réunion, une collègue affirme que le retard du dossier vient de vous. Vous savez que la validation attendait ailleurs.",
+      "message": null,
+      "question": "Que faites-vous maintenant ?",
+      "wordsToRead": 49,
+      "responseDeadlineSec": 18,
+      "pilotValidated": false,
+      "needsPsychologistValidation": true,
+      "choices": [
+        {
+          "text": "Demander sur quelle étape précise elle se fonde.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "score": 3,
+          "rationale": "Ouvre le fait sans nier ni accuser : le malentendu se dissout de lui-même."
+        },
+        {
+          "text": "Corriger immédiatement, fermement.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "score": 1,
+          "rationale": "Légitime mais confrontationnel : risque d'escalade publique."
+        },
+        {
+          "text": "Ne rien dire pour l'instant.",
+          "responseType": "WAIT",
+          "score": 0,
+          "rationale": "Laisse une affirmation fausse s'installer devant l'équipe."
+        },
+        {
+          "text": "Respirer avant de répondre.",
+          "responseType": "BREATHE_ANALYZE",
+          "score": 2,
+          "rationale": "Bonne première étape, insuffisante seule."
+        },
+        {
+          "text": "Reprendre calmement la chronologie réelle.",
+          "responseType": "REFORMULATE_CALMLY",
+          "score": 1,
+          "rationale": "Juste, mais affirme votre version avant d'avoir vérifié la sienne."
+        }
+      ]
+    },
+    {
+      "id": "TR-104",
+      "title": "Le courriel en copie à la direction",
+      "categoryNumber": 2,
+      "category": "Critique soudaine ou accusation injuste",
+      "difficulty": "HIGH",
+      "medium": "WRITTEN",
+      "context": "Vous recevez un courriel mettant en cause votre travail, avec la direction en copie.",
+      "message": "« Le livrable ne correspond pas à ce qui avait été convenu. Je mets Mme Riahi en copie pour arbitrage. »",
+      "question": "Que faites-vous maintenant ?",
+      "wordsToRead": 52,
+      "responseDeadlineSec": 20,
+      "pilotValidated": false,
+      "needsPsychologistValidation": true,
+      "choices": [
+        {
+          "text": "Répondre en demandant quel point précis diverge.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "score": 3,
+          "rationale": "Un désaccord porté devant l'arbitre se règle en établissant les faits, pas en plaidant."
+        },
+        {
+          "text": "Répondre à tous en rappelant le cadrage validé.",
+          "responseType": "REFORMULATE_CALMLY",
+          "score": 2,
+          "rationale": "Défendable, mais engage un échange contradictoire sous les yeux de la direction."
+        },
+        {
+          "text": "Prendre un moment avant de répondre.",
+          "responseType": "BREATHE_ANALYZE",
+          "score": 1,
+          "rationale": "Nécessaire vu la mise en copie ; ne suffit pas."
+        },
+        {
+          "text": "Attendre la réaction de la direction.",
+          "responseType": "WAIT",
+          "score": 1,
+          "rationale": "Laisse d'autres cadrer le sujet à votre place."
+        },
+        {
+          "text": "Répondre à tous immédiatement pour vous défendre.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "score": 0,
+          "rationale": "Fige un conflit écrit devant la hiérarchie."
+        }
+      ]
+    },
+    {
+      "id": "TR-105",
+      "title": "L'absence de dernière minute",
+      "categoryNumber": 3,
+      "category": "Imprévu nécessitant une décision rapide",
+      "difficulty": "MODERATE",
+      "medium": "VIDEO",
+      "context": "Trente minutes avant un atelier que vous animez à deux, votre binôme prévient qu'il ne pourra pas venir.",
+      "message": null,
+      "question": "Que faites-vous maintenant ?",
+      "wordsToRead": 53,
+      "responseDeadlineSec": 19,
+      "pilotValidated": false,
+      "needsPsychologistValidation": true,
+      "choices": [
+        {
+          "text": "Prendre un instant pour reprendre le plan de l'atelier.",
+          "responseType": "BREATHE_ANALYZE",
+          "score": 3,
+          "rationale": "L'échéance est proche mais tenable : trente secondes de cadrage valent mieux qu'une improvisation."
+        },
+        {
+          "text": "Lui demander ce qu'il avait prévu pour sa partie.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "score": 1,
+          "rationale": "Utile, mais dépend de sa disponibilité immédiate."
+        },
+        {
+          "text": "Commencer l'atelier sans rien changer.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "score": 1,
+          "rationale": "Tient l'horaire, au prix d'une seconde moitié non préparée."
+        },
+        {
+          "text": "Reporter l'atelier.",
+          "responseType": "WAIT",
+          "score": 0,
+          "rationale": "Coût disproportionné : les participants sont déjà là."
+        },
+        {
+          "text": "Annoncer aux participants un format réduit.",
+          "responseType": "REFORMULATE_CALMLY",
+          "score": 2,
+          "rationale": "Honnête et praticable, mais décidé avant d'avoir regardé le contenu."
+        }
+      ]
+    },
+    {
+      "id": "TR-106",
+      "title": "La panne avant la démonstration",
+      "categoryNumber": 3,
+      "category": "Imprévu nécessitant une décision rapide",
+      "difficulty": "HIGH",
+      "medium": "VIDEO",
+      "context": "Cinq minutes avant une démonstration client, l'outil affiche une erreur que vous n'aviez jamais vue.",
+      "message": null,
+      "question": "Que faites-vous maintenant ?",
+      "wordsToRead": 47,
+      "responseDeadlineSec": 18,
+      "pilotValidated": false,
+      "needsPsychologistValidation": true,
+      "choices": [
+        {
+          "text": "Appeler le support technique pour identifier l'erreur.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "score": 3,
+          "rationale": "Sur un incident inconnu à échéance immédiate, l'information manquante est le seul verrou."
+        },
+        {
+          "text": "Respirer et relire le message d'erreur.",
+          "responseType": "BREATHE_ANALYZE",
+          "score": 2,
+          "rationale": "Bonne réaction, souvent insuffisante sur une panne inconnue."
+        },
+        {
+          "text": "Relancer l'outil plusieurs fois.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "score": 1,
+          "rationale": "Parfois efficace, mais consomme le temps restant sans diagnostic."
+        },
+        {
+          "text": "Prévenir le client d'un démarrage différé.",
+          "responseType": "REFORMULATE_CALMLY",
+          "score": 1,
+          "rationale": "Préserve la relation ; ne résout pas la panne."
+        },
+        {
+          "text": "Attendre que cela se rétablisse.",
+          "responseType": "WAIT",
+          "score": 0,
+          "rationale": "Inaction devant une échéance de cinq minutes."
+        }
+      ]
+    },
+    {
+      "id": "TR-107",
+      "title": "Le chiffre faux dans la présentation",
+      "categoryNumber": 4,
+      "category": "Erreur découverte sous pression",
+      "difficulty": "MODERATE",
+      "medium": "VIDEO",
+      "context": "Pendant votre présentation, vous repérez qu'un chiffre affiché est erroné. Personne ne semble l'avoir vu.",
+      "message": null,
+      "question": "Que faites-vous maintenant ?",
+      "wordsToRead": 49,
+      "responseDeadlineSec": 18,
+      "pilotValidated": false,
+      "needsPsychologistValidation": true,
+      "choices": [
+        {
+          "text": "Signaler l'erreur et donner le bon chiffre.",
+          "responseType": "REFORMULATE_CALMLY",
+          "score": 3,
+          "rationale": "Corriger soi-même une erreur non détectée protège la décision et la crédibilité."
+        },
+        {
+          "text": "Continuer et corriger après la réunion.",
+          "responseType": "WAIT",
+          "score": 1,
+          "rationale": "Laisse une décision se prendre sur un chiffre faux."
+        },
+        {
+          "text": "Marquer une pause avant de reprendre.",
+          "responseType": "BREATHE_ANALYZE",
+          "score": 1,
+          "rationale": "Évite de se troubler, mais ne corrige rien."
+        },
+        {
+          "text": "Vous excuser longuement sur-le-champ.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "score": 1,
+          "rationale": "Attire l'attention sur l'erreur plus que sur la correction."
+        },
+        {
+          "text": "Demander à l'équipe de vérifier le chiffre.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "score": 2,
+          "rationale": "Prudent, mais délègue une vérification que vous pouvez faire."
+        }
+      ]
+    },
+    {
+      "id": "TR-108",
+      "title": "L'envoi parti au mauvais destinataire",
+      "categoryNumber": 4,
+      "category": "Erreur découverte sous pression",
+      "difficulty": "HIGH",
+      "medium": "WRITTEN",
+      "context": "Vous réalisez qu'un document interne vient de partir à un destinataire externe.",
+      "message": "« Bien reçu, merci. Je regarde ça. » — réponse arrivée trente secondes après votre envoi.",
+      "question": "Que faites-vous maintenant ?",
+      "wordsToRead": 53,
+      "responseDeadlineSec": 20,
+      "pilotValidated": false,
+      "needsPsychologistValidation": true,
+      "choices": [
+        {
+          "text": "Le prévenir immédiatement de l'erreur et demander la suppression.",
+          "responseType": "REFORMULATE_CALMLY",
+          "score": 3,
+          "rationale": "Le destinataire a déjà ouvert : seule une demande explicite et rapide limite la portée."
+        },
+        {
+          "text": "Tenter de rappeler le message sans rien dire.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "score": 0,
+          "rationale": "Le document est déjà lu ; le silence aggrave le risque."
+        },
+        {
+          "text": "Demander conseil à votre responsable avant d'agir.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "score": 2,
+          "rationale": "Justifié vu l'enjeu, mais chaque minute compte."
+        },
+        {
+          "text": "Prendre un instant avant d'agir.",
+          "responseType": "BREATHE_ANALYZE",
+          "score": 1,
+          "rationale": "L'urgence prime ici sur la mise au calme."
+        },
+        {
+          "text": "Attendre de voir s'il en fait quelque chose.",
+          "responseType": "WAIT",
+          "score": 0,
+          "rationale": "Laisse un document interne circuler à l'extérieur."
+        }
+      ]
+    },
+    {
+      "id": "TR-109",
+      "title": "Le désaccord qui monte",
+      "categoryNumber": 5,
+      "category": "Désaccord ou tension interpersonnelle",
+      "difficulty": "MODERATE",
+      "medium": "VIDEO",
+      "context": "Un échange sur une méthode de travail se tend : le ton de votre interlocuteur monte, le vôtre aussi.",
+      "message": null,
+      "question": "Que faites-vous maintenant ?",
+      "wordsToRead": 58,
+      "responseDeadlineSec": 21,
+      "pilotValidated": false,
+      "needsPsychologistValidation": true,
+      "choices": [
+        {
+          "text": "Ralentir et baisser le ton avant de poursuivre.",
+          "responseType": "BREATHE_ANALYZE",
+          "score": 3,
+          "rationale": "La modulation de la réponse est ce qui empêche l'escalade réciproque."
+        },
+        {
+          "text": "Interrompre l'échange et y revenir plus tard.",
+          "responseType": "WAIT",
+          "score": 2,
+          "rationale": "Efficace, mais laisse le désaccord entier."
+        },
+        {
+          "text": "Reformuler son point avant de donner le vôtre.",
+          "responseType": "REFORMULATE_CALMLY",
+          "score": 1,
+          "rationale": "Bon levier, plus difficile quand le ton est déjà monté."
+        },
+        {
+          "text": "Maintenir votre position plus fermement.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "score": 0,
+          "rationale": "Alimente exactement la montée en cours."
+        },
+        {
+          "text": "Lui demander ce qui le gêne précisément.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "score": 1,
+          "rationale": "Ouvre le dialogue, à condition que le ton le permette."
+        }
+      ]
+    },
+    {
+      "id": "TR-110",
+      "title": "Le reproche répété en tête-à-tête",
+      "categoryNumber": 5,
+      "category": "Désaccord ou tension interpersonnelle",
+      "difficulty": "HIGH",
+      "medium": "VIDEO",
+      "context": "Pour la troisième fois ce mois-ci, une collègue vous reproche de ne pas l'avoir consultée.",
+      "message": null,
+      "question": "Que faites-vous maintenant ?",
+      "wordsToRead": 55,
+      "responseDeadlineSec": 21,
+      "pilotValidated": false,
+      "needsPsychologistValidation": true,
+      "choices": [
+        {
+          "text": "Lui demander sur quelles décisions elle attend d'être consultée.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "score": 3,
+          "rationale": "Un reproche répété signale une attente non formulée : la nommer est ce qui arrête la répétition."
+        },
+        {
+          "text": "Reconnaître le point et proposer un fonctionnement.",
+          "responseType": "REFORMULATE_CALMLY",
+          "score": 2,
+          "rationale": "Constructif, mais propose avant d'avoir cerné l'attente."
+        },
+        {
+          "text": "Prendre le temps d'accuser réception.",
+          "responseType": "BREATHE_ANALYZE",
+          "score": 1,
+          "rationale": "Utile à la troisième occurrence ; ne suffit pas."
+        },
+        {
+          "text": "Laisser retomber et en reparler plus tard.",
+          "responseType": "WAIT",
+          "score": 0,
+          "rationale": "Un motif récurrent ne se dissout pas avec le temps."
+        },
+        {
+          "text": "Rappeler que vous n'avez pas à tout valider.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "score": 1,
+          "rationale": "Défendable sur le fond, ferme la discussion."
+        }
+      ]
+    },
+    {
+      "id": "TR-111",
+      "title": "La consigne à double lecture",
+      "categoryNumber": 6,
+      "category": "Information incomplète ou ambiguë",
+      "difficulty": "MODERATE",
+      "medium": "WRITTEN",
+      "context": "Votre responsable vous transmet une consigne qui peut se comprendre de deux façons opposées.",
+      "message": "« Finalement, ne bloque pas la version de vendredi. »",
+      "question": "Que faites-vous maintenant ?",
+      "wordsToRead": 53,
+      "responseDeadlineSec": 19,
+      "pilotValidated": false,
+      "needsPsychologistValidation": true,
+      "choices": [
+        {
+          "text": "Lui demander laquelle des deux lectures est la bonne.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "score": 3,
+          "rationale": "Deux lectures opposées : agir sans lever l'ambiguïté revient à parier."
+        },
+        {
+          "text": "Relire calmement avant de décider.",
+          "responseType": "BREATHE_ANALYZE",
+          "score": 1,
+          "rationale": "Sain, mais ne lève pas une ambiguïté réelle."
+        },
+        {
+          "text": "Attendre une précision spontanée.",
+          "responseType": "WAIT",
+          "score": 1,
+          "rationale": "Le vendredi approche ; l'attente coûte."
+        },
+        {
+          "text": "Choisir la lecture qui vous arrange et avancer.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "score": 0,
+          "rationale": "Décide à la place du responsable, sur un sujet qu'il a tranché."
+        },
+        {
+          "text": "Reformuler par écrit ce que vous comprenez, et avancer.",
+          "responseType": "REFORMULATE_CALMLY",
+          "score": 2,
+          "rationale": "Bonne pratique ; reste un pari si la réponse n'arrive pas."
+        }
+      ]
+    },
+    {
+      "id": "TR-112",
+      "title": "Le chiffrage sans base",
+      "categoryNumber": 6,
+      "category": "Information incomplète ou ambiguë",
+      "difficulty": "HIGH",
+      "medium": "VIDEO",
+      "context": "On vous demande un engagement de délai sur un périmètre que personne n'a encore décrit.",
+      "message": null,
+      "question": "Que faites-vous maintenant ?",
+      "wordsToRead": 55,
+      "responseDeadlineSec": 21,
+      "pilotValidated": false,
+      "needsPsychologistValidation": true,
+      "choices": [
+        {
+          "text": "Demander le périmètre avant tout engagement.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "score": 3,
+          "rationale": "S'engager sur un périmètre inconnu crée une dette qui se paiera au livrable."
+        },
+        {
+          "text": "Différer la réponse à la description du périmètre.",
+          "responseType": "WAIT",
+          "score": 1,
+          "rationale": "Prudent, mais laisse la demande sans réponse."
+        },
+        {
+          "text": "Donner une fourchette en énonçant les inconnues.",
+          "responseType": "REFORMULATE_CALMLY",
+          "score": 2,
+          "rationale": "Utile quand la réponse est attendue tout de suite."
+        },
+        {
+          "text": "Prendre un instant avant de répondre.",
+          "responseType": "BREATHE_ANALYZE",
+          "score": 1,
+          "rationale": "Ne remplace pas l'information manquante."
+        },
+        {
+          "text": "Donner une date pour ne pas bloquer la réunion.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "score": 0,
+          "rationale": "Engage l'équipe sur un chiffre sans fondement."
+        }
+      ]
+    },
+    {
+      "id": "TR-113",
+      "title": "Les deux urgences",
+      "categoryNumber": 7,
+      "category": "Demande urgente et priorités contradictoires",
+      "difficulty": "MODERATE",
+      "medium": "WRITTEN",
+      "context": "Deux responsables vous demandent la même journée pour deux tâches différentes, chacune présentée comme prioritaire.",
+      "message": "« C'est à faire aujourd'hui, c'est bloquant pour la suite. »",
+      "question": "Que faites-vous maintenant ?",
+      "wordsToRead": 61,
+      "responseDeadlineSec": 21,
+      "pilotValidated": false,
+      "needsPsychologistValidation": true,
+      "choices": [
+        {
+          "text": "Exposer aux deux le conflit et proposer un ordre.",
+          "responseType": "REFORMULATE_CALMLY",
+          "score": 3,
+          "rationale": "Un arbitrage de priorité appartient aux demandeurs : le rendre visible est l'action utile."
+        },
+        {
+          "text": "Demander à chacun ce qui se passe si sa tâche glisse.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "score": 2,
+          "rationale": "Éclaire l'arbitrage, mais ne le fait pas trancher."
+        },
+        {
+          "text": "Commencer par la demande la plus récente.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "score": 0,
+          "rationale": "Arbitre au hasard, sans que personne ne le sache."
+        },
+        {
+          "text": "Faire le point sur votre charge avant de répondre.",
+          "responseType": "BREATHE_ANALYZE",
+          "score": 1,
+          "rationale": "Nécessaire, pas suffisant : le conflit reste invisible pour eux."
+        },
+        {
+          "text": "Attendre que l'un des deux relance.",
+          "responseType": "WAIT",
+          "score": 1,
+          "rationale": "Laisse l'arbitrage se faire par la pression."
+        }
+      ]
+    },
+    {
+      "id": "TR-114",
+      "title": "L'ajout en fin de journée",
+      "categoryNumber": 7,
+      "category": "Demande urgente et priorités contradictoires",
+      "difficulty": "HIGH",
+      "medium": "VIDEO",
+      "context": "À 17h, une demande supplémentaire arrive sur un plan de charge déjà complet pour la semaine.",
+      "message": null,
+      "question": "Que faites-vous maintenant ?",
+      "wordsToRead": 44,
+      "responseDeadlineSec": 18,
+      "pilotValidated": false,
+      "needsPsychologistValidation": true,
+      "choices": [
+        {
+          "text": "Accepter en énonçant ce qui sera décalé.",
+          "responseType": "REFORMULATE_CALMLY",
+          "score": 3,
+          "rationale": "Accepter sans nommer le coût revient à masquer un retard qui apparaîtra plus tard."
+        },
+        {
+          "text": "Demander le niveau réel d'urgence.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "score": 1,
+          "rationale": "Utile, mais le plan est déjà saturé quelle que soit la réponse."
+        },
+        {
+          "text": "Prendre la demande et voir demain.",
+          "responseType": "WAIT",
+          "score": 1,
+          "rationale": "Reporte la décision sans réduire la charge."
+        },
+        {
+          "text": "Souffler avant de répondre.",
+          "responseType": "BREATHE_ANALYZE",
+          "score": 2,
+          "rationale": "Évite l'acceptation réflexe de fin de journée."
+        },
+        {
+          "text": "Refuser sèchement.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "score": 0,
+          "rationale": "Peut être fondé, mais ferme sans donner d'alternative."
+        }
+      ]
+    },
+    {
+      "id": "TR-115",
+      "title": "Le refus sans explication",
+      "categoryNumber": 8,
+      "category": "Frustration, refus ou obstacle inattendu",
+      "difficulty": "MODERATE",
+      "medium": "VIDEO",
+      "context": "Une demande que vous portiez depuis trois semaines est refusée, sans motif communiqué.",
+      "message": null,
+      "question": "Que faites-vous maintenant ?",
+      "wordsToRead": 41,
+      "responseDeadlineSec": 16,
+      "pilotValidated": false,
+      "needsPsychologistValidation": true,
+      "choices": [
+        {
+          "text": "Demander les raisons du refus.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "score": 3,
+          "rationale": "Sans motif, ni recours ni apprentissage ne sont possibles."
+        },
+        {
+          "text": "Encaisser avant de réagir.",
+          "responseType": "BREATHE_ANALYZE",
+          "score": 2,
+          "rationale": "Protège de la réaction à chaud, ne fait pas avancer."
+        },
+        {
+          "text": "Laisser passer quelques jours.",
+          "responseType": "WAIT",
+          "score": 1,
+          "rationale": "Repousse la question sans la traiter."
+        },
+        {
+          "text": "Redemander en reformulant la demande.",
+          "responseType": "REFORMULATE_CALMLY",
+          "score": 1,
+          "rationale": "Prématuré tant que le motif est inconnu."
+        },
+        {
+          "text": "Exprimer votre désaccord tout de suite.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "score": 1,
+          "rationale": "Compréhensible, mais ferme l'accès au motif."
+        }
+      ]
+    },
+    {
+      "id": "TR-116",
+      "title": "Le travail refait pour rien",
+      "categoryNumber": 8,
+      "category": "Frustration, refus ou obstacle inattendu",
+      "difficulty": "HIGH",
+      "medium": "VIDEO",
+      "context": "On vous annonce que le module livré la veille ne sera pas utilisé : la décision a changé.",
+      "message": null,
+      "question": "Que faites-vous maintenant ?",
+      "wordsToRead": 50,
+      "responseDeadlineSec": 19,
+      "pilotValidated": false,
+      "needsPsychologistValidation": true,
+      "choices": [
+        {
+          "text": "Prendre un temps avant de réagir.",
+          "responseType": "BREATHE_ANALYZE",
+          "score": 3,
+          "rationale": "La frustration est ici légitime et forte : la moduler est le préalable à toute suite utile."
+        },
+        {
+          "text": "Demander ce qui a motivé le changement.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "score": 1,
+          "rationale": "Utile pour la suite, mais l'affect prime dans l'instant."
+        },
+        {
+          "text": "Dire calmement ce que le changement a coûté.",
+          "responseType": "REFORMULATE_CALMLY",
+          "score": 2,
+          "rationale": "Juste, surtout une fois le premier mouvement passé."
+        },
+        {
+          "text": "Exprimer immédiatement votre exaspération.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "score": 0,
+          "rationale": "Compréhensible, mais adresse le ressenti à qui n'a pas décidé."
+        },
+        {
+          "text": "Ne rien dire.",
+          "responseType": "WAIT",
+          "score": 1,
+          "rationale": "Évite l'éclat ; laisse le coût invisible."
+        }
+      ]
+    },
+    {
+      "id": "TR-117",
+      "title": "La coupure répétée",
+      "categoryNumber": 9,
+      "category": "Interruption ou changement de dernière minute",
+      "difficulty": "MODERATE",
+      "medium": "VIDEO",
+      "context": "Vous présentez un point ; le même collègue vous coupe pour la deuxième fois en trois minutes.",
+      "message": null,
+      "question": "Que faites-vous maintenant ?",
+      "wordsToRead": 52,
+      "responseDeadlineSec": 19,
+      "pilotValidated": false,
+      "needsPsychologistValidation": true,
+      "choices": [
+        {
+          "text": "Demander calmement à terminer votre point.",
+          "responseType": "REFORMULATE_CALMLY",
+          "score": 3,
+          "rationale": "Reprendre la parole est direct, proportionné, et règle la répétition sur-le-champ."
+        },
+        {
+          "text": "Le laisser finir et reprendre ensuite.",
+          "responseType": "WAIT",
+          "score": 2,
+          "rationale": "Évite l'accroc ; la coupure peut se répéter."
+        },
+        {
+          "text": "Marquer un temps avant de continuer.",
+          "responseType": "BREATHE_ANALYZE",
+          "score": 1,
+          "rationale": "Bon réflexe, ne traite pas la cause."
+        },
+        {
+          "text": "Élever la voix pour garder la parole.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "score": 0,
+          "rationale": "Déplace le sujet vers un rapport de force."
+        },
+        {
+          "text": "Lui demander ce qu'il veut ajouter.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "score": 1,
+          "rationale": "Courtois, mais cède la parole une troisième fois."
+        }
+      ]
+    },
+    {
+      "id": "TR-118",
+      "title": "Le report annoncé la veille",
+      "categoryNumber": 9,
+      "category": "Interruption ou changement de dernière minute",
+      "difficulty": "HIGH",
+      "medium": "WRITTEN",
+      "context": "La veille d'une échéance préparée depuis un mois, le cadrage change.",
+      "message": "« Le comité a rebasculé sur l'option B. Peux-tu adapter pour demain matin ? »",
+      "question": "Que faites-vous maintenant ?",
+      "wordsToRead": 47,
+      "responseDeadlineSec": 18,
+      "pilotValidated": false,
+      "needsPsychologistValidation": true,
+      "choices": [
+        {
+          "text": "Demander ce qui doit être présenté demain, au minimum.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "score": 3,
+          "rationale": "Le périmètre réel du lendemain est la seule information qui rende la nuit utile."
+        },
+        {
+          "text": "Répondre ce qui est faisable d'ici demain matin.",
+          "responseType": "REFORMULATE_CALMLY",
+          "score": 2,
+          "rationale": "Honnête, mais s'engage avant de connaître l'attendu."
+        },
+        {
+          "text": "Prendre un moment avant de répondre.",
+          "responseType": "BREATHE_ANALYZE",
+          "score": 1,
+          "rationale": "Évite l'acceptation ou le refus réflexe."
+        },
+        {
+          "text": "Accepter tout de suite.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "score": 1,
+          "rationale": "Engage une nuit de travail sur un attendu non défini."
+        },
+        {
+          "text": "Attendre demain pour en parler.",
+          "responseType": "WAIT",
+          "score": 0,
+          "rationale": "L'échéance est le lendemain matin."
+        }
+      ]
+    },
+    {
+      "id": "TR-119",
+      "title": "Le tour de table qui se range",
+      "categoryNumber": 10,
+      "category": "Pression sociale ou hiérarchique",
+      "difficulty": "MODERATE",
+      "medium": "VIDEO",
+      "context": "En réunion, chacun approuve une option que vous jugez risquée. Votre tour arrive.",
+      "message": null,
+      "question": "Que faites-vous maintenant ?",
+      "wordsToRead": 49,
+      "responseDeadlineSec": 18,
+      "pilotValidated": false,
+      "needsPsychologistValidation": true,
+      "choices": [
+        {
+          "text": "Écouter les derniers avis avant de vous prononcer.",
+          "responseType": "WAIT",
+          "score": 3,
+          "rationale": "Recueillir l'ensemble avant de se placer est ici la conduite la plus informative — et la moins conformiste."
+        },
+        {
+          "text": "Exposer calmement le risque que vous voyez.",
+          "responseType": "REFORMULATE_CALMLY",
+          "score": 2,
+          "rationale": "Utile, mais avant d'avoir entendu les arguments restants."
+        },
+        {
+          "text": "Demander comment le risque a été traité.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "score": 1,
+          "rationale": "Ouvre le sujet sans s'opposer frontalement."
+        },
+        {
+          "text": "Approuver comme les autres.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "score": 0,
+          "rationale": "Conformité : le risque reste entier et non dit."
+        },
+        {
+          "text": "Prendre un instant avant de parler.",
+          "responseType": "BREATHE_ANALYZE",
+          "score": 1,
+          "rationale": "Sain, insuffisant seul."
+        }
+      ]
+    },
+    {
+      "id": "TR-120",
+      "title": "La consigne pressante du directeur",
+      "categoryNumber": 10,
+      "category": "Pression sociale ou hiérarchique",
+      "difficulty": "HIGH",
+      "medium": "VIDEO",
+      "context": "Un directeur vous demande de livrer sans la vérification prévue, en insistant sur le délai.",
+      "message": null,
+      "question": "Que faites-vous maintenant ?",
+      "wordsToRead": 58,
+      "responseDeadlineSec": 22,
+      "pilotValidated": false,
+      "needsPsychologistValidation": true,
+      "choices": [
+        {
+          "text": "Ne pas vous engager dans l'instant.",
+          "responseType": "WAIT",
+          "score": 2,
+          "rationale": "Évite l'engagement sous pression, laisse la demande ouverte."
+        },
+        {
+          "text": "Dire ce que la vérification couvre, et ce qu'on prend comme risque sans elle.",
+          "responseType": "REFORMULATE_CALMLY",
+          "score": 3,
+          "rationale": "Rend le risque explicite à celui qui l'assume : c'est ce que la position hiérarchique demande."
+        },
+        {
+          "text": "Accepter pour ne pas contrarier.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "score": 0,
+          "rationale": "Transfère un risque non dit sur le livrable."
+        },
+        {
+          "text": "Demander qui assume l'écart si un défaut passe.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "score": 1,
+          "rationale": "Pertinent, mais formulé comme une mise en cause."
+        },
+        {
+          "text": "Prendre un temps avant de répondre.",
+          "responseType": "BREATHE_ANALYZE",
+          "score": 1,
+          "rationale": "Nécessaire face à la pression, ne résout pas la demande."
+        }
+      ]
+    },
+    {
+      "id": "TR-121",
+      "title": "La reconnaissance qui va à un autre",
+      "categoryNumber": 8,
+      "category": "Frustration, refus ou obstacle inattendu",
+      "difficulty": "MODERATE",
+      "medium": "VIDEO",
+      "context": "En réunion, le travail que vous avez porté est félicité — au nom d'un collègue.",
+      "message": null,
+      "question": "Que faites-vous maintenant ?",
+      "wordsToRead": 55,
+      "responseDeadlineSec": 20,
+      "pilotValidated": false,
+      "needsPsychologistValidation": true,
+      "choices": [
+        {
+          "text": "Accuser le coup sans réagir tout de suite.",
+          "responseType": "BREATHE_ANALYZE",
+          "score": 3,
+          "rationale": "La déception est vive et l'instant public : moduler la réponse précède toute mise au point utile."
+        },
+        {
+          "text": "Préciser devant le groupe qui a fait quoi.",
+          "responseType": "REFORMULATE_CALMLY",
+          "score": 2,
+          "rationale": "Légitime, mais transforme une reconnaissance en rectificatif devant tous."
+        },
+        {
+          "text": "Demander au collègue s'il a mentionné votre part.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "score": 1,
+          "rationale": "Question rhétorique : vous venez d'entendre la réponse."
+        },
+        {
+          "text": "Ne rien dire et passer à la suite.",
+          "responseType": "WAIT",
+          "score": 1,
+          "rationale": "Évite l'accroc, laisse l'attribution erronée s'installer."
+        },
+        {
+          "text": "Couper pour rétablir immédiatement.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "score": 0,
+          "rationale": "Déplace un moment de félicitations vers un conflit d'attribution."
+        }
+      ]
+    },
+    {
+      "id": "TR-122",
+      "title": "Le départ annoncé",
+      "categoryNumber": 5,
+      "category": "Désaccord ou tension interpersonnelle",
+      "difficulty": "HIGH",
+      "medium": "VIDEO",
+      "context": "Une collègue avec qui vous travaillez depuis trois ans annonce son départ, et vous l'apprenez en réunion comme tout le monde.",
+      "message": null,
+      "question": "Que faites-vous maintenant ?",
+      "wordsToRead": 63,
+      "responseDeadlineSec": 23,
+      "pilotValidated": false,
+      "needsPsychologistValidation": true,
+      "choices": [
+        {
+          "text": "Laisser passer la réunion avant d'en parler avec elle.",
+          "responseType": "WAIT",
+          "score": 3,
+          "rationale": "Une perte relationnelle ne se traite pas en séance : différer protège l'échange qui compte."
+        },
+        {
+          "text": "Prendre le temps d'encaisser la nouvelle.",
+          "responseType": "BREATHE_ANALYZE",
+          "score": 2,
+          "rationale": "Utile, mais ne fait rien du lien lui-même."
+        },
+        {
+          "text": "Lui demander devant tous pourquoi elle part.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "score": 0,
+          "rationale": "Expose un choix personnel devant le groupe."
+        },
+        {
+          "text": "Dire en séance ce que sa présence a apporté.",
+          "responseType": "REFORMULATE_CALMLY",
+          "score": 1,
+          "rationale": "Bienveillant, mais adressé au groupe plus qu'à elle."
+        },
+        {
+          "text": "Réagir à chaud sur le manque d'information.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "score": 0,
+          "rationale": "Confond la nouvelle et la manière dont elle est annoncée."
+        }
+      ]
+    },
+    {
+      "id": "TR-123",
+      "title": "Le client qui met fin",
+      "categoryNumber": 2,
+      "category": "Critique soudaine ou accusation injuste",
+      "difficulty": "MODERATE",
+      "medium": "WRITTEN",
+      "context": "Un client suivi depuis deux ans annonce par écrit qu'il arrête la collaboration.",
+      "message": "« Nous avons décidé de ne pas reconduire. Merci pour ces deux années. »",
+      "question": "Que faites-vous maintenant ?",
+      "wordsToRead": 48,
+      "responseDeadlineSec": 18,
+      "pilotValidated": false,
+      "needsPsychologistValidation": true,
+      "choices": [
+        {
+          "text": "Lui demander ce qui a motivé la décision.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "score": 3,
+          "rationale": "La décision est actée : l'information est ce qui reste à en tirer, pour la suite."
+        },
+        {
+          "text": "Prendre un moment avant de répondre.",
+          "responseType": "BREATHE_ANALYZE",
+          "score": 2,
+          "rationale": "Évite une réponse teintée de déception."
+        },
+        {
+          "text": "Proposer de revoir les conditions.",
+          "responseType": "REFORMULATE_CALMLY",
+          "score": 1,
+          "rationale": "Tente de renégocier une décision annoncée comme prise."
+        },
+        {
+          "text": "Ne pas répondre dans l'immédiat.",
+          "responseType": "WAIT",
+          "score": 1,
+          "rationale": "Laisse le message sans accusé de réception."
+        },
+        {
+          "text": "Répondre à chaud sur le peu d'explications.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "score": 0,
+          "rationale": "Termine deux ans de relation sur un reproche."
+        }
+      ]
+    },
+    {
+      "id": "TR-124",
+      "title": "L'échec collectif",
+      "categoryNumber": 4,
+      "category": "Erreur découverte sous pression",
+      "difficulty": "HIGH",
+      "medium": "VIDEO",
+      "context": "Le projet sur lequel toute l'équipe a travaillé six mois n'a pas atteint son objectif. La réunion de bilan commence.",
+      "message": null,
+      "question": "Que faites-vous maintenant ?",
+      "wordsToRead": 58,
+      "responseDeadlineSec": 22,
+      "pilotValidated": false,
+      "needsPsychologistValidation": true,
+      "choices": [
+        {
+          "text": "Prendre un temps avant de prendre la parole.",
+          "responseType": "BREATHE_ANALYZE",
+          "score": 3,
+          "rationale": "L'affect collectif est au plus haut : se poser d'abord est ce qui rend le bilan exploitable."
+        },
+        {
+          "text": "Demander ce que chacun retient.",
+          "responseType": "ASK_FOR_MORE_INFORMATION",
+          "score": 2,
+          "rationale": "Bon levier de bilan, prématuré tant que l'émotion est vive."
+        },
+        {
+          "text": "Rappeler ce qui a malgré tout été construit.",
+          "responseType": "REFORMULATE_CALMLY",
+          "score": 1,
+          "rationale": "Juste, mais peut sonner comme un déni si c'est le premier mot."
+        },
+        {
+          "text": "Laisser les autres s'exprimer d'abord.",
+          "responseType": "WAIT",
+          "score": 2,
+          "rationale": "Prudent ; risque de laisser le bilan partir sur les reproches."
+        },
+        {
+          "text": "Désigner ce qui a coincé, tout de suite.",
+          "responseType": "RESPOND_IMPULSIVELY",
+          "score": 0,
+          "rationale": "Ouvre le bilan sur la recherche d'un responsable."
+        }
+      ]
+    }
+  ]
+}

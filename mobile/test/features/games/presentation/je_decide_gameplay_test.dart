@@ -82,7 +82,10 @@ void main() {
     await pumpJourney(tester);
 
     expect(find.byType(GameTimerBar), findsOneWidget);
-    expect(find.text('${DecisionConfig.questionTimeLimitS} sec'), findsOneWidget);
+    expect(
+      find.text('${DecisionConfig.questionTimeLimitS} sec'),
+      findsOneWidget,
+    );
     // Le nombre de secondes vit dans l'en-tête, la barre reste nue : c'est la
     // disposition de « Je bouge », et elle ne coûte aucune hauteur au scénario.
     expect(
@@ -110,8 +113,10 @@ void main() {
     await pumpJourney(tester);
 
     await tester.pump(const Duration(seconds: 12));
-    expect(find.text('${DecisionConfig.questionTimeLimitS - 12} sec'),
-        findsOneWidget);
+    expect(
+      find.text('${DecisionConfig.questionTimeLimitS - 12} sec'),
+      findsOneWidget,
+    );
 
     await tester.tap(find.byKey(const ValueKey('decision-option-0')));
     await tester.pump();
@@ -234,7 +239,10 @@ void main() {
     // déclencher : le parcours commence au premier scénario.
     expect(find.text('Welcome back'), findsNothing);
     expect(find.text('Your previous choices are saved.'), findsNothing);
-    expect(find.byKey(const ValueKey('decision-resume-continue')), findsNothing);
+    expect(
+      find.byKey(const ValueKey('decision-resume-continue')),
+      findsNothing,
+    );
     expect(find.text('Scenario 01 / 2'), findsOneWidget);
   });
 
@@ -532,29 +540,30 @@ void main() {
       );
     });
 
-    testWidgets('le même item se compacte au lieu de déborder sur petit écran', (
-      tester,
-    ) async {
-      await pumpItem(tester, typicalItem(), screen: const Size(390, 844));
-      final roomy = tester
-          .getSize(find.byKey(const ValueKey('decision-option-0')))
-          .height;
+    testWidgets(
+      'le même item se compacte au lieu de déborder sur petit écran',
+      (tester) async {
+        await pumpItem(tester, typicalItem(), screen: const Size(390, 844));
+        final roomy = tester
+            .getSize(find.byKey(const ValueKey('decision-option-0')))
+            .height;
 
-      await pumpItem(tester, typicalItem(), screen: const Size(320, 568));
-      final tight = tester
-          .getSize(find.byKey(const ValueKey('decision-option-0')))
-          .height;
+        await pumpItem(tester, typicalItem(), screen: const Size(320, 568));
+        final tight = tester
+            .getSize(find.byKey(const ValueKey('decision-option-0')))
+            .height;
 
-      expect(
-        tight,
-        lessThan(roomy),
-        reason:
-            'le plancher fixe de 92 px réservait 300 px aux choix avant même '
-            'que l\'énoncé ait sa place — c\'était la cause du défilement',
-      );
-      expect(scrollExtent(tester), 0);
-      expect(tester.takeException(), isNull);
-    });
+        expect(
+          tight,
+          lessThan(roomy),
+          reason:
+              'le plancher fixe de 92 px réservait 300 px aux choix avant même '
+              'que l\'énoncé ait sa place — c\'était la cause du défilement',
+        );
+        expect(scrollExtent(tester), 0);
+        expect(tester.takeException(), isNull);
+      },
+    );
 
     /// Les 24 items d'Intégration d'Information — 1167 caractères, quatre
     /// justifications — ne tiennent pas d'un seul tenant sur un écran étroit.
@@ -620,7 +629,11 @@ void main() {
       }
 
       final recall = find.byKey(const ValueKey('decision-task-recall'));
-      expect(recall, findsOneWidget, reason: 'on est bien sur l\'écran de choix');
+      expect(
+        recall,
+        findsOneWidget,
+        reason: 'on est bien sur l\'écran de choix',
+      );
 
       final style = tester.widget<Text>(recall).style!;
       expect(
@@ -738,42 +751,43 @@ void main() {
     /// se lisait plus petit qu'un item libre sur le même téléphone — 16,4 px
     /// contre 16,7 px sur un 360×640 — ce qui rétablissait par la bande ce que
     /// le gel supprime par ailleurs.
-    testWidgets('un item chronométré se lit à la même taille qu\'un item libre', (
-      tester,
-    ) async {
-      double optionFontSize() => tester
-          .widget<Text>(
-            find
-                .descendant(
-                  of: find.byKey(const ValueKey('decision-option-0')),
-                  matching: find.byType(Text),
-                )
-                .first,
-          )
-          .style!
-          .fontSize!;
+    testWidgets(
+      'un item chronométré se lit à la même taille qu\'un item libre',
+      (tester) async {
+        double optionFontSize() => tester
+            .widget<Text>(
+              find
+                  .descendant(
+                    of: find.byKey(const ValueKey('decision-option-0')),
+                    matching: find.byType(Text),
+                  )
+                  .first,
+            )
+            .style!
+            .fontSize!;
 
-      DecisionFormItem chronometre() => DecisionFormItem(
-        itemId: 'DT-1',
-        dimension: DecisionDimension.dt,
-        format: DecisionItemFormat.temporalDecision,
-        timeLimitMs: 7000,
-        vignette: typicalItem().vignette,
-        task: typicalItem().task,
-        options: typicalItem().options,
-      );
+        DecisionFormItem chronometre() => DecisionFormItem(
+          itemId: 'DT-1',
+          dimension: DecisionDimension.dt,
+          format: DecisionItemFormat.temporalDecision,
+          timeLimitMs: 7000,
+          vignette: typicalItem().vignette,
+          task: typicalItem().task,
+          options: typicalItem().options,
+        );
 
-      // 360×640 : le gabarit où l'écart se manifestait. Les deux items sont
-      // dans le MÊME formulaire — c'est là que le gel doit tenir.
-      await pumpForm(tester, [
-        typicalItem(),
-        chronometre(),
-      ], screen: const Size(360, 640));
-      final libre = optionFontSize();
+        // 360×640 : le gabarit où l'écart se manifestait. Les deux items sont
+        // dans le MÊME formulaire — c'est là que le gel doit tenir.
+        await pumpForm(tester, [
+          typicalItem(),
+          chronometre(),
+        ], screen: const Size(360, 640));
+        final libre = optionFontSize();
 
-      await goToNextItem(tester);
-      expect(optionFontSize(), libre);
-    });
+        await goToNextItem(tester);
+        expect(optionFontSize(), libre);
+      },
+    );
 
     /// Le client ne distingue pas « défiler sur un scénario » de « défiler dans
     /// Je décide ». Ce test parcourt donc TOUT le jeu sur les deux plus petits
@@ -810,7 +824,8 @@ void main() {
                     itemsPerDimension: 8,
                     items: [
                       for (var i = 0; i < 8; i++) item(i, DecisionDimension.re),
-                      for (var i = 8; i < 16; i++) item(i, DecisionDimension.cs),
+                      for (var i = 8; i < 16; i++)
+                        item(i, DecisionDimension.cs),
                       for (var i = 16; i < 24; i++)
                         item(i, DecisionDimension.ii),
                       for (var i = 24; i < 32; i++)
@@ -967,7 +982,11 @@ void main() {
       );
 
       final timed = submitted!.last;
-      expect(timed.answered, isFalse, reason: 'item manqué → imputation serveur');
+      expect(
+        timed.answered,
+        isFalse,
+        reason: 'item manqué → imputation serveur',
+      );
       expect(timed.selectedOptionId, isNull);
     },
   );
@@ -1034,7 +1053,9 @@ void main() {
     // Deux secondes suffisent : la durée de la pause n'entre pas en compte,
     // c'est l'OUVERTURE qui consomme le droit.
     await tester.pump(const Duration(seconds: 2));
-    await tester.tap(find.byKey(const ValueKey('decision-pause-dialog-resume')));
+    await tester.tap(
+      find.byKey(const ValueKey('decision-pause-dialog-resume')),
+    );
     await tester.pumpAndSettle();
 
     expect(
@@ -1050,6 +1071,35 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('decision-pause-dialog')), findsNothing);
     expect(find.text('Leave journey?'), findsOneWidget);
+  });
+
+  testWidgets('les trois cartes d’aide conservent le choix et le chrono', (
+    tester,
+  ) async {
+    await pumpJourney(tester);
+    await tester.tap(find.byKey(const ValueKey('decision-option-1')));
+    await tester.pump(const Duration(seconds: 3));
+    await tester.tap(find.byKey(const ValueKey('decision-pause-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('decision-view-rules')));
+    await tester.pumpAndSettle();
+    expect(find.text('Étape 1 sur 3'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 5));
+    for (var page = 0; page < 2; page++) {
+      await tester.tap(find.text('Suivant'));
+      await tester.pumpAndSettle();
+    }
+    await tester.tap(find.text('Reprendre la partie'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('decision-pause-dialog')), findsOneWidget);
+    await tester.tap(
+      find.byKey(const ValueKey('decision-pause-dialog-resume')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('57 sec'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('decision-continue')));
+    await tester.pumpAndSettle();
+    expect(find.text('7 sec'), findsOneWidget);
   });
 
   /// À l'expiration des 30 s, le menu se referme tout seul et la partie repart.

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:zennyt/core/audio/sound_service.dart';
 import 'package:zennyt/features/games/data/games_mock_repository.dart';
 import 'package:zennyt/features/games/domain/entities/device_calibration.dart';
 import 'package:zennyt/features/games/domain/entities/game_metrics.dart';
@@ -11,6 +13,9 @@ import 'package:zennyt/features/games/domain/entities/task_scheduling_metrics.da
 import 'package:zennyt/features/games/presentation/games_providers.dart';
 import 'package:zennyt/features/games/data/day_stack_bank_loader.dart';
 import 'package:zennyt/features/games/presentation/view/task_scheduling_screen.dart';
+import 'package:zennyt/features/games/presentation/widgets/day_stack_badges.dart';
+import 'package:zennyt/features/games/presentation/widgets/day_stack_emotes.dart';
+import 'package:zennyt/features/games/presentation/widgets/memory_prompt.dart';
 
 class _RecordingRepository extends GamesMockRepository {
   int starts = 0;
@@ -52,20 +57,62 @@ void main() {
   // on la déclenche ici, une fois, pour que l'écran la retrouve en cache et
   // ouvre son intro dès la première image.
   setUpAll(() async {
+    // Attendre le décodage réel des emotes (`runAsync`) laisse aussi aboutir
+    // les appels audio en attente : sans plugin natif, audioplayers lève alors
+    // une MissingPluginException dans le test en cours. Même neutralisation
+    // que `feedback_screenshots_test.dart` ; aucun test ici ne dépend du son.
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    for (final name in const [
+      'xyz.luan/audioplayers',
+      'xyz.luan/audioplayers.global',
+    ]) {
+      messenger.setMockMethodCallHandler(
+        MethodChannel(name),
+        (_) async => null,
+      );
+    }
+    for (final name in const [
+      'xyz.luan/audioplayers.global/events',
+      'xyz.luan/audioplayers/events/zennyt-bg-music',
+      'xyz.luan/audioplayers/events/zennyt-scoreboard',
+    ]) {
+      messenger.setMockStreamHandler(
+        EventChannel(name),
+        _SilentStreamHandler(),
+      );
+    }
+    SoundService.instance.setSfxEnabled(false);
+    SoundService.instance.setMusicEnabled(false);
+
     DayStackBankLoader.resetForTest();
     await DayStackBankLoader.load();
   });
+
+  Future<void> advanceTutorial(WidgetTester tester) async {
+    for (
+      var page = 0;
+      page < 6 && find.text('Suivant').evaluate().isNotEmpty;
+      page++
+    ) {
+      await tester.tap(find.text('Suivant'));
+      await tester.pumpAndSettle();
+    }
+    expect(find.text('Suivant'), findsNothing);
+  }
 
   Future<_RecordingRepository> start(
     WidgetTester tester, {
     Size size = const Size(390, 844),
     double scale = 1,
     bool failSubmit = false,
+    bool play = true,
     // `null` = on laisse l'écran décider, c'est-à-dire la vraie valeur de
     // production. Les tests qui pinnent ces réglages ne mesurent que la
     // mécanique ; ceux qui les laissent nuls mesurent le défaut par défaut.
     int? levelCount = 1,
     int? universeIndex = 0,
+    int variantSeed = 0,
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
@@ -89,7 +136,7 @@ void main() {
           // propres tests, plus bas.
           home: TaskSchedulingScreen(
             universeIndex: universeIndex,
-            variantSeed: 0,
+            variantSeed: variantSeed,
             levelCount: levelCount,
           ),
         ),
@@ -107,11 +154,13 @@ void main() {
     }
     expect(find.text('Commencer'), findsOneWidget, reason: 'banque chargée');
 
-    for (final label in ['Commencer', 'Je suis prêt']) {
-      await tester.ensureVisible(find.text(label));
-      await tester.tap(find.text(label));
-      await tester.pumpAndSettle();
-    }
+    await tester.ensureVisible(find.text('Commencer'));
+    await tester.tap(find.text('Commencer'));
+    await tester.pumpAndSettle();
+    if (!play) return repo;
+    await advanceTutorial(tester);
+    await tester.tap(find.text('Je suis prêt'));
+    await tester.pumpAndSettle();
     return repo;
   }
 
@@ -126,6 +175,49 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  final badgeImages = find.descendant(
+    of: find.byType(DayStackTaskBadge),
+    matching: find.byType(Image),
+  );
+
+  /// Chemin de l'emote montrée dans [scope], ou `null` sans image.
+  String? emoteIn(WidgetTester tester, Finder scope) {
+    final image = find.descendant(of: scope, matching: badgeImages);
+    if (image.evaluate().isEmpty) return null;
+    final provider = tester.widget<Image>(image.first).image as ResizeImage;
+    return (provider.imageProvider as AssetImage).assetName;
+  }
+
+  /// Décode réellement les emotes affichées, puis vérifie qu'aucune n'est
+  /// retombée sur l'icône : une capture prise avant ce décodage montrerait des
+  /// cases vides, et un repli passerait inaperçu.
+  Future<void> loadEmotes(WidgetTester tester) async {
+    expect(badgeImages, findsWidgets);
+    await tester.runAsync(() async {
+      for (final element in badgeImages.evaluate().toList()) {
+        await precacheImage((element.widget as Image).image, element);
+      }
+    });
+    await tester.pump();
+    expect(
+      find.descendant(
+        of: find.byType(DayStackTaskBadge),
+        matching: find.byType(Icon),
+      ),
+      findsNothing,
+      reason: 'aucune emote connue ne retombe sur l’icône',
+    );
+    for (final raw
+        in find
+            .descendant(
+              of: find.byType(DayStackTaskBadge),
+              matching: find.byType(RawImage),
+            )
+            .evaluate()) {
+      expect((raw.widget as RawImage).image, isNotNull);
+    }
+  }
+
   for (final (size, scale) in [
     (const Size(320, 568), 1.0),
     (const Size(390, 844), 2.0),
@@ -136,10 +228,12 @@ void main() {
     ) async {
       await start(tester, size: size, scale: scale);
       expect(tester.takeException(), isNull);
-      expect(find.textContaining('12 tâches'), findsOneWidget);
+      // En-tête réduit à l'indicateur de manche (demande client).
+      expect(find.textContaining('12 tâches'), findsNothing);
+      expect(find.textContaining('Manche 1 /'), findsOneWidget);
       expect(find.text('Valider').hitTestable(), findsOneWidget);
       await place(tester, 0);
-      expect(find.byKey(const ValueKey('day-stack-progress')), findsOneWidget);
+      expect(find.byKey(const ValueKey('day-stack-progress')), findsNothing);
       expect(tester.takeException(), isNull);
     });
   }
@@ -157,6 +251,295 @@ void main() {
     await tester.tap(find.text('Voir mon score'));
     await tester.pumpAndSettle();
   }
+
+  for (final (size, scale) in [
+    (const Size(320, 568), 1.0),
+    (const Size(390, 844), 2.0),
+    (const Size(390, 844), 1.0),
+  ]) {
+    testWidgets(
+      'dernière tâche entièrement visible au-dessus de Valider $size / $scale',
+      (tester) async {
+        await start(tester, size: size, scale: scale);
+        for (var task = 0; task < 12; task++) {
+          await place(tester, task);
+        }
+        final list = find.byKey(const ValueKey('day-stack-schedule'));
+        final scrollable = find.descendant(
+          of: list,
+          matching: find.byType(Scrollable),
+        );
+        final position = tester.state<ScrollableState>(scrollable).position;
+        final last = find.byKey(
+          ValueKey('day-stack-task-${order(tester).last}'),
+        );
+        // La liste paresseuse affine sa hauteur au fil du défilement.
+        for (var step = 0; step < 30; step++) {
+          position.jumpTo(position.maxScrollExtent);
+          await tester.pumpAndSettle();
+          if (last.evaluate().isNotEmpty && position.extentAfter == 0) break;
+        }
+        final viewport = tester.getRect(
+          find.byKey(const ValueKey('day-stack-calendar-viewport')),
+        );
+        final footer = tester.getRect(
+          find.byKey(const ValueKey('day-stack-validation-area')),
+        );
+        final task = tester.getRect(last);
+        expect(task.bottom, lessThanOrEqualTo(viewport.bottom));
+        expect(task.top, greaterThanOrEqualTo(viewport.top));
+        // « Valider » flotte au-dessus du calendrier, qui défile dessous : la
+        // dernière tâche doit pouvoir remonter au-dessus du bouton.
+        final button = tester.getRect(
+          find.byKey(const ValueKey('day-stack-validate')),
+        );
+        expect(task.bottom, lessThan(button.top));
+        expect(footer.bottom, lessThanOrEqualTo(viewport.bottom + 1));
+        expect(find.text('Valider').hitTestable(), findsOneWidget);
+        expect(find.textContaining('déplacement(s)'), findsNothing);
+        expect(tester.takeException(), isNull);
+        if (size.width == 390 && scale == 1) {
+          await loadEmotes(tester);
+          await expectLater(
+            find.byType(TaskSchedulingScreen),
+            matchesGoldenFile('goldens/day-stack-calendar-bottom.png'),
+          );
+        }
+      },
+    );
+  }
+
+  testWidgets('chaque univers affiche sa mission et le geste à effectuer', (
+    tester,
+  ) async {
+    const contexts = [
+      'service de midi',
+      'dossier final',
+      'accueillir les invités',
+      'inspection',
+      'départ du camion',
+      'tournée de tes patients',
+      'état des lieux',
+    ];
+    final bank = await DayStackBankLoader.load();
+    expect(bank.universes.length, contexts.length);
+    final missions = <String>{};
+    for (var i = 0; i < bank.universes.length; i++) {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await start(tester, universeIndex: i, size: const Size(320, 568));
+      final finder = find.byKey(const ValueKey('day-stack-mission'));
+      final mission = tester.widget<MemoryPrompt>(finder).text;
+      final label = tester.widget<Text>(
+        find.descendant(of: finder, matching: find.byType(Text)),
+      );
+      expect(label.style?.color, kMemoryPromptColor);
+      final fade = find.descendant(
+        of: finder,
+        matching: find.byType(FadeTransition),
+      );
+      expect(fade, findsOneWidget);
+      expect(
+        tester.widget<FadeTransition>(fade).opacity.value,
+        1,
+        reason: 'le clignotement initial est terminé',
+      );
+      // Une phrase propre à l'univers, lue dans la banque.
+      expect(mission, bank.universes[i].mission);
+      expect(mission, contains(contexts[i]));
+      missions.add(mission);
+      final list = find.byKey(const ValueKey('day-stack-schedule'));
+      final scrollable = find.descendant(
+        of: list,
+        matching: find.byType(Scrollable),
+      );
+      await tester.drag(scrollable, const Offset(0, -200));
+      await tester.pumpAndSettle();
+      expect(finder.hitTestable(), findsOneWidget);
+      expect(
+        tester.widget<FadeTransition>(fade).opacity.value,
+        1,
+        reason: 'défiler ne relance pas le clignotement',
+      );
+      expect(find.text('Valider').hitTestable(), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    }
+    expect(missions.length, contexts.length);
+  });
+
+  testWidgets('six cartes illustrées avant le démarrage de la session', (
+    tester,
+  ) async {
+    final repo = await start(tester, play: false);
+    for (var page = 0; page < 6; page++) {
+      expect(find.text('Étape ${page + 1} sur 6'), findsOneWidget);
+      expect(
+        repo.starts,
+        0,
+        reason: 'lire le tutoriel ne démarre pas une mesure',
+      );
+      if (badgeImages.evaluate().isNotEmpty) await loadEmotes(tester);
+      await expectLater(
+        find.byType(TaskSchedulingScreen),
+        matchesGoldenFile('goldens/day-stack-tutorial-${page + 1}.png'),
+      );
+      if (page < 5) {
+        await tester.tap(find.text('Suivant'));
+        await tester.pumpAndSettle();
+      }
+    }
+    await tester.tap(find.text('Je suis prêt'));
+    await tester.pumpAndSettle();
+    expect(repo.starts, 1);
+    expect(find.text('Manche 1 / 1'), findsOneWidget);
+  });
+
+  testWidgets(
+    'six cartes lisibles à 200 % sur petit écran, boutons accessibles',
+    (tester) async {
+      await start(tester, play: false, size: const Size(320, 568), scale: 2);
+      for (var page = 0; page < 6; page++) {
+        expect(tester.takeException(), isNull);
+        final label = page < 5 ? 'Suivant' : 'Je suis prêt';
+        expect(find.text(label).hitTestable(), findsOneWidget);
+        if (page < 5) {
+          await tester.tap(find.text(label));
+          await tester.pumpAndSettle();
+        }
+      }
+    },
+  );
+
+  testWidgets('la démonstration se déplace au doigt sans démarrer une partie', (
+    tester,
+  ) async {
+    final repo = await start(tester, play: false);
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byType(LongPressDraggable<int>)),
+    );
+    await tester.pump(const Duration(milliseconds: 600));
+    await gesture.moveTo(tester.getCenter(find.text('Dépose ici')));
+    await tester.pump();
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(find.text('Bien joué !'), findsOneWidget);
+    expect(repo.starts, 0);
+    expect(repo.submitted, isNull);
+    // Un toucher simple permet aussi d'essayer le geste sans appui prolongé.
+    await tester.tap(find.byType(LongPressDraggable<int>));
+    await tester.pumpAndSettle();
+    expect(find.text('Essaie avec ton doigt'), findsOneWidget);
+    expect(find.text('Étape 1 sur 6'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('capture calendrier mauve', (tester) async {
+    await start(tester);
+    for (var task = 0; task < 12; task++) {
+      await place(tester, task);
+    }
+    await loadEmotes(tester);
+    await expectLater(
+      find.byType(TaskSchedulingScreen),
+      matchesGoldenFile('goldens/day-stack-calendar-purple.png'),
+    );
+  });
+
+  testWidgets('chaque carte montre l’emote de sa tâche, même déplacée', (
+    tester,
+  ) async {
+    final handle = tester.ensureSemantics();
+    await start(tester);
+    final universe = (await DayStackBankLoader.load()).universes[0];
+    String emoteOf(int index) => dayStackEmoteAssetPath(
+      universeId: universe.id,
+      taskId: universe.tasks[index].id,
+    )!;
+    Finder row(int index) => find.byKey(ValueKey('day-stack-task-$index'));
+
+    var visibles = 0;
+    for (final index in order(tester)) {
+      if (row(index).evaluate().isEmpty) continue;
+      expect(emoteIn(tester, row(index)), emoteOf(index));
+      visibles++;
+    }
+    expect(visibles, greaterThan(1));
+    await loadEmotes(tester);
+
+    // L'image décorative n'ajoute aucune annonce : la catégorie n'est dite
+    // qu'une fois.
+    final category = universe.tasks[order(tester).first].category!;
+    final label = tester
+        .getSemantics(
+          find.descendant(
+            of: row(order(tester).first),
+            matching: find.byType(DayStackTaskBadge),
+          ),
+        )
+        .label;
+    expect(category.allMatches(label), hasLength(1), reason: label);
+    handle.dispose();
+
+    // Réorganiser déplace la carte avec son emote, jamais l'emote seule.
+    final moved = order(tester).first;
+    final dynamic state = tester.state(find.byType(TaskSchedulingScreen));
+    state.moveSlotForTest(0, 1);
+    await tester.pumpAndSettle();
+    expect(order(tester).indexOf(moved), 1);
+    expect(emoteIn(tester, row(moved)), emoteOf(moved));
+    expect(
+      emoteIn(tester, row(order(tester).first)),
+      emoteOf(order(tester).first),
+    );
+
+    // Pendant le glissement, la carte soulevée et sa source atténuée gardent
+    // la même image.
+    // La ligne comprend aussi une éventuelle attente : son centre peut tomber
+    // dans le vide, selon l'ordre mélangé. Viser la carte réellement déplaçable.
+    final card = find.descendant(
+      of: row(moved),
+      matching: find.byType(LongPressDraggable<int>),
+    );
+    await tester.ensureVisible(card);
+    await tester.pumpAndSettle();
+    final gesture = await tester.startGesture(tester.getCenter(card));
+    await tester.pump(const Duration(milliseconds: 600));
+    await gesture.moveBy(const Offset(0, 20));
+    await tester.pump();
+    final proxy = find.byKey(const ValueKey('day-stack-drag-proxy'));
+    expect(proxy, findsOneWidget);
+    expect(emoteIn(tester, proxy), emoteOf(moved));
+    expect(emoteIn(tester, row(moved)), emoteOf(moved));
+    await loadEmotes(tester);
+    await gesture.cancel();
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('la variante tirée change le libellé, pas l’emote', (
+    tester,
+  ) async {
+    final task = (await DayStackBankLoader.load()).universes[0].tasks[0];
+    final autreGraine = List.generate(
+      16,
+      (seed) => seed + 1,
+    ).firstWhere((seed) => task.variantAt(seed) != task.variantAt(0));
+    final vues = <(String, String?)>{};
+    for (final seed in [0, autreGraine]) {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await start(tester, variantSeed: seed);
+      await place(tester, 0);
+      final row = find.byKey(const ValueKey('day-stack-task-0'));
+      expect(
+        find.descendant(of: row, matching: find.text(task.variantAt(seed))),
+        findsOneWidget,
+      );
+      vues.add((task.variantAt(seed), emoteIn(tester, row)));
+    }
+    expect(vues.map((v) => v.$1).toSet(), hasLength(2));
+    expect(vues.map((v) => v.$2).toSet(), {
+      'assets/Day Stack/emotes-v1/restaurant/${task.id}.png',
+    });
+  });
 
   testWidgets('toutes les tâches sont présentes et neutres avant validation', (
     tester,
@@ -204,6 +587,9 @@ void main() {
     tester,
   ) async {
     await start(tester);
+    for (final task in order(tester).toList()..sort()) {
+      await place(tester, task);
+    }
     final before = order(tester);
     final movedTask = before.first;
     final card = find.byKey(ValueKey('day-stack-task-$movedTask'));
@@ -234,14 +620,82 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(order(tester).indexOf(movedTask), greaterThan(0));
-    expect(find.text('1 déplacement(s) · sans pénalité'), findsOneWidget);
+    expect(find.textContaining('déplacement(s)'), findsNothing);
     expect(find.byIcon(Icons.drag_indicator_rounded), findsNothing);
   });
+
+  testWidgets(
+    'déplacer une tâche à 18 h garde les heures et ne soulève pas son attente',
+    (tester) async {
+      await start(tester, universeIndex: 2);
+      for (final task in order(tester).toList()..sort()) {
+        await place(tester, task);
+      }
+      final bank = await DayStackBankLoader.load();
+      final universe = bank.universes[2];
+      final index = universe.tasks.indexWhere(
+        (task) => task.id == 'accueil_invites',
+      );
+      expect(index, greaterThanOrEqualTo(0));
+      final dynamic state = tester.state(find.byType(TaskSchedulingScreen));
+      state.moveSlotForTest(order(tester).indexOf(index), 0);
+      await tester.pumpAndSettle();
+      final row = find.byKey(ValueKey('day-stack-task-$index'));
+      final source = find.descendant(
+        of: row,
+        matching: find.byType(LongPressDraggable<int>),
+      );
+      await tester.ensureVisible(source);
+      await tester.pumpAndSettle();
+      final scrollable = find.descendant(
+        of: find.byKey(const ValueKey('day-stack-schedule')),
+        matching: find.byType(Scrollable),
+      );
+      final position = tester.state<ScrollableState>(scrollable).position;
+      position.jumpTo(
+        (position.pixels - 140).clamp(0, position.maxScrollExtent),
+      );
+      await tester.pumpAndSettle();
+      final before = order(tester);
+      final wait = find.byKey(const ValueKey('day-stack-wait-accueil_invites'));
+      final waitRect = tester.getRect(wait);
+      final cardRect = tester.getRect(source);
+      expect(waitRect.height, greaterThan(500));
+      final gesture = await tester.startGesture(cardRect.center);
+      await tester.pump(const Duration(milliseconds: 600));
+      await gesture.moveBy(const Offset(0, -30));
+      await tester.pump();
+      final proxy = find.byKey(const ValueKey('day-stack-drag-proxy'));
+      expect(tester.getSize(proxy).height, closeTo(cardRect.height, 0.1));
+      expect(tester.getRect(wait), waitRect);
+      expect(tester.widget<CustomPaint>(wait).painter, isNotNull);
+      expect(tester.getRect(source), cardRect);
+      expect(
+        order(tester),
+        before,
+        reason: 'le calendrier reste stable jusqu’au dépôt',
+      );
+      await loadEmotes(tester);
+      expect(tester.getRect(source), cardRect);
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/day-stack-calendar-drag.png'),
+      );
+      await gesture.cancel();
+      await tester.pumpAndSettle();
+      expect(order(tester), before);
+      expect(find.text('Valider').hitTestable(), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('le glissement près du bord fait défiler automatiquement', (
     tester,
   ) async {
     await start(tester);
+    for (final task in order(tester).toList()..sort()) {
+      await place(tester, task);
+    }
     final before = order(tester);
     final list = find.byKey(const ValueKey('day-stack-schedule'));
     final scrollable = find.descendant(
@@ -268,6 +722,9 @@ void main() {
     tester,
   ) async {
     await start(tester);
+    for (final task in order(tester).toList()..sort()) {
+      await place(tester, task);
+    }
     final before = order(tester);
     final card = find.byKey(ValueKey('day-stack-task-${before.first}'));
     final gesture = await tester.startGesture(tester.getCenter(card));
@@ -299,7 +756,10 @@ void main() {
     await tester.tap(find.text('Renvoyer le résultat'));
     await tester.pumpAndSettle();
     expect(find.text('Score non calculé'), findsNothing);
-    expect(find.textContaining('/10'), findsOneWidget);
+    expect(
+      find.textContaining('/ 10 points calculated by the server'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('la fin de partie explique le score au lieu d\'un nombre nu', (
@@ -323,7 +783,10 @@ void main() {
     // Puis seulement le score, sur les mesures CUMULÉES.
     await tester.tap(find.text('Voir mon score'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('/10'), findsOneWidget);
+    expect(
+      find.textContaining('/ 10 points calculated by the server'),
+      findsOneWidget,
+    );
     expect(find.textContaining('manche(s)'), findsOneWidget);
   });
 
@@ -333,17 +796,33 @@ void main() {
     await start(tester);
     await tester.tap(find.byTooltip('Pause'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('View rules'));
+    await tester.tap(find.text('View rules / Help'));
     await tester.pumpAndSettle();
 
-    // Les mots du tutoriel correspondent aux libellés réellement visibles sur
-    // les cartes et au moment où le planning est effectivement évalué.
-    expect(find.textContaining('by slot'), findsNothing);
-    expect(find.textContaining('Après : X'), findsOneWidget);
+    // Chaque règle apparaît dans sa carte ; aucune session supplémentaire
+    // n'est ouverte en parcourant les illustrations.
+    expect(find.text('Maintiens, puis déplace'), findsOneWidget);
+    expect(find.textContaining('Un geste court'), findsOneWidget);
+    await tester.tap(find.text('Suivant'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('« Après : X »'), findsOneWidget);
+    await tester.tap(find.text('Suivant'));
+    await tester.pumpAndSettle();
     expect(find.textContaining('commencer et finir'), findsOneWidget);
+    await tester.tap(find.text('Suivant'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('terminée avant cette heure'), findsOneWidget);
+    await tester.tap(find.text('Suivant'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('tolérance indiquée'), findsOneWidget);
+    expect(find.textContaining('temps mort'), findsWidgets);
+    await tester.tap(find.text('Suivant'));
+    await tester.pumpAndSettle();
     expect(find.textContaining('sans pénalité'), findsOneWidget);
-    expect(find.textContaining('uniquement quand tu appuies'), findsOneWidget);
-    expect(find.textContaining('Après quatre manches'), findsOneWidget);
+    expect(find.textContaining('Seul « Valider »'), findsOneWidget);
+    expect(find.textContaining('après 4 manches'), findsOneWidget);
+    expect(find.text('Reprendre la partie'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('une partie enchaîne plusieurs manches', (tester) async {
@@ -352,6 +831,8 @@ void main() {
     // qui lui parle et n'être jamais confronté aux autres.
     final repo = await start(tester, levelCount: 2);
     expect(find.text('Manche 1 / 2'), findsOneWidget);
+    // Sous la consigne : la part des manches TERMINÉES, pas de la manche en cours.
+    expect(find.text('0 / 2 · 0 %'), findsOneWidget);
 
     for (var task = 0; task < 12; task++) {
       await place(tester, task);
@@ -366,9 +847,10 @@ void main() {
     await tester.tap(find.text('Manche 2 / 2'));
     await tester.pumpAndSettle();
     expect(find.text('Manche 2 / 2'), findsOneWidget);
+    expect(find.text('1 / 2 · 50 %'), findsOneWidget);
     expect(
       find.text('0 déplacement(s) · sans pénalité'),
-      findsOneWidget,
+      findsNothing,
       reason: 'plateau neuf',
     );
   });
@@ -408,12 +890,13 @@ void main() {
 
     final vus = <String>[];
     for (var manche = 1; manche <= kDayStackLevels; manche++) {
+      // Le plateau n'affiche plus l'univers (en-tête réduit à la manche) :
+      // on le lit dans le débrief qui suit la validation.
+      await tester.tap(find.text('Valider'));
+      await tester.pumpAndSettle();
       final actuel = universeAffiche();
       expect(actuel, isNot('(aucun)'), reason: 'manche $manche sans univers');
       vus.add(actuel);
-
-      await tester.tap(find.text('Valider'));
-      await tester.pumpAndSettle();
       if (manche < kDayStackLevels) {
         await tester.tap(find.text('Manche ${manche + 1} / $kDayStackLevels'));
         await tester.pumpAndSettle();
@@ -529,7 +1012,7 @@ void main() {
     await bouger(depart.first, 6);
     await bouger(depart.last, 3);
     expect(etat.proactiveAdjustmentsForTest, 0);
-    expect(find.textContaining('sans pénalité'), findsOneWidget);
+    expect(find.textContaining('sans pénalité'), findsNothing);
 
     await tester.tap(find.text('Valider'));
     await tester.pumpAndSettle();
@@ -568,7 +1051,49 @@ void main() {
     // Hanoi, un autre jeu, sans qu'il l'ait demandé.
     expect(find.textContaining('Hano'), findsNothing);
     expect(find.text('Replay'), findsOneWidget);
-    expect(find.text('Back to games'), findsOneWidget);
+    expect(find.text('Compare'), findsOneWidget);
+    // Synthèse de la maquette : quatre barres sur les mesures cumulées.
+    for (final label in const [
+      'Dependencies respected',
+      'Deadlines met',
+      'Schedule consistency',
+      'Adjustments (<2)',
+    ]) {
+      expect(find.text(label), findsOneWidget, reason: label);
+    }
+  });
+
+  testWidgets('Compare confronte la partie à la précédente, sans classement '
+      'inventé', (tester) async {
+    await start(tester);
+    await finishGame(tester);
+
+    await tester.tap(find.text('Compare'));
+    await tester.pumpAndSettle();
+    expect(find.text('Comparative Results'), findsOneWidget);
+    expect(find.text('Ranking data required from platform'), findsOneWidget);
+    // Première partie de la visite : rien à comparer, et l'écran le dit.
+    expect(
+      tester
+          .widget<Text>(find.byKey(const ValueKey('day-stack-compare-delta')))
+          .data,
+      '—',
+    );
+    expect(find.textContaining('#'), findsNothing, reason: 'aucun rang');
+
+    // Seconde partie : l'écart de points devient réel.
+    await tester.tap(find.text('Replay to improve'));
+    await tester.pumpAndSettle();
+    await finishGame(tester);
+    await tester.tap(find.text('Compare'));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<Text>(find.byKey(const ValueKey('day-stack-compare-delta')))
+          .data,
+      matches(RegExp(r'^([+-]\d+|0)$')),
+    );
+    expect(find.text('Previous attempt'), findsOneWidget);
   });
 
   testWidgets('rules preserve placements and the original session', (
@@ -579,12 +1104,13 @@ void main() {
     final before = order(tester);
     await tester.tap(find.byTooltip('Pause'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('View rules'));
+    await tester.tap(find.text('View rules / Help'));
     await tester.pumpAndSettle();
+    await advanceTutorial(tester);
     await tester.ensureVisible(find.text('Reprendre la partie'));
     await tester.tap(find.text('Reprendre la partie'));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('day-stack-progress')), findsOneWidget);
+    expect(find.byKey(const ValueKey('day-stack-progress')), findsNothing);
     expect(order(tester), before);
     expect(repo.starts, 1);
   });
@@ -630,7 +1156,95 @@ void main() {
       expect(envoye['deadTimeRatio'], inInclusiveRange(0.0, 1.0));
 
       // Le score vient du serveur, jamais de l'écran.
-      expect(find.textContaining('/10'), findsOneWidget);
+      expect(
+        find.textContaining('/ 10 points calculated by the server'),
+        findsOneWidget,
+      );
     },
   );
+
+  group('écran unique et agenda', () {
+    const small = Size(360, 640);
+
+    testWidgets(
+      'les cartes du tutoriel gardent leurs contrôles sur petit écran',
+      (tester) async {
+        await start(tester, size: small);
+        // start() s'arrête sur le plateau : on revient aux règles par la pause.
+        await tester.tap(find.byTooltip('Pause'));
+        await tester.pumpAndSettle();
+        // L'agenda défile derrière le menu : seul le contenu du menu compte.
+        expect(
+          find.descendant(
+            of: find.byType(Dialog),
+            matching: find.byType(Scrollable),
+          ),
+          findsNothing,
+          reason: 'menu pause',
+        );
+        expect(find.text('Exit mission').hitTestable(), findsOneWidget);
+        await tester.tap(find.text('View rules / Help'));
+        await tester.pumpAndSettle();
+        expect(find.byType(PageView), findsOneWidget);
+        expect(find.text('Suivant').hitTestable(), findsOneWidget);
+        await advanceTutorial(tester);
+        expect(find.text('Reprendre la partie').hitTestable(), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets('le score tient sur un petit écran, sans défilement', (
+      tester,
+    ) async {
+      await start(tester, size: small);
+      await finishGame(tester);
+      expect(find.byType(Scrollable), findsNothing);
+      expect(find.text('Replay').hitTestable(), findsOneWidget);
+      expect(find.text('Compare').hitTestable(), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('le plateau garde une seule colonne horaire et défile', (
+      tester,
+    ) async {
+      await start(tester);
+      // L'univers 0 démarre à 07h00 : la première tâche de l'ordre courant
+      // commence à l'ouverture de la journée.
+      expect(
+        find.textContaining('07h00 – '),
+        findsNothing,
+        reason: 'les heures sont dans la grille, pas répétées sur les cartes',
+      );
+      expect(find.byKey(const ValueKey('day-stack-schedule')), findsOneWidget);
+
+      final scrollable = find.descendant(
+        of: find.byKey(const ValueKey('day-stack-schedule')),
+        matching: find.byType(Scrollable),
+      );
+      await tester.drag(scrollable, const Offset(0, -250));
+      await tester.pumpAndSettle();
+      expect(
+        tester.state<ScrollableState>(scrollable).position.pixels,
+        greaterThan(0),
+      );
+      expect(find.text('Valider').hitTestable(), findsOneWidget);
+      // Déplacer une tâche recalcule les horaires de l'agenda.
+      final first = order(tester).first;
+      await place(tester, first == 0 ? 1 : 0);
+      expect(
+        find.textContaining('07h00 – '),
+        findsNothing,
+        reason: 'les heures sont dans la grille, pas répétées sur les cartes',
+      );
+      expect(tester.takeException(), isNull);
+    });
+  });
+}
+
+class _SilentStreamHandler extends MockStreamHandler {
+  @override
+  void onListen(Object? arguments, MockStreamHandlerEventSink events) {}
+
+  @override
+  void onCancel(Object? arguments) {}
 }

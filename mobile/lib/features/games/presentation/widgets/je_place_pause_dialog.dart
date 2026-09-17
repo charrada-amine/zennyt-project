@@ -35,31 +35,24 @@ class JePlacePauseDialog extends StatelessWidget {
             ? 'This measured round was interrupted. Restart from level 1 to '
                   'keep one comparable journey.'
             : 'Take your time. The practice clock is safely frozen.',
-        buttons: [
+        actions: [
           if (!measuredRunInterrupted)
-            GamePrimaryButton(
-              label: 'Resume',
-              icon: Icons.play_arrow_rounded,
+            GamePauseMenuAction.resume(
               onPressed: () =>
                   Navigator.of(context).pop(JePlacePauseAction.resume),
             ),
           if (measuredRunInterrupted)
-            GamePrimaryButton(
+            GamePauseMenuAction.restart(
               label: 'Restart run',
-              icon: Icons.replay_rounded,
               onPressed: () =>
                   Navigator.of(context).pop(JePlacePauseAction.restartRun),
             ),
-          GameOutlineButton(
-            label: 'View rules / Help',
-            icon: Icons.help_outline_rounded,
+          GamePauseMenuAction.rules(
             onPressed: () =>
                 Navigator.of(context).pop(JePlacePauseAction.rules),
           ),
-          GamePauseExitButton(
-            label: 'Exit mission',
-            onPressed: () =>
-                Navigator.of(context).pop(JePlacePauseAction.exit),
+          GamePauseMenuAction.exit(
+            onPressed: () => Navigator.of(context).pop(JePlacePauseAction.exit),
           ),
         ],
       ),

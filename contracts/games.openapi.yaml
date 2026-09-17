@@ -45,6 +45,23 @@ paths:
         '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
         '401': { $ref: './common.openapi.yaml#/components/responses/Unauthorized' }
 
+  /games/progress:
+    get:
+      tags: [Games]
+      summary: Progression du joueur connecté dans le catalogue des jeux
+      description: >
+        Couverture affichée dans le hub (« Coverage n % ») : part des 13 jeux
+        du catalogue terminés au moins une fois. Une partie terminée inclut
+        toutes ses manches ; Memory Quest compte pour deux jeux (chiffres,
+        images). Les jeux encore fermés dans l'application comptent aussi.
+      responses:
+        '200':
+          description: Progression du joueur
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GamesProgress' }
+        '401': { $ref: './common.openapi.yaml#/components/responses/Unauthorized' }
+
   /games/sessions/{sessionId}/results:
     parameters:
       - { name: sessionId, in: path, required: true, schema: { type: string, format: uuid } }
@@ -629,6 +646,27 @@ components:
     bearerAuth: { $ref: './common.openapi.yaml#/components/securitySchemes/bearerAuth' }
 
   schemas:
+    GamesProgress:
+      type: object
+      required: [coveragePercent, completedGames, totalGames, games]
+      properties:
+        coveragePercent: { type: integer, minimum: 0, maximum: 100 }
+        completedGames: { type: integer, minimum: 0 }
+        totalGames: { type: integer, minimum: 1 }
+        games:
+          type: array
+          items:
+            type: object
+            required: [game, completed]
+            properties:
+              game:
+                type: string
+                enum: [MOVE_FAST, CONTINUOUS_ATTENTION, COORDINATION_TRACKING,
+                       MEMORY_QUEST_DIGITS, MEMORY_QUEST_IMAGES, OBJECT_LOCATION,
+                       DECISION, OPTIMAL_PATH, TASK_SCHEDULING, PREDICTIVE_PUZZLE,
+                       EMOTIONAL_RADAR, REFLECTIVE_PAUSE, STRATEGIC_CHOICES]
+              completed: { type: boolean }
+              lastCompletedAt: { type: string, format: date-time, nullable: true }
     AdminStatus:
       type: string
       enum: [DRAFT, PUBLISHED, ARCHIVED]

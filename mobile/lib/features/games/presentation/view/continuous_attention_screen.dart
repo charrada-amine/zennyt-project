@@ -16,7 +16,9 @@ import '../../domain/entities/game_session.dart';
 import '../../domain/entities/game_type.dart';
 import '../../domain/entities/mini_game.dart';
 import '../games_providers.dart';
+import '../widgets/game_results_template.dart';
 import '../widgets/game_system_components.dart';
+import '../widgets/zennyt_loader.dart';
 
 const _navy = Color(0xFF28234F);
 const _indigo = Color(0xFF5146E8);
@@ -487,6 +489,7 @@ class _ContinuousAttentionScreenState
         reflectivePauseIndicators: session.reflectivePauseIndicators,
         continuousAttentionIndicators: result.indicators,
       );
+      SoundService.instance.playScoreboard();
       _stage = _AttentionStage.results;
     });
   }
@@ -552,6 +555,7 @@ class _ContinuousAttentionScreenState
         });
         return;
       }
+      SoundService.instance.playScoreboard();
       setState(() {
         _session = updated;
         _submitting = false;
@@ -788,6 +792,7 @@ class _ContinuousAttentionScreenState
               key: const ValueKey('continuous-results'),
               session: _session!,
               onBack: _back,
+              onReplay: _restartJourney,
               onInsights: () => _setStage(_AttentionStage.insights),
             ),
             _AttentionStage.insights => _InsightsView(
@@ -2061,11 +2066,7 @@ class _LoadingView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(
-              width: 56,
-              height: 56,
-              child: CircularProgressIndicator(color: _indigo, strokeWidth: 5),
-            ),
+            ZennytLoader(semanticsLabel: label),
             const SizedBox(height: 22),
             Text(
               label,
@@ -2083,276 +2084,67 @@ class _LoadingView extends StatelessWidget {
   }
 }
 
+/// Résultats du parcours, présentés avec le modèle commun des jeux
+/// ([GameResultsTemplate]) : une barre par indicateur, un graphique par règle.
 class _ResultsView extends StatelessWidget {
   const _ResultsView({
     super.key,
     required this.session,
     required this.onBack,
+    required this.onReplay,
     required this.onInsights,
   });
 
   final GameSession session;
   final VoidCallback onBack;
+  final VoidCallback onReplay;
   final VoidCallback onInsights;
 
   @override
   Widget build(BuildContext context) {
     final report = session.continuousAttentionIndicators!;
-    final score = report.provisionalAccuracyScore;
-    return Column(
-      children: [
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(22, 18, 22, 18),
-            children: [
-              _TopBar(onBack: onBack, title: 'Journey complete'),
-              const SizedBox(height: 28),
-              Center(
-                child: Container(
-                  width: 154,
-                  height: 154,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [_indigo, Color(0xFF3730B3)],
-                    ),
-                    shape: BoxShape.circle,
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x305146E8),
-                        blurRadius: 24,
-                        offset: Offset(0, 10),
-                      ),
-                    ],
-                    border: Border.all(color: Colors.white, width: 7),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(18),
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            '$score',
-                            key: const ValueKey('continuous-result-score'),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 49,
-                              height: 1,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          const SizedBox(height: 5),
-                          const Text(
-                            '/ 100',
-                            style: TextStyle(
-                              color: Color(0xFFE4E2FF),
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'Provisional accuracy',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: _navy,
-                  fontSize: 25,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'A descriptive summary of response accuracy across both focus rules.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: _muted, fontSize: 14, height: 1.4),
-              ),
-              const SizedBox(height: 26),
-              _PhaseResultCard(
-                label: 'Single-letter rule',
-                rule: 'X',
-                color: _cyan,
-                indicators: report.xPhase,
-              ),
-              const SizedBox(height: 14),
-              _PhaseResultCard(
-                label: 'Sequence rule',
-                rule: 'A → X',
-                color: _magenta,
-                indicators: report.axPhase,
-              ),
-              const SizedBox(height: 18),
-              Row(
-                children: [
-                  Expanded(
-                    child: ResultStatTile(
-                      label: 'Extra taps',
-                      value: '${report.extraResponseCount}',
-                      valueColor: _indigo,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ResultStatTile(
-                      label: 'Timing flags',
-                      value: '${report.timingDeviationCount}',
-                      valueColor: report.timingDeviationCount == 0
-                          ? _cyan
-                          : _magenta,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 18),
-              const _ResultDisclaimer(),
-            ],
-          ),
+    final score = session.lastAttempt?.score;
+    return GameResultsTemplate(
+      onBack: onBack,
+      gameName: 'Je continue',
+      scoreLabel: 'Provisional accuracy',
+      scorePercent: report.provisionalAccuracyScore,
+      points: score?.rawPoints ?? report.provisionalAccuracyScore,
+      maxPoints: score?.maxPoints ?? 100,
+      scoreKey: const ValueKey('continuous-result-score'),
+      stats: [
+        GameResultStat(
+          label: 'Rule X',
+          value: '${report.xPhase.balancedAccuracyPercent.round()}%',
+          color: _cyan,
         ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(22, 8, 22, 18),
-          child: GamePrimaryButton(
-            label: 'View descriptive insights',
-            onPressed: onInsights,
-          ),
+        GameResultStat(
+          label: 'Rule A → X',
+          value: '${report.axPhase.balancedAccuracyPercent.round()}%',
+          color: _magenta,
+        ),
+        GameResultStat(
+          label: 'Extra taps',
+          value: '${report.extraResponseCount}',
+          color: _indigo,
         ),
       ],
+      insight:
+          'Rule X: ${_phaseSummary(report.xPhase)} '
+          'Rule A → X: ${_phaseSummary(report.axPhase)} '
+          'Timing flags: ${report.timingDeviationCount}.',
+      notice: const _ResultDisclaimer(),
+      primaryLabel: 'Replay',
+      onPrimary: onReplay,
+      secondaryLabel: 'Insights',
+      onSecondary: onInsights,
     );
   }
-}
 
-class _PhaseResultCard extends StatelessWidget {
-  const _PhaseResultCard({
-    required this.label,
-    required this.rule,
-    required this.color,
-    required this.indicators,
-  });
-
-  final String label;
-  final String rule;
-  final Color color;
-  final ContinuousAttentionPhaseIndicators indicators;
-
-  @override
-  Widget build(BuildContext context) {
-    return GamePanel(
-      padding: const EdgeInsets.all(18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 7,
-                ),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: .10),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  rule,
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  label,
-                  style: const TextStyle(
-                    color: _navy,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-              Text(
-                '${indicators.balancedAccuracyPercent.toStringAsFixed(0)}%',
-                style: TextStyle(
-                  color: color,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          _MetricLine(
-            label: 'Target responses',
-            value: '${indicators.hitRatePercent.toStringAsFixed(1)}%',
-            color: color,
-          ),
-          const SizedBox(height: 12),
-          _MetricLine(
-            label: 'Non-target control',
-            value:
-                '${indicators.correctRejectionRatePercent.toStringAsFixed(1)}%',
-            color: _indigo,
-          ),
-          const SizedBox(height: 12),
-          _MetricLine(
-            label: 'Average response time',
-            value: indicators.averageHitReactionTimeMs == null
-                ? '—'
-                : '${indicators.averageHitReactionTimeMs!.round()} ms',
-            color: _navy,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MetricLine extends StatelessWidget {
-  const _MetricLine({
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-
-  final String label;
-  final String value;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            label,
-            style: const TextStyle(
-              color: _muted,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-        Text(
-          value,
-          style: TextStyle(
-            color: color,
-            fontSize: 14,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-      ],
-    );
-  }
+  static String _phaseSummary(ContinuousAttentionPhaseIndicators phase) =>
+      'targets ${phase.hitRatePercent.toStringAsFixed(1)}%, '
+      'non-target control ${phase.correctRejectionRatePercent.toStringAsFixed(1)}%'
+      '${phase.averageHitReactionTimeMs == null ? '' : ', ${phase.averageHitReactionTimeMs!.round()} ms'}.';
 }
 
 class _ResultDisclaimer extends StatelessWidget {

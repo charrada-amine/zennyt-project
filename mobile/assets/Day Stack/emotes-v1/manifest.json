@@ -1,0 +1,1418 @@
+{
+  "version": 1,
+  "date": "2026-09-16",
+  "generator": "built-in image_gen",
+  "status": "complete, technically validated, not integrated in Flutter",
+  "referenceAssets": [
+    "mobile/assets/games icons/Task Scheduling transparent.png",
+    "mobile/assets/images/Logo.png",
+    "mobile/assets/J’investigue/MemoryObject/Camera.png"
+  ],
+  "taskCount": 82,
+  "emotes": [
+    {
+      "universeId": "restaurant",
+      "universeName": "Restaurant / Cuisine professionnelle",
+      "taskId": "reception_livraison",
+      "label": "Réceptionner la livraison de produits frais",
+      "variants": [
+        "Réceptionner la livraison de produits frais",
+        "Réceptionner la commande de poissons frais",
+        "Contrôler et réceptionner les caisses de fruits et légumes",
+        "Réceptionner la livraison de viandes du boucher"
+      ],
+      "category": "Réception & transport",
+      "categoryAccent": "#0F6E8C",
+      "file": "restaurant/reception_livraison.png",
+      "subject": "compact refrigerated delivery truck with its rear open and a fresh-food crate, receiving supplies, no motion lines",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Task: Réceptionner la livraison de produits frais. Subject: one compact front three-quarter delivery truck, with a single small fresh-food crate at its rear showing one leafy sprig; conveys receiving fresh supplies, not driving away. Style: refined playful rounded 2.5D illustrated object, simple clean broad shapes, shallow extrusion and subtle soft shading, consistent with a mobile game logo featuring a rounded magenta clock, white hands and navy side shadows. No emoji faces, no people, no character mascot. Palette: off-white #F6F8FF main body, navy #26224D outlines and shallow side surfaces, royal violet #4E46E8, magenta #D12E7D; transport accent teal #0F6E8C. A clean off-white contour ensures visibility on violet #675DE6 task cards. Layout: exactly one emote centered in a square canvas, the grouped silhouette occupies about 75% canvas with generous transparent margin; all parts within bounds. Front three-quarter orientation, orthographic, no ground plane. Very legible as a 32–48px thumbnail, thick simple silhouette, at most two grouped objects, minimal fine details. NO background color, NO square tile, NO circle badge, NO text, NO letters, NO numbers, NO watermark, NO checkerboard drawn into image, NO big cast shadow. Task identity must be visually explicit. Generate only this single emote, not a collection or sprite sheet."
+    },
+    {
+      "universeId": "restaurant",
+      "universeName": "Restaurant / Cuisine professionnelle",
+      "taskId": "inventaire_stock",
+      "label": "Faire l'inventaire du stock",
+      "variants": [
+        "Faire l'inventaire du stock",
+        "Vérifier les stocks de la chambre froide",
+        "Contrôler les stocks d'épicerie sèche",
+        "Faire le point sur les stocks de la cave"
+      ],
+      "category": "Stock & contrôle",
+      "categoryAccent": "#1F6F4A",
+      "file": "restaurant/inventaire_stock.png",
+      "subject": "clipboard with three broad check marks leaning against a small food crate, stock inventory",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Faire l'inventaire du stock. Subject: clipboard with three broad check marks leaning against a small food crate, stock inventory. Category accent: #1F6F4A."
+    },
+    {
+      "universeId": "restaurant",
+      "universeName": "Restaurant / Cuisine professionnelle",
+      "taskId": "achat_marche",
+      "label": "Acheter les ingrédients manquants au marché",
+      "variants": [
+        "Acheter les ingrédients manquants au marché",
+        "Compléter les achats chez le grossiste",
+        "Faire un saut au marché pour les herbes fraîches",
+        "Acheter les produits manquants chez le primeur"
+      ],
+      "category": "Achats & commandes",
+      "categoryAccent": "#7A3FBF",
+      "file": "restaurant/achat_marche.png",
+      "subject": "shopping basket with one leafy vegetable and a magenta shopping handle, buying missing ingredients",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Acheter les ingrédients manquants au marché. Subject: shopping basket with one leafy vegetable and a magenta shopping handle, buying missing ingredients. Category accent: #7A3FBF."
+    },
+    {
+      "universeId": "restaurant",
+      "universeName": "Restaurant / Cuisine professionnelle",
+      "taskId": "nettoyage_poste",
+      "label": "Nettoyer et préparer le poste de travail",
+      "variants": [
+        "Nettoyer et préparer le poste de travail",
+        "Désinfecter les plans de travail",
+        "Ranger et organiser la cuisine",
+        "Aiguiser et disposer les couteaux de travail"
+      ],
+      "category": "Production & réalisation",
+      "categoryAccent": "#2A4FB8",
+      "file": "restaurant/nettoyage_poste.png",
+      "subject": "spray-cleaner bottle and folded cleaning cloth, cleaning the work station",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Nettoyer et préparer le poste de travail. Subject: spray-cleaner bottle and folded cleaning cloth, cleaning the work station. Category accent: #2A4FB8."
+    },
+    {
+      "universeId": "restaurant",
+      "universeName": "Restaurant / Cuisine professionnelle",
+      "taskId": "decoupe_legumes",
+      "label": "Éplucher et découper les légumes",
+      "variants": [
+        "Éplucher et découper les légumes",
+        "Tailler les légumes pour la garniture",
+        "Préparer la brunoise de légumes",
+        "Éplucher et émincer les légumes racines"
+      ],
+      "category": "Production & réalisation",
+      "categoryAccent": "#2A4FB8",
+      "file": "restaurant/decoupe_legumes.png",
+      "subject": "one kitchen knife above a board with two chunky sliced vegetable pieces, cutting vegetables",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Éplucher et découper les légumes. Subject: one kitchen knife above a board with two chunky sliced vegetable pieces, cutting vegetables. Category accent: #2A4FB8."
+    },
+    {
+      "universeId": "restaurant",
+      "universeName": "Restaurant / Cuisine professionnelle",
+      "taskId": "sauces_bases",
+      "label": "Préparer les sauces et bases",
+      "variants": [
+        "Préparer les sauces et bases",
+        "Confectionner le fond de veau",
+        "Monter la sauce béarnaise",
+        "Préparer le jus de cuisson et les fonds"
+      ],
+      "category": "Production & réalisation",
+      "categoryAccent": "#2A4FB8",
+      "file": "restaurant/sauces_bases.png",
+      "subject": "one round saucepan with a ladle and a magenta sauce surface, making basic sauces",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Préparer les sauces et bases. Subject: one round saucepan with a ladle and a magenta sauce surface, making basic sauces. Category accent: #2A4FB8."
+    },
+    {
+      "universeId": "restaurant",
+      "universeName": "Restaurant / Cuisine professionnelle",
+      "taskId": "marinade",
+      "label": "Mariner viandes / poissons",
+      "variants": [
+        "Mariner viandes / poissons",
+        "Faire mariner le poulet aux épices",
+        "Laisser mariner le poisson au citron et aux herbes",
+        "Mariner le magret de canard"
+      ],
+      "category": "Production & réalisation",
+      "categoryAccent": "#2A4FB8",
+      "file": "restaurant/marinade.png",
+      "subject": "one shallow bowl holding a simple food portion in sauce with a short waiting arc, marinating before cooking",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Mariner viandes / poissons. Subject: one shallow bowl holding a simple food portion in sauce with a short waiting arc, marinating before cooking. Category accent: #2A4FB8."
+    },
+    {
+      "universeId": "restaurant",
+      "universeName": "Restaurant / Cuisine professionnelle",
+      "taskId": "mise_en_place",
+      "label": "Dresser la mise en place",
+      "variants": [
+        "Dresser la mise en place",
+        "Organiser les ingrédients avant service",
+        "Préparer les stations de dressage",
+        "Mettre en place les postes chaud et froid"
+      ],
+      "category": "Production & réalisation",
+      "categoryAccent": "#2A4FB8",
+      "file": "restaurant/mise_en_place.png",
+      "subject": "one tray neatly divided into three ingredient compartments, organized mise en place",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Dresser la mise en place. Subject: one tray neatly divided into three ingredient compartments, organized mise en place. Category accent: #2A4FB8."
+    },
+    {
+      "universeId": "restaurant",
+      "universeName": "Restaurant / Cuisine professionnelle",
+      "taskId": "cuisson",
+      "label": "Cuire les plats",
+      "variants": [
+        "Cuire les plats",
+        "Cuire les viandes à point",
+        "Cuire les poissons vapeur",
+        "Cuire les plats mijotés du jour"
+      ],
+      "category": "Production & réalisation",
+      "categoryAccent": "#2A4FB8",
+      "file": "restaurant/cuisson.png",
+      "subject": "one frying pan over a compact visible flame, cooking",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Cuire les plats. Subject: one frying pan over a compact visible flame, cooking. Category accent: #2A4FB8."
+    },
+    {
+      "universeId": "restaurant",
+      "universeName": "Restaurant / Cuisine professionnelle",
+      "taskId": "dressage_assiettes",
+      "label": "Dresser les assiettes",
+      "variants": [
+        "Dresser les assiettes",
+        "Finaliser la présentation des plats",
+        "Ajouter les touches de finition",
+        "Dresser les assiettes et napper les sauces"
+      ],
+      "category": "Production & réalisation",
+      "categoryAccent": "#2A4FB8",
+      "file": "restaurant/dressage_assiettes.png",
+      "subject": "one chef hat behind a plate with a neatly arranged food portion, plating a dish",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Dresser les assiettes. Subject: one chef hat behind a plate with a neatly arranged food portion, plating a dish. Category accent: #2A4FB8."
+    },
+    {
+      "universeId": "restaurant",
+      "universeName": "Restaurant / Cuisine professionnelle",
+      "taskId": "briefing_salle",
+      "label": "Briefer l'équipe de salle",
+      "variants": [
+        "Briefer l'équipe de salle",
+        "Faire le point avec les serveurs",
+        "Annoncer le menu du jour à l'équipe",
+        "Présenter les plats du jour aux serveurs"
+      ],
+      "category": "Communication & coordination",
+      "categoryAccent": "#B03070",
+      "file": "restaurant/briefing_salle.png",
+      "subject": "one chef hat with two simple overlapping speech bubbles, briefing the dining-room team",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Briefer l'équipe de salle. Subject: one chef hat with two simple overlapping speech bubbles, briefing the dining-room team. Category accent: #B03070."
+    },
+    {
+      "universeId": "restaurant",
+      "universeName": "Restaurant / Cuisine professionnelle",
+      "taskId": "service",
+      "label": "Servir le service de midi",
+      "variants": [
+        "Servir le service de midi",
+        "Assurer le coup de feu du déjeuner",
+        "Gérer le service en salle",
+        "Assurer le service du midi complet"
+      ],
+      "category": "Communication & coordination",
+      "categoryAccent": "#B03070",
+      "file": "restaurant/service.png",
+      "subject": "one serving cloche on a plate and a small service bell, beginning restaurant service",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Servir le service de midi. Subject: one serving cloche on a plate and a small service bell, beginning restaurant service. Category accent: #B03070."
+    },
+    {
+      "universeId": "gestion",
+      "universeName": "Gestion de projet / Bureau",
+      "taskId": "tri_emails",
+      "label": "Trier et consulter les emails",
+      "variants": [
+        "Trier et consulter les emails",
+        "Faire le tri de la boîte mail du matin",
+        "Consulter et classer les messages reçus",
+        "Trier les emails et identifier les priorités"
+      ],
+      "category": "Communication & coordination",
+      "categoryAccent": "#B03070",
+      "file": "gestion/tri_emails.png",
+      "subject": "one open inbox tray holding three envelopes sorted into separate slots, sorting email",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Trier et consulter les emails. Subject: one open inbox tray holding three envelopes sorted into separate slots, sorting email. Category accent: #B03070."
+    },
+    {
+      "universeId": "gestion",
+      "universeName": "Gestion de projet / Bureau",
+      "taskId": "reponse_urgents",
+      "label": "Répondre aux emails urgents",
+      "variants": [
+        "Répondre aux emails urgents",
+        "Répondre aux demandes prioritaires du matin",
+        "Traiter les emails signalés urgents",
+        "Répondre aux clients en attente de réponse"
+      ],
+      "category": "Communication & coordination",
+      "categoryAccent": "#B03070",
+      "file": "gestion/reponse_urgents.png",
+      "subject": "one envelope with a single prominent lightning bolt, responding to urgent messages",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Répondre aux emails urgents. Subject: one envelope with a single prominent lightning bolt, responding to urgent messages. Category accent: #B03070."
+    },
+    {
+      "universeId": "gestion",
+      "universeName": "Gestion de projet / Bureau",
+      "taskId": "prep_ordre_jour",
+      "label": "Préparer l'ordre du jour de la réunion",
+      "variants": [
+        "Préparer l'ordre du jour de la réunion",
+        "Rédiger l'ordre du jour de la réunion d'équipe",
+        "Préparer les points à aborder en réunion",
+        "Lister les sujets prioritaires de la réunion"
+      ],
+      "category": "Documents & rapports",
+      "categoryAccent": "#4A5468",
+      "file": "gestion/prep_ordre_jour.png",
+      "subject": "one clipboard with three short horizontal agenda lines and a small meeting bubble, preparing meeting agenda",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Préparer l'ordre du jour de la réunion. Subject: one clipboard with three short horizontal agenda lines and a small meeting bubble, preparing meeting agenda. Category accent: #4A5468."
+    },
+    {
+      "universeId": "gestion",
+      "universeName": "Gestion de projet / Bureau",
+      "taskId": "reunion_equipe",
+      "label": "Réunion d'équipe hebdomadaire",
+      "variants": [
+        "Réunion d'équipe hebdomadaire",
+        "Animer la réunion d'équipe",
+        "Participer à la réunion de suivi de projet",
+        "Réunion de point d'avancement hebdomadaire"
+      ],
+      "category": "Communication & coordination",
+      "categoryAccent": "#B03070",
+      "file": "gestion/reunion_equipe.png",
+      "subject": "three simple abstract navy and magenta colleague busts around a small round table, team meeting, no faces",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Réunion d'équipe hebdomadaire. Subject: three simple abstract navy and magenta colleague busts around a small round table, team meeting, no faces. Category accent: #B03070."
+    },
+    {
+      "universeId": "gestion",
+      "universeName": "Gestion de projet / Bureau",
+      "taskId": "recup_donnees",
+      "label": "Récupérer les données comptables",
+      "variants": [
+        "Récupérer les données comptables",
+        "Récupérer les chiffres auprès du service finance",
+        "Obtenir les données de vente du mois",
+        "Récupérer les indicateurs auprès du service compta"
+      ],
+      "category": "Stock & contrôle",
+      "categoryAccent": "#1F6F4A",
+      "file": "gestion/recup_donnees.png",
+      "subject": "one database cylinder with a single inward retrieval arrow, collecting project data",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Récupérer les données comptables. Subject: one database cylinder with a single inward retrieval arrow, collecting project data. Category accent: #1F6F4A."
+    },
+    {
+      "universeId": "gestion",
+      "universeName": "Gestion de projet / Bureau",
+      "taskId": "analyse_donnees",
+      "label": "Analyser les données collectées",
+      "variants": [
+        "Analyser les données collectées",
+        "Analyser les chiffres du trimestre",
+        "Traiter et interpréter les données reçues",
+        "Analyser les indicateurs de performance"
+      ],
+      "category": "Stock & contrôle",
+      "categoryAccent": "#1F6F4A",
+      "file": "gestion/analyse_donnees.png",
+      "subject": "one report with a chunky three-column bar chart and a magnifying glass, analyzing data",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Analyser les données collectées. Subject: one report with a chunky three-column bar chart and a magnifying glass, analyzing data. Category accent: #1F6F4A."
+    },
+    {
+      "universeId": "gestion",
+      "universeName": "Gestion de projet / Bureau",
+      "taskId": "pause_dejeuner",
+      "label": "Pause déjeuner",
+      "variants": [
+        "Pause déjeuner",
+        "Pause déjeuner avec un collègue",
+        "Pause déjeuner à la cantine",
+        "Pause déjeuner rapide au bureau"
+      ],
+      "category": "Repas & pause",
+      "categoryAccent": "#B4651A",
+      "file": "gestion/pause_dejeuner.png",
+      "subject": "one coffee mug next to a simple sandwich triangle, lunch break",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Pause déjeuner. Subject: one coffee mug next to a simple sandwich triangle, lunch break. Category accent: #B4651A."
+    },
+    {
+      "universeId": "gestion",
+      "universeName": "Gestion de projet / Bureau",
+      "taskId": "redaction_rapport",
+      "label": "Rédiger la première version du rapport",
+      "variants": [
+        "Rédiger la première version du rapport",
+        "Rédiger le rapport d'activité",
+        "Rédiger la synthèse du projet",
+        "Rédiger le compte-rendu détaillé"
+      ],
+      "category": "Documents & rapports",
+      "categoryAccent": "#4A5468",
+      "file": "gestion/redaction_rapport.png",
+      "subject": "one clean report page with a chunky pen resting diagonally, writing a report",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Rédiger la première version du rapport. Subject: one clean report page with a chunky pen resting diagonally, writing a report. Category accent: #4A5468."
+    },
+    {
+      "universeId": "gestion",
+      "universeName": "Gestion de projet / Bureau",
+      "taskId": "relecture_rapport",
+      "label": "Relire et corriger le rapport",
+      "variants": [
+        "Relire et corriger le rapport",
+        "Vérifier et corriger le document final",
+        "Relire le rapport avant envoi",
+        "Corriger les fautes et incohérences du rapport"
+      ],
+      "category": "Documents & rapports",
+      "categoryAccent": "#4A5468",
+      "file": "gestion/relecture_rapport.png",
+      "subject": "one report page under a large magnifying glass, proofreading a report",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Relire et corriger le rapport. Subject: one report page under a large magnifying glass, proofreading a report. Category accent: #4A5468."
+    },
+    {
+      "universeId": "gestion",
+      "universeName": "Gestion de projet / Bureau",
+      "taskId": "demande_validation",
+      "label": "Demander la validation au responsable",
+      "variants": [
+        "Demander la validation au responsable",
+        "Soumettre le rapport à la direction",
+        "Obtenir l'accord du manager",
+        "Demander la validation à la hiérarchie"
+      ],
+      "category": "Communication & coordination",
+      "categoryAccent": "#B03070",
+      "file": "gestion/demande_validation.png",
+      "subject": "one report page with an outward send arrow and a small approval check circle, requesting validation",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Demander la validation au responsable. Subject: one report page with an outward send arrow and a small approval check circle, requesting validation. Category accent: #B03070."
+    },
+    {
+      "universeId": "gestion",
+      "universeName": "Gestion de projet / Bureau",
+      "taskId": "integration_retours",
+      "label": "Intégrer les retours de validation",
+      "variants": [
+        "Intégrer les retours de validation",
+        "Appliquer les corrections demandées",
+        "Intégrer les remarques du responsable",
+        "Mettre à jour le rapport selon les retours"
+      ],
+      "category": "Documents & rapports",
+      "categoryAccent": "#4A5468",
+      "file": "gestion/integration_retours.png",
+      "subject": "one report page with an incoming curved feedback arrow and a chunky editing pencil, integrating feedback",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Intégrer les retours de validation. Subject: one report page with an incoming curved feedback arrow and a chunky editing pencil, integrating feedback. Category accent: #4A5468."
+    },
+    {
+      "universeId": "gestion",
+      "universeName": "Gestion de projet / Bureau",
+      "taskId": "envoi_final",
+      "label": "Envoyer le dossier final au client",
+      "variants": [
+        "Envoyer le dossier final au client",
+        "Transmettre le rapport final au client",
+        "Envoyer le dossier finalisé au client par email",
+        "Envoyer le livrable final avant deadline"
+      ],
+      "category": "Documents & rapports",
+      "categoryAccent": "#4A5468",
+      "file": "gestion/envoi_final.png",
+      "subject": "one final document in front of a closed envelope with a large outward arrow, sending the completed report",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Envoyer le dossier final au client. Subject: one final document in front of a closed envelope with a large outward arrow, sending the completed report. Category accent: #4A5468."
+    },
+    {
+      "universeId": "organisation",
+      "universeName": "Organisation d'un événement",
+      "taskId": "budget_theme",
+      "label": "Définir le budget et le thème",
+      "variants": [
+        "Définir le budget et le thème",
+        "Fixer le budget et choisir le thème de la soirée",
+        "Définir l'enveloppe budgétaire et l'ambiance de l'événement",
+        "Choisir le thème et cadrer le budget global"
+      ],
+      "category": "Achats & commandes",
+      "categoryAccent": "#7A3FBF",
+      "file": "organisation/budget_theme.png",
+      "subject": "one simple event-planning notebook with a coin and a single festive ribbon corner, defining budget and theme",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Définir le budget et le thème. Subject: one simple event-planning notebook with a coin and a single festive ribbon corner, defining budget and theme. Category accent: #7A3FBF."
+    },
+    {
+      "universeId": "organisation",
+      "universeName": "Organisation d'un événement",
+      "taskId": "reservation_salle",
+      "label": "Réserver la salle",
+      "variants": [
+        "Réserver la salle",
+        "Réserver la salle des fêtes",
+        "Confirmer la réservation du lieu de réception",
+        "Réserver l'espace pour l'événement"
+      ],
+      "category": "Achats & commandes",
+      "categoryAccent": "#7A3FBF",
+      "file": "organisation/reservation_salle.png",
+      "subject": "one small event venue building with a magenta booked check tab, booking the hall",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Réserver la salle. Subject: one small event venue building with a magenta booked check tab, booking the hall. Category accent: #7A3FBF."
+    },
+    {
+      "universeId": "organisation",
+      "universeName": "Organisation d'un événement",
+      "taskId": "choix_traiteur",
+      "label": "Choisir un prestataire traiteur",
+      "variants": [
+        "Choisir un prestataire traiteur",
+        "Sélectionner le traiteur pour le buffet",
+        "Comparer et choisir un prestataire traiteur",
+        "Valider le choix du traiteur"
+      ],
+      "category": "Achats & commandes",
+      "categoryAccent": "#7A3FBF",
+      "file": "organisation/choix_traiteur.png",
+      "subject": "one serving cloche flanked by a simple fork and a selection check, choosing a caterer",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Choisir un prestataire traiteur. Subject: one serving cloche flanked by a simple fork and a selection check, choosing a caterer. Category accent: #7A3FBF."
+    },
+    {
+      "universeId": "organisation",
+      "universeName": "Organisation d'un événement",
+      "taskId": "commande_materiel",
+      "label": "Commander le matériel (chaises, son, déco)",
+      "variants": [
+        "Commander le matériel (chaises, son, déco)",
+        "Commander le matériel de sonorisation et l'éclairage",
+        "Passer commande des chaises et tables",
+        "Commander la décoration et le matériel technique"
+      ],
+      "category": "Achats & commandes",
+      "categoryAccent": "#7A3FBF",
+      "file": "organisation/commande_materiel.png",
+      "subject": "one shopping basket containing a small speaker and a decoration spool, ordering event materials",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Commander le matériel (chaises, son, déco). Subject: one shopping basket containing a small speaker and a decoration spool, ordering event materials. Category accent: #7A3FBF."
+    },
+    {
+      "universeId": "organisation",
+      "universeName": "Organisation d'un événement",
+      "taskId": "liste_invites",
+      "label": "Préparer la liste des invités",
+      "variants": [
+        "Préparer la liste des invités",
+        "Établir la liste définitive des invités",
+        "Constituer la liste des participants",
+        "Finaliser la liste des invités"
+      ],
+      "category": "Documents & rapports",
+      "categoryAccent": "#4A5468",
+      "file": "organisation/liste_invites.png",
+      "subject": "one clipboard with three clear abstract guest bust symbols aligned vertically, guest list",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Préparer la liste des invités. Subject: one clipboard with three clear abstract guest bust symbols aligned vertically, guest list. Category accent: #4A5468."
+    },
+    {
+      "universeId": "organisation",
+      "universeName": "Organisation d'un événement",
+      "taskId": "envoi_invitations",
+      "label": "Préparer et envoyer les invitations",
+      "variants": [
+        "Préparer et envoyer les invitations",
+        "Envoyer les invitations par email",
+        "Concevoir et diffuser les invitations",
+        "Envoyer les cartons d'invitation"
+      ],
+      "category": "Communication & coordination",
+      "categoryAccent": "#B03070",
+      "file": "organisation/envoi_invitations.png",
+      "subject": "one invitation envelope with a magenta ribbon seal and a short outward send arrow, sending invitations",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Préparer et envoyer les invitations. Subject: one invitation envelope with a magenta ribbon seal and a short outward send arrow, sending invitations. Category accent: #B03070."
+    },
+    {
+      "universeId": "organisation",
+      "universeName": "Organisation d'un événement",
+      "taskId": "reception_materiel",
+      "label": "Réceptionner la livraison du matériel",
+      "variants": [
+        "Réceptionner la livraison du matériel",
+        "Réceptionner la livraison de la sonorisation",
+        "Contrôler la livraison des chaises et tables",
+        "Réceptionner le matériel de décoration"
+      ],
+      "category": "Réception & transport",
+      "categoryAccent": "#0F6E8C",
+      "file": "organisation/reception_materiel.png",
+      "subject": "one delivery truck with a small event-material crate containing a speaker silhouette, receiving event equipment, parked",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Réceptionner la livraison du matériel. Subject: one delivery truck with a small event-material crate containing a speaker silhouette, receiving event equipment, parked. Category accent: #0F6E8C."
+    },
+    {
+      "universeId": "organisation",
+      "universeName": "Organisation d'un événement",
+      "taskId": "installation_deco",
+      "label": "Installer décoration et signalétique",
+      "variants": [
+        "Installer décoration et signalétique",
+        "Installer la décoration de la salle",
+        "Mettre en place la signalétique et les tables",
+        "Décorer la salle selon le thème choisi"
+      ],
+      "category": "Production & réalisation",
+      "categoryAccent": "#2A4FB8",
+      "file": "organisation/installation_deco.png",
+      "subject": "one short festive bunting strand above a simple star decoration, installing event decorations",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Installer décoration et signalétique. Subject: one short festive bunting strand above a simple star decoration, installing event decorations. Category accent: #2A4FB8."
+    },
+    {
+      "universeId": "organisation",
+      "universeName": "Organisation d'un événement",
+      "taskId": "test_sono",
+      "label": "Tester sonorisation et éclairage",
+      "variants": [
+        "Tester sonorisation et éclairage",
+        "Faire les essais son et lumière",
+        "Vérifier le bon fonctionnement de la sono",
+        "Tester la playlist et les enceintes"
+      ],
+      "category": "Production & réalisation",
+      "categoryAccent": "#2A4FB8",
+      "file": "organisation/test_sono.png",
+      "subject": "one rounded loudspeaker with two short sound arcs and a small check mark, testing the sound system",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Tester sonorisation et éclairage. Subject: one rounded loudspeaker with two short sound arcs and a small check mark, testing the sound system. Category accent: #2A4FB8."
+    },
+    {
+      "universeId": "organisation",
+      "universeName": "Organisation d'un événement",
+      "taskId": "briefing_accueil",
+      "label": "Briefer l'équipe d'accueil",
+      "variants": [
+        "Briefer l'équipe d'accueil",
+        "Faire un point avec l'équipe d'accueil",
+        "Donner les consignes à l'équipe bénévole",
+        "Briefer les hôtes et hôtesses"
+      ],
+      "category": "Communication & coordination",
+      "categoryAccent": "#B03070",
+      "file": "organisation/briefing_accueil.png",
+      "subject": "one reception desk with two overlapping speech bubbles, briefing the welcome team",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Briefer l'équipe d'accueil. Subject: one reception desk with two overlapping speech bubbles, briefing the welcome team. Category accent: #B03070."
+    },
+    {
+      "universeId": "organisation",
+      "universeName": "Organisation d'un événement",
+      "taskId": "verif_buffet",
+      "label": "Vérifier le buffet à son arrivée",
+      "variants": [
+        "Vérifier le buffet à son arrivée",
+        "Contrôler la livraison du buffet",
+        "Vérifier la mise en place du buffet",
+        "Contrôler la qualité et la quantité du buffet"
+      ],
+      "category": "Stock & contrôle",
+      "categoryAccent": "#1F6F4A",
+      "file": "organisation/verif_buffet.png",
+      "subject": "one buffet serving tray with a compact checklist check, checking buffet delivery",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Vérifier le buffet à son arrivée. Subject: one buffet serving tray with a compact checklist check, checking buffet delivery. Category accent: #1F6F4A."
+    },
+    {
+      "universeId": "organisation",
+      "universeName": "Organisation d'un événement",
+      "taskId": "accueil_invites",
+      "label": "Accueillir les invités",
+      "variants": [
+        "Accueillir les invités",
+        "Accueillir les premiers invités",
+        "Ouvrir les portes et accueillir le public",
+        "Accueillir et orienter les invités"
+      ],
+      "category": "Communication & coordination",
+      "categoryAccent": "#B03070",
+      "file": "organisation/accueil_invites.png",
+      "subject": "one open welcoming door with two simple abstract guest busts entering and a small magenta heart, welcoming guests, no faces",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Accueillir les invités. Subject: one open welcoming door with two simple abstract guest busts entering and a small magenta heart, welcoming guests, no faces. Category accent: #B03070."
+    },
+    {
+      "universeId": "chantier",
+      "universeName": "Chantier de construction",
+      "taskId": "etude_plans",
+      "label": "Étudier les plans et le permis de construire",
+      "variants": [
+        "Étudier les plans et le permis de construire",
+        "Vérifier les plans architecte et le permis",
+        "Étudier le dossier technique du chantier",
+        "Analyser les plans avant le début des travaux"
+      ],
+      "category": "Documents & rapports",
+      "categoryAccent": "#4A5468",
+      "file": "chantier/etude_plans.png",
+      "subject": "one partly rolled architectural blueprint with a chunky ruler across its lower edge, studying construction plans",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Étudier les plans et le permis de construire. Subject: one partly rolled architectural blueprint with a chunky ruler across its lower edge, studying construction plans. Category accent: #4A5468."
+    },
+    {
+      "universeId": "chantier",
+      "universeName": "Chantier de construction",
+      "taskId": "securisation_terrain",
+      "label": "Sécuriser et clôturer le terrain",
+      "variants": [
+        "Sécuriser et clôturer le terrain",
+        "Mettre en place la clôture de chantier",
+        "Sécuriser le périmètre du chantier",
+        "Installer les barrières de sécurité"
+      ],
+      "category": "Santé & sécurité",
+      "categoryAccent": "#D4353F",
+      "file": "chantier/securisation_terrain.png",
+      "subject": "one construction safety cone with a compact shield and check, securing the work site",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Sécuriser et clôturer le terrain. Subject: one construction safety cone with a compact shield and check, securing the work site. Category accent: #D4353F."
+    },
+    {
+      "universeId": "chantier",
+      "universeName": "Chantier de construction",
+      "taskId": "commande_materiaux",
+      "label": "Commander les matériaux",
+      "variants": [
+        "Commander les matériaux",
+        "Passer commande du béton et des matériaux",
+        "Commander les matériaux de construction",
+        "Commander le ciment, sable et gravier"
+      ],
+      "category": "Achats & commandes",
+      "categoryAccent": "#7A3FBF",
+      "file": "chantier/commande_materiaux.png",
+      "subject": "one shopping trolley carrying two chunky bricks and a short plank, ordering construction materials",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Commander les matériaux. Subject: one shopping trolley carrying two chunky bricks and a short plank, ordering construction materials. Category accent: #7A3FBF."
+    },
+    {
+      "universeId": "chantier",
+      "universeName": "Chantier de construction",
+      "taskId": "reception_materiaux",
+      "label": "Réceptionner la livraison des matériaux",
+      "variants": [
+        "Réceptionner la livraison des matériaux",
+        "Contrôler la livraison du béton",
+        "Réceptionner et vérifier les matériaux livrés",
+        "Réceptionner la livraison de parpaings"
+      ],
+      "category": "Réception & transport",
+      "categoryAccent": "#0F6E8C",
+      "file": "chantier/reception_materiaux.png",
+      "subject": "one parked flatbed truck carrying a neat brick stack, receiving construction materials",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Réceptionner la livraison des matériaux. Subject: one parked flatbed truck carrying a neat brick stack, receiving construction materials. Category accent: #0F6E8C."
+    },
+    {
+      "universeId": "chantier",
+      "universeName": "Chantier de construction",
+      "taskId": "coulage_fondations",
+      "label": "Couler les fondations",
+      "variants": [
+        "Couler les fondations",
+        "Couler le béton des fondations",
+        "Réaliser le coulage des fondations",
+        "Couler la dalle de fondation"
+      ],
+      "category": "Production & réalisation",
+      "categoryAccent": "#2A4FB8",
+      "file": "chantier/coulage_fondations.png",
+      "subject": "one small foundation frame being filled by a tipped concrete bucket, pouring foundations",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Couler les fondations. Subject: one small foundation frame being filled by a tipped concrete bucket, pouring foundations. Category accent: #2A4FB8."
+    },
+    {
+      "universeId": "chantier",
+      "universeName": "Chantier de construction",
+      "taskId": "sechage_beton",
+      "label": "Temps de séchage du béton",
+      "variants": [
+        "Temps de séchage du béton",
+        "Laisser sécher le béton des fondations",
+        "Temps de prise du béton",
+        "Attendre le durcissement du béton"
+      ],
+      "category": "Production & réalisation",
+      "categoryAccent": "#2A4FB8",
+      "file": "chantier/sechage_beton.png",
+      "subject": "one smooth concrete slab with a simple hourglass, waiting for concrete to dry",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Temps de séchage du béton. Subject: one smooth concrete slab with a simple hourglass, waiting for concrete to dry. Category accent: #2A4FB8."
+    },
+    {
+      "universeId": "chantier",
+      "universeName": "Chantier de construction",
+      "taskId": "montage_structure",
+      "label": "Monter la structure porteuse",
+      "variants": [
+        "Monter la structure porteuse",
+        "Monter l'ossature du bâtiment",
+        "Ériger la structure porteuse",
+        "Monter les poteaux et poutres porteuses"
+      ],
+      "category": "Production & réalisation",
+      "categoryAccent": "#2A4FB8",
+      "file": "chantier/montage_structure.png",
+      "subject": "one simple building beam frame and a chunky wrench, assembling the structure",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Monter la structure porteuse. Subject: one simple building beam frame and a chunky wrench, assembling the structure. Category accent: #2A4FB8."
+    },
+    {
+      "universeId": "chantier",
+      "universeName": "Chantier de construction",
+      "taskId": "montage_murs",
+      "label": "Monter les murs",
+      "variants": [
+        "Monter les murs",
+        "Monter les murs en parpaings",
+        "Élever les murs porteurs",
+        "Construire les cloisons et murs extérieurs"
+      ],
+      "category": "Production & réalisation",
+      "categoryAccent": "#2A4FB8",
+      "file": "chantier/montage_murs.png",
+      "subject": "one partly completed three-brick wall and a simple trowel, building walls",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Monter les murs. Subject: one partly completed three-brick wall and a simple trowel, building walls. Category accent: #2A4FB8."
+    },
+    {
+      "universeId": "chantier",
+      "universeName": "Chantier de construction",
+      "taskId": "passage_reseaux",
+      "label": "Faire passer les réseaux (élec / plomberie)",
+      "variants": [
+        "Faire passer les réseaux (élec / plomberie)",
+        "Installer les gaines électriques et plomberie",
+        "Faire passer les réseaux techniques",
+        "Poser les canalisations et câbles électriques"
+      ],
+      "category": "Production & réalisation",
+      "categoryAccent": "#2A4FB8",
+      "file": "chantier/passage_reseaux.png",
+      "subject": "one electrical cable with a plug crossing one short pipe elbow, installing utility networks",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Faire passer les réseaux (élec / plomberie). Subject: one electrical cable with a plug crossing one short pipe elbow, installing utility networks. Category accent: #2A4FB8."
+    },
+    {
+      "universeId": "chantier",
+      "universeName": "Chantier de construction",
+      "taskId": "demande_inspection",
+      "label": "Demander l'inspection du chantier",
+      "variants": [
+        "Demander l'inspection du chantier",
+        "Faire venir l'inspecteur pour contrôle",
+        "Solliciter le contrôle de conformité",
+        "Demander l'inspection technique du bâtiment"
+      ],
+      "category": "Communication & coordination",
+      "categoryAccent": "#B03070",
+      "file": "chantier/demande_inspection.png",
+      "subject": "one inspection clipboard with a construction hard hat and a prominent check, requesting site inspection",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Demander l'inspection du chantier. Subject: one inspection clipboard with a construction hard hat and a prominent check, requesting site inspection. Category accent: #B03070."
+    },
+    {
+      "universeId": "chantier",
+      "universeName": "Chantier de construction",
+      "taskId": "correction_remarques",
+      "label": "Corriger les remarques de l'inspection",
+      "variants": [
+        "Corriger les remarques de l'inspection",
+        "Reprendre les points signalés par l'inspecteur",
+        "Corriger les non-conformités relevées",
+        "Effectuer les retouches demandées"
+      ],
+      "category": "Production & réalisation",
+      "categoryAccent": "#2A4FB8",
+      "file": "chantier/correction_remarques.png",
+      "subject": "one short punch-list sheet with a chunky wrench and corrective pencil tick, fixing inspection remarks",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Corriger les remarques de l'inspection. Subject: one short punch-list sheet with a chunky wrench and corrective pencil tick, fixing inspection remarks. Category accent: #2A4FB8."
+    },
+    {
+      "universeId": "logistique",
+      "universeName": "Logistique / Entrepôt",
+      "taskId": "consulter_commandes",
+      "label": "Consulter les commandes du jour",
+      "variants": [
+        "Consulter les commandes du jour",
+        "Prendre connaissance des commandes à préparer",
+        "Consulter la liste des commandes du matin",
+        "Vérifier les commandes reçues durant la nuit"
+      ],
+      "category": "Documents & rapports",
+      "categoryAccent": "#4A5468",
+      "file": "logistique/consulter_commandes.png",
+      "subject": "one purchase-order sheet with a simple parcel symbol and two broad lines, consulting orders",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Consulter les commandes du jour. Subject: one purchase-order sheet with a simple parcel symbol and two broad lines, consulting orders. Category accent: #4A5468."
+    },
+    {
+      "universeId": "logistique",
+      "universeName": "Logistique / Entrepôt",
+      "taskId": "verif_stock",
+      "label": "Vérifier les stocks disponibles",
+      "variants": [
+        "Vérifier les stocks disponibles",
+        "Contrôler les stocks en rayonnage",
+        "Vérifier la disponibilité des articles",
+        "Faire le point sur les stocks de l'entrepôt"
+      ],
+      "category": "Stock & contrôle",
+      "categoryAccent": "#1F6F4A",
+      "file": "logistique/verif_stock.png",
+      "subject": "one warehouse crate stack with a clipboard check, checking warehouse stock",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Vérifier les stocks disponibles. Subject: one warehouse crate stack with a clipboard check, checking warehouse stock. Category accent: #1F6F4A."
+    },
+    {
+      "universeId": "logistique",
+      "universeName": "Logistique / Entrepôt",
+      "taskId": "commande_reappro",
+      "label": "Commander le réapprovisionnement manquant",
+      "variants": [
+        "Commander le réapprovisionnement manquant",
+        "Passer commande auprès du fournisseur",
+        "Commander les articles en rupture",
+        "Relancer le fournisseur pour le réapprovisionnement"
+      ],
+      "category": "Achats & commandes",
+      "categoryAccent": "#7A3FBF",
+      "file": "logistique/commande_reappro.png",
+      "subject": "one shopping trolley holding a compact crate with an inward restock arrow, ordering replenishment",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Commander le réapprovisionnement manquant. Subject: one shopping trolley holding a compact crate with an inward restock arrow, ordering replenishment. Category accent: #7A3FBF."
+    },
+    {
+      "universeId": "logistique",
+      "universeName": "Logistique / Entrepôt",
+      "taskId": "reception_reappro",
+      "label": "Réceptionner la livraison de réapprovisionnement",
+      "variants": [
+        "Réceptionner la livraison de réapprovisionnement",
+        "Contrôler la livraison du fournisseur",
+        "Réceptionner et vérifier les palettes livrées",
+        "Réceptionner le réassort du matin"
+      ],
+      "category": "Réception & transport",
+      "categoryAccent": "#0F6E8C",
+      "file": "logistique/reception_reappro.png",
+      "subject": "one parked warehouse delivery truck and one sealed crate, receiving replenishment",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Réceptionner la livraison de réapprovisionnement. Subject: one parked warehouse delivery truck and one sealed crate, receiving replenishment. Category accent: #0F6E8C."
+    },
+    {
+      "universeId": "logistique",
+      "universeName": "Logistique / Entrepôt",
+      "taskId": "prep_zones_picking",
+      "label": "Préparer les zones de picking",
+      "variants": [
+        "Préparer les zones de picking",
+        "Organiser les allées de prélèvement",
+        "Ranger les zones de préparation de commandes",
+        "Préparer le poste de picking"
+      ],
+      "category": "Production & réalisation",
+      "categoryAccent": "#2A4FB8",
+      "file": "logistique/prep_zones_picking.png",
+      "subject": "one warehouse shelf with two compartment bays and a large magenta map-location pin, preparing picking zones",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Préparer les zones de picking. Subject: one warehouse shelf with two compartment bays and a large magenta map-location pin, preparing picking zones. Category accent: #2A4FB8."
+    },
+    {
+      "universeId": "logistique",
+      "universeName": "Logistique / Entrepôt",
+      "taskId": "picking",
+      "label": "Prélever les articles en zone de stockage",
+      "variants": [
+        "Prélever les articles en zone de stockage",
+        "Effectuer le picking des commandes",
+        "Prélever les produits commandés",
+        "Collecter les articles pour les commandes du jour"
+      ],
+      "category": "Production & réalisation",
+      "categoryAccent": "#2A4FB8",
+      "file": "logistique/picking.png",
+      "subject": "one warehouse picking tote with a single box being lifted from a small shelf, picking order items",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Prélever les articles en zone de stockage. Subject: one warehouse picking tote with a single box being lifted from a small shelf, picking order items. Category accent: #2A4FB8."
+    },
+    {
+      "universeId": "logistique",
+      "universeName": "Logistique / Entrepôt",
+      "taskId": "controle_conformite",
+      "label": "Contrôler la conformité des commandes",
+      "variants": [
+        "Contrôler la conformité des commandes",
+        "Vérifier que les commandes sont complètes",
+        "Contrôler la correspondance commande/colis",
+        "Vérifier la conformité avant emballage"
+      ],
+      "category": "Stock & contrôle",
+      "categoryAccent": "#1F6F4A",
+      "file": "logistique/controle_conformite.png",
+      "subject": "one sealed parcel with a magnifying glass and a compact check, checking order conformity",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Contrôler la conformité des commandes. Subject: one sealed parcel with a magnifying glass and a compact check, checking order conformity. Category accent: #1F6F4A."
+    },
+    {
+      "universeId": "logistique",
+      "universeName": "Logistique / Entrepôt",
+      "taskId": "emballage_colis",
+      "label": "Emballer les colis",
+      "variants": [
+        "Emballer les colis",
+        "Conditionner les commandes pour l'expédition",
+        "Emballer et protéger les articles fragiles",
+        "Préparer les colis pour le transport"
+      ],
+      "category": "Production & réalisation",
+      "categoryAccent": "#2A4FB8",
+      "file": "logistique/emballage_colis.png",
+      "subject": "one open shipping box with a broad packing-tape roll, packing parcels",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Emballer les colis. Subject: one open shipping box with a broad packing-tape roll, packing parcels. Category accent: #2A4FB8."
+    },
+    {
+      "universeId": "logistique",
+      "universeName": "Logistique / Entrepôt",
+      "taskId": "etiquetage_scan",
+      "label": "Étiqueter et scanner les colis",
+      "variants": [
+        "Étiqueter et scanner les colis",
+        "Coller les étiquettes d'expédition",
+        "Scanner les colis avant chargement",
+        "Étiqueter les colis par destination"
+      ],
+      "category": "Production & réalisation",
+      "categoryAccent": "#2A4FB8",
+      "file": "logistique/etiquetage_scan.png",
+      "subject": "one parcel bearing a broad barcode and a handheld scanner aimed at it, labeling and scanning, abstract bars no letters",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Étiqueter et scanner les colis. Subject: one parcel bearing a broad barcode and a handheld scanner aimed at it, labeling and scanning, abstract bars no letters. Category accent: #2A4FB8."
+    },
+    {
+      "universeId": "logistique",
+      "universeName": "Logistique / Entrepôt",
+      "taskId": "edition_documents",
+      "label": "Éditer les documents de transport",
+      "variants": [
+        "Éditer les documents de transport",
+        "Préparer les bordereaux de livraison",
+        "Éditer les bons de transport",
+        "Imprimer les documents de livraison"
+      ],
+      "category": "Documents & rapports",
+      "categoryAccent": "#4A5468",
+      "file": "logistique/edition_documents.png",
+      "subject": "one compact printer ejecting one clean shipping document, printing shipment documents",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Éditer les documents de transport. Subject: one compact printer ejecting one clean shipping document, printing shipment documents. Category accent: #4A5468."
+    },
+    {
+      "universeId": "logistique",
+      "universeName": "Logistique / Entrepôt",
+      "taskId": "chargement_camion",
+      "label": "Charger le camion",
+      "variants": [
+        "Charger le camion",
+        "Charger les colis dans le camion",
+        "Charger la marchandise sur le quai",
+        "Charger le véhicule de livraison"
+      ],
+      "category": "Réception & transport",
+      "categoryAccent": "#0F6E8C",
+      "file": "logistique/chargement_camion.png",
+      "subject": "one delivery truck with an inward arrow and one crate at its open rear, loading the truck",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Charger le camion. Subject: one delivery truck with an inward arrow and one crate at its open rear, loading the truck. Category accent: #0F6E8C."
+    },
+    {
+      "universeId": "logistique",
+      "universeName": "Logistique / Entrepôt",
+      "taskId": "depart_camion",
+      "label": "Départ du camion",
+      "variants": [
+        "Départ du camion",
+        "Faire partir le camion en livraison",
+        "Valider le départ du transporteur",
+        "Envoyer le camion en tournée"
+      ],
+      "category": "Réception & transport",
+      "categoryAccent": "#0F6E8C",
+      "file": "logistique/depart_camion.png",
+      "subject": "one closed delivery truck facing forward with two short motion marks behind, truck departure",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Départ du camion. Subject: one closed delivery truck facing forward with two short motion marks behind, truck departure. Category accent: #0F6E8C."
+    },
+    {
+      "universeId": "soins",
+      "universeName": "Soins à domicile / Aide-soignant",
+      "taskId": "consulter_dossier",
+      "label": "Consulter le dossier des patients du jour",
+      "variants": [
+        "Consulter le dossier des patients du jour",
+        "Prendre connaissance des dossiers de la tournée",
+        "Consulter les fiches de soins des patients",
+        "Vérifier les consignes médicales du jour"
+      ],
+      "category": "Documents & rapports",
+      "categoryAccent": "#4A5468",
+      "file": "soins/consulter_dossier.png",
+      "subject": "one medical folder with a small heart emblem and a magnifying glass, consulting patient records, no medical cross",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Consulter le dossier des patients du jour. Subject: one medical folder with a small heart emblem and a magnifying glass, consulting patient records, no medical cross. Category accent: #4A5468."
+    },
+    {
+      "universeId": "soins",
+      "universeName": "Soins à domicile / Aide-soignant",
+      "taskId": "prep_trousse",
+      "label": "Préparer la trousse de soins",
+      "variants": [
+        "Préparer la trousse de soins",
+        "Préparer le matériel médical",
+        "Vérifier et compléter la trousse de soins",
+        "Préparer le matériel d'hygiène et de soins"
+      ],
+      "category": "Production & réalisation",
+      "categoryAccent": "#2A4FB8",
+      "file": "soins/prep_trousse.png",
+      "subject": "one open medical bag with a bandage roll and a simple stethoscope silhouette, preparing the care kit, no medical cross",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Préparer la trousse de soins. Subject: one open medical bag with a bandage roll and a simple stethoscope silhouette, preparing the care kit, no medical cross. Category accent: #2A4FB8."
+    },
+    {
+      "universeId": "soins",
+      "universeName": "Soins à domicile / Aide-soignant",
+      "taskId": "trajet_patient_a",
+      "label": "Se rendre chez le premier patient",
+      "variants": [
+        "Se rendre chez le premier patient",
+        "Se déplacer au domicile du premier patient",
+        "Rejoindre le premier patient de la tournée",
+        "Se rendre au domicile du premier patient"
+      ],
+      "category": "Réception & transport",
+      "categoryAccent": "#0F6E8C",
+      "file": "soins/trajet_patient_a.png",
+      "subject": "one compact care-worker car beside a house with a small magenta single-dot location marker, traveling to patient A, no letters",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Se rendre chez le premier patient. Subject: one compact care-worker car beside a house with a small magenta single-dot location marker, traveling to patient A, no letters. Category accent: #0F6E8C."
+    },
+    {
+      "universeId": "soins",
+      "universeName": "Soins à domicile / Aide-soignant",
+      "taskId": "medicament_a",
+      "label": "Administrer les médicaments du matin",
+      "variants": [
+        "Administrer les médicaments du matin",
+        "Donner le traitement du matin au patient",
+        "Administrer le traitement matinal",
+        "Distribuer les médicaments prescrits"
+      ],
+      "category": "Santé & sécurité",
+      "categoryAccent": "#D4353F",
+      "file": "soins/medicament_a.png",
+      "subject": "one pill organizer holding a single capsule beside a small magenta single-dot patient marker, medication for patient A, no letters",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Administrer les médicaments du matin. Subject: one pill organizer holding a single capsule beside a small magenta single-dot patient marker, medication for patient A, no letters. Category accent: #D4353F."
+    },
+    {
+      "universeId": "soins",
+      "universeName": "Soins à domicile / Aide-soignant",
+      "taskId": "soins_hygiene_a",
+      "label": "Réaliser les soins d'hygiène",
+      "variants": [
+        "Réaliser les soins d'hygiène",
+        "Aider à la toilette du patient",
+        "Effectuer les soins d'hygiène quotidiens",
+        "Assister le patient pour sa toilette"
+      ],
+      "category": "Santé & sécurité",
+      "categoryAccent": "#D4353F",
+      "file": "soins/soins_hygiene_a.png",
+      "subject": "one water droplet above a folded washcloth and small caring heart, patient hygiene assistance",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Réaliser les soins d'hygiène. Subject: one water droplet above a folded washcloth and small caring heart, patient hygiene assistance. Category accent: #D4353F."
+    },
+    {
+      "universeId": "soins",
+      "universeName": "Soins à domicile / Aide-soignant",
+      "taskId": "trajet_patient_b",
+      "label": "Se rendre chez le second patient",
+      "variants": [
+        "Se rendre chez le second patient",
+        "Se déplacer chez le second patient",
+        "Rejoindre le second patient de la tournée",
+        "Se rendre au domicile du second patient"
+      ],
+      "category": "Réception & transport",
+      "categoryAccent": "#0F6E8C",
+      "file": "soins/trajet_patient_b.png",
+      "subject": "one compact care-worker car beside a house with a cyan two-dot location marker, traveling to patient B, no letters",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Se rendre chez le second patient. Subject: one compact care-worker car beside a house with a cyan two-dot location marker, traveling to patient B, no letters. Category accent: #0F6E8C."
+    },
+    {
+      "universeId": "soins",
+      "universeName": "Soins à domicile / Aide-soignant",
+      "taskId": "aide_repas_b",
+      "label": "Aider à la prise du repas",
+      "variants": [
+        "Aider à la prise du repas",
+        "Accompagner le patient pour le déjeuner",
+        "Aider à la prise du repas de midi",
+        "Assister le patient pendant son repas"
+      ],
+      "category": "Repas & pause",
+      "categoryAccent": "#B4651A",
+      "file": "soins/aide_repas_b.png",
+      "subject": "one spoon over a simple warm soup bowl with a small caring heart, helping patient B eat",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Aider à la prise du repas. Subject: one spoon over a simple warm soup bowl with a small caring heart, helping patient B eat. Category accent: #B4651A."
+    },
+    {
+      "universeId": "soins",
+      "universeName": "Soins à domicile / Aide-soignant",
+      "taskId": "medicament_b",
+      "label": "Administrer les médicaments de midi",
+      "variants": [
+        "Administrer les médicaments de midi",
+        "Donner le traitement de midi au patient",
+        "Administrer le traitement du déjeuner",
+        "Distribuer les médicaments de la mi-journée"
+      ],
+      "category": "Santé & sécurité",
+      "categoryAccent": "#D4353F",
+      "file": "soins/medicament_b.png",
+      "subject": "one pill organizer holding a single capsule beside a cyan two-dot patient marker, medication for patient B, no letters",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Administrer les médicaments de midi. Subject: one pill organizer holding a single capsule beside a cyan two-dot patient marker, medication for patient B, no letters. Category accent: #D4353F."
+    },
+    {
+      "universeId": "soins",
+      "universeName": "Soins à domicile / Aide-soignant",
+      "taskId": "compte_rendu",
+      "label": "Rédiger le compte-rendu de tournée",
+      "variants": [
+        "Rédiger le compte-rendu de tournée",
+        "Rédiger les notes de suivi des patients",
+        "Compléter le cahier de liaison",
+        "Rédiger le rapport de visite"
+      ],
+      "category": "Documents & rapports",
+      "categoryAccent": "#4A5468",
+      "file": "soins/compte_rendu.png",
+      "subject": "one care-summary notebook with a pen and a small heart tab, writing a care summary",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Rédiger le compte-rendu de tournée. Subject: one care-summary notebook with a pen and a small heart tab, writing a care summary. Category accent: #4A5468."
+    },
+    {
+      "universeId": "soins",
+      "universeName": "Soins à domicile / Aide-soignant",
+      "taskId": "appel_medecin",
+      "label": "Appeler le médecin traitant si besoin",
+      "variants": [
+        "Appeler le médecin traitant si besoin",
+        "Contacter le médecin en cas d'anomalie",
+        "Signaler une observation au médecin traitant",
+        "Appeler le médecin pour un ajustement de traitement"
+      ],
+      "category": "Communication & coordination",
+      "categoryAccent": "#B03070",
+      "file": "soins/appel_medecin.png",
+      "subject": "one telephone handset alongside a stethoscope loop, calling the doctor",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Appeler le médecin traitant si besoin. Subject: one telephone handset alongside a stethoscope loop, calling the doctor. Category accent: #B03070."
+    },
+    {
+      "universeId": "soins",
+      "universeName": "Soins à domicile / Aide-soignant",
+      "taskId": "transmission_rapport",
+      "label": "Transmettre le rapport à l'infirmière coordinatrice",
+      "variants": [
+        "Transmettre le rapport à l'infirmière coordinatrice",
+        "Transmettre le compte-rendu à la coordination",
+        "Envoyer le rapport de tournée à l'infirmière référente",
+        "Transmettre les informations de suivi à l'équipe"
+      ],
+      "category": "Documents & rapports",
+      "categoryAccent": "#4A5468",
+      "file": "soins/transmission_rapport.png",
+      "subject": "one care-report folder with a small heart emblem and an outward send arrow, transmitting care report",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Transmettre le rapport à l'infirmière coordinatrice. Subject: one care-report folder with a small heart emblem and an outward send arrow, transmitting care report. Category accent: #4A5468."
+    },
+    {
+      "universeId": "demenagement",
+      "universeName": "Déménagement",
+      "taskId": "inventaire_meubles",
+      "label": "Établir l'inventaire des meubles à déménager",
+      "variants": [
+        "Établir l'inventaire des meubles à déménager",
+        "Faire l'inventaire du mobilier",
+        "Lister les meubles et cartons à déménager",
+        "Recenser les objets à déménager"
+      ],
+      "category": "Stock & contrôle",
+      "categoryAccent": "#1F6F4A",
+      "file": "demenagement/inventaire_meubles.png",
+      "subject": "one clipboard check alongside a small chair silhouette, inventorying furniture",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Établir l'inventaire des meubles à déménager. Subject: one clipboard check alongside a small chair silhouette, inventorying furniture. Category accent: #1F6F4A."
+    },
+    {
+      "universeId": "demenagement",
+      "universeName": "Déménagement",
+      "taskId": "reservation_camion",
+      "label": "Réserver le camion de déménagement",
+      "variants": [
+        "Réserver le camion de déménagement",
+        "Louer un camion de déménagement",
+        "Réserver un véhicule utilitaire",
+        "Confirmer la réservation du camion"
+      ],
+      "category": "Achats & commandes",
+      "categoryAccent": "#7A3FBF",
+      "file": "demenagement/reservation_camion.png",
+      "subject": "one moving truck with a small booking calendar check tab, booking the moving truck, no calendar numbers",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Réserver le camion de déménagement. Subject: one moving truck with a small booking calendar check tab, booking the moving truck, no calendar numbers. Category accent: #7A3FBF."
+    },
+    {
+      "universeId": "demenagement",
+      "universeName": "Déménagement",
+      "taskId": "reservation_ascenseur",
+      "label": "Réserver l'ascenseur de l'immeuble",
+      "variants": [
+        "Réserver l'ascenseur de l'immeuble",
+        "Bloquer l'ascenseur auprès du syndic",
+        "Réserver le monte-charge de l'immeuble",
+        "Obtenir un créneau d'ascenseur"
+      ],
+      "category": "Achats & commandes",
+      "categoryAccent": "#7A3FBF",
+      "file": "demenagement/reservation_ascenseur.png",
+      "subject": "one elevator-door frame with short up and down arrows and a small booked check, reserving the elevator",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Réserver l'ascenseur de l'immeuble. Subject: one elevator-door frame with short up and down arrows and a small booked check, reserving the elevator. Category accent: #7A3FBF."
+    },
+    {
+      "universeId": "demenagement",
+      "universeName": "Déménagement",
+      "taskId": "emballage_fragile",
+      "label": "Emballer les cartons fragiles",
+      "variants": [
+        "Emballer les cartons fragiles",
+        "Emballer la vaisselle et les objets fragiles",
+        "Protéger et emballer les objets fragiles",
+        "Conditionner les affaires fragiles"
+      ],
+      "category": "Production & réalisation",
+      "categoryAccent": "#2A4FB8",
+      "file": "demenagement/emballage_fragile.png",
+      "subject": "one open packing box protecting a single drinking glass with two broad cushioning shapes, packing fragile objects",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Emballer les cartons fragiles. Subject: one open packing box protecting a single drinking glass with two broad cushioning shapes, packing fragile objects. Category accent: #2A4FB8."
+    },
+    {
+      "universeId": "demenagement",
+      "universeName": "Déménagement",
+      "taskId": "demontage_meubles",
+      "label": "Démonter les meubles",
+      "variants": [
+        "Démonter les meubles",
+        "Démonter l'armoire et le lit",
+        "Démonter les meubles volumineux",
+        "Préparer les meubles pour le transport"
+      ],
+      "category": "Production & réalisation",
+      "categoryAccent": "#2A4FB8",
+      "file": "demenagement/demontage_meubles.png",
+      "subject": "one small table with one separated leg and a chunky wrench, disassembling furniture",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Démonter les meubles. Subject: one small table with one separated leg and a chunky wrench, disassembling furniture. Category accent: #2A4FB8."
+    },
+    {
+      "universeId": "demenagement",
+      "universeName": "Déménagement",
+      "taskId": "recuperation_camion",
+      "label": "Récupérer le camion loué",
+      "variants": [
+        "Récupérer le camion loué",
+        "Aller chercher le camion chez le loueur",
+        "Récupérer le véhicule de location",
+        "Prendre possession du camion loué"
+      ],
+      "category": "Réception & transport",
+      "categoryAccent": "#0F6E8C",
+      "file": "demenagement/recuperation_camion.png",
+      "subject": "one moving-truck key in front of a compact truck silhouette, collecting the hired truck",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Récupérer le camion loué. Subject: one moving-truck key in front of a compact truck silhouette, collecting the hired truck. Category accent: #0F6E8C."
+    },
+    {
+      "universeId": "demenagement",
+      "universeName": "Déménagement",
+      "taskId": "chargement_camion",
+      "label": "Charger le camion",
+      "variants": [
+        "Charger le camion",
+        "Charger les cartons et meubles dans le camion",
+        "Charger le mobilier dans le camion",
+        "Remplir le camion de déménagement"
+      ],
+      "category": "Réception & transport",
+      "categoryAccent": "#0F6E8C",
+      "file": "demenagement/chargement_camion.png",
+      "subject": "one moving truck with a chair silhouette at its open rear and a large inward arrow, loading household furniture",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Charger le camion. Subject: one moving truck with a chair silhouette at its open rear and a large inward arrow, loading household furniture. Category accent: #0F6E8C."
+    },
+    {
+      "universeId": "demenagement",
+      "universeName": "Déménagement",
+      "taskId": "trajet_nouveau_logement",
+      "label": "Faire le trajet vers le nouveau logement",
+      "variants": [
+        "Faire le trajet vers le nouveau logement",
+        "Effectuer le trajet jusqu'au nouveau domicile",
+        "Conduire jusqu'à la nouvelle adresse",
+        "Rejoindre le nouveau logement en camion"
+      ],
+      "category": "Réception & transport",
+      "categoryAccent": "#0F6E8C",
+      "file": "demenagement/trajet_nouveau_logement.png",
+      "subject": "one moving truck on a simple curved route leading to a house-location pin, driving to the new home",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Faire le trajet vers le nouveau logement. Subject: one moving truck on a simple curved route leading to a house-location pin, driving to the new home. Category accent: #0F6E8C."
+    },
+    {
+      "universeId": "demenagement",
+      "universeName": "Déménagement",
+      "taskId": "dechargement_camion",
+      "label": "Décharger le camion",
+      "variants": [
+        "Décharger le camion",
+        "Décharger les meubles et cartons",
+        "Sortir les affaires du camion",
+        "Décharger le mobilier au nouveau logement"
+      ],
+      "category": "Réception & transport",
+      "categoryAccent": "#0F6E8C",
+      "file": "demenagement/dechargement_camion.png",
+      "subject": "one moving truck with a chair at its rear and a large outward arrow, unloading furniture",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Décharger le camion. Subject: one moving truck with a chair at its rear and a large outward arrow, unloading furniture. Category accent: #0F6E8C."
+    },
+    {
+      "universeId": "demenagement",
+      "universeName": "Déménagement",
+      "taskId": "remontage_meubles",
+      "label": "Remonter les meubles",
+      "variants": [
+        "Remonter les meubles",
+        "Remonter l'armoire et le lit",
+        "Réassembler les meubles démontés",
+        "Remonter le mobilier dans les pièces"
+      ],
+      "category": "Production & réalisation",
+      "categoryAccent": "#2A4FB8",
+      "file": "demenagement/remontage_meubles.png",
+      "subject": "one small assembled table with a chunky wrench and a completion check, reassembling furniture",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Remonter les meubles. Subject: one small assembled table with a chunky wrench and a completion check, reassembling furniture. Category accent: #2A4FB8."
+    },
+    {
+      "universeId": "demenagement",
+      "universeName": "Déménagement",
+      "taskId": "restitution_camion",
+      "label": "Restituer le camion de location",
+      "variants": [
+        "Restituer le camion de location",
+        "Rendre le camion au loueur",
+        "Ramener le véhicule loué",
+        "Restituer le camion avant la fermeture"
+      ],
+      "category": "Réception & transport",
+      "categoryAccent": "#0F6E8C",
+      "file": "demenagement/restitution_camion.png",
+      "subject": "one moving truck with a key and a short return arrow, returning the hired truck",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Restituer le camion de location. Subject: one moving truck with a key and a short return arrow, returning the hired truck. Category accent: #0F6E8C."
+    },
+    {
+      "universeId": "demenagement",
+      "universeName": "Déménagement",
+      "taskId": "etat_lieux",
+      "label": "Faire l'état des lieux et signaler les dommages",
+      "variants": [
+        "Faire l'état des lieux et signaler les dommages",
+        "Réaliser l'état des lieux du nouveau logement",
+        "Signaler les dommages constatés",
+        "Effectuer l'état des lieux d'entrée"
+      ],
+      "category": "Documents & rapports",
+      "categoryAccent": "#4A5468",
+      "file": "demenagement/etat_lieux.png",
+      "subject": "one house with an inspection clipboard and a large check, property condition inspection",
+      "prompt": "Use case: stylized-concept. Asset type: one production mobile-game task emote for Zennyt Day Stack, PNG with genuinely transparent alpha background. Style: a refined playful rounded 2.5D object illustration, clean broad shapes, shallow extrusion, restrained soft highlights and navy side shading, not photorealistic. Rounded mobile-game visual identity, no emoji faces or mascots. Palette: off-white #F6F8FF, navy #26224D, royal violet #4E46E8 and magenta #D12E7D; use the category accent sparingly. A continuous clean off-white outer contour ensures visibility on violet #675DE6 task cards. Layout: one emote centered in a square canvas, grouped silhouette about 75% canvas, generous transparent margin, front three-quarter orthographic orientation, all parts within bounds. Must remain legible at 32–48px, simple thick silhouette, at most two grouped symbolic elements, very few fine details. Avoid any backdrop, tile, circle badge, ground plane, big cast shadow, emoji faces, realistic people, text, letters, numbers, watermark or drawn checkerboard. No words on documents; use short blank strokes. Generate exactly this single emote, not a collection or sprite sheet.\nTask: Faire l'état des lieux et signaler les dommages. Subject: one house with an inspection clipboard and a large check, property condition inspection. Category accent: #4A5468."
+    }
+  ],
+  "completedDate": "2026-09-17",
+  "reviewSheets": [
+    "review/restaurant.png",
+    "review/gestion.png",
+    "review/organisation.png",
+    "review/chantier.png",
+    "review/logistique.png",
+    "review/soins.png",
+    "review/demenagement.png"
+  ]
+}
