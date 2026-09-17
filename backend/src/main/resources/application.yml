@@ -149,6 +149,10 @@ recruitment:
     # est ce budget BDD, pas le CPU.
     batch-size: ${RECRUITMENT_FITSCORE_BACKFILL_BATCH_SIZE:200}
 
+zennyt:
+  billing:
+    receipt-verifier: ${BILLING_RECEIPT_VERIFIER:disabled}
+
 server:
   port: 8080
 

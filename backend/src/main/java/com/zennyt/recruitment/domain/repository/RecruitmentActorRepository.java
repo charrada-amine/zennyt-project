@@ -29,6 +29,4 @@ public interface RecruitmentActorRepository {
      * (maquette 87-89, onglet recruteur), indépendante d'une offre.
      */
     List<RecruitmentActor> searchCandidates(String query, String location, int page, int size);
-
-    long countSearchCandidates(String query, String location);
 }

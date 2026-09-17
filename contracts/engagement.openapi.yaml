@@ -585,7 +585,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Referral' }
         '409':
-          description: Cette adresse a déjà été invitée
+          description: Cette adresse a déjà été invitée, ou trop d'invitations en attente
           content:
             application/json:
               schema: { $ref: './common.openapi.yaml#/components/schemas/Error' }
@@ -688,7 +688,8 @@ paths:
       summary: Abonnement courant de l'utilisateur (null si aucun)
       responses:
         '200':
-          description: Abonnement ou null
+          description: Abonnement courant, ou corps vide si aucun abonnement (Spring
+            omet le corps plutôt que d'émettre un JSON null).
           content:
             application/json:
               schema:
@@ -710,11 +711,16 @@ paths:
             schema: { $ref: '#/components/schemas/PurchaseVerify' }
       responses:
         '200':
-          description: Achat enregistré
+          description: Achat enregistré (ou rejeu idempotent du même utilisateur)
           content:
             application/json:
               schema: { $ref: '#/components/schemas/PurchaseResult' }
         '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
+        '409':
+          description: Transaction déjà enregistrée pour un autre utilisateur
+          content:
+            application/json:
+              schema: { $ref: './common.openapi.yaml#/components/schemas/Error' }
 
 components:
   securitySchemes:
@@ -1084,7 +1090,12 @@ components:
       type: object
       required: [amount]
       properties:
-        amount: { type: number, format: double, minimum: 0.01, description: "Montant en unités majeures (ex. 150.00)." }
+        amount:
+          type: number
+          format: double
+          minimum: 0.01
+          maximum: 1000000
+          description: "Montant en unités majeures (ex. 150.00). Plafond provisoire anti-débordement."
 
     PlanPeriod:
       type: string
@@ -1140,4 +1151,7 @@ components:
           allOf: [{ $ref: '#/components/schemas/Subscription' }]
           nullable: true
         productId: { type: string, nullable: true }
-        kind: { $ref: '#/components/schemas/PurchaseKind' }
+        kind:
+          allOf: [{ $ref: '#/components/schemas/PurchaseKind' }]
+          nullable: true
+          description: Null sur un rejeu idempotent (aucun nouvel achat enregistré).

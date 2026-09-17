@@ -32,7 +32,7 @@ class ZennytApp extends ConsumerWidget {
         final previewChild = DevicePreview.appBuilder(context, child);
         final scaledChild = MediaQuery(
           data: MediaQuery.of(context).copyWith(
-            textScaler: TextScaler.linear(a11y.textScale),
+            textScaler: a11y.textScaler(MediaQuery.textScalerOf(context)),
           ),
           child: previewChild,
         );

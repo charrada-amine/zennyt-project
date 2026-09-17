@@ -38,7 +38,10 @@ class IdentitySecurityAnnotationTest {
         assertThat(annotatedMethods(ProfileController.class, Authenticated.class))
             .containsExactlyInAnyOrder(
                 "updateUser", "uploadAvatar", "deleteAvatar",
-                "deactivateAccount", "deleteAccount", "changeRole");
+                "deactivateAccount", "deleteAccount", "changeRole",
+                "getPreferences", "updatePreferences",
+                "requestEmailChange", "verifyEmailChange",
+                "requestPhoneChange", "verifyPhoneChange");
         assertThat(annotatedMethods(ProfileController.class, CandidateOrStudentOnly.class))
             .containsExactlyInAnyOrder(
                 "createProfile", "getProfile", "updateProfile",

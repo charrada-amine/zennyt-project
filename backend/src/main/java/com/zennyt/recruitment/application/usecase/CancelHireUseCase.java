@@ -5,6 +5,7 @@ import com.zennyt.recruitment.domain.repository.JobOpportunityOfferRepository;
 import com.zennyt.shared.application.exception.ForbiddenException;
 import com.zennyt.shared.application.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +21,7 @@ import java.util.UUID;
 public class CancelHireUseCase {
 
     private final JobOpportunityOfferRepository offers;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public JobOpportunityOffer execute(UUID recruiterId, UUID offerId) {
@@ -29,6 +31,9 @@ public class CancelHireUseCase {
             throw new ForbiddenException("Ce recrutement ne vous appartient pas");
         }
         offer.cancel(Instant.now());
-        return offers.save(offer);
+        JobOpportunityOffer saved = offers.save(offer);
+        offer.domainEvents().forEach(eventPublisher::publishEvent);
+        offer.clearEvents();
+        return saved;
     }
 }

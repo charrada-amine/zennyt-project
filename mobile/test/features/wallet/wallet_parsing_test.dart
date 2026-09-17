@@ -29,6 +29,59 @@ void main() {
     });
   });
 
+  group('WalletCard.expiryDisplay', () {
+    test('missing expiry stays absent instead of becoming 01/00', () {
+      final card = WalletCard.fromJson({});
+
+      expect(card.expiryMonth, isNull);
+      expect(card.expiryYear, isNull);
+      expect(card.expiryDisplay, isNull);
+    });
+
+    test('explicit null expiry stays absent', () {
+      final card = WalletCard.fromJson({
+        'expiryMonth': null,
+        'expiryYear': null,
+      });
+
+      expect(card.expiryMonth, isNull);
+      expect(card.expiryYear, isNull);
+      expect(card.expiryDisplay, isNull);
+    });
+
+    test('partial expiry does not fabricate a date', () {
+      final monthOnly = WalletCard.fromJson({'expiryMonth': 12});
+      final yearOnly = WalletCard.fromJson({'expiryYear': 2030});
+
+      expect(monthOnly.expiryMonth, 12);
+      expect(monthOnly.expiryYear, isNull);
+      expect(monthOnly.expiryDisplay, isNull);
+      expect(yearOnly.expiryMonth, isNull);
+      expect(yearOnly.expiryYear, 2030);
+      expect(yearOnly.expiryDisplay, isNull);
+    });
+
+    test('valid single-digit month keeps its leading zero', () {
+      final card = WalletCard.fromJson({
+        'expiryMonth': 1,
+        'expiryYear': 2030,
+      });
+
+      expect(card.expiryDisplay, '01/30');
+    });
+
+    test('missing expiry is distinct from a supplied date', () {
+      expect(WalletCard.fromJson({}), WalletCard.fromJson({
+        'expiryMonth': null,
+        'expiryYear': null,
+      }));
+      expect(WalletCard.fromJson({}), isNot(WalletCard.fromJson({
+        'expiryMonth': 1,
+        'expiryYear': 2030,
+      })));
+    });
+  });
+
   group('WalletTransaction.amountDisplay', () {
     test('credits are positive and debits negative', () {
       WalletTransaction t(int cents) => WalletTransaction(

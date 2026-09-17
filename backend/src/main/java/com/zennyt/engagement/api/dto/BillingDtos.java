@@ -3,7 +3,9 @@ package com.zennyt.engagement.api.dto;
 import com.zennyt.engagement.application.usecase.VerifyPurchaseUseCase;
 import com.zennyt.engagement.domain.model.Plan;
 import com.zennyt.engagement.domain.model.Subscription;
+import com.zennyt.engagement.domain.vo.StorePlatform;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 import java.time.Instant;
 
@@ -28,7 +30,7 @@ public final class BillingDtos {
         }
     }
 
-    public record VerifyPurchaseRequest(@NotBlank String productId, @NotBlank String store,
+    public record VerifyPurchaseRequest(@NotBlank String productId, @NotNull StorePlatform store,
                                         @NotBlank String receipt, @NotBlank String transactionId) {}
 
     public record PurchaseResultResponse(SubscriptionResponse subscription, String productId,

@@ -1,6 +1,6 @@
 # Module Analytics
 
-**Dernière mise à jour :** 2026-09-11
+**Dernière mise à jour :** 2026-09-17
 
 ## Rôle
 

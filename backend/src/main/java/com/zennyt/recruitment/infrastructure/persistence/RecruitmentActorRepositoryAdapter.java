@@ -71,11 +71,6 @@ public class RecruitmentActorRepositoryAdapter implements RecruitmentActorReposi
             .getContent();
     }
 
-    @Override
-    public long countSearchCandidates(String query, String location) {
-        return jpa.countSearchCandidates(blankToNull(query), blankToNull(location));
-    }
-
     private static String blankToNull(String value) {
         return (value == null || value.isBlank()) ? null : value.trim();
     }

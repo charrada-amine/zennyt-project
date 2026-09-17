@@ -21,4 +21,7 @@ public interface AnalyticsReadRepository {
 
     /** Candidatures (INTERESTED) reçues sur une offre. */
     long countApplicationsForOffer(UUID jobOfferId);
+
+    /** Recruteur propriétaire d'une offre du read-model, si elle y est projetée. */
+    java.util.Optional<UUID> findRecruiterIdForOffer(UUID jobOfferId);
 }

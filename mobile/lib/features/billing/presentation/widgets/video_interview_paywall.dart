@@ -3,14 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 
 import 'package:zennyt/features/billing/domain/entities/billing.dart';
+import 'package:zennyt/features/billing/data/store_iap_service.dart';
 import 'package:zennyt/features/billing/presentation/providers/billing_providers.dart';
 
 /// Paiement de l'entretien vidéo (maquette 282) : le recruteur règle un achat
 /// unique (consommable) via l'App Store / Google Play avant l'appel.
 ///
-/// Retourne `true` quand le paiement a été lancé (ou qu'aucun frais n'est requis)
-/// pour laisser l'appel démarrer. La vérification du reçu est faite côté serveur
-/// par le flux d'achat (`StoreIapService`).
+/// Retourne `true` seulement après vérification serveur du reçu (achat
+/// consommable ; une restauration ne débloque jamais une nouvelle session).
+/// Tant que la vérification n'a pas réussi, la feuille reste ouverte et
+/// l'appel ne démarre pas.
 class VideoInterviewPaywall extends ConsumerStatefulWidget {
   final String counterpartName;
   const VideoInterviewPaywall({super.key, required this.counterpartName});
@@ -41,6 +43,7 @@ class _VideoInterviewPaywallState extends ConsumerState<VideoInterviewPaywall> {
       return;
     }
     setState(() => _busy = true);
+    PurchaseOutcome? outcome;
     try {
       final service = ref.read(storeIapServiceProvider);
       if (!await service.isAvailable()) {
@@ -59,11 +62,33 @@ class _VideoInterviewPaywallState extends ConsumerState<VideoInterviewPaywall> {
         _toast('This product is not available in the store yet.');
         return;
       }
-      await service.purchase(plan, product);
-      if (mounted) Navigator.of(context).pop(true);
+      outcome = await service.purchase(plan, product);
+    } on PurchaseCanceledException {
+      return;
+    } on RestoredPurchaseNotUnlockedException {
+      _toast('Restored purchases cannot cover a new video-interview session.');
+      return;
+    } catch (error) {
+      if (error is StateError) {
+        return;
+      }
+      _toast(
+        'Payment could not be verified yet. It will be retried; '
+        'please try again shortly.',
+      );
+      return;
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+    if (outcome != PurchaseOutcome.purchased) {
+      _toast(
+        outcome == PurchaseOutcome.canceled
+            ? 'Payment canceled.'
+            : 'Payment could not be verified yet. Please try again shortly.',
+      );
+      return;
+    }
+    if (mounted) Navigator.of(context).pop(true);
   }
 
   void _toast(String message) {

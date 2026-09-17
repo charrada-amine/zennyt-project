@@ -71,9 +71,10 @@ public class SecurityConfig {
                     "^/api/v1/job-offers/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
                     "GET")).permitAll()
                 // Recruitment : projection publique d'un test partagé par lien
-                // (sans aucune réponse correcte, contrat §5.7). Débloque la
+                // (sans aucune réponse correcte, contrat §5.7). Seul le segment
+                // GET /tests/{token} est public — pas de sous-chemins. Débloque la
                 // roadmap RECRUITMENT_MODULE.md §15.2.
-                .requestMatchers(HttpMethod.GET, "/api/v1/tests/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/tests/*").permitAll()
                 // Documents légaux publics (Conditions d'utilisation, confidentialité).
                 .requestMatchers(HttpMethod.GET, "/api/v1/legal/**").permitAll()
                 .requestMatchers("/api/v1/callbacks/**").permitAll()

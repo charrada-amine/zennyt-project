@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/painting.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../storage/shared_preferences_provider.dart';
@@ -21,11 +22,37 @@ class AccessibilityPrefs {
   /// Scale applied to the app's text, relative to the 18 px baseline.
   double get textScale => (textSizePx / 18).clamp(0.55, 1.75);
 
+  TextScaler textScaler(TextScaler systemScaler) => textScale == 1
+      ? systemScaler
+      : _AppTextScaler(systemScaler, textScale);
+
   AccessibilityPrefs copyWith({bool? highContrast, double? textSizePx}) =>
       AccessibilityPrefs(
         highContrast: highContrast ?? this.highContrast,
         textSizePx: textSizePx ?? this.textSizePx,
       );
+}
+
+class _AppTextScaler extends TextScaler {
+  const _AppTextScaler(this.systemScaler, this.factor);
+
+  final TextScaler systemScaler;
+  final double factor;
+
+  @override
+  double scale(double fontSize) => systemScaler.scale(fontSize) * factor;
+
+  @override
+  double get textScaleFactor => scale(14) / 14;
+
+  @override
+  bool operator ==(Object other) =>
+      other is _AppTextScaler &&
+      other.systemScaler == systemScaler &&
+      other.factor == factor;
+
+  @override
+  int get hashCode => Object.hash(systemScaler, factor);
 }
 
 const _kContrastKey = 'a11y_high_contrast';

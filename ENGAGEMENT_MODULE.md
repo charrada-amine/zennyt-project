@@ -1,6 +1,6 @@
 # Module Engagement
 
-**Dernière mise à jour :** 2026-09-11 — parrainage (programme Ambassadeur) : `GET/POST /referrals` + écran mobile « Referral ». Historique — appels : l'appel sortant initie réellement la session serveur (REST `POST /calls/start`), l'overlay d'appel entrant s'affiche chez le destinataire ; enregistrement : chunks mp4 écrits sur disque (`call_recordings/`), fini le `MediaRecorder` `-5`, et suppression de la reconfiguration audio (`audioProfileMusicHighQualityStereo` + game streaming) qui coupait le son dans l'appel et dans l'enregistrement.
+**Dernière mise à jour :** 2026-09-17 — parrainage (programme Ambassadeur) : `GET/POST /referrals` + écran mobile « Referral ». Historique — appels : l'appel sortant initie réellement la session serveur (REST `POST /calls/start`), l'overlay d'appel entrant s'affiche chez le destinataire ; enregistrement : chunks mp4 écrits sur disque (`call_recordings/`), fini le `MediaRecorder` `-5`, et suppression de la reconfiguration audio (`audioProfileMusicHighQualityStereo` + game streaming) qui coupait le son dans l'appel et dans l'enregistrement.
 
 ## Périmètre
 

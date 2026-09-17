@@ -9,6 +9,7 @@ import com.zennyt.engagement.domain.repository.SubscriptionRepository;
 import com.zennyt.engagement.domain.vo.PurchaseKind;
 import com.zennyt.engagement.domain.vo.StorePlatform;
 import com.zennyt.engagement.domain.vo.SubscriptionStatus;
+import com.zennyt.shared.application.exception.ConflictException;
 import com.zennyt.shared.application.exception.NotFoundException;
 import org.junit.jupiter.api.Test;
 
@@ -77,11 +78,27 @@ class VerifyPurchaseUseCaseTest {
 
     @Test
     void aReplayedTransactionIsIdempotent() {
-        when(purchases.existsByTransactionId("tx-3")).thenReturn(true);
+        when(purchases.findByTransactionId("tx-3")).thenReturn(Optional.of(purchaseOf(USER)));
 
         var result = useCase.execute(USER, "recruiter_pro_monthly", StorePlatform.APPLE, "r", "tx-3");
 
         assertThat(result.purchase()).isNull();
         verify(verifier, never()).verify(any(), any(), any(), any());
+    }
+
+    @Test
+    void aReplayedTransactionBelongingToAnotherUserConflicts() {
+        when(purchases.findByTransactionId("tx-4"))
+            .thenReturn(Optional.of(purchaseOf(UUID.randomUUID())));
+
+        assertThatThrownBy(() -> useCase.execute(USER, "recruiter_pro_monthly", StorePlatform.APPLE,
+            "r", "tx-4"))
+            .isInstanceOf(ConflictException.class);
+        verify(verifier, never()).verify(any(), any(), any(), any());
+    }
+
+    private static StorePurchase purchaseOf(UUID userId) {
+        return StorePurchase.verified(userId, "recruiter_pro_monthly", PurchaseKind.SUBSCRIPTION,
+            StorePlatform.APPLE, "tx", Instant.now());
     }
 }

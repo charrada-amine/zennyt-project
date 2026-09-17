@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Year;
 import java.time.YearMonth;
 import java.util.UUID;
 
@@ -16,6 +17,9 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class SaveWalletCardUseCase {
+
+    /** PROVISOIRE — à valider : horizon maximal d'expiration d'une carte (années). */
+    private static final int MAX_CARD_EXPIRY_YEARS_AHEAD = 25;
 
     private final WalletRepository wallets;
 
@@ -28,6 +32,12 @@ public class SaveWalletCardUseCase {
         }
         if (expiryMonth < 1 || expiryMonth > 12) {
             throw new IllegalArgumentException("Mois d'expiration invalide");
+        }
+        // Bornage explicite de l'année : sans lui, une valeur énorme passe la
+        // validation puis déborde l'INTEGER PostgreSQL (ou YearMonth) → 500.
+        int currentYear = Year.now().getValue();
+        if (expiryYear < currentYear || expiryYear > currentYear + MAX_CARD_EXPIRY_YEARS_AHEAD) {
+            throw new IllegalArgumentException("Année d'expiration invalide");
         }
         if (YearMonth.of(expiryYear, expiryMonth).isBefore(YearMonth.now())) {
             throw new IllegalArgumentException("Carte expirée");

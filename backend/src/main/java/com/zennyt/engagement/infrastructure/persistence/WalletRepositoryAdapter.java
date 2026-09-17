@@ -25,6 +25,13 @@ public class WalletRepositoryAdapter implements WalletRepository {
     }
 
     @Override
+    public Optional<Wallet> findWalletForUpdate(UUID userId) {
+        // Le verrou pessimiste vit dans JpaWalletRepository (SELECT ... FOR UPDATE).
+        return wallets.findForUpdateByUserId(userId).map(e -> new Wallet(
+            e.getUserId(), e.getBalanceCents(), e.getCurrency(), e.getUpdatedAt()));
+    }
+
+    @Override
     public Wallet saveWallet(Wallet wallet) {
         WalletEntity saved = wallets.save(new WalletEntity(
             wallet.userId(), wallet.balanceCents(), wallet.currency(), wallet.updatedAt()));

@@ -47,6 +47,26 @@ class InviteReferralUseCaseTest {
     }
 
     @Test
+    void rejectsInvitesAtThePendingLimit() {
+        when(referrals.countByReferrerUserIdAndStatus(REFERRER, ReferralStatus.INVITED))
+            .thenReturn(100L);
+
+        assertThatThrownBy(() -> useCase.execute(REFERRER, "friend@example.com"))
+            .isInstanceOf(ConflictException.class);
+        verify(referrals, never()).save(any());
+    }
+
+    @Test
+    void acceptsAnInviteBelowThePendingLimit() {
+        when(referrals.countByReferrerUserIdAndStatus(REFERRER, ReferralStatus.INVITED))
+            .thenReturn(99L);
+        when(referrals.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        assertThat(useCase.execute(REFERRER, "friend@example.com").status())
+            .isEqualTo(ReferralStatus.INVITED);
+    }
+
+    @Test
     void rejectsAnInvalidEmail() {
         assertThatThrownBy(() -> useCase.execute(REFERRER, "not-an-email"))
             .isInstanceOf(IllegalArgumentException.class);

@@ -3,8 +3,8 @@ import 'package:equatable/equatable.dart';
 class WalletCard extends Equatable {
   final String last4;
   final String brand;
-  final int expiryMonth;
-  final int expiryYear;
+  final int? expiryMonth;
+  final int? expiryYear;
   final String cardholderName;
 
   const WalletCard({
@@ -16,14 +16,18 @@ class WalletCard extends Equatable {
   });
 
   String get masked => '•••• $last4';
-  String get expiryDisplay =>
-      '${expiryMonth.toString().padLeft(2, '0')}/${(expiryYear % 100).toString().padLeft(2, '0')}';
+  String? get expiryDisplay {
+    final month = expiryMonth;
+    final year = expiryYear;
+    if (month == null || year == null) return null;
+    return '${month.toString().padLeft(2, '0')}/${(year % 100).toString().padLeft(2, '0')}';
+  }
 
   factory WalletCard.fromJson(Map<String, dynamic> json) => WalletCard(
         last4: json['last4'] as String? ?? '',
         brand: json['brand'] as String? ?? 'UNKNOWN',
-        expiryMonth: (json['expiryMonth'] as num?)?.toInt() ?? 1,
-        expiryYear: (json['expiryYear'] as num?)?.toInt() ?? 0,
+        expiryMonth: (json['expiryMonth'] as num?)?.toInt(),
+        expiryYear: (json['expiryYear'] as num?)?.toInt(),
         cardholderName: json['cardholderName'] as String? ?? '',
       );
 

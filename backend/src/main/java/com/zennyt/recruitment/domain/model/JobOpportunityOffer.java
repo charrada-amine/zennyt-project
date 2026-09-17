@@ -1,6 +1,7 @@
 package com.zennyt.recruitment.domain.model;
 
 import com.zennyt.recruitment.domain.event.JobOpportunityOfferSentEvent;
+import com.zennyt.recruitment.domain.event.JobOpportunityOfferCancelledEvent;
 import com.zennyt.recruitment.domain.event.JobOpportunityOfferConfirmedEvent;
 import com.zennyt.recruitment.domain.vo.JobOpportunityStatus;
 import com.zennyt.recruitment.domain.vo.SalaryRange;
@@ -96,6 +97,7 @@ public class JobOpportunityOffer extends AggregateRoot {
             throw new IllegalStateException("La période d'essai est terminée, le recrutement est définitif");
         }
         this.status = JobOpportunityStatus.CANCELLED;
+        registerEvent(JobOpportunityOfferCancelledEvent.of(id, recruiterId, candidateId, jobOfferId));
     }
 
     /** Fin de la période d'essai (3 mois après la confirmation). */

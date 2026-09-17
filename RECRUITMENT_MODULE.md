@@ -1,6 +1,6 @@
 # Module Recruitment
 
-**Dernière mise à jour :** 2026-09-11
+**Dernière mise à jour :** 2026-09-16
 
 ## 1. Rôle du module
 
@@ -380,6 +380,7 @@ PENDING_APPROVAL → APPROVED
 | `recruitment.test_result.completed` | Signale un résultat de test finalisé |
 | `recruitment.opportunity_offer.sent` | Signale une opportunité envoyée |
 | `recruitment.opportunity_offer.confirmed` | Signale sa confirmation |
+| `recruitment.opportunity_offer.cancelled` | Signale l'annulation d'un recrutement confirmé par le recruteur |
 | `recruitment.identity_verification.requested` | Demande un traitement anti-fraude |
 | `recruitment.payment.confirmed` | Autorise le futur déblocage de la visioconférence |
 | `recruitment.otp.requested.v1` | Demande la livraison éphémère d'un OTP |
@@ -740,3 +741,36 @@ GROQ_API_KEY=<optionnel>
     mobile, `FitsRepository.searchCandidates` alimente l'onglet Search recruteur quand
     aucune offre n'est active (les scores de fit ne s'affichent alors pas — pas d'offre de
     référence).
+
+15. 2026-09-16 — Correctifs de revue recruitment (5 constats, sans changement de
+    route ni de migration) :
+    - **Devise salaire validée** — `salaryCurrency` n'est plus une chaîne libre :
+      nouveau VO domaine `SalaryCurrency` (EUR/USD/GBP/MAD/TND, défaut EUR,
+      aligné sur la contrainte CHECK de V79). Le contrat OpenAPI déclare
+      désormais l'enum `SalaryCurrency` (référencé par `JobOffer`,
+      `JobOfferCreate`, `JobOfferSummary`, `HiredCandidate`) ; la validation
+      serveur (create/replace via `JobOffer.update`/`rehydrate`) renvoie 400 sur
+      toute valeur hors référentiel, sans doublon de logique. Parité
+      contrat↔domaine verrouillée par `ApiContractEnumParityTest`. Tests :
+      `SalaryCurrencyValidationTest` (5).
+    - **Recherche candidats durcie** — `searchCandidates` utilise le pattern
+      `CAST(:q AS string)` (même correctif que `JpaJobOfferRepository.search`,
+      évite l'inférence `bytea` sur paramètres null sous PostgreSQL), tri
+      déterministe (`lastEventAt DESC, publicUserId ASC`), bornes
+      page/taille appliquées dans `SearchCandidatesUseCase` (page ≥ 0,
+      1 ≤ size ≤ 100, aligné contrat) ; wildcards `%`/`_` conservés (comportement
+      LIKE existant conservé par cohérence avec la recherche d'offres).
+      `countSearchCandidates` supprimé : code mort (aucun appelant — la page
+      renvoie une liste simple). Tests : `SearchCandidatesUseCaseTest` (5).
+    - **Annulation de recrutement = événement** — `cancel()` enregistre
+      `JobOpportunityOfferCancelledEvent` (`recruitment.opportunity_offer.cancelled`),
+      publié après persistance par `CancelHireUseCase` (même pattern que les
+      autres use cases). Contrat : `422` documenté sur
+      `POST /hired-candidates/{id}/cancel` (période d'essai terminée) — le
+      handler global mappe déjà `IllegalStateException` → 422. Tests :
+      assertion de l'événement émis dans `CancelHireUseCaseTest`.
+    - **Hired Candidates** — lookup acteurs par lot (`findByIds`) dans la liste,
+      plus un aller-retour par ligne (N+1 supprimé).
+    - Vérifié : `./mvnw test` recruitment (287 tests, 0 échec), ArchUnit et
+      parité enum vertes sous JDK 21. Échec préexistant hors périmètre :
+      `IdentitySecurityAnnotationTest` (module identity, non touché).

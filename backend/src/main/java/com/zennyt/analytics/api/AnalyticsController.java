@@ -1,6 +1,7 @@
 package com.zennyt.analytics.api;
 
 import com.zennyt.analytics.application.AnalyticsQueryService;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -40,7 +41,9 @@ public class AnalyticsController {
     record JobStatsResponse(UUID jobId, int views, int applications, Double conversionRate,
                             List<ViewPointResponse> viewsTimeline) {}
 
+    /** Réservé aux candidats/étudiants : le contrat déclare 403 pour les autres rôles. */
     @GetMapping("/candidate/me")
+    @PreAuthorize("hasAnyRole('CANDIDATE', 'STUDENT')")
     public CandidateInsightsResponse candidateInsights(Authentication authentication) {
         var insights = analytics.candidateInsights(subject(authentication));
         return new CandidateInsightsResponse(insights.profileViews(),
@@ -48,16 +51,20 @@ public class AnalyticsController {
             insights.applicationsByStatus(), insights.profileCompleteness());
     }
 
+    /** Réservé aux recruteurs : le contrat déclare 403 pour les autres rôles. */
     @GetMapping("/recruiter/me")
+    @PreAuthorize("hasRole('RECRUITER')")
     public RecruiterStatsResponse recruiterStats(Authentication authentication) {
         var stats = analytics.recruiterStats(subject(authentication));
         return new RecruiterStatsResponse(stats.jobsPosted(), stats.activeJobs(),
             stats.totalApplications(), stats.avgResponseTimeHours(), stats.responseRate());
     }
 
+    /** Réservé au recruteur propriétaire de l'offre (service : 404 sinon). */
     @GetMapping("/jobs/{jobId}")
-    public JobStatsResponse jobStats(@PathVariable UUID jobId) {
-        var stats = analytics.jobStats(jobId);
+    @PreAuthorize("hasRole('RECRUITER')")
+    public JobStatsResponse jobStats(@PathVariable UUID jobId, Authentication authentication) {
+        var stats = analytics.jobStats(subject(authentication), jobId);
         return new JobStatsResponse(stats.jobId(), stats.views(), stats.applications(),
             stats.conversionRate(),
             stats.viewsTimeline().stream()

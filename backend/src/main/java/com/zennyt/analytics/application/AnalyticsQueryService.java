@@ -1,6 +1,7 @@
 package com.zennyt.analytics.application;
 
 import com.zennyt.analytics.domain.repository.AnalyticsReadRepository;
+import com.zennyt.shared.application.exception.NotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -64,7 +65,17 @@ public class AnalyticsQueryService {
             null, null);
     }
 
-    public JobStats jobStats(UUID jobId) {
+    /**
+     * Stats d'une offre, réservées à son recruteur propriétaire : une offre
+     * inconnue ou appartenant à un tiers est un 404 (on ne révèle pas
+     * l'existence d'une offre à un tiers — contrat §GET /jobs/{jobId}).
+     */
+    public JobStats jobStats(UUID callerId, UUID jobId) {
+        UUID ownerId = read.findRecruiterIdForOffer(jobId)
+            .orElseThrow(() -> new NotFoundException("Offre introuvable"));
+        if (!ownerId.equals(callerId)) {
+            throw new NotFoundException("Offre introuvable");
+        }
         int applications = (int) read.countApplicationsForOffer(jobId);
         return new JobStats(jobId, 0, applications, null, List.of());
     }

@@ -66,13 +66,30 @@ class AnalyticsQueryServiceTest {
 
     @Test
     void jobStatsCountApplicationsAndLeaveUntrackedViewsAtZero() {
+        when(read.findRecruiterIdForOffer(OFFER)).thenReturn(java.util.Optional.of(RECRUITER));
         when(read.countApplicationsForOffer(OFFER)).thenReturn(7L);
 
-        var stats = service.jobStats(OFFER);
+        var stats = service.jobStats(RECRUITER, OFFER);
 
         assertThat(stats.applications()).isEqualTo(7);
         assertThat(stats.views()).isZero();
         assertThat(stats.conversionRate()).isNull();
         assertThat(stats.viewsTimeline()).isEmpty();
+    }
+
+    @Test
+    void jobStatsOfAnotherRecruiterAreNotFound() {
+        when(read.findRecruiterIdForOffer(OFFER)).thenReturn(java.util.Optional.of(UUID.randomUUID()));
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.jobStats(RECRUITER, OFFER))
+            .isInstanceOf(com.zennyt.shared.application.exception.NotFoundException.class);
+    }
+
+    @Test
+    void unknownJobIsNotFound() {
+        when(read.findRecruiterIdForOffer(OFFER)).thenReturn(java.util.Optional.empty());
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.jobStats(RECRUITER, OFFER))
+            .isInstanceOf(com.zennyt.shared.application.exception.NotFoundException.class);
     }
 }

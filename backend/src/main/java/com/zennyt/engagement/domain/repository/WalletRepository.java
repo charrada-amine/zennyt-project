@@ -11,6 +11,13 @@ import java.util.UUID;
 public interface WalletRepository {
     Optional<Wallet> findWallet(UUID userId);
 
+    /**
+     * Portefeuille chargé avec verrou pessimiste en écriture — obligatoire pour
+     * tout débit : deux retraits concurrents ne peuvent pas lire le même solde
+     * et double-dépenser.
+     */
+    Optional<Wallet> findWalletForUpdate(UUID userId);
+
     Wallet saveWallet(Wallet wallet);
 
     List<WalletTransaction> findTransactions(UUID userId);

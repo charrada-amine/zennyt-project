@@ -10,19 +10,24 @@ import com.zennyt.engagement.domain.repository.SubscriptionRepository;
 import com.zennyt.engagement.domain.vo.PlanPeriod;
 import com.zennyt.engagement.domain.vo.PurchaseKind;
 import com.zennyt.engagement.domain.vo.StorePlatform;
+import com.zennyt.shared.application.exception.ConflictException;
 import com.zennyt.shared.application.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
  * Cas d'usage : enregistrer un achat après vérification auprès du store.
  *
- * <p>Idempotent par identifiant de transaction : un rejeu ne crée pas de doublon.
+ * <p>Idempotent par identifiant de transaction : un rejeu par le **même**
+ * utilisateur ne crée pas de doublon. Un identifiant de transaction déjà
+ * enregistré pour un **autre** utilisateur est un rejeu inter-comptes → 409.
  * Un abonnement met à jour `subscriptions` (échéance +30 jours) ; un achat unique
  * (consommable) n'enregistre qu'un achat.
  */
@@ -41,12 +46,20 @@ public class VerifyPurchaseUseCase {
 
     @Transactional
     public Result execute(UUID userId, String productId, StorePlatform store, String receipt,
-                          String transactionId) {
+                           String transactionId) {
         Plan plan = PlanCatalog.byCode(productId)
             .orElseThrow(() -> new NotFoundException("Produit inconnu : " + productId));
 
-        if (transactionId != null && purchases.existsByTransactionId(transactionId)) {
-            return new Result(subscriptions.findByUserId(userId).orElse(null), null);
+        if (transactionId != null) {
+            Optional<StorePurchase> existing = purchases.findByTransactionId(transactionId);
+            if (existing.isPresent()) {
+                if (!existing.get().userId().equals(userId)) {
+                    // Rejeu croisé : la transaction appartient à un autre compte.
+                    throw new ConflictException(
+                        "Cette transaction appartient déjà à un autre utilisateur");
+                }
+                return new Result(subscriptions.findByUserId(userId).orElse(null), null);
+            }
         }
 
         var verified = verifier.verify(store, productId, receipt, transactionId);
@@ -56,8 +69,17 @@ public class VerifyPurchaseUseCase {
 
         PurchaseKind kind = plan.period() == PlanPeriod.MONTHLY
             ? PurchaseKind.SUBSCRIPTION : PurchaseKind.CONSUMABLE;
-        StorePurchase purchase = purchases.save(StorePurchase.verified(userId, productId, kind,
-            store, transactionId, verified.purchasedAt()));
+        StorePurchase purchase;
+        try {
+            purchase = purchases.save(StorePurchase.verified(userId, productId, kind,
+                store, transactionId, verified.purchasedAt()));
+        } catch (DataIntegrityViolationException race) {
+            // Deux appels concurrents sur le même transactionId : l'unique
+            // contrainte (`transaction_id`) a gagné la course → 409 déterministe
+            // plutôt qu'un 500 brut.
+            throw new ConflictException(
+                "Cette transaction est déjà enregistrée par un autre utilisateur");
+        }
 
         Subscription subscription;
         if (kind == PurchaseKind.SUBSCRIPTION) {

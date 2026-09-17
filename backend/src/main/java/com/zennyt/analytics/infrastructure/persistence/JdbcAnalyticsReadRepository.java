@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @Component
@@ -73,5 +74,14 @@ public class JdbcAnalyticsReadRepository implements AnalyticsReadRepository {
                 + "WHERE job_offer_id = ? AND kind = 'INTERESTED'",
             Long.class, jobOfferId);
         return count == null ? 0 : count;
+    }
+
+    @Override
+    public java.util.Optional<UUID> findRecruiterIdForOffer(UUID jobOfferId) {
+        return jdbc.query(
+            "SELECT recruiter_id FROM analytics.job_offer_projection WHERE job_offer_id = ?",
+            rs -> rs.next() ? Optional.of(rs.getObject("recruiter_id", UUID.class))
+                : Optional.empty(),
+            jobOfferId);
     }
 }

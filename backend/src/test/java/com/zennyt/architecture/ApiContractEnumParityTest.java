@@ -4,6 +4,7 @@ import com.zennyt.recruitment.domain.vo.ContractType;
 import com.zennyt.recruitment.domain.vo.ExperienceLevel;
 import com.zennyt.recruitment.domain.vo.HardSkillsAlertLevel;
 import com.zennyt.recruitment.domain.vo.JobProfileType;
+import com.zennyt.recruitment.domain.vo.SalaryCurrency;
 import com.zennyt.recruitment.domain.vo.TypeEvaluationHard;
 import com.zennyt.recruitment.domain.vo.WorkplaceType;
 import org.junit.jupiter.api.DisplayName;
@@ -58,6 +59,7 @@ class ApiContractEnumParityTest {
         assertContractEnumMatches("TypeEvaluationHard", TypeEvaluationHard.values());
         assertContractEnumMatches("ContractType", ContractType.values());
         assertContractEnumMatches("WorkplaceType", WorkplaceType.values());
+        assertContractEnumMatches("SalaryCurrency", SalaryCurrency.values());
     }
 
     private void assertContractEnumMatches(String schemaName, Enum<?>[] javaValues) throws IOException {

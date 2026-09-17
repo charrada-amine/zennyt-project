@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 
+import 'package:zennyt/features/billing/data/store_iap_service.dart';
 import 'package:zennyt/features/billing/domain/entities/billing.dart';
 import 'package:zennyt/features/billing/presentation/providers/billing_providers.dart';
 import 'package:zennyt/shared/widgets/custom_app_bar.dart';
@@ -20,6 +21,7 @@ class PlansScreen extends ConsumerStatefulWidget {
 class _PlansScreenState extends ConsumerState<PlansScreen> {
   List<ProductDetails> _products = const [];
   bool _loadingProducts = false;
+  bool _purchasing = false;
 
   @override
   void initState() {
@@ -57,10 +59,17 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
       _toast('This product is not available in the store yet.');
       return;
     }
-    await service.purchase(plan, product);
-    _toast('Purchase started — finish it in the store sheet.');
-    // The purchase stream verifies the receipt server-side; refresh shortly after.
-    await Future<void>.delayed(const Duration(seconds: 3));
+    setState(() => _purchasing = true);
+    try {
+      await service.purchase(plan, product);
+    } on PurchaseCanceledException {
+      return;
+    } catch (_) {
+      _toast('Purchase could not be verified yet. It will be retried automatically.');
+      return;
+    } finally {
+      if (mounted) setState(() => _purchasing = false);
+    }
     if (mounted) ref.read(mySubscriptionProvider.notifier).refresh();
   }
 
@@ -110,6 +119,7 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                 _PlanCard(
                   plan: plan,
                   active: subscription?.planCode == plan.code && subscription!.isActive,
+                  busy: _purchasing,
                   onBuy: () => _buy(plan),
                 ),
               const SizedBox(height: 8),
@@ -160,8 +170,14 @@ class _ActiveBanner extends StatelessWidget {
 class _PlanCard extends StatelessWidget {
   final BillingPlan plan;
   final bool active;
+  final bool busy;
   final VoidCallback onBuy;
-  const _PlanCard({required this.plan, required this.active, required this.onBuy});
+  const _PlanCard({
+    required this.plan,
+    required this.active,
+    required this.busy,
+    required this.onBuy,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -208,7 +224,7 @@ class _PlanCard extends StatelessWidget {
               ),
               const Spacer(),
               FilledButton(
-                onPressed: active ? null : onBuy,
+                onPressed: active || busy ? null : onBuy,
                 style: FilledButton.styleFrom(
                   backgroundColor: const Color(0xFF11428D),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

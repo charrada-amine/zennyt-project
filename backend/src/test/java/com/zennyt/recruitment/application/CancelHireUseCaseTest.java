@@ -23,7 +23,9 @@ class CancelHireUseCaseTest {
     private static final UUID RECRUITER = UUID.randomUUID();
 
     private final JobOpportunityOfferRepository offers = mock(JobOpportunityOfferRepository.class);
-    private final CancelHireUseCase useCase = new CancelHireUseCase(offers);
+    private final org.springframework.context.ApplicationEventPublisher events =
+        mock(org.springframework.context.ApplicationEventPublisher.class);
+    private final CancelHireUseCase useCase = new CancelHireUseCase(offers, events);
 
     private JobOpportunityOffer confirmed(UUID recruiter, Instant respondedAt) {
         return JobOpportunityOffer.rehydrate(UUID.randomUUID(), recruiter, UUID.randomUUID(),
@@ -40,6 +42,13 @@ class CancelHireUseCaseTest {
         JobOpportunityOffer cancelled = useCase.execute(RECRUITER, offer.id());
 
         assertThat(cancelled.status()).isEqualTo(JobOpportunityStatus.CANCELLED);
+        org.mockito.Mockito.verify(events).publishEvent(org.mockito.ArgumentMatchers.<Object>argThat(event ->
+            event instanceof com.zennyt.recruitment.domain.event.JobOpportunityOfferCancelledEvent cancelledEvent
+                && cancelledEvent.offerId().equals(offer.id())
+                && cancelledEvent.recruiterId().equals(RECRUITER)
+                && cancelledEvent.candidateId().equals(offer.candidateId())
+                && cancelledEvent.jobOfferId().equals(offer.jobOfferId())
+                && cancelledEvent.eventType().equals("recruitment.opportunity_offer.cancelled")));
     }
 
     @Test

@@ -19,10 +19,17 @@ import java.util.UUID;
  * solde est insuffisant ({@link IllegalArgumentException} → 400 côté API). Pas de
  * PSP réel : l'écriture matérialise le retrait, le virement bancaire reste à
  * intégrer.
+ *
+ * <p>Le portefeuille est chargé avec verrou pessimiste en écriture
+ * (`findWalletForUpdate`) : deux retraits concurrents ne peuvent pas lire le
+ * même solde et double-dépenser.
  */
 @Service
 @RequiredArgsConstructor
 public class WithdrawUseCase {
+
+    /** PROVISOIRE — à valider : plafond d'un retrait, en euros, avant tout contact PSP. */
+    private static final BigDecimal MAX_WITHDRAW_AMOUNT_EUR = new BigDecimal("1000000");
 
     private final WalletRepository wallets;
 
@@ -31,8 +38,13 @@ public class WithdrawUseCase {
         if (amount == null || amount.signum() <= 0) {
             throw new IllegalArgumentException("Montant invalide");
         }
-        long cents = amount.movePointRight(2).setScale(0, RoundingMode.HALF_UP).longValueExact();
-        Wallet wallet = wallets.findWallet(userId).orElseGet(() -> Wallet.empty(userId));
+        if (amount.compareTo(MAX_WITHDRAW_AMOUNT_EUR) > 0) {
+            throw new IllegalArgumentException("Montant supérieur au plafond de retrait");
+        }
+        // FLOOR, jamais HALF_UP : on n'arrondit JAMAIS un retrait au centime
+        // supérieur — sinon l'utilisateur retirerait plus que demandé.
+        long cents = amount.movePointRight(2).setScale(0, RoundingMode.FLOOR).longValueExact();
+        Wallet wallet = wallets.findWalletForUpdate(userId).orElseGet(() -> Wallet.empty(userId));
         Wallet debited = wallets.saveWallet(wallet.debit(cents, Instant.now()));
         wallets.saveTransaction(WalletTransaction.of(userId, -cents, wallet.currency(),
             WalletTransactionKind.WITHDRAWAL, "Withdrawal"));

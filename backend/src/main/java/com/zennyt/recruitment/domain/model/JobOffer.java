@@ -105,7 +105,7 @@ public class JobOffer extends AggregateRoot {
         offer.hiringContactId = hiringContactId;
         offer.salaryMin = salaryMin;
         offer.salaryMax = salaryMax;
-        offer.salaryCurrency = salaryCurrency == null ? "EUR" : salaryCurrency;
+        offer.salaryCurrency = SalaryCurrency.fromNullable(salaryCurrency).name();
         offer.salaryPeriod = salaryPeriod == null ? SalaryPeriod.MONTHLY : salaryPeriod;
         offer.responsibilities = responsibilities;
         offer.minimumQualifications = minimumQualifications;
@@ -138,11 +138,12 @@ public class JobOffer extends AggregateRoot {
                        UUID assessmentId, UUID jobPositionId,
                        boolean openToInternational,
                        String salaryCurrency, SalaryPeriod salaryPeriod) {
+        String validatedCurrency = SalaryCurrency.fromNullable(salaryCurrency).name();
         this.title = title;
         this.location = location;
         this.salaryMin = salaryMin;
         this.salaryMax = salaryMax;
-        this.salaryCurrency = salaryCurrency == null ? "EUR" : salaryCurrency;
+        this.salaryCurrency = validatedCurrency;
         this.salaryPeriod = salaryPeriod == null ? SalaryPeriod.MONTHLY : salaryPeriod;
         this.contractType = contractType;
         this.workplaceType = workplaceType;

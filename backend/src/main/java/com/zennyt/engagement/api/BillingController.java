@@ -8,7 +8,6 @@ import com.zennyt.engagement.api.security.EngagementAuthenticated;
 import com.zennyt.engagement.application.usecase.GetSubscriptionUseCase;
 import com.zennyt.engagement.application.usecase.ListPlansUseCase;
 import com.zennyt.engagement.application.usecase.VerifyPurchaseUseCase;
-import com.zennyt.engagement.domain.vo.StorePlatform;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -49,7 +48,7 @@ public class BillingController {
     public PurchaseResultResponse verify(@Valid @RequestBody VerifyPurchaseRequest request,
                                          Principal principal) {
         return PurchaseResultResponse.from(verifyPurchase.execute(actor(principal),
-            request.productId(), StorePlatform.valueOf(request.store()), request.receipt(),
+            request.productId(), request.store(), request.receipt(),
             request.transactionId()));
     }
 

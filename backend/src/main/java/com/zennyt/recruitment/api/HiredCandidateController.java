@@ -4,6 +4,7 @@ import com.zennyt.recruitment.api.security.RecruiterOnly;
 import com.zennyt.recruitment.application.usecase.CancelHireUseCase;
 import com.zennyt.recruitment.application.usecase.ListHiredCandidatesUseCase;
 import com.zennyt.recruitment.domain.model.JobOpportunityOffer;
+import com.zennyt.recruitment.domain.model.RecruitmentActor;
 import com.zennyt.recruitment.domain.repository.RecruitmentActorRepository;
 import com.zennyt.recruitment.domain.vo.JobOpportunityStatus;
 import org.springframework.web.bind.annotation.*;
@@ -12,7 +13,10 @@ import java.security.Principal;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Recrutements confirmés du recruteur (maquette 258 « Hired Candidates ») :
@@ -61,12 +65,17 @@ public class HiredCandidateController {
     public List<HiredCandidateResponse> list(Principal principal) {
         UUID recruiterId = UUID.fromString(principal.getName());
         Instant now = Instant.now();
-        return listHiredCandidates.execute(recruiterId).stream()
+        var offers = listHiredCandidates.execute(recruiterId);
+        if (offers.isEmpty()) return List.of();
+        var actorsById = actors.findByIds(offers.stream()
+                .map(JobOpportunityOffer::candidateId).distinct().toList()).stream()
+            .collect(Collectors.toMap(RecruitmentActor::publicUserId, Function.identity()));
+        return offers.stream()
             .map(offer -> {
-                var actor = actors.findById(offer.candidateId());
+                var actor = actorsById.get(offer.candidateId());
                 return HiredCandidateResponse.from(offer,
-                    actor.map(a -> a.fullName()).orElse(null),
-                    actor.map(a -> a.avatarUrl()).orElse(null), now);
+                    actor == null ? null : actor.fullName(),
+                    actor == null ? null : actor.avatarUrl(), now);
             })
             .toList();
     }

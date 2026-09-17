@@ -2,6 +2,7 @@ package com.zennyt.engagement.infrastructure.persistence;
 
 import com.zennyt.engagement.domain.model.Referral;
 import com.zennyt.engagement.domain.repository.ReferralRepository;
+import com.zennyt.engagement.domain.vo.ReferralStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -31,6 +32,11 @@ public class ReferralRepositoryAdapter implements ReferralRepository {
     @Override
     public boolean existsByReferrerUserIdAndInviteeEmail(UUID referrerUserId, String inviteeEmail) {
         return jpa.existsByReferrerUserIdAndInviteeEmail(referrerUserId, inviteeEmail);
+    }
+
+    @Override
+    public long countByReferrerUserIdAndStatus(UUID referrerUserId, ReferralStatus status) {
+        return jpa.countByReferrerUserIdAndStatus(referrerUserId, status);
     }
 
     private Referral toDomain(ReferralEntity e) {
