@@ -211,9 +211,23 @@ latence de décision.
 | Mesure | Rôle |
 |---|---|
 | Cases ouvertes en moyenne, **par condition** | Descriptif |
-| **P(correct) au moment de la décision** | Indice d'**impulsivité de réflexion**. Calculé serveur depuis la disposition réelle — c'est la raison pour laquelle le serveur doit posséder la grille. |
+| **P(correct) au moment de la décision** | Indice d'**impulsivité de réflexion**. Calculé serveur depuis la disposition réelle — c'est la raison pour laquelle le serveur doit posséder la grille. ⚠️ Formule corrigée obligatoire, voir ci-dessous. |
 | **Discrimination entre conditions** | Le joueur échantillonne-t-il **moins** quand échantillonner coûte ? Signal de compétence authentique. |
 | Erreurs | Entre dans le score |
+
+**⚠️ Correction statistique obligatoire sur P(correct).** Bennett, Oldham, Dawson, Parkes, Murawski &
+Yücel (2017, *Biological Psychiatry*, 82(4), e29–e30) établissent que le calcul conventionnel de
+P(correct) — celui de la version CANTAB — **repose sur une inférence statistique incorrecte**, ce qui
+**surestime systématiquement** l'impulsivité de réflexion et gonfle le risque d'erreur de type II. La
+correction est une **formule bayésienne tenant compte de l'ordre dans lequel les cases ont été
+ouvertes**.
+
+L'implémentation doit utiliser la formule corrigée. Le serveur possède déjà tout le nécessaire — la
+disposition réelle et la séquence ordonnée des ouvertures — mais il doit calculer juste.
+
+> **Action bloquante avant implémentation** : obtenir le texte intégral de Bennett et al. (2017) et
+> transcrire la formule exacte. Ne pas la reconstruire par déduction : ce serait précisément l'erreur
+> que l'article dénonce. Ce point est au §9.
 
 ### 4.3 Notation
 
@@ -237,14 +251,33 @@ Un tap sur une échelle de confiance **après chaque décision IST** → 20 juge
 
 | Indicateur | Calcul | Statut |
 |---|---|---|
-| **Biais de calibration** | confiance moyenne − exactitude | Indicateur descriptif fiable |
-| **Sensibilité métacognitive** | **AUROC2** (aire sous la courbe ROC de type 2), sans modèle | Exploratoire, bruité |
+| **Biais de calibration** | confiance moyenne − exactitude | **Conservé**, descriptif, hors score |
+| ~~Sensibilité métacognitive~~ | ~~AUROC2 / meta-d′~~ | **RETIRÉ** — voir ci-dessous |
+
+**Correction du 2026-09-17 — la sensibilité métacognitive est retirée du lot 1.** La première version
+de ce design proposait AUROC2 plutôt que meta-d′ au motif du nombre d'essais. La revue
+bibliographique (voir `docs/PREUVES_SCIENTIFIQUES_JEUX_DECISION.md` §4.2) invalide ce raisonnement sur
+les deux jambes :
+
+1. **AUROC2 n'est pas neutre** : il **dépend de la performance de type 1** — plus l'exactitude baisse,
+   plus la part d'essais devinés monte, plus AUROC2 baisse mécaniquement à bruit métacognitif
+   constant. meta-d′ a été inventé exactement pour corriger ce défaut (Maniscalco & Lau 2012 ;
+   Fleming & Lau 2014). Comme l'exactitude à l'IST varie fortement entre candidats, AUROC2
+   confondrait « bon à la tâche » et « bien calibré ».
+2. **Le nombre d'essais est hors d'atteinte** : Guggenmos (2021, *Neuroscience of Consciousness*,
+   niab040) recommande **un minimum de 400 essais** pour le M-ratio ; en dessous de 400, r ≤ 0,6, et
+   à 60 % d'exactitude la fiabilité tombe à ≈ 0,4 même entre 400 et 600 essais. Nous en avons **20**.
+
+Conséquence : **aucun indicateur de sensibilité métacognitive n'est calculé, stocké ni exposé.** Pas
+relégué en « exploratoire » — retiré. La colonne `auroc2` disparaît de `ist_runs` (§7). Conclusion
+plus large à porter au commanditaire : la sensibilité métacognitive **n'est pas mesurable dans un
+format de 15 minutes**, ce qui est une limite de la mesure et non de l'implémentation.
 
 **Échelle par défaut à implémenter** (⚠️ **PROVISOIRE**, à valider — §9.4) : **4 points**, sans
 point neutre pour éviter le refuge au milieu, mappés sur `0.625 / 0.75 / 0.875 / 1.0` pour le calcul
 du biais (bornes de confiance dans un choix binaire : le hasard vaut 0,5). Libellés provisoires :
 *« au hasard » / « plutôt sûr » / « sûr » / « certain »*. Un jugement non fourni est enregistré
-`null` et exclu des deux indicateurs, sans invalider l'essai IST correspondant.
+`null` et exclu de l'indicateur, sans invalider l'essai IST correspondant.
 
 **Limites assumées.** 20 essais est trop peu pour meta-d′, qui demande ~100+ essais pour se
 stabiliser ; d'où AUROC2, sans ajustement de modèle. Même AUROC2 restera bruité à 20 essais. Le
@@ -341,7 +374,7 @@ games.bart_trials        (run_id FK, trial_index, is_practice, explosion_point,
 games.ist_runs           (session_id PK/FK, protocol_version, seed_source,
                           mean_boxes_fw, mean_boxes_dw, condition_discrimination,
                           mean_p_correct_at_decision, errors, total_earnings,
-                          calibration_bias, auroc2, session_valid, created_at)
+                          calibration_bias, session_valid, created_at)
 games.ist_trials         (run_id FK, trial_index, is_practice, condition,
                           majority_color, chosen_color, correct,
                           boxes_opened, p_correct_at_decision,
@@ -437,9 +470,13 @@ pour la grille 5×5 de l'IST, les dialogues de pause/règles existants.
 2. **Poids du score IST** — exactitude / P(correct) à la décision / discrimination entre conditions.
 3. **Bandes de niveau** des deux jeux.
 4. **Échelle de confiance** — valider ou remplacer le défaut provisoire à 4 points et son mappage
-   `0.625 / 0.75 / 0.875 / 1.0` (§5), les libellés, et confirmer qu'AUROC2 est acceptable à
-   20 essais.
+   `0.625 / 0.75 / 0.875 / 1.0` (§5) et les libellés.
 5. **Seuils de validité de session** par jeu.
+5 bis. **Transcription de la formule corrigée de P(correct)** depuis Bennett et al. (2017), une fois
+   le texte intégral obtenu (§4.2). **Bloquant pour l'implémentation de l'IST**, pas seulement pour
+   sortir du provisoire.
+5 ter. **Confirmation du retrait de la sensibilité métacognitive** (§5) et de la conclusion qu'elle
+   n'est pas atteignable dans un format de 15 minutes.
 
 **Décisions produit à arbitrer :**
 
@@ -506,5 +543,6 @@ Conservé ici pour que les lots suivants n'aient pas à refaire la revue.
 | # | Date | Contenu |
 |---|------|---------|
 | 1 | 2026-09-17 | Création. Inspection de la logique games existante, catalogue des 17 paradigmes de décision évalués, décomposition en 4 lots, design du lot 1 (BART + IST + couche confiance) sous un nouveau `GameType`. Non implémenté. |
+| 2 | 2026-09-17 | Deux corrections issues de la revue bibliographique (`docs/PREUVES_SCIENTIFIQUES_JEUX_DECISION.md`). **(a)** La sensibilité métacognitive est **retirée** du lot 1 : AUROC2 dépend de la performance de type 1, et le M-ratio demande ≥ 400 essais contre 20 disponibles ; colonne `auroc2` supprimée de `ist_runs`. **(b)** P(correct) de l'IST doit suivre la **formule bayésienne corrigée de Bennett et al. (2017)**, le calcul conventionnel étant statistiquement incorrect ; obtention du texte intégral rendue bloquante avant implémentation. Précision du benchmark EV du BART (stratégie fixe optimale `n* = 64`, non clairvoyante) et ajout d'une échelle de confiance par défaut implémentable. |
 
 **Dernière mise à jour** : 2026-09-17

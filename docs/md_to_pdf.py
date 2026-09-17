@@ -16,12 +16,13 @@ import sys
 from pathlib import Path
 
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_LEFT
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
-from reportlab.platypus import (HRFlowable, KeepTogether, Paragraph, SimpleDocTemplate,
-                                Spacer, Table, TableStyle)
+from reportlab.lib.utils import ImageReader
+from reportlab.platypus import (HRFlowable, Image, KeepTogether, Paragraph,
+                                SimpleDocTemplate, Spacer, Table, TableStyle)
 
 BLEU = colors.HexColor("#1B3B7B")
 GRIS_FOND = colors.HexColor("#F1F5F9")
@@ -64,6 +65,8 @@ ST = {
     "entete": ParagraphStyle("entete", parent=S["Normal"], fontSize=8.2, leading=11,
                              textColor=colors.white, fontName="Helvetica-Bold"),
     "pied": ParagraphStyle("pied", parent=S["Normal"], fontSize=8, textColor=GRIS_TEXTE),
+    "legende": ParagraphStyle("legende", parent=S["Normal"], fontSize=8, leading=11,
+                              textColor=GRIS_TEXTE, alignment=TA_CENTER, spaceAfter=10),
 }
 
 # Les emoji ne sont pas rendus par les polices de base : on les traduit.
@@ -77,6 +80,13 @@ EMOJI = {
     "🔧": "[option]", "📋": "[a faire]", "→": "->", "×": "x",
     "≈": "~", "≥": ">=", "≤": "<=", "±": "+/-", "─": "-", "│": "|",
     "┌": "+", "┐": "+", "└": "+", "┘": "+", "▼": "v", "═": "=",
+    # Les polices de base de reportlab sont encodees en WinAnsi : ce qui n'y
+    # figure pas sort en carre noir. Les symboles ci-dessous apparaissent dans
+    # les documents scientifiques (d', meta-d', ecarts-types, renvois).
+    "⛔": "[STOP]", "★": "*", "☆": "o", "≠": "!=", "…": "...",
+    "′": "'", "″": "''", "σ": "sigma", "µ": "u", "↑": "^", "↓": "v",
+    "∑": "Somme", "√": "racine", "∞": "infini", "🟢": "[fait]",
+    "🟠": "[a valider]", "🔴": "[bloque]", "🟡": "[partiel]",
 }
 
 
@@ -85,10 +95,28 @@ def inline(texte):
     for source, cible in EMOJI.items():
         texte = texte.replace(source, cible)
     texte = html.escape(texte)
-    texte = re.sub(r"`([^`]+)`", r'<font face="Courier" size="8.5">\1</font>', texte)
+
+    # Les spans de code sont mis de cote AVANT les regex d'emphase, puis restitues.
+    #
+    # Sans cette mise a l'ecart, une etoile a l'interieur d'un span de code (`n*`,
+    # frequent en notation mathematique) etait lue comme un marqueur d'italique : deux
+    # spans dans la meme phrase produisaient <font><i></font>...</i>, des balises
+    # croisees que le parseur de reportlab refuse en levant une exception. Le contenu
+    # d'un span de code est litteral, aucune emphase ne doit y etre interpretee.
+    spans = []
+
+    def mettre_de_cote(correspondance):
+        spans.append(correspondance.group(1))
+        return f"\x00{len(spans) - 1}\x00"
+
+    texte = re.sub(r"`([^`]+)`", mettre_de_cote, texte)
     texte = re.sub(r"\*\*([^*]+)\*\*", r"<b>\1</b>", texte)
     texte = re.sub(r"(?<!\*)\*([^*]+)\*(?!\*)", r"<i>\1</i>", texte)
     texte = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", texte)   # liens -> libellé seul
+
+    for rang, contenu in enumerate(spans):
+        texte = texte.replace(f"\x00{rang}\x00",
+                              f'<font face="Courier" size="8.5">{contenu}</font>')
     return texte
 
 
@@ -137,9 +165,48 @@ def construire_tableau(lignes, largeur_page):
     return t
 
 
+IMAGE_RE = re.compile(r"^!\[([^\]]*)\]\(([^)]+)\)\s*$")
+
+
+def construire_image(legende, chemin_image, base, largeur_page):
+    """Une image Markdown -> figure centree, mise a l'echelle de la largeur utile.
+
+    Une figure absente ne disparait PAS du document : elle laisse un cadre visible
+    nommant le fichier manquant. Un document de revue scientifique dont une figure
+    s'evapore silencieusement est pire qu'un document qui signale le trou.
+    """
+    chemins = [base / chemin_image, Path(chemin_image)]
+    fichier = next((c for c in chemins if c.is_file()), None)
+
+    if fichier is None:
+        manquant = Table([[Paragraph(
+            f"[figure manquante : {html.escape(str(chemin_image))}]", ST["pied"])]],
+            colWidths=[largeur_page], hAlign="CENTER")
+        manquant.setStyle(TableStyle([
+            ("BOX", (0, 0), (-1, -1), 0.6, ORANGE),
+            ("BACKGROUND", (0, 0), (-1, -1), GRIS_FOND),
+            ("TOPPADDING", (0, 0), (-1, -1), 18),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 18),
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+        ]))
+        elements = [manquant]
+    else:
+        largeur_px, hauteur_px = ImageReader(str(fichier)).getSize()
+        largeur = min(largeur_page, largeur_px)
+        elements = [Image(str(fichier), width=largeur,
+                          height=largeur * hauteur_px / largeur_px)]
+
+    if legende.strip():
+        elements.append(Spacer(1, 4))
+        elements.append(Paragraph(inline(legende.strip()), ST["legende"]))
+
+    return KeepTogether(elements)
+
+
 def convertir(chemin_md, chemin_pdf):
     texte = Path(chemin_md).read_text(encoding="utf-8")
     lignes = texte.split("\n")
+    base = Path(chemin_md).resolve().parent
 
     doc = SimpleDocTemplate(str(chemin_pdf), pagesize=A4,
                             leftMargin=1.8 * cm, rightMargin=1.8 * cm,
@@ -174,6 +241,14 @@ def convertir(chemin_md, chemin_pdf):
                 ("LEFTPADDING", (0, 0), (-1, -1), 8),
             ]))
             flux += [cadre, Spacer(1, 8)]
+            continue
+
+        # Figure : traitee avant inline(), qui reduirait ![alt](chemin) a « !alt ».
+        figure = IMAGE_RE.match(ligne.strip())
+        if figure:
+            flux += [construire_image(figure.group(1), figure.group(2), base, largeur),
+                     Spacer(1, 6)]
+            i += 1
             continue
 
         # Tableau
