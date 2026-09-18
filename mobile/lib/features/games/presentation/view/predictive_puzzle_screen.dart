@@ -675,167 +675,24 @@ class _QueuedMove {
 
 class _PredictiveIntroView extends StatelessWidget {
   const _PredictiveIntroView({required this.onBack, required this.onStart});
-
   final VoidCallback onBack;
   final VoidCallback onStart;
 
   @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: _SquareIconButton(icon: Icons.chevron_left, onTap: onBack),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          Container(
-            height: 300,
-            padding: const EdgeInsets.fromLTRB(22, 22, 18, 20),
-            decoration: BoxDecoration(
-              color: ZennytGamePalette.gameBlue,
-              borderRadius: BorderRadius.circular(28),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x334F46E5),
-                  blurRadius: 28,
-                  offset: Offset(0, 14),
-                ),
-              ],
-            ),
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Positioned(
-                  right: -6,
-                  top: 22,
-                  bottom: 62,
-                  width: 190,
-                  child: Image.asset(
-                    'assets/04 Predictive Puzzle/discs.png',
-                    fit: BoxFit.contain,
-                    alignment: Alignment.bottomCenter,
-                  ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 18,
-                        vertical: 9,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(
-                          AppSpacing.radiusFull,
-                        ),
-                      ),
-                      child: Text(
-                        'Predictive Reasoning',
-                        style: AppTypography.labelMedium.copyWith(
-                          color: ZennytGamePalette.blue,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.base),
-                    const Text(
-                      // Le saut de ligne était placé AU MILIEU du mot
-                      // (« Predict / ive / Puzzle ») : la coupure se voit sur
-                      // n'importe quel appareil. On coupe entre les deux mots.
-                      'Predictive\nPuzzle',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 40,
-                        height: 1.08,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0,
-                      ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      'Plan every move, then\nexecute.',
-                      style: AppTypography.headlineSmall.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        height: 1.18,
-                        letterSpacing: 0,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          Container(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            decoration: BoxDecoration(
-              color: ZennytGamePalette.mist,
-              borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-              border: Border.all(color: ZennytGamePalette.border),
-            ),
-            child: const Row(
-              children: [
-                Expanded(
-                  child: _IntroMeta(label: 'Goal', value: 'Planning'),
-                ),
-                SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: _IntroMeta(
-                    label: 'Duration',
-                    value: '8-10 min',
-                    valueColor: ZennytGamePalette.magenta,
-                  ),
-                ),
-                SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: _IntroMeta(label: 'Format', value: 'Mobile'),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          GamePanel(
-            borderColor: const Color(0xFF9DB7FF),
-            child: Text.rich(
-              TextSpan(
-                children: [
-                  TextSpan(
-                    text: 'Simple rule\n',
-                    style: AppTypography.titleMedium.copyWith(
-                      color: ZennytGamePalette.blue,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0,
-                    ),
-                  ),
-                  TextSpan(
-                    text:
-                        'Sophie moves a growing stack of discs from Tower A to Tower C across 8 levels (3 discs up to 10 discs). Plan the entire sequence upfront - the machine executes exactly what she planned, no corrections allowed.',
-                    style: AppTypography.bodyLarge.copyWith(
-                      color: ZennytGamePalette.muted,
-                      height: 1.25,
-                      letterSpacing: 0,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          GamePrimaryButton(label: 'Start', onPressed: onStart),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => GameWelcomePage(
+    title: 'Predictive Puzzle',
+    logoAsset: 'assets/games icons/Predictive Puzzle transparent.png',
+    mission:
+        'Prépare tes déplacements, puis déplace la tour dans le bon ordre.',
+    contextText:
+        'Prépare ton plan : la machine exécutera tes déplacements sans correction en cours de route.',
+    journey: const ['Prépare', 'Planifie', 'Exécute'],
+    leading: _SquareIconButton(icon: Icons.chevron_left, onTap: onBack),
+    startLabel: 'Start',
+    onStart: onStart,
+  );
 }
 
-/// Les deux règles existantes, avec les composants vectoriels du jeu.
-/// PROVISOIRE — à valider visuellement sur appareil (GAMES_MODULE, décision 70).
 class PredictivePuzzleTutorial extends StatelessWidget {
   const PredictivePuzzleTutorial({
     super.key,
@@ -1825,56 +1682,6 @@ class _SquareIconButton extends StatelessWidget {
           ),
           child: Icon(icon, color: ZennytGamePalette.ink, size: 24),
         ),
-      ),
-    );
-  }
-}
-
-class _IntroMeta extends StatelessWidget {
-  const _IntroMeta({
-    required this.label,
-    required this.value,
-    this.valueColor = ZennytGamePalette.blue,
-  });
-
-  final String label;
-  final String value;
-  final Color valueColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 62,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        border: Border.all(color: ZennytGamePalette.border),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            label,
-            style: AppTypography.labelSmall.copyWith(
-              color: ZennytGamePalette.muted,
-              fontSize: 10,
-              height: 1,
-              letterSpacing: 0,
-            ),
-          ),
-          Text(
-            value,
-            style: AppTypography.titleMedium.copyWith(
-              color: valueColor,
-              fontSize: 16,
-              height: 1.1,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0,
-            ),
-          ),
-        ],
       ),
     );
   }

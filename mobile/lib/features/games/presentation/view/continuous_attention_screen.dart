@@ -7,8 +7,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/audio/sound_service.dart';
 import '../../../../core/router/app_routes.dart';
-import '../../../navigation/presentation/viewmodel/nav_tab_provider.dart';
-import '../../../navigation/presentation/widgets/app_bottom_nav.dart';
 import '../../data/continuous_attention_scoring.dart';
 import '../../domain/config/continuous_attention_config.dart';
 import '../../domain/entities/continuous_attention_metrics.dart';
@@ -208,11 +206,6 @@ class _ContinuousAttentionScreenState
             : 'Practice was interrupted when the app left the active screen.',
       );
     }
-  }
-
-  void _selectMainTab(int index) {
-    ref.read(navTabProvider.notifier).select(index);
-    context.go(AppRoutes.home);
   }
 
   void _setStage(_AttentionStage stage) {
@@ -688,17 +681,10 @@ class _ContinuousAttentionScreenState
 
   @override
   Widget build(BuildContext context) {
-    final showBottomNav =
-        _stage == _AttentionStage.cover ||
-        _stage == _AttentionStage.format ||
-        _stage == _AttentionStage.xTutorial;
     return Scaffold(
       backgroundColor: _stage == _AttentionStage.playing
           ? ZennytGamePalette.gameBlue
           : Colors.white,
-      bottomNavigationBar: showBottomNav
-          ? AppBottomNav(selectedTab: 2, onSelect: _selectMainTab)
-          : null,
       body: SafeArea(
         child: AnimatedSwitcher(
           duration: _reducedMotion

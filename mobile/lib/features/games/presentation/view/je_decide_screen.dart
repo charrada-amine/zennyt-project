@@ -7,35 +7,23 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/audio/sound_service.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_typography.dart';
-import '../../domain/config/decision_config.dart';
 import '../../domain/entities/decision_form.dart';
 import '../../domain/entities/decision_metrics.dart';
 import '../../domain/entities/game_type.dart';
 import '../../domain/entities/mini_game.dart';
 import '../games_controller.dart';
 import '../games_providers.dart';
-import '../../../navigation/presentation/viewmodel/nav_tab_provider.dart';
-import '../../../navigation/presentation/widgets/app_bottom_nav.dart';
 import 'je_decide_gameplay.dart';
 import 'je_decide_results.dart';
 import '../widgets/game_system_components.dart';
 import '../widgets/je_decide_tutorial.dart';
 import '../widgets/zennyt_loader.dart';
 
-/// Durée annoncée sur la fiche d'introduction, en minutes.
-///
-/// Dérivée, pas estimée : chaque question est bornée par
-/// [DecisionConfig.questionTimeLimitS], et la forme en compte
-/// [DecisionConfig.totalItems]. C'est le seul plafond que le code garantisse.
-const int _maxDurationMin =
-    DecisionConfig.totalItems * DecisionConfig.questionTimeLimitS ~/ 60;
-
 const _ink = Color(0xFF28234F);
 const _muted = Color(0xFF7E8DB2);
 const _border = Color(0xFFD8E2F6);
 const _canvas = Color(0xFFF7F8FE);
 const _magenta = Color(0xFFD52E83);
-const _violet = Color(0xFF4E46E8);
 const _softPink = Color(0xFFFFF1F7);
 
 const _welcomeAsset = 'assets/games icons/Je Decide transparent.png';
@@ -149,11 +137,6 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
 
   void _finishResults() => context.go(AppRoutes.games);
 
-  bool get _showBottomNav =>
-      _stage != _DecisionStage.practiceScenario &&
-      _stage != _DecisionStage.gameplay &&
-      _stage != _DecisionStage.results;
-
   ({String eyebrow, String title}) get _headerCopy => switch (_stage) {
     _DecisionStage.welcome => (
       eyebrow: 'Decision Journey',
@@ -191,11 +174,6 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
       case _DecisionStage.results:
         context.go(AppRoutes.games);
     }
-  }
-
-  void _selectMainTab(int index) {
-    ref.read(navTabProvider.notifier).select(index);
-    context.go(AppRoutes.home);
   }
 
   Future<void> _openJourneyMenu() async {
@@ -274,7 +252,6 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
             ? Colors.white
             : _canvas,
         body: SafeArea(
-          bottom: false,
           child: Column(
             children: [
               Padding(
@@ -313,9 +290,6 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
             ],
           ),
         ),
-        bottomNavigationBar: _showBottomNav
-            ? AppBottomNav(selectedTab: 2, onSelect: _selectMainTab)
-            : null,
       ),
     );
   }
@@ -497,161 +471,21 @@ class _HeaderButton extends StatelessWidget {
 
 class _WelcomeView extends StatelessWidget {
   const _WelcomeView({required this.onStart});
-
   final VoidCallback onStart;
 
   @override
-  Widget build(BuildContext context) {
-    final logo = Image.asset(
-      _welcomeAsset,
-      key: const ValueKey('je-decide-welcome-logo'),
-      width: 124,
-      height: 148,
-      fit: BoxFit.contain,
-      filterQuality: FilterQuality.high,
-      excludeFromSemantics: true,
-    );
-    final introduction = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          'Je Décide',
-          style: AppTypography.displayMedium.copyWith(
-            color: Colors.white,
-            fontSize: 30,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Choisis face à des situations du quotidien pour découvrir ton style de décision.',
-          style: AppTypography.bodyLarge.copyWith(
-            color: Colors.white,
-            height: 1.35,
-          ),
-        ),
-      ],
-    );
-    return GameContentFrame(
-      child: _ScrollableStage(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: _violet,
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  if (constraints.maxWidth < 280 ||
-                      MediaQuery.textScalerOf(context).scale(16) > 24) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Center(child: logo),
-                        const SizedBox(height: 16),
-                        introduction,
-                      ],
-                    );
-                  }
-                  return Row(
-                    children: [
-                      Expanded(child: introduction),
-                      const SizedBox(width: 12),
-                      logo,
-                    ],
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Plafond dérivé du nombre d’items et de leur délai ordinaire.
-            const _SurfaceCard(
-              padding: EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-              child: Column(
-                children: [
-                  _InfoRow(
-                    label: 'Durée',
-                    value: 'Jusqu’à $_maxDurationMin min',
-                  ),
-                  _InfoRow(
-                    label: 'Parcours',
-                    value: '${DecisionConfig.totalItems} questions',
-                    divider: false,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'À la fin : un profil en ${DecisionConfig.capabilitiesCount} dimensions. '
-              'Les cotations encore provisoires sont signalées.',
-              style: AppTypography.bodySmall.copyWith(color: _ink, height: 1.4),
-            ),
-            const SizedBox(height: 12),
-            const _PrivacyNote(),
-            const SizedBox(height: 16),
-            GamePrimaryButton(
-              key: const ValueKey('welcome-start'),
-              label: 'Commencer',
-              onPressed: onStart,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  const _InfoRow({
-    required this.label,
-    required this.value,
-    this.divider = true,
-  });
-
-  final String label;
-  final String value;
-  final bool divider;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 5),
-      decoration: BoxDecoration(
-        border: divider
-            ? const Border(bottom: BorderSide(color: _border))
-            : null,
-      ),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 84,
-            child: Text(
-              label,
-              style: AppTypography.bodySmall.copyWith(
-                color: _muted,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: AppTypography.bodyMedium.copyWith(
-                color: _ink,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => GameWelcomePage(
+    title: 'Je Décide',
+    logoAsset: _welcomeAsset,
+    logoKey: const ValueKey('je-decide-welcome-logo'),
+    mission:
+        'Choisis face à des situations du quotidien pour découvrir ton style de décision.',
+    contextText:
+        'Un dilemme, plusieurs possibilités. Explore les compromis entre risques, temps et priorités.',
+    journey: const ['Lis', 'Choisis', 'Découvre'],
+    startKey: const ValueKey('welcome-start'),
+    onStart: onStart,
+  );
 }
 
 class _SelectedMark extends StatelessWidget {
@@ -874,38 +708,6 @@ class _ChoiceCard extends StatelessWidget {
   }
 }
 
-class _PrivacyNote extends StatelessWidget {
-  const _PrivacyNote();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      constraints: const BoxConstraints(minHeight: 60),
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: _border),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.bolt_rounded, color: _magenta, size: 20),
-          const SizedBox(width: 10),
-          Flexible(
-            child: Text(
-              'Tes choix restent privés.',
-              textAlign: TextAlign.center,
-              style: AppTypography.bodyLarge.copyWith(color: _ink),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _SurfaceCard extends StatelessWidget {
   const _SurfaceCard({
     required this.child,
@@ -932,20 +734,6 @@ class _SurfaceCard extends StatelessWidget {
           ),
         ],
       ),
-      child: child,
-    );
-  }
-}
-
-class _ScrollableStage extends StatelessWidget {
-  const _ScrollableStage({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 22),
       child: child,
     );
   }

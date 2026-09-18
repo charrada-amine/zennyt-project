@@ -509,7 +509,6 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
     return switch (_stage) {
       _Stage.cover => _CoverView(
         onStart: () => setState(() => _stage = _Stage.tutorial),
-        onViewRules: () => setState(() => _stage = _Stage.tutorial),
       ),
       _Stage.tutorial => _TutorialView(
         onStart: _startGame,
@@ -835,40 +834,6 @@ class _MagentaButton extends StatelessWidget {
   }
 }
 
-class _WhiteOutlineButton extends StatelessWidget {
-  const _WhiteOutlineButton({required this.label, required this.onPressed});
-
-  final String label;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 56,
-      child: OutlinedButton(
-        // Porte « View rules » sur la cover : même clic que les boutons
-        // partagés, dont ce bouton reprend seulement le style clair.
-        onPressed: () {
-          SoundService.instance.playSfx(GameSfx.buttonClick);
-          onPressed();
-        },
-        style: OutlinedButton.styleFrom(
-          foregroundColor: EmotionalRadarPalette.ink,
-          side: const BorderSide(color: EmotionalRadarPalette.border),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(28),
-          ),
-        ),
-        child: Text(
-          label,
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-        ),
-      ),
-    );
-  }
-}
-
 /// Écran de transition « Preparing next scene… ».
 class _PreparingCard extends StatelessWidget {
   const _PreparingCard();
@@ -922,129 +887,30 @@ class _PreparingCard extends StatelessWidget {
 
 /// Écran de couverture : carte hero violette, pitch, « View rules » / « Start ».
 class _CoverView extends StatelessWidget {
-  const _CoverView({required this.onStart, required this.onViewRules});
-
+  const _CoverView({required this.onStart});
   final VoidCallback onStart;
-  final VoidCallback onViewRules;
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(22, 12, 22, 28),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _BackSquareButton(onTap: () => Navigator.of(context).maybePop()),
-              const SizedBox(height: 20),
-              const _CoverHero(),
-              const SizedBox(height: 22),
-              const Text(
-                'Emotional Radar',
-                style: TextStyle(
-                  fontSize: 30,
-                  fontWeight: FontWeight.w800,
-                  color: EmotionalRadarPalette.ink,
-                ),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'Recognize emotions in real situations.',
-                style: TextStyle(
-                  fontSize: 19,
-                  height: 1.3,
-                  fontWeight: FontWeight.w700,
-                  color: EmotionalRadarPalette.magenta,
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Complete 15 scenes. For each one, choose the dominant emotion '
-                'and its intensity before the response timer ends.',
-                style: TextStyle(
-                  fontSize: 16,
-                  height: 1.45,
-                  color: EmotionalRadarPalette.muted,
-                ),
-              ),
-              const SizedBox(height: 28),
-              _WhiteOutlineButton(label: 'View rules', onPressed: onViewRules),
-              const SizedBox(height: 14),
-              _MagentaButton(label: 'Start tutorial', onPressed: onStart),
-            ],
-          ),
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: Colors.white,
+    body: SafeArea(
+      child: GameWelcomePage(
+        title: 'Emotional Radar',
+        logoAsset: 'assets/games icons/Emotional Radar.png',
+        mission: 'Reconnais l’émotion et son intensité dans chaque situation.',
+        contextText:
+            'Un geste, une expression, une situation : repère ce que ressent la personne et à quel degré.',
+        journey: const ['Observe', 'Identifie', 'Évalue'],
+        leading: _BackSquareButton(
+          onTap: () => Navigator.of(context).maybePop(),
         ),
+        startLabel: 'Start tutorial',
+        onStart: onStart,
       ),
-    );
-  }
+    ),
+  );
 }
 
-/// Carte hero de la couverture (bandeau violet + illustration radar).
-class _CoverHero extends StatelessWidget {
-  const _CoverHero();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(22, 24, 16, 26),
-      decoration: BoxDecoration(
-        color: EmotionalRadarPalette.canvas,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text(
-                  'Emotional management',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                ),
-                SizedBox(height: 26),
-                Text(
-                  'Emotional\nRadar',
-                  style: TextStyle(
-                    fontSize: 34,
-                    height: 1.1,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          // Logo officiel ; tant que l'asset n'est pas exporté, on retombe sur
-          // l'illustration de la catégorie plutôt que d'afficher une zone vide.
-          Image.asset(
-            'assets/games icons/Emotional Radar.png',
-            width: 108,
-            height: 108,
-            fit: BoxFit.contain,
-            errorBuilder: (_, _, _) => Image.asset(
-              'assets/games icons/Emotional Regulation .png',
-              width: 108,
-              height: 108,
-              fit: BoxFit.contain,
-              errorBuilder: (_, _, _) =>
-                  const Icon(Icons.favorite, size: 72, color: Colors.white),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Tutoriel illustré du parcours V2, avant toute session mesurée.
 class _TutorialView extends StatelessWidget {
   const _TutorialView({required this.onStart, required this.onBack});
 

@@ -42,6 +42,177 @@ class GameContentFrame extends StatelessWidget {
   );
 }
 
+/// Accueil des jeux : logo officiel, mission, contexte et aperçu du parcours.
+/// Les règles détaillées restent dans le tutoriel. Les éléments s’adaptent à la
+/// hauteur ; en texte agrandi, le groupe défile ensemble.
+class GameWelcomePage extends StatelessWidget {
+  const GameWelcomePage({
+    super.key,
+    required this.title,
+    required this.logoAsset,
+    required this.mission,
+    required this.onStart,
+    this.leading,
+    this.contextText,
+    this.journey = const [],
+    this.startLabel = 'Commencer',
+    this.startKey,
+    this.logoKey,
+  });
+
+  final String title;
+  final String logoAsset;
+  final String mission;
+  final VoidCallback onStart;
+  final Widget? leading;
+  final String? contextText;
+  final List<String> journey;
+  final String startLabel;
+  final Key? startKey;
+  final Key? logoKey;
+
+  @override
+  Widget build(BuildContext context) => GameContentFrame(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (leading != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 18, 24, 18),
+            child: Align(alignment: Alignment.centerLeft, child: leading),
+          ),
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final padding = EdgeInsets.fromLTRB(
+                24,
+                leading == null ? 18 : 0,
+                24,
+                22,
+              );
+              final compact = constraints.maxHeight < 560;
+              final logoSize = compact ? 48.0 : 144.0;
+              final gap = compact ? 8.0 : 20.0;
+              return SingleChildScrollView(
+                padding: padding,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: math.max(
+                      0,
+                      constraints.maxHeight - padding.vertical,
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      GamePanel(
+                        padding: EdgeInsets.all(compact ? 16 : 24),
+                        backgroundColor: ZennytGamePalette.gameBlue,
+                        child: Column(
+                          children: [
+                            Image.asset(
+                              logoAsset,
+                              key: logoKey,
+                              width: logoSize,
+                              height: logoSize,
+                              fit: BoxFit.contain,
+                              filterQuality: FilterQuality.high,
+                              semanticLabel: '$title logo',
+                            ),
+                            SizedBox(height: compact ? 8 : 16),
+                            Text(
+                              title,
+                              textAlign: TextAlign.center,
+                              style: AppTypography.displaySmall.copyWith(
+                                color: Colors.white,
+                                fontSize: compact ? 24 : 28,
+                                height: 1.15,
+                                letterSpacing: 0,
+                              ),
+                            ),
+                            SizedBox(height: compact ? 8 : 12),
+                            Text(
+                              mission,
+                              textAlign: TextAlign.center,
+                              style: AppTypography.bodyLarge.copyWith(
+                                color: Colors.white,
+                                fontSize: compact ? 14 : 16,
+                                height: 1.35,
+                                letterSpacing: 0,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (contextText != null) ...[
+                        SizedBox(height: gap),
+                        Text(
+                          contextText!,
+                          textAlign: TextAlign.center,
+                          style: AppTypography.bodyLarge.copyWith(
+                            color: ZennytGamePalette.ink,
+                            fontSize: compact ? 14 : 16,
+                            height: 1.35,
+                          ),
+                        ),
+                      ],
+                      if (journey.isNotEmpty) ...[
+                        SizedBox(height: gap),
+                        Row(
+                          key: const ValueKey('welcome-journey'),
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            for (var index = 0; index < journey.length; index++)
+                              Expanded(
+                                child: Semantics(
+                                  label:
+                                      'Étape ${index + 1} : ${journey[index]}',
+                                  excludeSemantics: true,
+                                  child: Column(
+                                    children: [
+                                      Text(
+                                        '${index + 1}'.padLeft(2, '0'),
+                                        style: AppTypography.titleLarge
+                                            .copyWith(
+                                              color: ZennytGamePalette.magenta,
+                                              fontSize: compact ? 18 : 22,
+                                            ),
+                                      ),
+                                      Text(
+                                        journey[index],
+                                        textAlign: TextAlign.center,
+                                        style: AppTypography.bodyMedium
+                                            .copyWith(
+                                              color: ZennytGamePalette.ink,
+                                              fontSize: compact ? 12 : 14,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                      SizedBox(height: gap),
+                      GamePrimaryButton(
+                        key: startKey,
+                        label: startLabel,
+                        onPressed: onStart,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 enum GameDirection {
   up(Icons.arrow_upward, 'haut', 'Up'),
   right(Icons.arrow_forward, 'droite', 'Right'),
