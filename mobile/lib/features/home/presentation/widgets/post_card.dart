@@ -1,7 +1,6 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,10 +8,9 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:zennyt/core/constants.dart';
 import 'package:zennyt/l10n/gen/app_localizations.dart';
 import 'package:zennyt/core/utils/link_extractor.dart';
-import 'package:zennyt/features/home/presentation/widgets/CommentsBottomSheet.dart';
+import 'package:zennyt/features/home/presentation/widgets/comments_bottom_sheet.dart';
 import 'package:zennyt/features/auth/presentation/auth_controller.dart';
 import 'package:zennyt/shared/providers/internet_provider.dart';
-import 'package:zennyt/shared/widgets/no_connection_overlay.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/avatar/avatar_service.dart';
 import '../../../../shared/widgets/initials_avatar.dart';
@@ -234,6 +232,7 @@ class _PostCardState extends ConsumerState<PostCard> with SingleTickerProviderSt
   Future<void> toggleLike() async {
     final isConnected = await checkInternetWithLoader(context, ref);
     if (!isConnected) return;
+    if (!mounted) return;
 
     _likeAnimController.forward(from: 0.0);
 

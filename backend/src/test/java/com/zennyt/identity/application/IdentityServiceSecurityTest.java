@@ -1,12 +1,15 @@
 package com.zennyt.identity.application;
 
+import com.zennyt.identity.application.port.EmailPort;
 import com.zennyt.identity.application.port.FileStoragePort;
 import com.zennyt.identity.application.port.TokenService;
 import com.zennyt.identity.domain.model.Profile;
 import com.zennyt.identity.domain.model.Role;
 import com.zennyt.identity.domain.model.User;
+import com.zennyt.identity.domain.repository.AccountChangeCodeRepository;
 import com.zennyt.identity.domain.repository.OnboardingRepository;
 import com.zennyt.identity.domain.repository.ProfileRepository;
+import com.zennyt.identity.domain.repository.UserPreferencesRepository;
 import com.zennyt.identity.domain.repository.UserRepository;
 import com.zennyt.shared.application.exception.NotFoundException;
 import org.junit.jupiter.api.Test;
@@ -23,11 +26,14 @@ class IdentityServiceSecurityTest {
     private final UserRepository users = mock(UserRepository.class);
     private final OnboardingRepository onboarding = mock(OnboardingRepository.class);
     private final ProfileRepository profiles = mock(ProfileRepository.class);
+    private final UserPreferencesRepository preferences = mock(UserPreferencesRepository.class);
+    private final AccountChangeCodeRepository accountChangeCodes = mock(AccountChangeCodeRepository.class);
+    private final EmailPort email = mock(EmailPort.class);
     private final FileStoragePort storage = mock(FileStoragePort.class);
     private final TokenService tokens = mock(TokenService.class);
     private final ApplicationEventPublisher events = mock(ApplicationEventPublisher.class);
     private final IdentityService service = new IdentityService(
-        users, onboarding, profiles, storage, tokens, events);
+        users, onboarding, profiles, preferences, accountChangeCodes, email, storage, tokens, events);
 
     @Test
     void publicProfileHidesInactiveAccounts() {

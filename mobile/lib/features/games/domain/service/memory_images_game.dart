@@ -49,10 +49,9 @@ class MemoryImagesGame {
   MemoryImagesGame({
     math.Random? random,
     MemoryDistractionFactory? factory,
-    List<MemoryObject> catalog = kMemoryObjectLibrary,
+    this._catalog = kMemoryObjectLibrary,
     double playerFactor = MemoryQuestConfig.playerPaceNeutral,
   })  : _random = random ?? math.Random(),
-        _catalog = catalog,
         _initialPlayerFactor = playerFactor,
         _playerFactor = playerFactor,
         _sequencer = MemoryDistractionSequencer(

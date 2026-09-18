@@ -17,6 +17,7 @@ import java.util.UUID;
 public record JobOfferSummaryResponse(
     UUID id, String title, String companyName, String city, String country,
     Double salaryMin, Double salaryMax,
+    String salaryCurrency, SalaryPeriod salaryPeriod,
     ContractType contractType, WorkplaceType workplaceType, ExperienceLevel experienceLevel,
     JobOfferStatus status, Instant postedAt,
     UUID jobPositionId, long applicantCount,
@@ -33,6 +34,7 @@ public record JobOfferSummaryResponse(
             o.location() != null ? o.location().city() : null,
             o.location() != null ? o.location().country() : null,
             o.salaryMin(), o.salaryMax(),
+            o.salaryCurrency(), o.salaryPeriod(),
             o.contractType(), o.workplaceType(), o.experienceLevel(),
             o.status(), o.postedAt(),
             o.jobPositionId(), applicantCount,

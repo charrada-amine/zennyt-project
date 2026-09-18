@@ -11,10 +11,9 @@ class CallRecordingRepositoryImpl implements CallRecordingRepository {
   final RecordingRemoteDataSource _remote;
 
   CallRecordingRepositoryImpl({
-    required RecordingLocalDataSource local,
-    required RecordingRemoteDataSource remote,
-  })  : _local = local,
-        _remote = remote;
+    required this._local,
+    required this._remote,
+  });
 
   @override
   Future<Either<Failure, void>> saveChunk(RecordingChunk chunk) async {

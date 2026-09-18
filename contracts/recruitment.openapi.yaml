@@ -1016,6 +1016,58 @@ paths:
               schema: { $ref: '#/components/schemas/JobOpportunityOffer' }
         '404': { $ref: '#/components/responses/NotFound' }
 
+  /recruiters/me/hired-candidates:
+    get:
+      operationId: getRecruitersMeHiredCandidates
+      tags: [JobOpportunityOffers]
+      summary: Recrutements confirmés du recruteur (maquette 258)
+      responses:
+        '200':
+          description: Recrutements (confirmés + annulés)
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/HiredCandidate' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /hired-candidates/{id}/cancel:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      operationId: postHiredCandidatesByIdCancel
+      tags: [JobOpportunityOffers]
+      summary: Annuler un recrutement (possible tant que la période d'essai court)
+      responses:
+        '200':
+          description: Recrutement annulé
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HiredCandidate' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+  /candidates/search:
+    get:
+      operationId: searchCandidates
+      tags: [JobOpportunityOffers]
+      summary: Recherche générale de candidats (recruteur), hors offre
+      parameters:
+        - { name: q, in: query, description: Nom ou intitulé recherché, schema: { type: string } }
+        - { name: location, in: query, schema: { type: string } }
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: Candidats correspondants
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/CandidateSearchResult' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
   # ═══════════════════════════════════════════════════════════════
   # IDENTITY VERIFICATIONS
   # ═══════════════════════════════════════════════════════════════
@@ -1249,6 +1301,17 @@ components:
       type: string
       enum: [ON_SITE, REMOTE, HYBRID]
 
+    SalaryCurrency:
+      type: string
+      description: Devise du salaire de l'offre (ISO 4217, valeurs autorisées par V79).
+      enum: [EUR, USD, GBP, MAD, TND]
+      default: EUR
+
+    SalaryPeriod:
+      type: string
+      description: Périodicité du salaire affiché (montant brut).
+      enum: [MONTHLY, YEARLY]
+
     ExperienceLevel:
       type: string
       description: >
@@ -1342,7 +1405,7 @@ components:
 
     JobOpportunityStatus:
       type: string
-      enum: [PENDING, CONFIRMED, REJECTED]
+      enum: [PENDING, CONFIRMED, REJECTED, CANCELLED]
 
     IdentityVerificationStatus:
       type: string
@@ -1422,6 +1485,8 @@ components:
         country: { type: string, example: "TN" }
         salaryMin: { type: number, format: double, example: 40000 }
         salaryMax: { type: number, format: double, example: 70000, description: "Doit être >= salaryMin" }
+        salaryCurrency: { $ref: '#/components/schemas/SalaryCurrency' }
+        salaryPeriod: { $ref: '#/components/schemas/SalaryPeriod' }
         contractType: { $ref: '#/components/schemas/ContractType' }
         workplaceType: { $ref: '#/components/schemas/WorkplaceType' }
         experienceLevel: { $ref: '#/components/schemas/ExperienceLevel' }
@@ -1485,6 +1550,8 @@ components:
         country: { type: string }
         salaryMin: { type: number, format: double }
         salaryMax: { type: number, format: double, description: "Doit être >= salaryMin" }
+        salaryCurrency: { $ref: '#/components/schemas/SalaryCurrency' }
+        salaryPeriod: { $ref: '#/components/schemas/SalaryPeriod' }
         contractType: { $ref: '#/components/schemas/ContractType' }
         workplaceType: { $ref: '#/components/schemas/WorkplaceType' }
         experienceLevel: { $ref: '#/components/schemas/ExperienceLevel' }
@@ -1530,6 +1597,8 @@ components:
         country: { type: string }
         salaryMin: { type: number, format: double }
         salaryMax: { type: number, format: double }
+        salaryCurrency: { $ref: '#/components/schemas/SalaryCurrency' }
+        salaryPeriod: { $ref: '#/components/schemas/SalaryPeriod' }
         contractType: { $ref: '#/components/schemas/ContractType' }
         workplaceType: { $ref: '#/components/schemas/WorkplaceType' }
         experienceLevel: { $ref: '#/components/schemas/ExperienceLevel' }
@@ -2028,6 +2097,43 @@ components:
         otpVerified: { type: boolean }
         sentAt: { type: string, format: date-time }
         respondedAt: { type: string, format: date-time, nullable: true }
+
+    HiredCandidate:
+      type: object
+      description: Recrutement confirmé (maquette 258), avec compte à rebours d'essai.
+      properties:
+        id: { type: string, format: uuid }
+        candidateId: { type: string, format: uuid }
+        fullName: { type: string, nullable: true }
+        avatarUrl: { type: string, nullable: true }
+        title: { type: string }
+        salaryMin: { type: number, format: double, nullable: true }
+        salaryMax: { type: number, format: double, nullable: true }
+        salaryCurrency: { type: string, nullable: true }
+        status: { $ref: '#/components/schemas/JobOpportunityStatus' }
+        hiredAt: { type: string, format: date-time, nullable: true }
+        probationEndsAt: { type: string, format: date-time, nullable: true }
+        daysRemaining:
+          type: integer
+          nullable: true
+          description: Jours restants avant la fin de la période d'essai (90 jours ≈ 3 mois).
+        cancellable: { type: boolean }
+
+    CandidateSearchResult:
+      type: object
+      description: Candidat de la recherche générale (projection acteur, hors offre).
+      properties:
+        id: { type: string, format: uuid }
+        fullName: { type: string, nullable: true }
+        avatarUrl: { type: string, nullable: true }
+        city: { type: string, nullable: true }
+        country: { type: string, nullable: true }
+        lookingFor: { type: string, nullable: true }
+        yearsOfExperience: { type: integer, nullable: true }
+        workplaceTypePreference: { $ref: '#/components/schemas/WorkplaceType' }
+        contractTypePreference: { $ref: '#/components/schemas/ContractType' }
+        targetLocation: { type: string, nullable: true }
+        openInternationally: { type: boolean }
 
     # ── Identity Verification ──────────────────────────────────
 

@@ -83,40 +83,44 @@ class _EmploymentTypeBottomSheetState extends State<EmploymentTypeBottomSheet> {
                 ),
               ),
               Expanded(
-                child: ListView(
-                  controller: scrollController,
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  children: ContractType.values.map((type) {
-                    final isSelected = _current == type;
-                    return InkWell(
-                      borderRadius: BorderRadius.circular(8),
-                      onTap: () => setState(() => _current = type),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 2),
-                        child: Row(
-                          children: [
-                            Text(
-                              type.label,
-                              style: TextStyle(
-                                fontSize: 15,
-                                color: const Color(0xFF232323),
-                                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                child: RadioGroup<ContractType>(
+                  groupValue: _current,
+                  onChanged: (val) {
+                    if (val != null) setState(() => _current = val);
+                  },
+                  child: ListView(
+                    controller: scrollController,
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    children: ContractType.values.map((type) {
+                      final isSelected = _current == type;
+                      return InkWell(
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: () => setState(() => _current = type),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 2),
+                          child: Row(
+                            children: [
+                              Text(
+                                type.label,
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  color: const Color(0xFF232323),
+                                  fontWeight: isSelected
+                                      ? FontWeight.w600
+                                      : FontWeight.w400,
+                                ),
                               ),
-                            ),
-                            const Spacer(),
-                            Radio<ContractType>(
-                              value: type,
-                              groupValue: _current,
-                              activeColor: const Color(0xFF21438A),
-                              onChanged: (val) {
-                                if (val != null) setState(() => _current = val);
-                              },
-                            ),
-                          ],
+                              const Spacer(),
+                              Radio<ContractType>(
+                                value: type,
+                                activeColor: const Color(0xFF21438A),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    );
-                  }).toList(),
+                      );
+                    }).toList(),
+                  ),
                 ),
               ),
               Padding(

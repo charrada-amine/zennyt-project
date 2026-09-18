@@ -52,15 +52,11 @@ class CallNotifier extends StateNotifier<CallState> {
   final JoinCall _joinCall;
 
   CallNotifier({
-    required GetCall getCall,
-    required StartCall startCall,
-    required EndCall endCall,
-    required JoinCall joinCall,
-  })  : _getCall = getCall,
-        _startCall = startCall,
-        _endCall = endCall,
-        _joinCall = joinCall,
-        super(const CallState());
+    required this._getCall,
+    required this._startCall,
+    required this._endCall,
+    required this._joinCall,
+  }) : super(const CallState());
 
   Future<void> getCall(String id) async {
     state = state.copyWith(status: CallStatus2.loading);

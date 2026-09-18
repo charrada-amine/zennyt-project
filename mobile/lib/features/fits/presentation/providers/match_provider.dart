@@ -9,8 +9,11 @@ final candidateMatchesProvider =
   return ref.watch(fitsRepositoryProvider).getCandidateMatches();
 });
 
-/// Matchs mutuels du recruteur connecté, toutes offres confondues.
+/// Matchs mutuels du recruteur connecté pour l'offre sourcée
+/// (`GET /job-offers/{id}/matches`).
 final recruiterMatchesProvider =
     FutureProvider.autoDispose<List<MatchEntity>>((ref) {
-  return ref.watch(fitsRepositoryProvider).getRecruiterMatches();
+  final job = ref.watch(activeJobContextProvider);
+  if (job == null) return Future.value(const []);
+  return ref.watch(fitsRepositoryProvider).getRecruiterMatches(jobOfferId: job.id);
 });

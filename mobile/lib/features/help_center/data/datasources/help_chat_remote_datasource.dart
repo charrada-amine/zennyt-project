@@ -52,8 +52,8 @@ class HelpChatRemoteDataSourceImpl implements HelpChatRemoteDataSource {
       final res = await dio.post<Map<String, dynamic>>(
         '/api/v1/help-chats',
         data: {
-          if (title != null) 'title': title,
-          if (subtitle != null) 'subtitle': subtitle,
+          'title': ?title,
+          'subtitle': ?subtitle,
         },
       );
       return HelpChatModel.fromJson(res.data!);
@@ -81,7 +81,7 @@ class HelpChatRemoteDataSourceImpl implements HelpChatRemoteDataSource {
     try {
       final res = await dio.post<Map<String, dynamic>>(
         '/api/v1/help-chats/$helpChatId/rating',
-        data: {'rating': rating, if (comment != null) 'comment': comment},
+        data: {'rating': rating, 'comment': ?comment},
       );
       return HelpChatModel.fromJson(res.data!);
     } on DioException catch (e) {

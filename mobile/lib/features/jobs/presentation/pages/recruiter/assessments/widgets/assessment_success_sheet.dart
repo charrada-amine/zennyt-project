@@ -108,7 +108,7 @@ class _AssessmentSuccessSheetState extends State<AssessmentSuccessSheet> {
                     await Clipboard.setData(ClipboardData(text: link));
                     setState(() => _isLinkCopied = true);
                     await Future.delayed(const Duration(milliseconds: 350));
-                    if (!mounted) return;
+                    if (!context.mounted) return;
                     _navigateToDetail(context);
                   },
                   icon: AnimatedSwitcher(

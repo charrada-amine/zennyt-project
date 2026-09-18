@@ -27,6 +27,7 @@
     "build": "turbo run build",
     "check-types": "turbo run check-types",
     "dev:web": "turbo run dev -F web --",
+    "dev:console": "turbo run dev -F console --",
     "check": "oxlint && oxfmt --write"
   },
   "dependencies": {

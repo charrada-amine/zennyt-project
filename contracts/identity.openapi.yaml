@@ -253,6 +253,117 @@ paths:
         '204': { description: Account deactivated }
         '401': { $ref: './common.openapi.yaml#/components/responses/Unauthorized' }
 
+  /users/me/preferences:
+    get:
+      operationId: getUsersMePreferences
+      tags: [Users]
+      summary: Read the current account's app preferences
+      description: >
+        Accessibility and notification preferences, synced server-side so they
+        survive a reinstall or a new device. Returns defaults when the account
+        has never saved any.
+      responses:
+        '200':
+          description: Preferences
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserPreferences' }
+        '401': { $ref: './common.openapi.yaml#/components/responses/Unauthorized' }
+    put:
+      operationId: putUsersMePreferences
+      tags: [Users]
+      summary: Update the current account's app preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UserPreferencesUpdate' }
+      responses:
+        '200':
+          description: Preferences updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserPreferences' }
+        '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
+
+  /users/me/email:
+    post:
+      operationId: postUsersMeEmail
+      tags: [Users]
+      summary: Request an e-mail change (OTP sent to the new address)
+      description: >
+        Sends a one-time code to the NEW address. Delivery is by e-mail (Resend);
+        the change is applied only after POST /users/me/email/verify succeeds.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EmailChangeRequest' }
+      responses:
+        '202': { description: Verification code sent }
+        '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
+        '409':
+          description: The address is already used by another account
+          content:
+            application/json:
+              schema: { $ref: './common.openapi.yaml#/components/schemas/Error' }
+
+  /users/me/email/verify:
+    post:
+      operationId: postUsersMeEmailVerify
+      tags: [Users]
+      summary: Confirm an e-mail change with the OTP code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VerificationCodeRequest' }
+      responses:
+        '200':
+          description: E-mail changed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
+        '401': { $ref: './common.openapi.yaml#/components/responses/Unauthorized' }
+
+  /users/me/phone:
+    post:
+      operationId: postUsersMePhone
+      tags: [Users]
+      summary: Request a phone-number change (OTP sent by e-mail for now)
+      description: >
+        SMS delivery is not integrated yet, so the one-time code is sent to the
+        account e-mail address. The change is applied only after
+        POST /users/me/phone/verify succeeds.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PhoneChangeRequest' }
+      responses:
+        '202': { description: Verification code sent }
+        '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
+
+  /users/me/phone/verify:
+    post:
+      operationId: postUsersMePhoneVerify
+      tags: [Users]
+      summary: Confirm a phone-number change with the OTP code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VerificationCodeRequest' }
+      responses:
+        '200':
+          description: Phone number changed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
+        '401': { $ref: './common.openapi.yaml#/components/responses/Unauthorized' }
+
   /users/me/role:
     patch:
       operationId: patchUsersMeRole
@@ -755,6 +866,22 @@ paths:
       responses:
         '204': { description: Education record deleted }
 
+  /legal/{slug}:
+    parameters:
+      - { name: slug, in: path, required: true, schema: { type: string }, example: terms-of-use }
+    get:
+      operationId: getLegalDocument
+      tags: [Legal]
+      summary: Document légal public (conditions d'utilisation, confidentialité)
+      security: []
+      responses:
+        '200':
+          description: Document
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LegalDocument' }
+        '404': { $ref: './common.openapi.yaml#/components/responses/NotFound' }
+
 components:
   securitySchemes:
     bearerAuth: { $ref: './common.openapi.yaml#/components/securitySchemes/bearerAuth' }
@@ -895,6 +1022,63 @@ components:
             active: { type: boolean }
             createdAt: { type: string, format: date-time }
             updatedAt: { type: string, format: date-time }
+
+    EmailChangeRequest:
+      type: object
+      required: [newEmail]
+      properties:
+        newEmail: { type: string, format: email, maxLength: 150 }
+
+    PhoneChangeRequest:
+      type: object
+      required: [newPhoneNumber]
+      properties:
+        newPhoneNumber: { type: string, maxLength: 30 }
+
+    VerificationCodeRequest:
+      type: object
+      required: [code]
+      properties:
+        code: { type: string, minLength: 4, maxLength: 10 }
+
+    UserPreferencesUpdate:
+      type: object
+      required: [notificationsEnabled, highContrast, textSizePx]
+      properties:
+        notificationsEnabled: { type: boolean }
+        highContrast: { type: boolean }
+        textSizePx:
+          type: integer
+          minimum: 10
+          maximum: 30
+          description: Accessibility base font size in px (18 = default).
+
+    UserPreferences:
+      allOf:
+        - $ref: '#/components/schemas/UserPreferencesUpdate'
+        - type: object
+          required: [notificationsEnabled, highContrast, textSizePx, updatedAt]
+          properties:
+            notificationsEnabled: { type: boolean }
+            highContrast: { type: boolean }
+            textSizePx: { type: integer, minimum: 10, maximum: 30 }
+            updatedAt: { type: string, format: date-time }
+
+    LegalSection:
+      type: object
+      properties:
+        heading: { type: string }
+        body: { type: string }
+
+    LegalDocument:
+      type: object
+      properties:
+        slug: { type: string }
+        title: { type: string }
+        lastUpdated: { type: string }
+        sections:
+          type: array
+          items: { $ref: '#/components/schemas/LegalSection' }
 
     CandidateStudentOnboardingInput:
       type: object

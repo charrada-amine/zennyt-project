@@ -20,8 +20,9 @@ class FitsRepositoryImpl implements FitsRepository {
   @override
   Future<List<JobOffer>> getCandidateDeck() {
     return _guard(() async {
-      final res = await _dio.get<List<dynamic>>('/job-offers');
-      return res.data!
+      final res = await _dio.get<Map<String, dynamic>>('/job-offers/matching-deck');
+      final content = res.data!['content'] as List<dynamic>;
+      return content
           .map((e) => _jobOfferFromJson(e as Map<String, dynamic>))
           .toList();
     });
@@ -55,14 +56,85 @@ class FitsRepositoryImpl implements FitsRepository {
   }
 
   @override
-  Future<List<String>> getSwipedTargetIds({String? jobOfferId}) {
+  Future<List<CandidateProfile>> searchCandidates({String? query, String? location}) {
     return _guard(() async {
-      final res = await _dio.get<List<dynamic>>(
-        '/swipes/targets',
-        queryParameters: {if (jobOfferId != null) 'jobOfferId': jobOfferId},
-      );
-      return res.data!.map((e) => e.toString()).toList();
+      final res = await _dio.get<List<dynamic>>('/candidates/search', queryParameters: {
+        if (query != null && query.trim().isNotEmpty) 'q': query.trim(),
+        if (location != null && location.trim().isNotEmpty) 'location': location.trim(),
+      });
+      return res.data!
+          .map((e) => _candidateFromSearchJson(e as Map<String, dynamic>))
+          .toList();
     });
+  }
+
+  @override
+  Future<List<CandidateProfile>> getCandidateMatchingDeck(String jobOfferId) {
+    return _guard(() async {
+      final res = await _dio.get<Map<String, dynamic>>(
+        '/job-offers/$jobOfferId/candidates/matching-deck',
+      );
+      final content = res.data!['content'] as List<dynamic>;
+      return content
+          .map((e) => _candidateFromDeckJson(e as Map<String, dynamic>))
+          .toList();
+    });
+  }
+
+  static CandidateProfile _candidateFromDeckJson(Map<String, dynamic> json) {
+    final fullName = (json['fullName'] as String?)?.trim() ?? '';
+    final spaceIndex = fullName.indexOf(' ');
+    final firstName = spaceIndex == -1 ? fullName : fullName.substring(0, spaceIndex);
+    final lastName = spaceIndex == -1 ? '' : fullName.substring(spaceIndex + 1);
+    return CandidateProfile(
+      user: AppUser(
+        id: json['id']?.toString() ?? '',
+        firstName: firstName.isEmpty ? 'Candidate' : firstName,
+        lastName: lastName,
+        email: '',
+        profileImageUrl: json['avatarUrl'] as String?,
+      ),
+      targetRole: json['headline'] as String? ?? '',
+      seniority: '',
+      fitScore: 0,
+      location: '',
+      softSkillsLevel: '—',
+      hardSkills: const {},
+      partialData: false,
+      contractTypes: const [],
+      isImmediate: false,
+    );
+  }
+
+  CandidateProfile _candidateFromSearchJson(Map<String, dynamic> json) {
+    final fullName = (json['fullName'] as String?)?.trim() ?? '';
+    final parts = fullName.isEmpty ? const <String>[] : fullName.split(' ');
+    final first = parts.isEmpty ? 'Candidate' : parts.first;
+    final last = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+    final city = json['city'] as String?;
+    final country = json['country'] as String?;
+    final location = [city, country]
+        .where((v) => v != null && v.isNotEmpty)
+        .join(', ');
+    final contract = json['contractTypePreference'] as String?;
+    return CandidateProfile(
+      user: AppUser(
+        id: json['id']?.toString() ?? '',
+        firstName: first,
+        lastName: last,
+        email: '',
+        profileImageUrl: json['avatarUrl'] as String?,
+      ),
+      targetRole: json['lookingFor'] as String? ?? '',
+      seniority: '',
+      fitScore: 0,
+      location: location,
+      softSkillsLevel: '',
+      hardSkills: const {},
+      partialData: false,
+      contractTypes: contract != null ? [contract] : const [],
+      isImmediate: false,
+    );
   }
 
   @override
@@ -73,28 +145,38 @@ class FitsRepositoryImpl implements FitsRepository {
     required SwipeDirection direction,
   }) {
     return _guard(() async {
+      // Candidate swiping an offer vs recruiter swiping a candidate live on
+      // different contract routes (both are "an offer's swipes", side-specific).
+      final path = targetType == SwipeTargetType.candidate
+          ? '/job-offers/$jobOfferId/candidates/$targetId/swipes'
+          : '/job-offers/$jobOfferId/swipes';
       final res = await _dio.post<Map<String, dynamic>>(
-        '/swipes',
-        data: {
-          'targetId': targetId,
-          'targetType': targetType.value,
-          'jobOfferId': jobOfferId,
-          'direction': direction.value,
-        },
+        path,
+        data: {'direction': direction.value},
       );
-      final data = res.data!;
+      final data = res.data ?? const {};
+      final match = data['match'] as Map<String, dynamic>?;
       return SwipeResult(
-        swipeId: data['swipeId'] as String,
+        swipeId: data['swipeId']?.toString() ?? '',
         direction: direction,
         matched: data['matched'] as bool? ?? false,
-        matchId: data['matchId'] as String?,
+        matchId: match?['id']?.toString() ?? data['matchId']?.toString(),
       );
     });
   }
 
   @override
-  Future<void> undoSwipe(String swipeId) {
-    return _guard(() => _dio.delete<void>('/swipes/$swipeId'));
+  Future<void> undoSwipe({
+    required String jobOfferId,
+    required SwipeTargetType targetType,
+    required String targetId,
+  }) {
+    return _guard(() {
+      final path = targetType == SwipeTargetType.candidate
+          ? '/job-offers/$jobOfferId/candidates/$targetId/swipes/me'
+          : '/job-offers/$jobOfferId/swipes/me';
+      return _dio.delete<void>(path);
+    });
   }
 
   @override
@@ -108,12 +190,9 @@ class FitsRepositoryImpl implements FitsRepository {
   }
 
   @override
-  Future<List<MatchEntity>> getRecruiterMatches({String? jobOfferId}) {
+  Future<List<MatchEntity>> getRecruiterMatches({required String jobOfferId}) {
     return _guard(() async {
-      final res = await _dio.get<List<dynamic>>(
-        '/recruiters/me/matches',
-        queryParameters: {if (jobOfferId != null) 'jobOfferId': jobOfferId},
-      );
+      final res = await _dio.get<List<dynamic>>('/job-offers/$jobOfferId/matches');
       return res.data!
           .map((e) => _matchFromJson(e as Map<String, dynamic>))
           .toList();

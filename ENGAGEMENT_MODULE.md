@@ -1,6 +1,6 @@
 # Module Engagement
 
-**Dernière mise à jour :** 2026-08-07 — appels : l'appel sortant initie réellement la session serveur (REST `POST /calls/start`), l'overlay d'appel entrant s'affiche chez le destinataire ; enregistrement : chunks mp4 écrits sur disque (`call_recordings/`), fini le `MediaRecorder` `-5`, et suppression de la reconfiguration audio (`audioProfileMusicHighQualityStereo` + game streaming) qui coupait le son dans l'appel et dans l'enregistrement.
+**Dernière mise à jour :** 2026-09-17 — parrainage (programme Ambassadeur) : `GET/POST /referrals` + écran mobile « Referral ». Historique — appels : l'appel sortant initie réellement la session serveur (REST `POST /calls/start`), l'overlay d'appel entrant s'affiche chez le destinataire ; enregistrement : chunks mp4 écrits sur disque (`call_recordings/`), fini le `MediaRecorder` `-5`, et suppression de la reconfiguration audio (`audioProfileMusicHighQualityStereo` + game streaming) qui coupait le son dans l'appel et dans l'enregistrement.
 
 ## Périmètre
 
@@ -246,3 +246,58 @@ Chaque endpoint porte `@EngagementAuthenticated`. L'acteur doit exister dans la 
     (l'enregistrement bénéficie de la qualité du flux publié). Fichier :
     `call_recording_service.dart`. 27 tests mobile verts, `flutter analyze` sans nouvelle erreur
     ni nouveau warning.
+14. **2026-09-11 — Parrainage (programme Ambassadeur).** Trois opérations ajoutées au contrat
+    engagement : `GET /referrals/me`, `POST /referrals/invite`, `GET /referrals/me/link`.
+    Table `engagement.referrals` (migration V81) : un parrainage par (parrain, e-mail du
+    filleul), statuts `INVITED` → `REGISTERED` → `HIRED` / `CANCELLED`, période d'essai
+    (`probation_ends_at`) pour le décompte `D-xx` de la maquette. Domaine `Referral` +
+    `ReferralRepository`, adapter JPA, use cases `Invite/List/GetReferralLink`, contrôleur
+    `ReferralController` (sécurisé par `@EngagementAuthenticated`, identité issue du JWT). Le
+    lien est `https://www.zennyt.com/invite/{userId}` (code = id public, pas de table). Le
+    montant du bonus est **configurable** (`zennyt.referral.bonus-amount`, défaut 800 USD) :
+    la maquette affiche « 500€ » alors que le §12 des Conditions parle de 800 USD —
+    **décision à valider**, la config tranche sans coder l'un en dur. Les passages
+    `REGISTERED`/`HIRED` ne sont pas encore déclenchés automatiquement (aucun hook
+    inscription/recrutement) : le statut reste `INVITED` tant que ces branchements ne sont
+    pas faits. Côté mobile : feature `referral` (modèle, repository, providers, écran
+    maquettes 115/117 avec copie/partage du lien et liste des filleuls), accessible depuis
+    Profile & Settings → Referral. Tests : `InviteReferralUseCaseTest` (backend) +
+    `referral_parsing_test` (mobile), ArchUnit vert.
+15. **2026-09-11 — Portefeuille (Wallet).** Quatre opérations ajoutées au contrat engagement :
+    `GET /wallet/me`, `GET /wallet/me/transactions`, `PUT /wallet/me/card`,
+    `POST /wallet/me/withdraw`. Tables `engagement.wallets` (solde en **centimes**), 
+    `engagement.wallet_transactions` (écritures signées), `engagement.wallet_cards`
+    (migration V82). Domaine `Wallet` (crédit/débit, refus si solde insuffisant) +
+    `WalletTransaction` + `WalletCard` (last4 + marque uniquement, **jamais** le numéro
+    complet ni le CVV) + `WalletRepository`. Use cases `Get/List/SaveCard/Withdraw`,
+    `WalletController` (`@EngagementAuthenticated`). Pas de PSP réel : le retrait
+    matérialise l'écriture, le virement bancaire reste à intégrer ; le solde démarre à 0
+    et sera crédité par le bonus de parrainage quand les hooks `HIRED` existeront. Côté
+    mobile : feature `wallet` (modèle, repository, providers, écran 114/118 — solde, carte,
+    Withdraw/Change Card/Share Link, écritures — + dialogue carte 107/119), accessible
+    depuis les cartes d'action du profil (« Add your card » → Wallet, « Invite Friends » →
+    Referral). Tests : `WalletTest` (backend), ArchUnit vert.
+16. **2026-09-11 — Abonnements & achats via App Store / Google Play.** Décision produit : le
+    paiement passe par les achats in-app du store (pas de PSP, pas de saisie de carte). Contrat
+    engagement : `GET /plans`, `GET /subscriptions/me`, `POST /purchases/verify` (+ schémas
+    `Plan`/`Subscription`/`PurchaseVerify`/`PurchaseResult` et enums `PlanPeriod`/`StorePlatform`/
+    `SubscriptionStatus`/`PurchaseKind`). Catalogue statique `PlanCatalog` (Recruiter Pro 39 €/mois,
+    Recruiter Team 99 €/mois « Most Popular », Video-interview 9,99 €, bundle 19,99 €) ; les
+    `productId` doivent être créés dans les consoles de store. Tables
+    `engagement.subscriptions` + `engagement.store_purchases` (migration V83) ; le reçu brut n'est
+    **jamais** persisté, seulement `transaction_id`. `VerifyPurchaseUseCase` est idempotent par
+    transaction et active l'abonnement (+30 jours, provisoire). **Vérification de reçu réelle
+    Apple/Google à brancher** (`StoreReceiptVerifierPort`) : en attendant,
+    `StubStoreReceiptVerifier` accepte l'achat (marqué provisoire, loggé). Tests :
+    `VerifyPurchaseUseCaseTest`, ArchUnit vert. Mobile : dépendance `in_app_purchase` ajoutée
+    (autorisée), feature `billing` (modèle, repository, `StoreIapService`, écran Plans & Pricing
+    maquettes 261/263/316) ; ligne Settings « Plans & Pricing » branchée. Les écrans de checkout
+    carte/OTP (284-295) sont **remplacés** par la feuille d'achat du store.
+17. **2026-09-11 — Paiement de l'entretien vidéo branché dans le chat (maquette 282).** Le bouton
+    vidéo d'une conversation déclenche, pour un recruteur, la feuille de frais
+    (`VideoInterviewPaywall`) : elle affiche le prix du produit `video_interview_single`
+    (catalogue backend) et « Pay now » ouvre l'achat consommable du store via `StoreIapService`.
+    Après lancement de l'achat, l'appel vidéo démarre ; la vérification du reçu reste côté
+    serveur (flux d'achat). **Provisoire** : l'appel n'est pas encore strictement bloqué tant que
+    le reçu n'est pas vérifié (le store peut être lent) — à durcir avec la vérification serveur
+    réelle.

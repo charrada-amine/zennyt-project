@@ -27,7 +27,7 @@ class _FeedbackBottomSheetState extends State<FeedbackBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: const BoxDecoration(

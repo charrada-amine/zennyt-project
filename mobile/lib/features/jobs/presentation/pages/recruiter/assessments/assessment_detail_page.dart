@@ -54,21 +54,35 @@ class _AssessmentDetailBody extends ConsumerWidget {
       appBar: CustomAppBar(
         title: 'Assessment',
         onBack: () => context.pop(),
-        trailingAction: GestureDetector(
-          onTap: () async {
-            await context.pushNamed(
-              AppRoutes.nEditAssessment,
-              pathParameters: {'assessmentId': assessment.id},
-              extra: assessment,
-            );
-            ref.invalidate(assessmentDetailProvider(assessmentId));
-          },
-          child: Container(
-            width: 40,
-            height: 40,
-            decoration: kAppBarButtonDecoration(),
-            child: const Icon(Icons.edit_outlined, color: Color(0xFF21438A), size: 20),
-          ),
+        trailingAction: Row(
+          children: [
+            GestureDetector(
+              onTap: () => _confirmDelete(context, ref),
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: kAppBarButtonDecoration(),
+                child: const Icon(Icons.delete_outline, color: Color(0xFFE53935), size: 20),
+              ),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: () async {
+                await context.pushNamed(
+                  AppRoutes.nEditAssessment,
+                  pathParameters: {'assessmentId': assessment.id},
+                  extra: assessment,
+                );
+                ref.invalidate(assessmentDetailProvider(assessmentId));
+              },
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: kAppBarButtonDecoration(),
+                child: const Icon(Icons.edit_outlined, color: Color(0xFF21438A), size: 20),
+              ),
+            ),
+          ],
         ),
       ),
       body: SingleChildScrollView(
@@ -103,5 +117,33 @@ class _AssessmentDetailBody extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete this test?'),
+        content: const Text('This removes the assessment from your tests. It cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete', style: TextStyle(color: Color(0xFFE53935))),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await ref.read(assessmentsProvider.notifier).deleteAssessment(assessment.id);
+      if (context.mounted) context.pop();
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to delete this test.')),
+        );
+      }
+    }
   }
 }

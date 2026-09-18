@@ -1,0 +1,34 @@
+{
+  "name": "console",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "serve": "vite preview",
+    "dev": "vite dev",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@admin/env": "workspace:*",
+    "@admin/ui": "workspace:*",
+    "@tailwindcss/vite": "^4.3.3",
+    "@tanstack/react-router": "^1.170.18",
+    "@tanstack/react-start": "^1.168.32",
+    "dotenv": "catalog:",
+    "lucide-react": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "sonner": "catalog:",
+    "tailwindcss": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@admin/config": "workspace:*",
+    "@tanstack/react-router-devtools": "^1.167.0",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vitejs/plugin-react": "^6.0.4",
+    "typescript": "catalog:",
+    "vite": "^8.1.5"
+  }
+}

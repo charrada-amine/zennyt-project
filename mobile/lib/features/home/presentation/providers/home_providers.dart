@@ -1,10 +1,7 @@
-import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart' show StateProvider;
 import 'package:photo_manager/photo_manager.dart';
-import 'package:file_picker/file_picker.dart';
 
 import 'package:zennyt/core/error/failures.dart';
 import 'package:zennyt/features/home/domain/entities/comment.dart';
@@ -177,7 +174,7 @@ class PostsFeedNotifier extends AsyncNotifier<List<Post>> {
           newPosts.where((p) => !existingIds.contains(p.id)).toList();
       state = AsyncData([...currentPosts, ...filteredNewPosts]);
     } catch (e) {
-      print('Error loading more posts: $e');
+      debugPrint('Error loading more posts: $e');
     } finally {
       ref.read(postsFeedLoadingMoreProvider.notifier).state = false;
     }
@@ -283,8 +280,8 @@ class CreatePostController extends AsyncNotifier<void> {
       for (int i = 0; i < docFiles.length; i++) {
         final pf = docFiles[i];
         try {
-          final Uint8List? bytes = pf.bytes ?? (pf.path != null ? await File(pf.path!).readAsBytes() : null);
-          if (bytes == null || bytes.isEmpty) continue;
+          final Uint8List bytes = await pf.readAsBytes();
+          if (bytes.isEmpty) continue;
           final result = await uploadUseCase(bytes, pf.name);
           result.fold(
             (failure) => throw failure,

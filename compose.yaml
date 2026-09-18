@@ -62,12 +62,31 @@ services:
     init: true
 
   admin:
-    build: ./admin
+    build:
+      context: ./admin
+      args:
+        APP: web
+        PORT: "3001"
     restart: unless-stopped
     environment:
       API_PROXY_TARGET: http://backend:8080
     ports:
       - "127.0.0.1:${ADMIN_PORT:-3001}:3001"
+    depends_on:
+      - backend
+    init: true
+
+  console:
+    build:
+      context: ./admin
+      args:
+        APP: console
+        PORT: "3002"
+    restart: unless-stopped
+    environment:
+      API_PROXY_TARGET: http://backend:8080
+    ports:
+      - "127.0.0.1:${CONSOLE_PORT:-3002}:3002"
     depends_on:
       - backend
     init: true

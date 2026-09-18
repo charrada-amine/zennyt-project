@@ -144,7 +144,13 @@ class _SearchCandidatePageState extends ConsumerState<SearchCandidatePage> {
                 ),
               )
             else
-              FitScoresGrid(items: results.value!),
+              FitScoresGrid(
+                items: results.value!,
+                onJobTap: (item) => context.pushNamed(
+                  AppRoutes.nJobDetail,
+                  pathParameters: {'jobId': item.id},
+                ),
+              ),
           ],
         ),
       ),

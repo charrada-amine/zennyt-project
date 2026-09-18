@@ -130,7 +130,7 @@ class _JobOfferCard extends StatelessWidget {
     final v = job.salaryMin >= 1000
         ? '${(job.salaryMin / 1000).toStringAsFixed(0)}K'
         : job.salaryMin.toInt().toString();
-    return '\$$v/${job.currency.contains('Mo') ? 'Mo' : 'Yr'}';
+    return '${salaryCurrencySymbol(job.salaryCurrency)}$v${job.salaryPeriod.shortSuffix}';
   }
 
   @override

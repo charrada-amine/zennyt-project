@@ -4,11 +4,22 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.UUID;
 
 public interface JpaRecruitmentActorRepository
         extends JpaRepository<RecruitmentActorEntity, UUID> {
+
+    @Query("SELECT a FROM RecruitmentActorEntity a WHERE a.role IN ('CANDIDATE', 'STUDENT') AND a.active = true "
+        + "AND (CAST(:q AS string) IS NULL OR LOWER(a.fullName) LIKE LOWER(CONCAT('%', CAST(:q AS string), '%')) "
+        + "     OR LOWER(a.lookingFor) LIKE LOWER(CONCAT('%', CAST(:q AS string), '%'))) "
+        + "AND (CAST(:loc AS string) IS NULL OR LOWER(a.city) LIKE LOWER(CONCAT('%', CAST(:loc AS string), '%')) "
+        + "     OR LOWER(a.country) LIKE LOWER(CONCAT('%', CAST(:loc AS string), '%'))) "
+        + "ORDER BY a.lastEventAt DESC, a.publicUserId ASC")
+    Page<RecruitmentActorEntity> searchCandidates(@Param("q") String query,
+                                                  @Param("loc") String location,
+                                                  Pageable pageable);
 
     // Object[] = {RecruitmentActorEntity, SwipeDirection du swipe candidat réciproque (ou null)}.
     // Exclut les candidats swipés LEFT par ce recruteur ou déjà matchés pour cette offre ;

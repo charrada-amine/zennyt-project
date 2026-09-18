@@ -5,6 +5,7 @@ import '../../../auth/presentation/current_user_provider.dart';
 import '../../../fits/domain/entities/candidate_profile.dart';
 import '../../../fits/presentation/providers/swipe_deck_provider.dart';
 import '../../../fits/presentation/widgets/fit_card_data.dart';
+import '../../../jobs/presentation/providers/jobs_provider.dart';
 
 /// Filtres appliqués depuis /search-filter. `null` = filtre inactif.
 /// Les valeurs sont les valeurs "wire" du backend (FULL_TIME, JUNIOR, HYBRID…).
@@ -56,15 +57,24 @@ final searchQueryProvider =
 /// Candidats fit-scorés de l'offre actuellement sourcée (même sélection que
 /// l'onglet Fits) — le backend intégré n'expose pas de liste "tous
 /// candidats" indépendante d'une offre.
+/// Candidats pour l'onglet Search recruteur : le feed fit-scoré de l'offre
+/// sourcée s'il y en a une, sinon la recherche générale de candidats
+/// (`GET /candidates/search`), indépendante d'une offre.
 final _allCandidatesProvider =
     FutureProvider.autoDispose<List<CandidateProfile>>((ref) async {
   final job = ref.watch(activeJobContextProvider);
-  if (job == null) return const [];
-  return ref.watch(fitsRepositoryProvider).getCandidateFeed(job.id);
+  if (job != null) {
+    return ref.watch(fitsRepositoryProvider).getCandidateFeed(job.id);
+  }
+  final query = ref.watch(searchQueryProvider);
+  return ref.watch(fitsRepositoryProvider).searchCandidates(query: query);
 });
 
+/// Offres actives, lues via le contrat public `GET /job-offers` (le deck de
+/// swipe du module fits appelait des routes retirées du contrat — voir
+/// RECRUITMENT_MODULE.md §15.10). C'est la source du Search candidat/étudiant.
 final _allJobOffersProvider = FutureProvider.autoDispose((ref) {
-  return ref.watch(fitsRepositoryProvider).getCandidateDeck();
+  return ref.watch(jobsRepositoryProvider).searchJobOffers();
 });
 
 final searchResultsProvider = Provider.autoDispose<AsyncValue<List<FitCardData>>>((ref) {

@@ -86,6 +86,37 @@ enum JobStatus {
       JobStatus.values.firstWhere((e) => e.value == v, orElse: () => JobStatus.active);
 }
 
+/// Périodicité du salaire affiché (maquette 213).
+enum SalaryPeriod {
+  monthly('MONTHLY'),
+  yearly('YEARLY');
+
+  final String value;
+  const SalaryPeriod(this.value);
+
+  static SalaryPeriod fromString(String? v) =>
+      SalaryPeriod.values.firstWhere((e) => e.value == v, orElse: () => SalaryPeriod.monthly);
+
+  String get label => this == SalaryPeriod.monthly ? 'Monthly' : 'Yearly';
+  String get shortSuffix => this == SalaryPeriod.monthly ? '/Mo' : '/Yr';
+}
+
+/// Devises proposées par la maquette (maquette 213).
+const List<String> kSalaryCurrencies = ['EUR', 'USD', 'GBP', 'MAD', 'TND'];
+
+String salaryCurrencySymbol(String currency) {
+  switch (currency) {
+    case 'EUR':
+      return '€';
+    case 'GBP':
+      return '£';
+    case 'USD':
+      return '\$';
+    default:
+      return '$currency ';
+  }
+}
+
 /// F19 (FITSCORE_REMEDIATION.md §3 index F19) — informational only, never
 /// used in the Fit Score calculation. PORTFOLIO_BASED is distinct from INFO:
 /// it means "no QCM is expected for this creative role, that's normal," not
@@ -114,6 +145,8 @@ class JobOffer extends Equatable {
   final bool remote;
   final double salaryMin;
   final double salaryMax;
+  final String salaryCurrency;
+  final SalaryPeriod salaryPeriod;
   final String currency;
   final ContractType contractType;
   final WorkplaceType workplaceType;
@@ -135,10 +168,16 @@ class JobOffer extends Equatable {
   final JobStatus status;
   final DateTime postedAt;
 
-  /// F17 (FITSCORE_REMEDIATION.md §3 index F17) — the candidate's Fit Score for
-  /// this offer. "Absent si non connecté" per the contract: null on the
-  /// recruiter's own offer list (no candidate context), populated on the
-  /// candidate-facing deck/search results.
+  /// Recruiter-facing stats joined by the backend for list/detail views.
+  final int applicantCount;
+
+  /// `%` of candidates who passed every evaluation. Null when unavailable.
+  final int? successRate;
+
+  /// Public share URL for the offer, when the backend provides one.
+  final String? shareableLink;
+
+  /// F17 — the candidate's Fit Score for this offer.
   final int? fitScore;
 
   /// F16/F19/F29 (FITSCORE_REMEDIATION.md §3) — recruiter-facing signal: is a
@@ -156,6 +195,8 @@ class JobOffer extends Equatable {
     required this.remote,
     required this.salaryMin,
     required this.salaryMax,
+    this.salaryCurrency = 'EUR',
+    this.salaryPeriod = SalaryPeriod.monthly,
     required this.currency,
     required this.contractType,
     required this.workplaceType,
@@ -173,6 +214,9 @@ class JobOffer extends Equatable {
     required this.openToInternational,
     required this.status,
     required this.postedAt,
+    this.applicantCount = 0,
+    this.successRate,
+    this.shareableLink,
     this.fitScore,
     this.hardSkillsAlert = HardSkillsAlertLevel.none,
   });
@@ -187,6 +231,8 @@ class JobOffer extends Equatable {
     bool? remote,
     double? salaryMin,
     double? salaryMax,
+    String? salaryCurrency,
+    SalaryPeriod? salaryPeriod,
     String? currency,
     ContractType? contractType,
     WorkplaceType? workplaceType,
@@ -204,6 +250,9 @@ class JobOffer extends Equatable {
     bool? openToInternational,
     JobStatus? status,
     DateTime? postedAt,
+    int? applicantCount,
+    int? successRate,
+    String? shareableLink,
     int? fitScore,
     HardSkillsAlertLevel? hardSkillsAlert,
   }) {
@@ -217,6 +266,8 @@ class JobOffer extends Equatable {
       remote: remote ?? this.remote,
       salaryMin: salaryMin ?? this.salaryMin,
       salaryMax: salaryMax ?? this.salaryMax,
+      salaryCurrency: salaryCurrency ?? this.salaryCurrency,
+      salaryPeriod: salaryPeriod ?? this.salaryPeriod,
       currency: currency ?? this.currency,
       contractType: contractType ?? this.contractType,
       workplaceType: workplaceType ?? this.workplaceType,
@@ -234,6 +285,9 @@ class JobOffer extends Equatable {
       openToInternational: openToInternational ?? this.openToInternational,
       status: status ?? this.status,
       postedAt: postedAt ?? this.postedAt,
+      applicantCount: applicantCount ?? this.applicantCount,
+      successRate: successRate ?? this.successRate,
+      shareableLink: shareableLink ?? this.shareableLink,
       fitScore: fitScore ?? this.fitScore,
       hardSkillsAlert: hardSkillsAlert ?? this.hardSkillsAlert,
     );
@@ -242,17 +296,30 @@ class JobOffer extends Equatable {
   String get locationDisplay => '$city, $country';
 
   String get salaryDisplay {
-    if (salaryMin == salaryMax) return '\$$salaryMin$currency';
-    return '\$$salaryMin - \$$salaryMax$currency';
+    if (salaryMin <= 0 && salaryMax <= 0) return '';
+    final symbol = salaryCurrencySymbol(salaryCurrency);
+    String amount(double v) {
+      if (v >= 1000) {
+        final k = v / 1000;
+        return '${k.toStringAsFixed(k.truncateToDouble() == k ? 0 : 1)}K';
+      }
+      return v.toStringAsFixed(0);
+    }
+
+    final range = (salaryMax <= 0 || salaryMax == salaryMin)
+        ? '$symbol${amount(salaryMin)}'
+        : '$symbol${amount(salaryMin)} - $symbol${amount(salaryMax)}';
+    return '$range ${salaryPeriod.shortSuffix}';
   }
 
   @override
   List<Object?> get props => [
     id, recruiterId, title, companyName, city, country, remote,
-    salaryMin, salaryMax, currency, contractType, workplaceType,
+    salaryMin, salaryMax, salaryCurrency, salaryPeriod, currency, contractType, workplaceType,
     experienceLevel, fieldOfWork, description, responsibilities,
     minimumQualifications, preferredQualifications, whatWeOffer,
     howToApply, companyInfo, assessmentId, jobPositionId, openToInternational,
-    status, postedAt, fitScore, hardSkillsAlert,
+    status, postedAt, applicantCount, successRate, shareableLink, fitScore,
+    hardSkillsAlert,
   ];
 }

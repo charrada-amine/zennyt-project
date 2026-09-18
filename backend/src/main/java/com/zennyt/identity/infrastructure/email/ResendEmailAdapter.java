@@ -53,6 +53,36 @@ public class ResendEmailAdapter implements EmailPort {
         }
     }
 
+    @Override
+    public void sendAccountChangeCode(String toEmail, String recipientName, String code,
+                                      String targetLabel) {
+        String greeting = (recipientName == null || recipientName.isBlank())
+            ? "Bonjour" : "Bonjour " + recipientName;
+        String html = """
+            <div style="font-family:Arial,sans-serif;font-size:15px;color:#1a1a1a">
+              <p>%s,</p>
+              <p>Voici le code de confirmation pour valider <strong>%s</strong> :</p>
+              <p style="font-size:28px;font-weight:bold;letter-spacing:4px;margin:16px 0">%s</p>
+              <p>Ce code expire dans quelques minutes. Si vous n'êtes pas à l'origine de
+                 cette demande, ignorez cet e-mail.</p>
+              <p>— L'équipe Zennyt</p>
+            </div>
+            """.formatted(greeting, targetLabel, code);
+
+        CreateEmailOptions options = CreateEmailOptions.builder()
+            .from(fromEmail)
+            .to(toEmail)
+            .subject("Votre code de confirmation Zennyt")
+            .html(html)
+            .build();
+
+        try {
+            resend.emails().send(options);
+        } catch (ResendException e) {
+            throw new EmailDeliveryException("Échec de l'envoi de l'e-mail de confirmation", e);
+        }
+    }
+
     /** Erreur d'envoi d'e-mail (infrastructure). */
     public static class EmailDeliveryException extends RuntimeException {
         public EmailDeliveryException(String message, Throwable cause) {

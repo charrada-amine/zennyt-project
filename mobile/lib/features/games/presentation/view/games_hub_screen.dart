@@ -8,6 +8,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../navigation/presentation/viewmodel/nav_tab_provider.dart';
 import '../../domain/entities/games_progress.dart';
 import '../games_providers.dart';
+import '../games_progress_provider.dart' as local_progress;
 
 const _ink = Color(0xFF25204A);
 const _blue = Color(0xFF17458F);
@@ -66,6 +67,8 @@ class GamesHubScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final serverProgress = ref.watch(gamesProgressProvider).value;
+    final localProgress = ref.watch(local_progress.gamesProgressProvider);
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -105,11 +108,25 @@ class GamesHubScreen extends ConsumerWidget {
                       'Practice sessions · sample results',
                       style: TextStyle(color: _muted, fontSize: 13),
                     ),
+                  ] else ...[
+                    const SizedBox(height: 10),
+                    if (serverProgress != null)
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(999),
+                        child: LinearProgressIndicator(
+                          value: serverProgress.completedGames /
+                              serverProgress.totalGames,
+                          minHeight: 6,
+                          backgroundColor: _softGray,
+                          color: _magenta,
+                        ),
+                      ),
                   ],
                   const SizedBox(height: 26),
                   _GameCategoryCard(
                     key: const ValueKey('game-category-cognitive-flexibility'),
                     title: 'Cognitive Flexibility',
+                    completed: localProgress.completedDimensions.contains('Cognitive Flexibility'),
                     iconAsset: _iconFlexibility,
                     durationLabel: '2–25 min',
                     aptitudeLabel: '3 games',
@@ -143,6 +160,7 @@ class GamesHubScreen extends ConsumerWidget {
                   _GameCategoryCard(
                     key: const ValueKey('game-category-working-memory'),
                     title: 'Working Memory',
+                    completed: localProgress.completedDimensions.contains('Working Memory'),
                     iconAsset: _iconMemory,
                     durationLabel: '5–13 min',
                     aptitudeLabel: '3 games',
@@ -180,6 +198,7 @@ class GamesHubScreen extends ConsumerWidget {
                   _GameCategoryCard(
                     key: const ValueKey('game-category-decision-making'),
                     title: 'Decision-Making',
+                    completed: localProgress.completedDimensions.contains('Decision-Making'),
                     iconAsset: _iconDecision,
                     games: const [
                       _GameEntry(
@@ -196,6 +215,7 @@ class GamesHubScreen extends ConsumerWidget {
                   _GameCategoryCard(
                     key: const ValueKey('game-category-executive-planning'),
                     title: 'Executive Planning',
+                    completed: localProgress.completedDimensions.contains('Executive Planning'),
                     iconAsset: _iconPlanning,
                     games: const [
                       _GameEntry(
@@ -225,6 +245,7 @@ class GamesHubScreen extends ConsumerWidget {
                   _GameCategoryCard(
                     key: const ValueKey('game-category-emotional-regulation'),
                     title: 'Emotional Regulation',
+                    completed: localProgress.completedDimensions.contains('Emotional Regulation'),
                     iconAsset: _iconEmotion,
                     aptitudeLabel: '3 games',
                     games: const [
@@ -435,11 +456,12 @@ class _GameEntry {
   final bool enabled;
 }
 
-class _GameCategoryCard extends StatelessWidget {
+class _GameCategoryCard extends ConsumerWidget {
   const _GameCategoryCard({
     super.key,
     required this.title,
     required this.iconAsset,
+    this.completed = false,
     this.games = const [],
     this.durationLabel = '10-13mins',
     this.aptitudeLabel = 'N° aptitudes',
@@ -447,6 +469,7 @@ class _GameCategoryCard extends StatelessWidget {
 
   final String title;
   final String iconAsset;
+  final bool completed;
   final String durationLabel;
   final String aptitudeLabel;
 
@@ -459,25 +482,39 @@ class _GameCategoryCard extends StatelessWidget {
   List<_GameEntry> get _playable =>
       games.where((g) => g.enabled).toList(growable: false);
 
-  void _handleTap(BuildContext context) {
+  Future<void> _handleTap(BuildContext context, WidgetRef ref) async {
     final playable = _playable;
     if (playable.isEmpty) return;
-    // Un seul jeu ouvert dans une catégorie qui en compte plusieurs : on montre
-    // quand même le sélecteur, pour que le joueur voie ce qui arrive.
-    if (games.length == 1) {
-      _openGame(context, playable.first.route);
-      return;
+
+    // Design screen 76 — anti-fraud monitoring consent, asked once.
+    if (!ref.read(local_progress.gamesProgressProvider).consentGiven) {
+      final agreed = await _showGamesConsentDialog(context);
+      if (agreed != true) return;
+      ref.read(local_progress.gamesProgressProvider.notifier).setConsent(true);
     }
-    _showGamePicker(context, title: title, games: games);
+
+    if (!context.mounted) return;
+    if (games.length == 1) {
+      await _openGame(context, playable.first.route);
+    } else {
+      final route = await _showGamePicker(context, title: title, games: games);
+      if (route == null || !context.mounted) return;
+      await _openGame(context, route);
+    }
+    // Surlignage provisoire de la carte, côté client ; la couverture serveur
+    // est relue par [_openGame] au retour.
+    ref
+        .read(local_progress.gamesProgressProvider.notifier)
+        .markCompleted(title);
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     // Carte inactive quand la catégorie n'a aucun jeu, ou aucun jeu ouvert.
     final enabled = _playable.isNotEmpty;
-    final onTap = enabled ? () => _handleTap(context) : null;
+    final onTap = enabled ? () => _handleTap(context, ref) : null;
     final largeText = MediaQuery.textScalerOf(context).scale(1) > 1.5;
-    final titleRow = _CategoryTitleRow(title: title, enabled: enabled);
+    final titleRow = _CategoryTitleRow(title: title, enabled: enabled, completed: completed);
     final logos = _CategoryGameLogos(games: games);
     final illustration = _CategoryIllustration(
       asset: iconAsset,
@@ -494,9 +531,9 @@ class _GameCategoryCard extends StatelessWidget {
       constraints: const BoxConstraints(minHeight: 116),
       padding: const EdgeInsets.fromLTRB(24, 12, 10, 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: completed ? const Color(0xFFF3E8F6) : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _blue, width: 1.2),
+        border: Border.all(color: completed ? _magenta : _blue, width: completed ? 1.6 : 1.2),
       ),
       child: largeText
           ? Column(
@@ -558,10 +595,15 @@ class _GameCategoryCard extends StatelessWidget {
 }
 
 class _CategoryTitleRow extends StatelessWidget {
-  const _CategoryTitleRow({required this.title, required this.enabled});
+  const _CategoryTitleRow({
+    required this.title,
+    required this.enabled,
+    this.completed = false,
+  });
 
   final String title;
   final bool enabled;
+  final bool completed;
 
   @override
   Widget build(BuildContext context) {
@@ -580,7 +622,9 @@ class _CategoryTitleRow extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 6),
-        if (enabled)
+        if (completed)
+          const Icon(Icons.check_circle_rounded, color: _magenta, size: 22)
+        else if (enabled)
           const Icon(Icons.keyboard_arrow_down_rounded, color: _blue, size: 24)
         else
           const _ComingSoonBadge(),
@@ -681,14 +725,100 @@ class _CategoryIllustration extends StatelessWidget {
   }
 }
 
+/// Anti-fraud monitoring consent (design screen 76). Returns `true` only when
+/// the user ticked the agreement and confirmed. Asked once, then remembered in
+/// [local_progress.gamesProgressProvider].
+Future<bool?> _showGamesConsentDialog(BuildContext context) {
+  var agreed = false;
+  return showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (dialogContext) => StatefulBuilder(
+      builder: (context, setState) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: Colors.white,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 28),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(22, 20, 22, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Important!',
+                      style: TextStyle(
+                        color: _ink,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => Navigator.of(dialogContext).pop(false),
+                    child: const Icon(Icons.close_rounded, color: _muted, size: 22),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'To preserve the integrity of the assessments, monitoring technologies may '
+                'collect screenshots, webcam images, and keystroke dynamics during the tests. '
+                'This data is used solely to detect impersonation, cheating, or identity fraud.',
+                style: TextStyle(color: _muted, fontSize: 13.5, height: 1.45),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Checkbox(
+                    value: agreed,
+                    activeColor: _blue,
+                    onChanged: (v) => setState(() => agreed = v ?? false),
+                  ),
+                  const Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.only(top: 12),
+                      child: Text(
+                        'I understand and agree to the monitoring conditions.',
+                        style: TextStyle(color: _ink, fontSize: 13, fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: agreed ? () => Navigator.of(dialogContext).pop(true) : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _blue,
+                    disabledBackgroundColor: const Color(0xFFCBD5E1),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text('Continue', style: TextStyle(fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 /// Petit menu (bottom sheet) pour choisir un jeu quand la catégorie en regroupe
-/// plusieurs. Ferme la feuille puis navigue vers le jeu sélectionné.
-void _showGamePicker(
+/// plusieurs. Retourne la route choisie (ou `null`), que l'appelant pousse.
+Future<String?> _showGamePicker(
   BuildContext context, {
   required String title,
   required List<_GameEntry> games,
 }) {
-  showModalBottomSheet<void>(
+  return showModalBottomSheet<String>(
     context: context,
     backgroundColor: Colors.white,
     isScrollControlled: true,
@@ -747,10 +877,7 @@ void _showGamePicker(
                     separatorBuilder: (_, _) => const SizedBox(height: 10),
                     itemBuilder: (_, index) => _GamePickerTile(
                       game: games[index],
-                      onTap: () {
-                        Navigator.of(sheetContext).pop();
-                        _openGame(context, games[index].route);
-                      },
+                      onTap: () => Navigator.of(sheetContext).pop(games[index].route),
                     ),
                   ),
                 ),

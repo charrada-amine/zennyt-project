@@ -2,8 +2,12 @@ package com.zennyt.recruitment.infrastructure.persistence;
 
 import com.zennyt.recruitment.domain.model.JobOpportunityOffer;
 import com.zennyt.recruitment.domain.repository.JobOpportunityOfferRepository;
+import com.zennyt.recruitment.domain.vo.JobOpportunityStatus;
 import com.zennyt.recruitment.domain.vo.SalaryRange;
 import org.springframework.stereotype.Component;
+
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -14,6 +18,14 @@ public class JobOpportunityOfferRepositoryAdapter implements JobOpportunityOffer
 
     @Override public JobOpportunityOffer save(JobOpportunityOffer o) { return toDomain(jpa.save(toEntity(o))); }
     @Override public Optional<JobOpportunityOffer> findById(UUID id) { return jpa.findById(id).map(this::toDomain); }
+
+    @Override
+    public List<JobOpportunityOffer> findByRecruiterIdAndStatusIn(
+            UUID recruiterId, Collection<JobOpportunityStatus> statuses) {
+        return jpa.findByRecruiterIdAndStatusInOrderByRespondedAtDesc(recruiterId, statuses).stream()
+            .map(this::toDomain)
+            .toList();
+    }
 
     private JobOpportunityOfferEntity toEntity(JobOpportunityOffer o) {
         JobOpportunityOfferEntity e = new JobOpportunityOfferEntity();

@@ -1,6 +1,6 @@
 # Identity — authentification et profils mobiles
 
-**Dernière mise à jour : 2026-09-08**
+**Dernière mise à jour : 2026-09-11**
 
 ## Périmètre et référence
 
@@ -41,7 +41,9 @@ dev par header et ne doit pas remplacer l’implémentation actuelle par tokens.
 - Contrats, repositories, payloads et comportement des endpoints.
 - Les actions indisponibles ne doivent pas simuler une authentification réussie.
 - Le mode de démonstration Lot 1 et ses restrictions restent la règle existante.
-- Aucun changement de dépendance ou de schéma de base de données.
+- Aucun changement de dépendance ou de schéma de base de données **sans autorisation
+  explicite**. Exception tracée : la table `user_preferences` (migration V77) a été ajoutée
+  le 2026-09-11 avec l'accord de l'utilisateur, pour les préférences synchronisées.
 
 ## Refonte et décisions à valider
 
@@ -84,3 +86,36 @@ un point d’intégration ouvert, sans prétendre modifier un réglage serveur.
 2. **2026-09-08** — Refonte auth/onboarding, identité des profils, menus communs
    et langue. 10 tests ciblés verts ; session, tokens, contrats et repositories
    inchangés. Édition/CV et autres écrans encore à poursuivre.
+
+3. **2026-09-11** — Préférences d'application synchronisées :
+   `GET/PUT /users/me/preferences` (notifications + accessibilité : contraste, taille de
+   texte), table `user_preferences` (migration V77, ajout de schéma explicitement
+   autorisé). Contrat identity porté à 48 opérations (parité runtime vérifiée) ; tests
+   domaine + mise à jour des tests IdentityService qui construisaient le service. Côté
+   mobile, les réglages lisent/écrivent ces préférences (les providers locaux restent la
+   source d'affichage instantané et du redimensionnement global du texte) ; synchro
+   serveur best-effort, repli local hors-ligne.
+
+4. **2026-09-11** — Changement d'e-mail / de téléphone confirmé par OTP :
+   `POST /users/me/email`, `/email/verify`, `/users/me/phone`, `/phone/verify`
+   (table `account_change_codes`, migration V78 ; contrat identity porté à 52 opérations).
+   **Décision : le SMS n'est pas intégré — les deux types de code sont livrés par e-mail
+   (Resend)**, y compris le changement de téléphone, faute de fournisseur SMS. Le code
+   reste hashé SHA-256, TTL 10 min, 5 tentatives. Côté mobile, `PersonalInformationsScreen`
+   ouvre le dialogue OTP quand l'e-mail/le téléphone change, puis un écran « Changes saved ».
+   Le canal SMS reste une décision à valider (fournisseur + module de résolution
+   destinataire → numéro).
+
+5. **2026-09-11** — Option de développement pour ignorer la vérification à l'inscription :
+   `SKIP_SIGNUP_VERIFICATION=true` (via `--dart-define` ou `mobile/.env`, gitignoré). L'écran
+   OTP d'inscription est purement visuel (le backend n'expose aucune vérification e-mail/SMS
+   à l'enregistrement), donc le flag route directement vers la configuration du profil.
+   **À ne jamais activer en production.**
+
+6. **2026-09-11** — Documents légaux publics : `GET /legal/{slug}` (`terms-of-use`,
+   `privacy-policy`), servis depuis le classpath (`resources/legal/*.json`) via
+   `LegalDocumentService`. Contrat identity porté à 53 opérations (parité vérifiée) ;
+   `GET /api/v1/legal/**` ajouté à la permit-list de `shared/SecurityConfig` (document public).
+   Slug restreint à `[a-z0-9-]+` (pas de traversée de chemin). Le contenu peut ainsi être mis à
+   jour sans publier l'app ; côté mobile, les écrans Terms / Privacy lisent l'API avec le texte
+   embarqué comme repli hors-ligne.

@@ -48,8 +48,6 @@ class _Repository extends Fake implements FitsRepository {
   @override
   Future<List<JobOffer>> getCandidateDeck() async => jobs;
   @override
-  Future<List<String>> getSwipedTargetIds({String? jobOfferId}) async => [];
-  @override
   Future<SwipeResult> swipe({
     required String targetId,
     required SwipeTargetType targetType,

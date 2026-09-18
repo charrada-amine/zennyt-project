@@ -7,7 +7,6 @@ import 'package:go_router/go_router.dart';
 import 'package:zennyt/core/constants.dart';
 import 'package:zennyt/core/router/app_routes.dart';
 import 'package:zennyt/l10n/gen/app_localizations.dart';
-import 'package:zennyt/core/theme/app_color_scheme.dart';
 import 'package:zennyt/shared/widgets/platform_app_bar.dart';
 import 'package:zennyt/shared/widgets/platform_scaffold.dart';
 import '../providers/home_providers.dart';
@@ -52,7 +51,6 @@ class _HomePageState extends ConsumerState<HomePage> {
   @override
   Widget build(BuildContext context) {
     final postsAsync = ref.watch(feedPostsProvider);
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return PlatformScaffold(
       backgroundColor: context.colors.panelBackground,

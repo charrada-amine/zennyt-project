@@ -165,6 +165,26 @@ public class User {
         this.updatedAt = Instant.now();
     }
 
+    /**
+     * Applique un changement d'adresse e-mail confirmé par OTP. La propriété de
+     * la nouvelle adresse est prouvée par le code, donc {@code emailVerified}
+     * passe à vrai.
+     */
+    public void changeEmail(Email newEmail) {
+        if (newEmail == null) {
+            throw new IllegalArgumentException("L'adresse e-mail est obligatoire");
+        }
+        this.email = newEmail;
+        this.emailVerified = true;
+        this.updatedAt = Instant.now();
+    }
+
+    /** Applique un changement de numéro de téléphone confirmé par OTP. */
+    public void changePhoneNumber(String newPhoneNumber) {
+        this.phoneNumber = newPhoneNumber;
+        this.updatedAt = Instant.now();
+    }
+
     private static String requireText(String value, String message) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(message);

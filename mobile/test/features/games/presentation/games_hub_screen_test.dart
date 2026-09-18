@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zennyt/core/storage/shared_preferences_provider.dart';
 import 'package:zennyt/features/games/domain/entities/games_progress.dart';
 import 'package:zennyt/features/games/presentation/games_providers.dart';
 import 'package:zennyt/features/games/presentation/view/games_hub_screen.dart';
@@ -15,9 +17,17 @@ Future<void> _pumpHub(
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
 
+  // Pre-agree to the monitoring consent (design 76) so tapping a card opens the
+  // game picker directly, not the consent dialog.
+  SharedPreferences.setMockInitialValues({'games_monitoring_consent': true});
+  final prefs = await SharedPreferences.getInstance();
+
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [gamesProgressProvider.overrideWith((ref) async => progress)],
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        gamesProgressProvider.overrideWith((ref) async => progress),
+      ],
       child: MaterialApp(
         builder: (context, child) => MediaQuery(
           data: MediaQuery.of(

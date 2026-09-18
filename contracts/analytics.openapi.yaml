@@ -25,6 +25,7 @@ paths:
     get:
       tags: [Analytics]
       summary: Tableau de bord du candidat connecté
+      description: Réservé aux rôles CANDIDATE/STUDENT (403 pour les autres).
       responses:
         '200':
           description: Insights candidat
@@ -37,6 +38,7 @@ paths:
     get:
       tags: [Analytics]
       summary: Statistiques du recruteur connecté
+      description: Réservé au rôle RECRUITER (403 pour les autres).
       responses:
         '200':
           description: Statistiques recruteur
@@ -51,12 +53,17 @@ paths:
     get:
       tags: [Analytics]
       summary: Statistiques d'une offre (recruteur propriétaire)
+      description: >
+        Réservé au recruteur propriétaire de l'offre : toute offre inconnue ou
+        appartenant à un tiers répond 404 (l'existence d'une offre n'est jamais
+        révélée à un tiers).
       responses:
         '200':
           description: Statistiques de l'offre
           content:
             application/json:
               schema: { $ref: '#/components/schemas/JobStats' }
+        '403': { $ref: './common.openapi.yaml#/components/responses/Forbidden' }
         '404': { $ref: './common.openapi.yaml#/components/responses/NotFound' }
 
 components:
@@ -73,7 +80,11 @@ components:
         applicationsByStatus:
           type: object
           additionalProperties: { type: integer }
-          example: { SUBMITTED: 5, VIEWED: 3, INTERVIEW: 1, REJECTED: 2 }
+          description: >
+            Répartition par statut. Décision produit (à valider) : une
+            candidature = un swipe RIGHT, donc les statuts portent les
+            activités instrumentées INTERESTED / MATCHED / TEST_COMPLETED.
+          example: { INTERESTED: 5, MATCHED: 3, TEST_COMPLETED: 2 }
         profileCompleteness: { type: integer, minimum: 0, maximum: 100, description: "Pourcentage" }
 
     RecruiterStats:
@@ -82,8 +93,16 @@ components:
         jobsPosted: { type: integer }
         activeJobs: { type: integer }
         totalApplications: { type: integer }
-        avgResponseTimeHours: { type: number, format: float }
-        responseRate: { type: number, format: float, description: "Ratio 0..1" }
+        avgResponseTimeHours:
+          type: number
+          format: float
+          nullable: true
+          description: "Non calculé tant que la source n'est pas instrumentée (null)."
+        responseRate:
+          type: number
+          format: float
+          nullable: true
+          description: "Ratio 0..1, non calculé tant que la source n'est pas instrumentée (null)."
 
     JobStats:
       type: object
@@ -91,9 +110,14 @@ components:
         jobId: { type: string, format: uuid }
         views: { type: integer }
         applications: { type: integer }
-        conversionRate: { type: number, format: float, description: "candidatures / vues" }
+        conversionRate:
+          type: number
+          format: float
+          nullable: true
+          description: "candidatures / vues — non calculé tant que les vues ne sont pas instrumentées (null)."
         viewsTimeline:
           type: array
+          description: "Vide tant que les vues ne sont pas instrumentées."
           items:
             type: object
             properties:

@@ -63,12 +63,17 @@ class AppRoutes {
       '/profile-settings/account-center/personal-informations';
   static const String privacyPolicy =
       '/profile-settings/account-center/privacy-policy';
+  static const String termsOfUse = '/profile-settings/terms-of-use';
   static const String userProfile = '/user-profile';
   static const String editProfile = '/edit-profile';
   static const String recruiterEditProfile = '/recruiter-edit-profile';
   static const String sharePost = '/share-post';
   static const String languageSettings = '/language-settings';
   static const String accessibility = '/accessibility';
+  static const String referral = '/referral';
+  static const String wallet = '/wallet';
+  static const String hiredCandidates = '/hired-candidates';
+  static const String plans = '/plans';
   static const String cvCameraCapture = '/cv-camera-capture';
   static const String cvProcessing = '/cv-processing';
   static const String cvReview = '/cv-review';
@@ -80,10 +85,13 @@ class AppRoutes {
   static const String jobDetail = '/jobs/:jobId';
   static const String editJob = '/jobs/:jobId/edit';
   static const String jobResults = '/jobs/:jobId/results';
+  static const String jobTest = '/jobs/:jobId/test';
   static const String createAssessment = '/assessments/create';
+  static const String manageTests = '/assessments';
   static const String assessmentDetail = '/assessments/:assessmentId';
   static const String editAssessment = '/assessments/:assessmentId/edit';
   static const String selectAssessment = '/assessments/pick';
+  static const String publicTestPreview = '/tests/:token';
 
   // Route names (used with context.goNamed / pushNamed).
   static const String nSplash = 'splash';
@@ -129,12 +137,17 @@ class AppRoutes {
   static const String nAccountCenter = 'accountCenter';
   static const String nPersonalInformations = 'personalInformations';
   static const String nPrivacyPolicy = 'privacyPolicy';
+  static const String nTermsOfUse = 'termsOfUse';
   static const String nUserProfile = 'userProfile';
   static const String nEditProfile = 'editProfile';
   static const String nRecruiterEditProfile = 'recruiterEditProfile';
   static const String nSharePost = 'sharePost';
   static const String nLanguageSettings = 'languageSettings';
   static const String nAccessibility = 'accessibility';
+  static const String nReferral = 'referral';
+  static const String nWallet = 'wallet';
+  static const String nHiredCandidates = 'hiredCandidates';
+  static const String nPlans = 'plans';
   static const String nCvCameraCapture = 'cvCameraCapture';
   static const String nCvProcessing = 'cvProcessing';
   static const String nCvReview = 'cvReview';
@@ -143,8 +156,11 @@ class AppRoutes {
   static const String nJobDetail = 'jobDetail';
   static const String nEditJob = 'editJob';
   static const String nJobResults = 'jobResults';
+  static const String nJobTest = 'jobTest';
   static const String nCreateAssessment = 'createAssessment';
+  static const String nManageTests = 'manageTests';
   static const String nAssessmentDetail = 'assessmentDetail';
   static const String nEditAssessment = 'editAssessment';
   static const String nSelectAssessment = 'selectAssessment';
+  static const String nPublicTestPreview = 'publicTestPreview';
 }

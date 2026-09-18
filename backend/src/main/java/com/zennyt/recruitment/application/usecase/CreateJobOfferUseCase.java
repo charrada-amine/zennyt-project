@@ -28,6 +28,7 @@ public class CreateJobOfferUseCase {
      */
     public record Command(
         String title, Location location, Double salaryMin, Double salaryMax,
+        String salaryCurrency, SalaryPeriod salaryPeriod,
         ContractType contractType, WorkplaceType workplaceType, ExperienceLevel experienceLevel,
         String description, String responsibilities,
         String minimumQualifications, String preferredQualifications,
@@ -63,7 +64,8 @@ public class CreateJobOfferUseCase {
             cmd.contractType(), cmd.workplaceType(), cmd.experienceLevel(),
             cmd.description(), cmd.responsibilities(), cmd.minimumQualifications(),
             cmd.preferredQualifications(), cmd.whatWeOffer(), cmd.howToApply(),
-            null, cmd.jobPositionId(), cmd.openToInternational());
+            null, cmd.jobPositionId(), cmd.openToInternational(),
+            cmd.salaryCurrency(), cmd.salaryPeriod());
         // Contrat frontend : une offre créée est immédiatement publiée, avec
         // status et postedAt imposés par le serveur (jamais par le client).
         offer.changeStatus(JobOfferStatus.ACTIVE);

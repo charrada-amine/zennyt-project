@@ -12,6 +12,7 @@ import file_picker
 import file_selector_macos
 import flutter_secure_storage_darwin
 import flutter_tts
+import in_app_purchase_storekit
 import iris_method_channel
 import pdfium_flutter
 import photo_manager
@@ -28,6 +29,7 @@ func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
   FileSelectorPlugin.register(with: registry.registrar(forPlugin: "FileSelectorPlugin"))
   FlutterSecureStorageDarwinPlugin.register(with: registry.registrar(forPlugin: "FlutterSecureStorageDarwinPlugin"))
   FlutterTtsPlugin.register(with: registry.registrar(forPlugin: "FlutterTtsPlugin"))
+  InAppPurchasePlugin.register(with: registry.registrar(forPlugin: "InAppPurchasePlugin"))
   IrisMethodChannelPlugin.register(with: registry.registrar(forPlugin: "IrisMethodChannelPlugin"))
   PDFiumFlutterPlugin.register(with: registry.registrar(forPlugin: "PDFiumFlutterPlugin"))
   PhotoManagerPlugin.register(with: registry.registrar(forPlugin: "PhotoManagerPlugin"))

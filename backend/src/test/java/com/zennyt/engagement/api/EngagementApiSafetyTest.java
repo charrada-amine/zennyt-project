@@ -25,7 +25,8 @@ class EngagementApiSafetyTest {
         ConversationController.class, MessageController.class,
         NotificationController.class, RealtimeController.class,
         PostController.class, CallController.class, HelpChatController.class,
-        EngagementMediaController.class);
+        EngagementMediaController.class,
+        WalletController.class, ReferralController.class, BillingController.class);
 
     @Test
     void all_contract_routes_are_protected_by_the_local_projection() {
@@ -34,10 +35,10 @@ class EngagementApiSafetyTest {
             .filter(EngagementApiSafetyTest::isEndpoint)
             .toList();
 
-        // 33 depuis le 2026-08-15 : ouverture d'une conversation d'aide et notation de
-        // l'echange (etape 1 du centre d'aide). Ce compte se met a jour deliberement —
-        // c'est ce qui oblige a passer par ici quand une route apparait.
-        assertThat(endpoints).hasSize(33);
+        // 43 depuis le 2026-09-16 : wallet (4), referral (3) et billing (3) —
+        // 33 + 10. Ce compte se met a jour deliberement — c'est ce qui oblige a
+        // passer par ici quand une route apparait.
+        assertThat(endpoints).hasSize(43);
         assertThat(endpoints).allSatisfy(method ->
             assertThat(method.isAnnotationPresent(EngagementAuthenticated.class))
                 .as(method.toGenericString()).isTrue());
@@ -58,7 +59,7 @@ class EngagementApiSafetyTest {
         Set<String> contract = contractRoutes();
         Set<String> runtime = runtimeRoutes();
 
-        assertThat(contract).hasSize(33);
+        assertThat(contract).hasSize(43);
         assertThat(runtime).isEqualTo(contract);
     }
 

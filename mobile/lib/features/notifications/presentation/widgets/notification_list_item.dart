@@ -133,7 +133,7 @@ class NotificationListItem extends StatelessWidget {
             decoration: BoxDecoration(
               color: notification.isRead
                   ? context.colors.cardSurface
-                  : context.colors.primary.withOpacity(0.08),
+                  : context.colors.primary.withValues(alpha: 0.08),
               border: Border.all(
                 color: context.colors.border,
                 width: 1,

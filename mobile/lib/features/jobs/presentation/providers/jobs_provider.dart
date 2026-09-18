@@ -6,6 +6,9 @@ import 'package:zennyt/features/jobs/domain/entities/assessment.dart';
 import 'package:zennyt/features/jobs/domain/entities/job.dart';
 import 'package:zennyt/features/jobs/domain/repositories/jobs_repository.dart';
 import 'package:zennyt/features/jobs/domain/entities/job_position.dart';
+import 'package:zennyt/features/jobs/domain/entities/public_assessment.dart';
+import 'package:zennyt/features/jobs/domain/entities/test_attempt.dart';
+import 'package:zennyt/features/jobs/domain/entities/hired_candidate.dart';
 /// Source unique du repository Jobs (backend intégré).
 final jobsRepositoryProvider = Provider<JobsRepository>((ref) {
   return JobsRepositoryImpl(ref.watch(dioProvider));
@@ -124,3 +127,62 @@ final assessmentsProvider = AsyncNotifierProvider<AssessmentsNotifier, List<Asse
 final assessmentDetailProvider = FutureProvider.family<Assessment, String>((ref, id) {
   return ref.read(jobsRepositoryProvider).getAssessmentById(id);
 });
+
+/// Public projection of a shared test (`GET /tests/{token}`), no correct answers.
+final publicTestProvider = FutureProvider.family<PublicAssessment, String>((ref, token) {
+  return ref.read(jobsRepositoryProvider).getPublicTest(token);
+});
+
+// ── Hard-skills test attempts & results ─────────────────────────────────────
+
+/// The candidate's own result for an offer, or null when not attempted yet.
+final myTestResultProvider = FutureProvider.family<TestResult?, String>((ref, jobOfferId) {
+  return ref.read(jobsRepositoryProvider).getMyTestResult(jobOfferId);
+});
+
+/// Recruiter list of results for an owned offer, joined to candidates.
+final jobTestResultsProvider = FutureProvider.family<TestResultPage, String>((ref, jobOfferId) {
+  return ref.read(jobsRepositoryProvider).getJobTestResults(jobOfferId);
+});
+
+/// Server-side aggregate over the whole result set for an owned offer.
+final jobTestResultsSummaryProvider =
+    FutureProvider.family<TestResultsSummary, String>((ref, jobOfferId) {
+  return ref.read(jobsRepositoryProvider).getJobTestResultsSummary(jobOfferId);
+});
+
+/// Per-question correction for one candidate (recruiter, owner).
+final jobTestResultDetailProvider =
+    FutureProvider.family<TestResultDetail, ({String jobOfferId, String candidateId})>(
+  (ref, args) => ref.read(jobsRepositoryProvider).getJobTestResultDetail(
+        jobOfferId: args.jobOfferId,
+        candidateId: args.candidateId,
+      ),
+);
+
+// ── Hired candidates (design 258) ───────────────────────────────────────────
+
+class HiredCandidatesNotifier extends AsyncNotifier<List<HiredCandidate>> {
+  @override
+  Future<List<HiredCandidate>> build() {
+    return ref.read(jobsRepositoryProvider).getHiredCandidates();
+  }
+
+  Future<void> refresh() async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(
+      () => ref.read(jobsRepositoryProvider).getHiredCandidates(),
+    );
+  }
+
+  Future<void> cancel(String id) async {
+    final updated = await ref.read(jobsRepositoryProvider).cancelHire(id);
+    final current = state.value ?? [];
+    state = AsyncData(current.map((h) => h.id == updated.id ? updated : h).toList());
+  }
+}
+
+final hiredCandidatesProvider =
+    AsyncNotifierProvider<HiredCandidatesNotifier, List<HiredCandidate>>(
+  HiredCandidatesNotifier.new,
+);

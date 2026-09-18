@@ -263,6 +263,25 @@ public final class IdentityDtos {
         }
     }
 
+    public record EmailChangeRequest(@NotBlank @Email @Size(max = 150) String newEmail) {}
+    public record PhoneChangeRequest(@NotBlank @Size(max = 30) String newPhoneNumber) {}
+    public record VerificationCodeRequest(@NotBlank @Size(min = 4, max = 10) String code) {}
+
+    public record UserPreferencesRequest(
+        @NotNull Boolean notificationsEnabled,
+        @NotNull Boolean highContrast,
+        @NotNull @Min(10) @Max(30) Integer textSizePx
+    ) {}
+
+    public record UserPreferencesResponse(
+        boolean notificationsEnabled, boolean highContrast, int textSizePx, Instant updatedAt
+    ) {
+        static UserPreferencesResponse from(UserPreferences value) {
+            return new UserPreferencesResponse(value.notificationsEnabled(), value.highContrast(),
+                value.textSizePx(), value.updatedAt());
+        }
+    }
+
     public record CvParseRequest(
         @NotBlank String text,
         @NotBlank @Size(max = 2) String language

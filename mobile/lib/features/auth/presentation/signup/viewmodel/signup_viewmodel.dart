@@ -134,6 +134,12 @@ class SignupViewModel extends Notifier<SignupState> {
     await Future<void>.delayed(const Duration(milliseconds: 300));
   }
 
+  /// DEV ONLY — marks verification as satisfied without the OTP screen
+  /// (see `AppConfig.skipSignupVerification`).
+  void markVerificationSkipped() {
+    state = state.copyWith(otpStatus: OtpStatus.valid);
+  }
+
   /// Resets the OTP boxes to their neutral state (e.g. while the user edits).
   void resetOtpStatus() {
     if (state.otpStatus != OtpStatus.normal || state.errorMessage != null) {

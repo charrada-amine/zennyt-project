@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:zennyt/core/constants.dart';
 import 'package:zennyt/l10n/gen/app_localizations.dart';
-import '../../../../core/theme/app_color_scheme.dart';
 import '../../../../shared/widgets/initials_avatar.dart';
 import '../../domain/entities/post.dart';
 

@@ -1,6 +1,7 @@
 package com.zennyt.recruitment.domain.model;
 
 import com.zennyt.recruitment.domain.event.JobOpportunityOfferSentEvent;
+import com.zennyt.recruitment.domain.event.JobOpportunityOfferCancelledEvent;
 import com.zennyt.recruitment.domain.event.JobOpportunityOfferConfirmedEvent;
 import com.zennyt.recruitment.domain.vo.JobOpportunityStatus;
 import com.zennyt.recruitment.domain.vo.SalaryRange;
@@ -83,6 +84,29 @@ public class JobOpportunityOffer extends AggregateRoot {
         this.status = JobOpportunityStatus.REJECTED;
         this.respondedAt = Instant.now();
     }
+
+    /**
+     * Le recruteur annule un recrutement confirmé. Possible tant que la période
+     * d'essai n'est pas terminée (le recrutement est alors définitif).
+     */
+    public void cancel(Instant now) {
+        if (this.status != JobOpportunityStatus.CONFIRMED) {
+            throw new IllegalStateException("Seul un recrutement confirmé peut être annulé");
+        }
+        if (this.respondedAt != null && !now.isBefore(probationEndsAt())) {
+            throw new IllegalStateException("La période d'essai est terminée, le recrutement est définitif");
+        }
+        this.status = JobOpportunityStatus.CANCELLED;
+        registerEvent(JobOpportunityOfferCancelledEvent.of(id, recruiterId, candidateId, jobOfferId));
+    }
+
+    /** Fin de la période d'essai (3 mois après la confirmation). */
+    public Instant probationEndsAt() {
+        return respondedAt == null ? null : respondedAt.plus(PROBATION_PERIOD);
+    }
+
+    /** Durée de la période d'essai avant que le recrutement ne soit définitif. */
+    public static final java.time.Duration PROBATION_PERIOD = java.time.Duration.ofDays(90);
 
     public UUID id() { return id; }
     public UUID recruiterId() { return recruiterId; }

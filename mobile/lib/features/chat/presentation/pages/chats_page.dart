@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/chat_providers.dart';
 import '../../../notifications/presentation/providers/notification_providers.dart';
-import '../../../../core/theme/app_color_scheme.dart';
 import '../../../../core/constants.dart';
 import 'package:zennyt/l10n/gen/app_localizations.dart';
 import '../widgets/chat_list_item.dart';

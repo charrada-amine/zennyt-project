@@ -20,6 +20,7 @@ public record CreateJobOfferRequest(
     String title,
     String city, String country,
     Double salaryMin, Double salaryMax,
+    String salaryCurrency, SalaryPeriod salaryPeriod,
     ContractType contractType, WorkplaceType workplaceType, ExperienceLevel experienceLevel,
     String description, String responsibilities,
     String minimumQualifications, String preferredQualifications,
