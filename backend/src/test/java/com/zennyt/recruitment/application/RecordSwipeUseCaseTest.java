@@ -1,6 +1,8 @@
 package com.zennyt.recruitment.application;
 
 import com.zennyt.recruitment.application.usecase.RecordSwipeUseCase;
+import com.zennyt.recruitment.domain.event.MatchCreatedEvent;
+import com.zennyt.recruitment.domain.event.SwipeRecordedEvent;
 import com.zennyt.recruitment.domain.model.JobOffer;
 import com.zennyt.recruitment.domain.model.Match;
 import com.zennyt.recruitment.domain.model.RecruitmentActor;
@@ -52,7 +54,12 @@ class RecordSwipeUseCaseTest {
     void setUp() {
         swipeRepository = new InMemorySwipeRepository();
         matchRepository = mock(MatchRepository.class);
-        when(matchRepository.save(any(Match.class))).thenAnswer(inv -> inv.getArgument(0));
+        // Comme MatchRepositoryAdapter : save() renvoie une instance RECONSTRUITE depuis
+        // la persistance, sans les événements de domaine de l'instance d'origine.
+        when(matchRepository.save(any(Match.class))).thenAnswer(inv -> {
+            Match m = inv.getArgument(0);
+            return Match.rehydrate(m.id(), m.candidateId(), m.jobOfferId(), m.recruiterId(), m.matchedAt());
+        });
         when(matchRepository.findByCandidateIdAndJobOfferId(any(), any())).thenReturn(Optional.empty());
         jobOfferRepository = mock(JobOfferRepository.class);
         when(jobOfferRepository.findById(OFFER)).thenReturn(Optional.of(offer(OFFER)));
@@ -92,6 +99,31 @@ class RecordSwipeUseCaseTest {
         assertEquals(OFFER, second.match().jobOfferId());
         assertEquals(RECRUITER, second.match().recruiterId());
         verify(matchRepository, times(1)).save(any(Match.class));
+    }
+
+    @Test
+    void mutualMatch_publishesMatchCreatedEvent() {
+        useCase.execute(CANDIDATE, OFFER, CANDIDATE, SwipeSide.CANDIDATE, SwipeDirection.RIGHT);
+        var second = useCase.execute(RECRUITER, OFFER, CANDIDATE, SwipeSide.RECRUITER, SwipeDirection.RIGHT);
+
+        // Sans cet événement, Engagement n'ouvre ni la conversation ni la notification
+        // « Nouveau match » : le match resterait invisible pour les deux côtés.
+        verify(eventPublisher, times(1)).publishEvent(argThat((Object event) ->
+            event instanceof MatchCreatedEvent created
+                && created.matchId().equals(second.match().id())
+                && created.candidateId().equals(CANDIDATE)
+                && created.jobOfferId().equals(OFFER)
+                && created.recruiterId().equals(RECRUITER)));
+    }
+
+    @Test
+    void everySwipe_publishesSwipeRecordedEvent() {
+        useCase.execute(CANDIDATE, OFFER, CANDIDATE, SwipeSide.CANDIDATE, SwipeDirection.RIGHT);
+
+        verify(eventPublisher, times(1)).publishEvent(argThat((Object event) ->
+            event instanceof SwipeRecordedEvent recorded
+                && recorded.candidateId().equals(CANDIDATE)
+                && recorded.jobOfferId().equals(OFFER)));
     }
 
     @Test
@@ -205,8 +237,12 @@ class RecordSwipeUseCaseTest {
         }
 
         @Override public Swipe save(Swipe swipe) {
-            store.put(key(swipe.jobOfferId(), swipe.candidateId(), swipe.side()), swipe);
-            return swipe;
+            // Comme SwipeRepositoryAdapter : l'instance renvoyée est reconstruite et ne
+            // porte plus les événements de domaine de celle qu'on a sauvegardée.
+            Swipe stored = Swipe.rehydrate(swipe.id(), swipe.jobOfferId(), swipe.candidateId(),
+                swipe.side(), swipe.direction(), swipe.createdAt());
+            store.put(key(swipe.jobOfferId(), swipe.candidateId(), swipe.side()), stored);
+            return stored;
         }
 
         @Override public Optional<Swipe> find(UUID jobOfferId, UUID candidateId, SwipeSide side) {
