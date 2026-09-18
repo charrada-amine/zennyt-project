@@ -39,9 +39,16 @@ class BartConfig {
 
   static BartPhase phaseOf(int balloonIndex) {
     if (balloonIndex < 0 || balloonIndex >= totalBalloonCount) {
-      throw RangeError.range(balloonIndex, 0, totalBalloonCount - 1, 'balloonIndex');
+      throw RangeError.range(
+        balloonIndex,
+        0,
+        totalBalloonCount - 1,
+        'balloonIndex',
+      );
     }
-    return balloonIndex < practiceBalloonCount ? BartPhase.practice : BartPhase.test;
+    return balloonIndex < practiceBalloonCount
+        ? BartPhase.practice
+        : BartPhase.test;
   }
 
   static double survivalProbability(int pumps) => (maxPumps - pumps) / maxPumps;
@@ -64,7 +71,10 @@ class BartConfig {
   static List<int> explosionPoints(String sessionId) {
     final random = DeterministicRandom.forSession(sessionId, protocolVersion);
     return List<int>.unmodifiable(
-      List<int>.generate(totalBalloonCount, (_) => 1 + random.nextInt(maxPumps)),
+      List<int>.generate(
+        totalBalloonCount,
+        (_) => 1 + random.nextInt(maxPumps),
+      ),
     );
   }
 }

@@ -65,20 +65,28 @@ class IstScoringResult {
 class BartScoring {
   const BartScoring();
 
-  BartScoringResult score({required String sessionId, required BartMetrics metrics}) {
+  BartScoringResult score({
+    required String sessionId,
+    required BartMetrics metrics,
+  }) {
     final points = BartConfig.explosionPoints(sessionId);
 
-    final test = <({int pumps, bool collected, int explosionPoint, int earned})>[];
+    final test =
+        <({int pumps, bool collected, int explosionPoint, int earned})>[];
     for (final balloon in metrics.balloons) {
       final explosionPoint = points[balloon.balloonIndex];
       final collected = balloon.outcome == BartBalloonOutcome.collected;
       // Rejeu : une issue impossible est un payload falsifié, rejeté comme côté
       // serveur (HTTP 400) plutôt que noté.
       if (!collected && balloon.pumpCount != explosionPoint) {
-        throw ArgumentError('Ballon ${balloon.balloonIndex} : éclatement incompatible');
+        throw ArgumentError(
+          'Ballon ${balloon.balloonIndex} : éclatement incompatible',
+        );
       }
       if (collected && balloon.pumpCount >= explosionPoint) {
-        throw ArgumentError('Ballon ${balloon.balloonIndex} : collecte impossible');
+        throw ArgumentError(
+          'Ballon ${balloon.balloonIndex} : collecte impossible',
+        );
       }
       if (balloon.phase != BartPhase.test) continue;
       test.add((
@@ -112,7 +120,9 @@ class BartScoring {
     final afterExplosion = <int>[];
     final afterCollect = <int>[];
     for (var i = 0; i + 1 < test.length; i++) {
-      (test[i].collected ? afterCollect : afterExplosion).add(test[i + 1].pumps);
+      (test[i].collected ? afterCollect : afterExplosion).add(
+        test[i + 1].pumps,
+      );
     }
 
     final intervals = <int>[];
@@ -139,7 +149,10 @@ class BartScoring {
       if (evOptimal == 0) 'DEGENERATE_SEQUENCE',
     ];
 
-    final efficiency = BartProvisionalRules.efficiency(totalEarnings, evOptimal);
+    final efficiency = BartProvisionalRules.efficiency(
+      totalEarnings,
+      evOptimal,
+    );
     final indicators = BartIndicators(
       sessionValid: issues.isEmpty,
       validityIssues: issues,
@@ -164,10 +177,14 @@ class BartScoring {
   }
 
   /// Miroir de `ScoreBreakdownService.bart`.
-  static List<ScoreBreakdownLine> breakdown(BartIndicators r, GameScore score) => [
+  static List<ScoreBreakdownLine> breakdown(
+    BartIndicators r,
+    GameScore score,
+  ) => [
     ScoreBreakdownLine(
       kind: ScoreBreakdownKind.note,
-      label: 'Score provisoire = gains / gains de la stratégie fixe optimale ('
+      label:
+          'Score provisoire = gains / gains de la stratégie fixe optimale ('
           '${r.optimalFixedPumps} pompes par ballon) sur les mêmes ballons, '
           'plafonné à 100, arrondi half-up une seule fois. L\'appétence au risque '
           'est un trait descriptif : ni haute ni basse n\'est meilleure.',
@@ -218,23 +235,33 @@ class IstPosterior {
       final blueRemaining = k - blueSeen;
       if (blueRemaining < 0 || blueRemaining > remaining) continue;
       final weight =
-          prior[k] * _binomial[remaining][blueRemaining] / _binomial[IstConfig.boxCount][k];
+          prior[k] *
+          _binomial[remaining][blueRemaining] /
+          _binomial[IstConfig.boxCount][k];
       total += weight;
-      final majority = k >= IstConfig.majorityThreshold ? IstColor.blue : IstColor.orange;
+      final majority = k >= IstConfig.majorityThreshold
+          ? IstColor.blue
+          : IstColor.orange;
       if (majority == chosen) favourable += weight;
     }
     if (total == 0.0) {
-      throw ArgumentError('Observation impossible sous la loi de génération des grilles');
+      throw ArgumentError(
+        'Observation impossible sous la loi de génération des grilles',
+      );
     }
     return favourable / total;
   }
 
   static List<List<double>> _pascal(int size) {
-    final table = List.generate(size + 1, (_) => List<double>.filled(size + 1, 0));
+    final table = List.generate(
+      size + 1,
+      (_) => List<double>.filled(size + 1, 0),
+    );
     for (var n = 0; n <= size; n++) {
       table[n][0] = 1.0;
       for (var k = 1; k <= n; k++) {
-        table[n][k] = table[n - 1][k - 1] + (k <= n - 1 ? table[n - 1][k] : 0.0);
+        table[n][k] =
+            table[n - 1][k - 1] + (k <= n - 1 ? table[n - 1][k] : 0.0);
       }
     }
     return table;
@@ -245,11 +272,23 @@ class IstPosterior {
 class IstScoring {
   const IstScoring();
 
-  IstScoringResult score({required String sessionId, required IstMetrics metrics}) {
+  IstScoringResult score({
+    required String sessionId,
+    required IstMetrics metrics,
+  }) {
     final layouts = IstConfig.generateLayouts(sessionId);
 
-    final test = <({IstCondition condition, bool correct, int boxes, double pCorrect,
-        int points, int? confidence})>[];
+    final test =
+        <
+          ({
+            IstCondition condition,
+            bool correct,
+            int boxes,
+            double pCorrect,
+            int points,
+            int? confidence,
+          })
+        >[];
     for (final trial in metrics.trials) {
       final layout = layouts[trial.trialIndex];
       var blueSeen = 0;
@@ -274,16 +313,22 @@ class IstScoring {
 
     final correct = test.where((t) => t.correct).length;
     final accuracy = test.isEmpty ? 0.0 : correct / test.length;
-    List<int> boxes(IstCondition c) =>
-        [for (final t in test) if (t.condition == c) t.boxes];
-    List<double> pCorrects(IstCondition c) =>
-        [for (final t in test) if (t.condition == c) t.pCorrect];
+    List<int> boxes(IstCondition c) => [
+      for (final t in test)
+        if (t.condition == c) t.boxes,
+    ];
+    List<double> pCorrects(IstCondition c) => [
+      for (final t in test)
+        if (t.condition == c) t.pCorrect,
+    ];
     final boxesFixed = _meanOrZero(boxes(IstCondition.fixedWin));
     final boxesDecreasing = _meanOrZero(boxes(IstCondition.decreasingWin));
     final pCorrect = _meanOrZero([for (final t in test) t.pCorrect]);
     final earnings = test.fold<int>(0, (sum, t) => sum + t.points);
     final randomResponses = test
-        .where((t) => t.pCorrect <= IstProvisionalRules.randomResponseMaxPCorrect)
+        .where(
+          (t) => t.pCorrect <= IstProvisionalRules.randomResponseMaxPCorrect,
+        )
         .length;
 
     final intervals = <int>[];
@@ -308,7 +353,8 @@ class IstScoring {
           medianInterval < IstProvisionalRules.minMedianInterActionMs)
         'IMPLAUSIBLE_TIMING',
       if (test.isNotEmpty &&
-          randomResponses / test.length > IstProvisionalRules.maxRandomResponseRate)
+          randomResponses / test.length >
+              IstProvisionalRules.maxRandomResponseRate)
         'RANDOM_RESPONSES',
     ];
 
@@ -325,9 +371,17 @@ class IstScoring {
     }
     final calibrationBias = confidenceCount == 0
         ? null
-        : round4(confidenceSum / confidenceCount - confidentCorrect / confidenceCount);
+        : round4(
+            confidenceSum / confidenceCount -
+                confidentCorrect / confidenceCount,
+          );
 
-    final points = IstProvisionalRules.score(accuracy, pCorrect, boxesFixed, boxesDecreasing);
+    final points = IstProvisionalRules.score(
+      accuracy,
+      pCorrect,
+      boxesFixed,
+      boxesDecreasing,
+    );
     final indicators = IstIndicators(
       sessionValid: issues.isEmpty,
       validityIssues: issues,
@@ -339,7 +393,9 @@ class IstScoring {
       conditionDiscrimination: round4(boxesFixed - boxesDecreasing),
       meanPCorrectAtDecision: pCorrect,
       meanPCorrectFixedWin: _meanOrZero(pCorrects(IstCondition.fixedWin)),
-      meanPCorrectDecreasingWin: _meanOrZero(pCorrects(IstCondition.decreasingWin)),
+      meanPCorrectDecreasingWin: _meanOrZero(
+        pCorrects(IstCondition.decreasingWin),
+      ),
       totalEarnings: earnings,
       randomResponseCount: randomResponses,
       medianInterActionIntervalMs: medianInterval,
@@ -356,10 +412,14 @@ class IstScoring {
   }
 
   /// Miroir de `ScoreBreakdownService.ist`.
-  static List<ScoreBreakdownLine> breakdown(IstIndicators r, GameScore score) => [
+  static List<ScoreBreakdownLine> breakdown(
+    IstIndicators r,
+    GameScore score,
+  ) => [
     const ScoreBreakdownLine(
       kind: ScoreBreakdownKind.note,
-      label: 'Score provisoire = 40 % exactitude + 40 % preuve détenue à la '
+      label:
+          'Score provisoire = 40 % exactitude + 40 % preuve détenue à la '
           'décision + 20 % ajustement de l\'échantillonnage à son coût, arrondi '
           'half-up une seule fois. Entraînement et confiance sont hors score.',
     ),

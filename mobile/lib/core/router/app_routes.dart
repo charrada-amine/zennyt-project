@@ -53,6 +53,8 @@ class AppRoutes {
   static const String gamesInvestigateImages = '/games/investigate/images';
   static const String gamesJePlace = '/games/je-place';
   static const String gamesJeDecide = '/games/je-decide';
+  static const String gamesBart = '/games/bart';
+  static const String gamesIst = '/games/ist';
   static const String gamesEmotionalRadar = '/games/emotional-radar';
   static const String gamesReflectivePause = '/games/reflective-pause';
   static const String gamesStrategicChoices = '/games/strategic-choices';
@@ -130,6 +132,8 @@ class AppRoutes {
   static const String nGamesInvestigateImages = 'gamesInvestigateImages';
   static const String nGamesJePlace = 'gamesJePlace';
   static const String nGamesJeDecide = 'gamesJeDecide';
+  static const String nGamesBart = 'gamesBart';
+  static const String nGamesIst = 'gamesIst';
   static const String nGamesEmotionalRadar = 'gamesEmotionalRadar';
   static const String nGamesReflectivePause = 'gamesReflectivePause';
   static const String nGamesStrategicChoices = 'gamesStrategicChoices';

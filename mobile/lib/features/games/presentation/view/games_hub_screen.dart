@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -31,6 +32,8 @@ const _logoJeCoordonne = 'assets/games icons/Je Coordonne.png';
 const _logoMemoryQuest = 'assets/games icons/Memory Quest transparent.png';
 const _logoJePlace = 'assets/games icons/Je Place.png';
 const _logoJeDecide = 'assets/games icons/Je Decide transparent.png';
+const _logoBart = 'assets/games/bart_logo.svg';
+const _logoIst = 'assets/games/ist_logo.svg';
 const _logoOptimalPath = 'assets/games icons/Optimal Path transparent.png';
 const _logoTaskScheduling =
     'assets/games icons/Task Scheduling transparent.png';
@@ -207,6 +210,22 @@ class GamesHubScreen extends ConsumerWidget {
                         route: AppRoutes.gamesJeDecide,
                         logoAsset: _logoJeDecide,
                         fallbackIcon: Icons.alt_route_rounded,
+                      ),
+                      // BART + IST — décision comportementale (DECISION_BEHAVIORAL).
+                      // Barèmes PROVISOIRES : l'événement Fit Score reste suspendu.
+                      _GameEntry(
+                        label: 'BART',
+                        subtitle: 'Risk taking · inflate or collect',
+                        route: AppRoutes.gamesBart,
+                        logoAsset: _logoBart,
+                        fallbackIcon: Icons.bubble_chart_rounded,
+                      ),
+                      _GameEntry(
+                        label: 'IST',
+                        subtitle: 'Information sampling · observe then decide',
+                        route: AppRoutes.gamesIst,
+                        logoAsset: _logoIst,
+                        fallbackIcon: Icons.grid_on_rounded,
                       ),
                     ],
                   ),
@@ -1075,15 +1094,17 @@ class _GameLogoBadge extends StatelessWidget {
         height: size,
         child: ClipRRect(
           borderRadius: BorderRadius.circular(radius),
-          child: Image.asset(
-            game.logoAsset,
-            fit: BoxFit.contain,
-            filterQuality: FilterQuality.high,
-            errorBuilder: (context, error, stackTrace) => ColoredBox(
-              color: const Color(0xFFF1F4FA),
-              child: Icon(game.fallbackIcon, color: _blue, size: iconSize),
-            ),
-          ),
+          child: game.logoAsset.endsWith('.svg')
+              ? SvgPicture.asset(game.logoAsset, fit: BoxFit.contain)
+              : Image.asset(
+                  game.logoAsset,
+                  fit: BoxFit.contain,
+                  filterQuality: FilterQuality.high,
+                  errorBuilder: (context, error, stackTrace) => ColoredBox(
+                    color: const Color(0xFFF1F4FA),
+                    child: Icon(game.fallbackIcon, color: _blue, size: iconSize),
+                  ),
+                ),
         ),
       ),
     );

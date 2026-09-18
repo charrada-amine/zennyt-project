@@ -37,7 +37,8 @@ class IstProvisionalRules {
     final discrimination = _clamp01(
       (boxesFixedWin - boxesDecreasingWin) / discriminationReferenceBoxes,
     );
-    final weighted = accuracyWeight * _clamp01(accuracy) +
+    final weighted =
+        accuracyWeight * _clamp01(accuracy) +
         evidenceWeight * evidence +
         discriminationWeight * discrimination;
     final points = (100.0 * weighted + 0.5).floor();
@@ -53,7 +54,8 @@ class IstProvisionalRules {
 
   /// 1 = au hasard (0,5) · 2 = plutôt sûr (2/3) · 3 = sûr (5/6) · 4 = certain (1).
   static double confidenceProbability(int confidence) =>
-      0.5 + 0.5 * (confidence - confidenceMin) / (confidenceMax - confidenceMin);
+      0.5 +
+      0.5 * (confidence - confidenceMin) / (confidenceMax - confidenceMin);
 
   static double _clamp01(double value) =>
       value < 0 ? 0 : (value > 1 ? 1 : value);

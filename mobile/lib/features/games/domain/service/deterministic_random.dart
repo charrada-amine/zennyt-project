@@ -14,8 +14,10 @@ class DeterministicRandom {
   static const zeroSeedFallback = 0x6D2B79F5;
 
   /// Graine d'une session pour un protocole : `fnv1a32("<uuid>|<protocole>")`.
-  factory DeterministicRandom.forSession(String sessionId, String protocolVersion) =>
-      DeterministicRandom(seedFor(sessionId, protocolVersion));
+  factory DeterministicRandom.forSession(
+    String sessionId,
+    String protocolVersion,
+  ) => DeterministicRandom(seedFor(sessionId, protocolVersion));
 
   static int seedFor(String sessionId, String protocolVersion) =>
       fnv1a32(utf8.encode('${sessionId.toLowerCase()}|$protocolVersion'));

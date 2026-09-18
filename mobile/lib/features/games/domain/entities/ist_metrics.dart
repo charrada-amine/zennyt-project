@@ -7,7 +7,10 @@ class IstBoxOpening {
   final int boxIndex;
   final int timestampMs;
 
-  Map<String, dynamic> toJson() => {'boxIndex': boxIndex, 'timestampMs': timestampMs};
+  Map<String, dynamic> toJson() => {
+    'boxIndex': boxIndex,
+    'timestampMs': timestampMs,
+  };
 }
 
 class IstTrialMetric {
@@ -109,19 +112,24 @@ class IstIndicators {
 
   factory IstIndicators.fromJson(Map<String, dynamic> json) => IstIndicators(
     sessionValid: json['sessionValid'] as bool,
-    validityIssues: List<String>.from(json['validityIssues'] as List? ?? const []),
+    validityIssues: List<String>.from(
+      json['validityIssues'] as List? ?? const [],
+    ),
     testTrialCount: json['testTrialCount'] as int,
     correctCount: json['correctCount'] as int,
     accuracyPercent: (json['accuracyPercent'] as num).toDouble(),
     meanBoxesFixedWin: (json['meanBoxesFixedWin'] as num).toDouble(),
     meanBoxesDecreasingWin: (json['meanBoxesDecreasingWin'] as num).toDouble(),
-    conditionDiscrimination: (json['conditionDiscrimination'] as num).toDouble(),
+    conditionDiscrimination: (json['conditionDiscrimination'] as num)
+        .toDouble(),
     meanPCorrectAtDecision: (json['meanPCorrectAtDecision'] as num).toDouble(),
     meanPCorrectFixedWin: (json['meanPCorrectFixedWin'] as num).toDouble(),
-    meanPCorrectDecreasingWin: (json['meanPCorrectDecreasingWin'] as num).toDouble(),
+    meanPCorrectDecreasingWin: (json['meanPCorrectDecreasingWin'] as num)
+        .toDouble(),
     totalEarnings: json['totalEarnings'] as int,
     randomResponseCount: json['randomResponseCount'] as int,
-    medianInterActionIntervalMs: (json['medianInterActionIntervalMs'] as num?)?.toDouble(),
+    medianInterActionIntervalMs: (json['medianInterActionIntervalMs'] as num?)
+        ?.toDouble(),
     confidenceResponseCount: json['confidenceResponseCount'] as int,
     calibrationBias: (json['calibrationBias'] as num?)?.toDouble(),
     provisionalScore: json['provisionalScore'] as int,

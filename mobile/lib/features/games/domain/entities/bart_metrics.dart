@@ -93,7 +93,9 @@ class BartIndicators {
 
   factory BartIndicators.fromJson(Map<String, dynamic> json) => BartIndicators(
     sessionValid: json['sessionValid'] as bool,
-    validityIssues: List<String>.from(json['validityIssues'] as List? ?? const []),
+    validityIssues: List<String>.from(
+      json['validityIssues'] as List? ?? const [],
+    ),
     testBalloonCount: json['testBalloonCount'] as int,
     collectedCount: json['collectedCount'] as int,
     explosionCount: json['explosionCount'] as int,
@@ -102,8 +104,10 @@ class BartIndicators {
     evOptimalEarnings: json['evOptimalEarnings'] as int,
     optimalFixedPumps: json['optimalFixedPumps'] as int,
     efficiencyPercent: json['efficiencyPercent'] as int,
-    meanPumpsAfterExplosion: (json['meanPumpsAfterExplosion'] as num?)?.toDouble(),
+    meanPumpsAfterExplosion: (json['meanPumpsAfterExplosion'] as num?)
+        ?.toDouble(),
     meanPumpsAfterCollect: (json['meanPumpsAfterCollect'] as num?)?.toDouble(),
-    medianInterPumpIntervalMs: (json['medianInterPumpIntervalMs'] as num?)?.toDouble(),
+    medianInterPumpIntervalMs: (json['medianInterPumpIntervalMs'] as num?)
+        ?.toDouble(),
   );
 }

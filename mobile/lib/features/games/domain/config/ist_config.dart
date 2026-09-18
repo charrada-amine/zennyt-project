@@ -74,12 +74,20 @@ class IstConfig {
     for (var i = 0; i < testTrialsPerCondition; i++)
       IstTrialSlot(2 + i, IstPhase.test, IstCondition.fixedWin),
     for (var i = 0; i < testTrialsPerCondition; i++)
-      IstTrialSlot(2 + testTrialsPerCondition + i, IstPhase.test, IstCondition.decreasingWin),
+      IstTrialSlot(
+        2 + testTrialsPerCondition + i,
+        IstPhase.test,
+        IstCondition.decreasingWin,
+      ),
   ]);
 
   static int get totalTrialCount => trialOrder.length;
 
-  static int trialPoints(IstCondition condition, int boxesOpened, bool correct) {
+  static int trialPoints(
+    IstCondition condition,
+    int boxesOpened,
+    bool correct,
+  ) {
     if (!correct) return -incorrectPenaltyPoints;
     return switch (condition) {
       IstCondition.fixedWin => fixedWinPoints,
@@ -103,8 +111,13 @@ class IstConfig {
     ]);
   }
 
-  static IstLayout _layout(IstTrialSlot slot, DeterministicRandom random, int support) {
-    final blueCount = IstProvisionalRules.blueCountMin + random.nextInt(support);
+  static IstLayout _layout(
+    IstTrialSlot slot,
+    DeterministicRandom random,
+    int support,
+  ) {
+    final blueCount =
+        IstProvisionalRules.blueCountMin + random.nextInt(support);
     final cells = List<int>.generate(boxCount, (i) => i);
     random.shuffle(cells);
     final boxes = List<IstColor>.filled(boxCount, IstColor.orange);
@@ -115,7 +128,9 @@ class IstConfig {
       slot: slot,
       boxes: List.unmodifiable(boxes),
       blueCount: blueCount,
-      majorityColor: blueCount >= majorityThreshold ? IstColor.blue : IstColor.orange,
+      majorityColor: blueCount >= majorityThreshold
+          ? IstColor.blue
+          : IstColor.orange,
     );
   }
 }

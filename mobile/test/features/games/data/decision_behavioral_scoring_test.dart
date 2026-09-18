@@ -26,7 +26,9 @@ BartMetrics bartFixedStrategy(int target, int intervalMs) {
           return BartBalloonMetric(
             balloonIndex: i,
             pumpCount: pumps,
-            outcome: explodes ? BartBalloonOutcome.exploded : BartBalloonOutcome.collected,
+            outcome: explodes
+                ? BartBalloonOutcome.exploded
+                : BartBalloonOutcome.collected,
             pumpTimestampsMs: [for (var p = 1; p <= pumps; p++) p * intervalMs],
             collectTimestampMs: explodes ? null : (pumps + 1) * intervalMs,
           );
@@ -39,13 +41,20 @@ BartMetrics bartFixedStrategy(int target, int intervalMs) {
 }
 
 /// Miroir de `DecisionBehavioralTestFixtures.istStrategy`.
-IstMetrics istStrategy(int boxesFixed, int boxesDecreasing, int? confidence, int intervalMs) {
+IstMetrics istStrategy(
+  int boxesFixed,
+  int boxesDecreasing,
+  int? confidence,
+  int intervalMs,
+) {
   final layouts = IstConfig.generateLayouts(sessionId);
   return IstMetrics(
     trials: [
       for (final layout in layouts)
         () {
-          final n = layout.slot.condition == IstCondition.fixedWin ? boxesFixed : boxesDecreasing;
+          final n = layout.slot.condition == IstCondition.fixedWin
+              ? boxesFixed
+              : boxesDecreasing;
           var blue = 0;
           for (var b = 0; b < n; b++) {
             if (layout.boxes[b] == IstColor.blue) blue++;
@@ -53,7 +62,8 @@ IstMetrics istStrategy(int boxesFixed, int boxesDecreasing, int? confidence, int
           return IstTrialMetric(
             trialIndex: layout.slot.trialIndex,
             openings: [
-              for (var b = 0; b < n; b++) IstBoxOpening(boxIndex: b, timestampMs: (b + 1) * intervalMs),
+              for (var b = 0; b < n; b++)
+                IstBoxOpening(boxIndex: b, timestampMs: (b + 1) * intervalMs),
             ],
             chosenColor: blue * 2 >= n ? IstColor.blue : IstColor.orange,
             decisionTimestampMs: (n + 1) * intervalMs,
@@ -71,8 +81,38 @@ void main() {
   group('générateurs — identiques au Java', () {
     test('points d\'éclatement BART', () {
       expect(BartConfig.explosionPoints(sessionId), [
-        42, 40, 77, 99, 24, 67, 14, 92, 117, 56, 75, 112, 118, 101, 90, 109,
-        55, 103, 42, 36, 54, 18, 34, 30, 22, 89, 20, 71, 37, 18, 14, 69,
+        42,
+        40,
+        77,
+        99,
+        24,
+        67,
+        14,
+        92,
+        117,
+        56,
+        75,
+        112,
+        118,
+        101,
+        90,
+        109,
+        55,
+        103,
+        42,
+        36,
+        54,
+        18,
+        34,
+        30,
+        22,
+        89,
+        20,
+        71,
+        37,
+        18,
+        14,
+        69,
       ]);
       expect(BartConfig.optimalFixedPumps(), 64);
     });
@@ -80,7 +120,28 @@ void main() {
     test('grilles IST', () {
       final layouts = IstConfig.generateLayouts(sessionId);
       expect(layouts.map((l) => l.blueCount).toList(), [
-        12, 17, 18, 18, 10, 6, 15, 12, 16, 12, 11, 17, 16, 14, 11, 15, 7, 17, 19, 15, 13, 11,
+        12,
+        17,
+        18,
+        18,
+        10,
+        6,
+        15,
+        12,
+        16,
+        12,
+        11,
+        17,
+        16,
+        14,
+        11,
+        15,
+        7,
+        17,
+        19,
+        15,
+        13,
+        11,
       ]);
       expect(
         layouts[2].boxes.map((c) => c == IstColor.blue ? 'B' : 'O').join(),
@@ -106,7 +167,10 @@ void main() {
     };
     expected.forEach((target, e) {
       test('stratégie fixe $target pompes', () {
-        final r = const BartScoring().score(sessionId: sessionId, metrics: bartFixedStrategy(target, 200));
+        final r = const BartScoring().score(
+          sessionId: sessionId,
+          metrics: bartFixedStrategy(target, 200),
+        );
         final i = r.indicators;
         expect(i.totalEarnings, e.$1);
         expect(i.evOptimalEarnings, e.$2);
@@ -147,13 +211,17 @@ void main() {
 
     test('non engagé et cadence inhumaine : invalides', () {
       expect(
-        const BartScoring().score(sessionId: sessionId, metrics: bartFixedStrategy(0, 200))
-            .indicators.validityIssues,
+        const BartScoring()
+            .score(sessionId: sessionId, metrics: bartFixedStrategy(0, 200))
+            .indicators
+            .validityIssues,
         contains('NON_ENGAGED'),
       );
       expect(
-        const BartScoring().score(sessionId: sessionId, metrics: bartFixedStrategy(40, 5))
-            .indicators.validityIssues,
+        const BartScoring()
+            .score(sessionId: sessionId, metrics: bartFixedStrategy(40, 5))
+            .indicators
+            .validityIssues,
         contains('IMPLAUSIBLE_TIMING'),
       );
     });
@@ -191,20 +259,33 @@ void main() {
     });
 
     test('la sensibilité métacognitive n\'existe pas dans les indicateurs', () {
-      final r = const IstScoring().score(sessionId: sessionId, metrics: istStrategy(25, 15, 4, 300));
+      final r = const IstScoring().score(
+        sessionId: sessionId,
+        metrics: istStrategy(25, 15, 4, 300),
+      );
       expect(r.indicators.calibrationBias, isNotNull);
-      expect(r.breakdown.map((l) => l.label), isNot(contains(contains('AUROC'))));
+      expect(
+        r.breakdown.map((l) => l.label),
+        isNot(contains(contains('AUROC'))),
+      );
     });
   });
 
-  test('JSON émis : jamais de point d\'éclatement, de couleur révélée ni de score', () {
-    final bart = bartFixedStrategy(64, 200).toJson();
-    final ist = istStrategy(25, 15, 3, 300).toJson();
-    expect(bart['protocolVersion'], 'BART_LEJUEZ_V1');
-    expect((bart['bartBalloons'] as List).first, isNot(contains('explosionPoint')));
-    expect(ist['protocolVersion'], 'IST_CLARK_V1');
-    final opening = ((ist['istTrials'] as List).first['openings'] as List).first as Map;
-    expect(opening.keys, unorderedEquals(['boxIndex', 'timestampMs']));
-    expect(bart.containsKey('score') || ist.containsKey('score'), isFalse);
-  });
+  test(
+    'JSON émis : jamais de point d\'éclatement, de couleur révélée ni de score',
+    () {
+      final bart = bartFixedStrategy(64, 200).toJson();
+      final ist = istStrategy(25, 15, 3, 300).toJson();
+      expect(bart['protocolVersion'], 'BART_LEJUEZ_V1');
+      expect(
+        (bart['bartBalloons'] as List).first,
+        isNot(contains('explosionPoint')),
+      );
+      expect(ist['protocolVersion'], 'IST_CLARK_V1');
+      final opening =
+          ((ist['istTrials'] as List).first['openings'] as List).first as Map;
+      expect(opening.keys, unorderedEquals(['boxIndex', 'timestampMs']));
+      expect(bart.containsKey('score') || ist.containsKey('score'), isFalse);
+    },
+  );
 }
