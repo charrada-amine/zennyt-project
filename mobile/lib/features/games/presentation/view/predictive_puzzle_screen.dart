@@ -83,7 +83,7 @@ class _PredictivePuzzleScreenState
   bool _targetCompleted = false;
   String? _selectedSource;
   String? _selectedDestination;
-  String _feedback = 'Tap a tower source, then a destination.';
+  String _feedback = 'Touche une tour source, puis une destination.';
 
   // Current difficulty level (index into [_puzzleLevels]).
   int _level = 0;
@@ -160,7 +160,7 @@ class _PredictivePuzzleScreenState
       _selectedSource = null;
       _selectedDestination = null;
       _levelMetrics.clear();
-      _feedback = 'Level 1: plan the $_discCount-disc sequence.';
+      _feedback = 'Niveau 1 : planifie la séquence à $_discCount disques.';
       _planningTowers = _initialTowers(_discCount);
       _executionTowers = _initialTowers(_discCount);
       _queue.clear();
@@ -177,7 +177,7 @@ class _PredictivePuzzleScreenState
     final source = _selectedSource;
     if (source == null) {
       if (_planningTowers[tower]!.isEmpty) {
-        setState(() => _feedback = 'Tower $tower has no disc to move.');
+        setState(() => _feedback = 'La tour $tower n’a aucun disque à déplacer.');
         return;
       }
       // Une tour source est choisie : on « saisit » le disque du sommet.
@@ -185,14 +185,14 @@ class _PredictivePuzzleScreenState
       setState(() {
         _selectedSource = tower;
         _selectedDestination = null;
-        _feedback = 'Source Tower $tower selected. Choose destination.';
+        _feedback = 'Tour source $tower sélectionnée. Choisis la destination.';
       });
       return;
     }
 
     setState(() {
       _selectedDestination = tower;
-      _feedback = 'Queue $source->$tower when ready.';
+      _feedback = 'Ajoute $source->$tower quand tu es prêt.';
     });
   }
 
@@ -201,23 +201,23 @@ class _PredictivePuzzleScreenState
     final source = _selectedSource;
     final destination = _selectedDestination;
     if (source == null || destination == null) {
-      setState(() => _feedback = 'Select a source and destination first.');
+      setState(() => _feedback = 'Choisis d’abord une source et une destination.');
       return;
     }
     if (source == destination) {
-      _addInvalidMove(source, destination, 'same tower');
+      _addInvalidMove(source, destination, 'même tour');
       return;
     }
 
     final sourceStack = _planningTowers[source]!;
     final destinationStack = _planningTowers[destination]!;
     if (sourceStack.isEmpty) {
-      _addInvalidMove(source, destination, 'empty source');
+      _addInvalidMove(source, destination, 'source vide');
       return;
     }
     final disc = sourceStack.last;
     if (destinationStack.isNotEmpty && destinationStack.last < disc) {
-      _addInvalidMove(source, destination, 'large disc on smaller');
+      _addInvalidMove(source, destination, 'grand disque sur un plus petit');
       return;
     }
 
@@ -237,8 +237,8 @@ class _PredictivePuzzleScreenState
       _selectedSource = null;
       _selectedDestination = null;
       _feedback = _isTarget(_planningTowers)
-          ? 'Full sequence planned (${_queue.length} moves). Ready to execute.'
-          : 'Move ${_queue.length} planned.';
+          ? 'Séquence complète planifiée (${_queue.length} coups). Prête à être exécutée.'
+          : 'Coup ${_queue.length} planifié.';
       _targetCompleted = _isTarget(_planningTowers);
     });
   }
@@ -250,7 +250,7 @@ class _PredictivePuzzleScreenState
     if (_errors >= _maxErrors) {
       setState(() {
         _feedback =
-            'Error tolerance exceeded ($_maxErrors max) — level failed.';
+            'Tolérance d’erreurs dépassée ($_maxErrors max) — niveau échoué.';
       });
       _finishRun(false);
       return;
@@ -272,7 +272,7 @@ class _PredictivePuzzleScreenState
       _selectedSource = null;
       _selectedDestination = null;
       _feedback =
-          'Move ${_queue.length} invalid - $reason (error $_errors/$_maxErrors)';
+          'Coup ${_queue.length} invalide - $reason (erreur $_errors/$_maxErrors)';
     });
   }
 
@@ -290,7 +290,7 @@ class _PredictivePuzzleScreenState
       }
       _selectedSource = null;
       _selectedDestination = null;
-      _feedback = 'Last step removed.';
+      _feedback = 'Dernier coup retiré.';
     });
   }
 
@@ -306,7 +306,7 @@ class _PredictivePuzzleScreenState
       _planningTowers = _initialTowers(_discCount);
       _executionTowers = _initialTowers(_discCount);
       _queue.clear();
-      _feedback = 'Sequence cleared. Plan the full move list again.';
+      _feedback = 'Séquence effacée. Planifie à nouveau tous les coups.';
     });
   }
 
@@ -323,7 +323,7 @@ class _PredictivePuzzleScreenState
       for (var i = 0; i < _queue.length; i++) {
         _queue[i] = _queue[i].copyWith(executed: false, failed: false);
       }
-      _feedback = 'Machine running the queued plan.';
+      _feedback = 'La machine exécute le plan.';
     });
     final timing = GamePresentationTiming(
       ref.read(gamesControllerProvider).value?.runtime ??
@@ -366,7 +366,7 @@ class _PredictivePuzzleScreenState
         SoundService.instance.playSfx(GameSfx.diskDrop);
         _queue[_runIndex] = move.copyWith(executed: true);
         _runIndex++;
-        _feedback = 'Executing move $_runIndex/${_queue.length}.';
+        _feedback = 'Exécution du coup $_runIndex/${_queue.length}.';
         return;
       }
 
@@ -379,7 +379,7 @@ class _PredictivePuzzleScreenState
       }
       SoundService.instance.playSfx(GameSfx.wrongChoice);
       _runIndex++;
-      _feedback = 'Illegal move $_runIndex/${_queue.length} skipped.';
+      _feedback = 'Coup illégal $_runIndex/${_queue.length} ignoré.';
     });
   }
 
@@ -440,8 +440,8 @@ class _PredictivePuzzleScreenState
       _queue.clear();
       _stage = _PuzzleStage.planning;
       _feedback =
-          'Level ${_level + 1}: plan the $_discCount-disc sequence '
-          '($_optimalMoves optimal moves).';
+          'Niveau ${_level + 1} : planifie la séquence à $_discCount disques '
+          '($_optimalMoves coups optimaux).';
     });
   }
 
@@ -686,9 +686,10 @@ class _PredictiveIntroView extends StatelessWidget {
         'Prépare tes déplacements, puis déplace la tour dans le bon ordre.',
     contextText:
         'Prépare ton plan : la machine exécutera tes déplacements sans correction en cours de route.',
+    contextDetail: 'La tour B peut servir de relais.',
     journey: const ['Prépare', 'Planifie', 'Exécute'],
     leading: _SquareIconButton(icon: Icons.chevron_left, onTap: onBack),
-    startLabel: 'Start',
+    startLabel: 'Commencer',
     onStart: onStart,
   );
 }
@@ -723,13 +724,13 @@ class PredictivePuzzleTutorial extends StatelessWidget {
       GameTutorialStep(
         title: 'Prépare tout, puis lance',
         description:
-            'Choisis la source puis la destination et appuie sur « Add Move ». '
-            'Quand la pile atteint C dans l’aperçu, lance « Run Plan ». '
+            'Choisis la source puis la destination et appuie sur « Ajouter le coup ». '
+            'Quand la pile atteint C dans l’aperçu, appuie sur « Lancer le plan ». '
             'Tu ne peux plus modifier les coups pendant l’exécution.',
         illustration: _SequencePreviewArt(),
         illustrationLabel:
             'Préparer : exemple des trois premiers coups A vers C, A vers B, '
-            'C vers B. Compléter le plan, puis Run Plan lance l’exécution automatique.',
+            'C vers B. Compléter le plan, puis « Lancer le plan » démarre l’exécution automatique.',
       ),
     ],
   );
@@ -892,18 +893,18 @@ class _PuzzleGameplayView extends StatelessWidget {
           child: Row(
             children: [
               Expanded(
-                child: _HudTile(label: 'Timer', value: elapsed),
+                child: _HudTile(label: 'Temps', value: elapsed),
               ),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: _HudTile(
-                  label: 'Moves\nPlanned',
+                  label: 'Coups\nplanifiés',
                   value: '$movesPlanned/$optimalMoves',
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
-                child: _HudTile(label: 'Errors', value: '$errors/$maxErrors'),
+                child: _HudTile(label: 'Erreurs', value: '$errors/$maxErrors'),
               ),
               const SizedBox(width: AppSpacing.sm),
               SizedBox(
@@ -958,7 +959,7 @@ class _PuzzleGameplayView extends StatelessWidget {
                   borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                 ),
                 child: Text(
-                  'LVL $level/$totalLevels',
+                  'NIV. $level/$totalLevels',
                   style: AppTypography.labelSmall.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w900,
@@ -976,7 +977,7 @@ class _PuzzleGameplayView extends StatelessWidget {
                     borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                   ),
                   child: Text(
-                    'Goal: move $discCount discs to Tower C',
+                    'Objectif : déplacer $discCount disques vers la tour C',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppTypography.labelMedium.copyWith(
@@ -1065,7 +1066,7 @@ class _PuzzleGameplayView extends StatelessWidget {
             children: [
               Expanded(
                 child: GameOutlineButton(
-                  label: 'Clear Sequence',
+                  label: 'Effacer la séquence',
                   onPressed: running ? null : onClear,
                   color: Colors.white,
                 ),
@@ -1086,12 +1087,12 @@ class _PuzzleGameplayView extends StatelessWidget {
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: GamePrimaryButton(
-                  label: targetReady ? 'Run Plan' : 'Add Move',
+                  label: targetReady ? 'Lancer le plan' : 'Ajouter le coup',
                   icon: targetReady
                       ? Icons.play_arrow_rounded
                       : Icons.add_rounded,
                   color: ZennytGamePalette.success,
-                  // « Run Plan » garde le clic générique ; « Add Move » ne joue
+                  // « Lancer le plan » garde le clic générique ; « Ajouter le coup » ne joue
                   // que le son du disque déposé (géré dans _addMove).
                   playClickSound: targetReady,
                   onPressed: running ? null : onAddMove,
@@ -1501,21 +1502,21 @@ class _PredictiveResultsView extends StatelessWidget {
       onBack: onBack,
       gameName: 'Predictive Puzzle',
       pending: busy,
-      scoreLabel: 'Cognitive score',
+      scoreLabel: 'Score cognitif',
       scorePercent: attempt?.score.normalized.round(),
       points: attempt?.score.rawPoints,
       maxPoints: attempt?.score.maxPoints,
       stats: [
         GameResultStat(
-          label: 'Levels',
+          label: 'Niveaux',
           value: '$levelsCleared/$totalLevels',
           color: targetCompleted
               ? ZennytGamePalette.success
               : ZennytGamePalette.error,
         ),
-        GameResultStat(label: 'Time', value: elapsed),
+        GameResultStat(label: 'Temps', value: elapsed),
         GameResultStat(
-          label: 'Errors',
+          label: 'Erreurs',
           value: '$errors',
           color: errors == 0
               ? ZennytGamePalette.success
@@ -1523,12 +1524,12 @@ class _PredictiveResultsView extends StatelessWidget {
         ),
       ],
       insight:
-          '${targetCompleted ? 'All $totalLevels levels cleared.' : 'Cleared $levelsCleared/$totalLevels levels before the error tolerance ran out.'} '
-          'The player predicts the complete chain of moves before acting, then '
-          'observes whether the planned sequence survives execution constraints.',
-      primaryLabel: 'Replay',
+          '${targetCompleted ? 'Les $totalLevels niveaux sont réussis.' : '$levelsCleared/$totalLevels niveaux réussis avant d’épuiser la tolérance d’erreurs.'} '
+          'Le joueur anticipe toute la chaîne de coups avant d’agir, puis '
+          'vérifie que la séquence planifiée résiste aux contraintes d’exécution.',
+      primaryLabel: 'Rejouer',
       onPrimary: onReplay,
-      secondaryLabel: 'Compare',
+      secondaryLabel: 'Comparer',
       onSecondary: onCompare,
     );
   }
@@ -1571,14 +1572,14 @@ class _PredictiveComparisonView extends StatelessWidget {
             child: Column(
               children: [
                 Text(
-                  'Comparative Results',
+                  'Résultats comparatifs',
                   style: AppTypography.headlineLarge.copyWith(
                     color: ZennytGamePalette.blue,
                     letterSpacing: 0,
                   ),
                 ),
                 Text(
-                  'Optimal sequence benchmark',
+                  'Référence : séquence optimale',
                   style: AppTypography.bodyMedium.copyWith(
                     color: ZennytGamePalette.muted,
                     letterSpacing: 0,
@@ -1608,7 +1609,7 @@ class _PredictiveComparisonView extends StatelessWidget {
                 const SizedBox(width: AppSpacing.lg),
                 Expanded(
                   child: Text(
-                    'against the optimal $optimalMoves-step plan',
+                    'par rapport au plan optimal en $optimalMoves coups',
                     style: AppTypography.titleLarge.copyWith(
                       color: Colors.white,
                       letterSpacing: 0,
@@ -1627,11 +1628,11 @@ class _PredictiveComparisonView extends StatelessWidget {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             children: [
-              ResultStatTile(label: 'Planned', value: '$moves'),
+              ResultStatTile(label: 'Planifiés', value: '$moves'),
               const ResultStatTile(label: 'Optimal', value: '15'),
               ResultStatTile(label: 'Surplus', value: '$surplus'),
               ResultStatTile(
-                label: 'Level',
+                label: 'Niveau',
                 value: session?.lastAttempt?.score.level ?? '-',
               ),
             ],
@@ -1640,7 +1641,7 @@ class _PredictiveComparisonView extends StatelessWidget {
           GamePanel(
             backgroundColor: ZennytGamePalette.mist,
             child: Text(
-              'Retries: $retries. Sequence errors: $errors. Replay to reduce surplus moves and keep every planned step legal.',
+              'Reprises : $retries. Erreurs de séquence : $errors. Rejoue pour réduire les coups en trop et garder chaque coup planifié valide.',
               style: AppTypography.bodyMedium.copyWith(
                 color: ZennytGamePalette.muted,
                 letterSpacing: 0,
@@ -1649,7 +1650,7 @@ class _PredictiveComparisonView extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.xl),
           GamePrimaryButton(
-            label: 'Replay to improve ranking',
+            label: 'Rejouer pour améliorer ton classement',
             onPressed: onReplay,
           ),
         ],
@@ -1732,7 +1733,7 @@ class _SequencePreviewArt extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Text(
-              '2. Run Plan',
+              '2. Lancer le plan',
               style: AppTypography.titleMedium.copyWith(
                 color: ZennytGamePalette.blue,
                 fontWeight: FontWeight.w800,

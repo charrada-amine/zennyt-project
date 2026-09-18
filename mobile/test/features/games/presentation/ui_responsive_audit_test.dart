@@ -335,7 +335,7 @@ void main() {
     await mount(tester, size, insets, const PlanifikScreen());
     await settle(tester);
     rec('Intro / couverture');
-    await tapText(tester, 'Start');
+    await tapText(tester, 'Commencer');
     await walkDeck(tester, rec, completionLabel: 'Commencer le parcours');
     await settle(tester);
     rec('Jeu (plateau)');
@@ -360,7 +360,7 @@ void main() {
     await mount(tester, size, insets, const PredictivePuzzleScreen());
     await settle(tester);
     rec('Intro / couverture');
-    await tapText(tester, 'Start');
+    await tapText(tester, 'Commencer');
     await walkDeck(tester, rec, completionLabel: 'Commencer à planifier');
     await settle(tester);
     rec('Jeu (planification)');
@@ -371,11 +371,11 @@ void main() {
     await mount(tester, size, insets, const MoveFastScreen(seed: 4242));
     await settle(tester);
     rec('Intro / couverture');
-    await tapText(tester, 'Start');
+    await tapText(tester, 'Commencer');
     rec('Tutoriel — règle Orientation');
-    await tapText(tester, 'Right');
+    await tapText(tester, 'Droite');
     rec('Tutoriel — règle Mouvement');
-    await tapText(tester, 'Right');
+    await tapText(tester, 'Droite');
     await settle(tester);
     rec('Jeu (plateau)');
   });
@@ -416,7 +416,7 @@ void main() {
     await mount(tester, size, insets, const InvestigateScreen());
     await settle(tester);
     rec('Intro / couverture');
-    await tapText(tester, 'Start mission');
+    await tapText(tester, 'Commencer la mission');
     await walkDeck(tester, rec, completionLabel: 'Je suis prêt');
     await settle(tester);
     rec('Jeu (observation)');
@@ -461,7 +461,7 @@ void main() {
     await mount(tester, size, insets, const EmotionalRadarScreen());
     await settle(tester);
     rec('Couverture');
-    await tapText(tester, 'Start tutorial');
+    await tapText(tester, 'Commencer le tutoriel');
     await walkDeck(tester, rec, completionLabel: 'Commencer la partie');
     await settle(tester, 10);
     rec('Scène (questions-réponses)');
@@ -475,7 +475,7 @@ void main() {
     await tapText(tester, 'View tutorial');
     await settle(tester);
     rec('Intro');
-    await tapText(tester, 'Continue');
+    await tapText(tester, 'Continuer');
     await walkDeck(tester, rec, completionLabel: 'Commencer la partie');
     await settle(tester, 10);
     rec('Situation (questions-réponses)');
@@ -489,7 +489,7 @@ void main() {
     await tapText(tester, 'View tutorial');
     await settle(tester);
     rec('Intro');
-    await tapText(tester, 'Continue');
+    await tapText(tester, 'Continuer');
     await walkDeck(tester, rec, completionLabel: 'Commencer la partie');
     await settle(tester, 10);
     rec('Situation (questions-réponses)');

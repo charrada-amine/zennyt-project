@@ -936,7 +936,7 @@ class _BankErrorView extends StatelessWidget {
           const SizedBox(height: 20),
           GamePrimaryButton(label: 'Réessayer', onPressed: onRetry),
           const SizedBox(height: 10),
-          GameOutlineButton(label: 'Back to games', onPressed: onBack),
+          GameOutlineButton(label: 'Retour aux jeux', onPressed: onBack),
         ],
       ),
     ),
@@ -1418,7 +1418,7 @@ class _ScoreView extends StatelessWidget {
       onBack: onBack,
       gameName: 'Day Stack',
       pending: busy,
-      scoreLabel: 'Planning score',
+      scoreLabel: 'Score de planification',
       scorePercent: gameResultPercent(rawScore, maxScore),
       points: rawScore,
       maxPoints: maxScore,
@@ -1497,14 +1497,14 @@ class _ScoreView extends StatelessWidget {
           ? const []
           : [
               GameResultInsightBar(
-                label: 'Dependencies respected',
+                label: 'Dépendances respectées',
                 fraction: edges == 0 ? 1 : edgesOk / edges,
                 color: edgesOk == edges
                     ? ZennytGamePalette.success
                     : ZennytGamePalette.magenta,
               ),
               GameResultInsightBar(
-                label: 'Deadlines met',
+                label: 'Échéances tenues',
                 fraction: timingCount == 0 ? 1 : timingOk / timingCount,
                 color: timingOk == timingCount
                     ? ZennytGamePalette.success
@@ -1513,7 +1513,7 @@ class _ScoreView extends StatelessWidget {
               // Cohérence : part de la journée sans temps mort, nulle dès
               // qu'une collision rend le planning impossible.
               GameResultInsightBar(
-                label: 'Schedule consistency',
+                label: 'Cohérence du planning',
                 fraction: collisionFree ? 1 - deadTimeRatio : 0,
                 color: collisionFree && deadTimeRatio < 0.10
                     ? ZennytGamePalette.success
@@ -1521,7 +1521,7 @@ class _ScoreView extends StatelessWidget {
               ),
               // Corrections faites APRÈS une alerte : pleine sous deux.
               GameResultInsightBar(
-                label: 'Adjustments (<2)',
+                label: 'Ajustements (<2)',
                 fraction: reactive < 2 ? 1 : 2 / reactive,
                 color: reactive < 2
                     ? ZennytGamePalette.success
@@ -1532,9 +1532,9 @@ class _ScoreView extends StatelessWidget {
       // suites légitimes d'une partie sont la rejouer ou revenir au catalogue.
       primaryLabel: failed
           ? (busy ? 'Envoi…' : 'Renvoyer le résultat')
-          : 'Replay',
+          : 'Rejouer',
       onPrimary: busy ? null : (failed ? onRetrySubmit : onReplay),
-      secondaryLabel: failed ? 'Replay' : 'Compare',
+      secondaryLabel: failed ? 'Rejouer' : 'Comparer',
       onSecondary: failed ? onReplay : onCompare,
     );
   }
@@ -1603,15 +1603,15 @@ class _ComparisonView extends StatelessWidget {
         : now.points - before.points;
     final evolution = switch (delta) {
       null =>
-        'First scored attempt of this visit. Replay to measure how your '
-            'planning evolves.',
+        'Première tentative notée de cette visite. Rejoue pour mesurer '
+            'l’évolution de ta planification.',
       > 0 =>
-        'Your planning improved: +$delta point${delta > 1 ? 's' : ''} over '
-            'your previous attempt.',
+        'Ta planification progresse : +$delta point${delta > 1 ? 's' : ''} par '
+            'rapport à ta tentative précédente.',
       < 0 =>
-        'This attempt scored $delta point${delta < -1 ? 's' : ''} versus the '
-            'previous one. Check dependencies and deadlines first.',
-      _ => 'Same score as your previous attempt.',
+        'Cette tentative fait $delta point${delta < -1 ? 's' : ''} par rapport à '
+            'la précédente. Vérifie d’abord les dépendances et les échéances.',
+      _ => 'Même score qu’à ta tentative précédente.',
     };
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 18, 24, 24),
@@ -1624,7 +1624,7 @@ class _ComparisonView extends StatelessWidget {
               child: GameResultsBackButton(onPressed: onBack),
             ),
             Text(
-              'Comparative Results',
+              'Résultats comparatifs',
               textAlign: TextAlign.center,
               style: AppTypography.headlineLarge.copyWith(
                 color: ZennytGamePalette.blue,
@@ -1632,7 +1632,7 @@ class _ComparisonView extends StatelessWidget {
               ),
             ),
             Text(
-              'Ranking data required from platform',
+              'Données de classement fournies par la plateforme',
               textAlign: TextAlign.center,
               style: AppTypography.bodyMedium.copyWith(
                 color: ZennytGamePalette.muted,
@@ -1666,8 +1666,8 @@ class _ComparisonView extends StatelessWidget {
                   Expanded(
                     child: Text(
                       delta == null
-                          ? 'no previous attempt to compare yet'
-                          : 'points versus your previous attempt',
+                          ? 'aucune tentative précédente à comparer'
+                          : 'points par rapport à ta tentative précédente',
                       style: AppTypography.titleLarge.copyWith(
                         color: Colors.white,
                         letterSpacing: 0,
@@ -1682,14 +1682,14 @@ class _ComparisonView extends StatelessWidget {
               children: [
                 Expanded(
                   child: ResultStatTile(
-                    label: 'This attempt',
+                    label: 'Cette tentative',
                     value: now == null ? '—' : '${now.points}/${now.maxPoints}',
                   ),
                 ),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: ResultStatTile(
-                    label: 'Previous attempt',
+                    label: 'Tentative précédente',
                     value: before == null
                         ? '—'
                         : '${before.points}/${before.maxPoints}',
@@ -1703,7 +1703,7 @@ class _ComparisonView extends StatelessWidget {
               children: [
                 Expanded(
                   child: ResultStatTile(
-                    label: 'Dependencies',
+                    label: 'Dépendances',
                     value: now == null
                         ? '—'
                         : before == null
@@ -1716,7 +1716,7 @@ class _ComparisonView extends StatelessWidget {
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: ResultStatTile(
-                    label: 'Deadlines',
+                    label: 'Échéances',
                     value: now == null
                         ? '—'
                         : before == null
@@ -1735,7 +1735,7 @@ class _ComparisonView extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Performance evolution',
+                    'Évolution des performances',
                     style: AppTypography.titleMedium.copyWith(
                       color: ZennytGamePalette.blue,
                       letterSpacing: 0,
@@ -1753,7 +1753,7 @@ class _ComparisonView extends StatelessWidget {
               ),
             ),
             const SizedBox(height: AppSpacing.xl),
-            GamePrimaryButton(label: 'Replay to improve', onPressed: onReplay),
+            GamePrimaryButton(label: 'Rejouer pour progresser', onPressed: onReplay),
           ],
         ),
       ),
@@ -1769,7 +1769,7 @@ class _BackButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      label: 'Back',
+      label: 'Retour',
       child: InkWell(
         onTap: onPressed,
         borderRadius: BorderRadius.circular(AppSpacing.radiusMd),

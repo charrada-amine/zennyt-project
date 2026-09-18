@@ -587,7 +587,7 @@ class _CoordinationTrackingScreenState
           showAgain = resumeFrozenPractice || _pauseAllowance.canReopen;
         case ContinuousAttentionPauseAction.exit:
           // Quitter annule la tentative : confirmation explicite d'abord.
-          if (!await GameExitConfirmDialog.show(context, missionLabel: 'run')) {
+          if (!await GameExitConfirmDialog.show(context, missionLabel: 'la session')) {
             showAgain = _pauseAllowance.canReopen;
             break;
           }
@@ -614,7 +614,7 @@ class _CoordinationTrackingScreenState
   /// seule issue restante — quitter, donc renoncer au score.
   Future<void> _backOrExit() async {
     if (_pauseAllowance.canOpen || !_isGameplay) return _openPause();
-    if (!await GameExitConfirmDialog.show(context, missionLabel: 'run')) return;
+    if (!await GameExitConfirmDialog.show(context, missionLabel: 'la session')) return;
     if (!mounted) return;
     if (_isTest) _invalidateMeasured('Player left the run.');
     if (mounted) context.go(AppRoutes.games);
@@ -664,7 +664,7 @@ class _CoordinationTrackingScreenState
   Widget _buildCover() {
     return _JourneyPage(
       header: _CoordinationHeader(
-        eyebrow: 'Zennyt Games',
+        eyebrow: 'Jeux Zennyt',
         title: 'Je coordonne',
         onBack: _handleBack,
       ),
@@ -1037,9 +1037,9 @@ class _CoordinationTrackingScreenState
           'Overall accuracy ${report.overallAccuracyPercent.toStringAsFixed(1)}%, '
           'mean center distance ${report.averageCenterDistance.toStringAsFixed(1)}. '
           'This is a descriptive result, not a diagnosis or ranking.',
-      primaryLabel: 'Replay',
+      primaryLabel: 'Rejouer',
       onPrimary: _startJourney,
-      secondaryLabel: 'Back to games',
+      secondaryLabel: 'Retour aux jeux',
       onSecondary: () => context.go(AppRoutes.games),
     );
   }
@@ -1125,7 +1125,7 @@ class _CoordinationTrackingScreenState
         ),
       ],
       bottom: GamePrimaryButton(
-        label: 'Try again',
+        label: 'Réessayer',
         onPressed: canRetrySubmit
             ? () => _submitMetrics(_pendingMetrics!)
             : _startJourney,
@@ -1313,7 +1313,7 @@ class _CoordinationHeader extends StatelessWidget {
     return Row(
       children: [
         _HeaderIconButton(
-          tooltip: 'Back',
+          tooltip: 'Retour',
           icon: Icons.chevron_left_rounded,
           onTap: onBack,
           onDark: onDark,
@@ -2429,7 +2429,7 @@ class _CoordinationRulesDialog extends StatelessWidget {
             ),
             const SizedBox(height: 22),
             GamePrimaryButton(
-              label: 'Got it',
+              label: 'Compris',
               onPressed: () => Navigator.of(context).pop(),
             ),
           ],

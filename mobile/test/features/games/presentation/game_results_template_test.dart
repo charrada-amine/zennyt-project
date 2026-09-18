@@ -30,8 +30,8 @@ void main() {
           GameResultStat(label: 'Non-impulsive', value: '4/4'),
           GameResultStat(label: 'Step back', value: '0.3/3'),
         ],
-        insight: 'Good stress management — you mostly paused.',
-        primaryLabel: 'Replay',
+        insight: 'Bonne gestion du stress — you mostly paused.',
+        primaryLabel: 'Rejouer',
         onPrimary: () {},
         secondaryLabel: 'Insights',
         onSecondary: () {},
@@ -47,12 +47,12 @@ void main() {
     expect(find.text('0%'), findsOneWidget);
     await tester.pumpAndSettle();
 
-    expect(find.text('Results'), findsOneWidget);
-    expect(find.text('Reflective Pause completed'), findsOneWidget);
+    expect(find.text('Résultats'), findsOneWidget);
+    expect(find.text('Reflective Pause terminé'), findsOneWidget);
     expect(find.text('70%'), findsOneWidget);
-    expect(find.text('7 / 10 points calculated by the server.'), findsOneWidget);
+    expect(find.text('7 / 10 points calculés par le serveur.'), findsOneWidget);
     expect(find.byType(ResultStatTile), findsNWidgets(3));
-    expect(find.text('Summary insight'), findsOneWidget);
+    expect(find.text('Synthèse'), findsOneWidget);
     expect(find.byType(GamePrimaryButton), findsOneWidget);
     expect(find.byType(GameOutlineButton), findsOneWidget);
   });
@@ -63,8 +63,8 @@ void main() {
     await tester.pumpWidget(subject(pending: true));
     await tester.pumpAndSettle();
 
-    expect(find.text('Synchronizing score...'), findsOneWidget);
-    expect(find.text('Score is being calculated.'), findsOneWidget);
+    expect(find.text('Synchronisation du score…'), findsOneWidget);
+    expect(find.text('Score en cours de calcul.'), findsOneWidget);
     expect(find.text('—'), findsOneWidget);
     expect(find.textContaining('%'), findsNothing);
   });
@@ -82,7 +82,7 @@ void main() {
 
       expect(tester.takeException(), isNull);
       expect(find.byType(Scrollable), findsNothing);
-      expect(find.text('Replay').hitTestable(), findsOneWidget);
+      expect(find.text('Rejouer').hitTestable(), findsOneWidget);
       expect(find.text('Insights').hitTestable(), findsOneWidget);
     });
   }

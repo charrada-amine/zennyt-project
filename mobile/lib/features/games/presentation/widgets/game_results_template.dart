@@ -34,7 +34,7 @@ class GameResultsTemplate extends StatelessWidget {
     required this.stats,
     required this.insight,
     this.insightBars = const [],
-    this.insightTitle = 'Summary insight',
+    this.insightTitle = 'Synthèse',
     required this.primaryLabel,
     required this.onPrimary,
     required this.secondaryLabel,
@@ -95,16 +95,16 @@ class GameResultsTemplate extends StatelessWidget {
   final Key? primaryKey;
 
   String get _subtitle =>
-      pending ? 'Synchronizing score...' : '$gameName completed';
+      pending ? 'Synchronisation du score…' : '$gameName terminé';
 
   String get _caption {
-    if (pending) return 'Score is being calculated.';
+    if (pending) return 'Score en cours de calcul.';
     final raw = points;
-    if (raw == null) return 'No score recorded for this session.';
+    if (raw == null) return 'Aucun score enregistré pour cette session.';
     final max = maxPoints;
     return max == null
-        ? '$raw points calculated by the server.'
-        : '$raw / $max points calculated by the server.';
+        ? '$raw points calculés par le serveur.'
+        : '$raw / $max points calculés par le serveur.';
   }
 
   @override
@@ -129,7 +129,7 @@ class GameResultsTemplate extends StatelessWidget {
                 child: GameResultsBackButton(onPressed: onBack!),
               ),
             Text(
-              'Results',
+              'Résultats',
               key: titleKey,
               style: AppTypography.displaySmall.copyWith(
                 color: ZennytGamePalette.blue,

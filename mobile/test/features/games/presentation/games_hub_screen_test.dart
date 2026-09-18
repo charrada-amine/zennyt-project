@@ -81,12 +81,12 @@ void main() {
     final flexibilityCard = find.byKey(
       const ValueKey('game-category-cognitive-flexibility'),
     );
-    // Portée à la carte visée : « 3 games » n'est pas unique dans le hub —
+    // Portée à la carte visée : « 3 jeux » n'est pas unique dans le hub —
     // plusieurs catégories comptent trois jeux. L'assertion globale ne tenait
     // que parce que la police de remplacement des tests, plus large que la
     // vraie, empêchait la seconde carte de se peindre.
     expect(
-      find.descendant(of: flexibilityCard, matching: find.text('3 games')),
+      find.descendant(of: flexibilityCard, matching: find.text('3 jeux')),
       findsOneWidget,
     );
     await tester.tap(flexibilityCard);
@@ -165,8 +165,46 @@ void main() {
     );
     expectAssetLogo(
       'category-game-logo-Optimal Path',
-      'assets/games icons/Optimal Path transparent.png',
+      'assets/games icons/Optimal Path menu original.png',
     );
+    void expectOriginalMenuLogo(String key) {
+      expect(
+        find.descendant(
+          of: find.byKey(ValueKey(key)),
+          matching: find.byType(ColoredBox),
+        ),
+        findsNothing,
+        reason: 'logo original sans pastille mauve',
+      );
+    }
+
+    expectOriginalMenuLogo('category-game-logo-Optimal Path');
+    await tester.tap(
+      find.byKey(const ValueKey('game-category-executive-planning')),
+    );
+    await tester.pumpAndSettle();
+    expectAssetLogo(
+      'picker-game-logo-Optimal Path',
+      'assets/games icons/Optimal Path menu original.png',
+    );
+    expectOriginalMenuLogo('picker-game-logo-Optimal Path');
+    final picker = find.byType(BottomSheet);
+    for (final image in tester.widgetList<Image>(
+      find.descendant(of: picker, matching: find.byType(Image)),
+    )) {
+      await tester.runAsync(
+        () => precacheImage(image.image, tester.element(picker)),
+      );
+    }
+    await tester.pumpAndSettle();
+    await expectLater(
+      picker,
+      matchesGoldenFile('goldens/optimal-path-logo-white-background.png'),
+    );
+
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+
     expect(
       find.byKey(const ValueKey('category-game-logo-Day Stack')),
       findsOneWidget,
@@ -209,14 +247,14 @@ void main() {
     await tester.tap(planningCard);
     await tester.pumpAndSettle();
 
-    expect(find.text('Choose a game to play'), findsOneWidget);
+    expect(find.text('Choisis un jeu'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('picker-game-logo-Optimal Path')),
       findsOneWidget,
     );
     expectAssetLogo(
       'picker-game-logo-Optimal Path',
-      'assets/games icons/Optimal Path transparent.png',
+      'assets/games icons/Optimal Path menu original.png',
     );
     expect(
       find.byKey(const ValueKey('picker-game-logo-Day Stack')),
@@ -242,7 +280,7 @@ void main() {
     // donc le sélecteur avec les trois logos.
     await tester.tap(emotionCard);
     await tester.pumpAndSettle();
-    expect(find.text('Choose a game to play'), findsOneWidget);
+    expect(find.text('Choisis un jeu'), findsOneWidget);
     for (final logo in const [
       ('Emotional Radar', 'assets/games icons/Emotional Radar.png'),
       ('Reflective Pause', 'assets/games icons/Reflective Pause.png'),
@@ -263,8 +301,8 @@ void main() {
         await _pumpHub(tester, textScale: textScale);
 
         expect(tester.takeException(), isNull);
-        expect(find.byTooltip('Back'), findsOneWidget);
-        expect(find.bySemanticsLabel('Back'), findsOneWidget);
+        expect(find.byTooltip('Retour'), findsOneWidget);
+        expect(find.bySemanticsLabel('Retour'), findsOneWidget);
         expect(
           find.byKey(const ValueKey('category-game-logo-Move Fast')),
           findsOneWidget,
@@ -305,6 +343,104 @@ void main() {
     );
   }
 
+  test('le nombre de jeux accorde « jeu » au singulier', () {
+    expect(gameCountLabel(1), '1 jeu');
+    expect(gameCountLabel(3), '3 jeux');
+  });
+
+  testWidgets('chaque catégorie affiche son nombre réel de jeux, en français', (
+    tester,
+  ) async {
+    await _pumpHub(tester);
+
+    // Radar émotionnel, planification et décision affichaient « N° aptitudes »
+    // faute de libellé explicite : le compte vient désormais de la liste.
+    for (final (key, title) in const [
+      ('game-category-cognitive-flexibility', 'Flexibilité cognitive'),
+      ('game-category-working-memory', 'Mémoire de travail'),
+      ('game-category-decision-making', 'Prise de décision'),
+      ('game-category-executive-planning', 'Planification exécutive'),
+      ('game-category-emotional-regulation', 'Régulation émotionnelle'),
+    ]) {
+      final card = find.byKey(ValueKey(key));
+      await tester.scrollUntilVisible(
+        card,
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(
+        find.descendant(of: card, matching: find.text(title)),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: card, matching: find.text('3 jeux')),
+        findsOneWidget,
+        reason: key,
+      );
+    }
+    expect(find.textContaining('aptitudes'), findsNothing);
+  });
+
+  testWidgets('une catégorie n’est terminée que si tous ses jeux le sont', (
+    tester,
+  ) async {
+    Finder check(String key) => find.descendant(
+      of: find.byKey(ValueKey(key)),
+      matching: find.byIcon(Icons.check_circle_rounded),
+    );
+
+    // Deux jeux sur trois de Régulation émotionnelle : pas encore terminée.
+    await _pumpHub(
+      tester,
+      progress: const GamesProgress(
+        completed: {CatalogGame.emotionalRadar, CatalogGame.reflectivePause},
+      ),
+    );
+    final card = find.byKey(
+      const ValueKey('game-category-emotional-regulation'),
+    );
+    await tester.scrollUntilVisible(
+      card,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(check('game-category-emotional-regulation'), findsNothing);
+  });
+
+  testWidgets('tous les jeux jouables terminés : la catégorie l’est aussi', (
+    tester,
+  ) async {
+    Finder check(String key) => find.descendant(
+      of: find.byKey(ValueKey(key)),
+      matching: find.byIcon(Icons.check_circle_rounded),
+    );
+
+    // Move Fast suffit pour Flexibilité cognitive : ses deux autres jeux sont
+    // fermés (« Bientôt ») et ne peuvent pas être terminés.
+    await _pumpHub(
+      tester,
+      progress: const GamesProgress(
+        completed: {
+          CatalogGame.emotionalRadar,
+          CatalogGame.reflectivePause,
+          CatalogGame.strategicChoices,
+          CatalogGame.moveFast,
+        },
+      ),
+    );
+    expect(check('game-category-cognitive-flexibility'), findsOneWidget);
+    expect(check('game-category-working-memory'), findsNothing);
+    final card = find.byKey(
+      const ValueKey('game-category-emotional-regulation'),
+    );
+    await tester.scrollUntilVisible(
+      card,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(check('game-category-emotional-regulation'), findsOneWidget);
+  });
+
   testWidgets('la couverture affiche la part des jeux terminés', (
     tester,
   ) async {
@@ -318,14 +454,14 @@ void main() {
         },
       ),
     );
-    expect(find.text('Coverage 20%'), findsOneWidget, reason: '3 / 15');
-    expect(find.text('Coverage 0%'), findsNothing);
+    expect(find.text('Couverture 20 %'), findsOneWidget, reason: '3 / 15');
+    expect(find.text('Couverture 0 %'), findsNothing);
   });
 
   testWidgets('progression inconnue : un tiret, pas un faux 0 %', (
     tester,
   ) async {
     await _pumpHub(tester);
-    expect(find.text('Coverage —'), findsOneWidget);
+    expect(find.text('Couverture —'), findsOneWidget);
   });
 }

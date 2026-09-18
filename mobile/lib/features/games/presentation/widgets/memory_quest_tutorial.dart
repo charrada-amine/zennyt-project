@@ -91,7 +91,7 @@ class MemoryQuestTutorial extends StatelessWidget {
         kMemoryDigitsTutorialAssets,
         4,
         'Complète puis valide',
-        'Saisis tous les chiffres pour activer « Validate ». La touche d’effacement corrige la dernière saisie.',
+        'Saisis tous les chiffres pour activer « Valider ». La touche d’effacement corrige la dernière saisie.',
         'Trois cases remplies, une touche d’effacement et un bouton de validation.',
       ),
       step(
@@ -135,7 +135,7 @@ class MemoryQuestTutorial extends StatelessWidget {
         kMemoryImagesTutorialAssets,
         4,
         'Valide avant la fin',
-        'Classe toutes les images pour activer « Validate ». À la fin du chrono, ton classement est validé tel quel, même incomplet.',
+        'Classe toutes les images pour activer « Valider ». À la fin du chrono, ton classement est validé tel quel, même incomplet.',
         'Un classement complet, un bouton de validation et un compte à rebours.',
       ),
       step(

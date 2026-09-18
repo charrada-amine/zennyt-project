@@ -115,7 +115,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 160));
     expect(tester.getRect(header), headerRect);
     expect(find.byType(AppBottomNav), findsNothing);
-    expect(find.byTooltip('Back'), findsOneWidget);
+    expect(find.byTooltip('Retour'), findsOneWidget);
     final outgoing = find.byKey(const ValueKey('welcome-start'));
     expect(outgoing, findsOneWidget);
     expect(
@@ -152,7 +152,7 @@ void main() {
       find.byKey(const ValueKey('je-decide-entry-capture')),
       matchesGoldenFile('goldens/je-decide-tutorial-entry.png'),
     );
-    await tester.tap(find.byTooltip('Back'));
+    await tester.tap(find.byTooltip('Retour'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 160));
     expect(tester.getRect(header), headerRect);
@@ -171,9 +171,9 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('welcome-start')), findsNothing);
       expect(find.text('Étape 1 sur 3'), findsOneWidget);
-      expect(find.byTooltip('Back'), findsOneWidget);
+      expect(find.byTooltip('Retour'), findsOneWidget);
       expect(repository.sessionsStarted, 0);
-      await tapVisible(tester, find.byTooltip('Back'));
+      await tapVisible(tester, find.byTooltip('Retour'));
       expect(find.text('Commencer'), findsOneWidget);
       expect(find.text('Étape 1 sur 3'), findsNothing);
       expect(tester.takeException(), isNull);
@@ -203,7 +203,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Decision Journey'), findsOneWidget);
+      expect(find.text('Parcours de décision'), findsOneWidget);
       expect(find.byType(AppBottomNav), findsNothing);
 
       expect(find.text('Personnaliser (facultatif)'), findsNothing);
@@ -212,7 +212,7 @@ void main() {
 
       expect(find.text('Comment jouer'), findsOneWidget);
       expect(find.text('Essayer l’exemple'), findsNothing);
-      await tapVisible(tester, find.byTooltip('Back'));
+      await tapVisible(tester, find.byTooltip('Retour'));
       expect(find.text('Commencer'), findsOneWidget);
       await tapVisible(tester, find.byKey(const ValueKey('welcome-start')));
       expect(find.text('Étape 1 sur 3'), findsOneWidget);
@@ -221,7 +221,7 @@ void main() {
       }
       await tapVisible(tester, find.text('Essayer l’exemple'));
 
-      expect(find.text('Choosing a route'), findsOneWidget);
+      expect(find.text('Choisir un itinéraire'), findsOneWidget);
       expect(find.text('Exemple d’entraînement'), findsOneWidget);
       expect(find.text('Practice 1 / 2'), findsNothing);
       expect(repository.sessionsStarted, 0);
@@ -252,7 +252,7 @@ void main() {
         tester,
         find.byKey(const ValueKey('decision-pause-dialog-resume')),
       );
-      expect(find.text('Choosing a route'), findsOneWidget);
+      expect(find.text('Choisir un itinéraire'), findsOneWidget);
 
       final continueFinder = find.descendant(
         of: find.byKey(const ValueKey('practice-continue')),
@@ -373,7 +373,7 @@ void main() {
       lessThan(600),
     );
     expect(tester.takeException(), isNull);
-    await tapVisible(tester, find.byTooltip('Back'));
+    await tapVisible(tester, find.byTooltip('Retour'));
     expect(find.byKey(const ValueKey('welcome-customize')), findsNothing);
     expect(find.byType(TextField), findsNothing);
     expect(find.text('Commencer'), findsOneWidget);

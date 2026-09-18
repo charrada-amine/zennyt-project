@@ -36,8 +36,8 @@ class EmotionalRadarPalette {
 /// client : le tutoriel ne doit annoncer que ce que le panneau demande
 /// réellement, sous peine de faire chercher au joueur un champ absent.
 const List<String> emotionalRadarSteps = [
-  'Watch the scene. The 30-second timer includes both viewing and answering.',
-  'Choose the dominant emotion from the 6 or 9 options. The difficulty adapts as you progress.',
-  'Rate its intensity: Faible, Modérée or Intense.',
-  'Validate both choices. If time runs out, answer anyway; the scene counts as missed.',
+  'Regarde la scène. Les 30 secondes couvrent le visionnage et la réponse.',
+  'Choisis l’émotion dominante parmi 6 ou 9 propositions. La difficulté s’adapte à ta progression.',
+  'Évalue son intensité : Faible, Modérée ou Intense.',
+  'Valide tes deux choix. Si le temps est écoulé, réponds quand même : la scène compte comme manquée.',
 ];

@@ -138,7 +138,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Start'));
+    await tester.tap(find.text('Commencer'));
     await tester.pumpAndSettle();
     expect(find.text('Étape 1 sur 2'), findsOneWidget);
     expect(repository.starts, 0);
@@ -153,13 +153,13 @@ void main() {
     expect(repository.starts, 1);
     expect(find.text('TOWER A'), findsOneWidget);
     expect(find.text('TOWER C'), findsOneWidget);
-    expect(find.text('Add Move'), findsOneWidget);
+    expect(find.text('Ajouter le coup'), findsOneWidget);
     expect(find.byType(PredictivePuzzleTutorial), findsNothing);
     await tester.tap(find.text('TOWER A'));
     await tester.pump();
     await tester.tap(find.text('TOWER C'));
     await tester.pump();
-    await tester.tap(find.text('Add Move'));
+    await tester.tap(find.text('Ajouter le coup'));
     await tester.pump();
     expect(find.textContaining('1/7 MOVES PLANNED'), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());

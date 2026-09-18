@@ -133,15 +133,15 @@ void main() {
         ),
       );
       await tester.pump();
-      expect(find.text('Menu closes in 3s'), findsOneWidget);
+      expect(find.text('Fermeture du menu dans 3 s'), findsOneWidget);
 
       await tester.pump(const Duration(seconds: 1));
-      expect(find.text('Menu closes in 2s'), findsOneWidget);
+      expect(find.text('Fermeture du menu dans 2 s'), findsOneWidget);
       expect(expired, 0);
 
       await tester.pump(const Duration(seconds: 2));
       await tester.pump(); // laisse passer le post-frame de l'expiration
-      expect(find.text('Menu closes in 0s'), findsOneWidget);
+      expect(find.text('Fermeture du menu dans 0 s'), findsOneWidget);
       expect(expired, 1, reason: 'le menu se referme seul à zéro');
 
       // Le rappel ne doit jamais partir deux fois : il dépile une route.
@@ -237,7 +237,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.textContaining('Menu closes in'), findsNothing);
+      expect(find.textContaining('Fermeture du menu dans'), findsNothing);
     });
   });
 
@@ -306,10 +306,10 @@ void main() {
           // Chaque action reste entièrement à l'écran, donc atteignable.
           final screen = Offset.zero & entry.value;
           for (final label in const [
-            'Resume',
+            'Reprendre',
             'Restart phase',
-            'View rules / Help',
-            'Exit mission',
+            'Règles / Aide',
+            'Quitter la mission',
           ]) {
             final rect = tester.getRect(find.text(label));
             expect(
@@ -327,12 +327,12 @@ void main() {
   group('GameHud', () {
     /// Ce test exigeait autrefois la DISPARITION du bouton une fois la fenêtre
     /// consommée. C'était la lecture littérale du cahier des charges, et elle
-    /// enfermait le candidat : « Exit mission » vivait dans le menu de pause, et
+    /// enfermait le candidat : « Quitter la mission » vivait dans le menu de pause, et
     /// disparaissait avec lui. Il ne restait qu'à fermer l'application, ce que
     /// le jeu traite comme une interruption subie — tentative annulée, sans
     /// confirmation. Arbitrage du chef de projet : le bouton reste, il devient
-    /// « Exit mission » et change d'icône.
-    testWidgets('le bouton devient « Exit mission » une fois la fenêtre '
+    /// « Quitter la mission » et change d'icône.
+    testWidgets('le bouton devient « Quitter la mission » une fois la fenêtre '
         'consommée', (tester) async {
       Future<void> pumpHud(GameMenuAffordance affordance) => tester.pumpWidget(
         MaterialApp(
@@ -354,7 +354,7 @@ void main() {
 
       await pumpHud(GameMenuAffordance.exit);
       expect(
-        find.byTooltip('Exit mission'),
+        find.byTooltip('Quitter la mission'),
         findsOneWidget,
         reason: 'sans ce bouton, plus aucune sortie volontaire n\'est offerte',
       );
@@ -404,16 +404,16 @@ void main() {
 
       await tester.tap(find.text('quit'));
       await tester.pumpAndSettle();
-      expect(find.text('Leave mission?'), findsOneWidget);
-      expect(find.textContaining('no score will be recorded'), findsOneWidget);
+      expect(find.text('Quitter la mission ?'), findsOneWidget);
+      expect(find.textContaining('aucun score ne sera enregistré'), findsOneWidget);
 
-      await tester.tap(find.text('Continue mission'));
+      await tester.tap(find.text('Continuer la mission'));
       await tester.pumpAndSettle();
       expect(answer, isFalse, reason: 'on ne sort pas par accident');
 
       await tester.tap(find.text('quit'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Quit without saving'));
+      await tester.tap(find.text('Quitter sans enregistrer'));
       await tester.pumpAndSettle();
       expect(answer, isTrue);
     });

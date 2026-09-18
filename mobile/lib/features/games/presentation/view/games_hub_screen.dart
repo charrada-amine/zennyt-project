@@ -34,7 +34,7 @@ const _logoJePlace = 'assets/games icons/Je Place.png';
 const _logoJeDecide = 'assets/games icons/Je Decide transparent.png';
 const _logoBart = 'assets/games/bart_logo.svg';
 const _logoIst = 'assets/games/ist_logo.svg';
-const _logoOptimalPath = 'assets/games icons/Optimal Path transparent.png';
+const _logoOptimalPath = 'assets/games icons/Optimal Path menu original.png';
 const _logoTaskScheduling =
     'assets/games icons/Task Scheduling transparent.png';
 const _logoPredictivePuzzle =
@@ -53,8 +53,13 @@ const _logoStrategicChoices = 'assets/games icons/Strategic Choices.png';
 /// croire qu'aucune partie n'a été jouée.
 String _coverageLabel(AsyncValue<GamesProgress?> progress) {
   final percent = progress.value?.coveragePercent;
-  return percent == null ? 'Coverage —' : 'Coverage $percent%';
+  return percent == null ? 'Couverture —' : 'Couverture $percent %';
 }
+
+/// Nombre de jeux d'une catégorie, calculé depuis sa liste : ajouter ou
+/// retirer un jeu met le libellé à jour sans autre retouche.
+@visibleForTesting
+String gameCountLabel(int count) => count <= 1 ? '$count jeu' : '$count jeux';
 
 /// Ouvre un jeu, puis relit la progression au retour : la partie qui vient de
 /// se terminer doit apparaître aussitôt dans la couverture.
@@ -71,7 +76,9 @@ class GamesHubScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final serverProgress = ref.watch(gamesProgressProvider).value;
-    final localProgress = ref.watch(local_progress.gamesProgressProvider);
+    // Jeux terminés d'après le serveur : une catégorie n'est « terminée »
+    // qu'une fois TOUS ses jeux jouables finis.
+    final completedGames = serverProgress?.completed ?? const <CatalogGame>{};
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -95,7 +102,7 @@ class GamesHubScreen extends ConsumerWidget {
                 children: [
                   Text(
                     kLot1DemoBuild
-                        ? 'Games demo'
+                        ? 'Démo des jeux'
                         : _coverageLabel(ref.watch(gamesProgressProvider)),
                     key: const ValueKey('games-coverage'),
                     style: AppTypography.headlineLarge.copyWith(
@@ -108,7 +115,7 @@ class GamesHubScreen extends ConsumerWidget {
                   if (kLot1DemoBuild) ...[
                     const SizedBox(height: 6),
                     const Text(
-                      'Practice sessions · sample results',
+                      'Sessions d’entraînement · résultats d’exemple',
                       style: TextStyle(color: _muted, fontSize: 13),
                     ),
                   ] else ...[
@@ -117,7 +124,8 @@ class GamesHubScreen extends ConsumerWidget {
                       ClipRRect(
                         borderRadius: BorderRadius.circular(999),
                         child: LinearProgressIndicator(
-                          value: serverProgress.completedGames /
+                          value:
+                              serverProgress.completedGames /
                               serverProgress.totalGames,
                           minHeight: 6,
                           backgroundColor: _softGray,
@@ -128,22 +136,23 @@ class GamesHubScreen extends ConsumerWidget {
                   const SizedBox(height: 26),
                   _GameCategoryCard(
                     key: const ValueKey('game-category-cognitive-flexibility'),
-                    title: 'Cognitive Flexibility',
-                    completed: localProgress.completedDimensions.contains('Cognitive Flexibility'),
+                    title: 'Flexibilité cognitive',
+                    completedGames: completedGames,
                     iconAsset: _iconFlexibility,
                     durationLabel: '2–25 min',
-                    aptitudeLabel: '3 games',
                     games: const [
                       _GameEntry(
                         label: 'Move Fast',
-                        subtitle: 'Rule switching · Je bouge',
+                        game: CatalogGame.moveFast,
+                        subtitle: 'Changement de règle · Je bouge',
                         route: AppRoutes.gamesMoveFast,
                         logoAsset: _logoMoveFast,
                         fallbackIcon: Icons.near_me_rounded,
                       ),
                       _GameEntry(
                         label: 'Je continue',
-                        subtitle: 'Sustained attention · 25 min',
+                        game: CatalogGame.continuousAttention,
+                        subtitle: 'Attention soutenue · 25 min',
                         route: AppRoutes.gamesJeContinue,
                         enabled: false,
                         logoAsset: _logoJeContinue,
@@ -151,7 +160,8 @@ class GamesHubScreen extends ConsumerWidget {
                       ),
                       _GameEntry(
                         label: 'Je coordonne',
-                        subtitle: 'Eye-hand tracking · 3 min',
+                        game: CatalogGame.coordinationTracking,
+                        subtitle: 'Coordination œil-main · 3 min',
                         route: AppRoutes.gamesJeCoordonne,
                         enabled: false,
                         logoAsset: _logoJeCoordonne,
@@ -162,32 +172,34 @@ class GamesHubScreen extends ConsumerWidget {
                   const SizedBox(height: 12),
                   _GameCategoryCard(
                     key: const ValueKey('game-category-working-memory'),
-                    title: 'Working Memory',
-                    completed: localProgress.completedDimensions.contains('Working Memory'),
+                    title: 'Mémoire de travail',
+                    completedGames: completedGames,
                     iconAsset: _iconMemory,
                     durationLabel: '5–13 min',
-                    aptitudeLabel: '3 games',
                     games: const [
                       // « J'investigue » scindé en deux jeux sur retour client :
                       // l'empan de chiffres et la mémoire des images se jouent
                       // et se valident séparément.
                       _GameEntry(
                         label: 'Memory Quest · Digits',
-                        subtitle: 'Digit span · J\'investigue',
+                        game: CatalogGame.memoryQuestDigits,
+                        subtitle: 'Empan de chiffres · J\'investigue',
                         route: AppRoutes.gamesInvestigateDigits,
                         logoAsset: _logoMemoryQuest,
                         fallbackIcon: Icons.pin_rounded,
                       ),
                       _GameEntry(
                         label: 'Memory Quest · Images',
-                        subtitle: 'Object span · J\'investigue',
+                        game: CatalogGame.memoryQuestImages,
+                        subtitle: 'Empan d\'objets · J\'investigue',
                         route: AppRoutes.gamesInvestigateImages,
                         logoAsset: _logoMemoryQuest,
                         fallbackIcon: Icons.image_rounded,
                       ),
                       _GameEntry(
                         label: 'Je place',
-                        subtitle: 'Object-location memory · 5 min',
+                        game: CatalogGame.objectLocation,
+                        subtitle: 'Mémoire des emplacements · 5 min',
                         route: AppRoutes.gamesJePlace,
                         enabled: false,
                         logoAsset: _logoJePlace,
@@ -200,13 +212,14 @@ class GamesHubScreen extends ConsumerWidget {
                   // Predictive Puzzle, qui appartient à Planifik.
                   _GameCategoryCard(
                     key: const ValueKey('game-category-decision-making'),
-                    title: 'Decision-Making',
-                    completed: localProgress.completedDimensions.contains('Decision-Making'),
+                    title: 'Prise de décision',
+                    completedGames: completedGames,
                     iconAsset: _iconDecision,
                     games: const [
                       _GameEntry(
                         label: 'Je Décide',
-                        subtitle: 'Everyday choices · decision style',
+                        game: CatalogGame.decision,
+                        subtitle: 'Choix du quotidien · style de décision',
                         route: AppRoutes.gamesJeDecide,
                         logoAsset: _logoJeDecide,
                         fallbackIcon: Icons.alt_route_rounded,
@@ -215,14 +228,17 @@ class GamesHubScreen extends ConsumerWidget {
                       // Barèmes PROVISOIRES : l'événement Fit Score reste suspendu.
                       _GameEntry(
                         label: 'BART',
-                        subtitle: 'Risk taking · inflate or collect',
+                        game: CatalogGame.bart,
+                        subtitle: 'Prise de risque · gonfler ou collecter',
                         route: AppRoutes.gamesBart,
                         logoAsset: _logoBart,
                         fallbackIcon: Icons.bubble_chart_rounded,
                       ),
                       _GameEntry(
                         label: 'IST',
-                        subtitle: 'Information sampling · observe then decide',
+                        game: CatalogGame.informationSampling,
+                        subtitle:
+                            'Recueil d\'informations · observer puis décider',
                         route: AppRoutes.gamesIst,
                         logoAsset: _logoIst,
                         fallbackIcon: Icons.grid_on_rounded,
@@ -233,27 +249,31 @@ class GamesHubScreen extends ConsumerWidget {
                   // Executive Planning (Planifik) : 3 mini-jeux → menu de sélection.
                   _GameCategoryCard(
                     key: const ValueKey('game-category-executive-planning'),
-                    title: 'Executive Planning',
-                    completed: localProgress.completedDimensions.contains('Executive Planning'),
+                    title: 'Planification exécutive',
+                    completedGames: completedGames,
                     iconAsset: _iconPlanning,
                     games: const [
                       _GameEntry(
                         label: 'Optimal Path',
-                        subtitle: 'Path Mind · shortest route',
+                        game: CatalogGame.optimalPath,
+                        subtitle: 'Path Mind · trajet le plus court',
                         route: AppRoutes.gamesPlanifik,
                         logoAsset: _logoOptimalPath,
                         fallbackIcon: Icons.route_rounded,
                       ),
                       _GameEntry(
                         label: 'Day Stack',
-                        subtitle: 'Task scheduling · dependencies & deadlines',
+                        game: CatalogGame.taskScheduling,
+                        subtitle:
+                            'Planification des tâches · dépendances et échéances',
                         route: AppRoutes.gamesTaskScheduling,
                         logoAsset: _logoTaskScheduling,
                         fallbackIcon: Icons.event_note_rounded,
                       ),
                       _GameEntry(
                         label: 'Predictive Puzzle',
-                        subtitle: 'Tower of Hanoi · foresight',
+                        game: CatalogGame.predictivePuzzle,
+                        subtitle: 'Tour de Hanoï · anticipation',
                         route: AppRoutes.gamesPredictivePuzzle,
                         logoAsset: _logoPredictivePuzzle,
                         fallbackIcon: Icons.extension_rounded,
@@ -263,28 +283,32 @@ class GamesHubScreen extends ConsumerWidget {
                   const SizedBox(height: 12),
                   _GameCategoryCard(
                     key: const ValueKey('game-category-emotional-regulation'),
-                    title: 'Emotional Regulation',
-                    completed: localProgress.completedDimensions.contains('Emotional Regulation'),
+                    title: 'Régulation émotionnelle',
+                    completedGames: completedGames,
                     iconAsset: _iconEmotion,
-                    aptitudeLabel: '3 games',
                     games: const [
                       _GameEntry(
                         label: 'Emotional Radar',
-                        subtitle: 'Recognize emotions in real situations',
+                        game: CatalogGame.emotionalRadar,
+                        subtitle:
+                            'Reconnaître les émotions en situation réelle',
                         route: AppRoutes.gamesEmotionalRadar,
                         logoAsset: _logoEmotionalRadar,
                         fallbackIcon: Icons.favorite_rounded,
                       ),
                       _GameEntry(
                         label: 'Reflective Pause',
-                        subtitle: 'Impulse control · pressure moments',
+                        game: CatalogGame.reflectivePause,
+                        subtitle:
+                            'Contrôle de l\'impulsivité · moments de pression',
                         route: AppRoutes.gamesReflectivePause,
                         logoAsset: _logoReflectivePause,
                         fallbackIcon: Icons.timer_outlined,
                       ),
                       _GameEntry(
                         label: 'Strategic Choices',
-                        subtitle: 'Reflect · choose · respond',
+                        game: CatalogGame.strategicChoices,
+                        subtitle: 'Réfléchir · choisir · répondre',
                         route: AppRoutes.gamesStrategicChoices,
                         logoAsset: _logoStrategicChoices,
                         fallbackIcon: Icons.call_split_rounded,
@@ -310,7 +334,7 @@ class _GamesHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final textScale = MediaQuery.textScalerOf(context).scale(1);
     final title = Text(
-      'Play & discover\nyour talent',
+      'Joue et découvre\nton talent',
       textAlign: TextAlign.center,
       style: AppTypography.headlineLarge.copyWith(
         color: _ink,
@@ -360,9 +384,9 @@ class _HeaderButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      label: 'Back',
+      label: 'Retour',
       child: Tooltip(
-        message: 'Back',
+        message: 'Retour',
         excludeFromSemantics: true,
         child: Material(
           color: Colors.white,
@@ -454,6 +478,7 @@ class _ProfileBadge extends StatelessWidget {
 class _GameEntry {
   const _GameEntry({
     required this.label,
+    required this.game,
     required this.route,
     required this.logoAsset,
     required this.fallbackIcon,
@@ -462,6 +487,9 @@ class _GameEntry {
   });
 
   final String label;
+
+  /// Jeu du catalogue serveur, pour savoir s'il a été terminé.
+  final CatalogGame game;
   final String route;
   final String logoAsset;
   final IconData fallbackIcon;
@@ -480,17 +508,17 @@ class _GameCategoryCard extends ConsumerWidget {
     super.key,
     required this.title,
     required this.iconAsset,
-    this.completed = false,
+    this.completedGames = const {},
     this.games = const [],
-    this.durationLabel = '10-13mins',
-    this.aptitudeLabel = 'N° aptitudes',
+    this.durationLabel = '10–13 min',
   });
 
   final String title;
   final String iconAsset;
-  final bool completed;
+
+  /// Jeux terminés au moins une fois, d'après le serveur.
+  final Set<CatalogGame> completedGames;
   final String durationLabel;
-  final String aptitudeLabel;
 
   /// Jeux de la catégorie. Vide → module non implémenté (carte inactive).
   /// 1 jeu → navigation directe. Plusieurs → petit menu de sélection.
@@ -500,6 +528,15 @@ class _GameCategoryCard extends ConsumerWidget {
   /// affichée, mais inactive.
   List<_GameEntry> get _playable =>
       games.where((g) => g.enabled).toList(growable: false);
+
+  /// Catégorie terminée : chacun de ses jeux jouables a été fini au moins une
+  /// fois. Ouvrir un jeu puis revenir ne suffit plus. Les jeux encore fermés
+  /// (« Bientôt ») ne comptent pas : ils ne peuvent pas être terminés.
+  bool get completed {
+    final playable = _playable;
+    return playable.isNotEmpty &&
+        playable.every((g) => completedGames.contains(g.game));
+  }
 
   Future<void> _handleTap(BuildContext context, WidgetRef ref) async {
     final playable = _playable;
@@ -520,11 +557,6 @@ class _GameCategoryCard extends ConsumerWidget {
       if (route == null || !context.mounted) return;
       await _openGame(context, route);
     }
-    // Surlignage provisoire de la carte, côté client ; la couverture serveur
-    // est relue par [_openGame] au retour.
-    ref
-        .read(local_progress.gamesProgressProvider.notifier)
-        .markCompleted(title);
   }
 
   @override
@@ -533,7 +565,11 @@ class _GameCategoryCard extends ConsumerWidget {
     final enabled = _playable.isNotEmpty;
     final onTap = enabled ? () => _handleTap(context, ref) : null;
     final largeText = MediaQuery.textScalerOf(context).scale(1) > 1.5;
-    final titleRow = _CategoryTitleRow(title: title, enabled: enabled, completed: completed);
+    final titleRow = _CategoryTitleRow(
+      title: title,
+      enabled: enabled,
+      completed: completed,
+    );
     final logos = _CategoryGameLogos(games: games);
     final illustration = _CategoryIllustration(
       asset: iconAsset,
@@ -542,7 +578,7 @@ class _GameCategoryCard extends ConsumerWidget {
     );
     final metadata = _CategoryMetadata(
       durationLabel: durationLabel,
-      aptitudeLabel: aptitudeLabel,
+      aptitudeLabel: gameCountLabel(games.length),
       stacked: largeText,
     );
 
@@ -552,7 +588,10 @@ class _GameCategoryCard extends ConsumerWidget {
       decoration: BoxDecoration(
         color: completed ? const Color(0xFFF3E8F6) : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: completed ? _magenta : _blue, width: completed ? 1.6 : 1.2),
+        border: Border.all(
+          color: completed ? _magenta : _blue,
+          width: completed ? 1.6 : 1.2,
+        ),
       ),
       child: largeText
           ? Column(
@@ -767,7 +806,7 @@ Future<bool?> _showGamesConsentDialog(BuildContext context) {
                 children: [
                   const Expanded(
                     child: Text(
-                      'Important!',
+                      'Important !',
                       style: TextStyle(
                         color: _ink,
                         fontSize: 20,
@@ -777,15 +816,20 @@ Future<bool?> _showGamesConsentDialog(BuildContext context) {
                   ),
                   GestureDetector(
                     onTap: () => Navigator.of(dialogContext).pop(false),
-                    child: const Icon(Icons.close_rounded, color: _muted, size: 22),
+                    child: const Icon(
+                      Icons.close_rounded,
+                      color: _muted,
+                      size: 22,
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 12),
               const Text(
-                'To preserve the integrity of the assessments, monitoring technologies may '
-                'collect screenshots, webcam images, and keystroke dynamics during the tests. '
-                'This data is used solely to detect impersonation, cheating, or identity fraud.',
+                'Pour préserver l’intégrité des évaluations, des technologies de surveillance peuvent '
+                'collecter des captures d’écran, des images de la webcam et la dynamique de frappe '
+                'pendant les tests. Ces données servent uniquement à détecter l’usurpation '
+                'd’identité, la triche ou la fraude.',
                 style: TextStyle(color: _muted, fontSize: 13.5, height: 1.45),
               ),
               const SizedBox(height: 12),
@@ -801,8 +845,12 @@ Future<bool?> _showGamesConsentDialog(BuildContext context) {
                     child: Padding(
                       padding: EdgeInsets.only(top: 12),
                       child: Text(
-                        'I understand and agree to the monitoring conditions.',
-                        style: TextStyle(color: _ink, fontSize: 13, fontWeight: FontWeight.w500),
+                        'Je comprends et j’accepte les conditions de surveillance.',
+                        style: TextStyle(
+                          color: _ink,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   ),
@@ -813,13 +861,20 @@ Future<bool?> _showGamesConsentDialog(BuildContext context) {
                 width: double.infinity,
                 height: 48,
                 child: ElevatedButton(
-                  onPressed: agreed ? () => Navigator.of(dialogContext).pop(true) : null,
+                  onPressed: agreed
+                      ? () => Navigator.of(dialogContext).pop(true)
+                      : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _blue,
                     disabledBackgroundColor: const Color(0xFFCBD5E1),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
-                  child: const Text('Continue', style: TextStyle(fontWeight: FontWeight.w700)),
+                  child: const Text(
+                    'Continuer',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
                 ),
               ),
             ],
@@ -879,7 +934,7 @@ Future<String?> _showGamePicker(
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Choose a game to play',
+                  'Choisis un jeu',
                   style: TextStyle(
                     color: _muted,
                     fontFamily: AppTypography.fontFamily,
@@ -896,7 +951,8 @@ Future<String?> _showGamePicker(
                     separatorBuilder: (_, _) => const SizedBox(height: 10),
                     itemBuilder: (_, index) => _GamePickerTile(
                       game: games[index],
-                      onTap: () => Navigator.of(sheetContext).pop(games[index].route),
+                      onTap: () =>
+                          Navigator.of(sheetContext).pop(games[index].route),
                     ),
                   ),
                 ),
@@ -1087,7 +1143,7 @@ class _GameLogoBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       image: true,
-      label: '${game.label} logo',
+      label: 'Logo ${game.label}',
       child: SizedBox(
         key: ValueKey('$contextName-game-logo-${game.label}'),
         width: size,
@@ -1102,7 +1158,11 @@ class _GameLogoBadge extends StatelessWidget {
                   filterQuality: FilterQuality.high,
                   errorBuilder: (context, error, stackTrace) => ColoredBox(
                     color: const Color(0xFFF1F4FA),
-                    child: Icon(game.fallbackIcon, color: _blue, size: iconSize),
+                    child: Icon(
+                      game.fallbackIcon,
+                      color: _blue,
+                      size: iconSize,
+                    ),
                   ),
                 ),
         ),

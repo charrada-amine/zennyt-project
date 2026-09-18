@@ -900,11 +900,12 @@ class _CoverView extends StatelessWidget {
         mission: 'Reconnais l’émotion et son intensité dans chaque situation.',
         contextText:
             'Un geste, une expression, une situation : repère ce que ressent la personne et à quel degré.',
+        contextDetail: 'Prends aussi en compte les indices de la scène.',
         journey: const ['Observe', 'Identifie', 'Évalue'],
         leading: _BackSquareButton(
           onTap: () => Navigator.of(context).maybePop(),
         ),
-        startLabel: 'Start tutorial',
+        startLabel: 'Commencer le tutoriel',
         onStart: onStart,
       ),
     ),
@@ -940,7 +941,7 @@ class _BackSquareButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      label: 'Back',
+      label: 'Retour',
       child: Material(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -1034,9 +1035,9 @@ class EmotionalRadarResultsView extends StatelessWidget {
                   GameResultStat(label: 'Temps moyen', value: '—'),
                 ],
                 insight: 'Session interrompue : aucun rapport disponible.',
-                primaryLabel: 'Replay',
+                primaryLabel: 'Rejouer',
                 onPrimary: onReplay,
-                secondaryLabel: 'Back to games',
+                secondaryLabel: 'Retour aux jeux',
                 onSecondary: back,
               )
             : GameResultsTemplate(
@@ -1071,9 +1072,9 @@ class EmotionalRadarResultsView extends StatelessWidget {
                         mediaLibraryReady: mediaLibraryReady,
                       )
                     : null,
-                primaryLabel: 'Replay',
+                primaryLabel: 'Rejouer',
                 onPrimary: onReplay,
-                secondaryLabel: 'Back to games',
+                secondaryLabel: 'Retour aux jeux',
                 onSecondary: back,
               ),
       ),
@@ -1226,7 +1227,7 @@ class _ErrorView extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 26),
-              _MagentaButton(label: 'Try again', onPressed: onRetry),
+              _MagentaButton(label: 'Réessayer', onPressed: onRetry),
               const SizedBox(height: 12),
               TextButton(
                 onPressed: () {
@@ -1234,7 +1235,7 @@ class _ErrorView extends StatelessWidget {
                   Navigator.of(context).maybePop();
                 },
                 child: const Text(
-                  'Back to games',
+                  'Retour aux jeux',
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,

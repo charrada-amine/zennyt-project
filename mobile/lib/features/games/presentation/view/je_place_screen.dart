@@ -657,7 +657,7 @@ class _JePlaceScreenState extends ConsumerState<JePlaceScreen>
               SoundService.instance.playSfx(GameSfx.buttonClick);
               Navigator.of(context).pop();
             },
-            child: const Text('Got it'),
+            child: const Text('Compris'),
           ),
         ],
       ),
@@ -743,7 +743,7 @@ class _JePlaceScreenState extends ConsumerState<JePlaceScreen>
   Widget _buildCover() {
     return _JourneyPage(
       header: _JePlaceHeader(
-        eyebrow: 'Zennyt Games',
+        eyebrow: 'Jeux Zennyt',
         title: 'Je place',
         onBack: _exitToGames,
       ),
@@ -962,7 +962,7 @@ class _JePlaceScreenState extends ConsumerState<JePlaceScreen>
               top: false,
               child: GamePrimaryButton(
                 key: const ValueKey('je-place-validate'),
-                label: 'Validate placement',
+                label: 'Valider le placement',
                 onPressed:
                     _placements.length == layout.objectCount &&
                         _phaseClock.elapsedMilliseconds >=
@@ -1013,7 +1013,7 @@ class _JePlaceScreenState extends ConsumerState<JePlaceScreen>
         ),
       ],
       bottom: GamePrimaryButton(
-        label: 'Continue',
+        label: 'Continuer',
         onPressed: () => setState(() => _stage = _JePlaceStage.measuredReady),
       ),
     );
@@ -1146,9 +1146,9 @@ class _JePlaceScreenState extends ConsumerState<JePlaceScreen>
           '${report.averageDisplacementCells.toStringAsFixed(2)} cells. '
           'Descriptive and provisional: not a diagnosis, ranking, or '
           'recruitment decision.',
-      primaryLabel: 'Replay',
+      primaryLabel: 'Rejouer',
       onPrimary: _startJourney,
-      secondaryLabel: 'Back to games',
+      secondaryLabel: 'Retour aux jeux',
       onSecondary: _exitToGames,
     );
   }
@@ -1239,7 +1239,7 @@ class _JePlaceScreenState extends ConsumerState<JePlaceScreen>
         ),
       ],
       bottom: GamePrimaryButton(
-        label: 'Try again',
+        label: 'Réessayer',
         onPressed: _pendingMetrics == null
             ? _startJourney
             : _retryPendingSubmission,
@@ -1373,7 +1373,7 @@ class _JePlaceHeader extends StatelessWidget {
     return Row(
       children: [
         _HeaderButton(
-          tooltip: 'Back',
+          tooltip: 'Retour',
           icon: Icons.chevron_left_rounded,
           onPressed: onBack,
           onDark: onDark,

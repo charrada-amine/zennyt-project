@@ -43,7 +43,7 @@ class JeDecideTutorial extends StatelessWidget {
           title: 'Lis, puis choisis',
           description:
               'Lis la situation et touche l’option qui te correspond. '
-              'Appuie sur « Continue » pour avancer. '
+              'Appuie sur « Continuer » pour avancer. '
               'Aucun message bon ou mauvais immédiat.',
           illustration: image(0),
           illustrationLabel:

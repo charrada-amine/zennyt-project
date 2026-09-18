@@ -142,7 +142,7 @@ void main() {
     );
     expect(find.text('0%'), findsOneWidget);
     expect(
-      find.text('0 / 100 points calculated by the server.'),
+      find.text('0 / 100 points calculés par le serveur.'),
       findsOneWidget,
     );
   });

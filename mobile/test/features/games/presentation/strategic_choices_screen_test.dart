@@ -88,7 +88,7 @@ void main() {
   }
 
   Future<void> reachGameplay(WidgetTester tester) async {
-    await tapScrollableText(tester, 'Start mission');
+    await tapScrollableText(tester, 'Commencer la mission');
     await tester.pumpAndSettle();
     for (var page = 0; page < 4; page++) {
       await tester.tap(find.text('Suivant'));
@@ -141,7 +141,7 @@ void main() {
       'assets/games icons/Strategic Choices Purple.png',
     );
 
-    await tapScrollableText(tester, 'Start mission');
+    await tapScrollableText(tester, 'Commencer la mission');
     await tester.pumpAndSettle();
     expect(find.text('Train the pause before action'), findsNothing);
     expect(find.text('Comment jouer'), findsOneWidget);
@@ -152,7 +152,7 @@ void main() {
     );
     await tester.tap(find.text('Suivant'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Start reflection'), findsOneWidget);
+    expect(find.textContaining('Lancer la réflexion'), findsOneWidget);
     expect(find.textContaining('choisir pendant'), findsOneWidget);
     await tester.tap(find.text('Suivant'));
     await tester.pumpAndSettle();
@@ -206,18 +206,18 @@ void main() {
 
     await tester.tap(find.byTooltip('Pause'));
     await tester.pumpAndSettle();
-    expect(find.text('Resume'), findsOneWidget);
-    expect(find.text('View rules / Help'), findsOneWidget);
-    expect(find.text('Exit mission'), findsOneWidget);
-    expect(find.textContaining('Restart'), findsNothing);
+    expect(find.text('Reprendre'), findsOneWidget);
+    expect(find.text('Règles / Aide'), findsOneWidget);
+    expect(find.text('Quitter la mission'), findsOneWidget);
+    expect(find.textContaining('Recommencer'), findsNothing);
 
     await tester.pump(const Duration(seconds: 1));
-    await tester.tap(find.text('Resume'));
+    await tester.tap(find.text('Reprendre'));
     await tester.pump(const Duration(milliseconds: 100));
-    expect(find.textContaining('Reflection time · choices'), findsOneWidget);
+    expect(find.textContaining('Temps de réflexion · choix'), findsOneWidget);
     await tester.pump(const Duration(milliseconds: 200));
     expect(
-      find.text('Reflection complete · choose one strategy'),
+      find.text('Réflexion terminée · choisis une stratégie'),
       findsOneWidget,
     );
   });
@@ -249,7 +249,7 @@ void main() {
     expect(selected(), isTrue);
     await tester.tap(find.byTooltip('Pause'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('View rules / Help'));
+    await tester.tap(find.text('Règles / Aide'));
     await tester.pumpAndSettle();
     expect(find.text('Lis la situation'), findsOneWidget);
     for (var page = 0; page < 4; page++) {
@@ -259,13 +259,13 @@ void main() {
     expect(find.text('Commencer la partie'), findsNothing);
     await tester.tap(find.text('Reprendre la partie'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Resume'));
+    await tester.tap(find.text('Reprendre'));
     await tester.pump();
     expect(selected(), isTrue);
-    expect(find.textContaining('Reflection time · choices'), findsOneWidget);
+    expect(find.textContaining('Temps de réflexion · choix'), findsOneWidget);
     await tester.pump(const Duration(milliseconds: 200));
     expect(
-      find.text('Ready to validate · one strategy selected'),
+      find.text('Prêt à valider · une stratégie choisie'),
       findsOneWidget,
     );
     expect(tester.takeException(), isNull);
@@ -282,16 +282,16 @@ void main() {
     }
     await tester.pumpAndSettle();
 
-    // Écran « Final summary » de la maquette.
-    expect(find.text('Final summary'), findsOneWidget);
+    // Écran « Bilan final » de la maquette.
+    expect(find.text('Bilan final'), findsOneWidget);
     expect(
       find.text(
-        'A coaching report based on your choices across 10 situations.',
+        'Un bilan de coaching fondé sur tes choix dans 10 situations.',
       ),
       findsOneWidget,
     );
     // Le récapitulatif n'est plus « front-only » : le serveur note la partie.
-    // Le joueur coche « Breathe / pause » partout ; sur les dix situations
+    // Le joueur coche « Respirer / pause » partout ; sur les dix situations
     // tirées, le total dépend donc de la banque — on vérifie la FORME du score
     // et sa cohérence, pas une valeur que le tirage rendrait aléatoire.
     final global = tester.widget<Text>(
@@ -303,10 +303,10 @@ void main() {
       inInclusiveRange(0, 100),
     );
     // Profil : trois mesures réelles du barème serveur, jamais « Pending ».
-    expect(find.text('Learning profile'), findsOneWidget);
-    expect(find.text('Optimal strategy choices'), findsOneWidget);
-    expect(find.text('Problem-focused coping'), findsOneWidget);
-    expect(find.text('Non-dysfunctional coping'), findsOneWidget);
+    expect(find.text('Profil d’apprentissage'), findsOneWidget);
+    expect(find.text('Choix de stratégies optimales'), findsOneWidget);
+    expect(find.text('Coping centré sur le problème'), findsOneWidget);
+    expect(find.text('Coping non dysfonctionnel'), findsOneWidget);
     expect(find.text('Pending'), findsNothing);
     expect(find.textContaining(RegExp(r'^\d+%$')), findsNWidgets(6));
 
@@ -319,13 +319,13 @@ void main() {
     expect(find.textContaining('PROVISOIRE'), findsOneWidget);
 
     // Tout tient sur l'écran, sans défilement.
-    expect(find.text('See detailed insights').hitTestable(), findsOneWidget);
-    await tester.tap(find.text('See detailed insights'));
+    expect(find.text('Voir l’analyse détaillée').hitTestable(), findsOneWidget);
+    await tester.tap(find.text('Voir l’analyse détaillée'));
     await tester.pumpAndSettle();
-    expect(find.text('Learning insights'), findsOneWidget);
-    expect(find.text('Most used strategy'), findsOneWidget);
-    expect(find.text('Breathe / pause'), findsOneWidget);
-    expect(find.text('Trap tendencies'), findsOneWidget);
+    expect(find.text('Analyse détaillée'), findsOneWidget);
+    expect(find.text('Stratégie la plus utilisée'), findsOneWidget);
+    expect(find.text('Respirer / pause'), findsOneWidget);
+    expect(find.text('Tendances pièges'), findsOneWidget);
   });
 
   testWidgets('aucun écran ne prétend plus que le jeu ne calcule pas de score', (
@@ -373,8 +373,8 @@ void main() {
     verifier('récapitulatif');
 
     // Tout tient sur l'écran, sans défilement.
-    expect(find.text('See detailed insights').hitTestable(), findsOneWidget);
-    await tester.tap(find.text('See detailed insights'));
+    expect(find.text('Voir l’analyse détaillée').hitTestable(), findsOneWidget);
+    await tester.tap(find.text('Voir l’analyse détaillée'));
     await tester.pumpAndSettle();
     verifier('observations');
   });
@@ -387,7 +387,7 @@ void main() {
     await revealScrollableText(tester, 'Strategic Choices');
     expect(find.text('Strategic Choices'), findsOneWidget);
 
-    await tapScrollableText(tester, 'Start mission');
+    await tapScrollableText(tester, 'Commencer la mission');
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     // Tutoriel sur un seul écran : le bouton est visible sans défiler.
@@ -405,7 +405,7 @@ void main() {
       testWidgets('tutoriel et plateau tiennent sur $size', (tester) async {
         await pumpGame(tester);
         await useSize(tester, size);
-        await tapScrollableText(tester, 'Start mission');
+        await tapScrollableText(tester, 'Commencer la mission');
         await tester.pumpAndSettle();
         expect(find.text('Train the pause before action'), findsNothing);
         expect(find.byType(PageView), findsOneWidget);
@@ -591,7 +591,7 @@ void main() {
       }
       await tester.pumpAndSettle();
 
-      final label = find.text('Global score');
+      final label = find.text('Score global');
       expect(label, findsOneWidget);
       expect(fillOf(tester, label), Colors.white);
       expect(tester.widget<Text>(label).style?.color, isNot(Colors.white));

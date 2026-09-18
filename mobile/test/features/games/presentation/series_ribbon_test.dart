@@ -30,7 +30,7 @@ void main() {
       (tester) async {
     await tester.pumpWidget(host(ribbon, width: 340));
 
-    expect(find.text('Series'), findsOneWidget);
+    expect(find.text('Série'), findsOneWidget);
     expect(find.text('4/4'), findsOneWidget);
     expect(find.text('upgrade'), findsOneWidget);
     expect(find.text('x5'), findsOneWidget);

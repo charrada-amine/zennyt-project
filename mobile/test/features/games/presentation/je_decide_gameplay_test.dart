@@ -949,7 +949,7 @@ void main() {
     await tester.tap(pauseButton);
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('decision-pause-dialog')), findsOneWidget);
-    expect(find.textContaining('Menu closes in'), findsOneWidget);
+    expect(find.textContaining('Fermeture du menu dans'), findsOneWidget);
 
     // Deux secondes suffisent : la durée de la pause n'entre pas en compte,
     // c'est l'OUVERTURE qui consomme le droit.
@@ -961,7 +961,7 @@ void main() {
 
     expect(
       tester.widget<IconButton>(pauseButton).tooltip,
-      'Exit mission',
+      'Quitter la mission',
       reason:
           'une seule ouverture par partie : le menu ne doit plus rester '
           'disponible après « Resume »',
@@ -971,7 +971,7 @@ void main() {
     await tester.tap(pauseButton);
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('decision-pause-dialog')), findsNothing);
-    expect(find.text('Leave journey?'), findsOneWidget);
+    expect(find.text('Quitter le parcours ?'), findsOneWidget);
   });
 
   testWidgets('les trois cartes d’aide conservent le choix et le chrono', (
@@ -1027,7 +1027,7 @@ void main() {
             find.byKey(const ValueKey('decision-pause-button')),
           )
           .tooltip,
-      'Exit mission',
+      'Quitter la mission',
       reason: 'la fenêtre est consommée : le bouton bascule sur la sortie',
     );
   });

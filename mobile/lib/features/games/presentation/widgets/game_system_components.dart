@@ -54,11 +54,13 @@ class GameWelcomePage extends StatelessWidget {
     required this.onStart,
     this.leading,
     this.contextText,
+    this.contextDetail,
     this.journey = const [],
     this.startLabel = 'Commencer',
     this.startKey,
     this.logoKey,
-  });
+    this.logoScale = 1,
+  }) : assert(logoScale > 0);
 
   final String title;
   final String logoAsset;
@@ -66,10 +68,12 @@ class GameWelcomePage extends StatelessWidget {
   final VoidCallback onStart;
   final Widget? leading;
   final String? contextText;
+  final String? contextDetail;
   final List<String> journey;
   final String startLabel;
   final Key? startKey;
   final Key? logoKey;
+  final double logoScale;
 
   @override
   Widget build(BuildContext context) => GameContentFrame(
@@ -91,8 +95,15 @@ class GameWelcomePage extends StatelessWidget {
                 22,
               );
               final compact = constraints.maxHeight < 560;
-              final logoSize = compact ? 48.0 : 144.0;
-              final gap = compact ? 8.0 : 20.0;
+              final panelPadding = compact ? 12.0 : 20.0;
+              final logoSize = math.min(
+                (compact ? 64.0 : 168.0) * logoScale,
+                math.max(
+                  0.0,
+                  constraints.maxWidth - padding.horizontal - panelPadding * 2,
+                ),
+              );
+              final gap = compact ? 6.0 : 16.0;
               return SingleChildScrollView(
                 padding: padding,
                 child: ConstrainedBox(
@@ -107,7 +118,7 @@ class GameWelcomePage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       GamePanel(
-                        padding: EdgeInsets.all(compact ? 16 : 24),
+                        padding: EdgeInsets.all(panelPadding),
                         backgroundColor: ZennytGamePalette.gameBlue,
                         child: Column(
                           children: [
@@ -120,7 +131,7 @@ class GameWelcomePage extends StatelessWidget {
                               filterQuality: FilterQuality.high,
                               semanticLabel: '$title logo',
                             ),
-                            SizedBox(height: compact ? 8 : 16),
+                            SizedBox(height: compact ? 6 : 16),
                             Text(
                               title,
                               textAlign: TextAlign.center,
@@ -131,7 +142,7 @@ class GameWelcomePage extends StatelessWidget {
                                 letterSpacing: 0,
                               ),
                             ),
-                            SizedBox(height: compact ? 8 : 12),
+                            SizedBox(height: compact ? 6 : 12),
                             Text(
                               mission,
                               textAlign: TextAlign.center,
@@ -148,7 +159,9 @@ class GameWelcomePage extends StatelessWidget {
                       if (contextText != null) ...[
                         SizedBox(height: gap),
                         Text(
-                          contextText!,
+                          compact || contextDetail == null
+                              ? contextText!
+                              : '$contextText $contextDetail',
                           textAlign: TextAlign.center,
                           style: AppTypography.bodyLarge.copyWith(
                             color: ZennytGamePalette.ink,
@@ -214,10 +227,10 @@ class GameWelcomePage extends StatelessWidget {
 }
 
 enum GameDirection {
-  up(Icons.arrow_upward, 'haut', 'Up'),
-  right(Icons.arrow_forward, 'droite', 'Right'),
-  down(Icons.arrow_downward, 'bas', 'Down'),
-  left(Icons.arrow_back, 'gauche', 'Left');
+  up(Icons.arrow_upward, 'haut', 'Haut'),
+  right(Icons.arrow_forward, 'droite', 'Droite'),
+  down(Icons.arrow_downward, 'bas', 'Bas'),
+  left(Icons.arrow_back, 'gauche', 'Gauche');
 
   const GameDirection(this.icon, this.label, this.shortLabel);
 
@@ -227,8 +240,7 @@ enum GameDirection {
   /// (« Répondre droite »).
   final String label;
 
-  /// Libellé court AFFICHÉ sous la flèche du bouton directionnel. En anglais,
-  /// comme le reste du HUD des jeux (Score / Timer / Series).
+  /// Libellé court AFFICHÉ sous la flèche du bouton directionnel.
   final String shortLabel;
 }
 
@@ -449,7 +461,7 @@ class GameHud extends StatelessWidget {
             ),
             const SizedBox(width: AppSpacing.base),
             Expanded(
-              child: _HudTile(label: 'Timer', value: timeLabel),
+              child: _HudTile(label: 'Temps', value: timeLabel),
             ),
             const SizedBox(width: AppSpacing.base),
             SizedBox(
@@ -523,7 +535,7 @@ class GameTimerBar extends StatelessWidget {
           const SizedBox(height: AppSpacing.xs),
         ],
         Semantics(
-          label: label == null ? 'Time remaining' : 'Time remaining, $label',
+          label: label == null ? 'Temps restant' : 'Temps restant, $label',
           child: ClipRRect(
             borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
             child: LinearProgressIndicator(
@@ -628,7 +640,7 @@ class SeriesRibbon extends StatelessWidget {
       child: Row(
         children: [
           Text(
-            'Series',
+            'Série',
             textScaler: TextScaler.noScaling,
             style: AppTypography.bodyLarge.copyWith(
               color: ZennytGamePalette.muted,
@@ -1714,14 +1726,14 @@ enum GameMenuAffordance {
   pause(
     icon: Icons.pause_rounded,
     tooltip: 'Pause',
-    semanticsLabel: 'Pause the mission',
+    semanticsLabel: 'Mettre la mission en pause',
   ),
   exit(
     // Même icône que le titre de [GameExitConfirmDialog] : le bouton annonce
     // exactement la boîte qu'il ouvre.
     icon: Icons.logout_rounded,
-    tooltip: 'Exit mission',
-    semanticsLabel: 'Exit the mission',
+    tooltip: 'Quitter la mission',
+    semanticsLabel: 'Quitter la mission',
   );
 
   const GameMenuAffordance({
@@ -1829,7 +1841,7 @@ class _GamePauseCountdownState extends State<_GamePauseCountdown> {
             child: FittedBox(
               fit: BoxFit.scaleDown,
               child: Text(
-                'Menu closes in ${seconds}s',
+                'Fermeture du menu dans $seconds s',
                 style: AppTypography.labelMedium.copyWith(
                   color: color,
                   letterSpacing: 0,
@@ -1850,15 +1862,15 @@ class _GamePauseCountdownState extends State<_GamePauseCountdown> {
 /// quittait en pensant que son score serait quand même comptabilisé. Renvoie
 /// `true` si le joueur confirme la sortie.
 class GameExitConfirmDialog extends StatelessWidget {
-  const GameExitConfirmDialog({super.key, this.missionLabel = 'mission'});
+  const GameExitConfirmDialog({super.key, this.missionLabel = 'la mission'});
 
-  /// « mission » partout, « journey » pour Je continue : le libellé de sortie
-  /// diffère déjà d'un jeu à l'autre.
+  /// Groupe nominal avec son article : « la mission » par défaut, « le
+  /// parcours » ou « la session » selon le jeu.
   final String missionLabel;
 
   static Future<bool> show(
     BuildContext context, {
-    String missionLabel = 'mission',
+    String missionLabel = 'la mission',
   }) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -1877,7 +1889,9 @@ class GameExitConfirmDialog extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppSpacing.radiusXxl),
       ),
-      child: Padding(
+      // Défilement de secours : à 200 % de texte, le message ne tient plus
+      // dans la hauteur d'un téléphone et masquait les deux boutons.
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(AppSpacing.xl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1895,7 +1909,7 @@ class GameExitConfirmDialog extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.base),
             Text(
-              'Leave $missionLabel?',
+              'Quitter $missionLabel ?',
               textAlign: TextAlign.center,
               style: AppTypography.headlineLarge.copyWith(
                 color: ZennytGamePalette.blue,
@@ -1904,8 +1918,8 @@ class GameExitConfirmDialog extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              'If you leave now, your attempt will be cancelled and no score '
-              'will be recorded.',
+              'Si tu quittes maintenant, ta tentative sera annulée et aucun score '
+              'ne sera enregistré.',
               textAlign: TextAlign.center,
               style: AppTypography.bodyMedium.copyWith(
                 color: ZennytGamePalette.muted,
@@ -1914,8 +1928,8 @@ class GameExitConfirmDialog extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              'To validate your score, you must complete all levels or keep '
-              'playing until the time runs out.',
+              'Pour valider ton score, termine tous les niveaux ou continue '
+              'à jouer jusqu’à la fin du temps imparti.',
               textAlign: TextAlign.center,
               style: AppTypography.bodyMedium.copyWith(
                 color: ZennytGamePalette.muted,
@@ -1924,12 +1938,12 @@ class GameExitConfirmDialog extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.lg),
             GamePrimaryButton(
-              label: 'Continue $missionLabel',
+              label: 'Continuer $missionLabel',
               onPressed: () => Navigator.of(context).pop(false),
             ),
             const SizedBox(height: AppSpacing.md),
             GamePauseExitButton(
-              label: 'Quit without saving',
+              label: 'Quitter sans enregistrer',
               onPressed: () => Navigator.of(context).pop(true),
             ),
           ],
@@ -1981,25 +1995,25 @@ class GamePauseMenuAction {
 
   const GamePauseMenuAction.resume({
     required this.onPressed,
-    this.label = 'Resume',
+    this.label = 'Reprendre',
     this.key,
   }) : kind = GamePauseActionKind.resume;
 
   const GamePauseMenuAction.restart({
     required this.onPressed,
-    this.label = 'Restart',
+    this.label = 'Recommencer',
     this.key,
   }) : kind = GamePauseActionKind.restart;
 
   const GamePauseMenuAction.rules({
     required this.onPressed,
-    this.label = 'View rules / Help',
+    this.label = 'Règles / Aide',
     this.key,
   }) : kind = GamePauseActionKind.rules;
 
   const GamePauseMenuAction.exit({
     required this.onPressed,
-    this.label = 'Exit mission',
+    this.label = 'Quitter la mission',
     this.key,
   }) : kind = GamePauseActionKind.exit;
 
@@ -2252,7 +2266,7 @@ class _GamePauseAudioOptionsState extends State<GamePauseAudioOptions> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          'Feedback options',
+          'Options de retour',
           style: AppTypography.titleMedium.copyWith(
             color: ZennytGamePalette.blue,
             letterSpacing: 0,
@@ -2260,7 +2274,7 @@ class _GamePauseAudioOptionsState extends State<GamePauseAudioOptions> {
         ),
         SizedBox(height: gap),
         GamePauseSwitchTile(
-          label: 'Sound effects',
+          label: 'Effets sonores',
           value: _soundEffects,
           compact: widget.compact,
           onChanged: (value) {
@@ -2270,7 +2284,7 @@ class _GamePauseAudioOptionsState extends State<GamePauseAudioOptions> {
         ),
         SizedBox(height: gap),
         GamePauseSwitchTile(
-          label: 'Music',
+          label: 'Musique',
           value: _music,
           compact: widget.compact,
           onChanged: (value) {
@@ -2333,7 +2347,7 @@ class GamePauseSwitchTile extends StatelessWidget {
             ),
           ),
           Text(
-            value ? 'On' : 'Off',
+            value ? 'Activé' : 'Désactivé',
             style: AppTypography.labelMedium.copyWith(
               color: value
                   ? ZennytGamePalette.success
@@ -2366,7 +2380,7 @@ class GamePauseInputModeToggle extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          'Input mode',
+          'Mode de saisie',
           style: AppTypography.titleMedium.copyWith(
             color: ZennytGamePalette.blue,
             letterSpacing: 0,
@@ -2375,7 +2389,7 @@ class GamePauseInputModeToggle extends StatelessWidget {
         const SizedBox(height: AppSpacing.sm),
         SegmentedButton<bool>(
           segments: const [
-            ButtonSegment(value: true, label: Text('Buttons')),
+            ButtonSegment(value: true, label: Text('Boutons')),
             ButtonSegment(value: false, label: Text('Tactile')),
           ],
           selected: {buttonsSelected},
@@ -2391,7 +2405,7 @@ class GamePauseInputModeToggle extends StatelessWidget {
 class GamePauseExitButton extends StatelessWidget {
   const GamePauseExitButton({
     super.key,
-    this.label = 'Exit mission',
+    this.label = 'Quitter la mission',
     required this.onPressed,
     this.icon,
   });

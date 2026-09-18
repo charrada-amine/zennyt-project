@@ -97,7 +97,7 @@ class DecisionGameCover extends StatelessWidget {
                 ),
                 child: Column(
                   children: [
-                    const _Pill(label: 'Decision Making'),
+                    const _Pill(label: 'Prise de décision'),
                     const SizedBox(height: AppSpacing.lg),
                     Text(
                       title,

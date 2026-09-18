@@ -48,7 +48,7 @@ void main() {
   Future<void> startGame(WidgetTester tester) async {
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Start tutorial'));
+    await tester.tap(find.text('Commencer le tutoriel'));
     await tester.pumpAndSettle();
     for (var page = 0; page < 4; page++) {
       await tester.tap(find.text('Suivant'));
@@ -442,7 +442,7 @@ void main() {
   ) async {
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Start tutorial'));
+    await tester.tap(find.text('Commencer le tutoriel'));
     await tester.pumpAndSettle();
 
     expect(find.text('Observe la scène'), findsOneWidget);
@@ -478,7 +478,7 @@ void main() {
     usePhoneSurface(tester, height: 600);
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Start tutorial'));
+    await tester.tap(find.text('Commencer le tutoriel'));
     await tester.pumpAndSettle();
     expect(find.byType(PageView), findsOneWidget);
     for (var page = 0; page < 4; page++) {
@@ -686,7 +686,7 @@ void main() {
         .selectedEmotionKey;
     await tester.tap(find.byTooltip('Pause'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('View rules / Help'));
+    await tester.tap(find.text('Règles / Aide'));
     await tester.pumpAndSettle();
     expect(find.text('Observe la scène'), findsOneWidget);
     for (var page = 0; page < 4; page++) {
@@ -696,7 +696,7 @@ void main() {
     expect(find.text('Commencer la partie'), findsNothing);
     await tester.tap(find.text('Reprendre la partie'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Resume'));
+    await tester.tap(find.text('Reprendre'));
     await tester.pumpAndSettle();
     final panel = tester.widget<RadarAnswerPanel>(
       find.byType(RadarAnswerPanel),

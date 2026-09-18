@@ -68,7 +68,7 @@ void main() {
       await pump(tester, const BartScreen());
       expect(find.text('BART'), findsOneWidget);
       expect(find.text('Gonfler ou collecter'), findsOneWidget);
-      expect(find.text('Decision Making'), findsOneWidget);
+      expect(find.text('Prise de décision'), findsOneWidget);
       expect(find.text('30'), findsOneWidget);
       expect(find.text('essais pratiques'), findsOneWidget);
       expect(find.text('Commencer'), findsOneWidget);
@@ -123,7 +123,7 @@ void main() {
       final metrics = repository.submitted! as BartMetrics;
       expect(metrics.balloons, hasLength(BartConfig.totalBalloonCount));
       expect(metrics.sessionCompleted, isTrue);
-      expect(find.text('BART completed'), findsOneWidget);
+      expect(find.text('BART terminé'), findsOneWidget);
     });
   });
 
@@ -189,7 +189,7 @@ void main() {
       expect(metrics.trials, hasLength(22));
       expect(metrics.trials.every((t) => t.openings.length == 5), isTrue);
       expect(metrics.trials.every((t) => t.confidence == 3), isTrue);
-      expect(find.text('IST completed'), findsOneWidget);
+      expect(find.text('IST terminé'), findsOneWidget);
     });
   });
 }
