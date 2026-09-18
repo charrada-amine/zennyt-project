@@ -51,7 +51,8 @@ class JobOfferControllerSummaryTest {
         mock(CreateJobOfferUseCase.class), mock(ReplaceJobOfferUseCase.class), mock(UpdateJobOfferUseCase.class),
         mock(ChangeJobOfferStatusUseCase.class), jobOfferRepository, mock(SwipeRepository.class),
         mock(AssessmentRepository.class), mock(FitScoreRepository.class), mock(GetSwipeDeckUseCase.class),
-        actors, roleProfileResolver);
+        actors, roleProfileResolver,
+        mock(com.zennyt.recruitment.domain.repository.MatchRepository.class));
 
     @Test
     void listingOffersBatchesActorsAndRoleProfilesInsteadOfPerOfferCalls() {

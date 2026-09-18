@@ -1,5 +1,5 @@
 import 'package:zennyt/features/jobs/domain/entities/assessment.dart';
-import '../entities/job.dart' show ContractType, WorkplaceType, ExperienceLevel, JobStatus, JobOffer, SalaryPeriod;
+import '../entities/job.dart' show ContractType, WorkplaceType, ExperienceLevel, JobStatus, JobOffer, MyApplication, SalaryPeriod;
 import 'package:zennyt/features/jobs/domain/entities/hired_candidate.dart';
 import 'package:zennyt/features/jobs/domain/entities/job_position.dart';
 import 'package:zennyt/features/jobs/domain/entities/public_assessment.dart';
@@ -47,6 +47,14 @@ abstract class JobsRepository {
   });
 
   // ── Hard-skills test attempts & results (contract §5.8/§5.9) ─────────────
+
+  /// Candidate applies to an offer: records a RIGHT swipe (same as the Fits deck).
+  /// Returns [MyApplication.matched] when the recruiter had already shown interest.
+  /// Already applied / already matched are returned as states, not thrown.
+  ///
+  /// [reconsider] first withdraws an earlier « pass » (LEFT swipe), which the
+  /// backend would otherwise reject as an existing swipe.
+  Future<MyApplication> applyToJobOffer(String jobOfferId, {bool reconsider = false});
 
   /// Starts the candidate's single, final attempt for an offer. Throws a 409
   /// `ATTEMPT_ALREADY_CONSUMED` if a result already exists.

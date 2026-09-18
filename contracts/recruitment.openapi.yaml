@@ -1518,6 +1518,15 @@ components:
             au mode MIXTE plutôt qu'à une couverture faible.
         postedAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
+        myApplication:
+          type: string
+          enum: [NONE, APPLIED, PASSED, MATCHED]
+          nullable: true
+          description: >
+            Candidature du candidat connecté sur cette offre (bouton « Postuler » du
+            détail) : NONE, APPLIED (swipe RIGHT en attente du recruteur), PASSED
+            (swipe LEFT), MATCHED (intérêt mutuel, conversation ouverte). Absent pour un
+            recruteur ou un visiteur non connecté.
 
     HardSkillsAlertLevel:
       type: string

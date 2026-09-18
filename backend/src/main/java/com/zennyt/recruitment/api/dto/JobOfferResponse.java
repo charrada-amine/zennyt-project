@@ -31,19 +31,28 @@ public record JobOfferResponse(
     JobOfferStatus status, long applicantCount, Integer fitScore, Boolean goodFit,
     Integer softSkillScore, Integer hardSkillScore, Boolean partialData,
     HardSkillsAlertLevel hardSkillsAlert, TypeEvaluationHard typeEvaluationHard,
-    Instant postedAt, Instant updatedAt
+    Instant postedAt, Instant updatedAt,
+    MyApplication myApplication
 ) {
     public record RecruiterSummary(UUID id, String companyName, String companyInfo) {}
 
+    /**
+     * Candidature du candidat connecté sur cette offre : NONE (rien), APPLIED (swipe
+     * RIGHT en attente du recruteur), PASSED (swipe LEFT), MATCHED (intérêt mutuel,
+     * conversation ouverte). Absent pour un recruteur ou un visiteur.
+     */
+    public enum MyApplication { NONE, APPLIED, PASSED, MATCHED }
+
     public static JobOfferResponse from(JobOffer o) {
-        return from(o, 0, null, null, null, null, HardSkillsAlertLevel.NONE, null);
+        return from(o, 0, null, null, null, null, HardSkillsAlertLevel.NONE, null, null);
     }
 
     public static JobOfferResponse from(JobOffer o, long applicantCount, String shareableLink,
                                         com.zennyt.recruitment.domain.model.FitScore fitScore,
                                         String recruiterCompanyName, String recruiterCompanyInfo,
                                         HardSkillsAlertLevel hardSkillsAlert,
-                                        TypeEvaluationHard evaluationMode) {
+                                        TypeEvaluationHard evaluationMode,
+                                        MyApplication myApplication) {
         return new JobOfferResponse(
             o.id(), o.recruiterId(),
             new RecruiterSummary(o.recruiterId(), recruiterCompanyName, recruiterCompanyInfo),
@@ -64,7 +73,8 @@ public record JobOfferResponse(
             fitScore != null ? fitScore.partialData(o.assessmentId() != null, evaluationMode) : null,
             hardSkillsAlert,
             evaluationMode,
-            o.postedAt(), o.updatedAt()
+            o.postedAt(), o.updatedAt(),
+            myApplication
         );
     }
 }
