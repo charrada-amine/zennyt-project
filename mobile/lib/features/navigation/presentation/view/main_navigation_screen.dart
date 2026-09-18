@@ -6,65 +6,30 @@ import '../../../home/presentation/pages/home_page.dart';
 import '../../../notifications/presentation/pages/notifications_page.dart';
 import '../../../progress/presentation/view/progress_screen.dart';
 import '../../../search/presentation/view/search_screen.dart';
-import '../../../../core/theme/theme.dart';
 import '../viewmodel/nav_tab_provider.dart';
-import '../widgets/app_bottom_nav.dart';
+import '../widgets/adaptive_nav_shell.dart';
 
 /// The main app navigation shown after authentication. Hosts the five
-/// bottom-nav destinations in an [IndexedStack] (state is preserved across tab
-/// switches) and renders the shared [AppBottomNav].
-class MainNavigationScreen extends ConsumerStatefulWidget {
+/// destinations in an [IndexedStack] (state is preserved across tab switches)
+/// wrapped in [AdaptiveNavShell], which renders the floating bottom bar on
+/// phones and the persistent side navigation on tablets/desktop, both driven
+/// by [navTabProvider].
+class MainNavigationScreen extends ConsumerWidget {
   const MainNavigationScreen({super.key, this.initialTab});
 
   final int? initialTab;
 
   @override
-  ConsumerState<MainNavigationScreen> createState() =>
-      _MainNavigationScreenState();
-}
-
-class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
-  int? _localTab;
-
-  @override
-  void initState() {
-    super.initState();
-    _localTab = widget.initialTab;
-  }
-
-  @override
-  void didUpdateWidget(covariant MainNavigationScreen oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    final initialTab = widget.initialTab;
-    if (initialTab != null && initialTab != oldWidget.initialTab) {
-      _localTab = initialTab;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final tab = _localTab ?? ref.watch(navTabProvider);
-    final colors = context.colors;
-
-    return Scaffold(
-      backgroundColor: colors.scaffoldBg,
-      body: IndexedStack(
-        index: tab,
-        children: const [
-          HomePage(),
-          FitsScreen(),
-          ProgressScreen(),
-          SearchScreen(),
-          NotificationsPage()
-        ],
-      ),
-      bottomNavigationBar: AppBottomNav(
-        selectedTab: tab,
-        onSelect: (index) {
-          setState(() => _localTab = null);
-          ref.read(navTabProvider.notifier).select(index);
-        },
-      ),
+  Widget build(BuildContext context, WidgetRef ref) {
+    return AdaptiveNavShell(
+      initialTab: initialTab,
+      pages: const [
+        HomePage(),
+        FitsScreen(),
+        ProgressScreen(),
+        SearchScreen(),
+        NotificationsPage()
+      ],
     );
   }
 }

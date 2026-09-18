@@ -90,3 +90,6 @@ Progress Careers - tablet*.png
 !admin/apps/
 !admin/apps/web/
 !admin/apps/web/**
+
+# Turborepo cache
+.turbo/
