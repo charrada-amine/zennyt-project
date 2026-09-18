@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/theme.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// A single item in [AppBottomNav]: an icon above a label.
 ///
-/// Icons are outline by default and switch to a filled variant when the tab is
-/// [selected]. Provide either [icon] + [activeIcon] (Material glyphs) or an
-/// [iconBuilder] for fully custom marks (e.g. the home pentagon, the brand G).
+/// Icons are HugeIcons outlines; the [selected] tab draws a heavier stroke in
+/// the active colour. Provide either [icon] (+ optional [activeIcon]) or an
+/// [iconBuilder] for fully custom marks.
 /// The active item's label is brand navy + semibold; inactive labels are muted
 /// gray. An optional [showBadge] renders a small magenta notification dot.
 class AppNavItem extends StatelessWidget {
@@ -24,8 +26,8 @@ class AppNavItem extends StatelessWidget {
   final String label;
   final bool selected;
   final VoidCallback onTap;
-  final IconData? icon;
-  final IconData? activeIcon;
+  final AppIconData? icon;
+  final AppIconData? activeIcon;
   final Widget Function(bool selected)? iconBuilder;
   final bool showBadge;
 
@@ -37,9 +39,10 @@ class AppNavItem extends StatelessWidget {
 
     Widget iconWidget = iconBuilder != null
         ? iconBuilder!(selected)
-        : Icon(
+        : AppIcon(
             selected ? (activeIcon ?? icon) : icon,
             size: _iconSize,
+            strokeWidth: selected ? 2.1 : 1.6,
             color: selected
                 ? colors.navLabelSelected
                 : colors.navLabelUnselected,

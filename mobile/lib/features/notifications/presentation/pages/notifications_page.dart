@@ -18,6 +18,8 @@ import '../../../chat/domain/entities/chat.dart';
 import '../../../home/presentation/providers/home_providers.dart';
 import '../../../navigation/presentation/viewmodel/nav_tab_provider.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class NotificationsPage extends ConsumerStatefulWidget {
   const NotificationsPage({super.key});
 
@@ -93,10 +95,8 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
           width: 28,
           height: 28,
           child: Center(
-            child: Icon(
-              AppConstants.isCupertino
-                  ? CupertinoIcons.info
-                  : Icons.info_outline_rounded,
+            child: AppIcon(
+              HugeIcons.strokeRoundedInformationCircle,
               color: context.colors.info,
             ),
           ),
@@ -240,10 +240,8 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(
-                              AppConstants.isCupertino
-                                  ? CupertinoIcons.bell
-                                  : Icons.notifications_none,
+                            AppIcon(
+                              HugeIcons.strokeRoundedNotification01,
                               size: 64,
                               color: context.colors.brandIndigo,
                             ),

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/theme.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// Validation/visual state used to color a field's border, shadow and icon.
 enum FieldStatus { normal, error, valid }
 
@@ -82,14 +84,14 @@ InputDecoration appInputDecoration(
 class AppInputIcon extends StatelessWidget {
   const AppInputIcon(this.icon, {super.key, this.color});
 
-  final IconData icon;
+  final AppIconData icon;
   final Color? color;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       width: 46,
-      child: Icon(
+      child: AppIcon(
         icon,
         size: AppSpacing.iconMd,
         color: color ?? context.colors.textSecondary,
@@ -137,7 +139,7 @@ class AppTextField extends StatefulWidget {
   final TextInputAction? textInputAction;
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
-  final IconData? prefixIcon;
+  final AppIconData? prefixIcon;
   final Widget? suffixIcon;
   final bool readOnly;
   final VoidCallback? onTap;
@@ -200,10 +202,10 @@ class _AppTextFieldState extends State<AppTextField> {
                 opacity: anim,
                 child: ScaleTransition(scale: anim, child: child),
               ),
-              child: Icon(
+              child: AppIcon(
                 _obscured
-                    ? Icons.visibility_off_outlined
-                    : Icons.visibility_outlined,
+                    ? HugeIcons.strokeRoundedViewOff
+                    : HugeIcons.strokeRoundedView,
                 key: ValueKey(_obscured),
                 size: AppSpacing.iconMd,
                 color: _hasFocus ? colors.primary : colors.textMuted,

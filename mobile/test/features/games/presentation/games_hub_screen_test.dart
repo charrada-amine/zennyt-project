@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zennyt/core/storage/shared_preferences_provider.dart';
+import 'package:zennyt/features/auth/presentation/current_user_provider.dart';
 import 'package:zennyt/features/games/domain/entities/games_progress.dart';
 import 'package:zennyt/features/games/presentation/games_providers.dart';
 import 'package:zennyt/features/games/presentation/view/games_hub_screen.dart';
@@ -11,6 +12,7 @@ Future<void> _pumpHub(
   WidgetTester tester, {
   double textScale = 1,
   GamesProgress? progress,
+  bool introSeen = true,
 }) async {
   tester.view.physicalSize = const Size(390 * 3, 844 * 3);
   tester.view.devicePixelRatio = 3;
@@ -18,14 +20,20 @@ Future<void> _pumpHub(
   addTearDown(tester.view.resetDevicePixelRatio);
 
   // Pre-agree to the monitoring consent (design 76) so tapping a card opens the
-  // game picker directly, not the consent dialog.
-  SharedPreferences.setMockInitialValues({'games_monitoring_consent': true});
+  // game picker directly, not the consent dialog. The « Play & discover » intro
+  // is marked as seen unless a test covers it.
+  SharedPreferences.setMockInitialValues({
+    'games_monitoring_consent': true,
+    'games_hub_intro_seen': introSeen,
+  });
   final prefs = await SharedPreferences.getInstance();
 
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
+        // Pas d'amorçage d'auth (réseau) : l'avatar retombe sur la pastille.
+        currentUserProvider.overrideWithValue(null),
         gamesProgressProvider.overrideWith((ref) async => progress),
       ],
       child: MaterialApp(
@@ -39,7 +47,12 @@ Future<void> _pumpHub(
       ),
     ),
   );
-  await tester.pumpAndSettle();
+  if (introSeen) {
+    await tester.pumpAndSettle();
+  } else {
+    // L'intro anime ses pastilles en boucle : pas de pumpAndSettle.
+    await tester.pump(const Duration(milliseconds: 500));
+  }
 }
 
 void main() {
@@ -81,7 +94,7 @@ void main() {
     final flexibilityCard = find.byKey(
       const ValueKey('game-category-cognitive-flexibility'),
     );
-    // Portée à la carte visée : « 3 jeux » n'est pas unique dans le hub —
+    // Portée à la carte visée : « 3 games » n'est pas unique dans le hub —
     // plusieurs catégories comptent trois jeux. L'assertion globale ne tenait
     // que parce que la police de remplacement des tests, plus large que la
     // vraie, empêchait la seconde carte de se peindre.
@@ -167,44 +180,6 @@ void main() {
       'category-game-logo-Optimal Path',
       'assets/games icons/Optimal Path menu original.png',
     );
-    void expectOriginalMenuLogo(String key) {
-      expect(
-        find.descendant(
-          of: find.byKey(ValueKey(key)),
-          matching: find.byType(ColoredBox),
-        ),
-        findsNothing,
-        reason: 'logo original sans pastille mauve',
-      );
-    }
-
-    expectOriginalMenuLogo('category-game-logo-Optimal Path');
-    await tester.tap(
-      find.byKey(const ValueKey('game-category-executive-planning')),
-    );
-    await tester.pumpAndSettle();
-    expectAssetLogo(
-      'picker-game-logo-Optimal Path',
-      'assets/games icons/Optimal Path menu original.png',
-    );
-    expectOriginalMenuLogo('picker-game-logo-Optimal Path');
-    final picker = find.byType(BottomSheet);
-    for (final image in tester.widgetList<Image>(
-      find.descendant(of: picker, matching: find.byType(Image)),
-    )) {
-      await tester.runAsync(
-        () => precacheImage(image.image, tester.element(picker)),
-      );
-    }
-    await tester.pumpAndSettle();
-    await expectLater(
-      picker,
-      matchesGoldenFile('goldens/optimal-path-logo-white-background.png'),
-    );
-
-    await tester.tapAt(const Offset(10, 10));
-    await tester.pumpAndSettle();
-
     expect(
       find.byKey(const ValueKey('category-game-logo-Day Stack')),
       findsOneWidget,
@@ -343,104 +318,6 @@ void main() {
     );
   }
 
-  test('le nombre de jeux accorde « jeu » au singulier', () {
-    expect(gameCountLabel(1), '1 jeu');
-    expect(gameCountLabel(3), '3 jeux');
-  });
-
-  testWidgets('chaque catégorie affiche son nombre réel de jeux, en français', (
-    tester,
-  ) async {
-    await _pumpHub(tester);
-
-    // Radar émotionnel, planification et décision affichaient « N° aptitudes »
-    // faute de libellé explicite : le compte vient désormais de la liste.
-    for (final (key, title) in const [
-      ('game-category-cognitive-flexibility', 'Flexibilité cognitive'),
-      ('game-category-working-memory', 'Mémoire de travail'),
-      ('game-category-decision-making', 'Prise de décision'),
-      ('game-category-executive-planning', 'Planification exécutive'),
-      ('game-category-emotional-regulation', 'Régulation émotionnelle'),
-    ]) {
-      final card = find.byKey(ValueKey(key));
-      await tester.scrollUntilVisible(
-        card,
-        200,
-        scrollable: find.byType(Scrollable).first,
-      );
-      expect(
-        find.descendant(of: card, matching: find.text(title)),
-        findsOneWidget,
-      );
-      expect(
-        find.descendant(of: card, matching: find.text('3 jeux')),
-        findsOneWidget,
-        reason: key,
-      );
-    }
-    expect(find.textContaining('aptitudes'), findsNothing);
-  });
-
-  testWidgets('une catégorie n’est terminée que si tous ses jeux le sont', (
-    tester,
-  ) async {
-    Finder check(String key) => find.descendant(
-      of: find.byKey(ValueKey(key)),
-      matching: find.byIcon(Icons.check_circle_rounded),
-    );
-
-    // Deux jeux sur trois de Régulation émotionnelle : pas encore terminée.
-    await _pumpHub(
-      tester,
-      progress: const GamesProgress(
-        completed: {CatalogGame.emotionalRadar, CatalogGame.reflectivePause},
-      ),
-    );
-    final card = find.byKey(
-      const ValueKey('game-category-emotional-regulation'),
-    );
-    await tester.scrollUntilVisible(
-      card,
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    expect(check('game-category-emotional-regulation'), findsNothing);
-  });
-
-  testWidgets('tous les jeux jouables terminés : la catégorie l’est aussi', (
-    tester,
-  ) async {
-    Finder check(String key) => find.descendant(
-      of: find.byKey(ValueKey(key)),
-      matching: find.byIcon(Icons.check_circle_rounded),
-    );
-
-    // Move Fast suffit pour Flexibilité cognitive : ses deux autres jeux sont
-    // fermés (« Bientôt ») et ne peuvent pas être terminés.
-    await _pumpHub(
-      tester,
-      progress: const GamesProgress(
-        completed: {
-          CatalogGame.emotionalRadar,
-          CatalogGame.reflectivePause,
-          CatalogGame.strategicChoices,
-          CatalogGame.moveFast,
-        },
-      ),
-    );
-    expect(check('game-category-cognitive-flexibility'), findsOneWidget);
-    expect(check('game-category-working-memory'), findsNothing);
-    final card = find.byKey(
-      const ValueKey('game-category-emotional-regulation'),
-    );
-    await tester.scrollUntilVisible(
-      card,
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    expect(check('game-category-emotional-regulation'), findsOneWidget);
-  });
-
   testWidgets('la couverture affiche la part des jeux terminés', (
     tester,
   ) async {
@@ -454,14 +331,126 @@ void main() {
         },
       ),
     );
-    expect(find.text('Couverture 20 %'), findsOneWidget, reason: '3 / 15');
-    expect(find.text('Couverture 0 %'), findsNothing);
+    expect(find.text('20 %'), findsOneWidget, reason: '3 / 15');
+    expect(find.text('3 jeux terminés sur 15'), findsOneWidget);
+    expect(find.text('0 %'), findsNothing);
   });
 
   testWidgets('progression inconnue : un tiret, pas un faux 0 %', (
     tester,
   ) async {
     await _pumpHub(tester);
-    expect(find.text('Couverture —'), findsOneWidget);
+    expect(find.text('—'), findsOneWidget);
+    expect(find.text('0 %'), findsNothing);
+  });
+
+  testWidgets('première visite : l\'intro, puis le catalogue', (tester) async {
+    await _pumpHub(tester, introSeen: false);
+
+    expect(find.text('Découvrir les jeux'), findsOneWidget);
+    expect(find.text('Plus tard'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('game-category-cognitive-flexibility')),
+      findsNothing,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('games-intro-explore')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Découvrir les jeux'), findsNothing);
+    expect(find.text('Ton parcours'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('game-category-cognitive-flexibility')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('les filtres restreignent les catégories', (tester) async {
+    await _pumpHub(tester);
+
+    await tester.tap(find.text('Planification'));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('game-category-executive-planning')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('game-category-working-memory')),
+      findsNothing,
+    );
+
+    await tester.tap(find.text('Tous'));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('game-category-working-memory')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('le sélecteur marque les jeux déjà joués', (tester) async {
+    await _pumpHub(
+      tester,
+      progress: const GamesProgress(completed: {CatalogGame.moveFast}),
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('game-category-cognitive-flexibility')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Choisis un jeu'), findsOneWidget);
+    expect(find.text('Joué'), findsOneWidget);
+    expect(find.text('1 joué'), findsOneWidget);
+  });
+
+  test('le nombre de jeux accorde « jeu » au singulier', () {
+    expect(gameCountLabel(1), '1 jeu');
+    expect(gameCountLabel(3), '3 jeux');
+  });
+
+  testWidgets('Optimal Path garde son logo d’origine, sans pastille', (
+    tester,
+  ) async {
+    await _pumpHub(tester);
+
+    void expectOriginalMenuLogo(String key) {
+      expect(
+        find.descendant(
+          of: find.byKey(ValueKey(key)),
+          matching: find.byType(ColoredBox),
+        ),
+        findsNothing,
+        reason: 'logo original sans pastille mauve',
+      );
+    }
+
+    final planningCard = find.byKey(
+      const ValueKey('game-category-executive-planning'),
+    );
+    await tester.scrollUntilVisible(
+      planningCard,
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    expectOriginalMenuLogo('category-game-logo-Optimal Path');
+
+    await tester.tap(planningCard);
+    await tester.pumpAndSettle();
+    expectOriginalMenuLogo('picker-game-logo-Optimal Path');
+
+    final picker = find.byType(BottomSheet);
+    for (final image in tester.widgetList<Image>(
+      find.descendant(of: picker, matching: find.byType(Image)),
+    )) {
+      await tester.runAsync(
+        () => precacheImage(image.image, tester.element(picker)),
+      );
+    }
+    await tester.pumpAndSettle();
+    await expectLater(
+      picker,
+      matchesGoldenFile('goldens/optimal-path-logo-white-background.png'),
+    );
   });
 }

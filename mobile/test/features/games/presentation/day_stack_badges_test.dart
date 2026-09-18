@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../../../helpers/app_icon_finders.dart';
+import 'package:zennyt/shared/icons/app_icons.dart';
 import 'package:zennyt/features/games/data/day_stack_bank_loader.dart';
 import 'package:zennyt/features/games/domain/entities/day_stack_bank.dart';
 import 'package:zennyt/features/games/presentation/widgets/day_stack_badges.dart';
@@ -32,7 +34,7 @@ void main() {
     final manquantes = <String>{};
     for (final task in allTasks()) {
       final name = task.icon;
-      if (name == null || !kDayStackTablerToMaterial.containsKey(name)) {
+      if (name == null || !kDayStackTablerToHuge.containsKey(name)) {
         manquantes.add(name ?? '(aucune)');
       }
     }
@@ -97,10 +99,10 @@ void main() {
 
     // 38×38 en liste, coin ~10 px, icône 20 px, aplat sans dégradé.
     expect(tester.getSize(find.byType(DayStackTaskBadge)), const Size(38, 38));
-    final icon = tester.widget<Icon>(find.byType(Icon));
+    final icon = tester.widget<AppIcon>(find.byType(AppIcon));
     expect(icon.size, 20);
     expect(icon.color, Colors.white);
-    expect(icon.icon, kDayStackTablerToMaterial['ti-pill']);
+    expect(icon.icon, kDayStackTablerToHuge['ti-pill']);
 
     final box = tester.widget<Container>(
       find.descendant(
@@ -154,7 +156,7 @@ void main() {
         ),
       );
       expect(find.byType(Image), findsNothing);
-      expect(find.byIcon(dayStackIcon('ti-pill')), findsOneWidget);
+      expect(findAppIcon(dayStackIcon('ti-pill')), findsOneWidget);
       expect(tester.getSize(find.byType(DayStackTaskBadge)), Size(side, side));
     }
   });
@@ -178,7 +180,7 @@ void main() {
       );
       expect(tester.getSize(find.byType(DayStackTaskBadge)), Size(side, side));
       await settleImage(tester);
-      expect(find.byIcon(dayStackIcon('ti-box')), findsOneWidget);
+      expect(findAppIcon(dayStackIcon('ti-box')), findsOneWidget);
       expect(tester.getSize(find.byType(DayStackTaskBadge)), Size(side, side));
       expect(tester.takeException(), isNull);
     }
@@ -239,7 +241,7 @@ void main() {
     final raw = tester.widget<RawImage>(find.byType(RawImage));
     expect(raw.image, isNotNull, reason: 'PNG décodé depuis le bundle');
     expect(raw.image!.width, 64, reason: 'décodé à 32 points × densité 2');
-    expect(find.byType(Icon), findsNothing);
+    expect(find.byType(AppIcon), findsNothing);
     expect(
       tester.getSize(find.byType(DayStackTaskBadge)),
       const Size.square(kDayStackEmoteCompactSize),

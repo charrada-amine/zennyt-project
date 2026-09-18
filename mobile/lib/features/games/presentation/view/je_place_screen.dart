@@ -17,6 +17,7 @@ import '../widgets/game_results_template.dart';
 import '../widgets/game_system_components.dart';
 import '../widgets/je_place_pause_dialog.dart';
 import '../widgets/zennyt_loader.dart';
+import 'package:zennyt/shared/icons/app_icons.dart';
 
 const _logoAsset = 'assets/games icons/Je Place.png';
 const _canvas = ZennytGamePalette.mist;
@@ -990,7 +991,7 @@ class _JePlaceScreenState extends ConsumerState<JePlaceScreen>
       ),
       content: [
         const _StateIcon(
-          icon: Icons.auto_awesome_rounded,
+          icon: HugeIcons.strokeRoundedSparkles,
           color: _violet,
           background: Color(0xFFF0F2FF),
         ),
@@ -1028,7 +1029,7 @@ class _JePlaceScreenState extends ConsumerState<JePlaceScreen>
       ),
       content: [
         const _StateIcon(
-          icon: Icons.grid_view_rounded,
+          icon: HugeIcons.strokeRoundedGridView,
           color: _pink,
           background: Color(0xFFFFEDF6),
         ),
@@ -1054,17 +1055,17 @@ class _JePlaceScreenState extends ConsumerState<JePlaceScreen>
           child: Column(
             children: [
               _ReadyLine(
-                icon: Icons.layers_outlined,
+                icon: HugeIcons.strokeRoundedLayers01,
                 text: '6 possible levels',
               ),
               SizedBox(height: 12),
               _ReadyLine(
-                icon: Icons.visibility_off_outlined,
+                icon: HugeIcons.strokeRoundedViewOff,
                 text: 'No live score',
               ),
               SizedBox(height: 12),
               _ReadyLine(
-                icon: Icons.replay_rounded,
+                icon: HugeIcons.strokeRoundedReload,
                 text: 'A pause restarts the measured run',
               ),
             ],
@@ -1088,7 +1089,7 @@ class _JePlaceScreenState extends ConsumerState<JePlaceScreen>
       ),
       content: [
         const _StateIcon(
-          icon: Icons.check_rounded,
+          icon: HugeIcons.strokeRoundedTick02,
           color: ZennytGamePalette.success,
           background: Color(0xFFEAFBF1),
         ),
@@ -1162,7 +1163,7 @@ class _JePlaceScreenState extends ConsumerState<JePlaceScreen>
       ),
       content: [
         const _StateIcon(
-          icon: Icons.replay_rounded,
+          icon: HugeIcons.strokeRoundedReload,
           color: ZennytGamePalette.ruleOrange,
           background: Color(0xFFFFF3E8),
         ),
@@ -1199,7 +1200,7 @@ class _JePlaceScreenState extends ConsumerState<JePlaceScreen>
           GamePrimaryButton(
             key: const ValueKey('je-place-restart-run'),
             label: 'Restart run',
-            icon: Icons.replay_rounded,
+            icon: HugeIcons.strokeRoundedReload,
             onPressed: _startMeasuredRun,
           ),
           const SizedBox(height: 10),
@@ -1218,7 +1219,7 @@ class _JePlaceScreenState extends ConsumerState<JePlaceScreen>
       ),
       content: [
         const _StateIcon(
-          icon: Icons.cloud_off_rounded,
+          icon: HugeIcons.strokeRoundedCloudSlowWind,
           color: ZennytGamePalette.error,
           background: Color(0xFFFFEEEE),
         ),
@@ -1374,7 +1375,7 @@ class _JePlaceHeader extends StatelessWidget {
       children: [
         _HeaderButton(
           tooltip: 'Retour',
-          icon: Icons.chevron_left_rounded,
+          icon: HugeIcons.strokeRoundedArrowLeft01,
           onPressed: onBack,
           onDark: onDark,
         ),
@@ -1427,7 +1428,7 @@ class _HeaderButton extends StatelessWidget {
   });
 
   final String tooltip;
-  final IconData icon;
+  final AppIconData icon;
   final VoidCallback onPressed;
   final bool onDark;
 
@@ -1449,7 +1450,7 @@ class _HeaderButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(15),
           ),
         ),
-        icon: Icon(icon, size: 27),
+        icon: AppIcon(icon, size: 27),
       ),
     );
   }
@@ -1532,11 +1533,11 @@ class _LogoFallback extends StatelessWidget {
             borderRadius: BorderRadius.circular(30),
           ),
         ),
-        const Icon(Icons.grid_view_rounded, color: Colors.white, size: 76),
+        const AppIcon(HugeIcons.strokeRoundedGridView, color: Colors.white, size: 76),
         const Positioned(
           right: 17,
           bottom: 19,
-          child: Icon(Icons.place_rounded, color: _pink, size: 34),
+          child: AppIcon(HugeIcons.strokeRoundedLocation01, color: _pink, size: 34),
         ),
       ],
     );
@@ -1676,8 +1677,8 @@ class _RetentionBoard extends StatelessWidget {
             color: Colors.white.withValues(alpha: .14),
             shape: BoxShape.circle,
           ),
-          child: const Icon(
-            Icons.visibility_off_outlined,
+          child: const AppIcon(
+            HugeIcons.strokeRoundedViewOff,
             color: Colors.white,
             size: 52,
           ),
@@ -1914,8 +1915,8 @@ class _Reserve extends StatelessWidget {
         ),
         child: objectIds.isEmpty
             ? Center(
-                child: Icon(
-                  Icons.check_circle_outline_rounded,
+                child: AppIcon(
+                  HugeIcons.strokeRoundedCheckmarkCircle02,
                   color: Colors.white.withValues(alpha: .8),
                 ),
               )
@@ -2010,33 +2011,33 @@ class _ObjectFallback extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final icon = switch (item.id) {
-      'SMARTPHONE' => Icons.smartphone_rounded,
-      'WIRELESS_EARBUDS' => Icons.earbuds_rounded,
-      'SMARTWATCH' => Icons.watch_rounded,
-      'REUSABLE_BOTTLE' => Icons.water_drop_rounded,
-      'INSTANT_CAMERA' => Icons.camera_alt_rounded,
-      'SNEAKER' => Icons.directions_run_rounded,
-      'SUCCULENT' => Icons.local_florist_rounded,
-      'CERAMIC_MUG' => Icons.coffee_rounded,
-      'BACKPACK' => Icons.backpack_rounded,
-      'GAME_CONTROLLER' => Icons.sports_esports_rounded,
-      'BICYCLE_HELMET' => Icons.directions_bike_rounded,
-      'DESK_LAMP' => Icons.light_rounded,
-      'NOTEBOOK' => Icons.menu_book_rounded,
-      'SUNGLASSES' => Icons.visibility_rounded,
-      'KEYCARD' => Icons.badge_rounded,
-      'COMPACT_DRONE' => Icons.flight_rounded,
-      'PORTABLE_SPEAKER' => Icons.speaker_rounded,
-      'POWER_BANK' => Icons.battery_charging_full_rounded,
-      'STYLUS_TABLET' => Icons.draw_rounded,
-      _ => Icons.luggage_rounded,
+      'SMARTPHONE' => HugeIcons.strokeRoundedSmartPhone01,
+      'WIRELESS_EARBUDS' => HugeIcons.strokeRoundedAirpod01,
+      'SMARTWATCH' => HugeIcons.strokeRoundedSmartWatch01,
+      'REUSABLE_BOTTLE' => HugeIcons.strokeRoundedDroplet,
+      'INSTANT_CAMERA' => HugeIcons.strokeRoundedCamera01,
+      'SNEAKER' => HugeIcons.strokeRoundedWorkoutRun,
+      'SUCCULENT' => HugeIcons.strokeRoundedFlower,
+      'CERAMIC_MUG' => HugeIcons.strokeRoundedCoffee01,
+      'BACKPACK' => HugeIcons.strokeRoundedBackpack01,
+      'GAME_CONTROLLER' => HugeIcons.strokeRoundedGameController03,
+      'BICYCLE_HELMET' => HugeIcons.strokeRoundedBicycle,
+      'DESK_LAMP' => HugeIcons.strokeRoundedIdea01,
+      'NOTEBOOK' => HugeIcons.strokeRoundedBookOpen01,
+      'SUNGLASSES' => HugeIcons.strokeRoundedView,
+      'KEYCARD' => HugeIcons.strokeRoundedId,
+      'COMPACT_DRONE' => HugeIcons.strokeRoundedAirplane01,
+      'PORTABLE_SPEAKER' => HugeIcons.strokeRoundedSpeaker,
+      'POWER_BANK' => HugeIcons.strokeRoundedBatteryCharging01,
+      'STYLUS_TABLET' => HugeIcons.strokeRoundedPencilEdit02,
+      _ => HugeIcons.strokeRoundedLuggage01,
     };
     return Container(
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: .92),
         borderRadius: BorderRadius.circular(13),
       ),
-      child: Icon(icon, color: _pink, size: 31),
+      child: AppIcon(icon, color: _pink, size: 31),
     );
   }
 }
@@ -2061,7 +2062,7 @@ class _TutorialIllustration extends StatelessWidget {
             alignment: Alignment.center,
             children: [
               Opacity(opacity: .26, child: _MiniBoard(showObjects: false)),
-              Icon(Icons.visibility_off_outlined, color: _violet, size: 62),
+              AppIcon(HugeIcons.strokeRoundedViewOff, color: _violet, size: 62),
             ],
           ),
           _ => const Stack(
@@ -2071,7 +2072,7 @@ class _TutorialIllustration extends StatelessWidget {
               Positioned(
                 right: 24,
                 bottom: 20,
-                child: Icon(Icons.touch_app_rounded, color: _pink, size: 50),
+                child: AppIcon(HugeIcons.strokeRoundedTouch01, color: _pink, size: 50),
               ),
             ],
           ),
@@ -2109,12 +2110,12 @@ class _MiniBoard extends StatelessWidget {
             borderRadius: BorderRadius.circular(7),
           ),
           child: showObjects && const [2, 9, 15].contains(index)
-              ? Icon(
+              ? AppIcon(
                   index == 2
-                      ? Icons.smartphone_rounded
+                      ? HugeIcons.strokeRoundedSmartPhone01
                       : index == 9
-                      ? Icons.coffee_rounded
-                      : Icons.headphones_rounded,
+                      ? HugeIcons.strokeRoundedCoffee01
+                      : HugeIcons.strokeRoundedHeadphones,
                   color: index == 9 ? _pink : Colors.white,
                   size: 22,
                 )
@@ -2192,7 +2193,7 @@ class _PrivacyNote extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
       child: Row(
         children: [
-          const Icon(Icons.lock_outline_rounded, color: _pink),
+          const AppIcon(HugeIcons.strokeRoundedLockKey, color: _pink),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -2236,14 +2237,14 @@ class _PageDots extends StatelessWidget {
 
 class _ReadyLine extends StatelessWidget {
   const _ReadyLine({required this.icon, required this.text});
-  final IconData icon;
+  final AppIconData icon;
   final String text;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, color: _violet, size: 23),
+        AppIcon(icon, color: _violet, size: 23),
         const SizedBox(width: 12),
         Expanded(
           child: Text(
@@ -2262,7 +2263,7 @@ class _StateIcon extends StatelessWidget {
     required this.color,
     required this.background,
   });
-  final IconData icon;
+  final AppIconData icon;
   final Color color;
   final Color background;
 
@@ -2273,7 +2274,7 @@ class _StateIcon extends StatelessWidget {
         width: 92,
         height: 92,
         decoration: BoxDecoration(color: background, shape: BoxShape.circle),
-        child: Icon(icon, color: color, size: 48),
+        child: AppIcon(icon, color: color, size: 48),
       ),
     );
   }

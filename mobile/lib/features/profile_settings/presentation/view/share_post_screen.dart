@@ -6,6 +6,8 @@ import '../../../../core/theme/theme.dart';
 import '../../../../core/utils/responsive.dart';
 import '../viewmodel/candidate_profile_viewmodel.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class SharePostScreen extends ConsumerStatefulWidget {
   const SharePostScreen({super.key});
 
@@ -101,8 +103,8 @@ class _SharePostScreenState extends ConsumerState<SharePostScreen>
                     children: [
                       IconButton(
                         onPressed: () => context.pop(),
-                        icon: Icon(
-                          Icons.close,
+                        icon: AppIcon(
+                          HugeIcons.strokeRoundedCancel01,
                           size: 28,
                           color: colors.textPrimary,
                         ),
@@ -136,8 +138,8 @@ class _SharePostScreenState extends ConsumerState<SharePostScreen>
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(
-                              Icons.public,
+                            AppIcon(
+                              HugeIcons.strokeRoundedGlobe02,
                               size: 14,
                               color: colors.textSecondary,
                             ),
@@ -150,8 +152,8 @@ class _SharePostScreenState extends ConsumerState<SharePostScreen>
                               ),
                             ),
                             const SizedBox(width: 4),
-                            Icon(
-                              Icons.keyboard_arrow_down,
+                            AppIcon(
+                              HugeIcons.strokeRoundedArrowDown01,
                               size: 16,
                               color: colors.textSecondary,
                             ),
@@ -242,7 +244,7 @@ class _SharePostScreenState extends ConsumerState<SharePostScreen>
                     children: [
                       _buildAttachmentOption(
                         colors: colors,
-                        icon: Icons.image_outlined,
+                        icon: HugeIcons.strokeRoundedImage01,
                         label: 'Media',
                         onTap: () {
                           _toggleMenu();
@@ -252,7 +254,7 @@ class _SharePostScreenState extends ConsumerState<SharePostScreen>
                       const SizedBox(width: AppSpacing.xl),
                       _buildAttachmentOption(
                         colors: colors,
-                        icon: Icons.description_outlined,
+                        icon: HugeIcons.strokeRoundedFile02,
                         label: 'Document',
                         onTap: () {
                           _toggleMenu();
@@ -273,7 +275,7 @@ class _SharePostScreenState extends ConsumerState<SharePostScreen>
                 turns: _rotationAnim,
                 child: IconButton(
                   onPressed: _toggleMenu,
-                  icon: Icon(Icons.add, size: 32, color: colors.primary),
+                  icon: AppIcon(HugeIcons.strokeRoundedAdd01, size: 32, color: colors.primary),
                 ),
               ),
             ),
@@ -285,7 +287,7 @@ class _SharePostScreenState extends ConsumerState<SharePostScreen>
 
   Widget _buildAttachmentOption({
     required AppColorScheme colors,
-    required IconData icon,
+    required AppIconData icon,
     required String label,
     required VoidCallback onTap,
   }) {
@@ -309,7 +311,7 @@ class _SharePostScreenState extends ConsumerState<SharePostScreen>
                 ),
               ],
             ),
-            child: Icon(icon, size: 28, color: colors.primary),
+            child: AppIcon(icon, size: 28, color: colors.primary),
           ),
         ),
         const SizedBox(height: AppSpacing.sm),

@@ -8,6 +8,8 @@ import 'package:zennyt/features/billing/domain/entities/billing.dart';
 import 'package:zennyt/features/billing/presentation/providers/billing_providers.dart';
 import 'package:zennyt/shared/widgets/custom_app_bar.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// Plans & Pricing (maquettes 261/263/316). Le paiement est géré par
 /// App Store / Google Play : pas de saisie de carte ici, l'app ouvre la feuille
 /// d'achat du store puis vérifie le reçu côté serveur.
@@ -152,7 +154,7 @@ class _ActiveBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.verified_rounded, color: Color(0xFF22C55E), size: 20),
+          const AppIcon(HugeIcons.strokeRoundedCheckmarkBadge01, color: Color(0xFF22C55E), size: 20),
           const SizedBox(width: 10),
           Expanded(
             child: Text(

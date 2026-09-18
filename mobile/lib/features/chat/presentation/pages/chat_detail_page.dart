@@ -18,6 +18,8 @@ import '../../../../core/enums/user_role.dart';
 import '../../../auth/presentation/auth_controller.dart';
 import '../../../billing/presentation/widgets/video_interview_paywall.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class ChatDetailPage extends ConsumerStatefulWidget {
   final Conversation conversation;
 
@@ -177,13 +179,13 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
                 child: Padding(
                   padding: const EdgeInsets.all(4),
                   child: AppConstants.isCupertino
-                      ? const Icon(
-                          CupertinoIcons.phone_fill,
+                      ? const AppIcon(
+                          HugeIcons.strokeRoundedCall,
                           size: 22,
                           color: AppColors.primaryBlue,
                         )
-                      : const Icon(
-                          Icons.phone,
+                      : const AppIcon(
+                          HugeIcons.strokeRoundedCall,
                           color: AppColors.primaryBlue,
                         ),
                 ),
@@ -218,13 +220,13 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
                 child: Padding(
                   padding: const EdgeInsets.all(4),
                   child: AppConstants.isCupertino
-                      ? const Icon(
-                          CupertinoIcons.videocam_fill,
+                      ? const AppIcon(
+                          HugeIcons.strokeRoundedVideo01,
                           size: 24,
                           color: AppColors.primaryBlue,
                         )
-                      : const Icon(
-                          Icons.video_call,
+                      : const AppIcon(
+                          HugeIcons.strokeRoundedVideo01,
                           color: AppColors.primaryBlue,
                         ),
                 ),
@@ -233,8 +235,8 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
             PopupMenuButton(
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
-              icon: Icon(
-                Icons.more_vert,
+              icon: AppIcon(
+                HugeIcons.strokeRoundedMoreVertical,
                 color: context.colors.textMuted,
                 size: 22,
               ),
@@ -244,10 +246,10 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Image.asset(
-                        'assets/images/flag.png',
-                        width: 16,
-                        height: 16,
+                      const AppIcon(
+                        HugeIcons.strokeRoundedFlag02,
+                        size: 16,
+                        color: Color(0xFF214389),
                       ),
                       const SizedBox(width: 8),
                       Text(l10n.report),
@@ -259,10 +261,10 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Image.asset(
-                        'assets/images/block.png',
-                        width: 16,
-                        height: 16,
+                      const AppIcon(
+                        HugeIcons.strokeRoundedBlocked,
+                        size: 16,
+                        color: Color(0xFF214389),
                       ),
                       const SizedBox(width: 8),
                       Text(l10n.block),
@@ -366,17 +368,17 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
                       const SizedBox(width: 12),
                       GestureDetector(
                         onTap: () => _sendMessage(currentUser.id),
-                        child: Icon(
+                        child: AppIcon(
                           _isSending
-                              ? Icons.hourglass_empty
-                              : Icons.send_rounded,
+                              ? HugeIcons.strokeRoundedHourglass
+                              : HugeIcons.strokeRoundedSent,
                           size: 26,
                           color: AppColors.chipSelected,
                         ),
                       ),
                       const SizedBox(width: 12),
-                      const Icon(
-                        Icons.add_circle_outline_rounded,
+                      const AppIcon(
+                        HugeIcons.strokeRoundedAddCircle,
                         size: 26,
                         color: AppColors.chipSelected,
                       ),

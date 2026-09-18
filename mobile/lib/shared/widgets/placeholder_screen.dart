@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/theme.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// Simple "coming soon" placeholder used by tabs whose screens are not built
 /// yet in the maquette. Replace with the real screen when implemented.
 class PlaceholderScreen extends StatelessWidget {
   const PlaceholderScreen({super.key, required this.icon, required this.label});
 
-  final IconData icon;
+  final AppIconData icon;
   final String label;
 
   @override
@@ -20,7 +22,7 @@ class PlaceholderScreen extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 64, color: colors.border),
+              AppIcon(icon, size: 64, color: colors.border),
               const SizedBox(height: AppSpacing.base),
               Text(
                 label,

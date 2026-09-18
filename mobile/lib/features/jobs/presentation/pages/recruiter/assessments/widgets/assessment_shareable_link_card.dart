@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import 'package:zennyt/core/router/app_routes.dart';
 import 'package:zennyt/features/jobs/domain/entities/assessment.dart';
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 const _kViolet = Color(0xFF5B4EF5);
 const _kCardBg = Color(0xFFF7F6FF);
 const _kBorderColor = Color(0xFFC7D2FE);
@@ -27,7 +29,7 @@ class AssessmentShareableLinkCard extends StatelessWidget {
         children: [
           const Row(
             children: [
-              Icon(Icons.link, color: _kViolet, size: 18),
+              AppIcon(HugeIcons.strokeRoundedLink01, color: _kViolet, size: 18),
               SizedBox(width: 8),
               Text(
                 'Shareable link',
@@ -60,7 +62,7 @@ class AssessmentShareableLinkCard extends StatelessWidget {
                     side: const BorderSide(color: _kViolet),
                     minimumSize: const Size(0, 40),
                   ),
-                  icon: const Icon(Icons.copy, color: _kViolet, size: 16),
+                  icon: const AppIcon(HugeIcons.strokeRoundedCopy01, color: _kViolet, size: 16),
                   label: const Text('Copy link', style: TextStyle(color: _kViolet)),
                   onPressed: () {
                     Clipboard.setData(ClipboardData(text: assessment.shareableLink!));
@@ -77,7 +79,7 @@ class AssessmentShareableLinkCard extends StatelessWidget {
                     side: const BorderSide(color: _kViolet),
                     minimumSize: const Size(0, 40),
                   ),
-                  icon: const Icon(Icons.visibility_outlined, color: _kViolet, size: 16),
+                  icon: const AppIcon(HugeIcons.strokeRoundedView, color: _kViolet, size: 16),
                   label: const Text('Preview', style: TextStyle(color: _kViolet)),
                   // Opens the exact public projection a candidate gets from the
                   // shared link (token = assessment id, contract §5.7).

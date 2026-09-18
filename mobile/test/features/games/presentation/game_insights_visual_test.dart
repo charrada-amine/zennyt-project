@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:zennyt/shared/icons/app_icons.dart';
 import 'package:zennyt/core/audio/sound_service.dart';
 import 'package:zennyt/features/games/domain/config/strategic_choices_content.dart';
 import 'package:zennyt/features/games/domain/entities/emotional_radar_v2.dart';
@@ -148,11 +149,11 @@ void main() {
             onTap: () => taps++,
           ),
         );
-        final icons = <IconData>{};
+        final icons = <AppIconData>{};
         for (final strategy in StrategicChoiceStrategy.values) {
           final icon = find.byKey(ValueKey('strategic-icon-${strategy.name}'));
           expect(icon, findsOneWidget);
-          icons.add(tester.widget<Icon>(icon).icon!);
+          icons.add(tester.widget<AppIcon>(icon).icon!);
         }
         expect(icons, hasLength(8));
         final before = taps;

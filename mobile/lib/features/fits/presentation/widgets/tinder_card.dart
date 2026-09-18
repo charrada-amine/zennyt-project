@@ -5,6 +5,8 @@ import '../../../../core/audio/sound_service.dart';
 import '../../../../core/theme/theme.dart';
 import 'fit_card_data.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// Direct manipulation on the horizontal axis leaves the card's detail scroll free.
 class TinderCard extends StatefulWidget {
   const TinderCard({
@@ -105,8 +107,8 @@ class _TinderCardState extends State<TinderCard> {
                               : context.colors.accent,
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        child: Icon(
-                          _drag > 0 ? Icons.check_rounded : Icons.close_rounded,
+                        child: AppIcon(
+                          _drag > 0 ? HugeIcons.strokeRoundedTick02 : HugeIcons.strokeRoundedCancel01,
                           color: Colors.white,
                           size: 32,
                         ),
@@ -188,8 +190,8 @@ class FitCardContent extends StatelessWidget {
             const SizedBox(height: 10),
             Row(
               children: [
-                Icon(
-                  Icons.location_on_outlined,
+                AppIcon(
+                  HugeIcons.strokeRoundedLocation01,
                   size: 17,
                   color: colors.textMuted,
                 ),
@@ -302,10 +304,10 @@ class _FitAvatar extends StatelessWidget {
   final double size;
   @override
   Widget build(BuildContext context) {
-    final fallback = Icon(
+    final fallback = AppIcon(
       data.type == FitCardType.candidate
-          ? Icons.person_outline_rounded
-          : Icons.business_rounded,
+          ? HugeIcons.strokeRoundedUser
+          : HugeIcons.strokeRoundedBuilding03,
       color: context.colors.primary,
       size: size * .45,
     );

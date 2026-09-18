@@ -16,6 +16,8 @@ import '../widgets/decision_behavioral_components.dart';
 import '../widgets/game_results_template.dart';
 import '../widgets/game_system_components.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// IST — Information Sampling Task (Clark et al., 2006).
 ///
 /// Maquette de référence : planche « IST · Concept » (couverture, grille en gain
@@ -236,12 +238,12 @@ class _IstScreenState extends ConsumerState<IstScreen>
           illustrationAsset: DecisionBehavioralAssets.istLogo,
           tiles: const [
             DecisionCoverTile(
-              icon: Icons.layers_rounded,
+              icon: HugeIcons.strokeRoundedLayers01,
               value: '20',
               label: 'essais',
             ),
             DecisionCoverTile(
-              icon: Icons.school_rounded,
+              icon: HugeIcons.strokeRoundedMortarboard01,
               value: '2',
               label: 'essais pratiques',
             ),
@@ -657,10 +659,10 @@ class _ConfidenceOption extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Icon(
+              AppIcon(
                 selected
-                    ? Icons.radio_button_checked
-                    : Icons.radio_button_unchecked,
+                    ? HugeIcons.strokeRoundedRadioButton
+                    : HugeIcons.strokeRoundedCircle,
                 color: selected
                     ? ZennytGamePalette.gameBlue
                     : ZennytGamePalette.muted,

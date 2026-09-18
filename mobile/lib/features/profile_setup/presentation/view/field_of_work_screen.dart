@@ -9,6 +9,8 @@ import '../../../../shared/widgets/selection_list_tile.dart';
 import '../../../../core/theme/theme.dart';
 import '../viewmodel/profile_setup_viewmodel.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// Full-screen searchable selection list for the user's field of work.
 /// Pops with the selected industry string.
 class FieldOfWorkScreen extends ConsumerStatefulWidget {
@@ -69,7 +71,7 @@ class _FieldOfWorkScreenState extends ConsumerState<FieldOfWorkScreen> {
                 onChanged: (value) => setState(() => _query = value),
                 decoration: const InputDecoration(
                   hintText: 'Search',
-                  prefixIcon: Icon(Icons.search, size: AppSpacing.iconMd),
+                  prefixIcon: AppIcon(HugeIcons.strokeRoundedSearch01, size: AppSpacing.iconMd),
                 ),
               ),
             ),

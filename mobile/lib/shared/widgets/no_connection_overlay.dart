@@ -5,6 +5,8 @@ import 'package:lottie/lottie.dart';
 import '../providers/internet_provider.dart';
 import '../../features/home/presentation/providers/home_providers.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 final showNoInternetOverlayProvider = StateProvider<bool>((ref) => false);
 
 class NoConnectionOverlay extends ConsumerStatefulWidget {
@@ -56,8 +58,8 @@ class _NoConnectionOverlayState extends ConsumerState<NoConnectionOverlay> {
                       top: 16,
                       right: 16,
                       child: IconButton(
-                        icon: const Icon(
-                          Icons.close,
+                        icon: const AppIcon(
+                          HugeIcons.strokeRoundedCancel01,
                           color: Colors.white70,
                           size: 28,
                         ),

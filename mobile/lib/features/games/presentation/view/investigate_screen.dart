@@ -29,6 +29,8 @@ import '../widgets/game_system_components.dart';
 import '../widgets/memory_prompt.dart';
 import '../widgets/memory_quest_tutorial.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 // Conserve les imports existants du composant public de Memory Quest.
 export '../widgets/memory_prompt.dart' show MemoryPrompt, kMemoryPromptColor;
 
@@ -1357,7 +1359,7 @@ class _GameHeader extends StatelessWidget {
                 color: Colors.white.withValues(alpha: 0.18),
                 borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
               ),
-              child: Icon(affordance.icon, color: Colors.white),
+              child: AppIcon(affordance.icon, color: Colors.white),
             ),
           ),
         ),
@@ -1461,8 +1463,8 @@ class _ObserveView extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.lock_outline_rounded,
+            const AppIcon(
+              HugeIcons.strokeRoundedLockKey,
               color: Colors.white,
               size: 18,
             ),
@@ -1606,7 +1608,7 @@ class _Keypad extends StatelessWidget {
                   borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
                 ),
                 child: label == '⌫'
-                    ? const Icon(Icons.backspace_outlined, color: Colors.white)
+                    ? const AppIcon(HugeIcons.strokeRoundedBackward01, color: Colors.white)
                     : Text(
                         label,
                         style: const TextStyle(
@@ -1658,8 +1660,8 @@ class _FeedbackView extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            correct ? Icons.check_circle_rounded : Icons.info_outline_rounded,
+          AppIcon(
+            correct ? HugeIcons.strokeRoundedCheckmarkCircle02 : HugeIcons.strokeRoundedInformationCircle,
             color: Colors.white,
             size: 64,
           ),
@@ -2129,7 +2131,7 @@ class _LockedBar extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.lock_outline_rounded, color: Colors.white, size: 18),
+          const AppIcon(HugeIcons.strokeRoundedLockKey, color: Colors.white, size: 18),
           const SizedBox(width: 8),
           Text(
             'Saisie bloquée',
@@ -2341,8 +2343,8 @@ class _PuzzleBoard extends StatelessWidget {
                       ),
                     ),
                     child: Center(
-                      child: Icon(
-                        Icons.help_outline_rounded,
+                      child: AppIcon(
+                        HugeIcons.strokeRoundedHelpCircle,
                         color: Colors.white.withValues(alpha: 0.7),
                         size: 26,
                       ),
@@ -2511,8 +2513,8 @@ class _DistractionView extends StatelessWidget {
           ),
           child: Row(
             children: [
-              const Icon(
-                Icons.psychology_outlined,
+              const AppIcon(
+                HugeIcons.strokeRoundedBrain02,
                 color: Colors.white,
                 size: 20,
               ),
@@ -2759,7 +2761,7 @@ class _BackButton extends StatelessWidget {
             color: ZennytGamePalette.mist,
             borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
           ),
-          child: const Icon(Icons.chevron_left, color: ZennytGamePalette.blue),
+          child: const AppIcon(HugeIcons.strokeRoundedArrowLeft01, color: ZennytGamePalette.blue),
         ),
       ),
     );

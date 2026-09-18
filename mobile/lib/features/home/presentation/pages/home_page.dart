@@ -1,7 +1,6 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:zennyt/core/constants.dart';
@@ -12,6 +11,8 @@ import 'package:zennyt/shared/widgets/platform_scaffold.dart';
 import '../providers/home_providers.dart';
 import '../widgets/profile_row.dart';
 import '../widgets/post_card.dart';
+
+import 'package:zennyt/shared/icons/app_icons.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -66,10 +67,8 @@ class _HomePageState extends ConsumerState<HomePage> {
         showBack: false,
         leading: GestureDetector(
           onTap: () => context.push(AppRoutes.profileSettings),
-          child: Icon(
-            AppConstants.isCupertino
-                ? CupertinoIcons.line_horizontal_3
-                : Icons.menu,
+          child: AppIcon(
+            HugeIcons.strokeRoundedMenu01,
             color: context.colors.textPrimary,
             size: 28,
           ),
@@ -93,10 +92,12 @@ class _HomePageState extends ConsumerState<HomePage> {
                   ),
                 ],
               ),
-              child: Image.asset(
-                'assets/images/chat.png',
-                width: 30,
-                height: 30,
+              child: const Center(
+                child: AppIcon(
+                  HugeIcons.strokeRoundedMessage01,
+                  size: 22,
+                  color: Color(0xFFD02F7C),
+                ),
               ),
             ),
           ),

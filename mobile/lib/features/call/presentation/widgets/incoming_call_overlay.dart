@@ -7,6 +7,8 @@ import 'package:zennyt/features/call/domain/repositories/call_signaling_reposito
 import 'package:zennyt/features/call/presentation/providers/call_provider.dart';
 import 'package:zennyt/features/home/presentation/providers/home_providers.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// État de l'appel entrant.
 class IncomingCallState {
   final bool isActive;
@@ -165,8 +167,8 @@ class IncomingCallOverlay extends ConsumerWidget {
                     CircleAvatar(
                       radius: 50,
                       backgroundColor: Colors.white24,
-                      child: Icon(
-                        incomingCall.isVideoCall ? Icons.videocam : Icons.phone,
+                      child: AppIcon(
+                        incomingCall.isVideoCall ? HugeIcons.strokeRoundedVideo01 : HugeIcons.strokeRoundedCall,
                         size: 50,
                         color: Colors.white,
                       ),
@@ -199,7 +201,7 @@ class IncomingCallOverlay extends ConsumerWidget {
                       children: [
                         // Refuser
                         _CallActionButton(
-                          icon: Icons.call_end,
+                          icon: HugeIcons.strokeRoundedCallEnd01,
                           color: Colors.red,
                           label: 'Refuser',
                           onTap: () {
@@ -223,7 +225,7 @@ class IncomingCallOverlay extends ConsumerWidget {
                         ),
                         // Accepter
                         _CallActionButton(
-                          icon: Icons.call,
+                          icon: HugeIcons.strokeRoundedCall,
                           color: Colors.green,
                           label: 'Accepter',
                           onTap: () async {
@@ -292,7 +294,7 @@ class IncomingCallOverlay extends ConsumerWidget {
 }
 
 class _CallActionButton extends StatelessWidget {
-  final IconData icon;
+  final AppIconData icon;
   final Color color;
   final String label;
   final VoidCallback onTap;
@@ -315,7 +317,7 @@ class _CallActionButton extends StatelessWidget {
             width: 70,
             height: 70,
             decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-            child: Icon(icon, color: Colors.white, size: 32),
+            child: AppIcon(icon, color: Colors.white, size: 32),
           ),
           const SizedBox(height: 8),
           Text(

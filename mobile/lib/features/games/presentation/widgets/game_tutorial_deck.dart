@@ -4,6 +4,8 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import 'game_system_components.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// Une seule idée par carte ; l'illustration peut réutiliser les objets du jeu.
 class GameTutorialStep {
   const GameTutorialStep({
@@ -207,7 +209,7 @@ class _GameTutorialDeckState extends State<GameTutorialDeck> {
                         foregroundColor: ZennytGamePalette.blue,
                         side: BorderSide(color: ZennytGamePalette.border),
                       ),
-                      icon: const Icon(Icons.chevron_left),
+                      icon: const AppIcon(HugeIcons.strokeRoundedArrowLeft01),
                     ),
                   ),
                   const SizedBox(width: AppSpacing.sm),

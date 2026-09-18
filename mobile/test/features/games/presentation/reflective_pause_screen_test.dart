@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../../../helpers/app_icon_finders.dart';
+import 'package:zennyt/shared/icons/app_icons.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zennyt/core/audio/sound_service.dart';
 import 'package:zennyt/core/storage/shared_preferences_provider.dart';
@@ -255,7 +257,7 @@ void main() {
       expect(
         find.descendant(
           of: choiceOf(ReflectivePauseResponseType.breatheAnalyze),
-          matching: find.byIcon(Icons.check_circle),
+          matching: findAppIcon(HugeIcons.strokeRoundedCheckmarkCircle02),
         ),
         findsOneWidget,
       );
@@ -277,7 +279,7 @@ void main() {
       expect(
         find.descendant(
           of: choiceOf(ReflectivePauseResponseType.breatheAnalyze),
-          matching: find.byIcon(Icons.check_circle),
+          matching: findAppIcon(HugeIcons.strokeRoundedCheckmarkCircle02),
         ),
         findsOneWidget,
       );

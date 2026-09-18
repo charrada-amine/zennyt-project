@@ -14,6 +14,8 @@ import '../widgets/help_message_bubble.dart';
 import '../widgets/rate_experience_dialog.dart';
 import '../widgets/feedback_bottom_sheet.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 enum _PostChatStage { hidden, rating, sent, thankYou }
 
 class HelpChatDetailPage extends ConsumerStatefulWidget {
@@ -303,7 +305,7 @@ class _HelpChatDetailPageState extends ConsumerState<HelpChatDetailPage> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.check_circle, color: AppColors.success, size: 18),
+          const AppIcon(HugeIcons.strokeRoundedCheckmarkCircle02, color: AppColors.success, size: 18),
           const SizedBox(width: 6),
           const Text(
             'Sent',
@@ -343,8 +345,8 @@ class _HelpChatDetailPageState extends ConsumerState<HelpChatDetailPage> {
                 color: Colors.white.withOpacity(0.6),
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                Icons.close,
+              child: AppIcon(
+                HugeIcons.strokeRoundedCancel01,
                 size: 14,
                 color: context.colors.textMuted,
               ),
@@ -373,7 +375,7 @@ class _HelpChatDetailPageState extends ConsumerState<HelpChatDetailPage> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.check_circle, color: AppColors.success, size: 18),
+          const AppIcon(HugeIcons.strokeRoundedCheckmarkCircle02, color: AppColors.success, size: 18),
           const SizedBox(width: 6),
           Text(
             AppLocalizations.of(context).thankYouForYourOpinion,
@@ -393,8 +395,8 @@ class _HelpChatDetailPageState extends ConsumerState<HelpChatDetailPage> {
                 color: Colors.white.withOpacity(0.6),
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                Icons.close,
+              child: AppIcon(
+                HugeIcons.strokeRoundedCancel01,
                 size: 14,
                 color: context.colors.textMuted,
               ),
@@ -446,8 +448,8 @@ class _HelpChatDetailPageState extends ConsumerState<HelpChatDetailPage> {
                     ),
             ),
             const SizedBox(width: 12),
-            const Icon(
-              Icons.mic_none_rounded,
+            const AppIcon(
+              HugeIcons.strokeRoundedMic01,
               size: 26,
               color: AppColors.chipSelected,
             ),
@@ -465,8 +467,8 @@ class _HelpChatDetailPageState extends ConsumerState<HelpChatDetailPage> {
                   )
                 : GestureDetector(
                     onTap: _sendMessage,
-                    child: const Icon(
-                      Icons.send_rounded,
+                    child: const AppIcon(
+                      HugeIcons.strokeRoundedSent,
                       size: 26,
                       color: AppColors.chipSelected,
                     ),

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zennyt/core/router/app_routes.dart';
 import 'package:zennyt/core/storage/shared_preferences_provider.dart';
+import 'package:zennyt/features/auth/presentation/current_user_provider.dart';
 import 'package:zennyt/features/games/presentation/view/games_hub_screen.dart';
 import 'package:zennyt/features/games/presentation/view/investigate_screen.dart';
 
@@ -42,10 +43,17 @@ void main() {
   Future<ProviderScope> scopedHubApp() async {
     // Pre-agree to the monitoring consent so tapping a card goes straight to
     // the game picker (design 76 gate).
-    SharedPreferences.setMockInitialValues({'games_monitoring_consent': true});
+    SharedPreferences.setMockInitialValues({
+      'games_monitoring_consent': true,
+      'games_hub_intro_seen': true,
+    });
     final prefs = await SharedPreferences.getInstance();
     return ProviderScope(
-      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        // Pas d'amorçage d'auth (réseau) : l'avatar retombe sur la pastille.
+        currentUserProvider.overrideWithValue(null),
+      ],
       child: MaterialApp.router(routerConfig: buildRouter()),
     );
   }

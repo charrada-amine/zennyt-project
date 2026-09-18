@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/theme.dart';
 import '../../../auth/presentation/auth_providers.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// Corporate Privacy Policy. Content is fetched from `GET /legal/privacy-policy`
 /// with the in-app transcription as an offline fallback.
 class PrivacyPolicyScreen extends ConsumerWidget {
@@ -40,8 +42,8 @@ class PrivacyPolicyScreen extends ConsumerWidget {
                     ),
                     child: IconButton(
                       onPressed: () => context.pop(),
-                      icon: Icon(
-                        Icons.arrow_back_ios_new_rounded,
+                      icon: AppIcon(
+                        HugeIcons.strokeRoundedArrowLeft01,
                         color: colors.primary,
                         size: 20,
                       ),

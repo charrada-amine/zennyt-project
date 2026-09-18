@@ -1,6 +1,8 @@
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../../../helpers/app_icon_finders.dart';
+import 'package:zennyt/shared/icons/app_icons.dart';
 import 'package:zennyt/core/audio/sound_service.dart';
 import 'package:zennyt/features/games/presentation/widgets/game_system_components.dart';
 
@@ -350,7 +352,7 @@ void main() {
 
       await pumpHud(GameMenuAffordance.pause);
       expect(find.byTooltip('Pause'), findsOneWidget);
-      expect(find.byIcon(Icons.pause_rounded), findsOneWidget);
+      expect(findAppIcon(HugeIcons.strokeRoundedPause), findsOneWidget);
 
       await pumpHud(GameMenuAffordance.exit);
       expect(
@@ -358,8 +360,8 @@ void main() {
         findsOneWidget,
         reason: 'sans ce bouton, plus aucune sortie volontaire n\'est offerte',
       );
-      expect(find.byIcon(Icons.logout_rounded), findsOneWidget);
-      expect(find.byIcon(Icons.pause_rounded), findsNothing);
+      expect(findAppIcon(HugeIcons.strokeRoundedLogout01), findsOneWidget);
+      expect(findAppIcon(HugeIcons.strokeRoundedPause), findsNothing);
     });
 
     test('l\'affordance bascule dès la première fermeture du menu', () {

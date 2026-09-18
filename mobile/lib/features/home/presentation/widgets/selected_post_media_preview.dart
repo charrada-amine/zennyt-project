@@ -1,7 +1,8 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:zennyt/core/constants.dart';
+
+import 'package:zennyt/shared/icons/app_icons.dart';
 
 class SelectedPostMediaPreview extends StatelessWidget {
   final List<AssetEntity> media;
@@ -59,8 +60,8 @@ class _MediaPreviewTile extends StatelessWidget {
               Container(
                 color: Colors.black.withValues(alpha: 0.2),
                 child: const Center(
-                  child: Icon(
-                    Icons.play_circle_outline,
+                  child: AppIcon(
+                    HugeIcons.strokeRoundedPlayCircle,
                     color: Colors.white,
                     size: 32,
                   ),
@@ -78,10 +79,8 @@ class _MediaPreviewTile extends StatelessWidget {
                     color: Colors.black54,
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(
-                    AppConstants.isCupertino
-                        ? CupertinoIcons.xmark
-                        : Icons.close,
+                  child: AppIcon(
+                    HugeIcons.strokeRoundedCancel01,
                     color: Colors.white,
                     size: 14,
                   ),

@@ -5,6 +5,7 @@ import 'app_color_scheme.dart';
 import 'app_colors.dart';
 import 'app_motion.dart';
 import 'app_typography.dart';
+import '../../shared/icons/app_icons.dart';
 
 /// The September visual refresh, shared by both themes and all Material controls.
 /// Existing feature-specific semantics and color overrides remain supported.
@@ -30,6 +31,8 @@ ThemeData applyExperienceTheme(ThemeData base) {
     animationDuration: AppMotion.settle,
   );
   return base.copyWith(
+    // Boutons implicites (retour, fermeture, tiroirs) en HugeIcons.
+    actionIconTheme: appActionIconTheme,
     scaffoldBackgroundColor: colors.scaffoldBg,
     colorScheme: base.colorScheme.copyWith(
       primary: colors.primary,

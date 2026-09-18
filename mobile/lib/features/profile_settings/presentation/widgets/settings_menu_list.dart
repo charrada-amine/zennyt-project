@@ -12,6 +12,8 @@ import '../../../../core/audio/sound_service.dart';
 import '../../../../shared/widgets/app_motion.dart';
 import '../providers/preferences_provider.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// The settings menu list matching the design screenshot.
 class SettingsMenuList extends ConsumerWidget {
   const SettingsMenuList({super.key, this.recruiter = false});
@@ -37,8 +39,9 @@ class SettingsMenuList extends ConsumerWidget {
 
         // ── Referral ──
         _SettingsMenuItem(
-          iconAsset: recruiter ? null : 'assets/images/referral.png',
-          icon: recruiter ? Icons.people_outline_rounded : null,
+          icon: recruiter
+              ? HugeIcons.strokeRoundedUserMultiple
+              : HugeIcons.strokeRoundedUserAdd01,
           boxColor: AppColors.iconPurple,
           label: recruiter ? l10n.hiredCandidates : l10n.referral,
           trailing: _buildChevron(colors),
@@ -50,9 +53,8 @@ class SettingsMenuList extends ConsumerWidget {
 
         // ── Account Center ──
         _SettingsMenuItem(
-          iconAsset: 'assets/images/account_center.png',
-          boxColor: Colors.transparent,
-          isFullBoxIcon: true,
+          icon: HugeIcons.strokeRoundedUserAccount,
+          boxColor: const Color(0xFFD02F7C),
           label: l10n.accountCenter,
           trailing: _buildChevron(colors),
           onTap: () => context.push(AppRoutes.accountCenter),
@@ -61,7 +63,7 @@ class SettingsMenuList extends ConsumerWidget {
 
         // ── Notifications (with toggle) ──
         _SettingsMenuItem(
-          iconAsset: 'assets/images/notification_unselected.png',
+          icon: HugeIcons.strokeRoundedNotification01,
           boxColor: AppColors.iconBlue,
           label: l10n.notifications,
           trailing: SizedBox(
@@ -90,7 +92,7 @@ class SettingsMenuList extends ConsumerWidget {
 
         // ── Theme (with toggle) ──
         _SettingsMenuItem(
-          iconAsset: 'assets/images/theme.png',
+          icon: HugeIcons.strokeRoundedMoon02,
           boxColor: AppColors.iconBlack,
           label: l10n.theme,
           trailing: SizedBox(
@@ -115,7 +117,7 @@ class SettingsMenuList extends ConsumerWidget {
 
         // ── Language ──
         _SettingsMenuItem(
-          icon: Icons.language_rounded,
+          icon: HugeIcons.strokeRoundedGlobe02,
           boxColor: AppColors.iconDeepPurple,
           label: l10n.language,
           trailing: _buildChevron(colors),
@@ -125,7 +127,7 @@ class SettingsMenuList extends ConsumerWidget {
 
         // ── Accessibility ──
         _SettingsMenuItem(
-          iconAsset: 'assets/images/accessibility.png',
+          icon: HugeIcons.strokeRoundedUniversalAccess,
           boxColor: AppColors.iconDeepPurple,
           label: l10n.accessibility,
           trailing: _buildChevron(colors),
@@ -135,7 +137,7 @@ class SettingsMenuList extends ConsumerWidget {
 
         if (recruiter) ...[
           _SettingsMenuItem(
-            icon: Icons.monetization_on_outlined,
+            icon: HugeIcons.strokeRoundedDollar01,
             boxColor: AppColors.iconPink,
             label: l10n.plansAndPricing,
             trailing: _buildChevron(colors),
@@ -145,7 +147,7 @@ class SettingsMenuList extends ConsumerWidget {
         ],
         // ── Help Center ──
         _SettingsMenuItem(
-          iconAsset: 'assets/images/help_center.png',
+          icon: HugeIcons.strokeRoundedCustomerSupport,
           boxColor: AppColors.iconMediumBlue,
           label: l10n.helpCenter,
           trailing: _buildChevron(colors),
@@ -155,7 +157,7 @@ class SettingsMenuList extends ConsumerWidget {
 
         // ── Terms of Service & Conditions ──
         _SettingsMenuItem(
-          iconAsset: 'assets/images/block.png',
+          icon: HugeIcons.strokeRoundedLegalDocument01,
           boxColor: AppColors.iconGrey,
           label: l10n.termsOfServiceAndConditions,
           trailing: _buildChevron(colors),
@@ -168,7 +170,7 @@ class SettingsMenuList extends ConsumerWidget {
 
         // ── Log out ──
         _SettingsMenuItem(
-          iconAsset: 'assets/images/logout.png',
+          icon: HugeIcons.strokeRoundedLogout01,
           boxColor: AppColors.iconNavy,
           label: l10n.logOut,
           trailing: _buildChevron(colors),
@@ -187,8 +189,8 @@ class SettingsMenuList extends ConsumerWidget {
   }
 
   Widget _buildChevron(AppColorScheme colors) {
-    return Icon(
-      Icons.arrow_forward_ios_rounded,
+    return AppIcon(
+      HugeIcons.strokeRoundedArrowRight01,
       color: colors.chevron,
       size: 16,
     );
@@ -230,19 +232,15 @@ class SettingsMenuList extends ConsumerWidget {
 /// A single settings menu row with icon, label, and trailing widget.
 class _SettingsMenuItem extends StatelessWidget {
   const _SettingsMenuItem({
-    this.iconAsset,
-    this.icon,
+    required this.icon,
     required this.boxColor,
-    this.isFullBoxIcon = false,
     required this.label,
     required this.trailing,
     required this.onTap,
-  }) : assert(iconAsset != null || icon != null);
+  });
 
-  final String? iconAsset;
-  final IconData? icon;
+  final AppIconData icon;
   final Color boxColor;
-  final bool isFullBoxIcon;
   final String label;
   final Widget trailing;
   final VoidCallback? onTap;
@@ -275,14 +273,7 @@ class _SettingsMenuItem extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Center(
-                    child: icon != null
-                        ? Icon(icon, color: Colors.white, size: 20)
-                        : Image.asset(
-                            iconAsset!,
-                            width: isFullBoxIcon ? 36 : 20,
-                            height: isFullBoxIcon ? 36 : 20,
-                            color: isFullBoxIcon ? null : Colors.white,
-                          ),
+                    child: AppIcon(icon, color: Colors.white, size: 20),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -300,8 +291,8 @@ class _SettingsMenuItem extends StatelessWidget {
                 if (onTap == null)
                   Tooltip(
                     message: context.l10n.comingSoon,
-                    child: Icon(
-                      Icons.lock_outline_rounded,
+                    child: AppIcon(
+                      HugeIcons.strokeRoundedLockKey,
                       size: 18,
                       semanticLabel: context.l10n.comingSoon,
                       color: colors.textSecondary,

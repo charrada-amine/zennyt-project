@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/theme.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// A minimal language row: label on the left, accent checkmark when selected.
 class LanguageOptionTile extends StatelessWidget {
   const LanguageOptionTile({
@@ -61,9 +63,9 @@ class LanguageOptionTile extends StatelessWidget {
                     ),
                   ),
                   child: selected
-                      ? Icon(
+                      ? AppIcon(
                           key: ValueKey<String>('check-$label'),
-                          Icons.check_rounded,
+                          HugeIcons.strokeRoundedTick02,
                           color: colors.accent,
                           size: 24,
                         )

@@ -12,6 +12,8 @@ import '../decision_milestones.dart';
 import '../widgets/game_system_components.dart';
 import '../widgets/je_decide_tutorial.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// XP affiché par réponse. Purement décoratif, mais écrit UNE fois : la vue de
 /// récompense affichait « +12 XP » en dur à côté d'un total calculé avec la
 /// même valeur ailleurs — deux littéraux qui pouvaient diverger en silence.
@@ -793,7 +795,7 @@ class _DecisionProgressHeader extends StatelessWidget {
                 key: const ValueKey('decision-pause-button'),
                 tooltip: affordance!.tooltip,
                 onPressed: onPause,
-                icon: Icon(affordance!.icon),
+                icon: AppIcon(affordance!.icon),
                 style: IconButton.styleFrom(
                   fixedSize: const Size(48, 48),
                   backgroundColor: Colors.white,
@@ -1474,8 +1476,8 @@ class _DecisionChoiceCard extends StatelessWidget {
                             color: _decisionMagenta,
                             shape: BoxShape.circle,
                           ),
-                          child: Icon(
-                            Icons.check_rounded,
+                          child: AppIcon(
+                            HugeIcons.strokeRoundedTick02,
                             color: Colors.white,
                             size: 18,
                           ),
@@ -1605,8 +1607,8 @@ class _TimeoutView extends StatelessWidget {
                     shape: BoxShape.circle,
                     border: Border.all(color: _decisionMagenta, width: 2),
                   ),
-                  child: Icon(
-                    Icons.front_hand_rounded,
+                  child: AppIcon(
+                    HugeIcons.strokeRoundedHold01,
                     color: const Color(0xFFFF5B32),
                     size: m.medallion * 0.58,
                   ),
@@ -1757,8 +1759,8 @@ class _BadgeView extends StatelessWidget {
                       color: Color(0xFFC5DE49),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
-                      Icons.workspace_premium_rounded,
+                    child: const AppIcon(
+                      HugeIcons.strokeRoundedAward01,
                       color: _decisionWarning,
                       size: 58,
                     ),

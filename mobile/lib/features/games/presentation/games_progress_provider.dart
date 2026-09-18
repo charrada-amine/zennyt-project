@@ -22,7 +22,11 @@ const List<String> kCognitiveDimensions = [
 
 @immutable
 class GamesProgress {
-  const GamesProgress({this.completedDimensions = const {}, this.consentGiven = false});
+  const GamesProgress({
+    this.completedDimensions = const {},
+    this.consentGiven = false,
+    this.introSeen = false,
+  });
 
   final Set<String> completedDimensions;
 
@@ -30,18 +34,28 @@ class GamesProgress {
   /// once, then remembered locally.
   final bool consentGiven;
 
+  /// The « Play & discover your talent » intro of the games hub was passed
+  /// (« Explore games »). Shown once, then the hub opens on the catalogue.
+  final bool introSeen;
+
   double get coverage =>
       kCognitiveDimensions.isEmpty ? 0 : completedDimensions.length / kCognitiveDimensions.length;
 
-  GamesProgress copyWith({Set<String>? completedDimensions, bool? consentGiven}) =>
+  GamesProgress copyWith({
+    Set<String>? completedDimensions,
+    bool? consentGiven,
+    bool? introSeen,
+  }) =>
       GamesProgress(
         completedDimensions: completedDimensions ?? this.completedDimensions,
         consentGiven: consentGiven ?? this.consentGiven,
+        introSeen: introSeen ?? this.introSeen,
       );
 }
 
 const _kCompletedKey = 'games_completed_dimensions';
 const _kConsentKey = 'games_monitoring_consent';
+const _kIntroSeenKey = 'games_hub_intro_seen';
 
 class GamesProgressNotifier extends Notifier<GamesProgress> {
   @override
@@ -51,6 +65,7 @@ class GamesProgressNotifier extends Notifier<GamesProgress> {
     return GamesProgress(
       completedDimensions: completed.toSet(),
       consentGiven: prefs.getBool(_kConsentKey) ?? false,
+      introSeen: prefs.getBool(_kIntroSeenKey) ?? false,
     );
   }
 
@@ -66,11 +81,17 @@ class GamesProgressNotifier extends Notifier<GamesProgress> {
     ref.read(sharedPreferencesProvider).setBool(_kConsentKey, value);
   }
 
+  void markIntroSeen() {
+    state = state.copyWith(introSeen: true);
+    ref.read(sharedPreferencesProvider).setBool(_kIntroSeenKey, true);
+  }
+
   void reset() {
     state = const GamesProgress();
     final prefs = ref.read(sharedPreferencesProvider);
     prefs.remove(_kCompletedKey);
     prefs.remove(_kConsentKey);
+    prefs.remove(_kIntroSeenKey);
   }
 }
 

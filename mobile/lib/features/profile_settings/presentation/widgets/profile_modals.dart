@@ -6,6 +6,8 @@ import '../../../../shared/widgets/primary_button.dart';
 import '../viewmodel/candidate_profile_viewmodel.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class ProfileModalBase extends StatelessWidget {
   const ProfileModalBase({
     super.key,
@@ -58,8 +60,8 @@ class ProfileModalBase extends StatelessWidget {
                       color: colors.border.withValues(alpha: 0.3),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(
-                      Icons.close,
+                    child: AppIcon(
+                      HugeIcons.strokeRoundedCancel01,
                       size: 16,
                       color: colors.textSecondary,
                     ),
@@ -432,7 +434,7 @@ class _TechnicalSkillsModalState extends ConsumerState<TechnicalSkillsModal> {
           controller: _skillController,
           onSubmitted: (_) => _addSkill(),
           suffixIcon: IconButton(
-            icon: const Icon(Icons.add),
+            icon: const AppIcon(HugeIcons.strokeRoundedAdd01),
             onPressed: _addSkill,
             color: colors.primary,
           ),
@@ -462,8 +464,8 @@ class _TechnicalSkillsModalState extends ConsumerState<TechnicalSkillsModal> {
                 borderRadius: BorderRadius.circular(16),
               ),
               side: BorderSide.none,
-              deleteIcon: Icon(
-                Icons.close,
+              deleteIcon: AppIcon(
+                HugeIcons.strokeRoundedCancel01,
                 size: 14,
                 color: colors.textSecondary,
               ),

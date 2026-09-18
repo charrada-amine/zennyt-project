@@ -18,6 +18,8 @@ import '../widgets/decision_behavioral_components.dart';
 import '../widgets/game_results_template.dart';
 import '../widgets/game_system_components.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// BART — Balloon Analogue Risk Task (Lejuez et al., 2002).
 ///
 /// Maquette de référence : planche « BART · Concept » (couverture, gonflage,
@@ -263,12 +265,12 @@ class _BartScreenState extends ConsumerState<BartScreen>
           illustrationAsset: DecisionBehavioralAssets.bartLogo,
           tiles: const [
             DecisionCoverTile(
-              icon: Icons.bubble_chart_rounded,
+              icon: HugeIcons.strokeRoundedChartBubble01,
               value: '30',
               label: 'ballons',
             ),
             DecisionCoverTile(
-              icon: Icons.school_rounded,
+              icon: HugeIcons.strokeRoundedMortarboard01,
               value: '2',
               label: 'essais pratiques',
             ),

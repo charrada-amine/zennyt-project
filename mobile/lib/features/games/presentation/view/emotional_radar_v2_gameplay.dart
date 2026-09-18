@@ -22,6 +22,8 @@ import '../widgets/emotional_radar_components.dart';
 import '../widgets/emotional_radar_video.dart';
 import '../widgets/game_system_components.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// Nombre de boutons d'émotion par ligne.
 ///
 /// Le référentiel fixe `choices_per_level = 6 / 6 / 9 / 9` précisément pour
@@ -103,8 +105,8 @@ class RadarSceneStage extends StatelessWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(
-                      Icons.info_outline_rounded,
+                    const AppIcon(
+                      HugeIcons.strokeRoundedInformationCircle,
                       size: 16,
                       color: EmotionalRadarPalette.muted,
                     ),
@@ -155,7 +157,7 @@ class RadarSceneStage extends StatelessWidget {
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.timer_off_outlined, size: 15, color: Colors.white),
+                  AppIcon(HugeIcons.strokeRoundedTimer01, size: 15, color: Colors.white),
                   SizedBox(width: 6),
                   Flexible(
                     child: Text(
@@ -203,8 +205,8 @@ class RadarMediaPlaceholder extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                Icons.movie_creation_outlined,
+              AppIcon(
+                HugeIcons.strokeRoundedVideo01,
                 size: 34,
                 color: EmotionalRadarPalette.muted,
               ),
@@ -847,8 +849,8 @@ class RadarFeedbackCard extends StatelessWidget {
                   color: ok ? _successBadge : _errorBadge,
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  ok ? Icons.check_rounded : Icons.close_rounded,
+                child: AppIcon(
+                  ok ? HugeIcons.strokeRoundedTick02 : HugeIcons.strokeRoundedCancel01,
                   color: Colors.white,
                   size: 24,
                 ),
@@ -1053,8 +1055,8 @@ class RadarFullscreenSceneView extends StatelessWidget {
                                 );
                                 Navigator.of(context).maybePop();
                               },
-                              icon: const Icon(
-                                Icons.fullscreen_exit_rounded,
+                              icon: const AppIcon(
+                                HugeIcons.strokeRoundedMinimizeScreen,
                                 color: Colors.white,
                               ),
                               tooltip: 'Quitter le plein écran',

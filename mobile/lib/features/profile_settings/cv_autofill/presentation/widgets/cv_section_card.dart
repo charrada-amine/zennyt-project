@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../../../../core/theme/theme.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class CvSectionCard extends StatelessWidget {
   final String title;
   final Widget child;
-  final IconData? icon;
+  final AppIconData? icon;
   final Color? iconColor;
   final int? itemCount;
 
@@ -57,7 +59,7 @@ class CvSectionCard extends StatelessWidget {
                       color: (iconColor ?? colors.primary).withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(
+                    child: AppIcon(
                       icon,
                       size: 18,
                       color: iconColor ?? colors.primary,

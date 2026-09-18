@@ -15,6 +15,8 @@ import '../../../auth/presentation/auth_providers.dart';
 import '../../../../core/avatar/avatar_service.dart';
 import '../widgets/account_change_otp_dialog.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class PersonalInformationsScreen extends ConsumerStatefulWidget {
   const PersonalInformationsScreen({super.key});
 
@@ -156,7 +158,7 @@ class _PersonalInformationsScreenState
                   color: colors.success.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.check_rounded, color: colors.success, size: 34),
+                child: AppIcon(HugeIcons.strokeRoundedTick02, color: colors.success, size: 34),
               ),
               const SizedBox(height: 16),
               Text(
@@ -252,8 +254,8 @@ class _PersonalInformationsScreenState
                                     width: 2,
                                   ),
                                 ),
-                                child: const Icon(
-                                  Icons.camera_alt_rounded,
+                                child: const AppIcon(
+                                  HugeIcons.strokeRoundedCamera01,
                                   size: 14,
                                   color: Colors.white,
                                 ),
@@ -419,8 +421,8 @@ class _PersonalInformationsScreenState
               isDense: true,
               icon: Padding(
                 padding: const EdgeInsets.only(right: 8),
-                child: Icon(
-                  Icons.keyboard_arrow_down_rounded,
+                child: AppIcon(
+                  HugeIcons.strokeRoundedArrowDown01,
                   color: colors.chevron,
                 ),
               ),
@@ -515,8 +517,8 @@ class _PersonalInformationsScreenState
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: Icon(
-                Icons.photo_library_outlined,
+              leading: AppIcon(
+                HugeIcons.strokeRoundedAlbum02,
                 color: colors.primary,
               ),
               title: Text(
@@ -532,7 +534,7 @@ class _PersonalInformationsScreenState
               },
             ),
             ListTile(
-              leading: Icon(Icons.camera_alt_outlined, color: colors.primary),
+              leading: AppIcon(HugeIcons.strokeRoundedCamera01, color: colors.primary),
               title: Text(
                 l10n.takePhoto,
                 style: AppTypography.bodyMedium.copyWith(
@@ -546,7 +548,7 @@ class _PersonalInformationsScreenState
               },
             ),
             ListTile(
-              leading: Icon(Icons.delete_outline, color: colors.error),
+              leading: AppIcon(HugeIcons.strokeRoundedDelete02, color: colors.error),
               title: Text(
                 l10n.removePhoto,
                 style: AppTypography.bodyMedium.copyWith(
@@ -640,8 +642,8 @@ class _TopBar extends StatelessWidget {
           ),
           child: IconButton(
             onPressed: () => context.pop(),
-            icon: Icon(
-              Icons.arrow_back_rounded,
+            icon: AppIcon(
+              HugeIcons.strokeRoundedArrowLeft02,
               color: colors.backButtonIcon,
               size: 20,
             ),

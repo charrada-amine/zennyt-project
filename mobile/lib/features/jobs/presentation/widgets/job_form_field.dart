@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class JobFormField extends StatelessWidget {
   final String label;
   final String? value;
@@ -46,8 +48,8 @@ class JobFormField extends StatelessWidget {
                 shape: BoxShape.circle,
                 color: const Color(0xFF21438A).withValues(alpha: 0.05),
               ),
-              child: Icon(
-                showPen ? Icons.edit_outlined : Icons.add,
+              child: AppIcon(
+                showPen ? HugeIcons.strokeRoundedPencilEdit01 : HugeIcons.strokeRoundedAdd01,
                 size: 14,
                 color: const Color(0xFF21438A),
               ),

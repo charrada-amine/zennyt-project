@@ -6,6 +6,8 @@ import 'package:zennyt/features/jobs/domain/entities/public_assessment.dart';
 import 'package:zennyt/features/jobs/presentation/providers/jobs_provider.dart';
 import 'package:zennyt/shared/widgets/custom_app_bar.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// Recruiter preview of the public projection of a shared test
 /// (`GET /tests/{token}`) — exactly what a candidate opening the shareable link
 /// sees, with no correct answers. Design references 216 (preview) and 306
@@ -29,7 +31,7 @@ class PublicTestPreviewPage extends ConsumerWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.link_off_rounded, color: Color(0xFFE53935), size: 34),
+                const AppIcon(HugeIcons.strokeRoundedUnlink01, color: Color(0xFFE53935), size: 34),
                 const SizedBox(height: 12),
                 const Text(
                   'This test link is invalid or no longer available.',
@@ -65,10 +67,10 @@ class PublicTestPreviewPage extends ConsumerWidget {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      _Meta(icon: Icons.list_alt_rounded, label: '${test.questionCount} questions'),
+                      _Meta(icon: HugeIcons.strokeRoundedLeftToRightListBullet, label: '${test.questionCount} questions'),
                       const SizedBox(width: 18),
                       _Meta(
-                        icon: Icons.timer_outlined,
+                        icon: HugeIcons.strokeRoundedTimer02,
                         label: '${(test.timeLimitSeconds / 60).ceil()} min',
                       ),
                     ],
@@ -86,7 +88,7 @@ class PublicTestPreviewPage extends ConsumerWidget {
 }
 
 class _Meta extends StatelessWidget {
-  final IconData icon;
+  final AppIconData icon;
   final String label;
   const _Meta({required this.icon, required this.label});
 
@@ -94,7 +96,7 @@ class _Meta extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 15, color: const Color(0xFF64748B)),
+        AppIcon(icon, size: 15, color: const Color(0xFF64748B)),
         const SizedBox(width: 5),
         Text(label, style: const TextStyle(fontSize: 12.5, color: Color(0xFF64748B))),
       ],

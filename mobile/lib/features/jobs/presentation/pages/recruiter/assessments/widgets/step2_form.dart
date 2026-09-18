@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'question_form_state.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class AssessmentStep2Form extends StatelessWidget {
   final int currentQuestionIndex;
   final int numQuestions;
@@ -227,7 +229,7 @@ class _RadioDot extends StatelessWidget {
         color: isCorrect ? Colors.white : Colors.transparent,
       ),
       child: isCorrect
-          ? const Center(child: Icon(Icons.circle, size: 10, color: Color(0xFF22C55E)))
+          ? const Center(child: AppIcon(AppIcons.circleFilled, size: 10, color: Color(0xFF22C55E)))
           : null,
     );
   }

@@ -10,6 +10,8 @@ import 'package:zennyt/features/referral/domain/entities/referral.dart';
 import 'package:zennyt/features/referral/presentation/providers/referral_providers.dart';
 import 'package:zennyt/shared/widgets/custom_app_bar.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// Parrainage (maquettes 115/117) : lien à partager + liste des filleuls avec
 /// leur statut (invité / en cours D-xx / recruté).
 class ReferralScreen extends ConsumerWidget {
@@ -26,7 +28,7 @@ class ReferralScreen extends ConsumerWidget {
         title: 'Referral',
         onBack: () => context.pop(),
         trailingAction: _RoundAction(
-          icon: Icons.person_add_alt_1_rounded,
+          icon: HugeIcons.strokeRoundedUserAdd01,
           tooltip: 'Invite',
           onTap: () => _showInviteDialog(context, ref),
         ),
@@ -175,7 +177,7 @@ class _LinkCard extends StatelessWidget {
                       const SnackBar(content: Text('Link copied!'), backgroundColor: Color(0xFF2AC052)),
                     );
                   },
-                  icon: const Icon(Icons.copy_rounded, size: 16),
+                  icon: const AppIcon(HugeIcons.strokeRoundedCopy01, size: 16),
                   label: const Text('Copy link'),
                 ),
               ),
@@ -184,7 +186,7 @@ class _LinkCard extends StatelessWidget {
                 child: FilledButton.icon(
                   style: FilledButton.styleFrom(backgroundColor: colors.primary),
                   onPressed: () => _share(context, link.url),
-                  icon: const Icon(Icons.ios_share_rounded, size: 16),
+                  icon: const AppIcon(HugeIcons.strokeRoundedShare08, size: 16),
                   label: const Text('Share'),
                 ),
               ),
@@ -208,7 +210,7 @@ class _LinkCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.copy_rounded),
+              leading: const AppIcon(HugeIcons.strokeRoundedCopy01),
               title: const Text('Copy link'),
               onTap: () async {
                 await Clipboard.setData(ClipboardData(text: url));
@@ -216,7 +218,7 @@ class _LinkCard extends StatelessWidget {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.mail_outline_rounded),
+              leading: const AppIcon(HugeIcons.strokeRoundedMail01),
               title: const Text('E-mail'),
               onTap: () async {
                 Navigator.pop(ctx);
@@ -224,7 +226,7 @@ class _LinkCard extends StatelessWidget {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.sms_outlined),
+              leading: const AppIcon(HugeIcons.strokeRoundedMessage02),
               title: const Text('Messages'),
               onTap: () async {
                 Navigator.pop(ctx);
@@ -333,7 +335,7 @@ class _ReferralTile extends StatelessWidget {
 }
 
 class _RoundAction extends StatelessWidget {
-  final IconData icon;
+  final AppIconData icon;
   final String tooltip;
   final VoidCallback onTap;
   const _RoundAction({required this.icon, required this.tooltip, required this.onTap});
@@ -349,7 +351,7 @@ class _RoundAction extends StatelessWidget {
           width: 40,
           height: 40,
           decoration: kAppBarButtonDecoration(),
-          child: Icon(icon, color: const Color(0xFF21438A), size: 20),
+          child: AppIcon(icon, color: const Color(0xFF21438A), size: 20),
         ),
       ),
     );

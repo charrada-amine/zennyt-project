@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+
 import 'package:zennyt/core/constants.dart';
 import '../../../../core/theme/app_color_scheme.dart';
+
+import 'package:zennyt/shared/icons/app_icons.dart';
 
 class CreatePostBottomActions extends StatelessWidget {
   final VoidCallback onAddTap;
@@ -23,8 +25,8 @@ class CreatePostBottomActions extends StatelessWidget {
         children: [
           GestureDetector(
             onTap: onMediaTap,
-            child: FaIcon(
-              FontAwesomeIcons.image,
+            child: AppIcon(
+              HugeIcons.strokeRoundedImage01,
               color: context.colors.primary,
               size: 24,
             ),
@@ -32,8 +34,8 @@ class CreatePostBottomActions extends StatelessWidget {
           const SizedBox(width: 16),
           GestureDetector(
             onTap: () {},
-            child: FaIcon(
-              FontAwesomeIcons.trophy,
+            child: AppIcon(
+              HugeIcons.strokeRoundedChampion,
               color: context.colors.primary,
               size: 24,
             ),
@@ -41,8 +43,8 @@ class CreatePostBottomActions extends StatelessWidget {
           const SizedBox(width: 16),
           GestureDetector(
             onTap: onAddTap,
-            child: Icon(
-              Icons.add,
+            child: AppIcon(
+              HugeIcons.strokeRoundedAdd01,
               color: context.colors.primary,
               size: 24,
             ),

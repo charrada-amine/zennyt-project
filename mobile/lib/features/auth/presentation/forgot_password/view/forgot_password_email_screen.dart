@@ -13,6 +13,8 @@ import '../../../../../shared/widgets/language_toggle.dart';
 import '../../widgets/auth_desktop_shell.dart';
 import '../../auth_providers.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class ForgotPasswordEmailScreen extends ConsumerStatefulWidget {
   const ForgotPasswordEmailScreen({super.key});
 
@@ -80,8 +82,8 @@ class _ForgotPasswordEmailScreenState
             color: colors.primary.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
-          child: Icon(
-            Icons.email_outlined,
+          child: AppIcon(
+            HugeIcons.strokeRoundedMail01,
             color: colors.primary,
             size: 36,
           ),
@@ -113,15 +115,15 @@ class _ForgotPasswordEmailScreenState
           status: _error != null
               ? FieldStatus.error
               : FieldStatus.normal,
-          prefixIcon: Icons.mail_outline_rounded,
+          prefixIcon: HugeIcons.strokeRoundedMail01,
           onSubmitted: (_) => _sendCode(),
         ),
         if (_error != null) ...[
           const SizedBox(height: AppSpacing.sm),
           Row(
             children: [
-              Icon(
-                Icons.error_outline_rounded,
+              AppIcon(
+                HugeIcons.strokeRoundedAlertCircle,
                 size: 16,
                 color: colors.error,
               ),

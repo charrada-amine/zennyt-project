@@ -1,7 +1,8 @@
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:zennyt/core/constants.dart';
+
+import 'package:zennyt/shared/icons/app_icons.dart';
 
 class SelectedPostDocumentsPreview extends StatelessWidget {
   final List<PlatformFile> documents;
@@ -51,8 +52,8 @@ class SelectedPostDocumentsPreview extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const Icon(
-                  Icons.insert_drive_file_outlined,
+                const AppIcon(
+                  HugeIcons.strokeRoundedFile01,
                   color: AppColors.iconColor,
                   size: 28,
                 ),
@@ -91,10 +92,8 @@ class SelectedPostDocumentsPreview extends StatelessWidget {
                       color: Colors.black12,
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(
-                      AppConstants.isCupertino
-                          ? CupertinoIcons.xmark
-                          : Icons.close,
+                    child: AppIcon(
+                      HugeIcons.strokeRoundedCancel01,
                       color: context.colors.textPrimary,
                       size: 14,
                     ),

@@ -19,6 +19,8 @@ import '../widgets/search_filter_bar.dart';
 import '../widgets/tinder_action_buttons.dart';
 import '../widgets/tinder_card.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// Écran Fits — porté depuis REC-04 (mobile/zennyt), branché sur le backend
 /// intégré. Deck bidirectionnel : offres pour le candidat, candidats
 /// fit-scorés pour le recruteur.
@@ -232,10 +234,10 @@ class _FitsScreenState extends ConsumerState<FitsScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
+            AppIcon(
               failed
-                  ? Icons.wifi_off_rounded
-                  : Icons.check_circle_outline_rounded,
+                  ? HugeIcons.strokeRoundedWifiOff01
+                  : HugeIcons.strokeRoundedCheckmarkCircle02,
               color: colors.primary,
               size: 42,
             ),
@@ -286,15 +288,15 @@ class _FitsScreenState extends ConsumerState<FitsScreen> {
               child: Row(
                 children: [
                   for (final (index, label, icon) in [
-                    (0, 'Discover', Icons.grid_view_rounded),
-                    (1, 'Match', Icons.style_rounded),
+                    (0, 'Discover', HugeIcons.strokeRoundedGridView),
+                    (1, 'Match', HugeIcons.strokeRoundedPaintBrush01),
                   ])
                     Expanded(
                       child: Semantics(
                         selected: _mode == index,
                         child: TextButton.icon(
                           onPressed: () => _selectMode(index),
-                          icon: Icon(icon, size: 18),
+                          icon: AppIcon(icon, size: 18),
                           label: Text(label),
                           style: TextButton.styleFrom(
                             backgroundColor: _mode == index
@@ -367,10 +369,10 @@ class _FitsScreenState extends ConsumerState<FitsScreen> {
                           child: TextButton.icon(
                             onPressed: () =>
                                 setState(() => _showAll = !_showAll),
-                            icon: Icon(
+                            icon: AppIcon(
                               _showAll
-                                  ? Icons.expand_less_rounded
-                                  : Icons.expand_more_rounded,
+                                  ? HugeIcons.strokeRoundedArrowUp01
+                                  : HugeIcons.strokeRoundedArrowDown01,
                             ),
                             label: Text(
                               _showAll

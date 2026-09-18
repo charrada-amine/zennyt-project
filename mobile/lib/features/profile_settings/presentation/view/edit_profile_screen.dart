@@ -16,6 +16,8 @@ import '../../../auth/presentation/auth_providers.dart';
 import '../viewmodel/candidate_profile_viewmodel.dart';
 import '../widgets/profile_avatar.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
 
@@ -170,7 +172,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.photo_library_rounded),
+              leading: const AppIcon(HugeIcons.strokeRoundedAlbum02),
               title: Text(l10n.choosePhoto),
               onTap: () {
                 Navigator.of(ctx).pop();
@@ -178,7 +180,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
               },
             ),
             ListTile(
-              leading: const Icon(Icons.camera_alt_rounded),
+              leading: const AppIcon(HugeIcons.strokeRoundedCamera01),
               title: Text(l10n.takePhoto),
               onTap: () {
                 Navigator.of(ctx).pop();
@@ -186,7 +188,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
               },
             ),
             ListTile(
-              leading: Icon(Icons.delete_rounded, color: colors.error),
+              leading: AppIcon(HugeIcons.strokeRoundedDelete02, color: colors.error),
               title: Text(l10n.removePhoto, style: TextStyle(color: colors.error)),
               onTap: () async {
                 Navigator.of(ctx).pop();
@@ -323,8 +325,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
                         ),
                         child: IconButton(
                           onPressed: () => context.pop(),
-                          icon: Icon(
-                            Icons.arrow_back_ios_new_rounded,
+                          icon: AppIcon(
+                            HugeIcons.strokeRoundedArrowLeft01,
                             color: colors.backButtonIcon,
                             size: 20,
                           ),
@@ -381,8 +383,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
                                               width: 3,
                                             ),
                                           ),
-                                          child: const Icon(
-                                            Icons.camera_alt_rounded,
+                                          child: const AppIcon(
+                                            HugeIcons.strokeRoundedCamera01,
                                             size: 16,
                                             color: Colors.white,
                                           ),
@@ -580,8 +582,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
               value: options.contains(value) ? value : options.first,
               isExpanded: true,
               isDense: true,
-              icon: Icon(
-                Icons.keyboard_arrow_down_rounded,
+              icon: AppIcon(
+                HugeIcons.strokeRoundedArrowDown01,
                 color: colors.primary,
                 size: 22,
               ),
@@ -682,8 +684,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
                 ],
               ),
             ),
-            Icon(
-              Icons.chevron_right_rounded,
+            AppIcon(
+              HugeIcons.strokeRoundedArrowRight01,
               color: colors.textSecondary,
               size: 22,
             ),
@@ -743,7 +745,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
                   label: 'Select a specific date',
                   isSelected: _availableDate != 'Immediately',
                   colors: colors,
-                  icon: Icons.calendar_month_outlined,
+                  icon: HugeIcons.strokeRoundedCalendar03,
                   onTap: () {
                     Navigator.pop(ctx);
                     _pickDate();
@@ -826,7 +828,7 @@ class _AvailabilityOption extends StatelessWidget {
   final bool isSelected;
   final AppColorScheme colors;
   final VoidCallback onTap;
-  final IconData? icon;
+  final AppIconData? icon;
 
   @override
   Widget build(BuildContext context) {
@@ -853,7 +855,7 @@ class _AvailabilityOption extends StatelessWidget {
           child: Row(
             children: [
               if (icon != null) ...[
-                Icon(icon, color: colors.primary, size: 20),
+                AppIcon(icon, color: colors.primary, size: 20),
                 const SizedBox(width: 12),
               ],
               Expanded(
@@ -866,7 +868,7 @@ class _AvailabilityOption extends StatelessWidget {
                 ),
               ),
               if (isSelected)
-                Icon(Icons.check_circle, color: colors.primary, size: 20),
+                AppIcon(HugeIcons.strokeRoundedCheckmarkCircle02, color: colors.primary, size: 20),
             ],
           ),
         ),

@@ -11,6 +11,8 @@ import '../../../../../core/theme/theme.dart';
 import '../../widgets/auth_desktop_shell.dart';
 import '../viewmodel/signup_viewmodel.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class ChangePhoneScreen extends ConsumerStatefulWidget {
   const ChangePhoneScreen({super.key});
 
@@ -67,7 +69,7 @@ class _ChangePhoneScreenState extends ConsumerState<ChangePhoneScreen> {
             controller: _phone,
             keyboardType: TextInputType.phone,
             textInputAction: TextInputAction.done,
-            prefixIcon: Icons.phone_outlined,
+            prefixIcon: HugeIcons.strokeRoundedCall,
             validator: _validatePhone,
             onSubmitted: (_) => _confirm(),
           ),

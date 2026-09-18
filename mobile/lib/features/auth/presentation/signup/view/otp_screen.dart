@@ -14,6 +14,8 @@ import '../../../../../core/theme/theme.dart';
 import '../../widgets/auth_desktop_shell.dart';
 import '../viewmodel/signup_viewmodel.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class OtpScreen extends ConsumerStatefulWidget {
   const OtpScreen({super.key});
 
@@ -160,8 +162,8 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
           const SizedBox(height: AppSpacing.sm),
           Row(
             children: [
-              Icon(
-                Icons.error_outline_rounded,
+              AppIcon(
+                HugeIcons.strokeRoundedAlertCircle,
                 size: AppSpacing.iconSm,
                 color: colors.error,
               ),

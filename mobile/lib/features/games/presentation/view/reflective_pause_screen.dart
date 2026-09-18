@@ -23,6 +23,7 @@ import '../widgets/game_system_components.dart';
 import '../widgets/game_results_template.dart';
 import '../widgets/reflective_pause_tutorial.dart';
 import '../widgets/zennyt_loader.dart';
+import 'package:zennyt/shared/icons/app_icons.dart';
 
 const _ink = Color(0xFF28234F);
 const _muted = Color(0xFF607095);
@@ -543,7 +544,7 @@ class _TopBar extends StatelessWidget {
     return Row(
       children: [
         _SquareIconButton(
-          icon: Icons.chevron_left_rounded,
+          icon: HugeIcons.strokeRoundedArrowLeft01,
           tooltip: 'Retour',
           // En jeu, le retour ouvre la pause, qui joue son propre son.
           onTap: onPause != null
@@ -587,7 +588,7 @@ class _SquareIconButton extends StatelessWidget {
     required this.onTap,
   });
 
-  final IconData icon;
+  final AppIconData icon;
   final String tooltip;
   final VoidCallback onTap;
 
@@ -611,7 +612,7 @@ class _SquareIconButton extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: _border),
               ),
-              child: Icon(icon, color: _ink),
+              child: AppIcon(icon, color: _ink),
             ),
           ),
         ),
@@ -635,7 +636,7 @@ class _CoverView extends StatelessWidget {
     contextDetail: 'Choisis ensuite la réponse qui te vient naturellement.',
     journey: const ['Découvre', 'Attends', 'Réponds'],
     leading: _SquareIconButton(
-      icon: Icons.chevron_left_rounded,
+      icon: HugeIcons.strokeRoundedArrowLeft01,
       tooltip: 'Retour',
       onTap: onBack,
     ),
@@ -658,7 +659,7 @@ class _IntroView extends StatelessWidget {
       title: 'Réagis avec calme\nsous pression',
       subtitle:
           'Tu vas traverser de courts moments qui peuvent provoquer une réaction immédiate.',
-      icon: Icons.timer_outlined,
+      icon: HugeIcons.strokeRoundedTimer02,
       items: const [
         ('D’abord, une pause', 'Accorde-toi un moment de calme avant d’agir.'),
         ('Choisis naturellement', 'Sélectionne la réponse qui te ressemble le plus.'),
@@ -682,7 +683,7 @@ class _TutorialView extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ReflectivePauseTutorial(
     leading: _SquareIconButton(
-      icon: Icons.chevron_left_rounded,
+      icon: HugeIcons.strokeRoundedArrowLeft01,
       tooltip: 'Retour',
       onTap: () {
         SoundService.instance.playSfx(GameSfx.buttonClick);
@@ -707,7 +708,7 @@ class _InfoPage extends StatelessWidget {
   final VoidCallback onBack;
   final String title;
   final String subtitle;
-  final IconData icon;
+  final AppIconData icon;
   final List<(String, String)> items;
   final String buttonLabel;
   final VoidCallback onButton;
@@ -738,7 +739,7 @@ class _InfoPage extends StatelessWidget {
                         color: Color(0xFFF0F2FF),
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(icon, size: 48, color: _violet),
+                      child: AppIcon(icon, size: 48, color: _violet),
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -1153,10 +1154,10 @@ class _SituationCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(
+                AppIcon(
                   _written
-                      ? Icons.chat_bubble_outline_rounded
-                      : Icons.videocam_outlined,
+                      ? HugeIcons.strokeRoundedMessage01
+                      : HugeIcons.strokeRoundedVideo01,
                   size: 18,
                   color: _magenta,
                 ),
@@ -1332,7 +1333,7 @@ class _VideoPlaceholder extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.movie_outlined, color: _muted, size: 30),
+                    AppIcon(HugeIcons.strokeRoundedFilm01, color: _muted, size: 30),
                     SizedBox(height: 8),
                     Text(
                       'Vidéo à venir',
@@ -1444,11 +1445,11 @@ class _ResponseCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 10),
                 if (selected)
-                  const Icon(Icons.check_circle, color: _magenta)
+                  const AppIcon(HugeIcons.strokeRoundedCheckmarkCircle02, color: _magenta)
                 else if (enabled)
-                  const Icon(Icons.circle_outlined, color: _border)
+                  const AppIcon(HugeIcons.strokeRoundedCircle, color: _border)
                 else
-                  const Icon(Icons.lock_outline_rounded, color: _muted),
+                  const AppIcon(HugeIcons.strokeRoundedLockKey, color: _muted),
               ],
             ),
           ),
@@ -1484,7 +1485,7 @@ class _SavedView extends StatelessWidget {
                 color: Colors.white,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.check_rounded, color: _green, size: 52),
+              child: const AppIcon(HugeIcons.strokeRoundedTick02, color: _green, size: 52),
             ),
             const SizedBox(height: 22),
             const Text(
@@ -1575,21 +1576,21 @@ class _ResultsView extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   _IndicatorBar(
-                    icon: Icons.timer_outlined,
+                    icon: HugeIcons.strokeRoundedTimer02,
                     label: 'Temps de réaction maîtrisé',
                     value: indicators?.controlledReactionTimeScore ?? 0,
                     max: 3,
                     color: _magenta,
                   ),
                   _IndicatorBar(
-                    icon: Icons.pause_circle_outline_rounded,
+                    icon: HugeIcons.strokeRoundedPauseCircle,
                     label: 'Réponses non impulsives',
                     value: indicators?.nonImpulsiveResponsesScore ?? 0,
                     max: 4,
                     color: _violet,
                   ),
                   _IndicatorBar(
-                    icon: Icons.lightbulb_outline_rounded,
+                    icon: HugeIcons.strokeRoundedIdea01,
                     label: 'Capacité de recul',
                     value: indicators?.abilityToStepBackScore ?? 0,
                     max: 3,
@@ -1741,7 +1742,7 @@ class _IndicatorBar extends StatelessWidget {
     required this.color,
   });
 
-  final IconData icon;
+  final AppIconData icon;
   final String label;
   final double value;
   final double max;
@@ -1756,7 +1757,7 @@ class _IndicatorBar extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, color: color, size: 22),
+              AppIcon(icon, color: color, size: 22),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -1923,21 +1924,21 @@ class ReflectivePauseInsightsView extends StatelessWidget {
                           score: controlled,
                           max: ReflectivePauseConfig.controlledReactionMax,
                           color: _violet,
-                          icon: Icons.pause_circle_outline_rounded,
+                          icon: HugeIcons.strokeRoundedPauseCircle,
                         ),
                         (
                           label: 'Réponses non impulsives',
                           score: nonImpulsive,
                           max: ReflectivePauseConfig.nonImpulsiveMax,
                           color: _green,
-                          icon: Icons.chat_bubble_outline_rounded,
+                          icon: HugeIcons.strokeRoundedMessage01,
                         ),
                         (
                           label: 'Capacité de recul',
                           score: stepBack,
                           max: ReflectivePauseConfig.stepBackMax,
                           color: _magenta,
-                          icon: Icons.psychology_alt_outlined,
+                          icon: HugeIcons.strokeRoundedBrain02,
                         ),
                       ]) ...[
                         GameResultInsightMeter(
@@ -1959,14 +1960,14 @@ class ReflectivePauseInsightsView extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
                 _InsightCard(
-                  icon: Icons.chat_bubble_outline_rounded,
+                  icon: HugeIcons.strokeRoundedMessage01,
                   iconColor: _violet,
                   title: 'Point fort',
                   description: strongest,
                 ),
                 const SizedBox(height: 20),
                 _InsightCard(
-                  icon: Icons.bolt_rounded,
+                  icon: HugeIcons.strokeRoundedFlash,
                   iconColor: _magenta,
                   title: 'Risque d’impulsivité',
                   description:
@@ -1974,7 +1975,7 @@ class ReflectivePauseInsightsView extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
                 _InsightCard(
-                  icon: Icons.pause_circle_outline_rounded,
+                  icon: HugeIcons.strokeRoundedPauseCircle,
                   iconColor: _green,
                   title: 'Réaction à la pression',
                   description: pressure,
@@ -1992,7 +1993,7 @@ class ReflectivePauseInsightsView extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.lightbulb_outline, color: _violet),
+                        AppIcon(HugeIcons.strokeRoundedIdea01, color: _violet),
                         SizedBox(width: 12),
                         Expanded(
                           child: Text(
@@ -2056,7 +2057,7 @@ class _InsightCard extends StatelessWidget {
     required this.description,
   });
 
-  final IconData icon;
+  final AppIconData icon;
   final Color iconColor;
   final String title;
   final String description;
@@ -2087,7 +2088,7 @@ class _InsightCard extends StatelessWidget {
               color: iconColor.withValues(alpha: 0.09),
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: iconColor),
+            child: AppIcon(icon, color: iconColor),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -2130,7 +2131,7 @@ class _ReflectiveRulesDialog extends StatelessWidget {
       child: GameContentFrame(
         child: ReflectivePauseTutorial(
           leading: _SquareIconButton(
-            icon: Icons.chevron_left_rounded,
+            icon: HugeIcons.strokeRoundedArrowLeft01,
             tooltip: 'Retour',
             onTap: () => Navigator.of(context).pop(),
           ),
@@ -2171,7 +2172,7 @@ class _ErrorView extends StatelessWidget {
         children: [
           _TopBar(onBack: onBack),
           const Spacer(),
-          const Icon(Icons.error_outline_rounded, color: _magenta, size: 56),
+          const AppIcon(HugeIcons.strokeRoundedAlertCircle, color: _magenta, size: 56),
           const SizedBox(height: 18),
           const Text(
             'Impossible de continuer',

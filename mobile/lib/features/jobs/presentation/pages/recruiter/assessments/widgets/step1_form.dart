@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'package:zennyt/features/jobs/presentation/widgets/app_text_field.dart';
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class AssessmentStep1Form extends StatelessWidget {
   final TextEditingController titleCtrl;
   final int numQuestions;
@@ -82,7 +84,7 @@ class AssessmentStep1Form extends StatelessWidget {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   onPressed: onGenerateWithAi,
-                  icon: const Icon(Icons.auto_awesome, size: 18),
+                  icon: const AppIcon(HugeIcons.strokeRoundedSparkles, size: 18),
                   label: const Text(
                     "Générer avec l'IA",
                     style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
@@ -116,7 +118,7 @@ class _QuestionsDropdown extends StatelessWidget {
         child: DropdownButton<int>(
           value: value,
           isExpanded: true,
-          icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B)),
+          icon: const AppIcon(HugeIcons.strokeRoundedArrowDown01, color: Color(0xFF64748B)),
           style: const TextStyle(fontSize: 15, color: Color(0xFF1E293B), fontWeight: FontWeight.w500),
           items: [1, 10, 15, 20, 25, 30].map((v) {
             return DropdownMenuItem<int>(value: v, child: Text('Maximum $v questions'));
@@ -144,7 +146,7 @@ class _TimeLimitBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.timer_outlined, size: 18, color: Color(0xFF4338CA)),
+          const AppIcon(HugeIcons.strokeRoundedTimer02, size: 18, color: Color(0xFF4338CA)),
           const SizedBox(width: 10),
           Expanded(
             child: Text(

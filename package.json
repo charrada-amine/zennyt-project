@@ -6,7 +6,7 @@
     "backend": "docker compose up backend",
     "web": "bun run --cwd admin dev:web",
     "console": "bun run --cwd admin dev:console",
-    "mobile": "flutter run --dart-define=API_BASE_URL=${API_BASE_URL:-http://localhost:8080/api/v1}",
+    "mobile": "cd mobile && flutter run --dart-define=API_BASE_URL=${API_BASE_URL:-http://localhost:8080/api/v1}",
     "dev": "turbo run backend web console"
   },
   "devDependencies": {

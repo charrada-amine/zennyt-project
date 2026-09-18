@@ -5,6 +5,8 @@ import '../../core/audio/sound_service.dart';
 import 'app_motion.dart';
 import 'zennyt_loader.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// Primary call-to-action button matching the design's buttons.
 ///
 /// Defaults to a filled style; set [outlined] for the bordered variant (navy
@@ -31,7 +33,7 @@ class PrimaryButton extends StatelessWidget {
   final bool outlined;
   final Color? backgroundColor;
   final Color? foregroundColor;
-  final IconData? icon;
+  final AppIconData? icon;
   final bool haptics;
 
   @override
@@ -50,7 +52,7 @@ class PrimaryButton extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (icon != null) ...[
-                Icon(icon, size: AppSpacing.iconMd),
+                AppIcon(icon, size: AppSpacing.iconMd),
                 const SizedBox(width: AppSpacing.sm),
               ],
               Flexible(child: Text(label, overflow: TextOverflow.ellipsis)),

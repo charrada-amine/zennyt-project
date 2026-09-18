@@ -15,6 +15,8 @@ import '../../../auth/presentation/auth_controller.dart';
 import '../../../../core/enums/user_role.dart';
 import '../../cv_autofill/presentation/widgets/cv_source_bottom_sheet.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class UserProfileScreen extends ConsumerStatefulWidget {
   const UserProfileScreen({super.key});
 
@@ -56,7 +58,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
         title: 'Profile',
         trailingAction: IconButton.filledTonal(
           tooltip: 'Auto Fill Profile',
-          icon: const Icon(Icons.document_scanner_outlined),
+          icon: const AppIcon(HugeIcons.strokeRoundedDocumentValidation),
           onPressed: () => showModalBottomSheet(
             context: context,
             showDragHandle: true,
@@ -146,7 +148,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
         children: [
           FilledButton.icon(
             onPressed: () => context.push(AppRoutes.editProfile),
-            icon: const Icon(Icons.edit_outlined, size: 18),
+            icon: const AppIcon(HugeIcons.strokeRoundedPencilEdit01, size: 18),
             label: const Text('Edit Profile'),
           ),
           PopupMenuButton<bool>(
@@ -161,16 +163,16 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
+                  AppIcon(
                     state.isResumeAiVisible
-                        ? Icons.visibility_outlined
-                        : Icons.visibility_off_outlined,
+                        ? HugeIcons.strokeRoundedView
+                        : HugeIcons.strokeRoundedViewOff,
                     size: 18,
                     color: colors.textSecondary,
                   ),
                   const SizedBox(width: 8),
                   const Text('Resume AI'),
-                  const Icon(Icons.keyboard_arrow_down, size: 18),
+                  const AppIcon(HugeIcons.strokeRoundedArrowDown01, size: 18),
                 ],
               ),
             ),
@@ -214,14 +216,14 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
                       ),
                     ),
                   ),
-                  Icon(
+                  AppIcon(
                     profileState.isSoftSkillsVisible
-                        ? Icons.visibility_outlined
-                        : Icons.visibility_off_outlined,
+                        ? HugeIcons.strokeRoundedView
+                        : HugeIcons.strokeRoundedViewOff,
                     color: colors.textSecondary,
                     size: 20,
                   ),
-                  const Icon(Icons.keyboard_arrow_down, size: 20),
+                  const AppIcon(HugeIcons.strokeRoundedArrowDown01, size: 20),
                 ],
               ),
             ),

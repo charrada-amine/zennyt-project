@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/network/websocket_service.dart';
 import 'package:intl/intl.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class MessagingTestPage extends ConsumerStatefulWidget {
   const MessagingTestPage({super.key});
 
@@ -333,7 +335,7 @@ class _MessagingTestPageState extends ConsumerState<MessagingTestPage> {
         foregroundColor: Colors.white,
         actions: [
           IconButton(
-            icon: const Icon(Icons.delete_sweep),
+            icon: const AppIcon(HugeIcons.strokeRoundedDelete03),
             tooltip: 'Vider les logs',
             onPressed: _clearLogs,
           ),
@@ -385,10 +387,10 @@ class _MessagingTestPageState extends ConsumerState<MessagingTestPage> {
                 hintText: 'ex: 550e8400-e29b-41d4-a716-446655440000',
                 border: const OutlineInputBorder(),
                 suffixIcon: _myIdController.text.isNotEmpty
-                    ? Icon(
+                    ? AppIcon(
                         _uuidRegex.hasMatch(_myIdController.text.trim())
-                            ? Icons.check_circle
-                            : Icons.error,
+                            ? HugeIcons.strokeRoundedCheckmarkCircle02
+                            : HugeIcons.strokeRoundedAlertCircle,
                         color: _uuidRegex.hasMatch(_myIdController.text.trim())
                             ? Colors.green
                             : Colors.red,
@@ -408,10 +410,10 @@ class _MessagingTestPageState extends ConsumerState<MessagingTestPage> {
                 hintText: 'ex: 660e8400-e29b-41d4-a716-446655440001',
                 border: const OutlineInputBorder(),
                 suffixIcon: _targetIdController.text.isNotEmpty
-                    ? Icon(
+                    ? AppIcon(
                         _uuidRegex.hasMatch(_targetIdController.text.trim())
-                            ? Icons.check_circle
-                            : Icons.error,
+                            ? HugeIcons.strokeRoundedCheckmarkCircle02
+                            : HugeIcons.strokeRoundedAlertCircle,
                         color:
                             _uuidRegex.hasMatch(_targetIdController.text.trim())
                                 ? Colors.green
@@ -441,8 +443,8 @@ class _MessagingTestPageState extends ConsumerState<MessagingTestPage> {
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: _isConnected ? _disconnect : _connect,
-                icon: Icon(
-                  _isConnected ? Icons.link_off : Icons.link,
+                icon: AppIcon(
+                  _isConnected ? HugeIcons.strokeRoundedUnlink01 : HugeIcons.strokeRoundedLink01,
                 ),
                 label: Text(
                   _isConnected ? 'Déconnecter' : 'Connecter',
@@ -536,7 +538,7 @@ class _MessagingTestPageState extends ConsumerState<MessagingTestPage> {
               Flexible(
                 child: ElevatedButton.icon(
                   onPressed: _acceptIncomingCall,
-                  icon: const Icon(Icons.call),
+                  icon: const AppIcon(HugeIcons.strokeRoundedCall),
                   label: const Text('Accepter'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
@@ -548,7 +550,7 @@ class _MessagingTestPageState extends ConsumerState<MessagingTestPage> {
               Flexible(
                 child: ElevatedButton.icon(
                   onPressed: _rejectIncomingCall,
-                  icon: const Icon(Icons.call_end),
+                  icon: const AppIcon(HugeIcons.strokeRoundedCallEnd01),
                   label: const Text('Rejeter'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red,
@@ -574,7 +576,7 @@ class _MessagingTestPageState extends ConsumerState<MessagingTestPage> {
         Expanded(
           child: ElevatedButton.icon(
             onPressed: _startAudioCall,
-            icon: const Icon(Icons.call, size: 18),
+            icon: const AppIcon(HugeIcons.strokeRoundedCall, size: 18),
             label: const Text('Appel Audio'),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blue[700],
@@ -586,7 +588,7 @@ class _MessagingTestPageState extends ConsumerState<MessagingTestPage> {
         Expanded(
           child: ElevatedButton.icon(
             onPressed: _startVideoCall,
-            icon: const Icon(Icons.video_call, size: 18),
+            icon: const AppIcon(HugeIcons.strokeRoundedVideo01, size: 18),
             label: const Text('Appel Vidéo'),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.purple[700],
@@ -614,7 +616,7 @@ class _MessagingTestPageState extends ConsumerState<MessagingTestPage> {
         ),
         const SizedBox(width: 8),
         IconButton(
-          icon: const Icon(Icons.send),
+          icon: const AppIcon(HugeIcons.strokeRoundedSent),
           color: Colors.blue,
           onPressed: _sendMessage,
         ),

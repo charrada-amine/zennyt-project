@@ -11,6 +11,8 @@ import '../../../../../shared/widgets/zennyt_loader.dart';
 import '../../../../../core/localization/l10n_extension.dart';
 import '../../../../../core/theme/theme.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class CvReviewScreen extends ConsumerStatefulWidget {
   const CvReviewScreen({super.key});
 
@@ -35,7 +37,7 @@ class _CvReviewScreenState extends ConsumerState<CvReviewScreen> {
     });
   }
 
-  InputDecoration _fieldDecoration(String label, {IconData? prefixIcon}) {
+  InputDecoration _fieldDecoration(String label, {AppIconData? prefixIcon}) {
     final colors = context.colors;
 
     return InputDecoration(
@@ -51,7 +53,7 @@ class _CvReviewScreenState extends ConsumerState<CvReviewScreen> {
         fontWeight: FontWeight.w600,
       ),
       prefixIcon: prefixIcon != null
-          ? Icon(prefixIcon, size: 18, color: colors.textMuted)
+          ? AppIcon(prefixIcon, size: 18, color: colors.textMuted)
           : null,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
@@ -87,7 +89,7 @@ class _CvReviewScreenState extends ConsumerState<CvReviewScreen> {
           SnackBar(
             content: Row(
               children: [
-                const Icon(Icons.check_circle, color: Colors.white, size: 20),
+                const AppIcon(HugeIcons.strokeRoundedCheckmarkCircle02, color: Colors.white, size: 20),
                 const SizedBox(width: 12),
                 Expanded(child: Text(context.l10n.cvReviewSaveSuccess)),
               ],
@@ -106,7 +108,7 @@ class _CvReviewScreenState extends ConsumerState<CvReviewScreen> {
           SnackBar(
             content: Row(
               children: [
-                const Icon(Icons.error_outline, color: Colors.white, size: 20),
+                const AppIcon(HugeIcons.strokeRoundedAlertCircle, color: Colors.white, size: 20),
                 const SizedBox(width: 12),
                 Expanded(child: Text(context.l10n.cvReviewSaveFailed(e.toString()))),
               ],
@@ -196,7 +198,7 @@ class _CvReviewScreenState extends ConsumerState<CvReviewScreen> {
         children: [
           IconButton(
             onPressed: () => Navigator.of(context).pop(),
-            icon: Icon(Icons.arrow_back_ios_new, size: 18, color: colors.backButtonIcon),
+            icon: AppIcon(HugeIcons.strokeRoundedArrowLeft01, size: 18, color: colors.backButtonIcon),
             style: IconButton.styleFrom(
               backgroundColor: colors.backButtonBg,
               shape: RoundedRectangleBorder(
@@ -249,7 +251,7 @@ class _CvReviewScreenState extends ConsumerState<CvReviewScreen> {
               color: Colors.white.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.auto_awesome, color: Colors.white, size: 20),
+            child: const AppIcon(HugeIcons.strokeRoundedSparkles, color: Colors.white, size: 20),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -280,7 +282,7 @@ class _CvReviewScreenState extends ConsumerState<CvReviewScreen> {
   Widget _buildBasicInfoSection(CvParsedData data, AppColorScheme colors) {
     return CvSectionCard(
       title: context.l10n.cvReviewBasicInfo,
-      icon: Icons.person_outline,
+      icon: HugeIcons.strokeRoundedUser,
       iconColor: colors.primary,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -289,7 +291,7 @@ class _CvReviewScreenState extends ConsumerState<CvReviewScreen> {
             initialValue: data.currentPosition,
             decoration: _fieldDecoration(
               context.l10n.cvReviewCurrentPositionHint,
-              prefixIcon: Icons.work_outline,
+              prefixIcon: HugeIcons.strokeRoundedBriefcase01,
             ),
             style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.textPrimary),
             onChanged: (val) => _editedData = _editedData!.copyWith(currentPosition: val),
@@ -300,7 +302,7 @@ class _CvReviewScreenState extends ConsumerState<CvReviewScreen> {
             keyboardType: TextInputType.number,
             decoration: _fieldDecoration(
               context.l10n.cvReviewExperienceYearsHint,
-              prefixIcon: Icons.timeline,
+              prefixIcon: HugeIcons.strokeRoundedChartLineData02,
             ),
             style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.textPrimary),
             onChanged: (val) => _editedData = _editedData!.copyWith(yearsOfExperience: int.tryParse(val)),
@@ -311,7 +313,7 @@ class _CvReviewScreenState extends ConsumerState<CvReviewScreen> {
             maxLines: 3,
             decoration: _fieldDecoration(
               context.l10n.cvReviewAboutMeHint,
-              prefixIcon: Icons.notes,
+              prefixIcon: HugeIcons.strokeRoundedNote,
             ),
             style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.textPrimary),
             onChanged: (val) => _editedData = _editedData!.copyWith(aboutMe: val),
@@ -328,7 +330,7 @@ class _CvReviewScreenState extends ConsumerState<CvReviewScreen> {
   Widget _buildSkillsSection(CvParsedData data, AppColorScheme colors) {
     return CvSectionCard(
       title: context.l10n.cvReviewSkills,
-      icon: Icons.lightbulb_outline,
+      icon: HugeIcons.strokeRoundedIdea01,
       iconColor: AppColors.secondary,
       itemCount: data.skills.length,
       child: Wrap(
@@ -346,7 +348,7 @@ class _CvReviewScreenState extends ConsumerState<CvReviewScreen> {
           backgroundColor: colors.primary.withValues(alpha: 0.06),
           side: BorderSide(color: colors.primary.withValues(alpha: 0.15)),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          deleteIcon: Icon(Icons.close, size: 16, color: colors.primary.withValues(alpha: 0.5)),
+          deleteIcon: AppIcon(HugeIcons.strokeRoundedCancel01, size: 16, color: colors.primary.withValues(alpha: 0.5)),
           onDeleted: () {
             setState(() {
               final newSkills = List<CvParsedSkill>.from(data.skills)..remove(s);
@@ -367,7 +369,7 @@ class _CvReviewScreenState extends ConsumerState<CvReviewScreen> {
   Widget _buildExperienceSection(CvParsedData data, AppColorScheme colors) {
     return CvSectionCard(
       title: context.l10n.cvReviewExperience,
-      icon: Icons.work_outline,
+      icon: HugeIcons.strokeRoundedBriefcase01,
       iconColor: AppColors.success,
       itemCount: data.positions.length,
       child: Column(
@@ -393,7 +395,7 @@ class _CvReviewScreenState extends ConsumerState<CvReviewScreen> {
                 const SizedBox(height: 10),
                 TextFormField(
                   initialValue: p.companyName,
-                  decoration: _fieldDecoration(context.l10n.cvReviewCompanyName, prefixIcon: Icons.business),
+                  decoration: _fieldDecoration(context.l10n.cvReviewCompanyName, prefixIcon: HugeIcons.strokeRoundedBuilding03),
                   style: TextStyle(fontSize: 14, color: colors.textPrimary),
                   onChanged: (val) {
                     final newPos = List<CvParsedPosition>.from(data.positions);
@@ -407,7 +409,7 @@ class _CvReviewScreenState extends ConsumerState<CvReviewScreen> {
                     Expanded(
                       child: TextFormField(
                         initialValue: p.startDate,
-                        decoration: _fieldDecoration(context.l10n.cvReviewStartDate, prefixIcon: Icons.calendar_today),
+                        decoration: _fieldDecoration(context.l10n.cvReviewStartDate, prefixIcon: HugeIcons.strokeRoundedCalendar01),
                         style: TextStyle(fontSize: 13, color: colors.textPrimary),
                         onChanged: (val) {
                           final newPos = List<CvParsedPosition>.from(data.positions);
@@ -420,7 +422,7 @@ class _CvReviewScreenState extends ConsumerState<CvReviewScreen> {
                     Expanded(
                       child: TextFormField(
                         initialValue: p.current ? context.l10n.cvReviewPresent : p.endDate,
-                        decoration: _fieldDecoration(context.l10n.cvReviewEndDate, prefixIcon: Icons.event),
+                        decoration: _fieldDecoration(context.l10n.cvReviewEndDate, prefixIcon: HugeIcons.strokeRoundedCalendar03),
                         style: TextStyle(fontSize: 13, color: colors.textPrimary),
                         onChanged: (val) {
                           final newPos = List<CvParsedPosition>.from(data.positions);
@@ -449,7 +451,7 @@ class _CvReviewScreenState extends ConsumerState<CvReviewScreen> {
   Widget _buildEducationSection(CvParsedData data, AppColorScheme colors) {
     return CvSectionCard(
       title: context.l10n.cvReviewEducation,
-      icon: Icons.school_outlined,
+      icon: HugeIcons.strokeRoundedMortarboard01,
       iconColor: AppColors.info,
       itemCount: data.education.length,
       child: Column(
@@ -475,7 +477,7 @@ class _CvReviewScreenState extends ConsumerState<CvReviewScreen> {
                 const SizedBox(height: 10),
                 TextFormField(
                   initialValue: e.school,
-                  decoration: _fieldDecoration(context.l10n.cvReviewSchool, prefixIcon: Icons.account_balance),
+                  decoration: _fieldDecoration(context.l10n.cvReviewSchool, prefixIcon: HugeIcons.strokeRoundedBank),
                   style: TextStyle(fontSize: 14, color: colors.textPrimary),
                   onChanged: (val) {
                     final newEdu = List<CvParsedEducation>.from(data.education);
@@ -489,7 +491,7 @@ class _CvReviewScreenState extends ConsumerState<CvReviewScreen> {
                     Expanded(
                       child: TextFormField(
                         initialValue: e.startDate,
-                        decoration: _fieldDecoration(context.l10n.cvReviewStartYear, prefixIcon: Icons.calendar_today),
+                        decoration: _fieldDecoration(context.l10n.cvReviewStartYear, prefixIcon: HugeIcons.strokeRoundedCalendar01),
                         style: TextStyle(fontSize: 13, color: colors.textPrimary),
                         onChanged: (val) {
                           final newEdu = List<CvParsedEducation>.from(data.education);
@@ -502,7 +504,7 @@ class _CvReviewScreenState extends ConsumerState<CvReviewScreen> {
                     Expanded(
                       child: TextFormField(
                         initialValue: e.endDate,
-                        decoration: _fieldDecoration(context.l10n.cvReviewEndYear, prefixIcon: Icons.event),
+                        decoration: _fieldDecoration(context.l10n.cvReviewEndYear, prefixIcon: HugeIcons.strokeRoundedCalendar03),
                         style: TextStyle(fontSize: 13, color: colors.textPrimary),
                         onChanged: (val) {
                           final newEdu = List<CvParsedEducation>.from(data.education);
@@ -528,7 +530,7 @@ class _CvReviewScreenState extends ConsumerState<CvReviewScreen> {
   Widget _buildCertificationsSection(CvParsedData data, AppColorScheme colors) {
     return CvSectionCard(
       title: context.l10n.cvReviewCertifications,
-      icon: Icons.verified_outlined,
+      icon: HugeIcons.strokeRoundedCheckmarkBadge01,
       iconColor: AppColors.warning,
       itemCount: data.certifications.length,
       child: Column(
@@ -554,7 +556,7 @@ class _CvReviewScreenState extends ConsumerState<CvReviewScreen> {
                 const SizedBox(height: 10),
                 TextFormField(
                   initialValue: c.issuer,
-                  decoration: _fieldDecoration(context.l10n.cvReviewIssuer, prefixIcon: Icons.corporate_fare),
+                  decoration: _fieldDecoration(context.l10n.cvReviewIssuer, prefixIcon: HugeIcons.strokeRoundedBuilding05),
                   style: TextStyle(fontSize: 14, color: colors.textPrimary),
                   onChanged: (val) {
                     final newCerts = List<CvParsedCertification>.from(data.certifications);
@@ -651,7 +653,7 @@ class _CvReviewScreenState extends ConsumerState<CvReviewScreen> {
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.check_circle_outline, size: 20),
+                  const AppIcon(HugeIcons.strokeRoundedCheckmarkCircle02, size: 20),
                   const SizedBox(width: 10),
                   Text(
                     context.l10n.cvReviewSaveBtn,

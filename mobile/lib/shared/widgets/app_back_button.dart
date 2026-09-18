@@ -5,6 +5,8 @@ import '../../core/theme/theme.dart';
 import '../../core/audio/sound_service.dart';
 import 'app_motion.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// Icon-only back button pinned to the top-left of a screen.
 ///
 /// Replaces the full-width transparent [AppBar] band so content no longer
@@ -32,7 +34,7 @@ class AppBackButton extends StatelessWidget {
               backgroundColor: context.colors.cardSurface,
               side: BorderSide(color: context.colors.border),
             ),
-            icon: const Icon(Icons.arrow_back_rounded),
+            icon: const AppIcon(HugeIcons.strokeRoundedArrowLeft02),
             color: context.colors.backButtonIcon,
             tooltip: MaterialLocalizations.of(context).backButtonTooltip,
           ),

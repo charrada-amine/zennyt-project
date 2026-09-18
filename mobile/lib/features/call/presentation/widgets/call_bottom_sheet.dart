@@ -1,13 +1,14 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+
 
 import '../../../../core/constants.dart';
 import 'package:zennyt/l10n/gen/app_localizations.dart';
 import '../providers/call_ui_providers.dart';
 import 'call_action_button.dart';
 import 'call_control_button.dart';
+
+import 'package:zennyt/shared/icons/app_icons.dart';
 
 class CallBottomSheet extends ConsumerWidget {
   final DraggableScrollableController controller;
@@ -71,7 +72,7 @@ class CallBottomSheet extends ConsumerWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     CallControlButton(
-                      icon:Icon(AppConstants.isCupertino ? CupertinoIcons.dial:Icons.av_timer,color: Colors.white,size: 28,)
+                      icon:AppIcon(AppConstants.isCupertino ? HugeIcons.strokeRoundedDialpadSquare01:HugeIcons.strokeRoundedTimer02,color: Colors.white,size: 28,)
                       ,
                       label: l10n.effects,
                       onTap: () => ref
@@ -81,24 +82,24 @@ class CallBottomSheet extends ConsumerWidget {
                     CallControlButton(
                       icon: AppConstants.isCupertino
                           ? (isMuted
-                              ?const Icon( CupertinoIcons.mic_fill,color: Colors.white,size: 28)
-                              :const Icon(CupertinoIcons.mic_slash_fill,color: Colors.white,size: 28))
+                              ?const AppIcon( HugeIcons.strokeRoundedMic01,color: Colors.white,size: 28)
+                              :const AppIcon(HugeIcons.strokeRoundedMicOff01,color: Colors.white,size: 28))
                           : (isMuted
-                              ?const FaIcon(FontAwesomeIcons.microphone,color: Colors.white,size: 28)
-                              :const FaIcon(FontAwesomeIcons.microphoneSlash,color: Colors.white,size: 28)),
+                              ?const AppIcon(HugeIcons.strokeRoundedMic01,color: Colors.white,size: 28)
+                              :const AppIcon(HugeIcons.strokeRoundedMicOff01,color: Colors.white,size: 28)),
                       label: l10n.mute,
                       onTap: () => onToggleMute(isMuted),
                     ),
                     if (!isCameraOff && isRendering)
                       CallControlButton(
                         icon: AppConstants.isCupertino
-                            ?const Icon( CupertinoIcons.switch_camera_solid,color:Colors.white,size:28)
-                            :const FaIcon(FontAwesomeIcons.cameraRotate,color: Colors.white,size: 28),
+                            ?const AppIcon( HugeIcons.strokeRoundedCameraRotated01,color:Colors.white,size:28)
+                            :const AppIcon(HugeIcons.strokeRoundedCameraRotated01,color: Colors.white,size: 28),
                         label: l10n.flip,
                         onTap: onSwitchCamera,
                       ),
                     CallControlButton(
-                      icon:const FaIcon(FontAwesomeIcons.xmark,color: Colors.white,size: 32),
+                      icon:const AppIcon(HugeIcons.strokeRoundedCancel01,color: Colors.white,size: 32),
                       label: l10n.end,
                       backgroundColor: Colors.red,
                       onTap: onEndCall,
@@ -116,22 +117,22 @@ class CallBottomSheet extends ConsumerWidget {
                   CallActionButton(
                     icon: AppConstants.isCupertino
                         ? (isCameraOff
-                            ? const Icon(CupertinoIcons.video_camera_solid,color: Colors.white,size: 28)
-                            : const FaIcon(FontAwesomeIcons.videoSlash,color: Colors.white,size: 22,))
+                            ? const AppIcon(HugeIcons.strokeRoundedVideo01,color: Colors.white,size: 28)
+                            : const AppIcon(HugeIcons.strokeRoundedVideoOff,color: Colors.white,size: 22,))
                         : (isCameraOff
-                            ? const FaIcon(FontAwesomeIcons.video,color: Colors.white,size: 22,)
-                            : const FaIcon(FontAwesomeIcons.videoSlash,color: Colors.white,size: 22,)),
+                            ? const AppIcon(HugeIcons.strokeRoundedVideo01,color: Colors.white,size: 22,)
+                            : const AppIcon(HugeIcons.strokeRoundedVideoOff,color: Colors.white,size: 22,)),
                     label: isCameraOff ? l10n.videoOn : l10n.cameraOff,
                     onTap: () => onToggleCamera(isCameraOff),
                   ),
                   CallActionButton(
                     icon: AppConstants.isCupertino
                         ? (isSpeakerOn
-                            ? const Icon(CupertinoIcons.speaker_1_fill,color: Colors.white,size: 28,)
-                            : const Icon(CupertinoIcons.speaker_3_fill,color: Colors.white,size: 28,))
+                            ? const AppIcon(HugeIcons.strokeRoundedVolumeLow,color: Colors.white,size: 28,)
+                            : const AppIcon(HugeIcons.strokeRoundedVolumeHigh,color: Colors.white,size: 28,))
                         : (isSpeakerOn
-                            ? const FaIcon(FontAwesomeIcons.volumeLow,color: Colors.white,size: 22,)
-                            : const FaIcon(FontAwesomeIcons.volumeHigh,color: Colors.white,size: 22,)),
+                            ? const AppIcon(HugeIcons.strokeRoundedVolumeLow,color: Colors.white,size: 22,)
+                            : const AppIcon(HugeIcons.strokeRoundedVolumeHigh,color: Colors.white,size: 22,)),
                     label: isSpeakerOn ? l10n.earpiece : l10n.speaker,
                     onTap: () => onToggleSpeaker(isSpeakerOn),
                   ),

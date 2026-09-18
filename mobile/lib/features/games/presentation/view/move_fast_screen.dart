@@ -23,6 +23,8 @@ import '../games_providers.dart';
 import '../widgets/game_results_template.dart';
 import '../widgets/game_system_components.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 enum _MoveFastStage {
   intro,
   tutorialOrientation,
@@ -1417,7 +1419,7 @@ class _MovementCue extends StatelessWidget {
               size: 92,
             ),
             const SizedBox(width: AppSpacing.base),
-            Icon(
+            AppIcon(
               stimulus.movementDirection.icon,
               size: 50,
               color: ZennytGamePalette.magenta,
@@ -2297,7 +2299,7 @@ class _TactileHint extends StatelessWidget {
     return SizedBox(
       width: 52,
       height: 52,
-      child: Icon(
+      child: AppIcon(
         direction.icon,
         color: Colors.white.withValues(alpha: 0.92),
         size: 30,
@@ -2632,7 +2634,7 @@ class _TopBackButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
           ),
         ),
-        icon: const Icon(Icons.chevron_left),
+        icon: const AppIcon(HugeIcons.strokeRoundedArrowLeft01),
       ),
     );
   }
@@ -2666,8 +2668,8 @@ class _RulesDialog extends StatelessWidget {
                     color: ZennytGamePalette.gameBlue.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
                   ),
-                  child: const Icon(
-                    Icons.menu_book_rounded,
+                  child: const AppIcon(
+                    HugeIcons.strokeRoundedBookOpen01,
                     color: ZennytGamePalette.gameBlue,
                     size: 24,
                   ),
@@ -2687,7 +2689,7 @@ class _RulesDialog extends StatelessWidget {
             const SizedBox(height: AppSpacing.lg),
             const _RuleCard(
               color: ZennytGamePalette.success,
-              icon: Icons.navigation_rounded,
+              icon: HugeIcons.strokeRoundedNavigation03,
               badge: 'Orientation',
               title: 'Barre verte',
               description: 'Réponds à la direction du nez de l\'avion.',
@@ -2695,7 +2697,7 @@ class _RulesDialog extends StatelessWidget {
             const SizedBox(height: AppSpacing.md),
             const _RuleCard(
               color: ZennytGamePalette.ruleOrange,
-              icon: Icons.open_with_rounded,
+              icon: HugeIcons.strokeRoundedMove,
               badge: 'Mouvement',
               title: 'Barre orange',
               description: 'Réponds à la direction du déplacement.',
@@ -2703,7 +2705,7 @@ class _RulesDialog extends StatelessWidget {
             const SizedBox(height: AppSpacing.xl),
             GamePrimaryButton(
               label: 'Compris',
-              icon: Icons.check_rounded,
+              icon: HugeIcons.strokeRoundedTick02,
               color: ZennytGamePalette.gameBlue,
               onPressed: () => Navigator.of(context).pop(),
             ),
@@ -2724,7 +2726,7 @@ class _RuleCard extends StatelessWidget {
   });
 
   final Color color;
-  final IconData icon;
+  final AppIconData icon;
   final String badge;
   final String title;
   final String description;
@@ -2748,7 +2750,7 @@ class _RuleCard extends StatelessWidget {
               color: color,
               borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
             ),
-            child: Icon(icon, color: Colors.white, size: 22),
+            child: AppIcon(icon, color: Colors.white, size: 22),
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(

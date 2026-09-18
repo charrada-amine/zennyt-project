@@ -30,6 +30,8 @@ import '../../domain/service/day_stack_schedule.dart';
 import 'day_stack_badges.dart';
 import 'game_system_components.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// Hauteur d'une minute dans l'agenda.
 const double kDayStackPxPerMinute = 1.6;
 
@@ -456,7 +458,7 @@ class _CalendarEvent extends StatelessWidget {
                     if (constraint != null) ...[
                       const SizedBox(height: 3),
                       _EventChip(
-                        icon: Icons.schedule_rounded,
+                        icon: HugeIcons.strokeRoundedClock01,
                         label: constraint,
                         color: color,
                       ),
@@ -490,7 +492,7 @@ class _EventChip extends StatelessWidget {
     required this.color,
   });
 
-  final IconData icon;
+  final AppIconData icon;
   final String label;
   final Color color;
 
@@ -505,7 +507,7 @@ class _EventChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: _Palette.detail),
+          AppIcon(icon, size: 14, color: _Palette.detail),
           const SizedBox(width: 4),
           Flexible(
             child: Text(

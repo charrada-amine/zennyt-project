@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class AddTestCard extends StatelessWidget {
   final VoidCallback onTap;
   const AddTestCard({super.key, required this.onTap});
@@ -16,7 +18,7 @@ class AddTestCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
         ),
         child: const Center(
-          child: Icon(Icons.add, color: Colors.white),
+          child: AppIcon(HugeIcons.strokeRoundedAdd01, color: Colors.white),
         ),
       ),
     );

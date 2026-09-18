@@ -1,10 +1,11 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:zennyt/core/constants.dart';
 import 'package:zennyt/l10n/gen/app_localizations.dart';
 import '../../../../shared/widgets/initials_avatar.dart';
 import '../../domain/entities/post.dart';
+
+import 'package:zennyt/shared/icons/app_icons.dart';
 
 class CreatePostHeader extends StatelessWidget {
   final VoidCallback? onPostTap;
@@ -37,15 +38,13 @@ class CreatePostHeader extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: Icon(
-                  AppConstants.isCupertino
-                      ? CupertinoIcons.globe
-                      : Icons.public,
+                leading: AppIcon(
+                  HugeIcons.strokeRoundedGlobe02,
                   color: context.colors.textPrimary,
                 ),
                 title: Text(l10n.publicVisibility),
                 trailing: visibility == PostVisibility.public
-                    ? Icon(Icons.check, color: context.colors.textPrimary)
+                    ? AppIcon(HugeIcons.strokeRoundedTick02, color: context.colors.textPrimary)
                     : null,
                 onTap: () {
                   onVisibilityChanged(PostVisibility.public);
@@ -53,15 +52,13 @@ class CreatePostHeader extends StatelessWidget {
                 },
               ),
               ListTile(
-                leading: Icon(
-                  AppConstants.isCupertino
-                      ? CupertinoIcons.person_2
-                      : Icons.people_outline,
+                leading: AppIcon(
+                  HugeIcons.strokeRoundedUserMultiple,
                   color: context.colors.textPrimary,
                 ),
                 title: Text(l10n.friendsVisibility),
                 trailing: visibility == PostVisibility.friends
-                    ? Icon(Icons.check, color: context.colors.textPrimary)
+                    ? AppIcon(HugeIcons.strokeRoundedTick02, color: context.colors.textPrimary)
                     : null,
                 onTap: () {
                   onVisibilityChanged(PostVisibility.friends);
@@ -81,14 +78,10 @@ class CreatePostHeader extends StatelessWidget {
         : l10n.friendsVisibility;
   }
 
-  IconData _visibilityIcon() {
+  AppIconData _visibilityIcon() {
     return visibility == PostVisibility.public
-        ? (AppConstants.isCupertino
-            ? CupertinoIcons.globe
-            : Icons.public)
-        : (AppConstants.isCupertino
-            ? CupertinoIcons.person_2
-            : Icons.people_outline);
+        ? HugeIcons.strokeRoundedGlobe02
+        : HugeIcons.strokeRoundedUserMultiple;
   }
 
   @override
@@ -108,8 +101,8 @@ class CreatePostHeader extends StatelessWidget {
         children: [
           GestureDetector(
             onTap: () => context.pop(),
-            child: Icon(
-              AppConstants.isCupertino ? CupertinoIcons.xmark : Icons.close,
+            child: AppIcon(
+              HugeIcons.strokeRoundedCancel01,
               color: context.colors.textPrimary,
               size: 28,
             ),
@@ -126,7 +119,7 @@ class CreatePostHeader extends StatelessWidget {
                 onTap: () => _showVisibilityPicker(context),
                 child: Row(
                   children: [
-                    Icon(
+                    AppIcon(
                       _visibilityIcon(),
                       color: context.colors.textSecondary,
                       size: 16,
@@ -139,10 +132,8 @@ class CreatePostHeader extends StatelessWidget {
                         fontSize: 14,
                       ),
                     ),
-                    Icon(
-                      AppConstants.isCupertino
-                          ? CupertinoIcons.chevron_down
-                          : Icons.expand_more,
+                    AppIcon(
+                      HugeIcons.strokeRoundedArrowDown01,
                       color: context.colors.textSecondary,
                       size: 14,
                     ),

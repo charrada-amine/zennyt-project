@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:zennyt/core/constants.dart';
 import 'package:zennyt/l10n/gen/app_localizations.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class MediaPickerHeader extends StatelessWidget {
   final String albumName;
   final int selectedCount;
@@ -35,8 +37,8 @@ class MediaPickerHeader extends StatelessWidget {
         children: [
           GestureDetector(
             onTap: () => context.pop(),
-            child: Icon(
-              AppConstants.isCupertino ? CupertinoIcons.xmark : Icons.close,
+            child: AppIcon(
+              HugeIcons.strokeRoundedCancel01,
               color: context.colors.textPrimary,
               size: 28,
             ),
@@ -59,10 +61,8 @@ class MediaPickerHeader extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  Icon(
-                    AppConstants.isCupertino
-                        ? CupertinoIcons.chevron_down
-                        : Icons.expand_more,
+                  AppIcon(
+                    HugeIcons.strokeRoundedArrowDown01,
                     color: context.colors.textPrimary,
                     size: 20,
                   ),

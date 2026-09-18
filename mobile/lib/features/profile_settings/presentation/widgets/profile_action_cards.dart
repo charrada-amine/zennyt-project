@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zennyt/shared/icons/app_icons.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/localization/l10n_extension.dart';
@@ -19,7 +20,7 @@ class ProfileActionCards extends StatelessWidget {
       children: [
         Expanded(
           child: _ActionCard(
-            iconAsset: 'assets/images/card plus.png',
+            icon: HugeIcons.strokeRoundedCreditCardAdd,
             label: l10n.addYourCard,
             colors: colors,
             onTap: () => context.push(AppRoutes.wallet),
@@ -28,8 +29,7 @@ class ProfileActionCards extends StatelessWidget {
         const SizedBox(width: AppSpacing.md),
         Expanded(
           child: _ActionCard(
-            iconAsset:
-                'assets/images/add.png', // Assuming add.png is the user+ icon
+            icon: HugeIcons.strokeRoundedUserAdd01,
             label: l10n.inviteFriends,
             colors: colors,
             onTap: () => context.push(AppRoutes.referral),
@@ -42,13 +42,13 @@ class ProfileActionCards extends StatelessWidget {
 
 class _ActionCard extends StatelessWidget {
   const _ActionCard({
-    required this.iconAsset,
+    required this.icon,
     required this.label,
     required this.colors,
     required this.onTap,
   });
 
-  final String iconAsset;
+  final AppIconData icon;
   final String label;
   final AppColorScheme colors;
   final VoidCallback onTap;
@@ -76,7 +76,7 @@ class _ActionCard extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Image.asset(iconAsset, width: 32, height: 32),
+                AppIcon(icon, size: 30, color: const Color(0xFF11428D)),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
                   label,

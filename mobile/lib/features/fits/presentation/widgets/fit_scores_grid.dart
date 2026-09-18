@@ -5,6 +5,8 @@ import '../../../../shared/widgets/app_motion.dart';
 import 'fit_card_data.dart';
 import 'tinder_card.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// Adaptive browse cards. Natural height accommodates large text and long titles.
 class FitScoresGrid extends StatelessWidget {
   const FitScoresGrid({super.key, required this.items, this.onJobTap});
@@ -77,8 +79,8 @@ class FitScoresGrid extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(width: 16),
-                            Icon(
-                              Icons.arrow_outward_rounded,
+                            AppIcon(
+                              HugeIcons.strokeRoundedArrowUpRight01,
                               color: context.colors.primary,
                               size: 21,
                             ),

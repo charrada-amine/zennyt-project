@@ -9,6 +9,8 @@ import '../../../../core/widgets/zennyt_switch.dart';
 import '../../../auth/presentation/auth_providers.dart';
 import '../../../auth/presentation/auth_controller.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class AccountCenterScreen extends ConsumerStatefulWidget {
   const AccountCenterScreen({super.key});
 
@@ -214,8 +216,8 @@ class _AccountCenterScreenState extends ConsumerState<AccountCenterScreen> {
   }
 
   Widget _buildChevron(AppColorScheme colors) {
-    return Icon(
-      Icons.arrow_forward_ios_rounded,
+    return AppIcon(
+      HugeIcons.strokeRoundedArrowRight01,
       color: colors.chevron,
       size: 16,
     );
@@ -270,8 +272,8 @@ class _AccountCenterScreenState extends ConsumerState<AccountCenterScreen> {
                         ),
                         child: IconButton(
                           onPressed: () => Navigator.pop(ctx),
-                          icon: Icon(
-                            Icons.arrow_back_ios_new_rounded,
+                          icon: AppIcon(
+                            HugeIcons.strokeRoundedArrowLeft01,
                             color: colors.primary,
                             size: 20,
                           ),
@@ -476,8 +478,8 @@ class _AccountCenterScreenState extends ConsumerState<AccountCenterScreen> {
                     shape: BoxShape.circle,
                   ),
                   child: const Center(
-                    child: Icon(
-                      Icons.delete_outline_rounded,
+                    child: AppIcon(
+                      HugeIcons.strokeRoundedDelete02,
                       color: Color(0xFFE91E63),
                       size: 32,
                     ),
@@ -716,8 +718,8 @@ class _TopBar extends StatelessWidget {
           ),
           child: IconButton(
             onPressed: () => context.pop(),
-            icon: Icon(
-              Icons.arrow_back_rounded,
+            icon: AppIcon(
+              HugeIcons.strokeRoundedArrowLeft02,
               color: colors.backButtonIcon,
               size: 20,
             ),

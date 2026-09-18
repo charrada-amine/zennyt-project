@@ -12,6 +12,8 @@ import '../widgets/album_picker_sheet.dart';
 import '../widgets/media_grid_tile.dart';
 import '../widgets/media_picker_header.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class MediaPickerPage extends ConsumerWidget {
   const MediaPickerPage({super.key});
 
@@ -93,8 +95,8 @@ class MediaPickerPage extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                Icons.photo_library_outlined,
+              AppIcon(
+                HugeIcons.strokeRoundedAlbum02,
                 size: 64,
                 color: colors.primary,
               ),
@@ -123,7 +125,7 @@ class MediaPickerPage extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(24),
                   ),
                 ),
-                icon: const Icon(Icons.settings, size: 20),
+                icon: const AppIcon(HugeIcons.strokeRoundedSettings01, size: 20),
                 label: const Text(
                   'Allow Access / Open Settings',
                   style: TextStyle(fontWeight: FontWeight.bold),

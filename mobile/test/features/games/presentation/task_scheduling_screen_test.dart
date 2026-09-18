@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../../../helpers/app_icon_finders.dart';
+import 'package:zennyt/shared/icons/app_icons.dart';
 import 'package:zennyt/core/audio/sound_service.dart';
 import 'package:zennyt/features/games/data/games_mock_repository.dart';
 import 'package:zennyt/features/games/domain/entities/device_calibration.dart';
@@ -202,7 +204,7 @@ void main() {
     expect(
       find.descendant(
         of: find.byType(DayStackTaskBadge),
-        matching: find.byType(Icon),
+        matching: find.byType(AppIcon),
       ),
       findsNothing,
       reason: 'aucune emote connue ne retombe sur l’icône',
@@ -553,7 +555,7 @@ void main() {
     final dynamic state = tester.state(find.byType(TaskSchedulingScreen));
     state.moveSlotForTest(order(tester).indexOf(1), 0);
     await tester.pumpAndSettle();
-    expect(find.byIcon(Icons.error_outline_rounded), findsNothing);
+    expect(findAppIcon(HugeIcons.strokeRoundedAlertCircle), findsNothing);
     expect(repo.submitted, isNull);
     await tester.tap(find.text('Valider'));
     await tester.pumpAndSettle();
@@ -621,7 +623,7 @@ void main() {
 
     expect(order(tester).indexOf(movedTask), greaterThan(0));
     expect(find.textContaining('déplacement(s)'), findsNothing);
-    expect(find.byIcon(Icons.drag_indicator_rounded), findsNothing);
+    expect(findAppIcon(HugeIcons.strokeRoundedDragDropVertical), findsNothing);
   });
 
   testWidgets(

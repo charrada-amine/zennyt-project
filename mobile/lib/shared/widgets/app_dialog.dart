@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../core/theme/theme.dart';
 import 'primary_button.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// Branded modal dialogs matching the design (a colored circular icon, title,
 /// message and a dismiss button). Used for the login error state and reusable
 /// for success / info dialogs.
@@ -17,7 +19,7 @@ class AppDialog {
   }) {
     return _show(
       context,
-      icon: Icons.close_rounded,
+      icon: HugeIcons.strokeRoundedCancel01,
       iconColor: context.colors.error,
       title: title,
       message: message,
@@ -34,7 +36,7 @@ class AppDialog {
   }) {
     return _show(
       context,
-      icon: Icons.close_rounded,
+      icon: HugeIcons.strokeRoundedCancel01,
       iconColor: context.colors.error,
       title: title,
       message: message,
@@ -51,7 +53,7 @@ class AppDialog {
   }) {
     return _show(
       context,
-      icon: Icons.check_rounded,
+      icon: HugeIcons.strokeRoundedTick02,
       iconColor: context.colors.success,
       title: title,
       message: message,
@@ -61,7 +63,7 @@ class AppDialog {
 
   static Future<void> _show(
     BuildContext context, {
-    required IconData icon,
+    required AppIconData icon,
     required Color iconColor,
     required String title,
     required String message,
@@ -94,7 +96,7 @@ class AppDialog {
                       color: iconColor,
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(icon, color: Colors.white, size: 32),
+                    child: AppIcon(icon, color: Colors.white, size: 32),
                   ),
                 ),
               ),

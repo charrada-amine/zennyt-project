@@ -10,6 +10,8 @@ import '../../domain/entities/score_breakdown.dart';
 import '../widgets/game_results_template.dart';
 import '../widgets/game_system_components.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 const _ink = Color(0xFF28234F);
 const _muted = Color(0xFF7E8DB2);
 const _border = Color(0xFFD8E2F6);
@@ -317,7 +319,7 @@ class _ResultsHeader extends StatelessWidget {
               SoundService.instance.playSfx(GameSfx.buttonClick);
               onClose();
             },
-            icon: const Icon(Icons.close_rounded),
+            icon: const AppIcon(HugeIcons.strokeRoundedCancel01),
             style: IconButton.styleFrom(
               fixedSize: const Size(48, 48),
               foregroundColor: _ink,
@@ -347,7 +349,7 @@ class _ResultsHeader extends StatelessWidget {
               ],
             ),
           ),
-          const Icon(Icons.more_horiz_rounded, color: _ink, size: 32),
+          const AppIcon(HugeIcons.strokeRoundedMoreHorizontal, color: _ink, size: 32),
         ],
       ),
     );
@@ -374,7 +376,7 @@ class _JourneyCompleteView extends StatelessWidget {
     return _ScrollableResult(
       children: [
         const SizedBox(height: 24),
-        const _HeroMark(icon: Icons.auto_awesome_rounded, color: _magenta),
+        const _HeroMark(icon: HugeIcons.strokeRoundedSparkles, color: _magenta),
         const SizedBox(height: 24),
         _TitleBlock(
           key: const ValueKey('decision-journey-complete'),
@@ -446,17 +448,17 @@ class _PreparingProfileViewState extends State<_PreparingProfileView> {
         ),
         const SizedBox(height: 24),
         const _PreparationStep(
-          icon: Icons.check_circle_rounded,
+          icon: HugeIcons.strokeRoundedCheckmarkCircle02,
           label: 'Reading your journey',
           complete: true,
         ),
         const _PreparationStep(
-          icon: Icons.balance_rounded,
+          icon: HugeIcons.strokeRoundedBalanceScale,
           label: 'Balancing dimensions',
           complete: true,
         ),
         const _PreparationStep(
-          icon: Icons.auto_graph_rounded,
+          icon: HugeIcons.strokeRoundedAnalyticsUp,
           label: 'Building profile',
           complete: false,
         ),
@@ -623,7 +625,7 @@ class _ExportView extends StatelessWidget {
     return _ScrollableResult(
       children: [
         const SizedBox(height: 22),
-        const _HeroMark(icon: Icons.ios_share_rounded, color: _violet),
+        const _HeroMark(icon: HugeIcons.strokeRoundedShare08, color: _violet),
         const SizedBox(height: 22),
         const _TitleBlock(
           key: ValueKey('decision-export-share'),
@@ -640,7 +642,7 @@ class _ExportView extends StatelessWidget {
         // aucune ne produisait de PDF ni n'ouvrait la feuille de partage du
         // système. Elles copiaient du texte brut dans le presse-papier.
         _ExportOption(
-          icon: Icons.content_copy_rounded,
+          icon: HugeIcons.strokeRoundedCopy01,
           title: 'Copy summary',
           subtitle: 'Put your profile on the clipboard as text',
           color: _magenta,
@@ -648,7 +650,7 @@ class _ExportView extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         _ExportOption(
-          icon: Icons.home_rounded,
+          icon: HugeIcons.strokeRoundedHome01,
           title: 'Return to Zennyt',
           subtitle: 'Finish and return to the games menu',
           color: _cyan,
@@ -716,7 +718,7 @@ class _ResultCard extends StatelessWidget {
 class _HeroMark extends StatelessWidget {
   const _HeroMark({required this.icon, required this.color});
 
-  final IconData icon;
+  final AppIconData icon;
   final Color color;
 
   @override
@@ -729,7 +731,7 @@ class _HeroMark extends StatelessWidget {
         shape: BoxShape.circle,
         border: Border.all(color: color.withValues(alpha: 0.35), width: 2),
       ),
-      child: Icon(icon, size: 62, color: color),
+      child: AppIcon(icon, size: 62, color: color),
     );
   }
 }
@@ -775,19 +777,19 @@ class _CompletionCard extends StatelessWidget {
       child: Column(
         children: [
           _CompletionRow(
-            icon: Icons.check_circle_rounded,
+            icon: HugeIcons.strokeRoundedCheckmarkCircle02,
             label: 'Scenarios answered',
             value: '$answered / $totalItems',
           ),
           const Divider(color: _border, height: 24),
           const _CompletionRow(
-            icon: Icons.lock_rounded,
+            icon: HugeIcons.strokeRoundedLockKey,
             label: 'Choices',
             value: 'Saved privately',
           ),
           const Divider(color: _border, height: 24),
           const _CompletionRow(
-            icon: Icons.auto_graph_rounded,
+            icon: HugeIcons.strokeRoundedAnalyticsUp,
             label: 'Decision profile',
             value: 'Ready',
           ),
@@ -804,7 +806,7 @@ class _CompletionRow extends StatelessWidget {
     required this.value,
   });
 
-  final IconData icon;
+  final AppIconData icon;
   final String label;
   final String value;
 
@@ -812,7 +814,7 @@ class _CompletionRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, color: _magenta),
+        AppIcon(icon, color: _magenta),
         const SizedBox(width: 12),
         Expanded(
           child: Text(label, style: const TextStyle(color: _ink)),
@@ -836,7 +838,7 @@ class _PreparationStep extends StatelessWidget {
     required this.complete,
   });
 
-  final IconData icon;
+  final AppIconData icon;
   final String label;
   final bool complete;
 
@@ -847,7 +849,7 @@ class _PreparationStep extends StatelessWidget {
       child: _ResultCard(
         child: Row(
           children: [
-            Icon(icon, color: complete ? _green : _magenta),
+            AppIcon(icon, color: complete ? _green : _magenta),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -858,7 +860,7 @@ class _PreparationStep extends StatelessWidget {
                 ),
               ),
             ),
-            if (complete) const Icon(Icons.check_rounded, color: _green),
+            if (complete) const AppIcon(HugeIcons.strokeRoundedTick02, color: _green),
           ],
         ),
       ),
@@ -939,7 +941,7 @@ class _ExportOption extends StatelessWidget {
     required this.onTap,
   });
 
-  final IconData icon;
+  final AppIconData icon;
   final String title;
   final String subtitle;
   final Color color;
@@ -977,7 +979,7 @@ class _ExportOption extends StatelessWidget {
                     color: color.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(icon, color: color),
+                  child: AppIcon(icon, color: color),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -999,7 +1001,7 @@ class _ExportOption extends StatelessWidget {
                     ],
                   ),
                 ),
-                const Icon(Icons.chevron_right_rounded, color: _muted),
+                const AppIcon(HugeIcons.strokeRoundedArrowRight01, color: _muted),
               ],
             ),
           ),
@@ -1024,7 +1026,7 @@ class _PrivacyNote extends StatelessWidget {
       ),
       child: const Row(
         children: [
-          Icon(Icons.lock_outline_rounded, color: _magenta),
+          AppIcon(HugeIcons.strokeRoundedLockKey, color: _magenta),
           SizedBox(width: 10),
           Expanded(
             child: Text(
