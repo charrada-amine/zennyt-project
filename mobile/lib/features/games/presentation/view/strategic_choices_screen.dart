@@ -7,8 +7,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/audio/sound_service.dart';
 import '../../../../core/router/app_routes.dart';
-import '../../../navigation/presentation/viewmodel/nav_tab_provider.dart';
-import '../../../navigation/presentation/widgets/app_bottom_nav.dart';
 import '../../data/strategic_choices_bank_loader.dart';
 import '../../domain/config/strategic_choices_content.dart';
 import '../../domain/entities/game_score.dart';
@@ -36,15 +34,7 @@ const _border = Color(0xFFE2E8F4);
 
 const _purpleLogo = 'assets/games icons/Strategic Choices Purple.png';
 
-enum _StrategicStage {
-  cover,
-  intro,
-  tutorial,
-  gameplay,
-  saved,
-  results,
-  insights,
-}
+enum _StrategicStage { cover, tutorial, gameplay, saved, results, insights }
 
 enum _ScenarioPhase { reading, reflecting, ready }
 
@@ -153,15 +143,6 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _openPause(afterLifecycle: true);
       });
-    }
-  }
-
-  void _selectMainTab(int index) {
-    ref.read(navTabProvider.notifier).select(index);
-    if (index == 2) {
-      context.go(AppRoutes.games);
-    } else {
-      context.go(AppRoutes.home);
     }
   }
 
@@ -473,10 +454,8 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
     switch (_stage) {
       case _StrategicStage.cover:
         context.go(AppRoutes.games);
-      case _StrategicStage.intro:
-        _setStage(_StrategicStage.cover);
       case _StrategicStage.tutorial:
-        _setStage(_StrategicStage.intro);
+        _setStage(_StrategicStage.cover);
       case _StrategicStage.gameplay:
         _backOrExit();
       case _StrategicStage.saved:
@@ -490,12 +469,6 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
 
   @override
   Widget build(BuildContext context) {
-    final showBottomNav = switch (_stage) {
-      _StrategicStage.cover ||
-      _StrategicStage.intro ||
-      _StrategicStage.tutorial => true,
-      _ => false,
-    };
     final purpleStage = switch (_stage) {
       _StrategicStage.gameplay || _StrategicStage.saved => true,
       _ => false,
@@ -508,12 +481,6 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
       },
       child: Scaffold(
         backgroundColor: purpleStage ? _violet : Colors.white,
-        bottomNavigationBar: showBottomNav
-            ? MediaQuery.withClampedTextScaling(
-                maxScaleFactor: 1,
-                child: AppBottomNav(selectedTab: 2, onSelect: _selectMainTab),
-              )
-            : null,
         body: SafeArea(
           child: GameContentFrame(
             child: AnimatedSwitcher(
@@ -524,13 +491,7 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
                 _StrategicStage.cover => _CoverView(
                   key: const ValueKey('strategic-cover'),
                   onBack: _handleBack,
-                  onTutorial: () => _setStage(_StrategicStage.intro),
-                  onStart: () => _setStage(_StrategicStage.intro),
-                ),
-                _StrategicStage.intro => _IntroView(
-                  key: const ValueKey('strategic-intro'),
-                  onBack: _handleBack,
-                  onContinue: () => _setStage(_StrategicStage.tutorial),
+                  onStart: () => _setStage(_StrategicStage.tutorial),
                 ),
                 _StrategicStage.tutorial => _TutorialView(
                   key: const ValueKey('strategic-tutorial'),
@@ -585,194 +546,27 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
 }
 
 class _CoverView extends StatelessWidget {
-  const _CoverView({
-    super.key,
-    required this.onBack,
-    required this.onTutorial,
-    required this.onStart,
-  });
-
+  const _CoverView({super.key, required this.onBack, required this.onStart});
   final VoidCallback onBack;
-  final VoidCallback onTutorial;
   final VoidCallback onStart;
 
   @override
-  Widget build(BuildContext context) {
-    const heroCopy = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Emotional Regulation',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        SizedBox(height: 30),
-        Text(
-          'Strategic\nChoices',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 38,
-            height: 1.05,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        SizedBox(height: 40),
-        Text(
-          'Le Choix stratégique',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
-    );
-    final heroLogo = Semantics(
-      image: true,
-      label: 'Strategic Choices decision compass',
-      child: Image.asset(
-        _purpleLogo,
-        key: const ValueKey('strategic-purple-logo'),
-        width: 132,
-        height: 132,
-        fit: BoxFit.contain,
-        filterQuality: FilterQuality.high,
-      ),
-    );
-
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(24, 18, 24, 20),
-      children: [
-        _TopBar(onBack: onBack),
-        const SizedBox(height: 10),
-        Container(
-          padding: const EdgeInsets.fromLTRB(20, 22, 14, 22),
-          decoration: BoxDecoration(
-            color: _violet,
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final stacked =
-                  constraints.maxWidth < 300 ||
-                  MediaQuery.textScalerOf(context).scale(1) > 1.3;
-              if (stacked) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    heroCopy,
-                    const SizedBox(height: 18),
-                    Align(alignment: Alignment.center, child: heroLogo),
-                  ],
-                );
-              }
-              return Row(
-                children: [
-                  Expanded(child: heroCopy),
-                  heroLogo,
-                ],
-              );
-            },
-          ),
-        ),
-        const SizedBox(height: 24),
-        const Text(
-          'Strategic Choices',
-          style: TextStyle(
-            color: _ink,
-            fontSize: 29,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        const SizedBox(height: 4),
-        const Text(
-          'Emotional Regulation',
-          style: TextStyle(
-            color: _magenta,
-            fontSize: 19,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 14),
-        const Text(
-          'Read stressful situations, pause before reacting, and choose the coping strategy that feels most appropriate.',
-          style: TextStyle(color: _muted, fontSize: 16, height: 1.45),
-        ),
-        const SizedBox(height: 18),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            // Le chiffre suit la constante de partie : l'écrire en dur l'avait
-            // déjà laissé faux une fois.
-            const _FeatureChip(
-              label: '$kStrategicChoicesPerJourney situations',
-              color: _blue,
-            ),
-            const _FeatureChip(label: 'Supports mixtes', color: _magenta),
-            const _FeatureChip(label: 'Final insights', color: _green),
-          ],
-        ),
-        const SizedBox(height: 26),
-        GameOutlineButton(label: 'View tutorial', onPressed: onTutorial),
-        const SizedBox(height: 12),
-        GamePrimaryButton(label: 'Start mission', onPressed: onStart),
-      ],
-    );
-  }
-}
-
-class _IntroView extends StatelessWidget {
-  const _IntroView({super.key, required this.onBack, required this.onContinue});
-
-  final VoidCallback onBack;
-  final VoidCallback onContinue;
-
-  @override
-  Widget build(BuildContext context) {
-    return _PreGamePage(
-      onBack: onBack,
-      title: 'Train the pause before action',
-      subtitle:
-          'Vous affronterez $kStrategicChoicesPerJourney situations de '
-          'tension. Choisissez la stratégie qui vous paraît la plus adaptée.',
-      buttonLabel: 'Continue',
-      onButton: onContinue,
-      children: const [
-        _AccentInfoCard(
-          color: _magenta,
-          title: '$kStrategicChoicesPerJourney situations',
-          // L'ancienne liste — « conflit, échec, retard, critique, surcharge » —
-          // reprenait les catégories des dix situations inventées. La banque du
-          // client n'en a aucune : annoncer une taxonomie qui n'existe plus
-          // ferait chercher au joueur une structure absente.
-          description:
-              // Sans chiffre : « 60 » avait déjà cessé d'être vrai quand la
-              // banque est passée à 80. Un nombre écrit ici ne suit jamais la
-              // donnée, et il ment à la première extension.
-              'Tirées au hasard dans la banque de situations de travail.',
-        ),
-        _AccentInfoCard(
-          color: _blue,
-          title: 'Reflection first',
-          description: 'A brief delay helps prevent impulsive reaction.',
-        ),
-        _AccentInfoCard(
-          color: _green,
-          title: 'Strategic coping',
-          description: 'Match the response to what the situation needs.',
-        ),
-        _NoticePanel(
-          title: 'Written messages and video scenes',
-          description:
-              'Six situations display the received message verbatim. Video scenes remain readable while their media is being produced.',
-        ),
-      ],
-    );
-  }
+  Widget build(BuildContext context) => GameWelcomePage(
+    title: 'Strategic Choices',
+    logoAsset: _purpleLogo,
+    logoKey: const ValueKey('strategic-purple-logo'),
+    mission: 'Choisis la stratégie adaptée à chaque situation de tension.',
+    contextText:
+        'Face à une situation stressante, plusieurs façons d’agir s’offrent à toi. Laquelle choisirais-tu ?',
+    journey: const ['Lis', 'Réfléchis', 'Choisis'],
+    leading: _SquareIconButton(
+      icon: Icons.chevron_left_rounded,
+      tooltip: 'Back',
+      onTap: onBack,
+    ),
+    startLabel: 'Start mission',
+    onStart: onStart,
+  );
 }
 
 class _TutorialView extends StatelessWidget {
@@ -794,75 +588,6 @@ class _TutorialView extends StatelessWidget {
     ),
     onComplete: onStart,
   );
-}
-
-class _PreGamePage extends StatelessWidget {
-  const _PreGamePage({
-    required this.onBack,
-    required this.title,
-    required this.subtitle,
-    required this.children,
-    required this.buttonLabel,
-    required this.onButton,
-  });
-
-  final VoidCallback onBack;
-  final String title;
-  final String subtitle;
-  final List<Widget> children;
-  final String buttonLabel;
-  final VoidCallback onButton;
-
-  @override
-  Widget build(BuildContext context) {
-    // Aucun défilement : la barre du haut et le bouton gardent leur taille, le
-    // contenu entre les deux se réduit d'un bloc sur un écran court.
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 18, 24, 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _TopBar(onBack: onBack),
-          const SizedBox(height: 14),
-          Expanded(
-            child: GameFitToScreen(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: _ink,
-                      fontSize: 29,
-                      height: 1.12,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      color: _muted,
-                      fontSize: 15.5,
-                      height: 1.4,
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  for (var i = 0; i < children.length; i++) ...[
-                    if (i > 0) const SizedBox(height: 12),
-                    children[i],
-                  ],
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          GamePrimaryButton(label: buttonLabel, onPressed: onButton),
-        ],
-      ),
-    );
-  }
 }
 
 class _GameplayView extends StatelessWidget {
@@ -2478,142 +2203,6 @@ class _PurpleIconButton extends StatelessWidget {
             backgroundColor: const Color(0xFF6158EA),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _FeatureChip extends StatelessWidget {
-  const _FeatureChip({required this.label, required this.color});
-
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(99),
-        border: Border.all(color: color),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
-}
-
-class _AccentInfoCard extends StatelessWidget {
-  const _AccentInfoCard({
-    required this.color,
-    required this.title,
-    required this.description,
-  });
-
-  final Color color;
-  final String title;
-  final String description;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _border),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0D071333),
-            blurRadius: 10,
-            offset: Offset(0, 3),
-          ),
-        ],
-      ),
-      child: IntrinsicHeight(
-        child: Row(
-          children: [
-            Container(
-              width: 6,
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: const BorderRadius.horizontal(
-                  left: Radius.circular(16),
-                ),
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        color: _ink,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      description,
-                      style: const TextStyle(
-                        color: _muted,
-                        fontSize: 14,
-                        height: 1.35,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _NoticePanel extends StatelessWidget {
-  const _NoticePanel({required this.title, required this.description});
-
-  final String title;
-  final String description;
-
-  @override
-  Widget build(BuildContext context) {
-    return GamePanel(
-      backgroundColor: _violet,
-      borderColor: _violet,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 7),
-          Text(
-            description,
-            style: TextStyle(
-              color: const Color(0xFFE7E5FF),
-              fontSize: 13,
-              height: 1.4,
-            ),
-          ),
-        ],
       ),
     );
   }

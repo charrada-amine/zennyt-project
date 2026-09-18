@@ -75,7 +75,7 @@ Contexte **indépendant** : ne dépend que de `shared`, s'intègre au reste **un
 
 ### Arborescence & rôle de chaque fichier
 
-> **BART + IST (95)** — `domain/config/{Bart,Ist}Config` (moteur, protocoles publiés) et
+> **BART + IST (98)** — `domain/config/{Bart,Ist}Config` (moteur, protocoles publiés) et
 > `{Bart,Ist}ProvisionalRules` (tout le provisoire) ; `domain/service/BartSequenceGenerator`,
 > `BartActionReplayer`, `BartScoringService`, `IstLayoutGenerator`, `IstPosteriorModel`
 > (P(correct) exact), `IstActionReplayer`, `IstScoringService`, `MetacognitionService`
@@ -854,7 +854,7 @@ sur l'onglet Careers/Progress ; les routes de jeu restent plein écran.
 
 ### Arborescence & rôle de chaque fichier
 
-> **BART + IST (95)** — `domain/config/{bart,ist}_config.dart` + `*_provisional_rules.dart`,
+> **BART + IST (98)** — `domain/config/{bart,ist}_config.dart` + `*_provisional_rules.dart`,
 > `domain/service/deterministic_random.dart` (FNV-1a + xorshift32 partagés, extraits de
 > `object_location_config.dart`), `domain/entities/{bart,ist}_metrics.dart`,
 > `data/decision_behavioral_scoring.dart` (miroir exact des services Java, parité figée par
@@ -903,7 +903,8 @@ sur l'onglet Careers/Progress ; les routes de jeu restent plein écran.
 | | `test/features/games/presentation/emotional_radar_tutorial_test.dart` · `goldens/emotional-radar-tutorial-{1…5}.png` | Chargement/décodage des cinq assets, gestes, validation finale, petit écran à 200 % et cinq captures. |
 | | `presentation/view/emotional_radar_gameplay.dart` | `SceneCard` (média + équivalent textuel voisin), `AnswerPanel` (révélation progressive), `FeedbackCard`. |
 | | `presentation/widgets/emotional_radar_video.dart` | Lecteur asset/réseau : lecture explicite, pause/replay, plein écran, retry, pause sur overlay et arrière-plan. |
-| **Démo / composants** | `presentation/widgets/game_system_components.dart` | `GameContentFrame` partagé pour limiter la largeur sur tablette ; composants de boutons/panneaux existants réutilisés. |
+| **Démo / composants** | `presentation/widgets/game_system_components.dart` | `GameContentFrame` partagé pour limiter la largeur sur tablette ; `GameWelcomePage` réutilise les boutons/panneaux existants pour un accueil court (logo officiel, nom, mission, action), sans superposition ni pied masquant le contenu. Carte, court contexte et trois repères du parcours centrés ensemble ; écart final de 8/20 px selon la hauteur. Variantes optionnelles `contextText` et `journey`, logo officiel adapté à la hauteur. Texte agrandi : défilement de toute la page. |
+| **Accueils adaptés au téléphone** | `test/features/games/presentation/game_entry_layout_test.dart` · `goldens/entry-{memory-digits,memory-images,je-decide,optimal-path,predictive-puzzle,emotional-radar,reflective-pause,strategic-choices}.png` | 32 tests : huit accueils à 360×800, 360×640, 320×568 et texte à 200 % ; titres complets, bouton accessible, zone système Android respectée, absence de navigation basse, passage direct aux cartes Strategic Choices. Proximité carte/action vérifiée ; huit captures actualisées et contrôlées. |
 | | `presentation/widgets/game_results_template.dart` | `insightTitle` optionnel et jauge publique `GameResultInsightMeter` ; mode compact par défaut conservé, variante pleine largeur avec valeur en points, description sémantique et respect du mouvement réduit. |
 | | `test/features/games/presentation/game_insights_visual_test.dart` · `goldens/{strategic-choice-icons,reflective-pause-insights,emotional-radar-intensity-insights}.png` | Huit tests : icônes et états, valeurs serveur/maxima, rapports absents/vides, défilement à 200 %, mouvement réduit et trois captures. |
 | | `mobile/assets/games_demo/emotional_radar/` | Trois MP4 silencieux et `SOURCES.md` (provenance, licence et empreintes). |
@@ -921,7 +922,7 @@ sur l'onglet Careers/Progress ; les routes de jeu restent plein écran.
 | | `domain/entities/strategic_choices_bank.dart` · `domain/entities/strategic_choices_metrics.dart` | Parse la banque de 80 situations, impose un message non vide pour `WRITTEN`, et sérialise uniquement situation, stratégie, temps et support. |
 | | `data/strategic_choices_bank_loader.dart` · `domain/service/strategic_choices_scoring.dart` | Charge l'asset en cache ; miroir offline du barème serveur pour le repository mock, avec correction du hasard et profil de coping. |
 | | `assets/games/strategic_choices_bank.json` | Banque mobile de 80 situations : 60 fiches client + 20 propositions ; 6 messages écrits littéraux et 74 scènes vidéo. |
-| | `presentation/view/strategic_choices_screen.dart` | Flow `cover → intro → tutorial → 10 × (lecture → réflexion 3 s → choix → saved) → résultats → insights`, soumission des métriques brutes et score serveur ; bulle dédiée aux écrits, placeholder uniquement pour les vidéos. `StrategicChoiceCard` : huit icônes adaptées, visibles même sous verrouillage/sélection, badge d’état séparé. |
+| | `presentation/view/strategic_choices_screen.dart` | Flow `cover → tutorial → 10 × (lecture → réflexion 3 s → choix → saved) → résultats → insights`, soumission des métriques brutes et score serveur ; bulle dédiée aux écrits, placeholder uniquement pour les vidéos. `StrategicChoiceCard` : huit icônes adaptées, visibles même sous verrouillage/sélection, badge d’état séparé. |
 | | `backend/.../StrategicChoices{Config,ScoringService,Metrics,Report}` · `backend/.../JsonStrategicChoicesCatalog` | Validation des 10 réponses distinctes, catalogue autoritatif, somme /30, indice corrigé du hasard, profil de coping et breakdown provisoire. |
 | | `backend/src/main/resources/games/strategic_choices_bank.json` | Copie serveur de la banque, identique à l'asset mobile pour assurer la parité mock ⇄ backend. |
 | | `tooling/games/banks/{choix_strategiques_proposition.py,generer_pdf.py,fusionner.py}` | Source reproductible des 20 propositions, export JSON/PDF avec support et message, fusion idempotente qui conserve le champ `message`. |
@@ -1012,7 +1013,7 @@ Le hub n'est plus une liste `ListTile` générique. Il suit la maquette fournie 
 - Assets déclarés dans `mobile/pubspec.yaml` :
   `assets/04 Optimal Path/` (`image 120.png`, `image 120-1.png`, `image 121.png`,
   `image 121-1.png`, `image 121-2.png`) **et** `assets/04 Predictive Puzzle/`
-  (`discs.png` = disques de la carte intro, `golden_rule.png` = source Figma historique conservée ; le tutoriel utilise désormais les widgets de disques et tours),
+  (`discs.png` = source historique de la carte intro, `golden_rule.png` = source Figma historique conservée ; le tutoriel utilise désormais les widgets de disques et tours),
   ainsi que les sous-dossiers utilisés de `assets/04 Je Décide/`.
 - Routes actives : Cognitive Flexibility → sélecteur Move Fast (`/games/move-fast`),
   Je continue (`/games/je-continue`) ou Je coordonne (`/games/je-coordonne`), Working Memory →
@@ -1023,6 +1024,23 @@ Le hub n'est plus une liste `ListTile` générique. Il suit la maquette fournie 
 Navigation : `ProgressScreen` héberge `GamesHubScreen`. La route `/games` rend
 `MainNavigationScreen(initialTab: 2)`, et `AppBottomNav` accepte un `selectedTab` local afin
 d'afficher l'onglet Careers/Progress sans modifier `navTabProvider` pendant `initState`.
+Depuis le 2026-09-18, les routes de jeux, y compris leurs accueils et tutoriels,
+n’affichent plus `AppBottomNav`. Le menu du hub reste présent ; les retours et
+menus de pause existants permettent de sortir. La barre système Android est
+respectée par `SafeArea`, sans modification du module Navigation ni de core.
+
+Les huit accueils demandés utilisent `GameWelcomePage` : nom, logo officiel,
+mission courte, contexte propre au jeu et trois repères numérotés du parcours.
+Les règles détaillées restent dans les cartes. Le titre **Optimal Path** remplace
+« Path Mind » à l’accueil. Titres et logos occupent des lignes séparées.
+Carte, contexte, parcours et action forment un groupe centré : le bouton reste
+près des repères, sans grand vide entre les éléments. Sur petite hauteur, logo,
+espacements et titres s’adaptent ; aucun texte tronqué. Aucun défilement nécessaire
+au texte normal sur les tailles testées ; texte agrandi et écran plus petit peuvent
+faire défiler le groupe. Le retour reste en haut. Paramètres de contexte/parcours
+optionnels pour préserver les usages qui n’en ont pas besoin.
+Day Stack reste inchangé et sert de référence. Strategic Choices ne présente
+plus sa seconde introduction : son action d’accueil ouvre les cartes directement.
 
 ### 🧭 Flow « Strategic Choices » (mobile + score serveur provisoire)
 
@@ -1030,7 +1048,7 @@ d'afficher l'onglet Careers/Progress sans modifier `navTabProvider` pendant `ini
 violette du handoff. La banque contient **80 situations** : 60 fiches client et 20 propositions.
 Chaque partie en tire 10 sans répétition :
 
-`cover → intro → tutorial → 10 × (read → reflect 3 s → choose 1/8 → answer saved) → results → insights`
+`cover → tutorial → 10 × (read → reflect 3 s → choose 1/8 → answer saved) → results → insights`
 
 - tutoriel et aide en cinq cartes illustrées centrées sur le fond blanc habituel,
   avec balayage, précédent/suivant et bouton final ; le nombre de stratégies provient
@@ -1569,6 +1587,7 @@ ArchUnit ne s'exécutent pas car la compilation des tests Recruitment échoue su
 | **« J'investigue » — backend (Phase 4)** : mini-jeu `MEMORY_QUEST_CORE`, `MemoryQuestMetrics` (mesures par tâche), `MemoryQuestScoringService` (tâches 0–5 → **composite /100**), indicateurs + détail du score exposés, migration **V12** (CHECK), parité mock ; mobile soumet via le repository (score serveur autoritatif) | 🟢 Fait |
 | **« J'investigue » — système de niveaux** (7 niveaux, longueur 3→9, +1 après 3 tâches réussies ; objets 4→12 ; distraction gatée niveau ≥ 3 ; arrêt à `max_sequence_length`/`max_session_duration_min`) | 🟢 Fait (backend + mobile + parité mock) |
 | **« J'investigue » — calibrage appareil → timeout** (1er module dont le **score dépend du temps**) : `max_task_time_ms + offset` ; tâche dépassant le seuil ajusté = échec voidé ; `session_valid` | 🟢 Fait — socle `DeviceCalibration`/`CalibrationService` **réutilisé** (non modifié) |
+| Accueils et navigation des jeux — téléphone | 🟢 Huit accueils allégés, titres/logos séparés, navigation basse retirée des jeux/tutoriels, entrée Strategic Choices directe ; 32 tests de disposition et huit captures. 🟠 Contrôle sur téléphone réel ouvert (décision 80). Day Stack inchangé. |
 | Memory Quest Digits/Image — tutoriels visuels et aide | 🟢 Six cartes et illustrations nouvelles par jeu, objets de partie exclus, dix cartes adaptées au mode historique. 🟠 Rendu sur appareil et défauts préexistants de câblage ouverts dans l’audit du 2026-09-17. |
 | **« Je Décide » (`DECISION`)** | 🟢 Jouable end-to-end (V59) — accueil avec logo, transition vers les règles dans un cadre persistant, trois cartes utiles et un exemple, sans personnalisation ; questions II retirées et situation/réponses ensemble sur une page ; banque historique de 120 items, 24 items actifs servis sans clé de correction, notation serveur /72 → SCW /100 et profil réel sur quatre axes. Reste : modèles λ/k/cohérence pour ER-1..18, CS et RE, puis formes B/C/D |
 | **« Emotional Radar » (`EMOTIONAL_REGULATION`) — 5ᵉ domaine** : `GameType` + `EMOTIONAL_RADAR_CORE`, barème 9 pts/scène, écran Flutter complet (cover, tutoriel, gameplay à révélation progressive, feedback, transition, résultats, pause/aide/plein écran), parité mock | 🟢 **Fait** — jouable sur les 3 scènes rédigées (27 pts) |
@@ -1596,6 +1615,13 @@ ArchUnit ne s'exécutent pas car la compilation des tests Recruitment échoue su
 | **Application runtime des contenus/configurations administrés** | 🟢 Snapshot immuable par session ; les 8 `GameType` ont chacun un `SETTINGS` et un `MODIFIERS` publié. `sessionEnabled` contrôle réellement le démarrage de toute nouvelle session ; `reducedMotionDefault` est livré pour tous et consommé par les parcours possédant déjà une branche reduced-motion (Radar, Reflective Pause, Je continue, J'investigue). Radar applique aussi `sceneCount`, `orderMode`, aide, feedback et durée de transition. Rotation et banques publiées sont consommées par Je Décide/Emotional Radar. |
 
 ---
+
+**Roadmap accueils mobiles (2026-09-18)** : accueils enrichis sur demande de
+l’utilisateur : logo officiel, nom, mission, bref contexte propre au jeu et trois
+repères numérotés. Groupe centré avec action proche du parcours ; logo et espace
+adaptés à la hauteur. Textes détaillés conservés dans les tutoriels. Navigation basse retirée des routes de jeux, seconde entrée
+Strategic Choices supprimée. Petits écrans et texte agrandi vérifiés ; contrôle
+sur téléphone réel à effectuer. Aucun changement de règles, barèmes ou assets.
 
 **Roadmap Je Décide (2026-09-17)** : simplification d’accueil/tutoriel livrée à la
 demande de l’utilisateur : une introduction avec logo, trois cartes indispensables,
@@ -1630,7 +1656,7 @@ casse-têtes visuels, agrégation des métriques Image. Audit et reproductions d
 
 ## 🧠 Décisions à valider avec le psychologue référent
 
-**BART + IST (95) — liste complète dans `docs/PREUVES_SCIENTIFIQUES_JEUX_DECISION.md` §9.**
+**BART + IST (98) — liste complète dans `docs/PREUVES_SCIENTIFIQUES_JEUX_DECISION.md` §9.**
 Bloquant pour sortir du provisoire : (a) formule d'efficience EV du BART (stratégie fixe
 `n* = 64`, plafond 100, séquence dégénérée → invalide) ; (b) poids du score IST 0,4 / 0,4 / 0,2 ;
 (c) a priori de génération des grilles IST (majorité 13 à 19 cases), dont dépend P(correct) —
@@ -1916,6 +1942,44 @@ Décisions additionnelles du 2026-09-06 :
   **Décision technique**, aucun nouveau choix psychométrique. Écoute sur appareil
   ouverte ; tests automatisés vérifient les déclenchements, la coupure du son,
   l'absence de résultat artificiel et la progression du compteur.
+
+- **80 — Accueils courts et espace de jeu mobile (2026-09-18)** : ajustements
+  demandés par l’utilisateur à partir de ses captures Android. Huit accueils avec
+  logo officiel, nom, mission courte et action ; informations redondantes retirées
+  de l’accueil, règles conservées dans les tutoriels. Nom « Optimal Path » aligné
+  sur le catalogue, titres et logos séparés. Menu bas de l’application retiré des
+  routes de jeux et tutoriels, dont Je continue ; hub et barre système inchangés.
+  Seconde introduction Strategic Choices retirée, retour du tutoriel vers l’accueil.
+  Day Stack conservé comme référence, sans modification. Cette décision remplace
+  le maintien de la barre basse de la décision 74. **PROVISOIRE — à valider
+  visuellement sur téléphone réel** : captures et tests à 320×568/360×640/360×800,
+  texte 200 % ; accueil sans défilement au texte normal, page entière défilable
+  si les besoins d’accessibilité dépassent sa hauteur. Aucun asset, dépendance,
+  nouveau parcours métier, métrique, score, chrono ou protocole modifié.
+
+- **81 — Accueils, correction du vide blanc (2026-09-18)** : après retour de
+  l’utilisateur, carte et bouton forment un groupe centré ; écart constant de
+  24 px, logo agrandi à 176 px si la hauteur le permet et 104 px sur petit écran.
+  Le retour reste en haut. Fond blanc, palette et assets officiels conservés.
+  Complète la décision 80 sans réintroduire les informations retirées ; texte
+  agrandi toujours défilable, aucun bouton fixe masquant le contenu.
+  **PROVISOIRE — à valider visuellement sur téléphone réel** : huit captures
+  contrôlées et 32 tests de disposition incluant la proximité carte/action.
+  Aucun changement de gameplay, passation, score, protocole ni dépendance.
+
+- **82 — Accueils contextualisés (2026-09-18)** : après rejet de l’accueil
+  trop vide, l’utilisateur demande du contexte ou une adaptation des logos.
+  Choix implémenté : conserver les assets officiels, ajouter un bref contexte
+  par jeu et trois repères numérotés. Digits présente la restitution dans les deux
+  sens ; Image rappelle l’ordre initial ; Optimal Path les obstacles/documents ;
+  Predictive Puzzle l’exécution du plan ; Radar l’émotion/intensité ; Reflective
+  la pause avant réponse ; Strategic le choix d’une stratégie ; Je Décide les
+  compromis. Aucun exemple suggérant une réponse cotée ni promesse de diagnostic.
+  Complète/remplace la présentation des décisions 80/81 : groupe centré enrichi,
+  logo et espacements adaptés à la hauteur, action proche du parcours. Day Stack
+  conservé. **PROVISOIRE — à valider visuellement sur téléphone réel** : huit
+  captures, petits formats et texte agrandi vérifiés ; règles détaillées conservées.
+  Aucun nouveau logo, asset, dépendance, barème, délai ou protocole ajouté.
 
 **Conforme à la fiche, NE PAS toucher** : profil global Planifik /30 (`interpretGlobal`), cœur du barème Move Fast (50 × multiplicateur, streak 4, bonus 250), barème catégoriel « Predictive Puzzle » (seule fiche validée), architecture par Domain Events.
 
@@ -2933,7 +2997,52 @@ asset, pubspec, pom, core/shared ou module tiers ; zones protégées intactes.
 Maven complet non relancé (blocage testCompile Recruitment déjà documenté).
 Aucune nouvelle décision produit : correction de sérialisation vers l'API existante.
 
-**Changelog (95)** — 2026-09-18 : **BART + IST** — nouveau `GameType`
+**Changelog (95)** — 2026-09-18 : **Accueils des jeux sur téléphone** —
+composant Games `GameWelcomePage` réutilisant les panneaux/boutons existants pour
+Memory Quest Digits/Image, Je Décide, Optimal Path, Predictive Puzzle, Emotional
+Radar, Reflective Pause et Strategic Choices. Logos officiels, titres complets
+sans chevauchement, mission courte et action visible ; règles redondantes retirées
+uniquement des accueils. Défilement intégral réservé aux contraintes de hauteur
+ou au texte agrandi. Navigation basse retirée des quatre écrans Games qui la
+présentaient encore (dont Je continue), sans toucher Navigation/core. SafeArea
+Je Décide respecte la barre système Android. Seconde entrée Strategic Choices
+supprimée ; Day Stack inchangé. Décision 80 tracée, inventaire/statut/roadmap à jour.
+Validation : **169 tests Flutter ciblés verts**, dont les 32 tests de disposition ;
+analyse des 13 fichiers Dart touchés sans diagnostic ; huit captures d’accueil et deux captures
+Je Décide actualisées et contrôlées. Aucun changement de backend, API, contrat,
+barème, migration, asset, dépendance, pubspec/pom, core/shared ou module tiers ;
+zones protégées intactes. Backend/ArchUnit non relancés pour cette tâche UI.
+Contrôle sur téléphone réel ouvert.
+
+**Changelog (96)** — 2026-09-18 : **Accueils, vide blanc corrigé** —
+`GameWelcomePage` centre la carte et son bouton ensemble avec un écart de 24 px,
+au lieu de les repousser aux deux extrémités de l’écran. Logo officiel agrandi
+quand la hauteur disponible le permet ; retour en haut, petits écrans et texte
+agrandi conservés. Test de proximité ajouté aux 32 cas de disposition existants.
+**68 tests Flutter ciblés verts**, analyse des deux fichiers Dart sans diagnostic ;
+huit captures d’accueil et capture Je Décide actualisées, contrôle visuel des huit
+accueils. Décision 81 tracée ; inventaire et roadmap actualisés. Fichiers touchés
+pour cet ajustement : composant Games, test des accueils, captures et cette doc.
+Aucun fichier créé supplémentaire, changement de backend/API/contrat, barème,
+core/shared, asset de production, dépendance ou module tiers. Zones protégées
+intactes ; backend/ArchUnit non relancés. Contrôle sur téléphone réel ouvert.
+
+**Changelog (97)** — 2026-09-18 : **Accueils plus contextualisés** — ajout
+optionnel de `contextText`/`journey` à `GameWelcomePage`, utilisés par les huit
+accueils demandés. Court contexte propre aux règles de chaque jeu et trois repères
+numérotés, groupe centré et action proche ; espacement et logo adaptés à la hauteur.
+Logos officiels conservés, règles détaillées dans les tutoriels, Day Stack inchangé.
+Test de proximité adapté au parcours complet ; 32 cas de disposition conservés.
+Validation : **169 tests Flutter ciblés verts**, dont les 32 cas de disposition ;
+analyse des neuf fichiers Dart sans diagnostic ; huit captures d’accueil et capture Je Décide
+actualisées, contrôle visuel des huit accueils. Fichiers modifiés : composant Games,
+sept écrans (Memory Quest partagé par deux modes), test/captures et cette doc.
+Aucun fichier supplémentaire créé ; décision 82 et inventaire/roadmap actualisés.
+Backend, contrat, API, scores, migrations, assets de production, pubspec/pom,
+core/shared et modules tiers inchangés ; zones protégées intactes. Backend/ArchUnit
+non relancés ; contrôle sur téléphone réel ouvert.
+
+**Changelog (98)** — 2026-09-18 : **BART + IST** — nouveau `GameType`
 `DECISION_BEHAVIORAL` (distinct de `DECISION`, dont la complétion et la couverture seraient
 cassées par des mini-jeux supplémentaires) avec `BART_CORE` et `INFORMATION_SAMPLING_CORE`.
 Contrat, backend, migration, mobile (écrans d'après les planches concept, SVG des états du
@@ -2942,9 +3051,12 @@ ballon, hub + deux routes) et mock à parité exacte. Correction Flyway : les mi
 `V84`/`V85`, script de réconciliation fourni ; nouvelle migration `V86`. Catalogue du hub
 13 → 15 jeux : la couverture affichée de chaque joueur existant baisse. **Backend 749 tests,
 0 échec** (base 714). Mobile : 15 tests de parité + 6 tests d'écran verts. Décisions à valider :
-voir la section dédiée (95).
+voir la section dédiée (98).
 
-**Dernière mise à jour** : 2026-09-18 — **(95)** BART + IST, correction Flyway V77/V78 ;
+**Dernière mise à jour** : 2026-09-18 — **(98)** BART + IST, correction Flyway V77/V78 ;
+**(97)** accueils enrichis d’un contexte et de trois repères par jeu ;
+**(96)** carte et bouton rapprochés, accueils centrés et logos agrandis ;
+**(95)** accueils courts, navigation basse retirée des jeux et entrée Strategic Choices directe ;
 **(94)** clé de soumission HTTP Je Décide corrigée ;
 **(93)** sons de catégorie et bilan fiable Je Décide ;
 **(92)** retrait II, 24 questions et bilan sur quatre axes ;

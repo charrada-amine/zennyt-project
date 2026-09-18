@@ -270,19 +270,21 @@ class _PlanifikScreenState extends ConsumerState<PlanifikScreen> {
         ),
         onComplete: _beginGame,
       ),
-      _PlanifikStage.gameplay => GameplayMusic(child: _GameplayView(
-        key: ValueKey(_level),
-        game: _game,
-        busy: _busy,
-        score: _score,
-        level: _level + 1,
-        totalLevels: _levelConfigs.length,
-        levelFailed: _levelFailed,
-        pauseAllowance: _pauseAllowance,
-        onCorrect: _onCorrectRoute,
-        onWrong: _onWrongRoute,
-        onExit: () => context.go(AppRoutes.games),
-      )),
+      _PlanifikStage.gameplay => GameplayMusic(
+        child: _GameplayView(
+          key: ValueKey(_level),
+          game: _game,
+          busy: _busy,
+          score: _score,
+          level: _level + 1,
+          totalLevels: _levelConfigs.length,
+          levelFailed: _levelFailed,
+          pauseAllowance: _pauseAllowance,
+          onCorrect: _onCorrectRoute,
+          onWrong: _onWrongRoute,
+          onExit: () => context.go(AppRoutes.games),
+        ),
+      ),
       _PlanifikStage.score => _ScoreView(
         session: session,
         metrics: _lastMetrics,
@@ -304,367 +306,25 @@ class _PlanifikScreenState extends ConsumerState<PlanifikScreen> {
   }
 }
 
-// ─────────────────────────── Intro (Path Mind hero) ───────────────────────────
+// ─────────────────────────── Accueil ──────────────────────────────────────
 
 class _IntroView extends StatelessWidget {
   const _IntroView({required this.onStart, required this.onBack});
-
   final VoidCallback onStart;
   final VoidCallback onBack;
 
-  // Ombre douce commune aux cartes (spec : ombre très douce, diffusion large).
-  static const List<BoxShadow> _softShadow = [
-    BoxShadow(color: Color(0x14000000), blurRadius: 18, offset: Offset(0, 8)),
-  ];
-
   @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: _SquareIconButton(icon: Icons.chevron_left, onTap: onBack),
-          ),
-          const SizedBox(height: 20), // header → hero
-          // Hero card « Path Mind » (violet plein #4F46E5).
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final heroHeight = math.max(340.0, constraints.maxWidth * 0.9);
-              return Container(
-                height: heroHeight,
-                padding: const EdgeInsets.all(AppSpacing.xl),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(28),
-                  color: const Color(0xFF4F46E5),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x334F46E5),
-                      blurRadius: 28,
-                      offset: Offset(0, 14),
-                    ),
-                  ],
-                ),
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Positioned(
-                      right: -78,
-                      top: 0,
-                      bottom: 0,
-                      width: constraints.maxWidth * 0.86,
-                      child: CustomPaint(painter: _PathMindHeroBackground()),
-                    ),
-                    Positioned(
-                      right: 10,
-                      top: 38,
-                      bottom: 34,
-                      width: constraints.maxWidth * 0.48,
-                      child: CustomPaint(painter: _PathMindArt()),
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.lg,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(
-                              AppSpacing.radiusFull,
-                            ),
-                          ),
-                          child: Text(
-                            'Spatial Planning',
-                            style: AppTypography.labelMedium.copyWith(
-                              color: ZennytGamePalette.blue,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.xl),
-                        const Text(
-                          'Path\nMind',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 52,
-                            height: 1.08,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const Spacer(),
-                        Text(
-                          'Connect the optimal\npath. Be strategic.',
-                          style: AppTypography.headlineSmall.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            height: 1.28,
-                            letterSpacing: 0,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 18), // hero → stats
-          // Ligne meta : 3 cartes blanches sur fond gris.
-          Container(
-            padding: const EdgeInsets.all(AppSpacing.sm),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF1F3FB),
-              borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-              boxShadow: _softShadow,
-            ),
-            child: const Row(
-              children: [
-                Expanded(
-                  child: _MetaCell(label: 'Goal', value: 'Planning'),
-                ),
-                SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: _MetaCell(
-                    label: 'Duration',
-                    value: '15 min',
-                    valueColor: ZennytGamePalette.magenta,
-                  ),
-                ),
-                SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: _MetaCell(label: 'Format', value: 'Mobile'),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16), // stats → description
-          // Carte « Simple rule » (bordure bleu périwinkle discrète + ombre douce).
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-              border: Border.all(color: const Color(0xFF9FB4EF)),
-              boxShadow: _softShadow,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Simple rule',
-                  style: AppTypography.titleMedium.copyWith(
-                    color: ZennytGamePalette.ink,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  'Leila needs to reach the meeting room from her lab. '
-                  'Draw the shortest path, avoid construction zones, '
-                  'and collect documents along the way.',
-                  style: AppTypography.bodyMedium.copyWith(
-                    color: ZennytGamePalette.muted,
-                    height: 1.45,
-                    letterSpacing: 0,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 22), // description → bouton
-          _StartButton(onPressed: onStart),
-        ],
-      ),
-    );
-  }
-}
-
-/// CTA « Start » — capsule magenta (coins totalement arrondis), texte gras centré.
-class _StartButton extends StatelessWidget {
-  const _StartButton({required this.onPressed});
-
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 58,
-      child: FilledButton(
-        // Ce CTA n'utilise pas [GamePrimaryButton] (capsule magenta propre à la
-        // couverture d'Optimal Path), donc il n'héritait pas du clic générique.
-        onPressed: () {
-          SoundService.instance.playSfx(GameSfx.buttonClick);
-          onPressed();
-        },
-        style: FilledButton.styleFrom(
-          backgroundColor: ZennytGamePalette.magenta,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
-          ),
-          textStyle: AppTypography.buttonLarge.copyWith(
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0,
-          ),
-        ),
-        child: const Text('Start'),
-      ),
-    );
-  }
-}
-
-class _MetaCell extends StatelessWidget {
-  const _MetaCell({
-    required this.label,
-    required this.value,
-    this.valueColor = ZennytGamePalette.ink,
-  });
-
-  final String label;
-  final String value;
-  final Color valueColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.xs,
-        vertical: AppSpacing.md,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-        border: Border.all(color: const Color(0xFFE4E9F5)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            label,
-            style: AppTypography.labelMedium.copyWith(
-              color: ZennytGamePalette.muted,
-              letterSpacing: 0,
-            ),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            value,
-            style: AppTypography.titleSmall.copyWith(
-              color: valueColor,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Cercles décoratifs de fond de la carte hero.
-class _PathMindHeroBackground extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final purple = Paint()
-      ..color = const Color(0xFF6B5CF6).withValues(alpha: 0.28);
-    final pink = Paint()
-      ..color = const Color(0xFFE85B9A).withValues(alpha: 0.10);
-    final cyan = Paint()
-      ..color = const Color(0xFF4FC3E8).withValues(alpha: 0.06);
-
-    canvas.drawCircle(
-      Offset(size.width * 0.84, size.height * 0.50),
-      size.width * 0.43,
-      purple,
-    );
-    canvas.drawCircle(
-      Offset(size.width * 1.18, size.height * 0.36),
-      size.width * 0.24,
-      pink,
-    );
-    canvas.drawCircle(
-      Offset(size.width * 1.00, size.height * 0.82),
-      size.width * 0.25,
-      cyan,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-/// Illustration de la carte hero : grille 3×3 avec chemin magenta,
-/// case départ (blanche) et arrivée (verte).
-class _PathMindArt extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    // Positions de la grille 3×3 (plus grande, remplit la zone).
-    Offset node(int col, int row) => Offset(
-      size.width * (0.16 + col * 0.34),
-      size.height * (0.18 + row * 0.32),
-    );
-
-    final path = <Offset>[
-      node(0, 0),
-      node(1, 0),
-      node(1, 1),
-      node(2, 1),
-      node(2, 2),
-    ];
-
-    // Ligne du chemin (magenta).
-    final line = Paint()
-      ..color = const Color(0xFFD12E7D)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * 0.07
-      ..strokeJoin = StrokeJoin.round
-      ..strokeCap = StrokeCap.round;
-    final p = Path()..moveTo(path.first.dx, path.first.dy);
-    for (final o in path.skip(1)) {
-      p.lineTo(o.dx, o.dy);
-    }
-    canvas.drawPath(p, line);
-
-    // Tous les nœuds (gris clair).
-    final dot = Paint()..color = const Color(0xFFDDDDF0);
-    for (var c = 0; c < 3; c++) {
-      for (var r = 0; r < 3; r++) {
-        canvas.drawCircle(node(c, r), size.width * 0.085, dot);
-      }
-    }
-    // Départ : cercle blanc + anneau rose (comme le logo Figma).
-    canvas.drawCircle(
-      node(0, 0),
-      size.width * 0.105,
-      Paint()..color = Colors.white,
-    );
-    canvas.drawCircle(
-      node(0, 0),
-      size.width * 0.105,
-      Paint()
-        ..color = const Color(0xFFD12E7D)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = size.width * 0.03,
-    );
-    // Arrivée (vert).
-    canvas.drawCircle(
-      node(2, 2),
-      size.width * 0.10,
-      Paint()..color = const Color(0xFF22C55E),
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  Widget build(BuildContext context) => GameWelcomePage(
+    title: 'Optimal Path',
+    logoAsset: 'assets/games icons/Optimal Path transparent.png',
+    mission: 'Trace le meilleur chemin en respectant les contraintes.',
+    contextText:
+        'Rejoins l’arrivée en évitant les obstacles et en récupérant les documents du parcours.',
+    journey: const ['Observe', 'Trace', 'Valide'],
+    leading: _SquareIconButton(icon: Icons.chevron_left, onTap: onBack),
+    startLabel: 'Start',
+    onStart: onStart,
+  );
 }
 
 class _SquareIconButton extends StatelessWidget {
@@ -1280,14 +940,15 @@ class _GameplayViewState extends State<_GameplayView> {
   }
 
   /// Part de temps RESTANTE — ce que la barre du HUD doit refléter.
-  double get _timeProgress =>
-      (_secondsLeft / _levelSeconds).clamp(0.0, 1.0);
+  double get _timeProgress => (_secondsLeft / _levelSeconds).clamp(0.0, 1.0);
 
   bool get _timeIsUrgent => _secondsLeft <= _urgentSeconds;
 
   void _validate() {
     // Niveau scellé (échec 3 essais) : plus aucune validation acceptée.
-    if (widget.busy || widget.levelFailed || _feedback != _Feedback.none) return;
+    if (widget.busy || widget.levelFailed || _feedback != _Feedback.none) {
+      return;
+    }
     final game = widget.game;
     if (game.stepCount < 1) return;
 
@@ -1313,7 +974,8 @@ class _GameplayViewState extends State<_GameplayView> {
         _feedbackText = '-2pts';
         _tries++;
       });
-      widget.onWrong(); // peut sceller le niveau (3ᵉ échec) → widget.levelFailed
+      widget
+          .onWrong(); // peut sceller le niveau (3ᵉ échec) → widget.levelFailed
       _timer?.cancel();
       Future<void>.delayed(const Duration(milliseconds: 1300), () {
         // Chemin raté : on efface le feedback ET on réinitialise le trait de
@@ -1346,8 +1008,7 @@ class _GameplayViewState extends State<_GameplayView> {
               // La barre suit le TEMPS RESTANT (elle se vide), et non plus
               // l'avancement du tracé — c'est bien un « timer bar ».
               progress: _timeProgress,
-              progressColor:
-                  (_feedback == _Feedback.wrong || _timeIsUrgent)
+              progressColor: (_feedback == _Feedback.wrong || _timeIsUrgent)
                   ? ZennytGamePalette.error
                   : ZennytGamePalette.success,
               onPause: _openMenu,
@@ -1406,7 +1067,8 @@ class _GameplayViewState extends State<_GameplayView> {
                 Expanded(
                   flex: 2,
                   child: _ClearButton(
-                    enabled: game.canUndo && !widget.busy && !widget.levelFailed,
+                    enabled:
+                        game.canUndo && !widget.busy && !widget.levelFailed,
                     onTap: game.clear,
                   ),
                 ),
@@ -1475,7 +1137,10 @@ class _OptimalHud extends StatelessWidget {
             const SizedBox(width: AppSpacing.sm),
             Expanded(
               // Plafonné : n'affiche jamais X/3 avec X > 3 (limite dure = 3).
-              child: _HudStatPill(label: 'Tries', value: '${tries > 3 ? 3 : tries}/3'),
+              child: _HudStatPill(
+                label: 'Tries',
+                value: '${tries > 3 ? 3 : tries}/3',
+              ),
             ),
             const SizedBox(width: AppSpacing.sm),
             _HudIconButton(
@@ -1816,7 +1481,8 @@ class _OptimalRulesDialog extends StatelessWidget {
             const SizedBox(height: AppSpacing.lg),
             _RuleLine(
               icon: Icons.swipe_rounded,
-              text: 'Slide your finger from LAB across adjacent stations to '
+              text:
+                  'Slide your finger from LAB across adjacent stations to '
                   'trace your route — or tap them one by one. Slide back to '
                   'erase the last step.',
             ),

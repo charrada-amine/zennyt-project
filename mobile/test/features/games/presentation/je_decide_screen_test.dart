@@ -109,14 +109,12 @@ void main() {
   ) async {
     final repository = await showEntry(tester);
     final header = find.byKey(const ValueKey('decision-journey-header'));
-    final navigation = find.byType(AppBottomNav);
     final headerRect = tester.getRect(header);
-    final navigationRect = tester.getRect(navigation);
     await tester.tap(find.byKey(const ValueKey('welcome-start')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 160));
     expect(tester.getRect(header), headerRect);
-    expect(tester.getRect(navigation), navigationRect);
+    expect(find.byType(AppBottomNav), findsNothing);
     expect(find.byTooltip('Back'), findsOneWidget);
     final outgoing = find.byKey(const ValueKey('welcome-start'));
     expect(outgoing, findsOneWidget);
@@ -158,7 +156,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 160));
     expect(tester.getRect(header), headerRect);
-    expect(tester.getRect(navigation), navigationRect);
+    expect(find.byType(AppBottomNav), findsNothing);
     await tester.pumpAndSettle();
     expect(find.text('Commencer'), findsOneWidget);
     expect(repository.sessionsStarted, 0);
@@ -206,7 +204,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Decision Journey'), findsOneWidget);
-      expect(find.byType(AppBottomNav), findsOneWidget);
+      expect(find.byType(AppBottomNav), findsNothing);
 
       expect(find.text('Personnaliser (facultatif)'), findsNothing);
       expect(find.byType(TextField), findsNothing);
@@ -313,8 +311,8 @@ void main() {
       });
       await tester.pumpAndSettle();
       expect(find.text('Je Décide'), findsOneWidget);
-      expect(find.text('24 questions'), findsOneWidget);
-      expect(find.text('Jusqu’à 24 min'), findsOneWidget);
+      expect(find.text('24 questions'), findsNothing);
+      expect(find.text('Jusqu’à 24 min'), findsNothing);
       expect(find.text('How it works'), findsNothing);
       expect(find.text('Personnaliser (facultatif)'), findsNothing);
       expect(

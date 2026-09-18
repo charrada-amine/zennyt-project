@@ -148,11 +148,11 @@ void main() {
     await pumpGame(tester, repository: repository);
 
     expect(find.text('Reflective Pause'), findsWidgets);
-    expect(find.text('Impulse Control'), findsWidgets);
-    expect(find.text('View tutorial'), findsOneWidget);
+    expect(find.text('Impulse Control'), findsNothing);
+    expect(find.text('View tutorial'), findsNothing);
     expect(find.text('Start mission'), findsOneWidget);
 
-    await tester.tap(find.text('View tutorial'));
+    await tester.tap(find.text('Start mission'));
     await tester.pumpAndSettle();
     expect(find.textContaining('Train calm responses'), findsOneWidget);
 

@@ -1114,6 +1114,7 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
   Widget _buildStage() {
     return switch (_stage) {
       _Stage.intro => _IntroView(
+        mode: widget.mode,
         onStart: () => setState(() => _stage = _Stage.tutorial),
         onBack: () => context.go(AppRoutes.games),
       ),
@@ -2610,137 +2611,49 @@ class _DistractionView extends StatelessWidget {
 // ── Intro (reprend la structure Move Fast) ──────────────────────────────────
 
 class _IntroView extends StatelessWidget {
-  const _IntroView({required this.onStart, required this.onBack});
-
+  const _IntroView({
+    required this.onStart,
+    required this.onBack,
+    required this.mode,
+  });
   final VoidCallback onStart;
   final VoidCallback onBack;
+  final InvestigateMode mode;
 
   @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 18, 24, 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _BackButton(onPressed: onBack),
-          const SizedBox(height: AppSpacing.base),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            decoration: BoxDecoration(
-              color: ZennytGamePalette.gameBlue,
-              borderRadius: BorderRadius.circular(AppSpacing.radiusXxl),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Largeur INTRINSÈQUE, pas 150 px figés : à cette largeur
-                // « Working Memory » se tronquait en « Working Me… » sur un
-                // écran de téléphone. La pastille se dimensionne désormais sur
-                // son texte, comme elle le fait déjà ailleurs.
-                const GameRuleChip(
-                  label: 'Working Memory',
-                  color: Colors.white,
-                  filled: true,
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                Text(
-                  'Memory\nMission',
-                  style: AppTypography.displayLarge.copyWith(
-                    color: Colors.white,
-                    letterSpacing: 0,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.base),
-                Text(
-                  'Memorize clues, keep them in mind, then restore the correct order.',
-                  style: AppTypography.titleMedium.copyWith(
-                    color: Colors.white,
-                    letterSpacing: 0,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xl),
-          const Row(
-            children: [
-              Expanded(
-                child: ResultStatTile(label: 'Goal', value: 'Memory'),
-              ),
-              SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: ResultStatTile(
-                  label: 'Duration',
-                  value: '8-12 min',
-                  valueColor: ZennytGamePalette.magenta,
-                ),
-              ),
-              SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: ResultStatTile(label: 'Format', value: '2 missions'),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.xl),
-          GamePanel(
-            borderColor: ZennytGamePalette.gameBlue,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Objective',
-                  style: AppTypography.titleMedium.copyWith(
-                    color: ZennytGamePalette.blue,
-                    letterSpacing: 0,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  'Observe, memorize, then recall a sequence or restore the object order.',
-                  style: AppTypography.bodyLarge.copyWith(
-                    color: ZennytGamePalette.muted,
-                    letterSpacing: 0,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          GamePanel(
-            borderColor: ZennytGamePalette.gameBlue,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Simple rule',
-                  style: AppTypography.titleMedium.copyWith(
-                    color: ZennytGamePalette.blue,
-                    letterSpacing: 0,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  'The mission changes phases: observe, recall, then manipulate objects. Input stays locked while you watch.',
-                  style: AppTypography.bodyLarge.copyWith(
-                    color: ZennytGamePalette.muted,
-                    letterSpacing: 0,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xxl),
-          GamePrimaryButton(label: 'Start mission', onPressed: onStart),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => GameWelcomePage(
+    title: switch (mode) {
+      InvestigateMode.digits => 'Memory Quest · Digits',
+      InvestigateMode.images => 'Memory Quest · Images',
+      InvestigateMode.full => 'Memory Quest',
+    },
+    logoAsset: 'assets/games icons/Memory Quest transparent.png',
+    mission: switch (mode) {
+      InvestigateMode.images =>
+        'Observe les images, puis retrouve leur ordre de départ.',
+      InvestigateMode.digits =>
+        'Mémorise les chiffres, puis restitue-les dans le bon ordre.',
+      InvestigateMode.full =>
+        'Mémorise les chiffres et les images, puis retrouve leur ordre.',
+    },
+    contextText: switch (mode) {
+      InvestigateMode.digits =>
+        'Une séquence apparaît, puis disparaît. Garde-la en tête pour la restituer dans les deux sens.',
+      InvestigateMode.images =>
+        'Les images changent de place. Ton défi : garder leur premier ordre en mémoire.',
+      InvestigateMode.full =>
+        'Chiffres et images mettent ta mémoire à l’épreuve. Garde le fil malgré les interruptions.',
+    },
+    journey: switch (mode) {
+      InvestigateMode.digits => const ['Observe', 'Retiens', 'Restitue'],
+      InvestigateMode.images => const ['Observe', 'Retiens', 'Classe'],
+      InvestigateMode.full => const ['Observe', 'Retiens', 'Restitue'],
+    },
+    leading: _BackButton(onPressed: onBack),
+    startLabel: 'Start mission',
+    onStart: onStart,
+  );
 }
-
-// ── Tutorial (instructions avant le test) ────────────────────────────────────
-
-// ── Results (métriques + résumé texte neutre) ───────────────────────────────
 
 class _ResultsView extends StatelessWidget {
   const _ResultsView({

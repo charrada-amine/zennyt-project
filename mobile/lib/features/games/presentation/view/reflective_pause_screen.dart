@@ -7,8 +7,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/audio/sound_service.dart';
 import '../../../../core/router/app_routes.dart';
-import '../../../navigation/presentation/viewmodel/nav_tab_provider.dart';
-import '../../../navigation/presentation/widgets/app_bottom_nav.dart';
 import '../../domain/config/reflective_pause_config.dart';
 import '../../domain/entities/game_session.dart';
 import '../../domain/entities/game_runtime_snapshot.dart';
@@ -122,11 +120,6 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
   void dispose() {
     _clock?.cancel();
     super.dispose();
-  }
-
-  void _selectMainTab(int index) {
-    ref.read(navTabProvider.notifier).select(index);
-    context.go(AppRoutes.home);
   }
 
   void _setStage(_ReflectiveStage stage) {
@@ -442,14 +435,6 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final showBottomNav = switch (_stage) {
-      _ReflectiveStage.cover ||
-      _ReflectiveStage.intro ||
-      _ReflectiveStage.tutorial => true,
-      _ => false,
-    };
-    // Plateau mauve comme les autres jeux ; couverture et tutoriel restent
-    // sur fond blanc, comme ailleurs.
     final onBoard = switch (_stage) {
       _ReflectiveStage.loading ||
       _ReflectiveStage.gameplay ||
@@ -458,9 +443,6 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
     };
     return Scaffold(
       backgroundColor: onBoard ? _board : Colors.white,
-      bottomNavigationBar: showBottomNav
-          ? AppBottomNav(selectedTab: 2, onSelect: _selectMainTab)
-          : null,
       body: SafeArea(
         child: GameContentFrame(
           child: AnimatedSwitcher(
@@ -471,7 +453,6 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
               _ReflectiveStage.cover => _CoverView(
                 key: const ValueKey('reflective-cover'),
                 onBack: _back,
-                onTutorial: () => _setStage(_ReflectiveStage.intro),
                 onStart: () => _setStage(_ReflectiveStage.intro),
               ),
               _ReflectiveStage.intro => _IntroView(
@@ -640,158 +621,27 @@ class _SquareIconButton extends StatelessWidget {
 }
 
 class _CoverView extends StatelessWidget {
-  const _CoverView({
-    super.key,
-    required this.onBack,
-    required this.onTutorial,
-    required this.onStart,
-  });
-
+  const _CoverView({super.key, required this.onBack, required this.onStart});
   final VoidCallback onBack;
-  final VoidCallback onTutorial;
   final VoidCallback onStart;
 
   @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
-            children: [
-              _TopBar(onBack: onBack),
-              const SizedBox(height: 8),
-              Container(
-                height: 262,
-                padding: const EdgeInsets.fromLTRB(26, 28, 18, 22),
-                decoration: BoxDecoration(
-                  color: _violet,
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: Stack(
-                  children: [
-                    const Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Impulse Control',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        SizedBox(height: 34),
-                        Text(
-                          'Reflective\nPause',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 39,
-                            height: 1.05,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        Spacer(),
-                        Text(
-                          'Le Temps Réflexif',
-                          style: TextStyle(color: Colors.white, fontSize: 16),
-                        ),
-                      ],
-                    ),
-                    Align(
-                      alignment: const Alignment(1.1, 0.35),
-                      child: Image.asset(
-                        _logoAsset,
-                        width: 145,
-                        filterQuality: FilterQuality.high,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                'Reflective Pause',
-                style: TextStyle(
-                  color: _ink,
-                  fontSize: 28,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'Impulse Control',
-                style: TextStyle(
-                  color: _magenta,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Face pressure moments, pause before reacting, and choose the response that feels most natural.',
-                style: TextStyle(color: _muted, fontSize: 17, height: 1.45),
-              ),
-              const SizedBox(height: 18),
-              const Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _Tag(label: 'Impulse Control', color: Color(0xFF2871FF)),
-                  _Tag(label: 'Pressure moments', color: _magenta),
-                  _Tag(label: 'Journey patterns', color: _green),
-                ],
-              ),
-            ],
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(24, 8, 24, 14),
-          child: Column(
-            children: [
-              GameOutlineButton(
-                key: const ValueKey('reflective-view-tutorial'),
-                label: 'View tutorial',
-                onPressed: onTutorial,
-              ),
-              const SizedBox(height: 12),
-              GamePrimaryButton(
-                key: const ValueKey('reflective-start-mission'),
-                label: 'Start mission',
-                onPressed: onStart,
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _Tag extends StatelessWidget {
-  const _Tag({required this.label, required this.color});
-
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => GameWelcomePage(
+    title: 'Reflective Pause',
+    logoAsset: _logoAsset,
+    mission: 'Prends un temps de recul avant de choisir ta réponse.',
+    contextText:
+        'Une situation te met sous pression. Accorde-toi une pause avant de choisir ta réaction.',
+    journey: const ['Découvre', 'Attends', 'Réponds'],
+    leading: _SquareIconButton(
+      icon: Icons.chevron_left_rounded,
+      tooltip: 'Back',
+      onTap: onBack,
+    ),
+    startKey: const ValueKey('reflective-start-mission'),
+    startLabel: 'Start mission',
+    onStart: onStart,
+  );
 }
 
 class _IntroView extends StatelessWidget {

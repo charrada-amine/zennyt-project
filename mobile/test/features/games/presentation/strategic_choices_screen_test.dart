@@ -90,8 +90,6 @@ void main() {
   Future<void> reachGameplay(WidgetTester tester) async {
     await tapScrollableText(tester, 'Start mission');
     await tester.pumpAndSettle();
-    await tapScrollableText(tester, 'Continue');
-    await tester.pumpAndSettle();
     for (var page = 0; page < 4; page++) {
       await tester.tap(find.text('Suivant'));
       await tester.pumpAndSettle();
@@ -133,7 +131,7 @@ void main() {
     await pumpGame(tester);
 
     expect(find.text('Strategic Choices'), findsOneWidget);
-    expect(find.text('Emotional Regulation'), findsWidgets);
+    expect(find.text('Emotional Regulation'), findsNothing);
     final logo = tester.widget<Image>(
       find.byKey(const ValueKey('strategic-purple-logo')),
     );
@@ -143,14 +141,9 @@ void main() {
       'assets/games icons/Strategic Choices Purple.png',
     );
 
-    await tapScrollableText(tester, 'View tutorial');
+    await tapScrollableText(tester, 'Start mission');
     await tester.pumpAndSettle();
-    expect(find.text('Train the pause before action'), findsOneWidget);
-    await revealScrollableText(tester, 'Written messages and video scenes');
-    expect(find.text('Written messages and video scenes'), findsOneWidget);
-
-    await tapScrollableText(tester, 'Continue');
-    await tester.pumpAndSettle();
+    expect(find.text('Train the pause before action'), findsNothing);
     expect(find.text('Comment jouer'), findsOneWidget);
     expect(find.text('Lis la situation'), findsOneWidget);
     expect(
@@ -398,7 +391,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     // Tutoriel sur un seul écran : le bouton est visible sans défiler.
-    expect(find.text('Continue').hitTestable(), findsOneWidget);
+    expect(find.text('Suivant').hitTestable(), findsOneWidget);
   });
 
   group('écran unique, barre, sons', () {
@@ -414,10 +407,7 @@ void main() {
         await useSize(tester, size);
         await tapScrollableText(tester, 'Start mission');
         await tester.pumpAndSettle();
-        expect(find.byType(Scrollable), findsNothing, reason: 'intro');
-        expect(find.text('Continue').hitTestable(), findsOneWidget);
-        await tester.tap(find.text('Continue'));
-        await tester.pumpAndSettle();
+        expect(find.text('Train the pause before action'), findsNothing);
         expect(find.byType(PageView), findsOneWidget);
         for (var page = 0; page < 4; page++) {
           expect(find.text('Suivant').hitTestable(), findsOneWidget);
