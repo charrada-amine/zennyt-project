@@ -10,6 +10,12 @@ enum NotificationType {
   applicationApproved,
   identityVerification,
   identityVerificationSuccess,
+  // Types émis par le backend Engagement.
+  newMessage,
+  jobMatch,
+  applicationViewed,
+  applicationStatusChanged,
+  profileViewed,
 }
 
 class AppNotification extends Equatable {
@@ -41,16 +47,16 @@ class AppNotification extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        userId,
-        title,
-        subtitle,
-        createdAt,
-        type,
-        isRead,
-        contactName,
-        contactInitials,
-        actionUrl,
-        chatId,
-      ];
+    id,
+    userId,
+    title,
+    subtitle,
+    createdAt,
+    type,
+    isRead,
+    contactName,
+    contactInitials,
+    actionUrl,
+    chatId,
+  ];
 }

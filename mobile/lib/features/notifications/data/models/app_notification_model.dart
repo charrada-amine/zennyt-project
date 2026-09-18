@@ -47,6 +47,16 @@ class AppNotificationModel {
         return NotificationType.identityVerification;
       case 'IDENTITY_VERIFICATION_SUCCESS':
         return NotificationType.identityVerificationSuccess;
+      case 'NEW_MESSAGE':
+        return NotificationType.newMessage;
+      case 'JOB_MATCH':
+        return NotificationType.jobMatch;
+      case 'APPLICATION_VIEWED':
+        return NotificationType.applicationViewed;
+      case 'APPLICATION_STATUS_CHANGED':
+        return NotificationType.applicationStatusChanged;
+      case 'PROFILE_VIEWED':
+        return NotificationType.profileViewed;
       default:
         return NotificationType.newJob;
     }
@@ -72,6 +82,16 @@ class AppNotificationModel {
         return 'IDENTITY_VERIFICATION';
       case NotificationType.identityVerificationSuccess:
         return 'IDENTITY_VERIFICATION_SUCCESS';
+      case NotificationType.newMessage:
+        return 'NEW_MESSAGE';
+      case NotificationType.jobMatch:
+        return 'JOB_MATCH';
+      case NotificationType.applicationViewed:
+        return 'APPLICATION_VIEWED';
+      case NotificationType.applicationStatusChanged:
+        return 'APPLICATION_STATUS_CHANGED';
+      case NotificationType.profileViewed:
+        return 'PROFILE_VIEWED';
     }
   }
 
@@ -80,38 +100,45 @@ class AppNotificationModel {
 
     final parsedDate = rawDate is num
         ? (rawDate < 10000000000
-            ? DateTime.fromMillisecondsSinceEpoch((rawDate * 1000).toInt())
-            : DateTime.fromMillisecondsSinceEpoch(rawDate.toInt()))
-        : DateTime.parse(rawDate as String);
+              ? DateTime.fromMillisecondsSinceEpoch((rawDate * 1000).toInt())
+              : DateTime.fromMillisecondsSinceEpoch(rawDate.toInt()))
+        : DateTime.parse(rawDate as String).toLocal();
+
+    // Le backend porte le texte dans `body` et le lien dans `actionUrl`
+    // (`/conversations/{id}` pour un message).
+    final actionUrl = json['actionUrl'] as String?;
+    final conversationId = RegExp(
+      r'^/conversations/([^/?#]+)',
+    ).firstMatch(actionUrl ?? '')?.group(1);
 
     return AppNotificationModel(
       id: json['id'] as String,
       userId: json['userId'] as String? ?? '',
       title: json['title'] as String,
-      subtitle: json['subtitle'] as String?,
+      subtitle: json['subtitle'] as String? ?? json['body'] as String?,
       createdAt: parsedDate,
       type: _parseType(json['type'] as String?),
       isRead: json['isRead'] as bool? ?? false,
       contactName: json['contactName'] as String?,
       contactInitials: json['contactInitials'] as String?,
-      actionUrl: json['actionUrl'] as String?,
-      chatId: json['chatId'] as String?,
+      actionUrl: actionUrl,
+      chatId: json['chatId'] as String? ?? conversationId,
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'userId': userId,
-        'title': title,
-        'subtitle': subtitle,
-        'createdAt': createdAt.toIso8601String(),
-        'type': _typeToString(type),
-        'isRead': isRead,
-        'contactName': contactName,
-        'contactInitials': contactInitials,
-        'actionUrl': actionUrl,
-        'chatId': chatId,
-      };
+    'id': id,
+    'userId': userId,
+    'title': title,
+    'subtitle': subtitle,
+    'createdAt': createdAt.toIso8601String(),
+    'type': _typeToString(type),
+    'isRead': isRead,
+    'contactName': contactName,
+    'contactInitials': contactInitials,
+    'actionUrl': actionUrl,
+    'chatId': chatId,
+  };
 
   AppNotificationModel copyWith({
     String? id,
@@ -142,16 +169,16 @@ class AppNotificationModel {
   }
 
   AppNotification toEntity() => AppNotification(
-        id: id,
-        userId: userId,
-        title: title,
-        subtitle: subtitle,
-        createdAt: createdAt,
-        type: type,
-        isRead: isRead,
-        contactName: contactName,
-        contactInitials: contactInitials,
-        actionUrl: actionUrl,
-        chatId: chatId,
-      );
+    id: id,
+    userId: userId,
+    title: title,
+    subtitle: subtitle,
+    createdAt: createdAt,
+    type: type,
+    isRead: isRead,
+    contactName: contactName,
+    contactInitials: contactInitials,
+    actionUrl: actionUrl,
+    chatId: chatId,
+  );
 }

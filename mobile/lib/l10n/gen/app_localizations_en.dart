@@ -762,6 +762,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get newProject => 'New Project';
 
   @override
+  String get composerPrompt => 'Share a project or an update…';
+
+  @override
+  String get emptyFeedTitle => 'Your feed is quiet for now';
+
+  @override
+  String get emptyFeedBody =>
+      'Share your first project so recruiters and friends can see what you build.';
+
+  @override
+  String get shareAProject => 'Share a project';
+
+  @override
   String get noChats => 'Aucun chat';
 
   @override

@@ -155,7 +155,7 @@ class PostModel extends Post {
     final createdAtRaw = json['createdAt'];
     if (createdAtRaw != null) {
       if (createdAtRaw is String) {
-        createdAt = DateTime.tryParse(createdAtRaw);
+        createdAt = DateTime.tryParse(createdAtRaw)?.toLocal();
       } else if (createdAtRaw is num) {
         createdAt =
             DateTime.fromMillisecondsSinceEpoch((createdAtRaw * 1000).toInt());

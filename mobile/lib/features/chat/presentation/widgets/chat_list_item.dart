@@ -137,7 +137,35 @@ class ChatListItem extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
+                // Une conversation par offre : sans le poste, trois discussions avec
+                // le même recruteur étaient indiscernables.
+                if (conversation.jobTitle != null &&
+                    conversation.jobTitle!.trim().isNotEmpty) ...[
+                  const SizedBox(height: 3),
+                  Row(
+                    children: [
+                      AppIcon(
+                        HugeIcons.strokeRoundedBriefcase01,
+                        size: 13,
+                        color: context.colors.accent,
+                      ),
+                      const SizedBox(width: 5),
+                      Expanded(
+                        child: Text(
+                          conversation.jobTitle!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                            color: context.colors.accent,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+                const SizedBox(height: 4),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
@@ -146,13 +174,39 @@ class ChatListItem extends StatelessWidget {
                         conversation.lastMessagePreview,
                         style: TextStyle(
                           fontSize: 14,
-                          color: context.colors.textSecondary,
+                          color: conversation.unreadCount > 0
+                              ? context.colors.textPrimary
+                              : context.colors.textSecondary,
+                          fontWeight: conversation.unreadCount > 0
+                              ? FontWeight.w600
+                              : FontWeight.w400,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
+                    if (conversation.unreadCount > 0) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        constraints: const BoxConstraints(minWidth: 20),
+                        height: 20,
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: context.colors.accent,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          '${conversation.unreadCount}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
                     ],
+                  ],
                 ),
               ],
             ),

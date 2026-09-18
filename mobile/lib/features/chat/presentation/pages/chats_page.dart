@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:zennyt/shared/widgets/custom_app_bar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/chat_providers.dart';
@@ -7,8 +8,6 @@ import '../../../notifications/presentation/providers/notification_providers.dar
 import '../../../../core/constants.dart';
 import 'package:zennyt/l10n/gen/app_localizations.dart';
 import '../widgets/chat_list_item.dart';
-import '../../../../shared/widgets/platform_app_bar.dart';
-import '../../../../shared/widgets/platform_scaffold.dart';
 
 class ChatsPage extends ConsumerWidget {
   const ChatsPage({super.key});
@@ -39,18 +38,8 @@ class ChatsPage extends ConsumerWidget {
       }
     });
 
-    return PlatformScaffold(
-      appBar: PlatformAppBar(
-        title: Text(
-          l10n.allChats,
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: context.colors.textPrimary,
-          ),
-        ),
-        showBack: true,
-      ),
+    return Scaffold(
+      appBar: CustomAppBar(title: l10n.allChats),
       backgroundColor: context.colors.scaffoldBg,
       body: Container(
         decoration: BoxDecoration(

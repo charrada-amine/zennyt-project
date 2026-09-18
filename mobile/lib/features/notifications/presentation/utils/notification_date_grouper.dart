@@ -5,10 +5,7 @@ class NotificationDateGroup {
   final String key;
   final List<AppNotification> notifications;
 
-  const NotificationDateGroup({
-    required this.key,
-    required this.notifications,
-  });
+  const NotificationDateGroup({required this.key, required this.notifications});
 
   bool get isToday => key == _todayKey;
   bool get isYesterday => key == _yesterdayKey;
@@ -67,10 +64,8 @@ List<NotificationDateGroup> groupNotificationsByDate(
 
   return entries
       .map(
-        (entry) => NotificationDateGroup(
-          key: entry.key,
-          notifications: entry.value,
-        ),
+        (entry) =>
+            NotificationDateGroup(key: entry.key, notifications: entry.value),
       )
       .toList();
 }

@@ -764,6 +764,19 @@ class AppLocalizationsFr extends AppLocalizations {
   String get newProject => 'Nouveau projet';
 
   @override
+  String get composerPrompt => 'Partage un projet ou une actualité…';
+
+  @override
+  String get emptyFeedTitle => 'Ton fil est calme pour l’instant';
+
+  @override
+  String get emptyFeedBody =>
+      'Partage ton premier projet pour que les recruteurs et tes amis voient ce que tu construis.';
+
+  @override
+  String get shareAProject => 'Partager un projet';
+
+  @override
   String get noChats => 'Aucun chat';
 
   @override

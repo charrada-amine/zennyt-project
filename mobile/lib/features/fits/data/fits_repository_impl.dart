@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:zennyt/core/network/page_items.dart';
 
 import '../../../core/error/api_exception.dart';
 import '../../auth/domain/entities/app_user.dart';
@@ -31,13 +32,11 @@ class FitsRepositoryImpl implements FitsRepository {
   @override
   Future<List<JobOffer>> getMyActiveOffers() {
     return _guard(() async {
-      final res = await _dio.get<List<dynamic>>(
+      final res = await _dio.get<Object>(
         '/recruiters/me/job-offers',
-        queryParameters: {'status': 'ACTIVE'},
+        queryParameters: {'status': 'ACTIVE', 'size': 100},
       );
-      return res.data!
-          .map((e) => _jobOfferFromJson(e as Map<String, dynamic>))
-          .toList();
+      return pageItems(res.data).map(_jobOfferFromJson).toList();
     });
   }
 
@@ -182,19 +181,23 @@ class FitsRepositoryImpl implements FitsRepository {
   @override
   Future<List<MatchEntity>> getCandidateMatches() {
     return _guard(() async {
-      final res = await _dio.get<List<dynamic>>('/candidates/me/matches');
-      return res.data!
-          .map((e) => _matchFromJson(e as Map<String, dynamic>))
-          .toList();
+      final res = await _dio.get<Object>(
+        '/candidates/me/matches',
+        queryParameters: {'size': 100},
+      );
+      return pageItems(res.data).map(_matchFromJson).toList();
     });
   }
 
   @override
   Future<List<MatchEntity>> getRecruiterMatches({required String jobOfferId}) {
     return _guard(() async {
-      final res = await _dio.get<List<dynamic>>('/job-offers/$jobOfferId/matches');
-      return res.data!
-          .map((e) => _matchFromJson(e as Map<String, dynamic>))
+      final res = await _dio.get<Object>(
+        '/job-offers/$jobOfferId/matches',
+        queryParameters: {'size': 100},
+      );
+      return pageItems(res.data)
+          .map((json) => _matchFromJson(json, jobOfferId: jobOfferId))
           .toList();
     });
   }
@@ -284,17 +287,25 @@ class FitsRepositoryImpl implements FitsRepository {
     return 'Developing';
   }
 
-  static MatchEntity _matchFromJson(Map<String, dynamic> json) => MatchEntity(
-        matchId: json['matchId'] as String? ?? '',
-        candidateId: json['candidateId'] as String? ?? '',
-        jobOfferId: json['jobOfferId'] as String? ?? '',
-        candidateName: json['candidateName'] as String? ?? '',
-        jobTitle: json['jobTitle'] as String? ?? '',
-        companyName: json['companyName'] as String? ?? '',
-        matchedAt: json['matchedAt'] != null
-            ? DateTime.tryParse(json['matchedAt'] as String) ?? DateTime.now()
-            : DateTime.now(),
-      );
+  /// Match côté candidat (`{id, jobOffer: {id, title, companyName}, matchedAt}`)
+  /// ou côté recruteur (`{id, candidate: {id, fullName, avatarUrl}, matchedAt}`) ;
+  /// l'ancienne forme à plat reste lue par sécurité.
+  static MatchEntity _matchFromJson(Map<String, dynamic> json, {String? jobOfferId}) {
+    final offer = json['jobOffer'] as Map<String, dynamic>? ?? const {};
+    final candidate = json['candidate'] as Map<String, dynamic>? ?? const {};
+    return MatchEntity(
+      matchId: json['id'] as String? ?? json['matchId'] as String? ?? '',
+      candidateId: candidate['id'] as String? ?? json['candidateId'] as String? ?? '',
+      jobOfferId:
+          offer['id'] as String? ?? json['jobOfferId'] as String? ?? jobOfferId ?? '',
+      candidateName:
+          candidate['fullName'] as String? ?? json['candidateName'] as String? ?? '',
+      jobTitle: offer['title'] as String? ?? json['jobTitle'] as String? ?? '',
+      companyName: offer['companyName'] as String? ?? json['companyName'] as String? ?? '',
+      matchedAt: DateTime.tryParse(json['matchedAt'] as String? ?? '')?.toLocal() ??
+          DateTime.now(),
+    );
+  }
 
   /// Runs [action], converting any [DioException] into a typed [ApiException].
   Future<T> _guard<T>(Future<T> Function() action) async {

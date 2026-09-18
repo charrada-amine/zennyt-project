@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:zennyt/core/network/page_items.dart';
 
 import 'package:zennyt/core/error/api_exception.dart';
 import 'package:zennyt/features/jobs/domain/entities/assessment.dart';
@@ -21,8 +22,11 @@ class JobsRepositoryImpl implements JobsRepository {
   @override
   Future<List<JobOffer>> getJobOffers() {
     return _guard(() async {
-      final res = await _dio.get<List<dynamic>>('/recruiters/me/job-offers');
-      return res.data!.map((e) => _jobFromJson(e as Map<String, dynamic>)).toList();
+      final res = await _dio.get<Object>(
+        '/recruiters/me/job-offers',
+        queryParameters: {'size': 100},
+      );
+      return pageItems(res.data).map(_jobFromJson).toList();
     });
   }
 

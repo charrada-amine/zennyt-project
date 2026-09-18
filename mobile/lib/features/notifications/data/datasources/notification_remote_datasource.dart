@@ -21,9 +21,7 @@ class NotificationRemoteDataSourceImpl implements NotificationRemoteDataSource {
   @override
   Future<List<AppNotificationModel>> getNotifications(String userId) async {
     try {
-      final res = await dio.get(
-        '/notifications',
-      );
+      final res = await dio.get('/notifications');
       final data = res.data;
       final List<dynamic> items = data is Map<String, dynamic>
           ? (data['content'] as List<dynamic>? ?? [])
@@ -39,9 +37,7 @@ class NotificationRemoteDataSourceImpl implements NotificationRemoteDataSource {
   @override
   Future<void> markAsRead(String id, String userId) async {
     try {
-      await dio.post(
-        '/notifications/$id/read',
-      );
+      await dio.post('/notifications/$id/read');
     } on DioException catch (e) {
       throw handleDioException(e);
     }
@@ -50,9 +46,7 @@ class NotificationRemoteDataSourceImpl implements NotificationRemoteDataSource {
   @override
   Future<void> markAllAsRead(String userId) async {
     try {
-      await dio.post(
-        '/notifications/read-all',
-      );
+      await dio.post('/notifications/read-all');
     } on DioException catch (e) {
       throw handleDioException(e);
     }

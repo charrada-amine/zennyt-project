@@ -26,7 +26,7 @@ class HelpMessageModel {
       timestamp: json['timestamp'] is num
           ? DateTime.fromMillisecondsSinceEpoch(
               (json['timestamp'] as num).toDouble() ~/ 1 * 1000)
-          : DateTime.parse(json['timestamp'] as String),
+          : DateTime.parse(json['timestamp'] as String).toLocal(),
       isFromUser: json['isFromUser'] as bool,
     );
   }
