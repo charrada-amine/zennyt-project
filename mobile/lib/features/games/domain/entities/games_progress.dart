@@ -20,7 +20,9 @@ enum CatalogGame {
   predictivePuzzle('PREDICTIVE_PUZZLE'),
   emotionalRadar('EMOTIONAL_RADAR'),
   reflectivePause('REFLECTIVE_PAUSE'),
-  strategicChoices('STRATEGIC_CHOICES');
+  strategicChoices('STRATEGIC_CHOICES'),
+  bart('BART'),
+  informationSampling('INFORMATION_SAMPLING');
 
   const CatalogGame(this.wire);
 
@@ -49,6 +51,8 @@ enum CatalogGame {
       MiniGame.reflectivePauseCore => {reflectivePause},
       MiniGame.strategicChoicesCore => {strategicChoices},
       MiniGame.memoryQuestCore => _memoryQuest(metrics),
+      MiniGame.bartCore => {bart},
+      MiniGame.informationSamplingCore => {informationSampling},
     };
   }
 

@@ -20,7 +20,11 @@ enum GameType {
   visuomotorCoordination('VISUOMOTOR_COORDINATION'),
 
   /// « Je place » — object/location binding in visuospatial working memory.
-  visuospatialMemory('VISUOSPATIAL_MEMORY');
+  visuospatialMemory('VISUOSPATIAL_MEMORY'),
+
+  /// Décision comportementale — BART (risque) + IST (recueil d'information).
+  /// Distinct de [decision] : « Je Décide » doit rester complet à lui seul.
+  decisionBehavioral('DECISION_BEHAVIORAL');
 
   /// Valeur transmise à l'API (nom de l'enum côté back).
   final String wire;

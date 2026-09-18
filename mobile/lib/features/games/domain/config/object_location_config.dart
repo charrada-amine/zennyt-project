@@ -1,4 +1,4 @@
-import 'dart:convert';
+import '../service/deterministic_random.dart';
 
 /// Asset/catalog entry for the modern 2.5D objects used by « Je place ».
 class ObjectLocationCatalogItem {
@@ -206,10 +206,10 @@ class ObjectLocationConfig {
       catalog.firstWhere((item) => item.id == id);
 
   static int seedForSession(String sessionId) =>
-      _fnv1a32(utf8.encode('${sessionId.toLowerCase()}|$protocolVersion'));
+      DeterministicRandom.seedFor(sessionId, protocolVersion);
 
   static List<ObjectLocationLevelLayout> generateLayouts(String sessionId) {
-    final random = _XorShift32(seedForSession(sessionId));
+    final random = DeterministicRandom(seedForSession(sessionId));
     final useCounts = <String, int>{for (final item in catalog) item.id: 0};
     final priorCells = <String, Set<int>>{};
     final layouts = <ObjectLocationLevelLayout>[];
@@ -254,7 +254,7 @@ class ObjectLocationConfig {
   }
 
   static List<String> _chooseBalancedObjects(
-    _XorShift32 random,
+    DeterministicRandom random,
     Map<String, int> useCounts,
     int count,
   ) {
@@ -280,7 +280,7 @@ class ObjectLocationConfig {
   }
 
   static List<int> _chooseCells(
-    _XorShift32 random,
+    DeterministicRandom random,
     List<String> objectIds,
     Map<String, Set<int>> priorCells,
   ) {
@@ -369,43 +369,5 @@ class ObjectLocationConfig {
       return true;
     }
     return false;
-  }
-
-  static int _fnv1a32(List<int> bytes) {
-    var hash = 0x811C9DC5;
-    for (final byte in bytes) {
-      hash ^= byte;
-      hash = (hash * 0x01000193) & 0xFFFFFFFF;
-    }
-    return hash;
-  }
-}
-
-class _XorShift32 {
-  _XorShift32(int seed) : _state = seed == 0 ? 0x6D2B79F5 : seed;
-
-  int _state;
-
-  int nextUint32() {
-    var value = _state;
-    value ^= (value << 13) & 0xFFFFFFFF;
-    value ^= value >>> 17;
-    value ^= (value << 5) & 0xFFFFFFFF;
-    _state = value & 0xFFFFFFFF;
-    return _state;
-  }
-
-  int nextInt(int upperBound) {
-    if (upperBound <= 0) throw ArgumentError.value(upperBound, 'upperBound');
-    return nextUint32() % upperBound;
-  }
-
-  void shuffle<T>(List<T> values) {
-    for (var index = values.length - 1; index > 0; index--) {
-      final swapIndex = nextInt(index + 1);
-      final value = values[index];
-      values[index] = values[swapIndex];
-      values[swapIndex] = value;
-    }
   }
 }

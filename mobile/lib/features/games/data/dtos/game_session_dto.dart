@@ -1,3 +1,5 @@
+import '../../domain/entities/bart_metrics.dart';
+import '../../domain/entities/ist_metrics.dart';
 import '../../domain/entities/continuous_attention_metrics.dart';
 import '../../domain/entities/coordination_tracking_metrics.dart';
 import '../../domain/entities/game_score.dart';
@@ -29,6 +31,8 @@ class GameSessionDto {
     this.continuousAttentionIndicators,
     this.coordinationIndicators,
     this.objectLocationIndicators,
+    this.bartIndicators,
+    this.istIndicators,
   });
 
   final String id;
@@ -46,6 +50,8 @@ class GameSessionDto {
   final ContinuousAttentionIndicators? continuousAttentionIndicators;
   final CoordinationTrackingIndicators? coordinationIndicators;
   final ObjectLocationIndicators? objectLocationIndicators;
+  final BartIndicators? bartIndicators;
+  final IstIndicators? istIndicators;
 
   factory GameSessionDto.fromJson(Map<String, dynamic> json) {
     return GameSessionDto(
@@ -95,6 +101,12 @@ class GameSessionDto {
           : ObjectLocationIndicators.fromJson(
               json['objectLocationIndicators'] as Map<String, dynamic>,
             ),
+      bartIndicators: json['bartIndicators'] == null
+          ? null
+          : BartIndicators.fromJson(json['bartIndicators'] as Map<String, dynamic>),
+      istIndicators: json['istIndicators'] == null
+          ? null
+          : IstIndicators.fromJson(json['istIndicators'] as Map<String, dynamic>),
     );
   }
 
@@ -114,6 +126,8 @@ class GameSessionDto {
     continuousAttentionIndicators: continuousAttentionIndicators,
     coordinationIndicators: coordinationIndicators,
     objectLocationIndicators: objectLocationIndicators,
+    bartIndicators: bartIndicators,
+    istIndicators: istIndicators,
   );
 
   static GameAttempt _attemptFromJson(Map<String, dynamic> json) {
