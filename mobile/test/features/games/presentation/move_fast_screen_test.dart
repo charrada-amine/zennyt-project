@@ -28,6 +28,12 @@ void main() {
 
   /// Monte l'écran avec une graine fixe et le mène jusqu'au jeu : intro, puis
   /// les deux écrans de règles, qui attendent tous deux la flèche « droite ».
+  ///
+  /// Le mock de repository simule le réseau (`Future.delayed` de 150 ms) et
+  /// l'écran n'ouvre le jeu qu'une fois la session confirmée : les minuteries —
+  /// attente d'acrobatie, échéance de 2 000 ms — ne démarrent qu'après cette
+  /// attente. On la consomme ICI, une fois pour toutes, pour que les échéanciers
+  /// des tests restent relatifs au début réel du jeu.
   Future<void> startGameplay(WidgetTester tester, {int seed = 4242}) async {
     useLargeSurface(tester);
     await tester.pumpWidget(
@@ -45,6 +51,7 @@ void main() {
     await tester.pump();
     await tester.tap(find.text('Right'));
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 150));
   }
 
   /// Démonte l'arbre. Toutes les minuteries de l'écran — session, échéance
@@ -103,7 +110,8 @@ void main() {
       expect(
         byCount[ordered[i]]!.single,
         lessThan(byCount[ordered[i - 1]]!.single),
-        reason: '${ordered[i]} avions doivent être plus petits que '
+        reason:
+            '${ordered[i]} avions doivent être plus petits que '
             '${ordered[i - 1]}',
       );
     }
@@ -182,7 +190,8 @@ void main() {
     expect(
       find.text('reset'),
       findsNothing,
-      reason: 'l\'échéance est de ${MoveFastConfig.trialTimeoutMs} ms, pas moins',
+      reason:
+          'l\'échéance est de ${MoveFastConfig.trialTimeoutMs} ms, pas moins',
     );
 
     // …et elle tombe.
@@ -428,7 +437,8 @@ void main() {
         track.add(now);
         if (!changed && colorOf(now) != before) changed = true;
         if (changed && elapsed > const Duration(milliseconds: 800)) {
-          if (colorOf(now) != before && colorOf(track[track.length - 2]) == colorOf(now)) {
+          if (colorOf(now) != before &&
+              colorOf(track[track.length - 2]) == colorOf(now)) {
             break;
           }
         }
@@ -524,7 +534,8 @@ void main() {
           if (lane == null) continue;
           final plane = element.widget as MoveFastPlane;
           out[lane!] = (
-            heading: plane.heading ?? MoveFastPlane.angleFor(plane.noseDirection),
+            heading:
+                plane.heading ?? MoveFastPlane.angleFor(plane.noseDirection),
             roll: plane.roll,
           );
         }
@@ -954,7 +965,10 @@ void main() {
     test('l\'avion s\'incline d\'abord À L\'ENVERS : c\'est l\'élan', () {
       // Anticipation : le geste se ramasse avant de partir. Sans elle la
       // rotation démarre de nulle part et paraît subie.
-      final track = rollTrack(from: GameDirection.right, to: GameDirection.down);
+      final track = rollTrack(
+        from: GameDirection.right,
+        to: GameDirection.down,
+      );
       final end = track.last;
 
       final windUp = track.takeWhile((r) => r * end <= 0).toList();
@@ -1080,8 +1094,11 @@ void main() {
     test('un avion grossit en arrivant, et rien ne bouge pour les autres', () {
       // La taille fait partie du mouvement : sans elle, l'avion traverse le
       // plateau à sa taille définitive et se lit comme une image qu'on glisse.
-      expect(MoveFastPlane.approachScale(1), 1,
-          reason: 'un avion qui RESTE dans la formation garde sa taille');
+      expect(
+        MoveFastPlane.approachScale(1),
+        1,
+        reason: 'un avion qui RESTE dans la formation garde sa taille',
+      );
       expect(MoveFastPlane.approachScale(0), lessThan(1));
 
       var previous = MoveFastPlane.approachScale(0);
@@ -1210,7 +1227,11 @@ void main() {
             for (var i = 0; i <= 200; i++)
               MoveFastPlane.rollFigure(from: 0, way: way, f: i / 200),
           ];
-          expect(roll.first, closeTo(0, 1e-9), reason: '$label : roulis initial');
+          expect(
+            roll.first,
+            closeTo(0, 1e-9),
+            reason: '$label : roulis initial',
+          );
           expect(
             roll.last,
             closeTo(way * 2 * math.pi, 1e-6),

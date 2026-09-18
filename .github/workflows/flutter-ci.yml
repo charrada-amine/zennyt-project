@@ -1,0 +1,39 @@
+name: flutter-ci
+
+on:
+  push:
+    branches: [develop, "release/**", main]
+    paths: ["mobile/**", ".github/workflows/flutter-ci.yml"]
+  pull_request:
+    branches: [develop]
+    paths: ["mobile/**"]
+
+env:
+  FLUTTER_VERSION: "3.32.0"
+
+jobs:
+  # ───────────── CI locale : tests + analyse ─────────────
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - run: flutter pub get
+      - name: Format check
+        run: dart format --set-exit-if-changed .
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos
+      - name: Tests + couverture
+        run: flutter test --coverage
+      - name: Publier la couverture
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-coverage
+          path: mobile/coverage/lcov.info
