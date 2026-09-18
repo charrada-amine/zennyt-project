@@ -48,6 +48,9 @@ services:
       EMBEDDING_HF_API_KEY: ${EMBEDDING_HF_API_KEY:-}
       EMBEDDING_HF_MODEL: ${EMBEDDING_HF_MODEL:-}
       RECRUITMENT_CALLBACK_SECRET: ${RECRUITMENT_CALLBACK_SECRET:-}
+      # Garde-fou anti « abonnements gratuits en prod » : le vérificateur provisoire
+      # (stub) n'existe qu'en dev — la prod doit fournir un vrai vérificateur.
+      BILLING_RECEIPT_VERIFIER: ${BILLING_RECEIPT_VERIFIER:-stub}
     ports:
       - "${BACKEND_PORT:-8080}:8080"
     volumes:

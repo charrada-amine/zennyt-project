@@ -58,6 +58,8 @@ appsettings.Local.json
 
 # ───────────── Divers ─────────────
 node_modules/
+.turbo/
+.build/
 *.tmp
 *.bak
 /tmp/
