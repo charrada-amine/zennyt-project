@@ -22,6 +22,9 @@ import '../emotional_regulation_session_provider.dart';
 import '../games_providers.dart';
 import '../widgets/emotional_game_pause_dialog.dart';
 import '../widgets/game_system_components.dart';
+import '../widgets/game_results_template.dart';
+import '../widgets/reflective_pause_tutorial.dart';
+import '../widgets/zennyt_loader.dart';
 
 const _ink = Color(0xFF28234F);
 const _muted = Color(0xFF607095);
@@ -32,6 +35,12 @@ const _violet = Color(0xFF5146E8);
 const _green = Color(0xFF20B978);
 const _navy = Color(0xFF071B3A);
 const _logoAsset = 'assets/games icons/Reflective Pause.png';
+
+/// Fond mauve du plateau, commun aux autres jeux.
+const _board = ZennytGamePalette.gameBlue;
+
+/// Secondes finales du délai de réflexion rythmées par un tic sonore.
+const int _countdownSfxSeconds = 5;
 
 enum _ReflectiveStage {
   cover,
@@ -206,6 +215,10 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
       _selectedResponse = null;
       _elapsedMs = 0;
     });
+    // Premier tic de la réflexion : le compteur affiche déjà « 3 s ».
+    if (_timing.reflectiveThinkingTimeMs > 0) {
+      SoundService.instance.playSfx(GameSfx.timerDecrease);
+    }
     _startClock();
   }
 
@@ -222,7 +235,46 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
     if (startedAt == null) return;
     final measured =
         _elapsedBeforeStartMs + _now().difference(startedAt).inMilliseconds;
-    if (measured != _elapsedMs) setState(() => _elapsedMs = measured);
+    if (measured == _elapsedMs) return;
+    _playCountdownSfx(_elapsedMs, measured);
+    setState(() => _elapsedMs = measured);
+  }
+
+  /// Sons des deux comptes à rebours d'un moment, chacun synchronisé avec ce
+  /// qu'il rythme :
+  ///
+  /// - **réflexion** (3 s) : un tic à chaque seconde du compteur de la carte,
+  ///   puis le son de fin quand les réponses se déverrouillent ;
+  /// - **temps conseillé** : un tic sur ses [_countdownSfxSeconds] dernières
+  ///   secondes, au rythme de la barre, puis le son de fin à l'échéance.
+  ///
+  /// Chaque son tombe au passage d'une seconde entière du temps RESTANT.
+  void _playCountdownSfx(int previousElapsedMs, int elapsedMs) {
+    if (_situations.isEmpty) return;
+    final thinking = _timing.reflectiveThinkingTimeMs;
+    int secondsLeft(int end, int elapsed) =>
+        (math.max(0, end - elapsed) / 1000).ceil();
+
+    if (previousElapsedMs < thinking) {
+      final before = secondsLeft(thinking, previousElapsedMs);
+      final after = secondsLeft(thinking, elapsedMs);
+      if (after != before) {
+        SoundService.instance.playSfx(
+          after == 0 ? GameSfx.timerEnd : GameSfx.timerDecrease,
+        );
+      }
+      return;
+    }
+
+    final end = thinking + _situation.responseDeadlineSec * 1000;
+    final before = secondsLeft(end, previousElapsedMs);
+    final after = secondsLeft(end, elapsedMs);
+    if (after == before) return;
+    if (after == 0) {
+      SoundService.instance.playSfx(GameSfx.timerEnd);
+    } else if (after <= _countdownSfxSeconds) {
+      SoundService.instance.playSfx(GameSfx.timerDecrease);
+    }
   }
 
   void _freezeClock() {
@@ -241,6 +293,7 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
   /// seule issue restante — quitter, donc renoncer au score.
   Future<void> _backOrExit() async {
     if (_pauseAllowance.canOpen) return _openPause();
+    SoundService.instance.playSfx(GameSfx.buttonClick);
     if (!await GameExitConfirmDialog.show(context, missionLabel: 'journey')) {
       return;
     }
@@ -254,12 +307,11 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
       // Une seule fenêtre de pause par partie (CdC pause §2-3).
       if (!_pauseAllowance.canOpen) return;
       _pauseAllowance.open();
+      SoundService.instance.playSfx(GameSfx.pauseClick);
     }
     _freezeClock();
-    final action = await showDialog<EmotionalGamePauseAction>(
-      context: context,
-      barrierDismissible: false,
-      barrierColor: const Color(0xCC1B1B4B),
+    final action = await showGamePauseMenu<EmotionalGamePauseAction>(
+      context,
       builder: (dialogCtx) => EmotionalGamePauseDialog(
         buttonsInput: _buttonsInput,
         onInputMode: (value) => setState(() => _buttonsInput = value),
@@ -349,6 +401,9 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
           );
       ref.read(emotionalRegulationSessionProvider.notifier).keep(updated);
       if (!mounted) return;
+      // Même entrée que « Je Bouge » : le tableau de score sonne pendant que
+      // le score compte jusqu'à sa valeur.
+      SoundService.instance.playScoreboard();
       setState(() {
         _session = updated;
         _submitting = false;
@@ -393,8 +448,16 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
       _ReflectiveStage.tutorial => true,
       _ => false,
     };
+    // Plateau mauve comme les autres jeux ; couverture et tutoriel restent
+    // sur fond blanc, comme ailleurs.
+    final onBoard = switch (_stage) {
+      _ReflectiveStage.loading ||
+      _ReflectiveStage.gameplay ||
+      _ReflectiveStage.saved => true,
+      _ => false,
+    };
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: onBoard ? _board : Colors.white,
       bottomNavigationBar: showBottomNav
           ? AppBottomNav(selectedTab: 2, onSelect: _selectMainTab)
           : null,
@@ -454,9 +517,9 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
                 onBack: _back,
                 onInsights: () => _setStage(_ReflectiveStage.insights),
               ),
-              _ReflectiveStage.insights => _InsightsView(
+              _ReflectiveStage.insights => ReflectivePauseInsightsView(
                 key: const ValueKey('reflective-insights'),
-                session: _session,
+                indicators: _session?.reflectivePauseIndicators,
                 onBack: _back,
                 onFinish: () => context.go(AppRoutes.games),
               ),
@@ -480,11 +543,15 @@ class _TopBar extends StatelessWidget {
     this.title,
     this.onPause,
     this.affordance = GameMenuAffordance.pause,
+    this.onDark = false,
   });
 
   final VoidCallback onBack;
   final String? title;
   final VoidCallback? onPause;
+
+  /// Titre blanc, pour le plateau mauve.
+  final bool onDark;
 
   /// Pause ou sortie : le bouton change d'icône une fois la fenêtre consommée,
   /// il ne disparaît plus. Voir [GameMenuAffordance].
@@ -497,15 +564,23 @@ class _TopBar extends StatelessWidget {
         _SquareIconButton(
           icon: Icons.chevron_left_rounded,
           tooltip: 'Back',
-          onTap: onBack,
+          // En jeu, le retour ouvre la pause, qui joue son propre son.
+          onTap: onPause != null
+              ? onBack
+              : () {
+                  SoundService.instance.playSfx(GameSfx.buttonClick);
+                  onBack();
+                },
         ),
         if (title != null) ...[
           const SizedBox(width: 14),
           Expanded(
             child: Text(
               title!,
-              style: const TextStyle(
-                color: _ink,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: onDark ? Colors.white : _ink,
                 fontSize: 20,
                 fontWeight: FontWeight.w800,
               ),
@@ -754,25 +829,17 @@ class _TutorialView extends StatelessWidget {
   final VoidCallback onStart;
 
   @override
-  Widget build(BuildContext context) {
-    return _InfoPage(
-      onBack: onBack,
-      title: 'How it works',
-      subtitle:
-          'You will complete 10 pressure moments. Each one follows the same four-step rhythm.',
-      icon: Icons.self_improvement_rounded,
-      items: const [
-        ('Read', 'Read the complete situation while the countdown runs.'),
-        ('Wait', 'Responses unlock only when the countdown ends.'),
-        ('Choose', 'Pick one response that feels most natural to you.'),
-        ('Validate', 'Save your choice and continue to the next moment.'),
-      ],
-      footnote:
-          'There is no immediate right/wrong feedback. Your score and response pattern are shown after all 10 moments.',
-      buttonLabel: 'Start mission',
-      onButton: onStart,
-    );
-  }
+  Widget build(BuildContext context) => ReflectivePauseTutorial(
+    leading: _SquareIconButton(
+      icon: Icons.chevron_left_rounded,
+      tooltip: 'Back',
+      onTap: () {
+        SoundService.instance.playSfx(GameSfx.buttonClick);
+        onBack();
+      },
+    ),
+    onComplete: onStart,
+  );
 }
 
 class _InfoPage extends StatelessWidget {
@@ -784,7 +851,6 @@ class _InfoPage extends StatelessWidget {
     required this.items,
     required this.buttonLabel,
     required this.onButton,
-    this.footnote,
   });
 
   final VoidCallback onBack;
@@ -792,74 +858,71 @@ class _InfoPage extends StatelessWidget {
   final String subtitle;
   final IconData icon;
   final List<(String, String)> items;
-  final String? footnote;
   final String buttonLabel;
   final VoidCallback onButton;
 
   @override
   Widget build(BuildContext context) {
+    // Aucun défilement : le contenu se réduit d'un bloc sur un écran court,
+    // la barre du haut et le bouton restent à leur taille.
     return Column(
       children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+          child: _TopBar(onBack: onBack, title: 'Reflective Pause'),
+        ),
         Expanded(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
-            children: [
-              _TopBar(onBack: onBack, title: 'Reflective Pause'),
-              const SizedBox(height: 32),
-              Center(
-                child: Container(
-                  width: 112,
-                  height: 112,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFF0F2FF),
-                    shape: BoxShape.circle,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+            child: GameFitToScreen(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 96,
+                      height: 96,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFF0F2FF),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(icon, size: 48, color: _violet),
+                    ),
                   ),
-                  child: Icon(icon, size: 54, color: _violet),
-                ),
-              ),
-              const SizedBox(height: 28),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: _ink,
-                  fontSize: 29,
-                  height: 1.15,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 14),
-              Text(
-                subtitle,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: _muted,
-                  fontSize: 16,
-                  height: 1.45,
-                ),
-              ),
-              const SizedBox(height: 28),
-              for (var index = 0; index < items.length; index++) ...[
-                _InstructionCard(
-                  number: index + 1,
-                  title: items[index].$1,
-                  description: items[index].$2,
-                ),
-                const SizedBox(height: 12),
-              ],
-              if (footnote != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  footnote!,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: _muted,
-                    fontSize: 14,
-                    height: 1.4,
+                  const SizedBox(height: 20),
+                  Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: _ink,
+                      fontSize: 27,
+                      height: 1.15,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
-                ),
-              ],
-            ],
+                  const SizedBox(height: 10),
+                  Text(
+                    subtitle,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: _muted,
+                      fontSize: 15,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  for (var index = 0; index < items.length; index++) ...[
+                    if (index > 0) const SizedBox(height: 10),
+                    _InstructionCard(
+                      number: index + 1,
+                      title: items[index].$1,
+                      description: items[index].$2,
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ),
         ),
         Padding(
@@ -975,123 +1038,210 @@ class _GameplayView extends StatelessWidget {
   /// il ne disparaît plus. Voir [GameMenuAffordance].
   final GameMenuAffordance affordance;
 
+  /// Secondes restantes du temps conseillé, qui ne court qu'après la
+  /// réflexion — la même mesure que la barre.
+  int get _recommendedSecondsLeft {
+    final used = math.max(0, elapsedMs - thinkingTimeMs);
+    final left = math.max(0, situation.responseDeadlineSec * 1000 - used);
+    return (left / 1000).ceil();
+  }
+
   @override
   Widget build(BuildContext context) {
     final remainingMs = math.max(0, thinkingTimeMs - elapsedMs);
     final remainingSeconds = (remainingMs / 1000).ceil();
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(24, 18, 24, 12),
-          child: _TopBar(
+    final choices = situation.choicesInDisplayOrder(shuffleSeed);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _TopBar(
             onBack: onBack,
             title: 'Moment $momentNumber / $totalMoments',
             onPause: onPause,
             affordance: affordance,
+            onDark: true,
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              value: momentNumber / totalMoments,
-              minHeight: 7,
-              backgroundColor: const Color(0xFFE9EDF6),
-              color: _magenta,
-            ),
+          const SizedBox(height: 12),
+          // La barre suit le TEMPS CONSEILLÉ de la situation (13 à 20 s selon
+          // la fiche). Elle reste pleine pendant la réflexion imposée, puis se
+          // vide à partir du déverrouillage des réponses jusqu'à l'échéance. Le compteur « Moment n / N » reste affiché à part. Le
+          // temps conseillé ne coupe rien — le document le donne comme
+          // « recommandé », à valider par prétest.
+          _RecommendedTimeBar(
+            elapsedMs: math.max(0, elapsedMs - thinkingTimeMs),
+            totalMs: situation.responseDeadlineSec * 1000,
           ),
-        ),
-        Expanded(
-          child: ListView(
-            key: const ValueKey('reflective-scroll'),
-            padding: const EdgeInsets.fromLTRB(24, 18, 24, 18),
-            children: [
-              _SituationCard(situation: situation),
-              const SizedBox(height: 16),
-              Semantics(
-                liveRegion: true,
-                label: minimumReached
-                    ? 'Response choices are now available'
-                    : '$remainingSeconds seconds before choices become available',
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 13,
-                  ),
-                  decoration: BoxDecoration(
-                    color: minimumReached
-                        ? const Color(0xFFEAFBF5)
-                        : const Color(0xFFFFF1F7),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        minimumReached
-                            ? Icons.check_circle_outline_rounded
-                            : Icons.timer_outlined,
-                        color: minimumReached ? _green : _magenta,
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          minimumReached
-                              // Le délai de la fiche, celui sur lequel le
-                              // psychologue a calculé le nombre de mots à lire.
-                              // Il varie de 13 à 20 s : l'afficher évite que le
-                              // joueur se croie sans limite, sans pour autant
-                              // couper — le document le donne comme
-                              // « recommandé », à valider par prétest.
-                              ? 'Temps conseillé : '
-                                    '${situation.responseDeadlineSec} s'
-                              : 'Pause for $remainingSeconds…',
-                          style: TextStyle(
-                            color: minimumReached ? _green : _magenta,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+          SizedBox(
+            height: 22,
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                // Décompte avec la barre : plein pendant la réflexion, puis
+                // les secondes restantes du temps conseillé.
+                'Temps conseillé : $_recommendedSecondsLeft s',
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-              const SizedBox(height: 16),
-              // Ordre mélangé : dans la banque livrée, « A » est la réponse
-              // impulsive des soixante situations et « B » toujours
-              // « respirer ». Affichée telle quelle, la grille s'apprend en
-              // deux situations et se répond sans lire la scène.
-              for (final choice in situation.choicesInDisplayOrder(
-                shuffleSeed,
-              )) ...[
-                _ResponseCard(
-                  // Clé sur la RÉACTION, pas sur la position : l'ordre est
-                  // mélangé à dessein, et un test qui viserait « la deuxième
-                  // carte » ne saurait pas ce qu'il coche.
-                  key: ValueKey(
-                    'reflective-choice-${choice.responseType.wire}',
-                  ),
-                  choice: choice,
-                  enabled: minimumReached,
-                  selected: selectedResponse == choice.responseType,
-                  onTap: () => onSelect(choice.responseType),
-                ),
-                const SizedBox(height: 10),
-              ],
-            ],
+            ),
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(24, 8, 24, 18),
-          child: GamePrimaryButton(
-            label: 'Validate response',
-            onPressed: minimumReached && selectedResponse != null
-                ? onValidate
-                : null,
+          // Plateau sur un seul écran. La carte de la situation prend la
+          // hauteur de SON texte, sans espace vide ; les réponses récupèrent
+          // tout le reste. La carte ne rétrécit que si son texte dépasse la
+          // place laissée aux réponses à leur hauteur minimale.
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, box) {
+                const gap = 6.0;
+                const minChoiceHeight = 44.0;
+                const maxChoiceHeight = 76.0;
+                final count = choices.length;
+                final minChoicesHeight =
+                    minChoiceHeight * count + gap * (count - 1);
+                final situationBudget = math.max(
+                  0.0,
+                  box.maxHeight - minChoicesHeight - 12,
+                );
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    ConstrainedBox(
+                      constraints: BoxConstraints(maxHeight: situationBudget),
+                      child: _SituationCard(
+                        situation: situation,
+                        // Le cadre vidéo n'apparaît que si les réponses
+                        // gardent une hauteur confortable à côté.
+                        height:
+                            box.maxHeight -
+                            (60.0 * count + gap * (count - 1)) -
+                            12,
+                        thinkingRemainingMs: minimumReached ? 0 : remainingMs,
+                        thinkingTotalMs: thinkingTimeMs,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: LayoutBuilder(
+                        builder: (context, area) {
+                          final choiceHeight =
+                              ((area.maxHeight - gap * (count - 1)) / count)
+                                  .clamp(minChoiceHeight, maxChoiceHeight)
+                                  .toDouble();
+                          // Une seule taille de police pour les cinq
+                          // réponses : celle à laquelle la plus longue tient
+                          // dans son bouton.
+                          final choiceFontSize = AutoFitText.fontSizeFor(
+                            context,
+                            texts: [for (final choice in choices) choice.text],
+                            style: _ResponseCard.textStyle,
+                            maxLines: 3,
+                            minFontSize: 10,
+                            textAlign: TextAlign.start,
+                            constraints: BoxConstraints(
+                              maxWidth: math.max(
+                                0,
+                                area.maxWidth - _ResponseCard.horizontalInset,
+                              ),
+                              maxHeight: math.max(
+                                0,
+                                choiceHeight - _ResponseCard.verticalInset,
+                              ),
+                            ),
+                          );
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              // Ordre mélangé : dans la banque livrée, « A »
+                              // est la réponse impulsive des soixante
+                              // situations et « B » toujours « respirer ».
+                              // Affichée telle quelle, la grille s'apprend en
+                              // deux situations et se répond sans lire la
+                              // scène.
+                              for (var i = 0; i < count; i++) ...[
+                                if (i > 0) const SizedBox(height: gap),
+                                SizedBox(
+                                  height: choiceHeight,
+                                  child: _ResponseCard(
+                                    // Clé sur la RÉACTION, pas sur la
+                                    // position : l'ordre est mélangé à dessein.
+                                    key: ValueKey(
+                                      'reflective-choice-'
+                                      '${choices[i].responseType.wire}',
+                                    ),
+                                    choice: choices[i],
+                                    fontSize: choiceFontSize,
+                                    enabled: minimumReached,
+                                    selected:
+                                        selectedResponse ==
+                                        choices[i].responseType,
+                                    onTap: () =>
+                                        onSelect(choices[i].responseType),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
           ),
+          const SizedBox(height: 12),
+          // Le compte à rebours de réflexion est affiché dans la carte de la
+          // question ; le bouton reste inactif tant qu'il court.
+          Semantics(
+            liveRegion: true,
+            label: minimumReached
+                ? 'Response choices are now available'
+                : '$remainingSeconds seconds before choices become available',
+            child: GamePrimaryButton(
+              label: 'Validate response',
+              onPressed: minimumReached && selectedResponse != null
+                  ? onValidate
+                  : null,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Barre du temps conseillé : se vide sur la durée recommandée de la fiche et
+/// passe au rouge sur ses [_countdownSfxSeconds] dernières secondes, au rythme
+/// du tic sonore.
+class _RecommendedTimeBar extends StatelessWidget {
+  const _RecommendedTimeBar({required this.elapsedMs, required this.totalMs});
+
+  final int elapsedMs;
+  final int totalMs;
+
+  @override
+  Widget build(BuildContext context) {
+    final remainingMs = math.max(0, totalMs - elapsedMs);
+    final ratio = totalMs <= 0 ? 0.0 : remainingMs / totalMs;
+    final seconds = (remainingMs / 1000).ceil();
+    final urgent = seconds <= _countdownSfxSeconds;
+    return Semantics(
+      label: 'Temps conseillé restant : $seconds secondes',
+      excludeSemantics: true,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(999),
+        child: LinearProgressIndicator(
+          key: const ValueKey('reflective-time-bar'),
+          value: ratio.clamp(0.0, 1.0),
+          minHeight: 7,
+          backgroundColor: Colors.white24,
+          color: urgent ? const Color(0xFFFF5A5F) : _magenta,
         ),
-      ],
+      ),
     );
   }
 }
@@ -1113,65 +1263,155 @@ class _GameplayView extends StatelessWidget {
 /// fournit pas : le texte littéral du message. On n'en invente aucun — une
 /// phrase forgée ici changerait la situation que le psychologue a cotée.
 class _SituationCard extends StatelessWidget {
-  const _SituationCard({required this.situation});
+  const _SituationCard({
+    required this.situation,
+    required this.height,
+    required this.thinkingRemainingMs,
+    required this.thinkingTotalMs,
+  });
 
   final ReflectivePauseSituation situation;
+
+  /// Temps de réflexion restant avant que les réponses se déverrouillent ;
+  /// 0 une fois écoulé, le compteur disparaît alors.
+  final int thinkingRemainingMs;
+  final int thinkingTotalMs;
+
+  /// Hauteur que le plateau peut accorder à la carte : décide de la taille de
+  /// l'emplacement vidéo, qui cède la place aux réponses sur un écran court.
+  /// La carte elle-même épouse son contenu.
+  final double height;
 
   bool get _written => situation.medium == ReflectivePauseMedium.written;
 
   @override
   Widget build(BuildContext context) {
+    // L'emplacement vidéo n'est qu'un cadre d'attente : c'est lui qui rétrécit
+    // d'abord, puis disparaît, avant que le texte de la scène ne soit réduit.
+    final mediaHeight = (height - 300).clamp(0.0, 120.0).toDouble();
     return Container(
-      padding: const EdgeInsets.all(22),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _canvas,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _border),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                _written
-                    ? Icons.chat_bubble_outline_rounded
-                    : Icons.videocam_outlined,
-                size: 18,
+      child: GameFitToScreen(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  _written
+                      ? Icons.chat_bubble_outline_rounded
+                      : Icons.videocam_outlined,
+                  size: 18,
+                  color: _magenta,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _written ? 'Message reçu' : 'Scène en face à face',
+                    style: const TextStyle(
+                      color: _magenta,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                // Hauteur fixe : l'apparition puis la disparition du compteur
+                // ne décale pas le texte de la carte.
+                SizedBox(
+                  height: 30,
+                  child: thinkingRemainingMs > 0
+                      ? _ThinkingCountdown(
+                          remainingMs: thinkingRemainingMs,
+                          totalMs: thinkingTotalMs,
+                        )
+                      : null,
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              situation.context,
+              style: const TextStyle(color: _muted, fontSize: 14, height: 1.4),
+            ),
+            const SizedBox(height: 12),
+            if (_written)
+              _MessageBubble(text: situation.trigger)
+            else
+              _VideoPlaceholder(
+                trigger: situation.trigger,
+                mediaHeight: mediaHeight,
+              ),
+            const SizedBox(height: 12),
+            Text(
+              situation.question,
+              style: const TextStyle(
+                color: _ink,
+                fontSize: 19,
+                height: 1.25,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Petit compteur des secondes de réflexion, dans la carte de la question.
+///
+/// Anneau qui se vide et nombre de secondes restantes : les réponses restent
+/// verrouillées tant qu'il tourne.
+class _ThinkingCountdown extends StatelessWidget {
+  const _ThinkingCountdown({required this.remainingMs, required this.totalMs});
+
+  final int remainingMs;
+  final int totalMs;
+
+  @override
+  Widget build(BuildContext context) {
+    final seconds = (remainingMs / 1000).ceil();
+    final ratio = totalMs <= 0 ? 0.0 : (remainingMs / totalMs).clamp(0.0, 1.0);
+    return Semantics(
+      liveRegion: true,
+      label: '$seconds seconds before choices become available',
+      excludeSemantics: true,
+      child: Container(
+        key: const ValueKey('reflective-thinking-countdown'),
+        padding: const EdgeInsets.fromLTRB(4, 3, 10, 3),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF1F7),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(
+                value: ratio.toDouble(),
+                strokeWidth: 3,
+                backgroundColor: const Color(0x33D72C83),
                 color: _magenta,
               ),
-              const SizedBox(width: 8),
-              Text(
-                _written ? 'Message reçu' : 'Scène en face à face',
-                style: const TextStyle(
-                  color: _magenta,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Text(
-            situation.context,
-            style: const TextStyle(color: _muted, fontSize: 14, height: 1.45),
-          ),
-          const SizedBox(height: 16),
-          if (_written)
-            _MessageBubble(text: situation.trigger)
-          else
-            _VideoPlaceholder(trigger: situation.trigger),
-          const SizedBox(height: 18),
-          Text(
-            situation.question,
-            style: const TextStyle(
-              color: _ink,
-              fontSize: 21,
-              height: 1.25,
-              fontWeight: FontWeight.w800,
             ),
-          ),
-        ],
+            const SizedBox(width: 6),
+            Text(
+              '$seconds s',
+              style: const TextStyle(
+                color: _magenta,
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1189,7 +1429,7 @@ class _MessageBubble extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: _canvas,
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(4),
           topRight: Radius.circular(16),
@@ -1212,44 +1452,52 @@ class _MessageBubble extends StatelessWidget {
 /// cassé. Le texte de l'événement déclencheur tient lieu de scène en
 /// attendant — sans lui, la situation serait injouable.
 class _VideoPlaceholder extends StatelessWidget {
-  const _VideoPlaceholder({required this.trigger});
+  const _VideoPlaceholder({required this.trigger, required this.mediaHeight});
 
   final String trigger;
+
+  /// Hauteur du cadre ; sous 56 px il n'apporte plus rien et disparaît.
+  final double mediaHeight;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Semantics(
-          label: 'Emplacement de la vidéo, non disponible',
-          child: Container(
-            width: double.infinity,
-            height: 132,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: _border),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.movie_outlined, color: _muted, size: 30),
-                const SizedBox(height: 8),
-                Text(
-                  'Vidéo à venir',
-                  style: const TextStyle(
-                    color: _muted,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                  ),
+        if (mediaHeight >= 56) ...[
+          Semantics(
+            label: 'Emplacement de la vidéo, non disponible',
+            child: Container(
+              width: double.infinity,
+              height: mediaHeight,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: _canvas,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: _border),
+              ),
+              child: const FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.movie_outlined, color: _muted, size: 30),
+                    SizedBox(height: 8),
+                    Text(
+                      'Vidéo à venir',
+                      style: TextStyle(
+                        color: _muted,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 12),
+          const SizedBox(height: 12),
+        ],
         Text(
           trigger,
           style: const TextStyle(color: _ink, fontSize: 16, height: 1.4),
@@ -1266,12 +1514,28 @@ class _ResponseCard extends StatelessWidget {
     required this.enabled,
     required this.selected,
     required this.onTap,
+    this.fontSize,
   });
 
   final ReflectivePauseChoice choice;
   final bool enabled;
   final bool selected;
   final VoidCallback onTap;
+
+  /// Taille commune imposée par le plateau.
+  final double? fontSize;
+
+  static const TextStyle textStyle = TextStyle(
+    fontSize: 14.5,
+    height: 1.2,
+    fontWeight: FontWeight.w700,
+  );
+
+  /// Largeur non disponible pour le texte : marges, bordure, espace et icône.
+  static const double horizontalInset = 2 * (14 + 2) + 10 + 24;
+
+  /// Hauteur non disponible pour le texte : marges et bordure.
+  static const double verticalInset = 2 * (5 + 2);
 
   @override
   Widget build(BuildContext context) {
@@ -1281,41 +1545,59 @@ class _ResponseCard extends StatelessWidget {
       selected: selected,
       label: choice.text,
       child: Material(
-        color: selected ? const Color(0xFFFFF1F7) : Colors.white,
+        // Verrouillée : carte blanche voilée sur le fond mauve, lisible mais
+        // manifestement inactive.
+        color: selected
+            ? const Color(0xFFFFF1F7)
+            : enabled
+            ? Colors.white
+            : Colors.white.withValues(alpha: 0.72),
         borderRadius: BorderRadius.circular(15),
         child: InkWell(
-          onTap: enabled ? onTap : null,
+          onTap: enabled
+              ? () {
+                  SoundService.instance.playSfx(GameSfx.buttonClick);
+                  onTap();
+                }
+              : null,
           borderRadius: BorderRadius.circular(15),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 180),
-            constraints: const BoxConstraints(minHeight: 58),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(15),
               border: Border.all(
-                color: selected ? _magenta : _border,
-                width: selected ? 2 : 1,
+                color: selected ? _magenta : Colors.transparent,
+                width: 2,
               ),
             ),
             child: Row(
               children: [
+                // La hauteur du bouton est fixée par le plateau : le texte
+                // s'y ajuste (taille puis retour à la ligne) au lieu d'être
+                // coupé.
                 Expanded(
-                  child: Text(
-                    choice.text,
-                    style: TextStyle(
-                      color: enabled ? _ink : _muted,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: AutoFitText(
+                      choice.text,
+                      maxLines: 3,
+                      minFontSize: 10,
+                      textAlign: TextAlign.start,
+                      style: textStyle.copyWith(
+                        color: enabled ? _ink : _muted,
+                        fontSize: fontSize ?? textStyle.fontSize,
+                      ),
                     ),
                   ),
                 ),
+                const SizedBox(width: 10),
                 if (selected)
                   const Icon(Icons.check_circle, color: _magenta)
+                else if (enabled)
+                  const Icon(Icons.circle_outlined, color: _border)
                 else
-                  Icon(
-                    Icons.circle_outlined,
-                    color: enabled ? _border : _border.withValues(alpha: 0.5),
-                  ),
+                  const Icon(Icons.lock_outline_rounded, color: _muted),
               ],
             ),
           ),
@@ -1348,7 +1630,7 @@ class _SavedView extends StatelessWidget {
               width: 88,
               height: 88,
               decoration: const BoxDecoration(
-                color: Color(0xFFEAFBF5),
+                color: Colors.white,
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.check_rounded, color: _green, size: 52),
@@ -1357,7 +1639,7 @@ class _SavedView extends StatelessWidget {
             const Text(
               'Answer saved',
               style: TextStyle(
-                color: _ink,
+                color: Colors.white,
                 fontSize: 28,
                 fontWeight: FontWeight.w800,
               ),
@@ -1367,7 +1649,7 @@ class _SavedView extends StatelessWidget {
               momentNumber < totalMoments
                   ? 'Moving calmly to the next moment.'
                   : 'Your response pattern is ready.',
-              style: const TextStyle(color: _muted, fontSize: 16),
+              style: const TextStyle(color: Colors.white70, fontSize: 16),
             ),
           ],
         ),
@@ -1376,6 +1658,11 @@ class _SavedView extends StatelessWidget {
   }
 }
 
+/// « Results preview » de Reflective Pause, d'après la maquette client.
+///
+/// Toutes les valeurs sont celles du barème serveur (/10, 3 + 4 + 3) : le
+/// client ne recalcule rien. Seule la phrase de synthèse est choisie ici, selon
+/// la bande d'interprétation du score (0–4, 5–7, 8–10).
 class _ResultsView extends StatelessWidget {
   const _ResultsView({
     super.key,
@@ -1388,124 +1675,80 @@ class _ResultsView extends StatelessWidget {
   final VoidCallback onBack;
   final VoidCallback onInsights;
 
+  /// Bandes d'interprétation du barème, dans l'ordre.
+  static const _bands = [
+    (min: 0, max: 4, label: 'Strong impulsivity'),
+    (min: 5, max: 7, label: 'Good stress management'),
+    (min: 8, max: 10, label: 'Very good self-control'),
+  ];
+
   @override
   Widget build(BuildContext context) {
     final score = session?.lastAttempt?.score;
     final indicators = session?.reflectivePauseIndicators;
+    final raw = score?.rawPoints;
+    final max = score?.maxPoints ?? 10;
+    final level = indicators?.level ?? score?.level;
     return Column(
       children: [
         Expanded(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(24, 18, 24, 16),
-            children: [
-              _TopBar(onBack: onBack, title: 'Results preview'),
-              const SizedBox(height: 26),
-              Container(
-                padding: const EdgeInsets.all(22),
-                decoration: BoxDecoration(
-                  color: _canvas,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: _border),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Score',
-                      style: TextStyle(
-                        color: _muted,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                      ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 18, 24, 8),
+            // Un seul écran : sur un téléphone court, le bloc se réduit au lieu
+            // de défiler.
+            child: GameFitToScreen(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _TopBar(onBack: onBack),
+                  const SizedBox(height: 18),
+                  const Text(
+                    'Results preview',
+                    style: TextStyle(
+                      color: _ink,
+                      fontSize: 34,
+                      fontWeight: FontWeight.w800,
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      '${score?.rawPoints ?? 0} / ${score?.maxPoints ?? 10}',
-                      style: const TextStyle(
-                        color: _ink,
-                        fontSize: 46,
-                        fontWeight: FontWeight.w800,
-                      ),
+                  ),
+                  const SizedBox(height: 20),
+                  _ScoreCard(raw: raw, max: max, level: level),
+                  const SizedBox(height: 22),
+                  const Text(
+                    'Indicators',
+                    style: TextStyle(
+                      color: _ink,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
                     ),
-                    const SizedBox(height: 14),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFDDF9EF),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        'Level: ${indicators?.level ?? score?.level ?? ''}',
-                        style: const TextStyle(
-                          color: Color(0xFF087A50),
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'You stayed calm across pressure moments and avoided repeated impulsive reactions.',
-                      style: TextStyle(
-                        color: _muted,
-                        fontSize: 14,
-                        height: 1.35,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 16),
+                  _IndicatorBar(
+                    icon: Icons.timer_outlined,
+                    label: 'Controlled reaction time',
+                    value: indicators?.controlledReactionTimeScore ?? 0,
+                    max: 3,
+                    color: _magenta,
+                  ),
+                  _IndicatorBar(
+                    icon: Icons.pause_circle_outline_rounded,
+                    label: 'Non-impulsive responses',
+                    value: indicators?.nonImpulsiveResponsesScore ?? 0,
+                    max: 4,
+                    color: _violet,
+                  ),
+                  _IndicatorBar(
+                    icon: Icons.lightbulb_outline_rounded,
+                    label: 'Ability to step back',
+                    value: indicators?.abilityToStepBackScore ?? 0,
+                    max: 3,
+                    color: _green,
+                  ),
+                  const SizedBox(height: 4),
+                  _ScoreInterpretation(raw: raw, max: max),
+                ],
               ),
-              const SizedBox(height: 14),
-              const Text(
-                'Indicators',
-                style: TextStyle(
-                  color: _ink,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 14),
-              _IndicatorBar(
-                icon: Icons.timer_outlined,
-                label: 'Controlled reaction time',
-                value: indicators?.controlledReactionTimeScore ?? 0,
-                max: 3,
-                color: _magenta,
-              ),
-              _IndicatorBar(
-                icon: Icons.pause_circle_outline_rounded,
-                label: 'Non-impulsive responses',
-                value: indicators?.nonImpulsiveResponsesScore ?? 0,
-                max: 4,
-                color: _violet,
-              ),
-              _IndicatorBar(
-                icon: Icons.lightbulb_outline_rounded,
-                label: 'Ability to step back',
-                value: indicators?.abilityToStepBackScore ?? 0,
-                max: 3,
-                color: _green,
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: _border),
-                ),
-                child: const Text(
-                  'Score interpretation\n\n'
-                  '0–4: Strong impulsivity\n'
-                  '5–7: Good stress management\n'
-                  '8–10: Very good self-control',
-                  style: TextStyle(color: _muted, fontSize: 14, height: 1.35),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
         Padding(
@@ -1516,6 +1759,115 @@ class _ResultsView extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  /// Bande du barème contenant [raw].
+  static String? bandOf(int? raw) {
+    if (raw == null) return null;
+    for (final band in _bands) {
+      if (raw >= band.min && raw <= band.max) return band.label;
+    }
+    return null;
+  }
+
+  /// Phrase de synthèse, choisie selon la bande du score.
+  static String summaryOf(int? raw) {
+    if (raw == null) {
+      return 'Your answers are saved. The summary appears once the server has '
+          'calculated your score.';
+    }
+    if (raw >= 8) {
+      return 'You stayed calm across most pressure moments and avoided '
+          'repeated impulsive reactions.';
+    }
+    if (raw >= 5) {
+      return 'You mostly paused before reacting, with a few quick answers '
+          'under pressure.';
+    }
+    return 'Pressure often pushed you to answer quickly. A short pause before '
+        'responding helps regain control.';
+  }
+}
+
+class _ScoreCard extends StatelessWidget {
+  const _ScoreCard({required this.raw, required this.max, required this.level});
+
+  final int? raw;
+  final int max;
+  final String? level;
+
+  @override
+  Widget build(BuildContext context) {
+    const scoreStyle = TextStyle(
+      color: _ink,
+      fontSize: 52,
+      height: 1.05,
+      fontWeight: FontWeight.w800,
+    );
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
+      decoration: BoxDecoration(
+        color: _canvas,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _border),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0F071433),
+            blurRadius: 18,
+            offset: Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Score',
+            style: TextStyle(
+              color: _muted,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 6),
+          if (raw == null)
+            const Text('—', style: scoreStyle)
+          else
+            // Même entrée que les autres jeux : le score compte jusqu'à sa
+            // valeur, et le tableau de score se tait à l'arrivée.
+            AnimatedCountText(
+              key: const ValueKey('reflective-result-score'),
+              value: raw!,
+              suffix: ' / $max',
+              onCompleted: SoundService.instance.stopScoreboard,
+              style: scoreStyle,
+            ),
+          if (level != null && level!.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE3FAF1),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                'Level: $level',
+                style: const TextStyle(
+                  color: Color(0xFF15803D),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 10),
+          Text(
+            _ResultsView.summaryOf(raw),
+            style: const TextStyle(color: _muted, fontSize: 15, height: 1.4),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1537,6 +1889,7 @@ class _IndicatorBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final target = max == 0 ? 0.0 : (value / max).clamp(0.0, 1.0).toDouble();
     return Padding(
       padding: const EdgeInsets.only(bottom: 22),
       child: Column(
@@ -1550,8 +1903,8 @@ class _IndicatorBar extends StatelessWidget {
                   label,
                   style: const TextStyle(
                     color: _ink,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
@@ -1559,7 +1912,8 @@ class _IndicatorBar extends StatelessWidget {
                 '${_format(value)} / ${_format(max)}',
                 style: const TextStyle(
                   color: _ink,
-                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ],
@@ -1567,11 +1921,17 @@ class _IndicatorBar extends StatelessWidget {
           const SizedBox(height: 10),
           ClipRRect(
             borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              value: max == 0 ? 0 : (value / max).clamp(0, 1),
-              minHeight: 8,
-              backgroundColor: const Color(0xFFE8EDF5),
-              color: color,
+            // Les barres se remplissent au rythme du comptage du score.
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: target),
+              duration: const Duration(milliseconds: 900),
+              curve: Curves.easeOutCubic,
+              builder: (context, fill, _) => LinearProgressIndicator(
+                value: fill,
+                minHeight: 9,
+                backgroundColor: const Color(0xFFE8EDF5),
+                color: color,
+              ),
             ),
           ),
         ],
@@ -1584,21 +1944,71 @@ class _IndicatorBar extends StatelessWidget {
       : value.toStringAsFixed(1);
 }
 
-class _InsightsView extends StatelessWidget {
-  const _InsightsView({
+class _ScoreInterpretation extends StatelessWidget {
+  const _ScoreInterpretation({required this.raw, required this.max});
+
+  final int? raw;
+  final int max;
+
+  @override
+  Widget build(BuildContext context) {
+    final band = _ResultsView.bandOf(raw);
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _border),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0D071433),
+            blurRadius: 16,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Score interpretation',
+            style: TextStyle(
+              color: _ink,
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            [
+              if (band != null) '$raw / $max maps to $band.',
+              for (final b in _ResultsView._bands)
+                '${b.min}–${b.max}: ${b.label}',
+            ].join('\n'),
+            style: const TextStyle(color: _muted, fontSize: 14, height: 1.45),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Indicateurs serveur présentés selon leurs maxima validés, sans recalcul de score.
+/// PROVISOIRE — à valider visuellement sur appareil (GAMES_MODULE, décision 72).
+class ReflectivePauseInsightsView extends StatelessWidget {
+  const ReflectivePauseInsightsView({
     super.key,
-    required this.session,
+    required this.indicators,
     required this.onBack,
     required this.onFinish,
   });
 
-  final GameSession? session;
+  final ReflectivePauseIndicators? indicators;
   final VoidCallback onBack;
   final VoidCallback onFinish;
 
   @override
   Widget build(BuildContext context) {
-    final indicators = session?.reflectivePauseIndicators;
     final controlled = indicators?.controlledReactionTimeScore ?? 0;
     final nonImpulsive = indicators?.nonImpulsiveResponsesScore ?? 0;
     final stepBack = indicators?.abilityToStepBackScore ?? 0;
@@ -1617,27 +2027,100 @@ class _InsightsView extends StatelessWidget {
             children: [
               _TopBar(onBack: onBack, title: 'Learning insights'),
               const SizedBox(height: 28),
-              _InsightCard(
-                icon: Icons.chat_bubble_outline_rounded,
-                iconColor: _violet,
-                title: 'Strongest area',
-                description: strongest,
-              ),
-              const SizedBox(height: 20),
-              _InsightCard(
-                icon: Icons.bolt_rounded,
-                iconColor: _magenta,
-                title: 'Impulsivity risk',
-                description: risk,
-              ),
-              const SizedBox(height: 20),
-              _InsightCard(
-                icon: Icons.pause_circle_outline_rounded,
-                iconColor: _green,
-                title: 'Pressure pattern',
-                description: pressure,
-              ),
-              const SizedBox(height: 28),
+              if (indicators == null || indicators!.momentsPlayed == 0)
+                const GamePanel(
+                  child: Text(
+                    'No insights available yet. Complete a session to see your profile.',
+                  ),
+                )
+              else ...[
+                GamePanel(
+                  backgroundColor: _canvas,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Text(
+                        'Your regulation profile',
+                        style: TextStyle(
+                          color: _ink,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Each bar shows progress within its own criterion.',
+                        style: TextStyle(
+                          color: _muted,
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      for (final metric in [
+                        (
+                          label: 'Controlled reaction time',
+                          score: controlled,
+                          max: ReflectivePauseConfig.controlledReactionMax,
+                          color: _violet,
+                          icon: Icons.pause_circle_outline_rounded,
+                        ),
+                        (
+                          label: 'Non-impulsive responses',
+                          score: nonImpulsive,
+                          max: ReflectivePauseConfig.nonImpulsiveMax,
+                          color: _green,
+                          icon: Icons.chat_bubble_outline_rounded,
+                        ),
+                        (
+                          label: 'Ability to step back',
+                          score: stepBack,
+                          max: ReflectivePauseConfig.stepBackMax,
+                          color: _magenta,
+                          icon: Icons.psychology_alt_outlined,
+                        ),
+                      ]) ...[
+                        GameResultInsightMeter(
+                          key: ValueKey('reflective-insight-${metric.label}'),
+                          compact: false,
+                          icon: metric.icon,
+                          valueLabel:
+                              '${metric.score == metric.score.roundToDouble() ? metric.score.toStringAsFixed(0) : metric.score.toStringAsFixed(1)} / ${metric.max}',
+                          bar: GameResultInsightBar(
+                            label: metric.label,
+                            fraction: metric.score / metric.max,
+                            color: metric.color,
+                          ),
+                        ),
+                        const SizedBox(height: 22),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                _InsightCard(
+                  icon: Icons.chat_bubble_outline_rounded,
+                  iconColor: _violet,
+                  title: 'Strongest area',
+                  description: strongest,
+                ),
+                const SizedBox(height: 20),
+                _InsightCard(
+                  icon: Icons.bolt_rounded,
+                  iconColor: _magenta,
+                  title: 'Impulsivity risk',
+                  description:
+                      '${indicators!.impulsiveChoiceCount} / ${indicators!.momentsPlayed} impulsive choices. $risk',
+                ),
+                const SizedBox(height: 20),
+                _InsightCard(
+                  icon: Icons.pause_circle_outline_rounded,
+                  iconColor: _green,
+                  title: 'Pressure pattern',
+                  description: pressure,
+                ),
+                const SizedBox(height: 20),
+              ],
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
@@ -1651,12 +2134,14 @@ class _InsightsView extends StatelessWidget {
                       children: [
                         Icon(Icons.lightbulb_outline, color: _violet),
                         SizedBox(width: 12),
-                        Text(
-                          'Recommendation',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 17,
-                            fontWeight: FontWeight.w800,
+                        Expanded(
+                          child: Text(
+                            'Recommendation',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                         ),
                       ],
@@ -1779,60 +2264,22 @@ class _ReflectiveRulesDialog extends StatelessWidget {
   const _ReflectiveRulesDialog();
 
   @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: Colors.white,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 70),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Reflective Pause rules',
-              style: TextStyle(
-                color: _ink,
-                fontSize: 24,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Pause, read, choose, then validate. There is no correct or wrong message during the journey.',
-              style: TextStyle(color: _muted, fontSize: 15, height: 1.4),
-            ),
-            const SizedBox(height: 20),
-            const _InstructionCard(
-              number: 1,
-              title: 'Read and wait',
-              description:
-                  'Read the complete situation. Responses unlock when the countdown ends.',
-            ),
-            const SizedBox(height: 10),
-            const _InstructionCard(
-              number: 2,
-              title: 'Choose',
-              description: 'Pick one response that feels most natural to you.',
-            ),
-            const SizedBox(height: 10),
-            const _InstructionCard(
-              number: 3,
-              title: 'Validate',
-              description:
-                  'Save your answer and continue. Results appear after 10 moments.',
-            ),
-            const SizedBox(height: 20),
-            GamePrimaryButton(
-              label: 'Resume',
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ],
+  Widget build(BuildContext context) => Dialog.fullscreen(
+    backgroundColor: Colors.white,
+    child: SafeArea(
+      child: GameContentFrame(
+        child: ReflectivePauseTutorial(
+          leading: _SquareIconButton(
+            icon: Icons.chevron_left_rounded,
+            tooltip: 'Back',
+            onTap: () => Navigator.of(context).pop(),
+          ),
+          onComplete: () => Navigator.of(context).pop(),
+          reviewing: true,
         ),
       ),
-    );
-  }
+    ),
+  );
 }
 
 class _LoadingView extends StatelessWidget {
@@ -1840,7 +2287,7 @@ class _LoadingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(child: CircularProgressIndicator(color: _magenta));
+    return const ZennytLoadingView(onDark: true);
   }
 }
 

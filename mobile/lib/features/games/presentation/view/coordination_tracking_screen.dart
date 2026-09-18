@@ -17,7 +17,9 @@ import '../../domain/entities/game_type.dart';
 import '../../domain/entities/mini_game.dart';
 import '../games_providers.dart';
 import '../widgets/continuous_attention_pause_dialog.dart';
+import '../widgets/game_results_template.dart';
 import '../widgets/game_system_components.dart';
+import '../widgets/zennyt_loader.dart';
 
 const _logoAsset = 'assets/games icons/Je Coordonne.png';
 // Reuse the Games design system instead of maintaining a parallel palette.
@@ -432,6 +434,7 @@ class _CoordinationTrackingScreenState
         _indicators = indicators;
         _finishing = false;
         if (indicators.sessionValid) {
+          SoundService.instance.playScoreboard();
           _stage = _CoordinationStage.results;
         } else {
           _invalidReason = indicators.validityIssues.join(', ');
@@ -545,15 +548,14 @@ class _CoordinationTrackingScreenState
     var interruptionResolved = false;
     while (mounted && showAgain) {
       if (!mounted) return;
-      final action = await showDialog<ContinuousAttentionPauseAction>(
-        context: context,
-        barrierDismissible: false,
-        barrierColor: const Color(0xCC171642),
+      final action = await showGamePauseMenu<ContinuousAttentionPauseAction>(
+        context,
         builder: (dialogCtx) => ContinuousAttentionPauseDialog(
           restartRequired: measuredInterrupted,
           countdown: resumeFrozenPractice ? null : _pauseAllowance.remaining,
-          onCountdownExpired: () =>
-              Navigator.of(dialogCtx).pop(ContinuousAttentionPauseAction.resume),
+          onCountdownExpired: () => Navigator.of(
+            dialogCtx,
+          ).pop(ContinuousAttentionPauseAction.resume),
         ),
       );
       if (!mounted) break;
@@ -648,7 +650,8 @@ class _CoordinationTrackingScreenState
       label: 'Preparing your journey…',
     ),
     _CoordinationStage.tutorial => _buildTutorial(),
-    _CoordinationStage.practice || _CoordinationStage.test => GameplayMusic(child: _buildGameplay()),
+    _CoordinationStage.practice ||
+    _CoordinationStage.test => GameplayMusic(child: _buildGameplay()),
     _CoordinationStage.ready => _buildReady(),
     _CoordinationStage.submitting => const _CenteredProgress(
       label: 'Saving your movement…',
@@ -999,72 +1002,45 @@ class _CoordinationTrackingScreenState
 
   Widget _buildResults() {
     final report = _indicators!;
-    final score =
-        _session?.lastAttempt?.score.rawPoints ??
-        report.provisionalAccuracyScore;
-    return _JourneyPage(
-      header: _CoordinationHeader(
-        eyebrow: 'Je coordonne',
-        title: 'Journey complete',
-        onBack: () => context.go(AppRoutes.games),
-      ),
-      content: [
-        Center(child: _ResultDial(score: score)),
-        const SizedBox(height: 18),
-        Text(
-          'A steady coordination snapshot',
-          textAlign: TextAlign.center,
-          style: AppTypography.headlineSmall.copyWith(
-            color: _navy,
-            fontWeight: FontWeight.w800,
-          ),
+    final attemptScore = _session?.lastAttempt?.score;
+    final score = attemptScore?.rawPoints ?? report.provisionalAccuracyScore;
+    // Modèle commun des écrans de résultats ([GameResultsTemplate]).
+    return GameResultsTemplate(
+      onBack: () => context.go(AppRoutes.games),
+      gameName: 'Je coordonne',
+      scoreLabel: 'Provisional descriptive accuracy',
+      scorePercent: gameResultPercent(score, attemptScore?.maxPoints ?? 100),
+      points: score,
+      maxPoints: attemptScore?.maxPoints ?? 100,
+      scoreKey: const ValueKey('coordination-result-score'),
+      scoreSemanticsLabel:
+          'Provisional descriptive accuracy score $score out of 100',
+      stats: [
+        GameResultStat(
+          label: 'Overall',
+          value: '${report.overallAccuracyPercent.round()}%',
+          color: ZennytGamePalette.success,
         ),
-        const SizedBox(height: 8),
-        Text(
-          'This is a descriptive result, not a diagnosis or ranking.',
-          textAlign: TextAlign.center,
-          style: AppTypography.bodyMedium.copyWith(color: _muted, height: 1.45),
+        GameResultStat(
+          label: 'Slow / fast',
+          value:
+              '${report.slowAccuracyPercent.round()} / ${report.fastAccuracyPercent.round()}%',
         ),
-        const SizedBox(height: 20),
-        GamePanel(
-          child: Column(
-            children: [
-              _MetricLine(
-                label: 'Overall accuracy',
-                value: '${report.overallAccuracyPercent.toStringAsFixed(1)}%',
-              ),
-              const Divider(color: _border),
-              _MetricLine(
-                label: 'Slow / fast',
-                value:
-                    '${report.slowAccuracyPercent.toStringAsFixed(1)}% / ${report.fastAccuracyPercent.toStringAsFixed(1)}%',
-              ),
-              const Divider(color: _border),
-              _MetricLine(
-                label: 'Long / short',
-                value:
-                    '${report.longSegmentAccuracyPercent.toStringAsFixed(1)}% / ${report.shortSegmentAccuracyPercent.toStringAsFixed(1)}%',
-              ),
-              const Divider(color: _border),
-              _MetricLine(
-                label: 'Mean center distance',
-                value: report.averageCenterDistance.toStringAsFixed(1),
-              ),
-            ],
-          ),
+        GameResultStat(
+          label: 'Long / short',
+          value:
+              '${report.longSegmentAccuracyPercent.round()} / ${report.shortSegmentAccuracyPercent.round()}%',
+          color: ZennytGamePalette.magenta,
         ),
       ],
-      bottom: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          GamePrimaryButton(
-            label: 'Back to games',
-            onPressed: () => context.go(AppRoutes.games),
-          ),
-          const SizedBox(height: 10),
-          GameOutlineButton(label: 'Play again', onPressed: _startJourney),
-        ],
-      ),
+      insight:
+          'Overall accuracy ${report.overallAccuracyPercent.toStringAsFixed(1)}%, '
+          'mean center distance ${report.averageCenterDistance.toStringAsFixed(1)}. '
+          'This is a descriptive result, not a diagnosis or ranking.',
+      primaryLabel: 'Replay',
+      onPrimary: _startJourney,
+      secondaryLabel: 'Back to games',
+      onSecondary: () => context.go(AppRoutes.games),
     );
   }
 
@@ -2365,87 +2341,6 @@ class _CompletionBadge extends StatelessWidget {
   }
 }
 
-class _ResultDial extends StatelessWidget {
-  const _ResultDial({required this.score});
-
-  final int score;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      label: 'Provisional descriptive accuracy score $score out of 100',
-      child: Container(
-        key: const ValueKey('coordination-result-score'),
-        width: 164,
-        height: 164,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: const LinearGradient(colors: [_violet, _cyan]),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x334E46E8),
-              blurRadius: 28,
-              offset: Offset(0, 12),
-            ),
-          ],
-          border: Border.all(color: Colors.white, width: 8),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              '$score',
-              style: AppTypography.displaySmall.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            Text(
-              'PROVISIONAL / 100',
-              style: AppTypography.labelSmall.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _MetricLine extends StatelessWidget {
-  const _MetricLine({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: AppTypography.bodyMedium.copyWith(color: _muted),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Text(
-            value,
-            style: AppTypography.titleSmall.copyWith(
-              color: _navy,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _StateIcon extends StatelessWidget {
   const _StateIcon({
     required this.icon,
@@ -2481,7 +2376,7 @@ class _CenteredProgress extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const CircularProgressIndicator(color: _pink),
+          ZennytLoader(semanticsLabel: label),
           const SizedBox(height: 18),
           Text(label, style: AppTypography.bodyLarge.copyWith(color: _navy)),
         ],

@@ -13,6 +13,8 @@ import '../domain/entities/game_metrics.dart';
 import '../domain/entities/mini_game.dart';
 import '../domain/repositories/games_repository.dart';
 import '../domain/repositories/emotional_radar_v2_repository.dart';
+import '../domain/repositories/games_progress_repository.dart';
+import '../domain/entities/games_progress.dart';
 import 'dtos/game_session_dto.dart';
 
 /// [GamesRepository] adossé à Dio, parlant à l'API Games (`/api/v1/games`).
@@ -20,7 +22,10 @@ import 'dtos/game_session_dto.dart';
 /// Tous les échecs Dio sont convertis en [ApiException] typées pour la couche
 /// présentation, exactement comme les autres repositories de l'app.
 class GamesRepositoryImpl
-    implements GamesRepository, EmotionalRadarV2Repository {
+    implements
+        GamesRepository,
+        EmotionalRadarV2Repository,
+        GamesProgressRepository {
   GamesRepositoryImpl(this._dio);
 
   final Dio _dio;
@@ -174,6 +179,14 @@ class GamesRepositoryImpl
         },
       );
       return EmotionalRadarV2AnswerResult.fromJson(res.data!);
+    });
+  }
+
+  @override
+  Future<GamesProgress> gamesProgress() {
+    return _guard(() async {
+      final res = await _dio.get<Map<String, dynamic>>('/games/progress');
+      return GamesProgress.fromJson(res.data!);
     });
   }
 

@@ -112,16 +112,15 @@ void main() {
   // est capturée seule : c'est le composant partagé, et l'isoler évite de faire
   // dépendre la capture du hasard d'une manche jouée.
   for (final entry in {'large': large, 'small': small}.entries) {
-    testWidgets('capture — croix directionnelle Je bouge (${entry.key})',
-        (tester) async {
+    testWidgets('capture — croix directionnelle Je bouge (${entry.key})', (
+      tester,
+    ) async {
       await sized(tester, entry.value);
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             backgroundColor: ZennytGamePalette.gameBlue,
-            body: Center(
-              child: GameDirectionControls(onDirection: (_) {}),
-            ),
+            body: Center(child: GameDirectionControls(onDirection: (_) {})),
           ),
         ),
       );
@@ -142,13 +141,10 @@ void main() {
               buttonsSelected: true,
               onChanged: (_) {},
             ),
-            buttons: [
-              GamePrimaryButton(label: 'Resume', onPressed: () {}),
-              GameOutlineButton(
-                label: 'View rules / Help',
-                onPressed: () {},
-              ),
-              GamePauseExitButton(onPressed: () {}),
+            actions: [
+              GamePauseMenuAction.resume(onPressed: () {}),
+              GamePauseMenuAction.rules(onPressed: () {}),
+              GamePauseMenuAction.exit(onPressed: () {}),
             ],
           ),
         ),
@@ -163,7 +159,9 @@ void main() {
   // Deux captures à montrer au client : la fenêtre unique avec son compte à
   // rebours de 30 s, puis la confirmation qui prévient qu'une sortie annule la
   // tentative.
-  testWidgets('capture — menu pause avec compte à rebours 30 s', (tester) async {
+  testWidgets('capture — menu pause avec compte à rebours 30 s', (
+    tester,
+  ) async {
     await sized(tester, small);
     await tester.pumpWidget(
       MaterialApp(
@@ -175,10 +173,10 @@ void main() {
               buttonsSelected: true,
               onChanged: (_) {},
             ),
-            buttons: [
-              GamePrimaryButton(label: 'Resume', onPressed: () {}),
-              GameOutlineButton(label: 'View rules / Help', onPressed: () {}),
-              GamePauseExitButton(onPressed: () {}),
+            actions: [
+              GamePauseMenuAction.resume(onPressed: () {}),
+              GamePauseMenuAction.rules(onPressed: () {}),
+              GamePauseMenuAction.exit(onPressed: () {}),
             ],
           ),
         ),
@@ -222,8 +220,9 @@ void main() {
   // Maquettes « 04B Gameplay Waiting – Tactile » (flèches + libellé) puis
   // « 04C Gameplay – Tactile Mode » (plateau nu). La consigne doit s'effacer
   // à la première réponse donnée au doigt.
-  testWidgets('capture — Je bouge mode tactile (consigne puis plateau)',
-      (tester) async {
+  testWidgets('capture — Je bouge mode tactile (consigne puis plateau)', (
+    tester,
+  ) async {
     await sized(tester, large);
     await tester.pumpWidget(
       ProviderScope(
@@ -287,8 +286,9 @@ void main() {
   // les emplacements et la réserve coexistent, donc la seule que le passage en
   // côte à côte modifie.
   for (final entry in {'large': large, 'small': small}.entries) {
-    testWidgets("capture — J'investigue restauration (${entry.key})",
-        (tester) async {
+    testWidgets("capture — J'investigue restauration (${entry.key})", (
+      tester,
+    ) async {
       await sized(tester, entry.value);
 
       const seed = 12345;
@@ -312,7 +312,11 @@ void main() {
 
       await tapVisible(tester, find.text('Start mission'));
       await tester.pumpAndSettle();
-      await tapVisible(tester, find.text('I am ready'));
+      while (find.text('Suivant').evaluate().isNotEmpty) {
+        await tapVisible(tester, find.text('Suivant'));
+        await tester.pumpAndSettle();
+      }
+      await tapVisible(tester, find.text('Je suis prêt'));
 
       // Observation des chiffres, puis les deux rappels (même ordre / inverse).
       await tester.pump(const Duration(milliseconds: 6300));
@@ -458,8 +462,10 @@ void main() {
       });
     }
 
-    for (final entry in {'320': gabarits['320']!, '412': gabarits['412']!}
-        .entries) {
+    for (final entry in {
+      '320': gabarits['320']!,
+      '412': gabarits['412']!,
+    }.entries) {
       testWidgets('capture — scénario long, dimension II (${entry.key})', (
         tester,
       ) async {
@@ -484,7 +490,6 @@ void main() {
       });
     }
   });
-
 }
 
 /// Flux d'événements audio vide : le lecteur s'abonne, rien n'arrive, aucune

@@ -14,6 +14,8 @@ import '../domain/entities/device_calibration.dart';
 import '../domain/entities/emotional_radar.dart';
 import '../domain/entities/emotional_radar_v2.dart';
 import '../domain/entities/game_score.dart';
+import '../domain/entities/games_progress.dart';
+import '../domain/repositories/games_progress_repository.dart';
 import '../domain/entities/game_session.dart';
 import '../domain/entities/game_type.dart';
 import '../domain/entities/game_metrics.dart';
@@ -62,7 +64,10 @@ import 'object_location_scoring.dart';
 /// miroir documentaire du barème serveur, couvert par son test ; il n'est
 /// volontairement branché sur aucun chemin d'exécution.
 class GamesMockRepository
-    implements GamesRepository, EmotionalRadarV2Repository {
+    implements
+        GamesRepository,
+        EmotionalRadarV2Repository,
+        GamesProgressRepository {
   GamesMockRepository({int Function()? emotionalRadarV2ClockMs})
     : _emotionalRadarV2ClockMs =
           emotionalRadarV2ClockMs ??
@@ -70,6 +75,13 @@ class GamesMockRepository
 
   final Map<String, GameSession> _sessions = {};
   final Map<String, _MockRadarV2Session> _radarV2Sessions = {};
+
+  /// Jeux du catalogue terminés hors ligne — même règle que le serveur.
+  final Set<CatalogGame> _completedGames = {};
+
+  @override
+  Future<GamesProgress> gamesProgress() async =>
+      GamesProgress(completed: Set.unmodifiable(_completedGames));
   final int Function() _emotionalRadarV2ClockMs;
   int _counter = 0;
 
@@ -210,6 +222,7 @@ class GamesMockRepository
       timedOut: timedOut,
     );
     radar.outcomes.add(outcome);
+    if (radar.completed) _completedGames.add(CatalogGame.emotionalRadar);
     radar.pending = null;
 
     return EmotionalRadarV2AnswerResult(
@@ -603,6 +616,7 @@ class GamesMockRepository
           : current.objectLocationIndicators,
     );
     _sessions[sessionId] = updated;
+    _completedGames.addAll(CatalogGame.completedBy(miniGame, metrics));
     return updated;
   }
 

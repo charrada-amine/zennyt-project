@@ -47,10 +47,13 @@ class StrategicChoicesScoringTest {
     }
 
     @Test
-    @DisplayName("La banque des 60 situations est chargée avec ses huit cotations")
+    @DisplayName("La banque des 80 situations est chargée avec ses huit cotations")
     void catalogLoadsTheWholeBank() {
-        assertThat(catalog.situationIds()).hasSize(60);
-        assertThat(catalog.situationIds()).contains("CS-001", "CS-060");
+        // 60 fiches du client + 20 situations de la proposition, dont
+        // la clé découle de l'hypothèse de correspondance.
+        assertThat(catalog.situationIds()).hasSize(80);
+        assertThat(catalog.situationIds())
+            .contains("CS-001", "CS-060", "CS-101", "CS-120");
         // CS-001 : « Assertive communication » est la réponse la mieux cotée.
         assertThat(catalog.score("CS-001", StrategicChoiceStrategy.ASSERTIVE_COMMUNICATION))
             .isEqualTo(3);
@@ -74,11 +77,11 @@ class StrategicChoicesScoringTest {
     }
 
     @Test
-    @DisplayName("Le hasard vaut 0 sur l'indice corrigé, pas 38 % comme en brut")
+    @DisplayName("Le hasard vaut 0 sur l'indice corrigé, pas environ 40 % comme en brut")
     void chanceAnswersScoreZeroOnTheCorrectedIndex() {
         // Une réponse au hasard obtient, en espérance, la moyenne des huit
         // cotations de chaque fiche : c'est exactement la ligne de base. Le
-        // score brut correspondant tourne autour de 38 % du maximum — d'où
+        // score brut correspondant tourne autour de 40 % du maximum — d'où
         // l'inutilité du pourcentage brut pris seul.
         StrategicChoicesReport report = scoring.report(
             journeyOf(StrategicChoiceStrategy.BREATHE_PAUSE));
@@ -124,7 +127,8 @@ class StrategicChoicesScoringTest {
     @DisplayName("Une stratégie constante reste sous le palier haut EN MOYENNE, pas sur chaque tirage")
     void aConstantStrategyStaysBelowTheTopBandOnAverage() {
         // Sur l'ensemble de la banque, aucune stratégie constante n'atteint
-        // 75 % : la meilleure, « Assertive communication », plafonne à 67 %.
+        // 60 % corrigés : la meilleure conduite constante,
+        // « Assertive communication », reste autour de 41 %.
         for (StrategicChoiceStrategy strategy : StrategicChoiceStrategy.values()) {
             double total = catalog.situationIds().stream()
                 .mapToInt(id -> catalog.score(id, strategy))
@@ -137,13 +141,13 @@ class StrategicChoicesScoringTest {
             double corrige = StrategicChoicesConfig.chanceCorrectedPercent(
                 (int) Math.round(total), max, chance);
             assertThat(corrige)
-                .as("stratégie constante %s sur les 60 fiches, corrigée du hasard",
+                .as("stratégie constante %s sur les 80 fiches, corrigée du hasard",
                     strategy)
                 .isLessThan(StrategicChoicesConfig.HIGHLY_ADAPTIVE_THRESHOLD_PERCENT);
         }
 
         // Mais sur un TIRAGE, le palier est atteignable sans rien lire :
-        // « Assertive communication » vaut 3 dans 23 fiches. Le seuil ne protège
+        // « Assertive communication » vaut 3 dans 28 fiches. Le seuil ne protège
         // donc de rien — c'est le nombre de stratégies mobilisées qui le dit.
         List<String> favorables = catalog.situationIds().stream()
             .filter(id -> catalog.score(

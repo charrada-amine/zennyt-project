@@ -127,7 +127,7 @@ void main() {
             body: GamePauseScaffold(
               countdown: const Duration(seconds: 3),
               onCountdownExpired: () => expired++,
-              buttons: [GamePrimaryButton(label: 'Resume', onPressed: () {})],
+              actions: [GamePauseMenuAction.resume(onPressed: () {})],
             ),
           ),
         ),
@@ -165,7 +165,7 @@ void main() {
             body: GamePauseScaffold(
               countdown: const Duration(seconds: 14),
               onCountdownExpired: () {},
-              buttons: [GamePrimaryButton(label: 'Resume', onPressed: () {})],
+              actions: [GamePauseMenuAction.resume(onPressed: () {})],
             ),
           ),
         ),
@@ -208,7 +208,7 @@ void main() {
             body: GamePauseScaffold(
               countdown: const Duration(seconds: 5),
               onCountdownExpired: () {},
-              buttons: [GamePrimaryButton(label: 'Resume', onPressed: () {})],
+              actions: [GamePauseMenuAction.resume(onPressed: () {})],
             ),
           ),
         ),
@@ -231,7 +231,7 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: GamePauseScaffold(
-              buttons: [GamePrimaryButton(label: 'Resume', onPressed: () {})],
+              actions: [GamePauseMenuAction.resume(onPressed: () {})],
             ),
           ),
         ),
@@ -239,6 +239,89 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.textContaining('Menu closes in'), findsNothing);
     });
+  });
+
+  /// Retour client : un seul écran de pause, sans défilement, qui s'adapte à
+  /// n'importe quel écran. Le menu le plus chargé (sélecteur d'entrée,
+  /// description, trois interrupteurs, quatre actions) doit tenir entier — sans
+  /// Scrollable ni débordement — du plus petit téléphone supporté à la tablette,
+  /// en portrait comme en paysage, et avec un texte agrandi.
+  group('GamePauseScaffold — sans défilement, tout écran', () {
+    const sizes = <String, Size>{
+      'iPhone SE 1re gén.': Size(320, 568),
+      'téléphone 360x640': Size(360, 640),
+      'téléphone 390x844': Size(390, 844),
+      'paysage 568x320': Size(568, 320),
+      'paysage 844x390': Size(844, 390),
+      'tablette 768x1024': Size(768, 1024),
+      'tablette paysage 1280x800': Size(1280, 800),
+    };
+
+    Widget fullMenu() => MaterialApp(
+      home: Scaffold(
+        body: GamePauseScaffold(
+          countdown: kGamePauseWindow,
+          onCountdownExpired: () {},
+          inputMode: GamePauseInputModeToggle(
+            buttonsSelected: true,
+            onChanged: (_) {},
+          ),
+          description:
+              'This measured phase was interrupted. Restart it from the '
+              'beginning to keep the result comparable.',
+          actions: [
+            GamePauseMenuAction.resume(onPressed: () {}),
+            GamePauseMenuAction.restart(
+              label: 'Restart phase',
+              onPressed: () {},
+            ),
+            GamePauseMenuAction.rules(onPressed: () {}),
+            GamePauseMenuAction.exit(onPressed: () {}),
+          ],
+        ),
+      ),
+    );
+
+    for (final textScale in const [1.0, 2.0]) {
+      for (final entry in sizes.entries) {
+        testWidgets('${entry.key}, texte x$textScale', (tester) async {
+          tester.view.physicalSize = entry.value;
+          tester.view.devicePixelRatio = 1;
+          tester.platformDispatcher.textScaleFactorTestValue = textScale;
+          addTearDown(tester.view.reset);
+          addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+
+          await tester.pumpWidget(fullMenu());
+          await tester.pump();
+
+          expect(tester.takeException(), isNull, reason: 'aucun débordement');
+          expect(
+            find.descendant(
+              of: find.byType(GamePauseScaffold),
+              matching: find.byType(Scrollable),
+            ),
+            findsNothing,
+            reason: 'le menu ne défile jamais',
+          );
+          // Chaque action reste entièrement à l'écran, donc atteignable.
+          final screen = Offset.zero & entry.value;
+          for (final label in const [
+            'Resume',
+            'Restart phase',
+            'View rules / Help',
+            'Exit mission',
+          ]) {
+            final rect = tester.getRect(find.text(label));
+            expect(
+              screen.contains(rect.topLeft) &&
+                  screen.contains(rect.bottomRight - const Offset(1, 1)),
+              isTrue,
+              reason: '« $label » visible en entier sur ${entry.key}',
+            );
+          }
+        });
+      }
+    }
   });
 
   group('GameHud', () {

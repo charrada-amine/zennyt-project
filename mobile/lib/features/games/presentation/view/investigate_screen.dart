@@ -24,7 +24,13 @@ import '../../domain/entities/mini_game.dart';
 import '../../domain/service/memory_distraction_factory.dart';
 import '../device_calibration_probe.dart';
 import '../games_providers.dart';
+import '../widgets/game_results_template.dart';
 import '../widgets/game_system_components.dart';
+import '../widgets/memory_prompt.dart';
+import '../widgets/memory_quest_tutorial.dart';
+
+// Conserve les imports existants du composant public de Memory Quest.
+export '../widgets/memory_prompt.dart' show MemoryPrompt, kMemoryPromptColor;
 
 /// « J'investigue » — jeu de MÉMOIRE DE TRAVAIL (GameType MEMORY_QUEST).
 ///
@@ -185,6 +191,7 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
       const []; // ordre affiché (observe/manipulation)
   int _highlightA = -1;
   int _highlightB = -1;
+
   /// Grille de restauration : tous les objets, dans un ordre mélangé qui ne
   /// bouge plus. Les cartes restent en place, c'est le RANG qu'on leur attribue.
   List<MemoryObject> _board = const [];
@@ -544,8 +551,10 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
   /// converger l'allure vers [MemoryQuestConfig.targetSuccessRate]. N'en garder
   /// qu'un des deux ferait dériver le temps dans une seule direction.
   void _recordPace({required bool success}) {
-    final next =
-        MemoryQuestConfig.nextPlayerFactor(_playerFactor, success: success);
+    final next = MemoryQuestConfig.nextPlayerFactor(
+      _playerFactor,
+      success: success,
+    );
     if (next == _playerFactor) return;
     _playerFactor = next;
     // L'écriture est asynchrone mais n'influe sur rien à l'écran : le tour
@@ -994,25 +1003,21 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
   /// Menu de pause, réaffiché après les règles sur le **temps restant** de la
   /// fenêtre — sinon l'aller-retour la relancerait indéfiniment.
   Future<void> _showPauseMenu() async {
-    final action = await showDialog<GamePauseAction>(
-      context: context,
-      barrierColor: ZennytGamePalette.ink.withValues(alpha: 0.82),
+    final action = await showGamePauseMenu<GamePauseAction>(
+      context,
       builder: (context) => GamePauseScaffold(
         countdown: _pauseAllowance.remaining,
         onCountdownExpired: () =>
             Navigator.of(context).pop(GamePauseAction.resume),
         description: 'The game timer and the sequence are frozen.',
-        buttons: [
-          GamePrimaryButton(
-            label: 'Resume',
+        actions: [
+          GamePauseMenuAction.resume(
             onPressed: () => Navigator.of(context).pop(GamePauseAction.resume),
           ),
-          GameOutlineButton(
-            label: 'View rules / Help',
+          GamePauseMenuAction.rules(
             onPressed: () => Navigator.of(context).pop(GamePauseAction.help),
           ),
-          GamePauseExitButton(
-            label: 'Exit mission',
+          GamePauseMenuAction.exit(
             onPressed: () => Navigator.of(context).pop(GamePauseAction.exit),
           ),
         ],
@@ -1049,48 +1054,35 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
     }
   }
 
-  /// Rappel des règles depuis le menu pause (« View rules / Help »).
+  MemoryQuestMode get _tutorialMode => switch (widget.mode) {
+    InvestigateMode.digits => MemoryQuestMode.digits,
+    InvestigateMode.images => MemoryQuestMode.images,
+    InvestigateMode.full => MemoryQuestMode.full,
+  };
+
+  /// L’aide explique uniquement les missions jouées. Le cycle de pause existant
+  /// garde son budget et reprend après le retour au menu.
   Future<void> _showRulesHelp() async {
     await showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('How to play'),
-        content: const SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _RulesLine(
-                Icons.visibility_outlined,
-                'Digits appear one at a time — just watch and listen.',
+      builder: (context) => Dialog.fullscreen(
+        backgroundColor: Colors.white,
+        child: SafeArea(
+          child: GameContentFrame(
+            child: MemoryQuestTutorial(
+              mode: _tutorialMode,
+              reviewing: true,
+              leading: BackButton(
+                key: const ValueKey('memory-tutorial-help-back'),
+                onPressed: () {
+                  SoundService.instance.playSfx(GameSfx.buttonClick);
+                  Navigator.of(context).pop();
+                },
               ),
-              _RulesLine(
-                Icons.keyboard_alt_outlined,
-                'Type them back in the same order, then in reverse.',
-              ),
-              _RulesLine(
-                Icons.swap_horiz_rounded,
-                'Then memorize objects and restore their starting order.',
-              ),
-              _RulesLine(
-                Icons.lock_outline_rounded,
-                'You cannot answer while stimuli are shown — it keeps the '
-                'test fair.',
-              ),
-            ],
+              onComplete: () => Navigator.of(context).pop(),
+            ),
           ),
         ),
-        actions: [
-          TextButton(
-            // Bouton de la boîte « Rules / Help » : sonorisé comme tous les
-            // autres boutons de règles.
-            onPressed: () {
-              SoundService.instance.playSfx(GameSfx.buttonClick);
-              Navigator.of(context).pop();
-            },
-            child: const Text('Back'),
-          ),
-        ],
       ),
     );
   }
@@ -1125,10 +1117,14 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
         onStart: () => setState(() => _stage = _Stage.tutorial),
         onBack: () => context.go(AppRoutes.games),
       ),
-      _Stage.tutorial => _TutorialView(
-        onStart: _startMission,
-        onBack: () => setState(() => _stage = _Stage.intro),
-        mode: widget.mode,
+      _Stage.tutorial => GameContentFrame(
+        child: MemoryQuestTutorial(
+          mode: _tutorialMode,
+          leading: _BackButton(
+            onPressed: () => setState(() => _stage = _Stage.intro),
+          ),
+          onComplete: _startMission,
+        ),
       ),
       _Stage.observeSequence ||
       _Stage.recallSameOrder ||
@@ -1143,6 +1139,8 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
         composite:
             _serverSession?.lastAttempt?.score.normalized.round() ??
             _compositeScore,
+        points: _serverSession?.lastAttempt?.score.rawPoints,
+        maxPoints: _serverSession?.lastAttempt?.score.maxPoints,
         submitting: _submitting,
         sameScore: _sameTaskScore,
         reverseScore: _reverseTaskScore,
@@ -1348,19 +1346,19 @@ class _GameHeader extends StatelessWidget {
         Semantics(
           button: true,
           label: affordance.semanticsLabel,
-            child: InkWell(
-              onTap: onPause,
-              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-              child: Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                ),
-                child: Icon(affordance.icon, color: Colors.white),
+          child: InkWell(
+            onTap: onPause,
+            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+            child: Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
               ),
+              child: Icon(affordance.icon, color: Colors.white),
             ),
+          ),
         ),
       ],
     );
@@ -1698,98 +1696,6 @@ class _FeedbackView extends StatelessWidget {
 /// donneraient une barre qui ne correspond plus au rebours.
 const int _distractSeconds = 8;
 
-const Color kMemoryPromptColor = Color(0xFF4ADE80);
-
-/// Consigne de manche, qui cligne une fois à son arrivée.
-///
-/// Retour client : « on peut le faire clignoter une seule fois, c'est-à-dire
-/// disparaître et réapparaître, pour attirer l'attention ». Une fois, et une
-/// seule : un clignotement qui se répète devient un décor qu'on cesse de voir,
-/// et il tomberait ici en pleine mémorisation — le moment où le joueur a le
-/// plus besoin de calme.
-///
-/// Le clignotement se rejoue à CHAQUE nouvelle consigne, pas à chaque montage :
-/// les phases d'observation et de manipulation partagent la même vue, et c'est
-/// le passage de l'une à l'autre qui doit se remarquer.
-class MemoryPrompt extends StatefulWidget {
-  const MemoryPrompt(this.text, {super.key});
-
-  final String text;
-
-  /// Durée d'un clignotement complet — effacement, silence, retour.
-  ///
-  /// Assez court pour ne pas retarder la lecture, assez long pour qu'un
-  /// clignement d'œil ne le manque pas.
-  static const Duration blinkDuration = Duration(milliseconds: 460);
-
-  @override
-  State<MemoryPrompt> createState() => _MemoryPromptState();
-}
-
-class _MemoryPromptState extends State<MemoryPrompt>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _opacity;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: MemoryPrompt.blinkDuration,
-    );
-    // Sortie franche, absence brève, retour un peu plus lent : c'est le RETOUR
-    // qu'on regarde. L'inverse — disparition lente — se lirait comme un bug
-    // d'affichage plutôt que comme un appel.
-    _opacity = TweenSequence<double>([
-      TweenSequenceItem(
-        tween: Tween<double>(
-          begin: 1,
-          end: 0,
-        ).chain(CurveTween(curve: Curves.easeOut)),
-        weight: 34,
-      ),
-      TweenSequenceItem(tween: ConstantTween<double>(0), weight: 16),
-      TweenSequenceItem(
-        tween: Tween<double>(
-          begin: 0,
-          end: 1,
-        ).chain(CurveTween(curve: Curves.easeIn)),
-        weight: 50,
-      ),
-    ]).animate(_controller);
-    _controller.forward();
-  }
-
-  @override
-  void didUpdateWidget(MemoryPrompt oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.text != oldWidget.text) _controller.forward(from: 0);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final label = Text(
-      widget.text,
-      textAlign: TextAlign.center,
-      style: AppTypography.titleLarge.copyWith(
-        color: kMemoryPromptColor,
-        letterSpacing: 0,
-      ),
-    );
-    // Animations coupées : la consigne se pose, pleine. Un joueur qui a demandé
-    // moins de mouvement ne doit pas voir son texte s'effacer.
-    if (MediaQuery.maybeOf(context)?.disableAnimations ?? false) return label;
-    return FadeTransition(opacity: _opacity, child: label);
-  }
-}
-
 /// Dimensions de référence d'une carte d'objet (échelle 1).
 ///
 /// Publiques parce que [memoryObjectTileScaleFor] l'est : sans elles, un test
@@ -1836,7 +1742,8 @@ double memoryObjectTileScaleFor({
     // À taille égale — le cas dès que le plafond est atteint — on préfère le
     // découpage qui tient en moins de rangées : plus large, plus compact, et
     // sans rangée orpheline.
-    if (fit > best + 0.001 || ((fit - best).abs() <= 0.001 && rows < bestRows)) {
+    if (fit > best + 0.001 ||
+        ((fit - best).abs() <= 0.001 && rows < bestRows)) {
       best = fit;
       bestRows = rows;
     }
@@ -1897,10 +1804,8 @@ class _ObjectsPhaseView extends StatelessWidget {
             key: ValueKey(order.length),
             tween: Tween<double>(begin: 1, end: 0),
             duration: countdown!,
-            builder: (context, value, _) => GameTimerBar(
-              progress: value,
-              color: ZennytGamePalette.cyan,
-            ),
+            builder: (context, value, _) =>
+                GameTimerBar(progress: value, color: ZennytGamePalette.cyan),
           ),
         ],
         const SizedBox(height: AppSpacing.lg),
@@ -2104,7 +2009,9 @@ class _ObjectTile extends StatelessWidget {
         horizontal: _basePadding * scale,
       ),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: rank != null && ranked ? 0.24 : 0.16),
+        color: Colors.white.withValues(
+          alpha: rank != null && ranked ? 0.24 : 0.16,
+        ),
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
         border: Border.all(
           color: highlight || (rank != null && ranked)
@@ -2123,7 +2030,9 @@ class _ObjectTile extends StatelessWidget {
             height: _baseBadge * scale,
             child: rank == null
                 ? null
-                : Center(child: _RankBadge(rank: rank, ranked: ranked, scale: scale)),
+                : Center(
+                    child: _RankBadge(rank: rank, ranked: ranked, scale: scale),
+                  ),
           ),
           SizedBox(height: 2 * scale),
           Image.asset(
@@ -2831,119 +2740,13 @@ class _IntroView extends StatelessWidget {
 
 // ── Tutorial (instructions avant le test) ────────────────────────────────────
 
-class _TutorialView extends StatelessWidget {
-  const _TutorialView({
-    required this.onStart,
-    required this.onBack,
-    required this.mode,
-  });
-
-  final VoidCallback onStart;
-  final VoidCallback onBack;
-  final InvestigateMode mode;
-
-  @override
-  Widget build(BuildContext context) {
-    Widget step(IconData icon, String title, String body) {
-      return Padding(
-        padding: const EdgeInsets.only(bottom: AppSpacing.md),
-        child: GamePanel(
-          backgroundColor: ZennytGamePalette.mist,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(icon, color: ZennytGamePalette.magenta),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: AppTypography.titleMedium.copyWith(
-                        color: ZennytGamePalette.blue,
-                        letterSpacing: 0,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      body,
-                      style: AppTypography.bodyLarge.copyWith(
-                        color: ZennytGamePalette.muted,
-                        letterSpacing: 0,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 18, 24, 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _BackButton(onPressed: onBack),
-          const SizedBox(height: AppSpacing.base),
-          Text(
-            'How memory works',
-            style: AppTypography.displaySmall.copyWith(
-              color: ZennytGamePalette.blue,
-              letterSpacing: 0,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          // Les étapes suivent le MODE : décrire le rappel de chiffres dans le
-          // jeu « Images » (ou l'inverse) annoncerait des phases qui ne seront
-          // jamais jouées.
-          if (mode.playsDigits) ...[
-            step(
-              Icons.visibility_outlined,
-              'Observe',
-              'Digits appear one at a time for a short moment. Just watch.',
-            ),
-            step(
-              Icons.keyboard_alt_outlined,
-              'Recall',
-              'Type the digits back in the same order, then in reverse order.',
-            ),
-          ],
-          if (mode.playsImages)
-            step(
-              Icons.swap_horiz_rounded,
-              'Objects',
-              mode.playsDigits
-                  ? 'Then memorize objects, watch them get moved, and restore the STARTING order.'
-                  : 'Memorize the objects, watch them get moved, then restore the STARTING order.',
-            ),
-          if (mode.playsDigits)
-            step(
-              Icons.psychology_outlined,
-              'Distraction',
-              'Sometimes a quick question interrupts you — keep the answer in mind and recall after.',
-            ),
-          step(
-            Icons.lock_outline_rounded,
-            'Input lock',
-            'You cannot answer while stimuli are shown — it keeps the test fair.',
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          GamePrimaryButton(label: 'I am ready', onPressed: onStart),
-        ],
-      ),
-    );
-  }
-}
-
 // ── Results (métriques + résumé texte neutre) ───────────────────────────────
 
 class _ResultsView extends StatelessWidget {
   const _ResultsView({
     required this.composite,
+    required this.points,
+    required this.maxPoints,
     required this.submitting,
     required this.sameScore,
     required this.reverseScore,
@@ -2956,6 +2759,8 @@ class _ResultsView extends StatelessWidget {
   });
 
   final int composite;
+  final int? points;
+  final int? maxPoints;
   final bool submitting;
   final int sameScore;
   final int reverseScore;
@@ -2968,156 +2773,48 @@ class _ResultsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 18, 24, 24),
-      child: Column(
-        children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: _BackButton(onPressed: onBack),
-          ),
-          Text(
-            'Results',
-            style: AppTypography.displaySmall.copyWith(
-              color: ZennytGamePalette.blue,
-              letterSpacing: 0,
-            ),
-          ),
-          Text(
-            submitting ? 'Scoring…' : 'Indicative score — not a diagnosis',
-            style: AppTypography.bodyMedium.copyWith(
-              color: ZennytGamePalette.muted,
-              letterSpacing: 0,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xl),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(AppSpacing.xl),
-            decoration: BoxDecoration(
-              color: ZennytGamePalette.gameBlue,
-              borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-            ),
-            child: Column(
-              children: [
-                Text(
-                  'Memory score',
-                  style: AppTypography.titleSmall.copyWith(
-                    color: Colors.white,
-                    letterSpacing: 0,
-                  ),
-                ),
-                AnimatedCountText(
-                  value: composite,
-                  suffix: '%',
-                  onCompleted: SoundService.instance.stopScoreboard,
-                  style: AppTypography.displayLarge.copyWith(
-                    color: Colors.white,
-                    fontSize: 56,
-                    letterSpacing: 0,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xl),
-          Row(
-            children: [
-              Expanded(
-                child: ResultStatTile(
-                  label: 'Same order',
-                  value: '$sameScore/5',
-                  valueColor: ZennytGamePalette.success,
-                ),
+    // Modèle commun des écrans de résultats ([GameResultsTemplate]).
+    return GameResultsTemplate(
+      onBack: onBack,
+      gameName: 'Memory Quest',
+      pending: submitting,
+      scoreLabel: 'Memory score',
+      scorePercent: composite,
+      points: points,
+      maxPoints: maxPoints,
+      stats: [
+        GameResultStat(
+          label: 'Same order',
+          value: '$sameScore/5',
+          color: ZennytGamePalette.success,
+        ),
+        GameResultStat(label: 'Reverse', value: '$reverseScore/5'),
+        restoreScore == null
+            ? GameResultStat(
+                label: 'Best span',
+                value: '$highestLength',
+                color: ZennytGamePalette.magenta,
+              )
+            : GameResultStat(
+                label: 'Restore',
+                value: '$restoreScore/5',
+                color: ZennytGamePalette.magenta,
               ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: ResultStatTile(
-                  label: 'Reverse',
-                  value: '$reverseScore/5',
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: restoreScore == null
-                    ? ResultStatTile(
-                        label: 'Best span',
-                        value: '$highestLength',
-                        valueColor: ZennytGamePalette.magenta,
-                      )
-                    : ResultStatTile(
-                        label: 'Restore',
-                        value: '$restoreScore/5',
-                        valueColor: ZennytGamePalette.magenta,
-                      ),
-              ),
-            ],
-          ),
-          if (distractionScore != null) ...[
-            const SizedBox(height: AppSpacing.sm),
-            Row(
-              children: [
-                Expanded(
-                  child: ResultStatTile(
-                    label: 'After distraction',
-                    value: '$distractionScore/5',
-                    valueColor: ZennytGamePalette.success,
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: ResultStatTile(
-                    label: 'Quick check',
-                    value: distractionQuestionCorrect ? 'Correct' : 'Missed',
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: ResultStatTile(
-                    label: 'Best span',
-                    value: '$highestLength',
-                    valueColor: ZennytGamePalette.magenta,
-                  ),
-                ),
-              ],
-            ),
-          ],
-          const SizedBox(height: AppSpacing.xl),
-          GamePanel(
-            backgroundColor: ZennytGamePalette.mist,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Summary',
-                  style: AppTypography.titleMedium.copyWith(
-                    color: ZennytGamePalette.blue,
-                    letterSpacing: 0,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  'You recalled sequences up to $highestLength digits. '
-                  'Same-order recall is usually easier than reverse recall, '
-                  'which loads working memory more.'
-                  '${restoreScore == null ? '' : ' In the object task you restored '
-                            'the starting order despite the manipulations you watched.'}'
-                  '${distractionScore == null ? '' : ' You then held digits in mind '
-                            'while answering a quick question — a measure of distraction resistance.'}',
-                  style: AppTypography.bodyLarge.copyWith(
-                    color: ZennytGamePalette.muted,
-                    letterSpacing: 0,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xxl),
-          GamePrimaryButton(label: 'Replay', onPressed: onReplay),
-          const SizedBox(height: AppSpacing.md),
-          GameOutlineButton(label: 'Back to games', onPressed: onBack),
-        ],
-      ),
+      ],
+      insight:
+          'You recalled sequences up to $highestLength digits. '
+          'Same-order recall is usually easier than reverse recall, '
+          'which loads working memory more.'
+          '${restoreScore == null ? '' : ' In the object task you restored '
+                    'the starting order despite the manipulations you watched.'}'
+          '${distractionScore == null ? '' : ' After a distraction you recalled '
+                    '$distractionScore/5, and the quick check was '
+                    '${distractionQuestionCorrect ? 'correct' : 'missed'}.'}'
+          ' Indicative score — not a diagnosis.',
+      primaryLabel: 'Replay',
+      onPrimary: onReplay,
+      secondaryLabel: 'Back to games',
+      onSecondary: onBack,
     );
   }
 }
@@ -3146,28 +2843,6 @@ class _BackButton extends StatelessWidget {
           ),
           child: const Icon(Icons.chevron_left, color: ZennytGamePalette.blue),
         ),
-      ),
-    );
-  }
-}
-
-class _RulesLine extends StatelessWidget {
-  const _RulesLine(this.icon, this.text);
-
-  final IconData icon;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 20, color: ZennytGamePalette.blue),
-          const SizedBox(width: 12),
-          Expanded(child: Text(text)),
-        ],
       ),
     );
   }

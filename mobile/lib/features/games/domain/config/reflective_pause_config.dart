@@ -211,6 +211,78 @@ class ReflectivePauseConfig {
       ReflectivePauseResponseType.breatheAnalyze,
       ReflectivePauseResponseType.askForMoreInformation,
     },
+    'TR-101': {
+      ReflectivePauseResponseType.reformulateCalmly,
+    },
+    'TR-102': {
+      ReflectivePauseResponseType.breatheAnalyze,
+    },
+    'TR-103': {
+      ReflectivePauseResponseType.askForMoreInformation,
+    },
+    'TR-104': {
+      ReflectivePauseResponseType.askForMoreInformation,
+    },
+    'TR-105': {
+      ReflectivePauseResponseType.breatheAnalyze,
+    },
+    'TR-106': {
+      ReflectivePauseResponseType.askForMoreInformation,
+    },
+    'TR-107': {
+      ReflectivePauseResponseType.reformulateCalmly,
+    },
+    'TR-108': {
+      ReflectivePauseResponseType.reformulateCalmly,
+    },
+    'TR-109': {
+      ReflectivePauseResponseType.breatheAnalyze,
+    },
+    'TR-110': {
+      ReflectivePauseResponseType.askForMoreInformation,
+    },
+    'TR-111': {
+      ReflectivePauseResponseType.askForMoreInformation,
+    },
+    'TR-112': {
+      ReflectivePauseResponseType.askForMoreInformation,
+    },
+    'TR-113': {
+      ReflectivePauseResponseType.reformulateCalmly,
+    },
+    'TR-114': {
+      ReflectivePauseResponseType.reformulateCalmly,
+    },
+    'TR-115': {
+      ReflectivePauseResponseType.askForMoreInformation,
+    },
+    'TR-116': {
+      ReflectivePauseResponseType.breatheAnalyze,
+    },
+    'TR-117': {
+      ReflectivePauseResponseType.reformulateCalmly,
+    },
+    'TR-118': {
+      ReflectivePauseResponseType.askForMoreInformation,
+    },
+    'TR-119': {
+      ReflectivePauseResponseType.wait,
+    },
+    'TR-120': {
+      ReflectivePauseResponseType.reformulateCalmly,
+    },
+    'TR-121': {
+      ReflectivePauseResponseType.breatheAnalyze,
+    },
+    'TR-122': {
+      ReflectivePauseResponseType.wait,
+    },
+    'TR-123': {
+      ReflectivePauseResponseType.askForMoreInformation,
+    },
+    'TR-124': {
+      ReflectivePauseResponseType.breatheAnalyze,
+    },
   };
 
   static bool isRecommended(

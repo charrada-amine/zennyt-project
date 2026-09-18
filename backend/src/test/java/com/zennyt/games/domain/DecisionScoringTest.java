@@ -70,7 +70,7 @@ class DecisionScoringTest {
 
     private static Map<DecisionDimension, OptionQuality> allDims(OptionQuality q) {
         Map<DecisionDimension, OptionQuality> m = new EnumMap<>(DecisionDimension.class);
-        for (DecisionDimension d : DecisionDimension.values()) m.put(d, q);
+        for (DecisionDimension d : DecisionConfig.dimensions()) m.put(d, q);
         return m;
     }
 
@@ -84,11 +84,24 @@ class DecisionScoringTest {
     void six_optimal_items_score_full_dimension() {
         Fixture f = fixture(allDims(OptionQuality.OPTIMAL), 15000, "en", AdministrationMode.SUPERVISED);
         DecisionReport r = f.service.report(f.metrics, 0.0);
-        assertEquals(18, dim(r, DecisionDimension.II).score());
-        assertEquals(DecisionConfig.DIMENSION_MAX, dim(r, DecisionDimension.II).maxScore());
-        assertEquals(90, r.rawScore());
+        assertEquals(18, dim(r, DecisionDimension.ER).score());
+        assertEquals(DecisionConfig.DIMENSION_MAX, dim(r, DecisionDimension.ER).maxScore());
+        assertEquals(72, r.rawScore());
         assertEquals(100, r.scwScore());
         assertEquals("Élevé", r.level());
+    }
+
+    @Test
+    void retired_ii_neither_scores_nor_appears_in_report() {
+        Fixture active = fixture(allDims(OptionQuality.SATISFACTORY), 15000, "en", AdministrationMode.SUPERVISED);
+        Map<DecisionDimension, OptionQuality> withArchived = allDims(OptionQuality.SATISFACTORY);
+        withArchived.put(DecisionDimension.II, OptionQuality.OPTIMAL);
+        Fixture archived = fixture(withArchived, 15000, "en", AdministrationMode.SUPERVISED);
+        DecisionReport report = archived.service.report(archived.metrics, 0);
+        assertEquals(active.service.score(active.metrics, 0).rawPoints(), report.scwScore());
+        assertEquals(4, report.dimensions().size());
+        assertEquals(72, report.rawMax());
+        assertTrue(report.dimensions().stream().noneMatch(d -> d.dimension() == DecisionDimension.II));
     }
 
     @Test
@@ -146,11 +159,11 @@ class DecisionScoringTest {
 
     @Test
     void unexploitable_block_is_flagged_and_excluded_from_scw() {
-        // II n'a que 3 items répondus → non exploitable ; les autres complètes (OPTIMAL).
+        // ER n'a que 3 items répondus → non exploitable ; les autres complètes (OPTIMAL).
         MapCatalog catalog = new MapCatalog();
         List<DecisionItemResponse> responses = new ArrayList<>();
-        for (DecisionDimension d : DecisionDimension.values()) {
-            int count = d == DecisionDimension.II ? 3 : DecisionConfig.ITEMS_PER_DIMENSION;
+        for (DecisionDimension d : DecisionConfig.dimensions()) {
+            int count = d == DecisionDimension.ER ? 3 : DecisionConfig.ITEMS_PER_DIMENSION;
             for (int i = 1; i <= count; i++) {
                 String id = d.name() + "-" + i;
                 catalog.put(id, d, DecisionItemFormat.STANDARD, OptionQuality.OPTIMAL);
@@ -159,9 +172,9 @@ class DecisionScoringTest {
         }
         DecisionReport r = new DecisionScoringService(catalog)
             .report(new DecisionMetrics(responses, "en", AdministrationMode.SUPERVISED, null, null, null, null), 0.0);
-        assertFalse(dim(r, DecisionDimension.II).exploitable());
-        assertNull(dim(r, DecisionDimension.II).score());
-        // 4 dimensions exploitables à 18 → SCW = 72/(18×4)×100 = 100.
+        assertFalse(dim(r, DecisionDimension.ER).exploitable());
+        assertNull(dim(r, DecisionDimension.ER).score());
+        // 3 dimensions exploitables à 18 → SCW = 54/(18×3)×100 = 100.
         assertEquals(100, r.scwScore());
     }
 
@@ -174,11 +187,11 @@ class DecisionScoringTest {
     }
 
     @Test
-    void low_ii_and_low_cs_yield_analysis_difficulty() {
+    void retired_ii_does_not_yield_analysis_difficulty() {
         Map<DecisionDimension, OptionQuality> perDim = allDims(OptionQuality.SATISFACTORY);
         perDim.put(DecisionDimension.II, OptionQuality.DEFICIENT);
         perDim.put(DecisionDimension.CS, OptionQuality.DEFICIENT);
-        assertTrue(report(perDim).interpretations().contains("Difficulté d'analyse et incohérence."));
+        assertFalse(report(perDim).interpretations().contains("Difficulté d'analyse et incohérence."));
     }
 
     @Test
@@ -245,7 +258,7 @@ class DecisionScoringTest {
         Score s = f.service.score(f.metrics, 0.0);
 
         Map<DecisionDimension, Integer> dims = new EnumMap<>(DecisionDimension.class);
-        for (DecisionDimension d : DecisionDimension.values()) dims.put(d, 12); // SATISFACTORY×6
+        for (DecisionDimension d : DecisionConfig.dimensions()) dims.put(d, 12); // SATISFACTORY×6
         int expectedScw = (int) Math.round(DecisionProvisionalRules.scw(dims));
 
         assertEquals(expectedScw, s.rawPoints());

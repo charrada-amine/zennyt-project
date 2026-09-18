@@ -6,7 +6,9 @@ import '../../../../core/router/app_routes.dart';
 import '../../../../core/router/app_router.dart' show kLot1DemoBuild;
 import '../../../../core/theme/app_typography.dart';
 import '../../../navigation/presentation/viewmodel/nav_tab_provider.dart';
-import '../games_progress_provider.dart';
+import '../../domain/entities/games_progress.dart';
+import '../games_providers.dart';
+import '../games_progress_provider.dart' as local_progress;
 
 const _ink = Color(0xFF25204A);
 const _blue = Color(0xFF17458F);
@@ -40,14 +42,33 @@ const _logoEmotionalRadar = 'assets/games icons/Emotional Radar.png';
 const _logoReflectivePause = 'assets/games icons/Reflective Pause.png';
 const _logoStrategicChoices = 'assets/games icons/Strategic Choices.png';
 
+/// Libellé de couverture du catalogue.
+///
+/// Pendant un rechargement, la dernière valeur connue reste affichée plutôt
+/// qu'un tiret qui clignoterait à chaque retour sur le hub. Tant qu'aucune
+/// valeur n'est connue (serveur injoignable), un tiret : afficher 0 % laisserait
+/// croire qu'aucune partie n'a été jouée.
+String _coverageLabel(AsyncValue<GamesProgress?> progress) {
+  final percent = progress.value?.coveragePercent;
+  return percent == null ? 'Coverage —' : 'Coverage $percent%';
+}
+
+/// Ouvre un jeu, puis relit la progression au retour : la partie qui vient de
+/// se terminer doit apparaître aussitôt dans la couverture.
+Future<void> _openGame(BuildContext context, String route) async {
+  final container = ProviderScope.containerOf(context, listen: false);
+  await context.push(route);
+  container.invalidate(gamesProgressProvider);
+}
+
 /// Hub des jeux sérieux, aligné sur l'écran Progress / Games de la maquette.
 class GamesHubScreen extends ConsumerWidget {
   const GamesHubScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final progress = ref.watch(gamesProgressProvider);
-    final coveragePercent = (progress.coverage * 100).round();
+    final serverProgress = ref.watch(gamesProgressProvider).value;
+    final localProgress = ref.watch(local_progress.gamesProgressProvider);
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -70,7 +91,10 @@ class GamesHubScreen extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(36, 32, 31, 26),
                 children: [
                   Text(
-                    kLot1DemoBuild ? 'Games demo' : 'Coverage $coveragePercent%',
+                    kLot1DemoBuild
+                        ? 'Games demo'
+                        : _coverageLabel(ref.watch(gamesProgressProvider)),
+                    key: const ValueKey('games-coverage'),
                     style: AppTypography.headlineLarge.copyWith(
                       color: _magenta,
                       fontSize: 24,
@@ -86,21 +110,23 @@ class GamesHubScreen extends ConsumerWidget {
                     ),
                   ] else ...[
                     const SizedBox(height: 10),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(999),
-                      child: LinearProgressIndicator(
-                        value: progress.coverage,
-                        minHeight: 6,
-                        backgroundColor: _softGray,
-                        color: _magenta,
+                    if (serverProgress != null)
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(999),
+                        child: LinearProgressIndicator(
+                          value: serverProgress.completedGames /
+                              serverProgress.totalGames,
+                          minHeight: 6,
+                          backgroundColor: _softGray,
+                          color: _magenta,
+                        ),
                       ),
-                    ),
                   ],
                   const SizedBox(height: 26),
                   _GameCategoryCard(
                     key: const ValueKey('game-category-cognitive-flexibility'),
                     title: 'Cognitive Flexibility',
-                    completed: progress.completedDimensions.contains('Cognitive Flexibility'),
+                    completed: localProgress.completedDimensions.contains('Cognitive Flexibility'),
                     iconAsset: _iconFlexibility,
                     durationLabel: '2–25 min',
                     aptitudeLabel: '3 games',
@@ -134,7 +160,7 @@ class GamesHubScreen extends ConsumerWidget {
                   _GameCategoryCard(
                     key: const ValueKey('game-category-working-memory'),
                     title: 'Working Memory',
-                    completed: progress.completedDimensions.contains('Working Memory'),
+                    completed: localProgress.completedDimensions.contains('Working Memory'),
                     iconAsset: _iconMemory,
                     durationLabel: '5–13 min',
                     aptitudeLabel: '3 games',
@@ -172,7 +198,7 @@ class GamesHubScreen extends ConsumerWidget {
                   _GameCategoryCard(
                     key: const ValueKey('game-category-decision-making'),
                     title: 'Decision-Making',
-                    completed: progress.completedDimensions.contains('Decision-Making'),
+                    completed: localProgress.completedDimensions.contains('Decision-Making'),
                     iconAsset: _iconDecision,
                     games: const [
                       _GameEntry(
@@ -189,7 +215,7 @@ class GamesHubScreen extends ConsumerWidget {
                   _GameCategoryCard(
                     key: const ValueKey('game-category-executive-planning'),
                     title: 'Executive Planning',
-                    completed: progress.completedDimensions.contains('Executive Planning'),
+                    completed: localProgress.completedDimensions.contains('Executive Planning'),
                     iconAsset: _iconPlanning,
                     games: const [
                       _GameEntry(
@@ -219,7 +245,7 @@ class GamesHubScreen extends ConsumerWidget {
                   _GameCategoryCard(
                     key: const ValueKey('game-category-emotional-regulation'),
                     title: 'Emotional Regulation',
-                    completed: progress.completedDimensions.contains('Emotional Regulation'),
+                    completed: localProgress.completedDimensions.contains('Emotional Regulation'),
                     iconAsset: _iconEmotion,
                     aptitudeLabel: '3 games',
                     games: const [
@@ -461,23 +487,25 @@ class _GameCategoryCard extends ConsumerWidget {
     if (playable.isEmpty) return;
 
     // Design screen 76 — anti-fraud monitoring consent, asked once.
-    if (!ref.read(gamesProgressProvider).consentGiven) {
+    if (!ref.read(local_progress.gamesProgressProvider).consentGiven) {
       final agreed = await _showGamesConsentDialog(context);
       if (agreed != true) return;
-      ref.read(gamesProgressProvider.notifier).setConsent(true);
+      ref.read(local_progress.gamesProgressProvider.notifier).setConsent(true);
     }
 
     if (!context.mounted) return;
     if (games.length == 1) {
-      await context.push(playable.first.route);
+      await _openGame(context, playable.first.route);
     } else {
       final route = await _showGamePicker(context, title: title, games: games);
       if (route == null || !context.mounted) return;
-      await context.push(route);
+      await _openGame(context, route);
     }
-    // Provisional local coverage: the dimension counts as done once its game
-    // session has been returned from (no backend coverage endpoint yet).
-    ref.read(gamesProgressProvider.notifier).markCompleted(title);
+    // Surlignage provisoire de la carte, côté client ; la couverture serveur
+    // est relue par [_openGame] au retour.
+    ref
+        .read(local_progress.gamesProgressProvider.notifier)
+        .markCompleted(title);
   }
 
   @override
@@ -699,7 +727,7 @@ class _CategoryIllustration extends StatelessWidget {
 
 /// Anti-fraud monitoring consent (design screen 76). Returns `true` only when
 /// the user ticked the agreement and confirmed. Asked once, then remembered in
-/// [gamesProgressProvider].
+/// [local_progress.gamesProgressProvider].
 Future<bool?> _showGamesConsentDialog(BuildContext context) {
   var agreed = false;
   return showDialog<bool>(

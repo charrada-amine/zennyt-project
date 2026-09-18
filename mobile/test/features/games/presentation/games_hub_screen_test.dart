@@ -3,9 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zennyt/core/storage/shared_preferences_provider.dart';
+import 'package:zennyt/features/games/domain/entities/games_progress.dart';
+import 'package:zennyt/features/games/presentation/games_providers.dart';
 import 'package:zennyt/features/games/presentation/view/games_hub_screen.dart';
 
-Future<void> _pumpHub(WidgetTester tester, {double textScale = 1}) async {
+Future<void> _pumpHub(
+  WidgetTester tester, {
+  double textScale = 1,
+  GamesProgress? progress,
+}) async {
   tester.view.physicalSize = const Size(390 * 3, 844 * 3);
   tester.view.devicePixelRatio = 3;
   addTearDown(tester.view.resetPhysicalSize);
@@ -18,7 +24,10 @@ Future<void> _pumpHub(WidgetTester tester, {double textScale = 1}) async {
 
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        gamesProgressProvider.overrideWith((ref) async => progress),
+      ],
       child: MaterialApp(
         builder: (context, child) => MediaQuery(
           data: MediaQuery.of(
@@ -295,4 +304,28 @@ void main() {
       },
     );
   }
+
+  testWidgets('la couverture affiche la part des jeux terminés', (
+    tester,
+  ) async {
+    await _pumpHub(
+      tester,
+      progress: const GamesProgress(
+        completed: {
+          CatalogGame.moveFast,
+          CatalogGame.decision,
+          CatalogGame.taskScheduling,
+        },
+      ),
+    );
+    expect(find.text('Coverage 23%'), findsOneWidget, reason: '3 / 13');
+    expect(find.text('Coverage 0%'), findsNothing);
+  });
+
+  testWidgets('progression inconnue : un tiret, pas un faux 0 %', (
+    tester,
+  ) async {
+    await _pumpHub(tester);
+    expect(find.text('Coverage —'), findsOneWidget);
+  });
 }

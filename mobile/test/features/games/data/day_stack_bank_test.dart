@@ -39,6 +39,20 @@ void main() {
     );
   });
 
+  test('chaque univers a sa propre mission, courte', () {
+    final missions = <String>{};
+    for (final universe in bank.universes) {
+      expect(universe.mission, isNotEmpty, reason: universe.id);
+      expect(
+        universe.mission.length,
+        lessThanOrEqualTo(90),
+        reason: '${universe.id} : la mission se lit d\'un coup d\'œil',
+      );
+      missions.add(universe.mission);
+    }
+    expect(missions, hasLength(bank.universes.length));
+  });
+
   test('les effectifs correspondent au tableau de normalisation', () {
     for (final universe in bank.universes) {
       final ref = attendu[universe.id]!;

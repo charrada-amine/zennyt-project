@@ -125,6 +125,13 @@ flutter:
     - assets/games icons/
     - assets/sounds/
     - assets/games_demo/emotional_radar/
+    - assets/Day Stack/emotes-v1/restaurant/
+    - assets/Day Stack/emotes-v1/gestion/
+    - assets/Day Stack/emotes-v1/organisation/
+    - assets/Day Stack/emotes-v1/chantier/
+    - assets/Day Stack/emotes-v1/logistique/
+    - assets/Day Stack/emotes-v1/soins/
+    - assets/Day Stack/emotes-v1/demenagement/
     - assets/connectivity/
     - .env
 

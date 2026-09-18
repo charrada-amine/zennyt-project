@@ -45,6 +45,23 @@ paths:
         '400': { $ref: './common.openapi.yaml#/components/responses/BadRequest' }
         '401': { $ref: './common.openapi.yaml#/components/responses/Unauthorized' }
 
+  /games/progress:
+    get:
+      tags: [Games]
+      summary: Progression du joueur connecté dans le catalogue des jeux
+      description: >
+        Couverture affichée dans le hub (« Coverage n % ») : part des 13 jeux
+        du catalogue terminés au moins une fois. Une partie terminée inclut
+        toutes ses manches ; Memory Quest compte pour deux jeux (chiffres,
+        images). Les jeux encore fermés dans l'application comptent aussi.
+      responses:
+        '200':
+          description: Progression du joueur
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GamesProgress' }
+        '401': { $ref: './common.openapi.yaml#/components/responses/Unauthorized' }
+
   /games/sessions/{sessionId}/results:
     parameters:
       - { name: sessionId, in: path, required: true, schema: { type: string, format: uuid } }
@@ -112,8 +129,9 @@ paths:
       tags: [Games]
       summary: Items « Je Décide » de la forme assignée à cette session
       description: >
-        Renvoie les 30 items de la forme parallèle tirée à la création de la session
-        (banque de 120 items, 6 par dimension). La QUALITÉ des options — donc les
+        Renvoie les 24 items actifs de la forme assignée à la session
+        (ER, DT, CS, RE : 6 par dimension). Les questions II sont retirées du
+        parcours et du bilan ; leur contenu historique reste conservé. La QUALITÉ des options — donc les
         points /3 — n'apparaît JAMAIS : la correction est faite serveur à la
         soumission, à partir de la forme relue sur la session et non du payload client.
       responses:
@@ -629,6 +647,27 @@ components:
     bearerAuth: { $ref: './common.openapi.yaml#/components/securitySchemes/bearerAuth' }
 
   schemas:
+    GamesProgress:
+      type: object
+      required: [coveragePercent, completedGames, totalGames, games]
+      properties:
+        coveragePercent: { type: integer, minimum: 0, maximum: 100 }
+        completedGames: { type: integer, minimum: 0 }
+        totalGames: { type: integer, minimum: 1 }
+        games:
+          type: array
+          items:
+            type: object
+            required: [game, completed]
+            properties:
+              game:
+                type: string
+                enum: [MOVE_FAST, CONTINUOUS_ATTENTION, COORDINATION_TRACKING,
+                       MEMORY_QUEST_DIGITS, MEMORY_QUEST_IMAGES, OBJECT_LOCATION,
+                       DECISION, OPTIMAL_PATH, TASK_SCHEDULING, PREDICTIVE_PUZZLE,
+                       EMOTIONAL_RADAR, REFLECTIVE_PAUSE, STRATEGIC_CHOICES]
+              completed: { type: boolean }
+              lastCompletedAt: { type: string, format: date-time, nullable: true }
     AdminStatus:
       type: string
       enum: [DRAFT, PUBLISHED, ARCHIVED]
@@ -2117,8 +2156,10 @@ components:
     DecisionDimension:
       type: string
       description: >
-        Dimension cognitive de « Je Décide » (fiche « JE DÉCIDE ») : 5 capacités,
-        6 items chacune, /18 par dimension. DT est la seule dont le score dépend du temps.
+        Dimension cognitive de « Je Décide » : 4 capacités actives (ER, DT, CS, RE),
+        6 items chacune, /18 par dimension. II reste un code historique pour les archives
+        et les références de contexte ; il est exclu du parcours, du calcul et du bilan.
+        DT est la seule dimension dont le score dépend du temps.
       enum: [II, ER, DT, CS, RE]
 
     AdministrationMode:
@@ -2149,14 +2190,14 @@ components:
           type: array
           minItems: 1
           items: { $ref: '#/components/schemas/DecisionItemView' }
-          description: "Items dans l'ordre de passation."
+          description: "Items actifs ER/DT/CS/RE dans l'ordre de passation ; aucun item II."
 
     DecisionItemView:
       type: object
       description: "Un item prêt à afficher, expurgé de toute clé de correction."
       required: [itemId, dimension, format, vignette, task, options]
       properties:
-        itemId: { type: string, description: "Clé de l'item (II-1, DT-7, CS-1a…)." }
+        itemId: { type: string, description: "Clé de l'item (ER-19, DT-7, CS-1a…)." }
         dimension: { $ref: '#/components/schemas/DecisionDimension' }
         format: { $ref: '#/components/schemas/DecisionItemFormat' }
         pairId:
@@ -2222,18 +2263,18 @@ components:
       type: object
       description: >
         Mesures brutes de « Je Décide » (prise de décision). Le serveur note chaque
-        item /3 via le catalogue (qualité de l'option), agrège /18 → /90, puis
+        item /3 via le catalogue (qualité de l'option), agrège /18 → /72, puis
         standardise en SCW /100 (poids provisoires). La règle DT (temps) et le
         calibrage appareil affectent la note des items DT. Le client n'envoie jamais
         de points. ⚠️ Les échelles post-test (age/educationLevel/fatigue/motivation)
         ne sont pas précisées par la fiche — transmises telles quelles, à tracer.
-      required: [items]
+      required: [decisionItems]
       properties:
-        items:
+        decisionItems:
           type: array
           minItems: 1
           items: { $ref: '#/components/schemas/DecisionItemResponse' }
-          description: "Réponses par item (répondus + non répondus)."
+          description: "Réponses par item (répondus + non répondus). Clé de soumission decisionItems ; items reste la clé de lecture du formulaire."
         sessionLanguage: { type: string, description: "Code langue (multiplicateur DT ; en/fr/de fournis, es/it/pt provisoires, ar → fallback)." }
         formCode:
           type: string
@@ -2255,12 +2296,12 @@ components:
       type: object
       description: >
         Indicateurs « Je Décide » CALCULÉS PAR LE SERVEUR : détail par dimension
-        (/18) + brut (/90) + SCW (/100) + niveau, interprétations automatiques
+        (/18) + brut (/72) + SCW (/100) + niveau, interprétations automatiques
         (textes fiche, seuils provisoires), qualité de session et indicateurs
         temporels. SCW, niveau et seuils viennent de la couche provisoire.
       properties:
-        rawScore: { type: integer, description: "Somme des dimensions exploitables /90" }
-        rawMax: { type: integer, example: 90 }
+        rawScore: { type: integer, description: "Somme des dimensions actives exploitables /72" }
+        rawMax: { type: integer, example: 72 }
         scwScore: { type: integer, description: "Score composite standardisé pondéré /100" }
         level: { type: string, description: "Élevé (≥75, fiche) · Normal · Borderline · Fragile (provisoires)" }
         dimensions:

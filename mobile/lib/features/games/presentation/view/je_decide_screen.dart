@@ -19,6 +19,8 @@ import '../../../navigation/presentation/widgets/app_bottom_nav.dart';
 import 'je_decide_gameplay.dart';
 import 'je_decide_results.dart';
 import '../widgets/game_system_components.dart';
+import '../widgets/je_decide_tutorial.dart';
+import '../widgets/zennyt_loader.dart';
 
 /// Durée annoncée sur la fiche d'introduction, en minutes.
 ///
@@ -34,27 +36,12 @@ const _border = Color(0xFFD8E2F6);
 const _canvas = Color(0xFFF7F8FE);
 const _magenta = Color(0xFFD52E83);
 const _violet = Color(0xFF4E46E8);
-const _cyan = Color(0xFF17B2C6);
-const _orange = Color(0xFFFF963A);
 const _softPink = Color(0xFFFFF1F7);
 
-const _welcomeAsset =
-    'assets/04 Je Décide/02 Mobile/Welcome/Illustration_Welcome_DecisionPath_mask.png';
-const _onboardingChoiceAsset =
-    'assets/04 Je Décide/03 Mobile/Onboarding 1/Illustration_Onboarding_ChoiceStory_card.png';
-const _onboardingPressureAsset =
-    'assets/04 Je Décide/04 Mobile/Onboarding 2/Illustration_Onboarding_NoPressure_card.png';
-const _onboardingProfileAsset =
-    'assets/04 Je Décide/05 Mobile/Onboarding 3/Illustration_Onboarding_Profile_card.png';
-const _tutorialAsset =
-    'assets/04 Je Décide/08 Mobile/Tutorial Intro/Illustration_Tutorial_ReadChooseContinue_card.png';
-const _avatarRoot = 'assets/04 Je Décide/07 Mobile/Avatar Selection';
+const _welcomeAsset = 'assets/games icons/Je Decide transparent.png';
 
 enum _DecisionStage {
   welcome,
-  onboarding,
-  playerCard,
-  avatar,
   practiceIntro,
   practiceScenario,
   gameplay,
@@ -64,8 +51,8 @@ enum _DecisionStage {
 /// Parcours mobile de « Je Décide ».
 ///
 /// Les écrans et transitions suivent les maquettes Phases 1–4. Le CONTENU, lui,
-/// vient du backend : la session est ouverte au démarrage du parcours, la forme
-/// de passation (30 items sur les 120 de la banque) est récupérée par
+/// vient du backend : la session est ouverte après l’exemple, la forme
+/// de passation (24 items sur les 120 de la banque) est récupérée par
 /// `GET /decision/items`, et le score est calculé serveur à la soumission. Aucun
 /// barème ne vit côté client — voir l'exception de parité en tête de
 /// `games_mock_repository.dart`.
@@ -77,30 +64,21 @@ class JeDecideScreen extends ConsumerStatefulWidget {
 }
 
 class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
-  final _nicknameController = TextEditingController();
-  final _onboardingController = PageController();
-
   /// Réponses effectivement données, et longueur de la forme jouée.
   int _answeredCount = 0;
   int _submittedCount = 0;
 
   _DecisionStage _stage = _DecisionStage.welcome;
-  int _onboardingPage = 0;
-  int _selectedTheme = 0;
-  int _selectedAvatar = 0;
   int? _selectedChoice;
   DecisionForm? _form;
   bool _loadingForm = false;
   Object? _formError;
+  List<DecisionItemResponse>? _pendingResponses;
+  bool _submitting = false;
+  Object? _submitError;
+  DecisionProfile? _completedProfile;
 
-  static const _themes = [_magenta, _violet, _cyan, _orange];
-
-  @override
-  void initState() {
-    super.initState();
-  }
-
-  /// Ouvre la session puis récupère les 30 items de sa forme.
+  /// Ouvre la session puis récupère les 24 items de sa forme.
   ///
   /// L'ordre est imposé : la forme est tirée serveur à la création de session,
   /// donc il n'y a rien à demander avant d'avoir un identifiant de session.
@@ -133,35 +111,43 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
     }
   }
 
-  /// Fin de partie : les 30 réponses partent au serveur, qui note.
+  /// Fin de partie : les 24 réponses partent au serveur, qui note.
   Future<void> _submitJourney(List<DecisionItemResponse> responses) async {
-    // Retenu pour l'écran de fin, qui annonçait « 30 / 30 » en dur — donc un
-    // sans-faute même quand des questions avaient expiré.
+    if (_submitting) return;
     _answeredCount = responses.where((r) => r.answered).length;
     _submittedCount = responses.length;
-    // Langue capturée AVANT le premier await : le contexte peut disparaître.
     final language = Localizations.localeOf(context).languageCode;
+    setState(() {
+      _pendingResponses = responses;
+      _submitting = true;
+      _submitError = null;
+    });
     await ref
         .read(gamesControllerProvider.notifier)
         .submit(
           miniGame: MiniGame.decisionCore,
-          metrics: DecisionMetrics(
-            items: responses,
-            sessionLanguage: language,
-          ),
+          metrics: DecisionMetrics(items: responses, sessionLanguage: language),
+          preserveSessionOnError: true,
         );
     if (!mounted) return;
-    setState(() => _stage = _DecisionStage.results);
+    final result = ref.read(gamesControllerProvider);
+    final session = result.value;
+    final hasScore = session?.lastAttempt?.miniGame == MiniGame.decisionCore;
+    setState(() {
+      _submitting = false;
+      if (result.hasError || !hasScore) {
+        // Une soumission échouée ne doit jamais devenir un faux profil à 0.
+        _submitError =
+            result.error ?? StateError('Decision score unavailable.');
+      } else {
+        _completedProfile = DecisionProfile.fromSession(session!);
+        _pendingResponses = null;
+        _stage = _DecisionStage.results;
+      }
+    });
   }
 
   void _finishResults() => context.go(AppRoutes.games);
-
-  @override
-  void dispose() {
-    _nicknameController.dispose();
-    _onboardingController.dispose();
-    super.dispose();
-  }
 
   bool get _showBottomNav =>
       _stage != _DecisionStage.practiceScenario &&
@@ -169,23 +155,17 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
       _stage != _DecisionStage.results;
 
   ({String eyebrow, String title}) get _headerCopy => switch (_stage) {
-    _DecisionStage.welcome => (eyebrow: 'Decision Journey', title: 'Je Décide'),
-    _DecisionStage.onboarding => (eyebrow: 'Zennyt Games', title: 'Onboarding'),
-    _DecisionStage.playerCard => (
-      eyebrow: 'Zennyt Games',
-      title: 'Create your player card',
-    ),
-    _DecisionStage.avatar => (
-      eyebrow: 'Zennyt Games',
-      title: 'Choose your avatar',
+    _DecisionStage.welcome => (
+      eyebrow: 'Decision Journey',
+      title: 'Zennyt Games',
     ),
     _DecisionStage.practiceIntro => (
-      eyebrow: 'Zennyt Games',
-      title: 'Practice round',
+      eyebrow: 'Decision Journey',
+      title: 'Comment jouer',
     ),
     _DecisionStage.practiceScenario => (
-      eyebrow: 'Practice round',
-      title: 'Practice 1 / 2',
+      eyebrow: 'Je Décide',
+      title: 'Entraînement',
     ),
     _DecisionStage.gameplay => (eyebrow: 'Decision Journey', title: 'Gameplay'),
     _DecisionStage.results => (
@@ -202,21 +182,8 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
     switch (_stage) {
       case _DecisionStage.welcome:
         context.go(AppRoutes.games);
-      case _DecisionStage.onboarding:
-        if (_onboardingPage > 0) {
-          _onboardingController.previousPage(
-            duration: const Duration(milliseconds: 260),
-            curve: Curves.easeOutCubic,
-          );
-        } else {
-          _setStage(_DecisionStage.welcome);
-        }
-      case _DecisionStage.playerCard:
-        _setStage(_DecisionStage.onboarding);
-      case _DecisionStage.avatar:
-        _setStage(_DecisionStage.playerCard);
       case _DecisionStage.practiceIntro:
-        _setStage(_DecisionStage.avatar);
+        _setStage(_DecisionStage.welcome);
       case _DecisionStage.practiceScenario:
         _setStage(_DecisionStage.practiceIntro);
       case _DecisionStage.gameplay:
@@ -226,17 +193,6 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
     }
   }
 
-  void _nextOnboarding() {
-    if (_onboardingPage < 2) {
-      _onboardingController.nextPage(
-        duration: const Duration(milliseconds: 280),
-        curve: Curves.easeOutCubic,
-      );
-      return;
-    }
-    _setStage(_DecisionStage.playerCard);
-  }
-
   void _selectMainTab(int index) {
     ref.read(navTabProvider.notifier).select(index);
     context.go(AppRoutes.home);
@@ -244,9 +200,8 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
 
   Future<void> _openJourneyMenu() async {
     SoundService.instance.playSfx(GameSfx.pauseClick);
-    final action = await showDialog<DecisionPauseAction>(
-      context: context,
-      barrierDismissible: false,
+    final action = await showGamePauseMenu<DecisionPauseAction>(
+      context,
       builder: (_) => const DecisionPauseDialog(gameplayActive: false),
     );
     if (!mounted) return;
@@ -272,7 +227,14 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
       final form = _form;
       return Scaffold(
         backgroundColor: _canvas,
-        body: form == null
+        body: _pendingResponses != null
+            ? _DecisionLoadingView(
+                error: _submitError,
+                submittingResult: true,
+                onRetry: () => _submitJourney(_pendingResponses!),
+                onBack: () => context.go(AppRoutes.games),
+              )
+            : form == null
             ? _DecisionLoadingView(
                 error: _formError,
                 onRetry: _openSessionAndLoadForm,
@@ -288,13 +250,10 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
       );
     }
     if (_stage == _DecisionStage.results) {
-      final session = ref.watch(gamesControllerProvider).value;
       return Scaffold(
         backgroundColor: _canvas,
         body: DecisionResultsFlow(
-          profile: session == null
-              ? const DecisionProfile(score: 0, level: '—', dimensions: [])
-              : DecisionProfile.fromSession(session),
+          profile: _completedProfile!,
           answered: _answeredCount,
           totalItems: _submittedCount,
           onClose: () => context.go(AppRoutes.games),
@@ -309,12 +268,17 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
         if (!didPop) _back();
       },
       child: Scaffold(
-        backgroundColor: _canvas,
+        backgroundColor:
+            _stage == _DecisionStage.practiceIntro ||
+                _stage == _DecisionStage.welcome
+            ? Colors.white
+            : _canvas,
         body: SafeArea(
           bottom: false,
           child: Column(
             children: [
               Padding(
+                key: const ValueKey('decision-journey-header'),
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
                 child: _DecisionHeader(
                   eyebrow: header.eyebrow,
@@ -325,9 +289,21 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
               ),
               Expanded(
                 child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 220),
-                  switchInCurve: Curves.easeOut,
-                  switchOutCurve: Curves.easeIn,
+                  key: const ValueKey('decision-stage-switcher'),
+                  duration: MediaQuery.disableAnimationsOf(context)
+                      ? Duration.zero
+                      : const Duration(milliseconds: 320),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  transitionBuilder: _buildStageTransition,
+                  layoutBuilder: (current, previous) => Stack(
+                    alignment: Alignment.topCenter,
+                    children: [
+                      for (final child in previous)
+                        ExcludeSemantics(child: IgnorePointer(child: child)),
+                      ?current,
+                    ],
+                  ),
                   child: KeyedSubtree(
                     key: ValueKey(_stage),
                     child: _buildStage(),
@@ -344,29 +320,30 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
     );
   }
 
+  /// Même cadre pendant l’entrée et le retour ; faible déplacement des cartes.
+  /// PROVISOIRE — continuité visuelle à valider sur appareil.
+  Widget _buildStageTransition(Widget child, Animation<double> animation) {
+    final fade = FadeTransition(opacity: animation, child: child);
+    if (child.key != const ValueKey(_DecisionStage.welcome) &&
+        child.key != const ValueKey(_DecisionStage.practiceIntro)) {
+      return fade;
+    }
+    return SlideTransition(
+      position: Tween<Offset>(
+        begin: Offset(
+          child.key == const ValueKey(_DecisionStage.welcome) ? -0.06 : 0.06,
+          0,
+        ),
+        end: Offset.zero,
+      ).animate(animation),
+      child: fade,
+    );
+  }
+
   Widget _buildStage() {
     return switch (_stage) {
       _DecisionStage.welcome => _WelcomeView(
-        onStart: () => _setStage(_DecisionStage.onboarding),
-      ),
-      _DecisionStage.onboarding => _OnboardingView(
-        controller: _onboardingController,
-        page: _onboardingPage,
-        onPageChanged: (page) => setState(() => _onboardingPage = page),
-        onNext: _nextOnboarding,
-      ),
-      _DecisionStage.playerCard => _PlayerCardView(
-        nicknameController: _nicknameController,
-        selectedTheme: _selectedTheme,
-        themes: _themes,
-        onThemeSelected: (index) => setState(() => _selectedTheme = index),
-        onChanged: (_) => setState(() {}),
-        onContinue: () => _setStage(_DecisionStage.avatar),
-      ),
-      _DecisionStage.avatar => _AvatarView(
-        selected: _selectedAvatar,
-        onSelected: (index) => setState(() => _selectedAvatar = index),
-        onContinue: () => _setStage(_DecisionStage.practiceIntro),
+        onStart: () => _setStage(_DecisionStage.practiceIntro),
       ),
       _DecisionStage.practiceIntro => _PracticeIntroView(
         onStart: () => _setStage(_DecisionStage.practiceScenario),
@@ -402,8 +379,8 @@ class _DecisionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 72,
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 72),
       child: Row(
         children: [
           _HeaderButton(
@@ -414,6 +391,7 @@ class _DecisionHeader extends StatelessWidget {
           const SizedBox(width: 14),
           Expanded(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -524,120 +502,106 @@ class _WelcomeView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _ScrollableStage(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: double.infinity,
-            constraints: const BoxConstraints(minHeight: 228),
-            padding: const EdgeInsets.fromLTRB(24, 26, 12, 22),
-            decoration: BoxDecoration(
-              color: _violet,
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
+    final logo = Image.asset(
+      _welcomeAsset,
+      key: const ValueKey('je-decide-welcome-logo'),
+      width: 124,
+      height: 148,
+      fit: BoxFit.contain,
+      filterQuality: FilterQuality.high,
+      excludeFromSemantics: true,
+    );
+    final introduction = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'Je Décide',
+          style: AppTypography.displayMedium.copyWith(
+            color: Colors.white,
+            fontSize: 30,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Choisis face à des situations du quotidien pour découvrir ton style de décision.',
+          style: AppTypography.bodyLarge.copyWith(
+            color: Colors.white,
+            height: 1.35,
+          ),
+        ),
+      ],
+    );
+    return GameContentFrame(
+      child: _ScrollableStage(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: _violet,
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  if (constraints.maxWidth < 280 ||
+                      MediaQuery.textScalerOf(context).scale(16) > 24) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Center(child: logo),
+                        const SizedBox(height: 16),
+                        introduction,
+                      ],
+                    );
+                  }
+                  return Row(
                     children: [
-                      Text(
-                        'Je Décide',
-                        style: AppTypography.displayMedium.copyWith(
-                          color: Colors.white,
-                          fontSize: 30,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Explore how you make\neveryday choices.',
-                        style: AppTypography.bodyLarge.copyWith(
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Move through short real-life scenarios and choose what feels most natural to you.',
-                        style: AppTypography.bodyLarge.copyWith(
-                          color: Colors.white,
-                          height: 1.35,
-                        ),
-                      ),
+                      Expanded(child: introduction),
+                      const SizedBox(width: 12),
+                      logo,
                     ],
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Plafond dérivé du nombre d’items et de leur délai ordinaire.
+            const _SurfaceCard(
+              padding: EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+              child: Column(
+                children: [
+                  _InfoRow(
+                    label: 'Durée',
+                    value: 'Jusqu’à $_maxDurationMin min',
                   ),
-                ),
-                const SizedBox(width: 8),
-                Image.asset(
-                  _welcomeAsset,
-                  width: 124,
-                  height: 148,
-                  fit: BoxFit.contain,
-                  filterQuality: FilterQuality.high,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          // « 30 scenarios » et « 15–20 min » étaient écrits en dur.
-          //
-          // Le nombre vient maintenant de [DecisionConfig], seule source de la
-          // structure de la forme (fiche). La durée est le PLAFOND réel, celui
-          // qu'impose le chronomètre d'une minute par question — la fourchette
-          // précédente était une estimation, et le chronomètre l'avait rendue
-          // fausse : trente questions à une minute font trente minutes.
-          _SurfaceCard(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-            child: Column(
-              children: [
-                const _InfoRow(
-                  label: 'Goal',
-                  value: 'Discover your decision style',
-                ),
-                _InfoRow(label: 'Duration', value: 'Up to $_maxDurationMin min'),
-                _InfoRow(
-                  label: 'Format',
-                  value: '${DecisionConfig.totalItems} scenarios',
-                  divider: false,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          const _SurfaceCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'How it works',
-                  style: TextStyle(
-                    color: _ink,
-                    fontFamily: AppTypography.fontFamily,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
+                  _InfoRow(
+                    label: 'Parcours',
+                    value: '${DecisionConfig.totalItems} questions',
+                    divider: false,
                   ),
-                ),
-                SizedBox(height: 12),
-                _HowRow(number: 1, label: 'Read a scenario'),
-                SizedBox(height: 8),
-                _HowRow(number: 2, label: 'Choose naturally'),
-                SizedBox(height: 8),
-                _HowRow(number: 3, label: 'Reveal your profile'),
-              ],
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-          const _PrivacyNote(),
-          const SizedBox(height: 12),
-          GamePrimaryButton(
-            key: const ValueKey('welcome-start'),
-            label: 'Start the journey',
-            onPressed: onStart,
-          ),
-        ],
+            const SizedBox(height: 12),
+            Text(
+              'À la fin : un profil en ${DecisionConfig.capabilitiesCount} dimensions. '
+              'Les cotations encore provisoires sont signalées.',
+              style: AppTypography.bodySmall.copyWith(color: _ink, height: 1.4),
+            ),
+            const SizedBox(height: 12),
+            const _PrivacyNote(),
+            const SizedBox(height: 16),
+            GamePrimaryButton(
+              key: const ValueKey('welcome-start'),
+              label: 'Commencer',
+              onPressed: onStart,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -690,576 +654,6 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
-class _HowRow extends StatelessWidget {
-  const _HowRow({required this.number, required this.label});
-
-  final int number;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 38,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: _canvas,
-        border: Border.all(color: _border),
-        borderRadius: BorderRadius.circular(13),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 20,
-            height: 20,
-            alignment: Alignment.center,
-            decoration: const BoxDecoration(
-              color: _magenta,
-              shape: BoxShape.circle,
-            ),
-            child: Text(
-              '$number',
-              style: AppTypography.labelSmall.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppTypography.bodyMedium.copyWith(
-                color: _ink,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _OnboardingView extends StatelessWidget {
-  const _OnboardingView({
-    required this.controller,
-    required this.page,
-    required this.onPageChanged,
-    required this.onNext,
-  });
-
-  final PageController controller;
-  final int page;
-  final ValueChanged<int> onPageChanged;
-  final VoidCallback onNext;
-
-  static const _pages = [
-    (
-      title: 'Every choice tells a\nstory',
-      body:
-          'You’ll move through short, everyday\nscenarios and choose what feels\nmost natural.',
-      asset: _onboardingChoiceAsset,
-    ),
-    (
-      title: 'No pressure',
-      body:
-          'There are no public perfect\nanswers. Be honest and choose\nnaturally.',
-      asset: _onboardingPressureAsset,
-    ),
-    (
-      title: 'Your decision profile',
-      body:
-          'At the end, you’ll discover a simple\nprofile of your decision style.',
-      asset: _onboardingProfileAsset,
-    ),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-      child: Column(
-        children: [
-          Expanded(
-            child: _SurfaceCard(
-              padding: EdgeInsets.zero,
-              child: PageView.builder(
-                controller: controller,
-                itemCount: _pages.length,
-                onPageChanged: onPageChanged,
-                itemBuilder: (context, index) {
-                  final item = _pages[index];
-                  return Padding(
-                    padding: const EdgeInsets.fromLTRB(18, 12, 18, 24),
-                    child: Column(
-                      children: [
-                        Image.asset(
-                          item.asset,
-                          width: 244,
-                          height: 130,
-                          fit: BoxFit.contain,
-                          filterQuality: FilterQuality.high,
-                        ),
-                        const Spacer(),
-                        Text(
-                          item.title,
-                          textAlign: TextAlign.center,
-                          style: AppTypography.displayMedium.copyWith(
-                            color: _ink,
-                            fontSize: 30,
-                            fontWeight: FontWeight.w800,
-                            height: 1.15,
-                          ),
-                        ),
-                        const SizedBox(height: 28),
-                        Text(
-                          item.body,
-                          textAlign: TextAlign.center,
-                          style: AppTypography.bodyLarge.copyWith(
-                            color: _muted,
-                            fontSize: 18,
-                            height: 1.4,
-                          ),
-                        ),
-                        const Spacer(),
-                        _PageDots(page: page, count: _pages.length),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          GamePrimaryButton(
-            key: const ValueKey('onboarding-next'),
-            label: page == 2 ? 'Create my player card' : 'Next',
-            onPressed: onNext,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PageDots extends StatelessWidget {
-  const _PageDots({required this.page, required this.count});
-
-  final int page;
-  final int count;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(
-        count,
-        (index) => AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          width: index == page ? 30 : 9,
-          height: 9,
-          margin: const EdgeInsets.symmetric(horizontal: 6),
-          decoration: BoxDecoration(
-            color: index == page ? _magenta : _border,
-            borderRadius: BorderRadius.circular(99),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _PlayerCardView extends StatelessWidget {
-  const _PlayerCardView({
-    required this.nicknameController,
-    required this.selectedTheme,
-    required this.themes,
-    required this.onThemeSelected,
-    required this.onChanged,
-    required this.onContinue,
-  });
-
-  final TextEditingController nicknameController;
-  final int selectedTheme;
-  final List<Color> themes;
-  final ValueChanged<int> onThemeSelected;
-  final ValueChanged<String> onChanged;
-  final VoidCallback onContinue;
-
-  @override
-  Widget build(BuildContext context) {
-    final nickname = nicknameController.text.trim();
-    return _ScrollableStage(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Choose how you want to appear during this journey.',
-            style: AppTypography.bodyLarge.copyWith(
-              color: _muted,
-              fontSize: 18,
-            ),
-          ),
-          const SizedBox(height: 18),
-          _SurfaceCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const _FieldLabel('Nickname'),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: nicknameController,
-                  onChanged: onChanged,
-                  textInputAction: TextInputAction.done,
-                  decoration: InputDecoration(
-                    hintText: 'Your nickname',
-                    hintStyle: AppTypography.bodyLarge.copyWith(
-                      color: _muted.withValues(alpha: 0.65),
-                    ),
-                    filled: true,
-                    fillColor: _canvas,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 20,
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(18),
-                      borderSide: const BorderSide(color: _border),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(18),
-                      borderSide: const BorderSide(color: _magenta, width: 2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 26),
-                const _FieldLabel('Avatar preview'),
-                const SizedBox(height: 10),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: _canvas,
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: _border),
-                  ),
-                  child: Row(
-                    children: [
-                      _PlayerMark(color: themes[selectedTheme]),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              nickname.isEmpty ? 'Your player card' : nickname,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppTypography.titleLarge.copyWith(
-                                color: _ink,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'Private nickname and guide\nfor the journey.',
-                              style: AppTypography.bodyMedium.copyWith(
-                                color: _muted,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 30),
-                const _FieldLabel('Color theme'),
-                const SizedBox(height: 14),
-                Wrap(
-                  spacing: 18,
-                  children: List.generate(
-                    themes.length,
-                    (index) => Semantics(
-                      button: true,
-                      selected: index == selectedTheme,
-                      label: 'Color theme ${index + 1}',
-                      child: InkWell(
-                        // Pastille de couleur : c'est un choix, il doit
-                        // s'entendre comme les autres sélections.
-                        onTap: () {
-                          SoundService.instance.playSfx(GameSfx.buttonClick);
-                          onThemeSelected(index);
-                        },
-                        customBorder: const CircleBorder(),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 160),
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: themes[index],
-                            shape: BoxShape.circle,
-                            border: index == selectedTheme
-                                ? Border.all(color: _ink, width: 4)
-                                : null,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 34),
-                const _PrivacyNote(),
-              ],
-            ),
-          ),
-          const SizedBox(height: 18),
-          GamePrimaryButton(
-            key: const ValueKey('player-continue'),
-            label: 'Continue',
-            onPressed: onContinue,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FieldLabel extends StatelessWidget {
-  const _FieldLabel(this.label);
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      label,
-      style: AppTypography.titleMedium.copyWith(
-        color: _ink,
-        fontWeight: FontWeight.w700,
-      ),
-    );
-  }
-}
-
-class _PlayerMark extends StatelessWidget {
-  const _PlayerMark({required this.color});
-
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 54,
-      height: 54,
-      decoration: BoxDecoration(
-        color: const Color(0xFFF1F4FF),
-        shape: BoxShape.circle,
-        border: Border.all(color: _border),
-      ),
-      child: Center(
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 13,
-              height: 13,
-              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-            ),
-            Container(
-              width: 13,
-              height: 13,
-              decoration: const BoxDecoration(
-                color: _cyan,
-                shape: BoxShape.circle,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _AvatarView extends StatelessWidget {
-  const _AvatarView({
-    required this.selected,
-    required this.onSelected,
-    required this.onContinue,
-  });
-
-  final int selected;
-  final ValueChanged<int> onSelected;
-  final VoidCallback onContinue;
-
-  static const _avatars = [
-    (
-      label: 'Navigator',
-      icon: '$_avatarRoot/Icon_Avatar_Navigator.png',
-      card: null,
-    ),
-    (
-      label: 'Analyst',
-      icon: null,
-      card: '$_avatarRoot/Avatar card/Analyst.png',
-    ),
-    (
-      label: 'Explorer',
-      icon: '$_avatarRoot/Icon_Avatar_Explorer.png',
-      card: null,
-    ),
-    (
-      label: 'Strategist',
-      icon: '$_avatarRoot/Icon_Avatar_Strategist.png',
-      card: null,
-    ),
-    (
-      label: 'Pathfinder',
-      icon: null,
-      card: '$_avatarRoot/Avatar card/Pathfinder.png',
-    ),
-    (
-      label: 'Observer',
-      icon: '$_avatarRoot/Icon_Avatar_Observer.png',
-      card: null,
-    ),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return _ScrollableStage(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Pick a guide for your decision journey.',
-            style: AppTypography.bodyLarge.copyWith(
-              color: _muted,
-              fontSize: 18,
-            ),
-          ),
-          const SizedBox(height: 22),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: _avatars.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 18,
-              childAspectRatio: 176 / 124,
-            ),
-            itemBuilder: (context, index) {
-              final avatar = _avatars[index];
-              return _AvatarCard(
-                key: ValueKey('avatar-$index'),
-                label: avatar.label,
-                iconAsset: avatar.icon,
-                cardAsset: avatar.card,
-                selected: selected == index,
-                onTap: () => onSelected(index),
-              );
-            },
-          ),
-          const SizedBox(height: 28),
-          GamePrimaryButton(
-            key: const ValueKey('avatar-continue'),
-            label: 'Continue',
-            onPressed: onContinue,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AvatarCard extends StatelessWidget {
-  const _AvatarCard({
-    super.key,
-    required this.label,
-    required this.iconAsset,
-    required this.cardAsset,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final String? iconAsset;
-  final String? cardAsset;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      selected: selected,
-      label: '$label avatar',
-      child: Material(
-        color: selected ? _softPink : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        child: InkWell(
-          // Choix d'avatar : sélection sonorisée comme le reste du parcours.
-          onTap: () {
-            SoundService.instance.playSfx(GameSfx.buttonClick);
-            onTap();
-          },
-          borderRadius: BorderRadius.circular(20),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              if (cardAsset != null)
-                Padding(
-                  padding: const EdgeInsets.all(1),
-                  child: Image.asset(
-                    cardAsset!,
-                    fit: BoxFit.fill,
-                    filterQuality: FilterQuality.high,
-                  ),
-                )
-              else
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Image.asset(
-                      iconAsset!,
-                      width: 52,
-                      height: 52,
-                      fit: BoxFit.contain,
-                      filterQuality: FilterQuality.high,
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      label,
-                      style: AppTypography.titleMedium.copyWith(
-                        color: _ink,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 160),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: selected ? _magenta : _border,
-                    width: selected ? 2.5 : 1,
-                  ),
-                ),
-              ),
-              if (selected)
-                const Positioned(top: 12, right: 12, child: _SelectedMark()),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _SelectedMark extends StatelessWidget {
   const _SelectedMark();
 
@@ -1276,126 +670,16 @@ class _SelectedMark extends StatelessWidget {
 
 class _PracticeIntroView extends StatelessWidget {
   const _PracticeIntroView({required this.onStart});
-
   final VoidCallback onStart;
 
   @override
-  Widget build(BuildContext context) {
-    return _ScrollableStage(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Try two quick examples before the journey begins.',
-            style: AppTypography.bodyLarge.copyWith(
-              color: _muted,
-              fontSize: 18,
-            ),
-          ),
-          const SizedBox(height: 14),
-          _SurfaceCard(
-            child: Column(
-              children: [
-                Image.asset(
-                  _tutorialAsset,
-                  width: 244,
-                  height: 130,
-                  fit: BoxFit.contain,
-                  filterQuality: FilterQuality.high,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Practice round',
-                  style: AppTypography.displayMedium.copyWith(
-                    color: _ink,
-                    fontSize: 32,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 28),
-                const _PracticeStep(
-                  color: _magenta,
-                  title: 'Read the scenario',
-                  subtitle: 'Take a moment with the everyday situation.',
-                ),
-                const SizedBox(height: 10),
-                const _PracticeStep(
-                  color: _violet,
-                  title: 'Choose what feels natural',
-                  subtitle: 'Tap the card that fits your instinct.',
-                ),
-                const SizedBox(height: 10),
-                const _PracticeStep(
-                  color: _cyan,
-                  title: 'Continue your journey',
-                  subtitle: 'Move forward with a calm, steady rhythm.',
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-          GamePrimaryButton(
-            key: const ValueKey('practice-start'),
-            label: 'Start practice',
-            onPressed: onStart,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PracticeStep extends StatelessWidget {
-  const _PracticeStep({
-    required this.color,
-    required this.title,
-    required this.subtitle,
-  });
-
-  final Color color;
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        color: _canvas,
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: _border),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 20,
-            height: 20,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: AppTypography.titleSmall.copyWith(
-                    color: _ink,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                Text(
-                  subtitle,
-                  style: AppTypography.bodySmall.copyWith(color: _muted),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => GameContentFrame(
+    child: JeDecideTutorial(
+      leading: const SizedBox.shrink(),
+      showHeader: false,
+      onComplete: onStart,
+    ),
+  );
 }
 
 class _PracticeScenarioView extends StatelessWidget {
@@ -1437,7 +721,7 @@ class _PracticeScenarioView extends StatelessWidget {
                             ),
                           ),
                           child: Text(
-                            'Practice 1 / 2',
+                            'Exemple d’entraînement',
                             style: AppTypography.bodyMedium.copyWith(
                               color: _magenta,
                               fontWeight: FontWeight.w600,
@@ -1611,7 +895,7 @@ class _PrivacyNote extends StatelessWidget {
           const SizedBox(width: 10),
           Flexible(
             child: Text(
-              'Your choices stay private.',
+              'Tes choix restent privés.',
               textAlign: TextAlign.center,
               style: AppTypography.bodyLarge.copyWith(color: _ink),
             ),
@@ -1677,8 +961,10 @@ class _DecisionLoadingView extends StatelessWidget {
     required this.error,
     required this.onRetry,
     required this.onBack,
+    this.submittingResult = false,
   });
 
+  final bool submittingResult;
   final Object? error;
   final VoidCallback onRetry;
   final VoidCallback onBack;
@@ -1686,22 +972,28 @@ class _DecisionLoadingView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (error == null) {
-      return const Center(
-        key: ValueKey('decision-loading-form'),
-        child: CircularProgressIndicator(color: _violet),
+      return Center(
+        key: ValueKey(
+          submittingResult
+              ? 'decision-submitting-result'
+              : 'decision-loading-form',
+        ),
+        child: const ZennytLoader(),
       );
     }
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 28),
         child: Column(
-          key: const ValueKey('decision-form-error'),
+          key: ValueKey(
+            submittingResult ? 'decision-submit-error' : 'decision-form-error',
+          ),
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(Icons.cloud_off_rounded, size: 56, color: _muted),
             const SizedBox(height: 16),
             Text(
-              'Journey unavailable',
+              submittingResult ? 'Score unavailable' : 'Journey unavailable',
               style: AppTypography.headlineSmall.copyWith(
                 color: _ink,
                 fontWeight: FontWeight.w800,
@@ -1709,14 +1001,23 @@ class _DecisionLoadingView extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'The decision scenarios are served by Zennyt and could not be '
-              'loaded. Check your connection and try again.',
+              submittingResult
+                  ? 'Your answers are kept here. Check your connection and try again to receive your score.'
+                  : 'The decision scenarios are served by Zennyt and could not be '
+                        'loaded. Check your connection and try again.',
               textAlign: TextAlign.center,
-              style: AppTypography.bodyMedium.copyWith(color: _muted, height: 1.4),
+              style: AppTypography.bodyMedium.copyWith(
+                color: _muted,
+                height: 1.4,
+              ),
             ),
             const SizedBox(height: 24),
             GamePrimaryButton(
-              key: const ValueKey('decision-retry-form'),
+              key: ValueKey(
+                submittingResult
+                    ? 'decision-retry-result'
+                    : 'decision-retry-form',
+              ),
               label: 'Try again',
               onPressed: onRetry,
             ),

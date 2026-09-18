@@ -36,30 +36,25 @@ class ContinuousAttentionPauseDialog extends StatelessWidget {
             ? 'This measured phase was interrupted. Restart it from the '
                   'beginning to keep the result comparable.'
             : 'Take the time you need. The practice clock is stopped.',
-        buttons: [
+        actions: [
           if (!restartRequired)
-            GamePrimaryButton(
-              label: 'Resume',
-              icon: Icons.play_arrow_rounded,
+            GamePauseMenuAction.resume(
               onPressed: () => Navigator.of(
                 context,
               ).pop(ContinuousAttentionPauseAction.resume),
             ),
           if (canRestartPhase)
-            GameOutlineButton(
+            GamePauseMenuAction.restart(
               label: 'Restart phase',
-              icon: Icons.replay_rounded,
               onPressed: () => Navigator.of(
                 context,
               ).pop(ContinuousAttentionPauseAction.restartPhase),
             ),
-          GameOutlineButton(
-            label: 'View rules / Help',
-            icon: Icons.help_outline_rounded,
+          GamePauseMenuAction.rules(
             onPressed: () =>
                 Navigator.of(context).pop(ContinuousAttentionPauseAction.rules),
           ),
-          GamePauseExitButton(
+          GamePauseMenuAction.exit(
             label: 'Exit journey',
             onPressed: () =>
                 Navigator.of(context).pop(ContinuousAttentionPauseAction.exit),

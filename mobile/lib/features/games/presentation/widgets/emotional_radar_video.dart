@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
+import '../../../../core/audio/sound_service.dart';
 import 'game_system_components.dart';
 
 /// Radar media, including bundled demo clips. Playback is always user initiated.
@@ -129,24 +130,30 @@ class _EmotionalRadarVideoState extends State<EmotionalRadarVideo>
   Widget build(BuildContext context) {
     final controller = _controller;
     if (_failed) {
-      return GamePanel(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Video unavailable. You can still use the written scene.',
-            ),
-            const SizedBox(height: 12),
-            GameOutlineButton(label: 'Retry video', onPressed: _load),
-          ],
+      // Rétrécit si le plateau ne laisse à la vidéo qu'une faible hauteur.
+      return GameFitToScreen(
+        alignment: Alignment.center,
+        child: GamePanel(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Video unavailable. You can still use the written scene.',
+              ),
+              const SizedBox(height: 12),
+              GameOutlineButton(label: 'Retry video', onPressed: _load),
+            ],
+          ),
         ),
       );
     }
     if (controller == null || !controller.value.isInitialized) {
-      return const AspectRatio(
-        aspectRatio: 16 / 9,
-        child: Center(
-          child: CircularProgressIndicator(semanticsLabel: 'Loading video'),
+      return const Center(
+        child: AspectRatio(
+          aspectRatio: 16 / 9,
+          child: Center(
+            child: CircularProgressIndicator(semanticsLabel: 'Loading video'),
+          ),
         ),
       );
     }
@@ -197,7 +204,7 @@ class _EmotionalRadarVideoState extends State<EmotionalRadarVideo>
                     top: false,
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(8, 24, 16, 8),
-                      child: _controlsRow(context, value, finished),
+                      child: _controlsRow(context, value, finished, dark: true),
                     ),
                   ),
                 ),
@@ -206,27 +213,54 @@ class _EmotionalRadarVideoState extends State<EmotionalRadarVideo>
           );
         }
 
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ClipRRect(
+        // Mode carte : les contrôles sont posés SUR l'image (Stack) au lieu
+        // d'être empilés dessous. La vidéo garde ainsi toute la hauteur que
+        // le plateau peut lui accorder, et [AspectRatio] la réduit pour
+        // qu'elle tienne en largeur comme en hauteur — le plateau entier
+        // reste sur un seul écran, sans défilement.
+        return Center(
+          child: AspectRatio(
+            aspectRatio: ratio,
+            child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: AspectRatio(
-                aspectRatio: value.aspectRatio > 0 ? value.aspectRatio : 16 / 9,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    VideoPlayer(controller),
-                    if (value.isBuffering)
-                      const CircularProgressIndicator(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  const ColoredBox(color: Colors.black),
+                  VideoPlayer(controller),
+                  if (value.isBuffering)
+                    const Center(
+                      child: CircularProgressIndicator(
                         semanticsLabel: 'Buffering video',
                       ),
-                  ],
-                ),
+                    ),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: DecoratedBox(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.bottomCenter,
+                          end: Alignment.topCenter,
+                          colors: [Color(0xB3000000), Color(0x00000000)],
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(0, 12, 4, 0),
+                        child: _controlsRow(
+                          context,
+                          value,
+                          finished,
+                          dark: true,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            _controlsRow(context, value, finished),
-          ],
+          ),
         );
       },
     );
@@ -240,8 +274,10 @@ class _EmotionalRadarVideoState extends State<EmotionalRadarVideo>
   Widget _controlsRow(
     BuildContext context,
     VideoPlayerValue value,
-    bool finished,
-  ) {
+    bool finished, {
+    bool dark = false,
+  }) {
+    final light = dark || widget.onDarkBackground;
     return Row(
       children: [
         IconButton(
@@ -250,7 +286,12 @@ class _EmotionalRadarVideoState extends State<EmotionalRadarVideo>
               : finished
               ? 'Replay video'
               : 'Play video',
-          onPressed: widget.playbackEnabled ? _togglePlayback : null,
+          onPressed: widget.playbackEnabled
+              ? () {
+                  SoundService.instance.playSfx(GameSfx.buttonClick);
+                  _togglePlayback();
+                }
+              : null,
           icon: Icon(
             value.isPlaying
                 ? Icons.pause_rounded
@@ -258,18 +299,14 @@ class _EmotionalRadarVideoState extends State<EmotionalRadarVideo>
                 ? Icons.replay_rounded
                 : Icons.play_arrow_rounded,
           ),
-          color: widget.onDarkBackground
-              ? Colors.white
-              : ZennytGamePalette.gameBlue,
+          color: light ? Colors.white : ZennytGamePalette.gameBlue,
           constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
         ),
         Expanded(
           child: Text(
             '${_time(value.position)} / ${_time(value.duration)}',
             style: TextStyle(
-              color: widget.onDarkBackground
-                  ? Colors.white
-                  : ZennytGamePalette.ink,
+              color: light ? Colors.white : ZennytGamePalette.ink,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -278,13 +315,12 @@ class _EmotionalRadarVideoState extends State<EmotionalRadarVideo>
           IconButton(
             tooltip: 'Fullscreen video',
             onPressed: () {
+              SoundService.instance.playSfx(GameSfx.buttonClick);
               unawaited(_controller?.pause());
               widget.onFullscreen!();
             },
             icon: const Icon(Icons.fullscreen_rounded),
-            color: widget.onDarkBackground
-                ? Colors.white
-                : ZennytGamePalette.gameBlue,
+            color: light ? Colors.white : ZennytGamePalette.gameBlue,
             constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
           ),
       ],

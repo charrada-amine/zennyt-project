@@ -1,3 +1,4 @@
+import '../domain/config/decision_config.dart';
 import '../domain/config/decision_provisional_rules.dart';
 import '../domain/entities/decision_form.dart';
 import '../domain/entities/decision_metrics.dart';
@@ -131,10 +132,13 @@ class DemoGamesRepository extends GamesMockRepository {
     // Points par dimension : 6 items × 3 points = 18, l'échelle que l'écran de
     // résultats attend (`maxPoints ?? 18` par dimension).
     final pointsByDimension = {
-      for (final dimension in DecisionDimension.values) dimension: 0,
+      for (final dimension in DecisionConfig.dimensions) dimension: 0,
     };
     for (final answer in metrics.items) {
-      if (!answer.answered) continue;
+      if (!answer.answered ||
+          !DecisionConfig.dimensions.contains(answer.dimension)) {
+        continue;
+      }
       final option = answer.selectedOptionId;
       if (option == null) continue;
       final points = _answerKey[answer.itemId]?[option] ?? 0;
@@ -143,7 +147,7 @@ class DemoGamesRepository extends GamesMockRepository {
     }
 
     final raw = pointsByDimension.values.fold<int>(0, (a, b) => a + b);
-    final max = DecisionDimension.values.length * _maxPointsPerDimension;
+    final max = DecisionConfig.dimensions.length * _maxPointsPerDimension;
     final normalized = max == 0 ? 0.0 : raw * 100 / max;
     final score = GameScore(
       rawPoints: normalized.round(),
@@ -189,7 +193,7 @@ class DemoGamesRepository extends GamesMockRepository {
             'Build de DÉMO : items et correction embarqués, sans valeur '
             'psychométrique. La notation réelle reste calculée par le serveur.',
       ),
-      for (final dimension in DecisionDimension.values)
+      for (final dimension in DecisionConfig.dimensions)
         ScoreBreakdownLine(
           kind: ScoreBreakdownKind.criterion,
           label: dimension.wire,
@@ -212,8 +216,8 @@ class DemoGamesRepository extends GamesMockRepository {
       DecisionProvisionalRules.levelForScw(normalized);
 }
 
-const int _itemsPerDimension = 6;
-const int _maxPointsPerDimension = _itemsPerDimension * 3;
+const int _itemsPerDimension = DecisionConfig.itemsPerDimension;
+const int _maxPointsPerDimension = DecisionConfig.dimensionMax;
 
 /// Item de démo : vignette, options et points associés.
 class _DemoItem {
@@ -260,12 +264,11 @@ class _DemoItem {
   );
 }
 
-/// 30 items — 6 par dimension, comme une vraie forme.
+/// 24 items — 6 par dimension, comme une vraie forme.
 ///
 /// Écrits pour la démo : ils illustrent les trois formats (standard, décision
 /// chronométrée, paire de cohérence) afin que le client voie tout le parcours.
 final List<_DemoItem> _demoItems = [
-  ..._analytical,
   ..._risk,
   ..._quick,
   ..._stability,
@@ -284,94 +287,6 @@ final List<_DemoItem> _demoItems = [
 // Ce n'est pas de la localisation : l'application n'en fait pas encore, ni ici
 // ni ailleurs dans ce module (voir `app_fr.arb` / `app_en.arb`, présents et
 // inutilisés). C'est une mise en cohérence, en attendant.
-
-// ── II — Analyse des contraintes ──────────────────────────────────────────
-final _analytical = <_DemoItem>[
-  _DemoItem(
-    itemId: 'II-1',
-    dimension: DecisionDimension.ii,
-    vignette:
-        'A deliverable is due on Friday. While preparing it, you find that two '
-        'of the figures supplied by another team contradict each other.',
-    task: 'What do you do first?',
-    options: const [
-      ('Establish which of the two sources governs before going further', 3),
-      ('Use the more conservative figure and flag it in a note', 2),
-      ('Rerun the calculation with both values to see the gap', 1),
-      ('Ship it with whichever figure arrived last', 0),
-    ],
-  ),
-  _DemoItem(
-    itemId: 'II-2',
-    dimension: DecisionDimension.ii,
-    vignette:
-        'You are handed a project with a tight budget, a short deadline and a '
-        'high quality bar. The three do not hold together.',
-    task: 'How do you approach it?',
-    options: const [
-      ('Have someone rule explicitly on which of the three gives way', 3),
-      ('Propose a reduced scope that respects all three', 2),
-      ('Start, and raise the problem when it materialises', 1),
-      ('Absorb the gap through overtime', 0),
-    ],
-  ),
-  _DemoItem(
-    itemId: 'II-3',
-    dimension: DecisionDimension.ii,
-    vignette:
-        'Two suppliers answer your tender. The cheaper one has weaker '
-        'references on this particular kind of work.',
-    task: 'What do you base your choice on?',
-    options: const [
-      ('Total cost over time, including the risk of redoing the work', 3),
-      ('The references, negotiating the stronger bidder\'s price down', 2),
-      ('The quoted price, accepting closer supervision', 1),
-      ('The impression left by the pitch meeting', 0),
-    ],
-  ),
-  _DemoItem(
-    itemId: 'II-4',
-    dimension: DecisionDimension.ii,
-    vignette:
-        'An internal procedure strikes you as needlessly heavy. You are not '
-        'sure you know why it exists.',
-    task: 'What is your approach?',
-    options: const [
-      ('Find out why it was put in place before proposing anything', 3),
-      ('Propose a lighter version as a trial', 2),
-      ('Apply it unchanged', 1),
-      ('Work around it whenever it slows things down', 0),
-    ],
-  ),
-  _DemoItem(
-    itemId: 'II-5',
-    dimension: DecisionDimension.ii,
-    vignette:
-        'A tracking metric has been sliding for three months, while user '
-        'feedback stays good.',
-    task: 'How do you handle the discrepancy?',
-    options: const [
-      ('Check what the metric actually measures', 3),
-      ('Cross-check against a second metric before concluding', 2),
-      ('Trust the user feedback', 1),
-      ('Wait for the next monthly review', 0),
-    ],
-  ),
-  _DemoItem(
-    itemId: 'II-6',
-    dimension: DecisionDimension.ii,
-    vignette:
-        'You are asked for an opinion on a file you have just received, in a '
-        'meeting that starts in ten minutes.',
-    task: 'What do you do?',
-    options: const [
-      ('Give a provisional view and name what you are missing', 3),
-      ('Ask for the point to be taken at the end of the meeting', 2),
-      ('Give a firm opinion based on what you have read', 1),
-      ('Go along with whoever speaks first', 0),
-    ],
-  ),
-];
 
 // ── ER — Équilibre du risque ──────────────────────────────────────────────
 final _risk = <_DemoItem>[

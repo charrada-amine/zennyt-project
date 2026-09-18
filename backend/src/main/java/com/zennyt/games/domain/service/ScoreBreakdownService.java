@@ -188,13 +188,12 @@ public class ScoreBreakdownService {
                 share(report, CopingFamily.UNRESOLVED)));
         }
 
-        // Le score brut ne se lit pas seul : le hasard en rapporte déjà 38 %.
+        // Le score brut ne se lit pas seul : le hasard en rapporte déjà 40 %.
         lines.add(Line.info("Écart au hasard",
             Math.round(report.chanceCorrectedPercent()) + " % (le hasard vaudrait "
                 + Math.round(report.chanceBaseline()) + "/" + report.maxPoints() + ")"));
-        // Un joueur qui coche toujours le même libellé obtient déjà 67 % du
-        // plafond sans lire les scènes : le dire empêche de confondre une
-        // stratégie constante avec une conduite adaptée.
+        // Une conduite constante peut encore obtenir un score brut élevé sans
+        // lire les scènes : le nombre de stratégies mobilisées le rend visible.
         lines.add(Line.info("Stratégies mobilisées",
             report.distinctStrategiesUsed() + "/8"
                 + (report.mostUsedStrategy() == null
@@ -219,13 +218,13 @@ public class ScoreBreakdownService {
     }
 
     /**
-     * « Je Décide » — une ligne par dimension /18, puis brut /90, puis SCW /100.
+     * « Je Décide » — une ligne par dimension /18, puis brut /72, puis SCW /100.
      * Le détail par dimension vient du {@link DecisionReport} (catalogue serveur),
      * pas des seules métriques : d'où une signature dédiée.
      */
     public ScoreBreakdown decision(DecisionReport report, Score score) {
         List<Line> lines = new ArrayList<>();
-        lines.add(Line.note("Chaque dimension est notée /18 (6 items × 3) ; brut = somme /90 ; "
+        lines.add(Line.note("Chaque dimension est notée /18 (6 items × 3) ; brut = somme /72 ; "
             + "SCW = score composite standardisé pondéré /100 (poids provisoires)."));
         for (DecisionReport.DimensionScore d : report.dimensions()) {
             if (d.exploitable() && d.score() != null) {

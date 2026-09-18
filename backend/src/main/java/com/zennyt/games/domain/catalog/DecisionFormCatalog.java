@@ -1,6 +1,7 @@
 package com.zennyt.games.domain.catalog;
 
 import com.zennyt.games.domain.vo.DecisionDimension;
+import com.zennyt.games.domain.config.DecisionConfig;
 import com.zennyt.games.domain.vo.DecisionItemFormat;
 import com.zennyt.games.domain.vo.OptionQuality;
 
@@ -35,6 +36,15 @@ public interface DecisionFormCatalog {
     /** Published administration bank, with legacy form fallback for old sessions. */
     default List<Content> bank(UUID bankId, String fallbackFormCode) {
         return form(fallbackFormCode);
+    }
+
+    /** Même sélection autoritaire pour la présentation et le contrôle de soumission.
+     * Les contenus II restent archivés, notamment pour les références de vignette DT.
+     */
+    default List<Content> activeBank(UUID bankId, String fallbackFormCode) {
+        return bank(bankId, fallbackFormCode).stream()
+            .filter(item -> DecisionConfig.dimensions().contains(item.dimension()))
+            .toList();
     }
 
     /**

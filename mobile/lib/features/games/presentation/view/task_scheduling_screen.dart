@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -17,8 +19,12 @@ import '../../domain/entities/day_stack_bank.dart';
 import '../../domain/entities/task_scheduling_metrics.dart';
 import '../../domain/service/day_stack_schedule.dart';
 import '../games_providers.dart';
-import '../widgets/day_stack_badges.dart';
+import '../widgets/day_stack_calendar.dart';
+import '../widgets/day_stack_tutorial.dart';
+import '../widgets/memory_prompt.dart';
+import '../widgets/game_results_template.dart';
 import '../widgets/game_system_components.dart';
+import '../widgets/zennyt_loader.dart';
 
 /// Planifik #2 — « Planning journalier » (Day Stack).
 ///
@@ -60,7 +66,15 @@ class TaskSchedulingScreen extends ConsumerStatefulWidget {
       _TaskSchedulingScreenState();
 }
 
-enum _Stage { loading, intro, howToPlay, gameplay, levelComplete, score }
+enum _Stage {
+  loading,
+  intro,
+  howToPlay,
+  gameplay,
+  levelComplete,
+  score,
+  comparison,
+}
 
 /// Nombre de plannings d'une partie.
 ///
@@ -112,7 +126,6 @@ class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen> {
   // Toutes les tâches sont présentes dès le départ, dans un ordre mélangé.
   late List<int> _slots;
   DayStackSchedule? _validatedSchedule;
-  int _moveCount = 0;
 
   bool _busy = false;
   bool _reviewingRules = false;
@@ -127,6 +140,24 @@ class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen> {
 
   Future<GameSession>? _sessionStart;
   GameSession? _serverSession;
+
+  /// Dernière partie notée de la visite, pour l'écran de comparaison.
+  _DayStackRun? _previousRun;
+
+  /// Partie en cours, dès que le serveur l'a notée.
+  _DayStackRun? get _currentRun {
+    final score = _serverSession?.lastAttempt?.score;
+    if (score == null) return null;
+    return _DayStackRun(
+      points: score.rawPoints,
+      maxPoints: score.maxPoints,
+      edgesOk: _totalEdgesOk,
+      edges: _totalEdges,
+      timingOk: _totalTimingOk,
+      timingCount: _totalTimingCount,
+      deadTimeRatio: _aggregateDeadTimeRatio.clamp(0.0, 1.0),
+    );
+  }
 
   /// Les glissements sont le contrôle normal du jeu et restent hors score,
   /// conformément au choix produit demandé pour cette interface.
@@ -195,7 +226,6 @@ class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen> {
 
     _slots = List<int>.generate(_universe.tasks.length, (i) => i)..shuffle();
     _validatedSchedule = null;
-    _moveCount = 0;
     _boardShownAt = null;
     // La latence initiale est conservée entre les manches de la partie.
     if (_level == 1) {
@@ -213,6 +243,8 @@ class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen> {
 
   void _beginGame() {
     if (_bank == null) return;
+    // La partie terminée devient la référence de la prochaine comparaison.
+    _previousRun = _currentRun ?? _previousRun;
     // Nouvelle partie = nouveau droit de pause.
     _pauseAllowance.reset();
     _reviewingRules = false;
@@ -243,7 +275,6 @@ class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen> {
       _recordPlanningLatency();
       final task = _slots.removeAt(from);
       _slots.insert(to, task);
-      _moveCount++;
     });
   }
 
@@ -343,6 +374,8 @@ class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen> {
   /// Passe à la manche suivante : nouvel univers, plateau neuf.
   void _nextLevel() {
     if (_isLastLevel) {
+      // Score déjà reçu pendant le débrief : le tableau sonne à l'affichage.
+      if (_serverSession != null) SoundService.instance.playScoreboard();
       setState(() => _stage = _Stage.score);
       return;
     }
@@ -374,6 +407,7 @@ class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen> {
           );
       if (!mounted) return;
       setState(() => _serverSession = updated);
+      if (_stage == _Stage.score) SoundService.instance.playScoreboard();
     } catch (error) {
       if (mounted) setState(() => _submitError = '$error');
     } finally {
@@ -384,18 +418,31 @@ class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = _stage == _Stage.gameplay;
+    final isTutorial = _stage == _Stage.howToPlay;
+    // Les commandes restent à l'intérieur de la zone sûre.
+    final content = SafeArea(
+      bottom: !isDark,
+      child: GameContentFrame(maxWidth: 980, child: _buildStage()),
+    );
     return PopScope(
       canPop: _stage == _Stage.intro || _stage == _Stage.score,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop && _stage != _Stage.intro) {
+        if (!didPop && _stage == _Stage.comparison) {
+          setState(() => _stage = _Stage.score);
+        } else if (!didPop && _stage != _Stage.intro) {
           setState(() => _stage = _Stage.intro);
         }
       },
       child: Scaffold(
         backgroundColor: isDark ? ZennytGamePalette.gameBlue : Colors.white,
-        body: SafeArea(
-          child: GameContentFrame(maxWidth: 980, child: _buildStage()),
-        ),
+        // En partie, le plateau gère lui-même la marge basse du bouton
+        // « Valider », pour que le fond aille jusqu'au bord de l'écran.
+        body: isTutorial
+            ? AnnotatedRegion<SystemUiOverlayStyle>(
+                value: SystemUiOverlayStyle.dark,
+                child: content,
+              )
+            : content,
       ),
     );
   }
@@ -418,26 +465,22 @@ class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen> {
     if (!_pauseAllowance.canOpen) return;
     SoundService.instance.playSfx(GameSfx.pauseClick);
     _pauseAllowance.open();
-    final action = await showDialog<GamePauseAction>(
-      context: context,
-      barrierDismissible: false,
+    final action = await showGamePauseMenu<GamePauseAction>(
+      context,
       builder: (context) => GamePauseScaffold(
         countdown: _pauseAllowance.remaining,
         onCountdownExpired: () =>
             Navigator.of(context).pop(GamePauseAction.resume),
         description:
             'Le plateau est figé. Les tâches déjà posées sont conservées.',
-        buttons: [
-          GamePrimaryButton(
-            label: 'Resume',
+        actions: [
+          GamePauseMenuAction.resume(
             onPressed: () => Navigator.of(context).pop(GamePauseAction.resume),
           ),
-          GameOutlineButton(
-            label: 'View rules',
+          GamePauseMenuAction.rules(
             onPressed: () => Navigator.of(context).pop(GamePauseAction.help),
           ),
-          GamePauseExitButton(
-            label: 'Exit mission',
+          GamePauseMenuAction.exit(
             onPressed: () => Navigator.of(context).pop(GamePauseAction.exit),
           ),
         ],
@@ -505,6 +548,7 @@ class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen> {
             ? _resumeFromRules
             : () => setState(() => _stage = _Stage.intro),
         reviewing: _reviewingRules,
+        roundCount: kDayStackLevels,
       ),
       _Stage.levelComplete => _LevelCompleteView(
         level: _level,
@@ -518,12 +562,9 @@ class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen> {
         child: _GameplayView(
           level: _level,
           levelCount: _levelCount,
-          universeName: _universe.name,
-          tasks: _universe.tasks,
+          universe: _universe,
           labelOf: _labelOf,
           slots: _slots,
-          moveCount: _moveCount,
-          dayStartMin: dayStackStartOf(_universe),
           onMove: _moveSlot,
           onValidate: _validateLevel,
           onPause: _openMenu,
@@ -532,6 +573,7 @@ class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen> {
       ),
       _Stage.score => _ScoreView(
         rawScore: _serverSession?.lastAttempt?.score.rawPoints,
+        maxScore: _serverSession?.lastAttempt?.score.maxPoints,
         level: _serverSession?.lastAttempt?.score.level,
         levelsPlayed: _played.length,
         universeNames: _played.map((u) => u.name).toList(),
@@ -550,7 +592,14 @@ class _TaskSchedulingScreenState extends ConsumerState<TaskSchedulingScreen> {
         // que le réseau a flanché.
         onRetrySubmit: _submit,
         onReplay: _beginGame,
+        onCompare: () => setState(() => _stage = _Stage.comparison),
         onBack: () => context.go(AppRoutes.games),
+      ),
+      _Stage.comparison => _ComparisonView(
+        current: _currentRun,
+        previous: _previousRun,
+        onReplay: _beginGame,
+        onBack: () => setState(() => _stage = _Stage.score),
       ),
     };
   }
@@ -562,12 +611,9 @@ class _GameplayView extends StatefulWidget {
   const _GameplayView({
     required this.level,
     required this.levelCount,
-    required this.universeName,
-    required this.tasks,
+    required this.universe,
     required this.labelOf,
     required this.slots,
-    required this.moveCount,
-    required this.dayStartMin,
     required this.onMove,
     required this.onValidate,
     required this.onPause,
@@ -575,13 +621,10 @@ class _GameplayView extends StatefulWidget {
   });
 
   final List<int> slots;
-  final List<DayStackTask> tasks;
+  final DayStackUniverse universe;
   final String Function(DayStackTask) labelOf;
   final int level;
   final int levelCount;
-  final String universeName;
-  final int moveCount;
-  final int dayStartMin;
   final void Function(int from, int to) onMove;
   final VoidCallback onValidate;
   final VoidCallback onPause;
@@ -591,29 +634,120 @@ class _GameplayView extends StatefulWidget {
   State<_GameplayView> createState() => _GameplayViewState();
 }
 
-class _GameplayViewState extends State<_GameplayView> {
-  final _scrollController = ScrollController();
-  bool _dragging = false;
-  int? _dragStartIndex;
+/// Barre de progression des manches terminées, sous la consigne de la manche.
+class _RoundProgressBar extends StatelessWidget {
+  const _RoundProgressBar({required this.completed, required this.total});
 
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
+  final int completed;
+  final int total;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+    final ratio = total <= 0 ? 0.0 : (completed / total).clamp(0.0, 1.0);
+    final percent = (ratio * 100).round();
+    return Semantics(
+      key: const ValueKey('day-stack-round-progress'),
+      label: '$completed manches terminées sur $total, $percent pour cent',
+      excludeSemantics: true,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Manches terminées',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Text(
+                '$completed / $total · $percent %',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(end: ratio),
+              duration: const Duration(milliseconds: 500),
+              curve: Curves.easeOutCubic,
+              builder: (context, value, _) => LinearProgressIndicator(
+                value: value,
+                minHeight: 8,
+                backgroundColor: Colors.white.withValues(alpha: 0.22),
+                valueColor: const AlwaysStoppedAnimation(
+                  ZennytGamePalette.success,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GameplayViewState extends State<_GameplayView> {
+  /// Mission de l'univers, lue dans la banque (`mission`) : une phrase par
+  /// univers, modifiable sans toucher au code.
+  String get _mission => widget.universe.mission.isNotEmpty
+      ? widget.universe.mission
+      : 'Organise la journée en respectant horaires et étapes.';
+
+  bool _dragging = false;
+
+  /// Hauteur mesurée de la zone flottante du bouton « Valider ».
+  double _footerHeight = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    // « Valider » flotte au-dessus du calendrier, qui défile dessous jusqu'au
+    // bas de l'écran et reste visible en fondu autour du bouton.
+    return Stack(
+      children: [
+        Positioned.fill(child: _buildBoard()),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: _MeasureSize(
+            onChange: (size) {
+              if (size.height != _footerHeight) {
+                setState(() => _footerHeight = size.height);
+              }
+            },
+            child: _buildValidationArea(context),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Plateau mauve : consigne, progression et calendrier.
+  Widget _buildBoard() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // La mission reste visible au-dessus du calendrier pendant la manche.
           Row(
             children: [
               Expanded(
                 child: Text(
                   'Manche ${widget.level} / ${widget.levelCount}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 22,
@@ -633,206 +767,135 @@ class _GameplayViewState extends State<_GameplayView> {
               ),
             ],
           ),
-          Text(
-            '${widget.universeName} · ${widget.slots.length} tâches · '
-            'Début ${_clock(widget.dayStartMin)}',
-            style: const TextStyle(color: Colors.white, fontSize: 13),
+          const SizedBox(height: 6),
+          MemoryPrompt(
+            _mission,
+            key: const ValueKey('day-stack-mission'),
+            textAlign: TextAlign.start,
+            style: const TextStyle(fontSize: 14, height: 1.35),
           ),
-          const SizedBox(height: 8),
-          const Text(
-            'Fais défiler normalement. Maintiens une carte puis glisse-la '
-            'pour changer sa position.',
-            style: TextStyle(color: Colors.white, fontSize: 13),
+          const SizedBox(height: 10),
+          // Séparation entre la consigne et le calendrier : la progression de
+          // la partie, en manches TERMINÉES (la manche en cours ne compte pas).
+          _RoundProgressBar(
+            completed: widget.level - 1,
+            total: widget.levelCount,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Expanded(
-            child: Listener(
-              onPointerCancel: (_) => setState(() => _dragging = false),
-              child: Scrollbar(
-                controller: _scrollController,
-                child: ReorderableListView.builder(
-                  key: const ValueKey('day-stack-schedule'),
-                  scrollController: _scrollController,
-                  padding: const EdgeInsets.only(bottom: 12),
-                  buildDefaultDragHandles: false,
-                  // Le décorateur Flutter par défaut ajoute un Material
-                  // rectangulaire derrière l'élément soulevé. Un matériau
-                  // transparent garde la silhouette arrondie de GamePanel
-                  // pendant tout le déplacement.
-                  proxyDecorator: (child, index, animation) => Material(
-                    key: const ValueKey('day-stack-drag-proxy'),
-                    type: MaterialType.transparency,
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-                    clipBehavior: Clip.antiAlias,
-                    child: child,
-                  ),
-                  // Auto-scroll natif aux bords. Un glissement court fait
-                  // défiler ; l'appui maintenu transforme la carte en drag.
-                  onReorderStart: (index) => setState(() {
-                    _dragging = true;
-                    _dragStartIndex = index;
-                  }),
-                  onReorderEnd: (index) {
-                    // Le callback de réordre est absent pour un dépôt au même rang.
-                    if (index == _dragStartIndex ||
-                        index == _dragStartIndex! + 1) {
-                      setState(() => _dragging = false);
-                    }
-                  },
-                  onReorderItem: (from, to) {
-                    widget.onMove(from, to);
-                    // Attendre l'application de l'ordre après l'animation de dépôt.
-                    setState(() => _dragging = false);
-                  },
-                  itemCount: widget.slots.length,
-                  itemBuilder: (context, position) {
-                    final index = widget.slots[position];
-                    return ReorderableDelayedDragStartListener(
-                      key: ValueKey('day-stack-task-$index'),
-                      index: position,
-                      child: Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: GamePanel(
-                          padding: const EdgeInsets.all(12),
-                          borderColor: Colors.transparent,
-                          child: _TaskInfo(
-                            tasks: widget.tasks,
-                            labelOf: widget.labelOf,
-                            task: widget.tasks[index],
-                            position: position + 1,
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
+            child: ClipRect(
+              key: const ValueKey('day-stack-calendar-viewport'),
+              child: DayStackCalendar(
+                universe: widget.universe,
+                slots: widget.slots,
+                labelOf: widget.labelOf,
+                onMove: widget.onMove,
+                bottomInset: _footerHeight,
+                onDraggingChanged: (dragging) {
+                  if (dragging != _dragging) {
+                    setState(() => _dragging = dragging);
+                  }
+                },
               ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '${widget.moveCount} déplacement(s) · sans pénalité',
-            key: const ValueKey('day-stack-progress'),
-            style: const TextStyle(color: Colors.white, fontSize: 12),
-          ),
-          const SizedBox(height: 8),
-          GamePrimaryButton(
-            label: 'Valider',
-            onPressed: _dragging ? null : widget.onValidate,
           ),
         ],
       ),
     );
   }
-}
 
-/// Heure lisible : 480 -> « 08h00 ».
-String _clock(int minutes) {
-  final h = (minutes ~/ 60).toString().padLeft(2, '0');
-  final m = (minutes % 60).toString().padLeft(2, '0');
-  return '${h}h$m';
-}
-
-/// Contrainte horaire en une ligne, pour le joueur.
-///
-/// On n'affiche PAS le texte brut de la banque : il mêle le métier et la règle
-/// (« Repos mini. 1h avant cuisson · Repos : 60 min »). Le joueur a besoin de
-/// la règle, pas de sa rédaction.
-String? _constraintLabel(DayStackTask task) {
-  final c = task.constraint;
-  return switch (c.kind) {
-    DayStackConstraintKind.window =>
-      '${_clock(c.startMin!)}–${_clock(c.endMin!)}',
-    DayStackConstraintKind.deadline => 'avant ${_clock(c.beforeMin!)}',
-    DayStackConstraintKind.anchor =>
-      '${_clock(c.startMin!)} pile (±${c.toleranceMin} min)',
-    DayStackConstraintKind.relative => 'avant une autre tâche',
-    DayStackConstraintKind.minDelay => '${c.minDelayMin} min avant la suite',
-    // Le bloc fixe sans heure de la banque : rien à annoncer tant que la
-    // donnée manque, plutôt qu'une règle inventée.
-    DayStackConstraintKind.unspecified || DayStackConstraintKind.none => null,
-  };
-}
-
-/// Libellé d'une tâche, sa durée, ses prérequis et sa contrainte.
-class _TaskInfo extends StatelessWidget {
-  const _TaskInfo({
-    required this.tasks,
-    required this.labelOf,
-    required this.task,
-    required this.position,
-  });
-
-  final List<DayStackTask> tasks;
-  final String Function(DayStackTask) labelOf;
-  final DayStackTask task;
-  final int position;
-
-  @override
-  Widget build(BuildContext context) {
-    // Les prérequis sont référencés par IDENTIFIANT, mais montrés au joueur
-    // avec le libellé effectivement tiré : lui afficher une autre variante que
-    // celle qu'il voit dans la liste l'empêcherait de faire le lien.
-    final deps = task.deps
-        .map((id) => labelOf(tasks.firstWhere((t) => t.id == id)))
-        .join(', ');
-    final constraint = _constraintLabel(task);
-    final rest = task.restMin > 0 ? ' + ${task.restMin} min repos' : '';
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  /// Le bouton « Valider » flottant, posé sur un fondu du fond : les tâches
+  /// restent visibles autour et derrière lui.
+  ///
+  /// Seul le bouton capte les touchers ; le fondu et les marges laissent passer
+  /// les gestes vers le calendrier.
+  Widget _buildValidationArea(BuildContext context) {
+    return Stack(
+      key: const ValueKey('day-stack-validation-area'),
       children: [
-        Row(
-          children: [
-            Text(
-              '$position',
-              style: const TextStyle(
-                color: ZennytGamePalette.blue,
-                fontWeight: FontWeight.w800,
-                fontSize: 18,
-              ),
-            ),
-            const SizedBox(width: 10),
-            DayStackTaskBadge(
-              category: task.category,
-              icon: task.icon,
-              compact: true,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                labelOf(task),
-                style: const TextStyle(
-                  color: ZennytGamePalette.ink,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 15,
-                  height: 1.3,
+        Positioned.fill(
+          child: IgnorePointer(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    ZennytGamePalette.gameBlue.withValues(alpha: 0),
+                    ZennytGamePalette.gameBlue.withValues(alpha: 0.85),
+                  ],
                 ),
               ),
             ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        Text(
-          '${task.durationMin} min$rest${constraint == null ? '' : ' · $constraint'}',
-          style: const TextStyle(
-            color: ZennytGamePalette.muted,
-            fontSize: 13,
-            height: 1.4,
           ),
         ),
-        if (deps.isNotEmpty) ...[
-          const SizedBox(height: 4),
-          Text(
-            'Après : $deps',
-            style: const TextStyle(
-              color: ZennytGamePalette.muted,
-              fontSize: 13,
-              height: 1.4,
+        Padding(
+          padding: EdgeInsets.fromLTRB(
+            16,
+            28,
+            16,
+            14 + MediaQuery.viewPaddingOf(context).bottom,
+          ),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 280),
+              child: DecoratedBox(
+                // Ombre portée : le bouton se détache du calendrier qu'il
+                // survole.
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x40000000),
+                      blurRadius: 18,
+                      offset: Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: GamePrimaryButton(
+                  key: const ValueKey('day-stack-validate'),
+                  label: 'Valider',
+                  onPressed: _dragging ? null : widget.onValidate,
+                ),
+              ),
             ),
           ),
-        ],
+        ),
       ],
     );
+  }
+}
+
+/// Rapporte la taille de son enfant après chaque mise en page.
+class _MeasureSize extends SingleChildRenderObjectWidget {
+  const _MeasureSize({required this.onChange, required super.child});
+
+  final ValueChanged<Size> onChange;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) =>
+      _RenderMeasureSize(onChange);
+
+  @override
+  void updateRenderObject(
+    BuildContext context,
+    covariant _RenderMeasureSize renderObject,
+  ) => renderObject.onChange = onChange;
+}
+
+class _RenderMeasureSize extends RenderProxyBox {
+  _RenderMeasureSize(this.onChange);
+
+  ValueChanged<Size> onChange;
+  Size? _last;
+
+  @override
+  void performLayout() {
+    super.performLayout();
+    if (size == _last) return;
+    _last = size;
+    // Après la frame : on ne reconstruit pas pendant la mise en page.
+    WidgetsBinding.instance.addPostFrameCallback((_) => onChange(size));
   }
 }
 
@@ -908,147 +971,62 @@ class _LevelCompleteView extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                level >= levelCount
-                    ? 'Dernière manche terminée'
-                    : 'Manche $level terminée',
-                style: AppTypography.headlineSmall.copyWith(
-                  color: ZennytGamePalette.ink,
-                  letterSpacing: 0,
+          // Débrief sur un seul écran : il se réduit d'un bloc si besoin.
+          child: GameFitToScreen(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  level >= levelCount
+                      ? 'Dernière manche terminée'
+                      : 'Manche $level terminée',
+                  style: AppTypography.headlineSmall.copyWith(
+                    color: ZennytGamePalette.ink,
+                    letterSpacing: 0,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                parfait
-                    ? 'Planning tenu de bout en bout.'
-                    : 'Voici ce qui n\'a pas tenu.',
-                style: AppTypography.bodyMedium.copyWith(
-                  color: parfait
-                      ? ZennytGamePalette.success
-                      : ZennytGamePalette.muted,
-                  letterSpacing: 0,
+                const SizedBox(height: 4),
+                Text(
+                  parfait
+                      ? 'Planning tenu de bout en bout.'
+                      : 'Voici ce qui n\'a pas tenu.',
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: parfait
+                        ? ZennytGamePalette.success
+                        : ZennytGamePalette.muted,
+                    letterSpacing: 0,
+                  ),
                 ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              _DebriefCard(
-                universe: universe,
-                schedule: schedule,
-                labelOf: labelOf,
-                // Corrections et latence sont des mesures de PARTIE : les
-                // afficher par manche laisserait croire qu'elles se remettent
-                // à zéro.
-                showSessionMeasures: false,
-                proactive: 0,
-                reactive: 0,
-                latencyMs: null,
-              ),
-              const SizedBox(height: AppSpacing.xl),
-              GamePrimaryButton(
-                label: level >= levelCount
-                    ? 'Voir mon score'
-                    : 'Manche ${level + 1} / $levelCount',
-                onPressed: onNext,
-              ),
-            ],
+                const SizedBox(height: AppSpacing.lg),
+                _DebriefCard(
+                  universe: universe,
+                  schedule: schedule,
+                  labelOf: labelOf,
+                  // Corrections et latence sont des mesures de PARTIE : les
+                  // afficher par manche laisserait croire qu'elles se remettent
+                  // à zéro.
+                  showSessionMeasures: false,
+                  proactive: 0,
+                  reactive: 0,
+                  latencyMs: null,
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                GamePrimaryButton(
+                  label: level >= levelCount
+                      ? 'Voir mon score'
+                      : 'Manche ${level + 1} / $levelCount',
+                  onPressed: onNext,
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
-}
-
-/// Débrief de fin de PARTIE — le cumul des manches.
-class _SessionDebriefCard extends StatelessWidget {
-  const _SessionDebriefCard({
-    required this.levelsPlayed,
-    required this.universeNames,
-    required this.edges,
-    required this.edgesOk,
-    required this.timingCount,
-    required this.timingOk,
-    required this.collisionFree,
-    required this.deadTimeRatio,
-    required this.proactive,
-    required this.reactive,
-    required this.latencyMs,
-  });
-
-  final int levelsPlayed;
-  final List<String> universeNames;
-  final int edges;
-  final int edgesOk;
-  final int timingCount;
-  final int timingOk;
-  final bool collisionFree;
-  final double deadTimeRatio;
-  final int proactive;
-  final int reactive;
-  final int? latencyMs;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    width: double.infinity,
-    padding: const EdgeInsets.all(AppSpacing.base),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-      border: Border.all(color: ZennytGamePalette.border),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '$levelsPlayed manche(s) · ${universeNames.join(' · ')}',
-          style: const TextStyle(
-            color: ZennytGamePalette.ink,
-            fontWeight: FontWeight.w800,
-            fontSize: 13.5,
-            height: 1.3,
-          ),
-        ),
-        const SizedBox(height: 12),
-        _DebriefRow(
-          label: 'Dépendances respectées',
-          value: '$edgesOk / $edges',
-          good: edgesOk == edges,
-        ),
-        _DebriefRow(
-          label: 'Contraintes horaires tenues',
-          value: '$timingOk / $timingCount',
-          good: timingOk == timingCount,
-        ),
-        _DebriefRow(
-          label: 'Temps mort',
-          value: '${(deadTimeRatio * 100).round()} %',
-          good: deadTimeRatio < 0.10,
-        ),
-        _DebriefRow(
-          label: 'Collisions',
-          value: collisionFree ? 'aucune' : 'oui',
-          good: collisionFree,
-        ),
-        _DebriefRow(
-          label: 'Corrections',
-          value: '$proactive avant alerte · $reactive après',
-          good: reactive == 0,
-        ),
-        if (latencyMs != null)
-          _DebriefRow(
-            // Métrique diagnostique : montrée au joueur, mais le référentiel
-            // l'exclut explicitement du barème.
-            label: 'Temps de réflexion initial',
-            value: '${(latencyMs! / 1000).toStringAsFixed(1)} s',
-            good: true,
-            neutral: true,
-          ),
-      ],
-    ),
-  );
 }
 
 /// Débrief de fin de partie.
@@ -1263,10 +1241,7 @@ class _LoadingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => const Center(
-    child: CircularProgressIndicator(
-      color: Colors.white,
-      semanticsLabel: 'Chargement des tâches',
-    ),
+    child: ZennytLoader(semanticsLabel: 'Chargement des tâches'),
   );
 }
 
@@ -1361,103 +1336,21 @@ class _HowToPlayView extends StatelessWidget {
   const _HowToPlayView({
     required this.onStart,
     required this.onBack,
+    required this.roundCount,
     this.reviewing = false,
   });
   final bool reviewing;
+  final int roundCount;
   final VoidCallback onStart;
   final VoidCallback onBack;
 
   @override
-  Widget build(BuildContext context) {
-    Widget step(IconData icon, String title, String body) => Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.md),
-      child: GamePanel(
-        backgroundColor: ZennytGamePalette.mist,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: ZennytGamePalette.magenta),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: AppTypography.titleMedium.copyWith(
-                      color: ZennytGamePalette.blue,
-                      letterSpacing: 0,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    body,
-                    style: AppTypography.bodyLarge.copyWith(
-                      color: ZennytGamePalette.muted,
-                      letterSpacing: 0,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 18, 24, 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _BackButton(onPressed: onBack),
-          const SizedBox(height: AppSpacing.base),
-          Text(
-            'Comment jouer',
-            style: AppTypography.displaySmall.copyWith(
-              color: ZennytGamePalette.blue,
-              letterSpacing: 0,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          step(
-            Icons.touch_app_outlined,
-            'Réorganise les cartes',
-            'Chaque manche commence avec 11 ou 12 tâches mélangées. Maintiens '
-                'une carte puis glisse-la vers sa nouvelle position. Un geste '
-                'court fait défiler la liste ; près du bord, la liste défile '
-                'automatiquement.',
-          ),
-          step(
-            Icons.link_rounded,
-            'Respecte les dépendances',
-            'Sous une carte, « Après : X » signifie que la tâche X doit être '
-                'terminée avant celle-ci. Place donc X plus haut dans la liste.',
-          ),
-          step(
-            Icons.schedule_rounded,
-            'Respecte les horaires',
-            '« 08h00–09h00 » impose de commencer et finir dans cette fenêtre. '
-                '« avant 17h00 » impose de finir avant cette heure ; « pile » '
-                'impose l\'heure de début. Les tâches s\'enchaînent depuis '
-                'l\'heure affichée et toute attente crée du temps mort.',
-          ),
-          step(
-            Icons.check_circle_outline_rounded,
-            'Valide chaque manche',
-            'Tu peux réorganiser autant de fois que nécessaire, sans pénalité. '
-                'Le planning est évalué uniquement quand tu appuies sur '
-                '« Valider ». Après quatre manches, le jeu affiche ton score.',
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          GamePrimaryButton(
-            label: reviewing ? 'Reprendre la partie' : 'Je suis prêt',
-            onPressed: onStart,
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => DayStackTutorial(
+    leading: _BackButton(onPressed: onBack),
+    onComplete: onStart,
+    roundCount: roundCount,
+    reviewing: reviewing,
+  );
 }
 
 // ── Score ───────────────────────────────────────────────────────────────────
@@ -1465,6 +1358,7 @@ class _HowToPlayView extends StatelessWidget {
 class _ScoreView extends StatelessWidget {
   const _ScoreView({
     required this.rawScore,
+    required this.maxScore,
     required this.level,
     required this.levelsPlayed,
     required this.universeNames,
@@ -1481,10 +1375,12 @@ class _ScoreView extends StatelessWidget {
     required this.error,
     required this.onRetrySubmit,
     required this.onReplay,
+    required this.onCompare,
     required this.onBack,
   });
 
   final int? rawScore;
+  final int? maxScore;
   final String? level;
   final bool busy;
 
@@ -1509,96 +1405,51 @@ class _ScoreView extends StatelessWidget {
 
   final VoidCallback onRetrySubmit;
   final VoidCallback onReplay;
+  final VoidCallback onCompare;
   final VoidCallback onBack;
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 18, 24, 24),
-      child: Column(
-        children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: _BackButton(onPressed: onBack),
-          ),
-          Text(
-            'Results',
-            style: AppTypography.displaySmall.copyWith(
-              color: ZennytGamePalette.blue,
-              letterSpacing: 0,
-            ),
-          ),
-          Text(
-            busy ? 'Scoring…' : 'Day Stack · Task scheduling',
-            style: AppTypography.bodyMedium.copyWith(
-              color: ZennytGamePalette.muted,
-              letterSpacing: 0,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xl),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(AppSpacing.xl),
-            decoration: BoxDecoration(
-              color: ZennytGamePalette.gameBlue,
-              borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-            ),
-            child: Column(
-              children: [
-                Text(
-                  'Planning score',
-                  style: AppTypography.titleSmall.copyWith(
-                    color: Colors.white,
-                    letterSpacing: 0,
-                  ),
-                ),
-                Text(
-                  rawScore == null ? '—' : '$rawScore/10',
-                  style: AppTypography.displayLarge.copyWith(
-                    color: Colors.white,
-                    fontSize: 52,
-                    letterSpacing: 0,
-                  ),
-                ),
-                if (level != null)
-                  Text(
-                    level!,
-                    style: AppTypography.bodyLarge.copyWith(
-                      color: Colors.white,
-                      letterSpacing: 0,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          // ── Débrief ─────────────────────────────────────────────────────
-          //
-          // Un nombre nu n'apprend rien : le joueur ne sait ni ce qu'il a
-          // manqué, ni pourquoi. Le barème a quatre composantes, on montre les
-          // quatre — et surtout les contraintes enfreintes, qui sont la seule
-          // chose sur laquelle il peut progresser.
-          if (error == null && !busy) ...[
-            const SizedBox(height: AppSpacing.lg),
-            _SessionDebriefCard(
-              levelsPlayed: levelsPlayed,
-              universeNames: universeNames,
-              edges: edges,
-              edgesOk: edgesOk,
-              timingCount: timingCount,
-              timingOk: timingOk,
-              collisionFree: collisionFree,
-              deadTimeRatio: deadTimeRatio,
-              proactive: proactive,
-              reactive: reactive,
-              latencyMs: latencyMs,
-            ),
-          ],
-          if (error != null) ...[
-            const SizedBox(height: AppSpacing.lg),
-            // Un tiret seul laissait croire à une partie sans points. Le score
-            // est calculé SERVEUR : s'il n'est pas arrivé, on le dit et on
-            // propose de renvoyer le même planning, plutôt que de faire rejouer.
-            Container(
+    final failed = error != null;
+    // Modèle commun des écrans de résultats (référence « Je Bouge »), sur un
+    // seul écran. Les mesures CUMULÉES expliquent le score : un nombre nu
+    // n'apprend rien au joueur.
+    return GameResultsTemplate(
+      onBack: onBack,
+      gameName: 'Day Stack',
+      pending: busy,
+      scoreLabel: 'Planning score',
+      scorePercent: gameResultPercent(rawScore, maxScore),
+      points: rawScore,
+      maxPoints: maxScore,
+      stats: [
+        GameResultStat(
+          label: 'Dépendances',
+          value: '$edgesOk/$edges',
+          color: edgesOk == edges
+              ? ZennytGamePalette.success
+              : ZennytGamePalette.error,
+        ),
+        GameResultStat(
+          label: 'Horaires',
+          value: '$timingOk/$timingCount',
+          color: timingOk == timingCount
+              ? ZennytGamePalette.success
+              : ZennytGamePalette.error,
+        ),
+        GameResultStat(
+          label: 'Temps mort',
+          value: '${(deadTimeRatio * 100).round()}%',
+          color: deadTimeRatio < 0.10
+              ? ZennytGamePalette.success
+              : ZennytGamePalette.magenta,
+        ),
+      ],
+      notice: failed
+          // Un tiret seul laissait croire à une partie sans points. Le score
+          // est calculé SERVEUR : s'il n'est pas arrivé, on le dit et on
+          // propose de renvoyer le même planning, plutôt que de faire rejouer.
+          ? Container(
               width: double.infinity,
               padding: const EdgeInsets.all(AppSpacing.base),
               decoration: BoxDecoration(
@@ -1628,6 +1479,8 @@ class _ScoreView extends StatelessWidget {
                   const SizedBox(height: 6),
                   Text(
                     error!,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: ZennytGamePalette.muted,
                       fontSize: 11,
@@ -1636,31 +1489,273 @@ class _ScoreView extends StatelessWidget {
                   ),
                 ],
               ),
+            )
+          : null,
+      insight: failed || busy ? null : _insight,
+      // Barres de la maquette, sur les mesures CUMULÉES envoyées au serveur.
+      insightBars: failed || busy
+          ? const []
+          : [
+              GameResultInsightBar(
+                label: 'Dependencies respected',
+                fraction: edges == 0 ? 1 : edgesOk / edges,
+                color: edgesOk == edges
+                    ? ZennytGamePalette.success
+                    : ZennytGamePalette.magenta,
+              ),
+              GameResultInsightBar(
+                label: 'Deadlines met',
+                fraction: timingCount == 0 ? 1 : timingOk / timingCount,
+                color: timingOk == timingCount
+                    ? ZennytGamePalette.success
+                    : ZennytGamePalette.magenta,
+              ),
+              // Cohérence : part de la journée sans temps mort, nulle dès
+              // qu'une collision rend le planning impossible.
+              GameResultInsightBar(
+                label: 'Schedule consistency',
+                fraction: collisionFree ? 1 - deadTimeRatio : 0,
+                color: collisionFree && deadTimeRatio < 0.10
+                    ? ZennytGamePalette.success
+                    : ZennytGamePalette.magenta,
+              ),
+              // Corrections faites APRÈS une alerte : pleine sous deux.
+              GameResultInsightBar(
+                label: 'Adjustments (<2)',
+                fraction: reactive < 2 ? 1 : 2 / reactive,
+                color: reactive < 2
+                    ? ZennytGamePalette.success
+                    : ZennytGamePalette.magenta,
+              ),
+            ],
+      // Plus d'enchaînement vers un AUTRE jeu depuis cet écran : les deux
+      // suites légitimes d'une partie sont la rejouer ou revenir au catalogue.
+      primaryLabel: failed
+          ? (busy ? 'Envoi…' : 'Renvoyer le résultat')
+          : 'Replay',
+      onPrimary: busy ? null : (failed ? onRetrySubmit : onReplay),
+      secondaryLabel: failed ? 'Replay' : 'Compare',
+      onSecondary: failed ? onReplay : onCompare,
+    );
+  }
+
+  String get _insight {
+    final latency = latencyMs == null
+        ? ''
+        : ' Temps de réflexion initial : '
+              '${(latencyMs! / 1000).toStringAsFixed(1)} s.';
+    return '${level == null ? '' : '$level — '}'
+        '$levelsPlayed manche(s) · ${universeNames.join(' · ')}. '
+        'Collisions : ${collisionFree ? 'aucune' : 'oui'}. '
+        'Corrections : $proactive avant alerte · $reactive après.$latency';
+  }
+}
+
+/// Mesures d'une partie de Day Stack notée par le serveur, conservées pour la
+/// comparer à la suivante.
+class _DayStackRun {
+  const _DayStackRun({
+    required this.points,
+    required this.maxPoints,
+    required this.edgesOk,
+    required this.edges,
+    required this.timingOk,
+    required this.timingCount,
+    required this.deadTimeRatio,
+  });
+
+  final int points;
+  final int maxPoints;
+  final int edgesOk;
+  final int edges;
+  final int timingOk;
+  final int timingCount;
+  final double deadTimeRatio;
+}
+
+/// « Comparative Results » de Day Stack, d'après la maquette client.
+///
+/// Aucun classement n'existe côté plateforme (réseau, global) : l'écran ne
+/// l'invente pas. Il compare la partie à la PRÉCÉDENTE jouée pendant cette
+/// visite, avec les mesures notées par le serveur, et dit que le classement
+/// attend ses données.
+class _ComparisonView extends StatelessWidget {
+  const _ComparisonView({
+    required this.current,
+    required this.previous,
+    required this.onReplay,
+    required this.onBack,
+  });
+
+  final _DayStackRun? current;
+  final _DayStackRun? previous;
+  final VoidCallback onReplay;
+  final VoidCallback onBack;
+
+  static String _ratio(int ok, int total) => '$ok/$total';
+
+  @override
+  Widget build(BuildContext context) {
+    final now = current;
+    final before = previous;
+    final delta = now == null || before == null
+        ? null
+        : now.points - before.points;
+    final evolution = switch (delta) {
+      null =>
+        'First scored attempt of this visit. Replay to measure how your '
+            'planning evolves.',
+      > 0 =>
+        'Your planning improved: +$delta point${delta > 1 ? 's' : ''} over '
+            'your previous attempt.',
+      < 0 =>
+        'This attempt scored $delta point${delta < -1 ? 's' : ''} versus the '
+            'previous one. Check dependencies and deadlines first.',
+      _ => 'Same score as your previous attempt.',
+    };
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 18, 24, 24),
+      child: GameFitToScreen(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: GameResultsBackButton(onPressed: onBack),
+            ),
+            Text(
+              'Comparative Results',
+              textAlign: TextAlign.center,
+              style: AppTypography.headlineLarge.copyWith(
+                color: ZennytGamePalette.blue,
+                letterSpacing: 0,
+              ),
+            ),
+            Text(
+              'Ranking data required from platform',
+              textAlign: TextAlign.center,
+              style: AppTypography.bodyMedium.copyWith(
+                color: ZennytGamePalette.muted,
+                letterSpacing: 0,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(AppSpacing.xl),
+              decoration: BoxDecoration(
+                color: ZennytGamePalette.gameBlue,
+                borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    delta == null
+                        ? '—'
+                        : delta > 0
+                        ? '+$delta'
+                        : '$delta',
+                    key: const ValueKey('day-stack-compare-delta'),
+                    style: AppTypography.displayLarge.copyWith(
+                      color: Colors.white,
+                      fontSize: 48,
+                      letterSpacing: 0,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.lg),
+                  Expanded(
+                    child: Text(
+                      delta == null
+                          ? 'no previous attempt to compare yet'
+                          : 'points versus your previous attempt',
+                      style: AppTypography.titleLarge.copyWith(
+                        color: Colors.white,
+                        letterSpacing: 0,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            Row(
+              children: [
+                Expanded(
+                  child: ResultStatTile(
+                    label: 'This attempt',
+                    value: now == null ? '—' : '${now.points}/${now.maxPoints}',
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: ResultStatTile(
+                    label: 'Previous attempt',
+                    value: before == null
+                        ? '—'
+                        : '${before.points}/${before.maxPoints}',
+                    valueColor: ZennytGamePalette.muted,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: AppSpacing.md),
-            GamePrimaryButton(
-              label: busy ? 'Envoi…' : 'Renvoyer le résultat',
-              onPressed: busy ? null : onRetrySubmit,
+            Row(
+              children: [
+                Expanded(
+                  child: ResultStatTile(
+                    label: 'Dependencies',
+                    value: now == null
+                        ? '—'
+                        : before == null
+                        ? _ratio(now.edgesOk, now.edges)
+                        : '${_ratio(before.edgesOk, before.edges)} → '
+                              '${_ratio(now.edgesOk, now.edges)}',
+                    valueColor: ZennytGamePalette.success,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: ResultStatTile(
+                    label: 'Deadlines',
+                    value: now == null
+                        ? '—'
+                        : before == null
+                        ? _ratio(now.timingOk, now.timingCount)
+                        : '${_ratio(before.timingOk, before.timingCount)} → '
+                              '${_ratio(now.timingOk, now.timingCount)}',
+                    valueColor: ZennytGamePalette.magenta,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: AppSpacing.md),
-            GameOutlineButton(label: 'Replay', onPressed: onReplay),
-            const SizedBox(height: AppSpacing.md),
-            GameOutlineButton(label: 'Back to games', onPressed: onBack),
-          ] else ...[
-            const SizedBox(height: AppSpacing.xxl),
-            // Plus d'enchaînement vers un AUTRE jeu depuis cet écran.
-            // « Continue to Hanoï » était l'action principale : après un seul
-            // essai, le geste le plus naturel éjectait le joueur vers Tower of
-            // Hanoi, sans qu'il l'ait demandé. Les deux suites légitimes d'une
-            // partie sont la rejouer ou revenir au catalogue.
-            GamePrimaryButton(
-              label: 'Replay',
-              onPressed: busy ? null : onReplay,
+            const SizedBox(height: AppSpacing.xl),
+            GamePanel(
+              backgroundColor: ZennytGamePalette.mist,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Performance evolution',
+                    style: AppTypography.titleMedium.copyWith(
+                      color: ZennytGamePalette.blue,
+                      letterSpacing: 0,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    evolution,
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: ZennytGamePalette.muted,
+                      letterSpacing: 0,
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: AppSpacing.md),
-            GameOutlineButton(label: 'Back to games', onPressed: onBack),
+            const SizedBox(height: AppSpacing.xl),
+            GamePrimaryButton(label: 'Replay to improve', onPressed: onReplay),
           ],
-        ],
+        ),
       ),
     );
   }

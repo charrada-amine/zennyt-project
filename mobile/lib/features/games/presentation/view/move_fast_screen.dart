@@ -20,6 +20,7 @@ import '../../domain/entities/mini_game.dart';
 import '../../domain/entities/move_fast_metrics.dart';
 import '../device_calibration_probe.dart';
 import '../games_providers.dart';
+import '../widgets/game_results_template.dart';
 import '../widgets/game_system_components.dart';
 
 enum _MoveFastStage {
@@ -774,9 +775,8 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
   /// Affiche le menu (et le réaffiche au retour des règles) sur le **temps
   /// restant** de la fenêtre, jamais sur 30 s fraîches.
   Future<void> _showPauseMenu() async {
-    final action = await showDialog<GamePauseAction>(
-      context: context,
-      barrierColor: ZennytGamePalette.ink.withValues(alpha: 0.82),
+    final action = await showGamePauseMenu<GamePauseAction>(
+      context,
       builder: (context) {
         var mode = _inputMode;
         return StatefulBuilder(
@@ -801,19 +801,16 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
                 }
               },
             ),
-            buttons: [
-              GamePrimaryButton(
-                label: 'Resume',
+            actions: [
+              GamePauseMenuAction.resume(
                 onPressed: () =>
                     Navigator.of(context).pop(GamePauseAction.resume),
               ),
-              GameOutlineButton(
-                label: 'View rules / Help',
+              GamePauseMenuAction.rules(
                 onPressed: () =>
                     Navigator.of(context).pop(GamePauseAction.help),
               ),
-              GamePauseExitButton(
-                label: 'Exit mission',
+              GamePauseMenuAction.exit(
                 onPressed: () =>
                     Navigator.of(context).pop(GamePauseAction.exit),
               ),
@@ -2392,135 +2389,33 @@ class _ResultsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final reaction = (averageReactionMs / 1000).toStringAsFixed(2);
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 18, 24, 24),
-      child: Column(
-        children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: _TopBackButton(onPressed: onBack),
-          ),
-          Text(
-            'Results',
-            style: AppTypography.displaySmall.copyWith(
-              color: ZennytGamePalette.blue,
-              letterSpacing: 0,
-            ),
-          ),
-          Text(
-            resultPending ? 'Synchronizing score...' : 'Move Fast completed',
-            style: AppTypography.bodyMedium.copyWith(
-              color: ZennytGamePalette.muted,
-              letterSpacing: 0,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xl),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(AppSpacing.xl),
-            decoration: BoxDecoration(
-              color: ZennytGamePalette.gameBlue,
-              borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-            ),
-            child: Column(
-              children: [
-                Text(
-                  'Cognitive score',
-                  style: AppTypography.titleSmall.copyWith(
-                    color: Colors.white,
-                    letterSpacing: 0,
-                  ),
-                ),
-                AnimatedCountText(
-                  value: cognitiveScore,
-                  suffix: '%',
-                  onCompleted: SoundService.instance.stopScoreboard,
-                  style: AppTypography.displayLarge.copyWith(
-                    color: Colors.white,
-                    fontSize: 56,
-                    letterSpacing: 0,
-                  ),
-                ),
-                Text(
-                  rawScore == null
-                      ? (cognitiveScore >= 80
-                            ? 'Fast adaptation to rule changes.'
-                            : 'Good progress. Keep practicing rule switches.')
-                      : '$rawScore points calculated by the server.',
-                  textAlign: TextAlign.center,
-                  style: AppTypography.bodyLarge.copyWith(
-                    color: Colors.white,
-                    letterSpacing: 0,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xl),
-          Row(
-            children: [
-              Expanded(
-                child: ResultStatTile(
-                  label: 'Accuracy',
-                  value: '${(accuracy * 100).round()}%',
-                  valueColor: ZennytGamePalette.success,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: ResultStatTile(label: 'Reaction', value: '${reaction}s'),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: ResultStatTile(
-                  label: 'Best Streak',
-                  value: '$bestCorrectStreak correct',
-                  valueColor: ZennytGamePalette.magenta,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.xxl),
-          GamePanel(
-            backgroundColor: ZennytGamePalette.mist,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Summary insight',
-                  style: AppTypography.titleMedium.copyWith(
-                    color: ZennytGamePalette.blue,
-                    letterSpacing: 0,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                Text(
-                  'The player keeps the active rule in mind and quickly adjusts attention when the instruction changes.',
-                  style: AppTypography.bodyLarge.copyWith(
-                    color: ZennytGamePalette.muted,
-                    letterSpacing: 0,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xxl),
-          Row(
-            children: [
-              Expanded(
-                child: GamePrimaryButton(label: 'Replay', onPressed: onReplay),
-              ),
-              const SizedBox(width: AppSpacing.lg),
-              Expanded(
-                child: GameOutlineButton(
-                  label: 'Compare',
-                  onPressed: onCompare,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+    // Écran de référence du modèle commun [GameResultsTemplate].
+    return GameResultsTemplate(
+      onBack: onBack,
+      gameName: 'Move Fast',
+      pending: resultPending,
+      scoreLabel: 'Cognitive score',
+      scorePercent: cognitiveScore,
+      points: rawScore,
+      stats: [
+        GameResultStat(
+          label: 'Accuracy',
+          value: '${(accuracy * 100).round()}%',
+          color: ZennytGamePalette.success,
+        ),
+        GameResultStat(label: 'Reaction', value: '${reaction}s'),
+        GameResultStat(
+          label: 'Best Streak',
+          value: '$bestCorrectStreak correct',
+          color: ZennytGamePalette.magenta,
+        ),
+      ],
+      insight:
+          'The player keeps the active rule in mind and quickly adjusts attention when the instruction changes.',
+      primaryLabel: 'Replay',
+      onPrimary: onReplay,
+      secondaryLabel: 'Compare',
+      onSecondary: onCompare,
     );
   }
 }

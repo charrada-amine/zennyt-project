@@ -13,8 +13,10 @@ import '../../domain/entities/game_type.dart';
 import '../../domain/entities/mini_game.dart';
 import '../../domain/entities/object_location_metrics.dart';
 import '../games_providers.dart';
+import '../widgets/game_results_template.dart';
 import '../widgets/game_system_components.dart';
 import '../widgets/je_place_pause_dialog.dart';
+import '../widgets/zennyt_loader.dart';
 
 const _logoAsset = 'assets/games icons/Je Place.png';
 const _canvas = ZennytGamePalette.mist;
@@ -469,6 +471,9 @@ class _JePlaceScreenState extends ConsumerState<JePlaceScreen>
             ? _JePlaceStage.results
             : _JePlaceStage.invalid;
       });
+      if (_stage == _JePlaceStage.results) {
+        SoundService.instance.playScoreboard();
+      }
       return true;
     } catch (error) {
       if (!mounted) return false;
@@ -594,9 +599,8 @@ class _JePlaceScreenState extends ConsumerState<JePlaceScreen>
     while (mounted && showAgain) {
       showAgain = false;
       if (!mounted) break;
-      final action = await showDialog<JePlacePauseAction>(
-        context: context,
-        barrierDismissible: false,
+      final action = await showGamePauseMenu<JePlacePauseAction>(
+        context,
         builder: (dialogCtx) => JePlacePauseDialog(
           measuredRunInterrupted: !_isPractice,
           countdown: _pauseAllowance.remaining,
@@ -650,9 +654,9 @@ class _JePlaceScreenState extends ConsumerState<JePlaceScreen>
         actions: [
           TextButton(
             onPressed: () {
-                  SoundService.instance.playSfx(GameSfx.buttonClick);
-                  Navigator.of(context).pop();
-                },
+              SoundService.instance.playSfx(GameSfx.buttonClick);
+              Navigator.of(context).pop();
+            },
             child: const Text('Got it'),
           ),
         ],
@@ -1113,64 +1117,39 @@ class _JePlaceScreenState extends ConsumerState<JePlaceScreen>
 
   Widget _buildResults() {
     final report = _indicators!;
-    return _JourneyPage(
-      header: _JePlaceHeader(
-        eyebrow: 'Je place',
-        title: 'Journey complete',
-        onBack: _exitToGames,
-      ),
-      content: [
-        _ResultRing(value: report.provisionalAccuracyScore),
-        const SizedBox(height: 18),
-        Text(
-          'A snapshot of object-location memory',
-          textAlign: TextAlign.center,
-          style: AppTypography.headlineSmall.copyWith(
-            color: _ink,
-            fontWeight: FontWeight.w800,
-          ),
+    final attemptScore = _session?.lastAttempt?.score;
+    // Modèle commun des écrans de résultats ([GameResultsTemplate]).
+    return GameResultsTemplate(
+      onBack: _exitToGames,
+      gameName: 'Je place',
+      scoreLabel: 'Object-location memory',
+      scorePercent: report.provisionalAccuracyScore,
+      points: attemptScore?.rawPoints ?? report.provisionalAccuracyScore,
+      maxPoints: attemptScore?.maxPoints ?? 100,
+      scoreKey: const ValueKey('je-place-result-score'),
+      stats: [
+        GameResultStat(
+          label: 'Exact placement',
+          value: '${report.exactAccuracyPercent.round()}%',
+          color: ZennytGamePalette.success,
         ),
-        const SizedBox(height: 8),
-        Text(
-          'Descriptive and provisional. This is not a diagnosis, ranking, or recruitment decision.',
-          textAlign: TextAlign.center,
-          style: AppTypography.bodyMedium.copyWith(color: _muted, height: 1.45),
-        ),
-        const SizedBox(height: 18),
-        GamePanel(
-          child: Column(
-            children: [
-              _MetricLine(
-                label: 'Exact placement',
-                value: '${report.exactAccuracyPercent.toStringAsFixed(1)}%',
-              ),
-              const Divider(color: _border),
-              _MetricLine(
-                label: 'Memory span',
-                value: '${report.span} objects',
-              ),
-              const Divider(color: _border),
-              _MetricLine(
-                label: 'Mean displacement',
-                value: report.averageDisplacementCells.toStringAsFixed(2),
-              ),
-              const Divider(color: _border),
-              _MetricLine(
-                label: 'Levels completed',
-                value: '${report.completedLevelCount}',
-              ),
-            ],
-          ),
+        GameResultStat(label: 'Memory span', value: '${report.span}'),
+        GameResultStat(
+          label: 'Levels',
+          value: '${report.completedLevelCount}',
+          color: ZennytGamePalette.magenta,
         ),
       ],
-      bottom: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          GamePrimaryButton(label: 'Back to games', onPressed: _exitToGames),
-          const SizedBox(height: 10),
-          GameOutlineButton(label: 'Play again', onPressed: _startJourney),
-        ],
-      ),
+      insight:
+          'Exact placement ${report.exactAccuracyPercent.toStringAsFixed(1)}%, '
+          'memory span of ${report.span} objects, mean displacement '
+          '${report.averageDisplacementCells.toStringAsFixed(2)} cells. '
+          'Descriptive and provisional: not a diagnosis, ranking, or '
+          'recruitment decision.',
+      primaryLabel: 'Replay',
+      onPrimary: _startJourney,
+      secondaryLabel: 'Back to games',
+      onSecondary: _exitToGames,
     );
   }
 
@@ -2300,77 +2279,6 @@ class _StateIcon extends StatelessWidget {
   }
 }
 
-class _ResultRing extends StatelessWidget {
-  const _ResultRing({required this.value});
-  final int value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: SizedBox(
-        key: const ValueKey('je-place-result-score'),
-        width: 170,
-        height: 170,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            SizedBox.expand(
-              child: CircularProgressIndicator(
-                value: value / 100,
-                strokeWidth: 13,
-                backgroundColor: const Color(0xFFE8EAF7),
-                valueColor: const AlwaysStoppedAnimation<Color>(_pink),
-              ),
-            ),
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '$value',
-                  style: const TextStyle(
-                    color: _ink,
-                    fontSize: 44,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const Text(
-                  'descriptive / 100',
-                  style: TextStyle(color: _muted, fontSize: 12),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _MetricLine extends StatelessWidget {
-  const _MetricLine({required this.label, required this.value});
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(label, style: const TextStyle(color: _muted)),
-          ),
-          const SizedBox(width: 12),
-          Text(
-            value,
-            style: const TextStyle(color: _ink, fontWeight: FontWeight.w800),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _CenteredStatus extends StatelessWidget {
   const _CenteredStatus({required this.label});
   final String label;
@@ -2381,7 +2289,7 @@ class _CenteredStatus extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const CircularProgressIndicator(color: _pink),
+          ZennytLoader(semanticsLabel: label),
           const SizedBox(height: 18),
           Text(label, style: const TextStyle(color: _ink)),
         ],

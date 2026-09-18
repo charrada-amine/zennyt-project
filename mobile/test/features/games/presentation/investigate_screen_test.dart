@@ -28,9 +28,9 @@ void main() {
   math.Random rng() => math.Random(seed);
 
   List<int> drawSequence(math.Random r, int level) => List<int>.generate(
-        MemoryQuestConfig.sequenceLengthForLevel(level),
-        (_) => r.nextInt(10),
-      );
+    MemoryQuestConfig.sequenceLengthForLevel(level),
+    (_) => r.nextInt(10),
+  );
 
   final level1Seq = drawSequence(rng(), 1);
 
@@ -51,7 +51,11 @@ void main() {
   Future<void> startGame(WidgetTester tester) async {
     await tester.tap(find.text('Start mission'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('I am ready'));
+    while (find.text('Suivant').evaluate().isNotEmpty) {
+      await tester.tap(find.text('Suivant'));
+      await tester.pumpAndSettle();
+    }
+    await tester.tap(find.text('Je suis prêt'));
     await tester.pump();
     // The game now waits for the backend snapshot before starting its clocks.
     await tester.pump(const Duration(milliseconds: 150));
@@ -94,8 +98,86 @@ void main() {
     await tester.pump(const Duration(milliseconds: 900));
   }
 
-  testWidgets('Digits : la distraction n\'arrive qu\'au niveau 3',
-      (tester) async {
+  for (final mode in [InvestigateMode.digits, InvestigateMode.images]) {
+    testWidgets('${mode.name} : cartes adaptées et retour avant démarrage', (
+      tester,
+    ) async {
+      useLargeSurface(tester);
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: InvestigateScreen(seed: seed, mode: mode),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Start mission'));
+      await tester.pumpAndSettle();
+      expect(find.text('Étape 1 sur 6'), findsOneWidget);
+      expect(find.text('Je suis prêt'), findsNothing);
+      expect(find.text('Level 1'), findsNothing);
+      expect(
+        find.text(
+          mode == InvestigateMode.digits
+              ? 'Observe les chiffres'
+              : 'Mémorise l’ordre de départ',
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(find.bySemanticsLabel('Back'));
+      await tester.pumpAndSettle();
+      expect(find.text('Start mission'), findsOneWidget);
+    });
+
+    testWidgets('${mode.name} : l’aide utilise les cartes du bon jeu', (
+      tester,
+    ) async {
+      useLargeSurface(tester);
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: InvestigateScreen(seed: seed, mode: mode),
+          ),
+        ),
+      );
+      await startGame(tester);
+      if (mode == InvestigateMode.digits) {
+        await watchSequence(tester, 3);
+        await typeDigits(tester, [level1Seq.first]);
+      }
+      await tester.tap(find.bySemanticsLabel('Pause the mission'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('View rules / Help'));
+      await tester.pumpAndSettle();
+      expect(find.text('Étape 1 sur 6'), findsOneWidget);
+      expect(
+        find.text(
+          mode == InvestigateMode.digits
+              ? 'Observe les chiffres'
+              : 'Mémorise l’ordre de départ',
+        ),
+        findsOneWidget,
+      );
+      for (var page = 0; page < 5; page++) {
+        await tester.tap(find.text('Suivant'));
+        await tester.pumpAndSettle();
+      }
+      await tester.tap(find.text('Retour au menu pause'));
+      await tester.pumpAndSettle();
+      expect(find.text('Resume'), findsOneWidget);
+      await tester.tap(find.text('Resume'));
+      await tester.pumpAndSettle();
+      expect(find.text('Level 1'), findsOneWidget);
+      if (mode == InvestigateMode.digits) {
+        expect(find.text('${level1Seq.first}'), findsWidgets);
+      }
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(seconds: 40));
+    });
+  }
+
+  testWidgets('Digits : la distraction n\'arrive qu\'au niveau 3', (
+    tester,
+  ) async {
     useLargeSurface(tester);
 
     var distractionsStarted = 0;
@@ -141,8 +223,13 @@ void main() {
     final level3Seq = drawSequence(r, 3);
     await watchSequence(tester, level3Seq.length);
 
-    expect(distractionsStarted, 1, reason: 'la distraction arrive dès la '
-        'première mémorisation du niveau 3');
+    expect(
+      distractionsStarted,
+      1,
+      reason:
+          'la distraction arrive dès la '
+          'première mémorisation du niveau 3',
+    );
     expect(find.textContaining('Quick check'), findsOneWidget);
     expect(
       protectedSeq,
@@ -178,8 +265,9 @@ void main() {
   /// Le déroulé décrit par le client, appliqué au niveau 3 : la distraction
   /// revient à CHAQUE tour du niveau, et deux échecs sur ce même niveau
   /// terminent la partie — sans jamais raccourcir la séquence.
-  testWidgets('Digits : deux échecs au niveau 3 terminent la partie',
-      (tester) async {
+  testWidgets('Digits : deux échecs au niveau 3 terminent la partie', (
+    tester,
+  ) async {
     useLargeSurface(tester);
 
     // À partir du niveau 3, le hook livre la séquence du tour ET la réponse de
@@ -218,7 +306,8 @@ void main() {
       expect(
         distractions,
         expectedDistractions,
-        reason: 'la distraction précède la mémorisation à chaque tour du niveau',
+        reason:
+            'la distraction précède la mémorisation à chaque tour du niveau',
       );
       expect(roundSeq, hasLength(level3Length));
 
@@ -247,50 +336,52 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('Digits : un tour raté rejoue le MÊME niveau, deux le terminent',
-      (tester) async {
-    useLargeSurface(tester);
+  testWidgets(
+    'Digits : un tour raté rejoue le MÊME niveau, deux le terminent',
+    (tester) async {
+      useLargeSurface(tester);
 
-    await tester.pumpWidget(
-      ProviderScope(
-        child: MaterialApp(
-          home: InvestigateScreen(seed: seed, mode: InvestigateMode.digits),
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: InvestigateScreen(seed: seed, mode: InvestigateMode.digits),
+          ),
         ),
-      ),
-    );
-    await startGame(tester);
+      );
+      await startGame(tester);
 
-    final r = rng();
+      final r = rng();
 
-    // 1ᵉʳ échec : on répond à côté (chaque chiffre décalé de 1).
-    final attempt1 = drawSequence(r, 1);
-    await playDigitRound(
-      tester,
-      attempt1,
-      answer: [for (final d in attempt1) (d + 1) % 10],
-    );
+      // 1ᵉʳ échec : on répond à côté (chaque chiffre décalé de 1).
+      final attempt1 = drawSequence(r, 1);
+      await playDigitRound(
+        tester,
+        attempt1,
+        answer: [for (final d in attempt1) (d + 1) % 10],
+      );
 
-    // La séquence ne s'allonge pas : on rejoue le niveau 1.
-    expect(
-      find.text('Level 1'),
-      findsOneWidget,
-      reason: 'un tour raté ne doit pas faire monter de niveau',
-    );
+      // La séquence ne s'allonge pas : on rejoue le niveau 1.
+      expect(
+        find.text('Level 1'),
+        findsOneWidget,
+        reason: 'un tour raté ne doit pas faire monter de niveau',
+      );
 
-    // 2ᵉ échec sur ce même niveau → fin de partie.
-    final attempt2 = drawSequence(r, 1);
-    await playDigitRound(
-      tester,
-      attempt2,
-      answer: [for (final d in attempt2) (d + 1) % 10],
-    );
+      // 2ᵉ échec sur ce même niveau → fin de partie.
+      final attempt2 = drawSequence(r, 1);
+      await playDigitRound(
+        tester,
+        attempt2,
+        answer: [for (final d in attempt2) (d + 1) % 10],
+      );
 
-    expect(find.text('Results'), findsOneWidget);
+      expect(find.text('Results'), findsOneWidget);
 
-    // La soumission au dépôt de démo est asynchrone (latence simulée) : on la
-    // laisse aboutir, sinon sa minuterie reste en vol au teardown.
-    await tester.pumpAndSettle();
-  });
+      // La soumission au dépôt de démo est asynchrone (latence simulée) : on la
+      // laisse aboutir, sinon sa minuterie reste en vol au teardown.
+      await tester.pumpAndSettle();
+    },
+  );
 
   /// Déroulé d'un tour d'images : observation, manipulations, rétention.
   ///
@@ -305,8 +396,9 @@ void main() {
   /// Le jeu des IMAGES ne présente que des objets — jamais de chiffres, la tâche
   /// parasite comprise. Il empruntait auparavant la question arithmétique du jeu
   /// des chiffres.
-  testWidgets('Images : aucun chiffre, et l\'interférence arrive au niveau 2',
-      (tester) async {
+  testWidgets('Images : aucun chiffre, et l\'interférence arrive au niveau 2', (
+    tester,
+  ) async {
     useLargeSurface(tester);
 
     var missionBCount = 0;
@@ -360,8 +452,11 @@ void main() {
       isTrue,
       reason: 'une tâche parasite visuelle doit être à l\'écran',
     );
-    expect(find.textContaining('+'), findsNothing,
-        reason: 'aucun calcul : c\'est le jeu des images');
+    expect(
+      find.textContaining('+'),
+      findsNothing,
+      reason: 'aucun calcul : c\'est le jeu des images',
+    );
     expect(
       find.text('Restore the STARTING order'),
       findsNothing,
@@ -383,15 +478,20 @@ void main() {
     await restore();
 
     expect(find.text('Level 3'), findsOneWidget);
-    expect(missionBCount, 3, reason: 'un tour d\'objets par niveau, sans rejeu');
+    expect(
+      missionBCount,
+      3,
+      reason: 'un tour d\'objets par niveau, sans rejeu',
+    );
 
     await watchObjects(tester, 5);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
   });
 
-  testWidgets('Images : la restauration ne demande jamais l\'ordre inverse',
-      (tester) async {
+  testWidgets('Images : la restauration ne demande jamais l\'ordre inverse', (
+    tester,
+  ) async {
     useLargeSurface(tester);
 
     List<MemoryObject> initialObjects = const [];
@@ -431,16 +531,20 @@ void main() {
     // dispose, donc le démontage y est propre.
     await tester.pump(const Duration(milliseconds: 6300));
     await tester.pump(const Duration(milliseconds: 6200));
-    expect(find.textContaining('REVERSE'), findsNothing,
-        reason: 'jamais d\'ordre inverse dans le jeu des images');
+    expect(
+      find.textContaining('REVERSE'),
+      findsNothing,
+      reason: 'jamais d\'ordre inverse dans le jeu des images',
+    );
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
   });
 
   /// Mode historique : les deux missions s'enchaînent dans une seule partie.
-  testWidgets('Full : mission A puis mission B, sans distraction au niveau 1',
-      (tester) async {
+  testWidgets('Full : mission A puis mission B, sans distraction au niveau 1', (
+    tester,
+  ) async {
     useLargeSurface(tester);
 
     List<MemoryObject> initialObjects = const [];
@@ -591,22 +695,25 @@ void main() {
     await tester.pump();
   }
 
-  testWidgets('Images : plus aucun glisser-déposer sur l\'écran de restauration',
-      (tester) async {
-    useLargeSurface(tester);
-    await toRestore(tester);
+  testWidgets(
+    'Images : plus aucun glisser-déposer sur l\'écran de restauration',
+    (tester) async {
+      useLargeSurface(tester);
+      await toRestore(tester);
 
-    expect(find.byType(Draggable<MemoryObject>), findsNothing);
-    expect(find.byType(DragTarget<MemoryObject>), findsNothing);
-    expect(
-      find.textContaining('Drag'),
-      findsNothing,
-      reason: 'la consigne ne doit plus parler d\'un geste qui n\'existe plus',
-    );
+      expect(find.byType(Draggable<MemoryObject>), findsNothing);
+      expect(find.byType(DragTarget<MemoryObject>), findsNothing);
+      expect(
+        find.textContaining('Drag'),
+        findsNothing,
+        reason:
+            'la consigne ne doit plus parler d\'un geste qui n\'existe plus',
+      );
 
-    await tester.pumpWidget(const SizedBox.shrink());
-    await tester.pump();
-  });
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+    },
+  );
 
   testWidgets('Images : un clic pose un rang, un second l\'annule et '
       'renumérote la suite', (tester) async {
@@ -624,7 +731,11 @@ void main() {
       await tapObject(tester, obj);
     }
     for (final rank in ['1', '2', '3']) {
-      expect(find.text(rank), findsOneWidget, reason: 'un rang $rank et un seul');
+      expect(
+        find.text(rank),
+        findsOneWidget,
+        reason: 'un rang $rank et un seul',
+      );
     }
     expect(
       tester.widget<GamePrimaryButton>(validate).onPressed,
@@ -677,7 +788,9 @@ void main() {
     }
 
     Future<void> mount(WidgetTester tester, String text) => tester.pumpWidget(
-      MaterialApp(home: Scaffold(body: Center(child: MemoryPrompt(text)))),
+      MaterialApp(
+        home: Scaffold(body: Center(child: MemoryPrompt(text))),
+      ),
     );
 
     testWidgets('elle disparaît puis revient, une fois et une seule', (
@@ -855,11 +968,7 @@ void main() {
             count: count,
             available: entry.value,
           );
-          expect(
-            scale,
-            greaterThan(0),
-            reason: '${entry.key}, $count objets',
-          );
+          expect(scale, greaterThan(0), reason: '${entry.key}, $count objets');
 
           // Le meilleur découpage à cette échelle doit tenir en largeur ; en
           // hauteur, le plancher de lisibilité peut imposer un défilement, on
@@ -900,7 +1009,8 @@ void main() {
       expect(
         kMemoryObjectTileWidth * scale,
         greaterThan(50),
-        reason: 'plancher de lisibilité : en dessous, l\'objet n\'est plus '
+        reason:
+            'plancher de lisibilité : en dessous, l\'objet n\'est plus '
             'identifiable et il vaut mieux faire défiler',
       );
     });
@@ -909,67 +1019,72 @@ void main() {
   /// La restitution avait un temps ILLIMITÉ : le joueur pouvait rester sur le
   /// plateau indéfiniment, ce qui vidait de son sens la mesure de mémoire.
   testWidgets(
-      'Images : la restitution est chronométrée et se valide d\'office',
-      (tester) async {
-    useLargeSurface(tester);
+    'Images : la restitution est chronométrée et se valide d\'office',
+    (tester) async {
+      useLargeSurface(tester);
 
-    List<MemoryObject> objects = const [];
-    await tester.pumpWidget(
-      ProviderScope(
-        child: MaterialApp(
-          home: InvestigateScreen(
-            seed: seed,
-            mode: InvestigateMode.images,
-            onMissionBReady: (order) => objects = order,
+      List<MemoryObject> objects = const [];
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: InvestigateScreen(
+              seed: seed,
+              mode: InvestigateMode.images,
+              onMissionBReady: (order) => objects = order,
+            ),
           ),
         ),
-      ),
-    );
-    await startGame(tester);
-    await watchObjects(tester, MemoryQuestConfig.objectCountForLevel(1));
+      );
+      await startGame(tester);
+      await watchObjects(tester, MemoryQuestConfig.objectCountForLevel(1));
 
-    expect(find.text('Restore the STARTING order'), findsOneWidget);
+      expect(find.text('Restore the STARTING order'), findsOneWidget);
 
-    final limitMs = MemoryQuestConfig.restoreTimeLimitMs(objects.length);
-    final startSeconds = (limitMs / 1000).ceil();
-    expect(find.text('${startSeconds}s left'), findsOneWidget);
+      final limitMs = MemoryQuestConfig.restoreTimeLimitMs(objects.length);
+      final startSeconds = (limitMs / 1000).ceil();
+      expect(find.text('${startSeconds}s left'), findsOneWidget);
 
-    // Le rebours descend réellement.
-    await tester.pump(const Duration(seconds: 1));
-    expect(find.text('${startSeconds - 1}s left'), findsOneWidget);
+      // Le rebours descend réellement.
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.text('${startSeconds - 1}s left'), findsOneWidget);
 
-    // Un seul rang posé, puis on laisse le temps filer : le tour se clôt sans
-    // que le joueur touche « Validate ».
-    await tester.tap(find.text(objects.first.labelEn).first);
-    await tester.pump();
-    await tester.pump(Duration(milliseconds: limitMs + 300));
-    await tester.pump(const Duration(milliseconds: 1200)); // feedback
+      // Un seul rang posé, puis on laisse le temps filer : le tour se clôt sans
+      // que le joueur touche « Validate ».
+      await tester.tap(find.text(objects.first.labelEn).first);
+      await tester.pump();
+      await tester.pump(Duration(milliseconds: limitMs + 300));
+      await tester.pump(const Duration(milliseconds: 1200)); // feedback
 
-    expect(find.text('Restore the STARTING order'), findsNothing,
-        reason: 'le temps écoulé clôt la restitution');
+      expect(
+        find.text('Restore the STARTING order'),
+        findsNothing,
+        reason: 'le temps écoulé clôt la restitution',
+      );
 
-    // Un tour expiré compte comme raté : le MÊME niveau est rejoué. On laisse
-    // filer la seconde tentative aussi, ce qui doit terminer la partie
-    // (maxFailuresPerLevel = 2).
-    await watchObjects(tester, MemoryQuestConfig.objectCountForLevel(1));
-    expect(find.text('Restore the STARTING order'), findsOneWidget);
-    await tester.pump(
-      Duration(
-        milliseconds:
-            MemoryQuestConfig.restoreTimeLimitMs(objects.length) + 300,
-      ),
-    );
-    await tester.pump(const Duration(milliseconds: 1200));
+      // Un tour expiré compte comme raté : le MÊME niveau est rejoué. On laisse
+      // filer la seconde tentative aussi, ce qui doit terminer la partie
+      // (maxFailuresPerLevel = 2).
+      await watchObjects(tester, MemoryQuestConfig.objectCountForLevel(1));
+      expect(find.text('Restore the STARTING order'), findsOneWidget);
+      await tester.pump(
+        Duration(
+          milliseconds:
+              MemoryQuestConfig.restoreTimeLimitMs(objects.length) + 300,
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 1200));
 
-    expect(find.text('Results'), findsOneWidget);
-    await tester.pumpAndSettle();
-  });
+      expect(find.text('Results'), findsOneWidget);
+      await tester.pumpAndSettle();
+    },
+  );
 
   /// Le temps restant se lisait en texte seul. Les autres mini-jeux (« Je
   /// bouge ») le montrent par une barre qui se vide : c'est la même information,
   /// elle doit se lire de la même façon d'un jeu à l'autre.
-  testWidgets('Images : chaque phase chronométrée montre une barre de temps',
-      (tester) async {
+  testWidgets('Images : chaque phase chronométrée montre une barre de temps', (
+    tester,
+  ) async {
     useLargeSurface(tester);
 
     List<MemoryObject> objects = const [];

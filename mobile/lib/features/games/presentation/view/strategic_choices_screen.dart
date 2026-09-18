@@ -22,6 +22,7 @@ import '../emotional_regulation_session_provider.dart';
 import '../games_providers.dart';
 import '../widgets/emotional_game_pause_dialog.dart';
 import '../widgets/game_system_components.dart';
+import '../widgets/strategic_choices_tutorial.dart';
 
 const _ink = Color(0xFF26224D);
 const _navy = Color(0xFF071333);
@@ -47,11 +48,11 @@ enum _StrategicStage {
 
 enum _ScenarioPhase { reading, reflecting, ready }
 
-/// Situations jouées dans une partie, tirées de la banque des soixante.
+/// Situations jouées dans une partie, tirées de la banque de quatre-vingts.
 ///
-/// La banque du client en compte soixante ; les enchaîner toutes ferait une
-/// séance interminable. Dix par partie conservent la durée annoncée au joueur,
-/// et le tirage change d'une passation à l'autre.
+/// Les enchaîner toutes ferait une séance interminable. Dix par partie
+/// conservent la durée annoncée au joueur, et le tirage change d'une passation
+/// à l'autre.
 const int kStrategicChoicesPerJourney = 10;
 
 /// Parcours « Strategic Choices » relié au moteur Games.
@@ -66,10 +67,18 @@ class StrategicChoicesScreen extends ConsumerStatefulWidget {
     this.reflectionDuration = StrategicChoicesContent.reflectionDuration,
     this.savedTransitionDuration =
         StrategicChoicesContent.savedTransitionDuration,
-  });
+    this.scenariosForTesting,
+  }) : assert(
+         scenariosForTesting == null ||
+             scenariosForTesting.length == kStrategicChoicesPerJourney,
+       );
 
   final Duration reflectionDuration;
   final Duration savedTransitionDuration;
+
+  /// Tirage déterministe réservé aux tests widget.
+  @visibleForTesting
+  final List<StrategicChoiceScenario>? scenariosForTesting;
 
   @override
   ConsumerState<StrategicChoicesScreen> createState() =>
@@ -194,6 +203,7 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
         _serverBreakdown = updated.scoreBreakdown;
         _submitting = false;
       });
+      SoundService.instance.playScoreboard();
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -206,9 +216,11 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
   /// Tire les situations de la partie, sans répétition.
   ///
   /// Un tirage aléatoire plutôt qu'un ordre fixe : jouer toujours les dix
-  /// mêmes fiches sur soixante ferait qu'un joueur repassant l'épreuve
+  /// mêmes fiches ferait qu'un joueur repassant l'épreuve
   /// retrouverait exactement les situations qu'il connaît déjà.
   List<StrategicChoiceScenario> _drawScenarios(StrategicChoicesBank bank) {
+    final override = widget.scenariosForTesting;
+    if (override != null) return List<StrategicChoiceScenario>.of(override);
     final pool = List<StrategicChoiceScenario>.of(bank.scenarios)
       ..shuffle(math.Random());
     return pool.take(kStrategicChoicesPerJourney).toList();
@@ -257,6 +269,8 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
       _scenarioPhase = _ScenarioPhase.reflecting;
       _reflectionRemaining = widget.reflectionDuration;
     });
+    // Premier tic : le compteur de la carte affiche déjà « 3 s ».
+    SoundService.instance.playSfx(GameSfx.timerDecrease);
     _scheduleReflectionTimer();
   }
 
@@ -274,6 +288,7 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
         return;
       }
       final next = _reflectionRemaining - tick;
+      _playReflectionSfx(_reflectionRemaining, next);
       if (next <= Duration.zero) {
         timer.cancel();
         setState(() {
@@ -284,6 +299,18 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
         setState(() => _reflectionRemaining = next);
       }
     });
+  }
+
+  /// Tic à chaque seconde du compteur de réflexion, puis le son de fin quand
+  /// la validation se débloque — synchronisé avec le chiffre affiché.
+  void _playReflectionSfx(Duration previous, Duration next) {
+    int seconds(Duration d) => (math.max(0, d.inMilliseconds) / 1000).ceil();
+    final before = seconds(previous);
+    final after = seconds(next);
+    if (after == before) return;
+    SoundService.instance.playSfx(
+      after == 0 ? GameSfx.timerEnd : GameSfx.timerDecrease,
+    );
   }
 
   void _pauseReflectionTimer() {
@@ -355,6 +382,7 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
   /// seule issue restante — quitter, donc renoncer au score.
   Future<void> _backOrExit() async {
     if (_pauseAllowance.canOpen) return _openPause();
+    SoundService.instance.playSfx(GameSfx.buttonClick);
     if (!await GameExitConfirmDialog.show(context, missionLabel: 'journey')) {
       return;
     }
@@ -373,12 +401,12 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
     if (!afterLifecycle && !reopen) {
       if (!_pauseAllowance.canOpen) return;
       _pauseAllowance.open();
+      SoundService.instance.playSfx(GameSfx.pauseClick);
     }
     _pauseReflectionTimer();
     _pauseOpen = true;
-    final action = await showDialog<EmotionalGamePauseAction>(
-      context: context,
-      barrierDismissible: false,
+    final action = await showGamePauseMenu<EmotionalGamePauseAction>(
+      context,
       builder: (dialogCtx) => EmotionalGamePauseDialog(
         buttonsInput: _buttonsInput,
         onInputMode: (value) => _buttonsInput = value,
@@ -422,41 +450,22 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
 
   Future<void> _showRules() => showDialog<void>(
     context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('Strategic Choices rules'),
-      content: const SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _RuleLine('1', 'Read the complete situation.'),
-            _RuleLine(
-              '2',
-              'Start the 3-second reflection. You may choose while it runs.',
+    builder: (context) => Dialog.fullscreen(
+      backgroundColor: Colors.white,
+      child: SafeArea(
+        child: GameContentFrame(
+          child: StrategicChoicesTutorial(
+            totalSituations: kStrategicChoicesPerJourney,
+            reviewing: true,
+            leading: _SquareIconButton(
+              icon: Icons.chevron_left_rounded,
+              tooltip: 'Back',
+              onTap: () => Navigator.of(context).pop(),
             ),
-            _RuleLine(
-              '3',
-              'Choose exactly one of the eight coping strategies.',
-            ),
-            _RuleLine('4', 'When the countdown ends, validate and continue.'),
-            SizedBox(height: 12),
-            Text(
-              'There is no immediate right/wrong feedback. After 10 answers, '
-              'the server returns the provisional score.',
-              style: TextStyle(color: _muted, height: 1.4),
-            ),
-          ],
+            onComplete: () => Navigator.of(context).pop(),
+          ),
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () {
-            SoundService.instance.playSfx(GameSfx.buttonClick);
-            Navigator.of(context).pop();
-          },
-          child: const Text('Back to mission'),
-        ),
-      ],
     ),
   );
 
@@ -536,6 +545,7 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
                     situationNumber: _situationIndex + 1,
                     phase: _scenarioPhase,
                     reflectionRemaining: _reflectionRemaining,
+                    reflectionTotal: widget.reflectionDuration,
                     selected: _selectedStrategy,
                     onStartReflection: _startReflection,
                     onSelect: _selectStrategy,
@@ -702,7 +712,7 @@ class _CoverView extends StatelessWidget {
               label: '$kStrategicChoicesPerJourney situations',
               color: _blue,
             ),
-            const _FeatureChip(label: 'Vidéo à venir', color: _magenta),
+            const _FeatureChip(label: 'Supports mixtes', color: _magenta),
             const _FeatureChip(label: 'Final insights', color: _green),
           ],
         ),
@@ -740,7 +750,10 @@ class _IntroView extends StatelessWidget {
           // client n'en a aucune : annoncer une taxonomie qui n'existe plus
           // ferait chercher au joueur une structure absente.
           description:
-              'Tirées au hasard dans une banque de 60 situations de travail.',
+              // Sans chiffre : « 60 » avait déjà cessé d'être vrai quand la
+              // banque est passée à 80. Un nombre écrit ici ne suit jamais la
+              // donnée, et il ment à la première extension.
+              'Tirées au hasard dans la banque de situations de travail.',
         ),
         _AccentInfoCard(
           color: _blue,
@@ -753,9 +766,9 @@ class _IntroView extends StatelessWidget {
           description: 'Match the response to what the situation needs.',
         ),
         _NoticePanel(
-          title: 'Text scenarios for now',
+          title: 'Written messages and video scenes',
           description:
-              'The video phase is temporarily represented by the complete written situation. Your learning summary appears only at the end.',
+              'Six situations display the received message verbatim. Video scenes remain readable while their media is being produced.',
         ),
       ],
     );
@@ -769,26 +782,18 @@ class _TutorialView extends StatelessWidget {
   final VoidCallback onStart;
 
   @override
-  Widget build(BuildContext context) {
-    return _PreGamePage(
-      onBack: onBack,
-      title: 'How the mission works',
-      subtitle:
-          'You will complete 10 situations. Read, start the reflection, choose one strategy, then validate.',
-      buttonLabel: 'Start situation',
-      onButton: onStart,
-      children: const [
-        _TutorialGrid(),
-        _NoticePanel(
-          title: 'No immediate correction',
-          description:
-              'There is no immediate right/wrong feedback. After 10 answers, '
-              'the server returns the provisional score.',
-          outlined: true,
-        ),
-      ],
-    );
-  }
+  Widget build(BuildContext context) => StrategicChoicesTutorial(
+    totalSituations: kStrategicChoicesPerJourney,
+    leading: _SquareIconButton(
+      icon: Icons.chevron_left_rounded,
+      tooltip: 'Back',
+      onTap: () {
+        SoundService.instance.playSfx(GameSfx.buttonClick);
+        onBack();
+      },
+    ),
+    onComplete: onStart,
+  );
 }
 
 class _PreGamePage extends StatelessWidget {
@@ -810,90 +815,52 @@ class _PreGamePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(24, 18, 24, 20),
-      children: [
-        _TopBar(onBack: onBack),
-        const SizedBox(height: 16),
-        Text(
-          title,
-          style: const TextStyle(
-            color: _ink,
-            fontSize: 31,
-            height: 1.12,
-            fontWeight: FontWeight.w800,
+    // Aucun défilement : la barre du haut et le bouton gardent leur taille, le
+    // contenu entre les deux se réduit d'un bloc sur un écran court.
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 18, 24, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _TopBar(onBack: onBack),
+          const SizedBox(height: 14),
+          Expanded(
+            child: GameFitToScreen(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: _ink,
+                      fontSize: 29,
+                      height: 1.12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      color: _muted,
+                      fontSize: 15.5,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  for (var i = 0; i < children.length; i++) ...[
+                    if (i > 0) const SizedBox(height: 12),
+                    children[i],
+                  ],
+                ],
+              ),
+            ),
           ),
-        ),
-        const SizedBox(height: 14),
-        Text(
-          subtitle,
-          style: const TextStyle(color: _muted, fontSize: 16, height: 1.45),
-        ),
-        const SizedBox(height: 20),
-        for (final child in children) ...[child, const SizedBox(height: 12)],
-        const SizedBox(height: 8),
-        GamePrimaryButton(label: buttonLabel, onPressed: onButton),
-      ],
-    );
-  }
-}
-
-class _TutorialGrid extends StatelessWidget {
-  const _TutorialGrid();
-
-  @override
-  Widget build(BuildContext context) {
-    final textScale = MediaQuery.textScalerOf(context).scale(1);
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final singleColumn = constraints.maxWidth < 330 || textScale > 1.35;
-        const cards = <Widget>[
-          _TutorialCard(
-            color: _magenta,
-            icon: Icons.article_outlined,
-            title: 'Read',
-            description: 'Read the complete situation.',
-          ),
-          _TutorialCard(
-            color: _blue,
-            icon: Icons.timer_outlined,
-            title: 'Reflect',
-            description:
-                'Start the 3-second countdown. You may choose while it runs.',
-          ),
-          _TutorialCard(
-            color: _green,
-            icon: Icons.checklist_rounded,
-            title: 'Choose',
-            description: 'Pick exactly one of the eight strategies.',
-          ),
-          _TutorialCard(
-            color: _navy,
-            icon: Icons.check_rounded,
-            title: 'Validate',
-            description: 'Validate after the countdown ends.',
-          ),
-        ];
-        if (singleColumn) {
-          return Column(
-            children: [
-              for (final card in cards) ...[
-                card,
-                if (card != cards.last) const SizedBox(height: 10),
-              ],
-            ],
-          );
-        }
-        return GridView.count(
-          crossAxisCount: 2,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          childAspectRatio: 1,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          children: cards,
-        );
-      },
+          const SizedBox(height: 12),
+          GamePrimaryButton(label: buttonLabel, onPressed: onButton),
+        ],
+      ),
     );
   }
 }
@@ -906,6 +873,7 @@ class _GameplayView extends StatelessWidget {
     required this.situationNumber,
     required this.phase,
     required this.reflectionRemaining,
+    required this.reflectionTotal,
     required this.selected,
     required this.onStartReflection,
     required this.onSelect,
@@ -921,6 +889,9 @@ class _GameplayView extends StatelessWidget {
   final int situationNumber;
   final _ScenarioPhase phase;
   final Duration reflectionRemaining;
+
+  /// Durée complète de la réflexion, pour l'anneau du compteur.
+  final Duration reflectionTotal;
   final StrategicChoiceStrategy? selected;
   final VoidCallback onStartReflection;
   final ValueChanged<StrategicChoiceStrategy> onSelect;
@@ -931,12 +902,6 @@ class _GameplayView extends StatelessWidget {
   /// il ne disparaît plus. Voir [GameMenuAffordance].
   final GameMenuAffordance affordance;
 
-  String get _modeLabel => switch (phase) {
-    _ScenarioPhase.reading => 'Read the situation',
-    _ScenarioPhase.reflecting => 'Reflect, then choose',
-    _ScenarioPhase.ready => 'Choose, then save',
-  };
-
   String get _statusLabel => switch (phase) {
     _ScenarioPhase.reading => 'Read first · choices locked',
     _ScenarioPhase.reflecting =>
@@ -946,18 +911,15 @@ class _GameplayView extends StatelessWidget {
     _ScenarioPhase.ready => 'Ready to validate · one strategy selected',
   };
 
-  String get _timerLabel {
-    final seconds = (reflectionRemaining.inMilliseconds / 1000).ceil();
-    return '00:${seconds.clamp(0, 99).toString().padLeft(2, '0')}';
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(24, 16, 18, 0),
-          child: Row(
+    final strategies = StrategicChoicesContent.strategies;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
             children: [
               Expanded(
                 child: Column(
@@ -967,16 +929,21 @@ class _GameplayView extends StatelessWidget {
                       'Situation $situationNumber / $totalSituations',
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 16,
+                        fontSize: 18,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    const SizedBox(height: 3),
+                    const SizedBox(height: 2),
+                    // L'état de la situation remplace l'ancienne bande du bas
+                    // et le sous-titre : une seule ligne, en haut, à la place
+                    // de deux.
                     Text(
-                      _modeLabel,
+                      _statusLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Color(0xFFD8D6FF),
-                        fontSize: 13,
+                        fontSize: 12.5,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -990,316 +957,718 @@ class _GameplayView extends StatelessWidget {
               ),
             ],
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(99),
-            child: LinearProgressIndicator(
-              minHeight: 6,
-              value: situationNumber / totalSituations,
-              color: _magenta,
-              backgroundColor: const Color(0xFF817AEC),
-            ),
+          const SizedBox(height: 12),
+          // Progression sur les SITUATIONS, animée d'une situation à la
+          // suivante. La banque de Choix stratégique ne fixe aucun temps
+          // conseillé : la barre ne peut donc pas suivre un temps, contrairement
+          // au Temps réflexif. Le compteur « Situation n / N » reste à part.
+          _SituationProgress(
+            situationNumber: situationNumber,
+            totalSituations: totalSituations,
           ),
-        ),
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(24, 14, 24, 20),
-            children: [
-              GamePanel(
-                padding: const EdgeInsets.all(16),
-                borderColor: Colors.white,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          const SizedBox(height: 12),
+          // Plateau sur un seul écran, équilibré :
+          // - les stratégies ont la hauteur de leurs huit boutons, rien de plus
+          //   (plus de grand vide blanc sous la grille) ;
+          // - la situation prend tout le reste, et son texte grandit pour
+          //   l'occuper, dans la limite d'une taille confortable. Un texte
+          //   court laisse l'espace entre les deux blocs, pas dans un bloc.
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, box) {
+                const gap = 8.0;
+                const rows = 4;
+                const panelChrome = 2 * 12 + 26 + 10 + (rows - 1) * gap;
+                const blockGap = 16.0;
+                final baseChoiceHeight = (box.maxHeight * 0.085)
+                    .clamp(50.0, 64.0)
+                    .toDouble();
+                final cardMax = math.max(
+                  0.0,
+                  box.maxHeight -
+                      panelChrome -
+                      rows * baseChoiceHeight -
+                      blockGap,
+                );
+                final showVideoFrame = cardMax > 440;
+                // Place réellement prise par la situation, texte à sa taille
+                // la plus grande. Ce qui reste n'est pas laissé en vide : les
+                // boutons de stratégie grandissent pour l'occuper, jusqu'à une
+                // hauteur confortable.
+                final cardNeeded = _SituationCard.estimateHeight(
+                  context,
+                  situation: situation,
+                  width: box.maxWidth,
+                  showVideoFrame: showVideoFrame,
+                );
+                final spare = math.max(0.0, cardMax - cardNeeded);
+                final choiceHeight = math.min(
+                  78.0,
+                  baseChoiceHeight + spare / rows,
+                );
+                final choicesPanel = panelChrome + rows * choiceHeight;
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Row(
-                      children: [
-                        // Le titre de la fiche remplace l'ancienne étiquette
-                        // de catégorie : la banque du client n'en a pas, et en
-                        // inventer une reviendrait à classer les situations à
-                        // la place du psychologue.
-                        Flexible(
-                          child: _FeatureChip(
-                            label: situation.title,
-                            color: _blue,
-                          ),
-                        ),
-                        const Spacer(),
-                        if (phase == _ScenarioPhase.reflecting)
-                          Semantics(
-                            liveRegion: true,
-                            label: 'Reflection time $_timerLabel remaining',
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 7,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF0F5FF),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: _blue),
-                              ),
-                              child: Text(
-                                _timerLabel,
-                                key: const ValueKey(
-                                  'strategic-reflection-timer',
-                                ),
-                                style: const TextStyle(
-                                  color: _blue,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      width: double.infinity,
-                      constraints: const BoxConstraints(minHeight: 154),
-                      padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        color: _navy,
-                        borderRadius: BorderRadius.circular(18),
+                    Flexible(
+                      child: _SituationCard(
+                        situation: situation,
+                        phase: phase,
+                        reflectionRemaining: reflectionRemaining,
+                        reflectionTotal: reflectionTotal,
+                        // L'illustration vidéo n'apparaît que si le texte de
+                        // la scène garde une place confortable à côté.
+                        showVideoFrame: showVideoFrame,
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                situation.medium ==
-                                        StrategicChoiceMedium.written
-                                    ? Icons.chat_bubble_outline_rounded
-                                    : Icons.videocam_outlined,
-                                size: 16,
-                                color: const Color(0xFFB8F3D6),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                situation.medium ==
-                                        StrategicChoiceMedium.written
-                                    ? 'MESSAGE REÇU'
-                                    : 'SCÈNE EN FACE À FACE',
-                                style: const TextStyle(
-                                  color: Color(0xFFB8F3D6),
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
-                          // Emplacement du média, tant que la banque vidéo
-                          // n'est pas livrée — même parti pris que le radar et
-                          // le Temps Réflexif. La description de scène tient
-                          // lieu de situation jouable en attendant ; sans
-                          // elle, il n'y aurait rien à lire.
-                          if (situation.medium == StrategicChoiceMedium.video)
-                            Semantics(
-                              label: 'Emplacement de la vidéo, non disponible',
-                              child: Container(
-                                width: double.infinity,
-                                height: 96,
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.06),
-                                  borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(
-                                    color: Colors.white.withValues(alpha: 0.18),
-                                  ),
-                                ),
-                                child: const Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.movie_outlined,
-                                      color: _muted,
-                                      size: 26,
-                                    ),
-                                    SizedBox(height: 6),
-                                    Text(
-                                      'Vidéo à venir',
+                    ),
+                    const SizedBox(height: blockGap),
+                    SizedBox(
+                      height: choicesPanel,
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            SizedBox(
+                              height: 26,
+                              child: Row(
+                                children: [
+                                  const Expanded(
+                                    child: Text(
+                                      'Choose one strategy',
                                       style: TextStyle(
-                                        color: _muted,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w700,
+                                        color: _ink,
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.w800,
                                       ),
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                  Text(
+                                    phase == _ScenarioPhase.reading
+                                        ? 'Locked'
+                                        : phase == _ScenarioPhase.reflecting
+                                        ? 'Timer must finish'
+                                        : 'One choice',
+                                    style: const TextStyle(
+                                      color: _muted,
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          const SizedBox(height: 14),
-                          Text(
-                            situation.scene,
-                            key: const ValueKey('strategic-situation-prompt'),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              height: 1.35,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      phase == _ScenarioPhase.reading
-                          ? 'Take a moment to read the complete situation.'
-                          : 'Take a moment before responding.',
-                      style: const TextStyle(
-                        color: _muted,
-                        fontSize: 13,
-                        height: 1.35,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 14),
-              GamePanel(
-                padding: const EdgeInsets.all(12),
-                borderColor: Colors.white,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Expanded(
-                          child: Text(
-                            'Choose one strategy',
-                            style: TextStyle(
-                              color: _ink,
-                              fontSize: 17,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                        Text(
-                          phase == _ScenarioPhase.reading
-                              ? 'Locked'
-                              : phase == _ScenarioPhase.reflecting
-                              ? 'Timer must finish'
-                              : 'One choice',
-                          style: const TextStyle(
-                            color: _muted,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        final textScale = MediaQuery.textScalerOf(
-                          context,
-                        ).scale(1);
-                        final oneColumn =
-                            constraints.maxWidth < 300 || textScale > 1.35;
-                        if (oneColumn) {
-                          return Column(
-                            children: [
-                              for (final strategy
-                                  in StrategicChoicesContent.strategies) ...[
-                                _StrategyCard(
-                                  strategy: strategy,
-                                  enabled: phase != _ScenarioPhase.reading,
-                                  selected: selected == strategy,
-                                  onTap: () => onSelect(strategy),
-                                ),
-                                if (strategy !=
-                                    StrategicChoicesContent.strategies.last)
-                                  const SizedBox(height: 8),
-                              ],
-                            ],
-                          );
-                        }
-                        return Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            for (final strategy
-                                in StrategicChoicesContent.strategies)
-                              SizedBox(
-                                width: (constraints.maxWidth - 8) / 2,
-                                child: _StrategyCard(
-                                  strategy: strategy,
-                                  enabled: phase != _ScenarioPhase.reading,
-                                  selected: selected == strategy,
-                                  onTap: () => onSelect(strategy),
-                                ),
+                            const SizedBox(height: 10),
+                            Expanded(
+                              child: LayoutBuilder(
+                                builder: (context, area) {
+                                  final cellWidth = (area.maxWidth - gap) / 2;
+                                  // Une seule taille de police pour les huit
+                                  // stratégies : celle à laquelle la plus
+                                  // longue tient dans sa case.
+                                  final fontSize = AutoFitText.fontSizeFor(
+                                    context,
+                                    texts: [
+                                      for (final strategy in strategies)
+                                        strategy.label,
+                                    ],
+                                    style: StrategicChoiceCard.textStyle,
+                                    textAlign: TextAlign.start,
+                                    minFontSize: 11,
+                                    constraints: BoxConstraints(
+                                      maxWidth: math.max(
+                                        0,
+                                        cellWidth -
+                                            StrategicChoiceCard.horizontalInset,
+                                      ),
+                                      maxHeight: math.max(
+                                        0,
+                                        choiceHeight -
+                                            StrategicChoiceCard.verticalInset,
+                                      ),
+                                    ),
+                                  );
+                                  return Column(
+                                    children: [
+                                      for (var r = 0; r < rows; r++) ...[
+                                        if (r > 0) const SizedBox(height: gap),
+                                        SizedBox(
+                                          height: choiceHeight,
+                                          child: Row(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.stretch,
+                                            children: [
+                                              for (var c = 0; c < 2; c++) ...[
+                                                if (c > 0)
+                                                  const SizedBox(width: gap),
+                                                Expanded(
+                                                  child: StrategicChoiceCard(
+                                                    strategy:
+                                                        strategies[r * 2 + c],
+                                                    fontSize: fontSize,
+                                                    enabled:
+                                                        phase !=
+                                                        _ScenarioPhase.reading,
+                                                    selected:
+                                                        selected ==
+                                                        strategies[r * 2 + c],
+                                                    onTap: () => onSelect(
+                                                      strategies[r * 2 + c],
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  );
+                                },
                               ),
+                            ),
                           ],
-                        );
-                      },
+                        ),
+                      ),
                     ),
                   ],
-                ),
-              ),
-              const SizedBox(height: 10),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 9,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(99),
-                ),
-                child: Text(
-                  _statusLabel,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: _blue,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-            ],
+                );
+              },
+            ),
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(24, 8, 24, 18),
-          child: phase == _ScenarioPhase.reading
-              ? GamePrimaryButton(
-                  key: const ValueKey('strategic-start-reflection'),
-                  label: 'Start reflection',
-                  onPressed: onStartReflection,
-                )
-              : GamePrimaryButton(
-                  key: const ValueKey('strategic-validate'),
-                  label: 'Validate my answer',
-                  onPressed: phase == _ScenarioPhase.ready && selected != null
-                      ? onValidate
-                      : null,
-                ),
-        ),
-      ],
+          const SizedBox(height: 12),
+          if (phase == _ScenarioPhase.reading)
+            GamePrimaryButton(
+              key: const ValueKey('strategic-start-reflection'),
+              label: 'Start reflection',
+              onPressed: onStartReflection,
+            )
+          else
+            GamePrimaryButton(
+              key: const ValueKey('strategic-validate'),
+              label: 'Validate my answer',
+              onPressed: phase == _ScenarioPhase.ready && selected != null
+                  ? onValidate
+                  : null,
+            ),
+        ],
+      ),
     );
   }
 }
 
-class _StrategyCard extends StatelessWidget {
-  const _StrategyCard({
+/// Barre de progression des situations, animée de l'une à la suivante.
+class _SituationProgress extends StatelessWidget {
+  const _SituationProgress({
+    required this.situationNumber,
+    required this.totalSituations,
+  });
+
+  final int situationNumber;
+  final int totalSituations;
+
+  @override
+  Widget build(BuildContext context) {
+    final target = totalSituations == 0
+        ? 0.0
+        : situationNumber / totalSituations;
+    final from = totalSituations == 0
+        ? 0.0
+        : (situationNumber - 1) / totalSituations;
+    return Semantics(
+      label: 'Progress',
+      value: 'Situation $situationNumber of $totalSituations',
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: from, end: target),
+        duration: const Duration(milliseconds: 450),
+        curve: Curves.easeOutCubic,
+        builder: (context, value, _) => ClipRRect(
+          borderRadius: BorderRadius.circular(99),
+          child: LinearProgressIndicator(
+            key: const ValueKey('strategic-progress'),
+            minHeight: 7,
+            value: value,
+            color: _magenta,
+            backgroundColor: Colors.white24,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Carte de la situation : titre, compteur de réflexion, puis la scène.
+///
+/// Elle épouse la hauteur de son texte — aucun espace vide — et ne se réduit
+/// que si ce texte dépasse la place laissée aux stratégies.
+class _SituationCard extends StatelessWidget {
+  const _SituationCard({
+    required this.situation,
+    required this.phase,
+    required this.reflectionRemaining,
+    required this.reflectionTotal,
+    required this.showVideoFrame,
+  });
+
+  final StrategicChoiceScenario situation;
+  final _ScenarioPhase phase;
+  final Duration reflectionRemaining;
+  final Duration reflectionTotal;
+  final bool showVideoFrame;
+
+  bool get _written => situation.medium == StrategicChoiceMedium.written;
+
+  /// Hauteur de la carte quand le texte de la scène est à sa taille maximale.
+  ///
+  /// Mesurée avec les mêmes styles que le rendu, pour que le plateau sache
+  /// d'avance combien de place la situation laisse aux stratégies.
+  static double estimateHeight(
+    BuildContext context, {
+    required StrategicChoiceScenario situation,
+    required double width,
+    required bool showVideoFrame,
+  }) {
+    final scaler = MediaQuery.textScalerOf(context);
+    double measure(String text, TextStyle style, double maxWidth) {
+      final painter = TextPainter(
+        text: TextSpan(text: text, style: style),
+        textDirection: TextDirection.ltr,
+        textScaler: scaler,
+      )..layout(maxWidth: math.max(1, maxWidth));
+      final height = painter.height;
+      painter.dispose();
+      return height;
+    }
+
+    const cardPadding = 14 + 16.0;
+    const chipRow = 30 + 14.0;
+    final inner = width - 32;
+    var height = cardPadding + chipRow;
+    final message = situation.message;
+    if (situation.medium == StrategicChoiceMedium.written && message != null) {
+      // Encadré : marges, étiquette, espace, marges et bordure de la bulle.
+      height +=
+          2 * 10 +
+          20 +
+          8 +
+          2 * 10 +
+          2 +
+          measure(message, _messageStyle, inner - 2 * 10 - 2 * 12 - 2) +
+          14;
+    }
+    if (situation.medium == StrategicChoiceMedium.video && showVideoFrame) {
+      height += 90 + 14;
+    }
+    return height +
+        _SceneText.heightFor(
+          context,
+          situation.scene,
+          _SceneText._maxSize,
+          inner,
+        );
+  }
+
+  static const TextStyle _messageStyle = TextStyle(
+    color: _ink,
+    fontSize: 16.5,
+    height: 1.45,
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Bandeau d'en-tête sur UNE ligne : support et titre de la fiche
+          // dans la pastille, compteur de réflexion à droite.
+          Row(
+            children: [
+              // Le titre de la fiche remplace l'ancienne étiquette de
+              // catégorie : la banque du client n'en a pas, et en inventer
+              // une reviendrait à classer les situations à la place du
+              // psychologue.
+              Flexible(
+                child: _SituationTitleChip(
+                  title: situation.title,
+                  icon: _written
+                      ? Icons.chat_bubble_outline_rounded
+                      : Icons.videocam_outlined,
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Hauteur fixe : l'apparition du compteur ne décale rien.
+              SizedBox(
+                height: 30,
+                child: phase == _ScenarioPhase.reflecting
+                    ? _ReflectionCountdown(
+                        remaining: reflectionRemaining,
+                        total: reflectionTotal,
+                      )
+                    : null,
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          // Support écrit : le message s'affiche tel quel, dans sa bulle,
+          // sur fond clair. Le fond noir est réservé à l'illustration
+          // provisoire des vidéos.
+          if (_written && situation.message != null) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: _surface,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: _border),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(
+                        Icons.chat_bubble_outline_rounded,
+                        size: 14,
+                        color: _magenta,
+                      ),
+                      SizedBox(width: 6),
+                      Text(
+                        'MESSAGE REÇU',
+                        style: TextStyle(
+                          color: _magenta,
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    key: const ValueKey('strategic-written-message'),
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(4),
+                        topRight: Radius.circular(14),
+                        bottomLeft: Radius.circular(14),
+                        bottomRight: Radius.circular(14),
+                      ),
+                      border: Border.all(color: _border),
+                    ),
+                    child: Text(situation.message!, style: _messageStyle),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+          ],
+          // Illustration provisoire de la vidéo, tant que la banque n'est pas
+          // livrée : SEUL élément sur fond noir. Il cède la place aux
+          // stratégies sur un écran court ; la description de scène tient
+          // lieu de situation.
+          if (situation.medium == StrategicChoiceMedium.video &&
+              showVideoFrame) ...[
+            Semantics(
+              key: const ValueKey('strategic-video-placeholder'),
+              label: 'Emplacement de la vidéo, non disponible',
+              child: Container(
+                width: double.infinity,
+                height: 90,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: _navy,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.movie_outlined,
+                      color: Color(0xFFB8F3D6),
+                      size: 26,
+                    ),
+                    SizedBox(height: 6),
+                    Text(
+                      'Vidéo à venir',
+                      style: TextStyle(
+                        color: Color(0xFFC9D3EA),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
+          Flexible(child: _SceneText(text: situation.scene)),
+        ],
+      ),
+    );
+  }
+}
+
+/// Texte de la scène, mis en forme pour se lire d'un coup d'œil.
+///
+/// La banque livre chaque scène en un seul bloc de deux à quatre phrases.
+/// Affiché tel quel, c'était un pavé dense et uniforme. On le découpe donc en
+/// phrases, une par paragraphe :
+///
+/// - les phrases de **contexte**, en graisse normale et teinte douce ;
+/// - la phrase de **décision** — la dernière, « Le personnage doit décider… »
+///   — détachée et en gras : c'est elle qui pose la question.
+///
+/// La taille reste mesurée (17 pt au plus) et ne descend que si la scène ne
+/// tient pas ; au-delà, le bloc se réduit d'un tenant plutôt que d'être coupé.
+class _SceneText extends StatelessWidget {
+  const _SceneText({required this.text});
+
+  final String text;
+
+  static const double _maxSize = 17;
+  static const double _minSize = 14;
+  static const double _paragraphGap = 10;
+
+  static const Color _contextColor = Color(0xFF4A5372);
+
+  /// Coupe après une ponctuation finale suivie d'une majuscule : les
+  /// abréviations et les parenthèses internes de la banque ne sont pas coupées.
+  static final RegExp _sentenceBreak = RegExp(r'(?<=[.!?…])\s+(?=[A-ZÀ-ÝÉÈ«])');
+
+  static List<String> sentencesOf(String text) => [
+    for (final part in text.trim().split(_sentenceBreak))
+      if (part.trim().isNotEmpty) part.trim(),
+  ];
+
+  static TextStyle contextStyle(double size) => TextStyle(
+    color: _contextColor,
+    fontSize: size,
+    height: 1.45,
+    fontWeight: FontWeight.w400,
+  );
+
+  static TextStyle decisionStyle(double size) => TextStyle(
+    color: _ink,
+    fontSize: size,
+    height: 1.4,
+    fontWeight: FontWeight.w700,
+  );
+
+  /// Hauteur du texte mis en forme à la taille [size], sur [width].
+  static double heightFor(
+    BuildContext context,
+    String text,
+    double size,
+    double width,
+  ) {
+    final scaler = MediaQuery.textScalerOf(context);
+    final sentences = sentencesOf(text);
+    var height = 0.0;
+    for (var i = 0; i < sentences.length; i++) {
+      final last = i == sentences.length - 1 && sentences.length > 1;
+      final painter = TextPainter(
+        text: TextSpan(
+          text: sentences[i],
+          style: last ? decisionStyle(size) : contextStyle(size),
+        ),
+        textDirection: TextDirection.ltr,
+        textScaler: scaler,
+      )..layout(maxWidth: math.max(1, width));
+      height += painter.height + (i > 0 ? _paragraphGap : 0);
+      painter.dispose();
+    }
+    return height;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, box) {
+        var size = _maxSize;
+        if (box.hasBoundedWidth && box.hasBoundedHeight) {
+          while (size > _minSize &&
+              heightFor(context, text, size, box.maxWidth) > box.maxHeight) {
+            size -= 0.5;
+          }
+        }
+        final sentences = sentencesOf(text);
+        final paragraphs = Column(
+          key: const ValueKey('strategic-situation-prompt'),
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (var i = 0; i < sentences.length; i++) ...[
+              if (i > 0) const SizedBox(height: _paragraphGap),
+              Text(
+                sentences[i],
+                style: i == sentences.length - 1 && sentences.length > 1
+                    ? decisionStyle(size)
+                    : contextStyle(size),
+              ),
+            ],
+          ],
+        );
+        if (!box.hasBoundedWidth) return paragraphs;
+        return FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.topLeft,
+          child: SizedBox(width: box.maxWidth, child: paragraphs),
+        );
+      },
+    );
+  }
+}
+
+/// Pastille arrondie du titre de la situation, sur une seule ligne.
+///
+/// Le titre ne passe plus à la ligne : un titre long rétrécit juste assez pour
+/// tenir, sans être tronqué.
+class _SituationTitleChip extends StatelessWidget {
+  const _SituationTitleChip({required this.title, required this.icon});
+
+  final String title;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(99),
+        border: Border.all(color: _blue),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: _blue),
+          const SizedBox(width: 6),
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                title,
+                maxLines: 1,
+                softWrap: false,
+                style: const TextStyle(
+                  color: _blue,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Petit compteur des secondes de réflexion, dans la carte de la situation.
+class _ReflectionCountdown extends StatelessWidget {
+  const _ReflectionCountdown({required this.remaining, required this.total});
+
+  final Duration remaining;
+  final Duration total;
+
+  @override
+  Widget build(BuildContext context) {
+    final seconds = (remaining.inMilliseconds / 1000).ceil().clamp(0, 99);
+    final ratio = total.inMilliseconds <= 0
+        ? 0.0
+        : (remaining.inMilliseconds / total.inMilliseconds).clamp(0.0, 1.0);
+    final label = '00:${seconds.toString().padLeft(2, '0')}';
+    return Semantics(
+      liveRegion: true,
+      label: 'Reflection time $label remaining',
+      excludeSemantics: true,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(4, 3, 10, 3),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF0F5FF),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(
+                value: ratio.toDouble(),
+                strokeWidth: 3,
+                backgroundColor: const Color(0x332563EB),
+                color: _blue,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              '$seconds s',
+              key: const ValueKey('strategic-reflection-timer'),
+              style: const TextStyle(
+                color: _blue,
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Icône de stratégie conservée, état de sélection/verrouillage en badge séparé.
+/// PROVISOIRE — à valider visuellement sur appareil (GAMES_MODULE, décision 72).
+class StrategicChoiceCard extends StatelessWidget {
+  const StrategicChoiceCard({
+    super.key,
     required this.strategy,
     required this.enabled,
     required this.selected,
     required this.onTap,
+    this.fontSize,
   });
 
   final StrategicChoiceStrategy strategy;
   final bool enabled;
   final bool selected;
   final VoidCallback onTap;
+
+  /// Taille commune imposée par le plateau.
+  final double? fontSize;
+
+  static const TextStyle textStyle = TextStyle(
+    fontSize: 15.5,
+    height: 1.2,
+    fontWeight: FontWeight.w700,
+  );
+
+  /// Largeur non disponible pour le libellé : marges, bordure, pastille et
+  /// espace. Le cadenas vit DANS la pastille : à droite, il volait au libellé
+  /// la largeur qui lui manquait sur un petit écran.
+  static const double horizontalInset = 2 * (8 + 2) + 28 + 8;
+
+  /// Hauteur non disponible pour le libellé : marges et bordure.
+  static const double verticalInset = 2 * (4 + 2);
 
   @override
   Widget build(BuildContext context) {
@@ -1317,16 +1686,20 @@ class _StrategyCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         child: InkWell(
           key: ValueKey('strategic-choice-${strategy.name}'),
-          onTap: enabled ? onTap : null,
+          onTap: enabled
+              ? () {
+                  SoundService.instance.playSfx(GameSfx.buttonClick);
+                  onTap();
+                }
+              : null,
           borderRadius: BorderRadius.circular(14),
           child: Container(
-            constraints: const BoxConstraints(minHeight: 54),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
                 color: selected ? _magenta : _border,
-                width: selected ? 2 : 1,
+                width: 2,
               ),
             ),
             child: Row(
@@ -1343,30 +1716,63 @@ class _StrategyCard extends StatelessWidget {
                     shape: BoxShape.circle,
                     border: Border.all(color: selected ? _magenta : _border),
                   ),
-                  child: Icon(
-                    selected ? Icons.check_rounded : strategy.icon,
-                    size: 16,
-                    color: selected
-                        ? Colors.white
-                        : enabled
-                        ? _magenta
-                        : _muted,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    alignment: Alignment.center,
+                    children: [
+                      Icon(
+                        strategy.icon,
+                        key: ValueKey('strategic-icon-${strategy.name}'),
+                        size: 18,
+                        color: selected
+                            ? Colors.white
+                            : enabled
+                            ? _magenta
+                            : _muted,
+                      ),
+                      if (selected || !enabled)
+                        Positioned(
+                          right: -3,
+                          bottom: -3,
+                          child: ExcludeSemantics(
+                            child: Container(
+                              width: 14,
+                              height: 14,
+                              decoration: BoxDecoration(
+                                color: selected ? _magenta : Colors.white,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white),
+                              ),
+                              child: Icon(
+                                selected
+                                    ? Icons.check_rounded
+                                    : Icons.lock_outline,
+                                size: 10,
+                                color: selected ? Colors.white : _muted,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
                 const SizedBox(width: 8),
+                // Hauteur fixée par le plateau : le libellé s'y ajuste au
+                // lieu de déborder ou d'être coupé.
                 Expanded(
-                  child: Text(
-                    strategy.label,
-                    style: TextStyle(
-                      color: enabled ? _ink : _muted,
-                      fontSize: 13,
-                      height: 1.05,
-                      fontWeight: FontWeight.w700,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: AutoFitText(
+                      strategy.label,
+                      minFontSize: 10,
+                      textAlign: TextAlign.start,
+                      style: textStyle.copyWith(
+                        color: enabled ? _ink : _muted,
+                        fontSize: fontSize ?? textStyle.fontSize,
+                      ),
                     ),
                   ),
                 ),
-                if (!enabled)
-                  const Icon(Icons.lock_outline, size: 16, color: _muted),
               ],
             ),
           ),
@@ -1435,6 +1841,13 @@ class _SavedView extends StatelessWidget {
   }
 }
 
+/// « Final summary » de Strategic Choices, d'après la maquette client.
+///
+/// Rien n'est recalculé ici : le score global est celui du serveur ramené sur
+/// 100, et les trois mesures du profil sont lues dans les lignes du barème
+/// serveur (`scoreBreakdown`). La maquette annonçait « Adaptive choice /
+/// Emotional flexibility / Inhibition capacity » : aucun barème ne les calcule,
+/// l'écran montre donc les mesures qui existent réellement, sous leur vrai nom.
 class _ResultsView extends StatelessWidget {
   const _ResultsView({
     super.key,
@@ -1460,180 +1873,427 @@ class _ResultsView extends StatelessWidget {
   final VoidCallback onBack;
   final VoidCallback onInsights;
 
+  /// Part « x/n » d'une ligne du barème serveur, en %. `null` si absente.
+  double? _share(String label) {
+    for (final line in breakdown) {
+      if (line.label != label) continue;
+      final match = RegExp(r'(\d+)\s*/\s*(\d+)').firstMatch(line.detail ?? '');
+      if (match == null) return null;
+      final total = int.parse(match.group(2)!);
+      if (total == 0) return null;
+      return int.parse(match.group(1)!) * 100 / total;
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(24, 18, 24, 24),
+    final serverScore = score;
+    final failed = errorMessage != null;
+    final global = serverScore == null || serverScore.maxPoints == 0
+        ? null
+        : (serverScore.rawPoints * 100 / serverScore.maxPoints).round();
+    final dysfunctional = _share('Dysfonctionnel');
+    final profile = [
+      (
+        letter: 'O',
+        tile: 'Optimal\nchoices',
+        bar: 'Optimal strategy choices',
+        value: _share('Stratégie optimale retenue'),
+        color: _green,
+      ),
+      (
+        letter: 'P',
+        tile: 'Problem-\nfocused',
+        bar: 'Problem-focused coping',
+        value: _share('Centré problème'),
+        color: _magenta,
+      ),
+      (
+        letter: 'N',
+        tile: 'Non-\ndysfunctional',
+        bar: 'Non-dysfunctional coping',
+        value: dysfunctional == null ? null : 100 - dysfunctional,
+        color: _violet,
+      ),
+    ];
+    return Column(
       children: [
-        _TopBar(onBack: onBack),
-        const SizedBox(height: 14),
-        const Text(
-          'Final summary',
-          style: TextStyle(
-            color: _ink,
-            fontSize: 31,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          score == null
-              ? 'Votre parcours est terminé. Le score est calculé par le serveur.'
-              : 'Chaque situation cote ses huit stratégies de 0 à 3 ; '
-                    'le serveur additionne les cotations que vous avez retenues.',
-          style: const TextStyle(color: _muted, fontSize: 16, height: 1.45),
-        ),
-        const SizedBox(height: 14),
-        Container(
-          padding: const EdgeInsets.all(22),
-          decoration: BoxDecoration(
-            color: _navy,
-            borderRadius: BorderRadius.circular(22),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Journey completion',
-                style: TextStyle(
-                  color: Color(0xFFC9D3EA),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                alignment: WrapAlignment.spaceBetween,
-                crossAxisAlignment: WrapCrossAlignment.end,
-                spacing: 16,
-                runSpacing: 8,
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 18, 24, 8),
+            // Un seul écran : sur un téléphone court, le bloc se réduit au lieu
+            // de défiler.
+            child: GameFitToScreen(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    // Le score du serveur prend la place du décompte dès qu'il
-                    // arrive ; avant, le décompte dit au moins où en est la
-                    // partie.
-                    score == null
-                        ? '$answerCount / $kStrategicChoicesPerJourney'
-                        : '${score!.rawPoints} / ${score!.maxPoints}',
-                    key: const ValueKey('strategic-answer-count'),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 40,
+                  _TopBar(onBack: onBack),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Final summary',
+                    style: TextStyle(
+                      color: _ink,
+                      fontSize: 34,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 8,
+                  const SizedBox(height: 8),
+                  Text(
+                    'A coaching report based on your choices across '
+                    '$answerCount situations.',
+                    style: const TextStyle(
+                      color: _muted,
+                      fontSize: 16,
+                      height: 1.4,
                     ),
-                    decoration: BoxDecoration(
-                      color: _magenta,
-                      borderRadius: BorderRadius.circular(99),
+                  ),
+                  const SizedBox(height: 18),
+                  _GlobalScoreCard(
+                    percent: global,
+                    level: serverScore?.level,
+                    submitting: submitting,
+                  ),
+                  const SizedBox(height: 26),
+                  const Text(
+                    'Learning profile',
+                    style: TextStyle(
+                      color: _ink,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
                     ),
-                    child: Text(
-                      score?.level ?? 'Calcul…',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                      ),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      for (var i = 0; i < profile.length; i++) ...[
+                        if (i > 0) const SizedBox(width: 12),
+                        Expanded(
+                          child: _ProfileTile(
+                            letter: profile[i].letter,
+                            label: profile[i].tile,
+                            percent: profile[i].value,
+                            color: profile[i].color,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 22),
+                  for (final measure in profile)
+                    _ProfileBar(
+                      label: measure.bar,
+                      percent: measure.value,
+                      color: measure.color,
+                    ),
+                  const SizedBox(height: 4),
+                  Text(
+                    failed
+                        // Un échec de remontée ne doit pas se lire comme un
+                        // score nul : on le nomme, et on propose de renvoyer.
+                        ? 'Score non calculé — $errorMessage'
+                        : 'Barème PROVISOIRE : reconstruit par inférence à '
+                              'partir des titres, sans visionnage des vidéos. '
+                              'À valider par le psychologue.',
+                    key: failed
+                        ? const ValueKey('strategic-submit-error')
+                        : null,
+                    style: TextStyle(
+                      color: failed ? ZennytGamePalette.error : _muted,
+                      fontSize: 12.5,
+                      height: 1.4,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              if (errorMessage != null) ...[
-                Text(
-                  // Un échec de remontée ne doit pas se lire comme un score
-                  // nul : on le nomme, et on propose de renvoyer la même partie.
-                  'Score non calculé — $errorMessage',
-                  key: const ValueKey('strategic-submit-error'),
-                  style: const TextStyle(
-                    color: Color(0xFFFFC9D8),
-                    fontSize: 13,
-                    height: 1.4,
-                  ),
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 18),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (failed) ...[
+                GameOutlineButton(
+                  label: 'Renvoyer le résultat',
+                  onPressed: submitting ? null : () => onRetry(),
                 ),
                 const SizedBox(height: 10),
-                TextButton(
-                  onPressed: submitting ? null : () => onRetry(),
-                  child: const Text(
-                    'Renvoyer le résultat',
-                    style: TextStyle(color: Colors.white, fontSize: 14),
-                  ),
-                ),
-              ] else
-                Text(
-                  submitting
-                      ? 'Calcul du score en cours…'
-                      : 'Barème PROVISOIRE : reconstruit par inférence à partir '
-                            'des titres, sans visionnage des vidéos. À valider '
-                            'par le psychologue.',
-                  style: const TextStyle(
-                    color: Color(0xFFC9D3EA),
-                    fontSize: 13,
-                    height: 1.4,
-                  ),
-                ),
+              ],
+              GamePrimaryButton(
+                label: 'See detailed insights',
+                onPressed: onInsights,
+              ),
             ],
           ),
         ),
-        const SizedBox(height: 26),
-        const Text(
-          'Learning profile',
-          style: TextStyle(
-            color: _ink,
-            fontSize: 19,
-            fontWeight: FontWeight.w800,
-          ),
+      ],
+    );
+  }
+}
+
+class _GlobalScoreCard extends StatelessWidget {
+  const _GlobalScoreCard({
+    required this.percent,
+    required this.level,
+    required this.submitting,
+  });
+
+  final int? percent;
+
+  /// Niveau serveur, calculé sur l'indice corrigé du hasard.
+  final String? level;
+  final bool submitting;
+
+  /// Libellés courts du niveau serveur, pour la pastille et sa légende.
+  static ({String badge, String pattern})? _labels(String? level) =>
+      switch (level) {
+        'Highly adaptive strategies' => (
+          badge: 'Advanced',
+          pattern: 'Strong adaptive coping pattern',
         ),
-        const SizedBox(height: 12),
-        const Row(
-          children: [
-            Expanded(
-              child: _PendingMetricTile(
-                color: _green,
-                letter: 'A',
-                label: 'Adaptive\nchoice',
-              ),
+        'Adaptive strategies' => (
+          badge: 'Intermediate',
+          pattern: 'Adaptive coping pattern',
+        ),
+        'Reactive strategies' => (
+          badge: 'Developing',
+          pattern: 'Reactive coping pattern',
+        ),
+        null => null,
+        final other => (badge: other, pattern: ''),
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    const scoreStyle = TextStyle(
+      color: _ink,
+      fontSize: 50,
+      height: 1.05,
+      fontWeight: FontWeight.w800,
+    );
+    final labels = _labels(level);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 22, 24, 20),
+      // Fond blanc, texte sombre : le score se lit sans l'effet « trou
+      // noir » de l'ancienne carte.
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: _border),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x14071333),
+            blurRadius: 18,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Global score',
+            style: TextStyle(
+              color: _muted,
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
             ),
-            SizedBox(width: 10),
-            Expanded(
-              child: _PendingMetricTile(
-                color: _magenta,
-                letter: 'F',
-                label: 'Emotional\nflexibility',
-              ),
+          ),
+          const SizedBox(height: 6),
+          if (percent == null)
+            Text(
+              submitting ? 'Calcul…' : '—',
+              key: const ValueKey('strategic-answer-count'),
+              style: scoreStyle,
+            )
+          else
+            AnimatedCountText(
+              value: percent!,
+              suffix: ' / 100',
+              textKey: const ValueKey('strategic-answer-count'),
+              onCompleted: SoundService.instance.stopScoreboard,
+              style: scoreStyle,
             ),
-            SizedBox(width: 10),
-            Expanded(
-              child: _PendingMetricTile(
-                color: _violet,
-                letter: 'I',
-                label: 'Inhibition\ncapacity',
-              ),
+          if (labels != null) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 22,
+                    vertical: 9,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _magenta,
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                  child: Text(
+                    labels.badge,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    labels.pattern,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: _ink,
+                      fontSize: 14,
+                      height: 1.35,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
-        ),
-        const SizedBox(height: 22),
-        const _PendingMetricBar(
-          label: 'Adaptive choice capacity',
-          color: _green,
-        ),
-        const SizedBox(height: 14),
-        const _PendingMetricBar(
-          label: 'Emotional flexibility',
-          color: _magenta,
-        ),
-        const SizedBox(height: 14),
-        const _PendingMetricBar(label: 'Inhibition capacity', color: _violet),
-        const SizedBox(height: 28),
-        GamePrimaryButton(
-          label: 'See detailed insights',
-          onPressed: onInsights,
-        ),
-      ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileTile extends StatelessWidget {
+  const _ProfileTile({
+    required this.letter,
+    required this.label,
+    required this.percent,
+    required this.color,
+  });
+
+  final String letter;
+  final String label;
+  final double? percent;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(8, 16, 8, 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _border),
+      ),
+      child: Column(
+        children: [
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 28,
+                  height: 28,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: color, width: 1.5),
+                  ),
+                  child: Text(
+                    letter,
+                    style: TextStyle(
+                      color: color,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  percent == null ? '—' : '${percent!.round()}%',
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: _ink,
+              fontSize: 13.5,
+              height: 1.25,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileBar extends StatelessWidget {
+  const _ProfileBar({
+    required this.label,
+    required this.percent,
+    required this.color,
+  });
+
+  final String label;
+  final double? percent;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final target = ((percent ?? 0) / 100).clamp(0.0, 1.0).toDouble();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    color: _ink,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Text(
+                percent == null ? '—' : '${percent!.round()}%',
+                style: TextStyle(
+                  color: color,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(99),
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: target),
+              duration: const Duration(milliseconds: 900),
+              curve: Curves.easeOutCubic,
+              builder: (context, fill, _) => LinearProgressIndicator(
+                value: fill,
+                minHeight: 9,
+                backgroundColor: _border,
+                color: color,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1700,7 +2360,7 @@ class _InsightsView extends StatelessWidget {
           color: _magenta,
           title: 'Trap tendencies',
           description:
-              'No trap label is shown in this preview. These interpretations will remain hidden until calibration is approved.',
+              'No trap label is shown. These interpretations remain hidden until calibration is approved.',
         ),
         const SizedBox(height: 12),
         const _InsightCard(
@@ -1728,7 +2388,10 @@ class _TopBar extends StatelessWidget {
         _SquareIconButton(
           icon: Icons.chevron_left_rounded,
           tooltip: 'Back',
-          onTap: onBack,
+          onTap: () {
+            SoundService.instance.playSfx(GameSfx.buttonClick);
+            onBack();
+          },
         ),
         const SizedBox(width: 12),
         const Expanded(
@@ -1920,28 +2583,23 @@ class _AccentInfoCard extends StatelessWidget {
 }
 
 class _NoticePanel extends StatelessWidget {
-  const _NoticePanel({
-    required this.title,
-    required this.description,
-    this.outlined = false,
-  });
+  const _NoticePanel({required this.title, required this.description});
 
   final String title;
   final String description;
-  final bool outlined;
 
   @override
   Widget build(BuildContext context) {
     return GamePanel(
-      backgroundColor: outlined ? _surface : _violet,
-      borderColor: outlined ? _magenta : _violet,
+      backgroundColor: _violet,
+      borderColor: _violet,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
             style: TextStyle(
-              color: outlined ? _magenta : Colors.white,
+              color: Colors.white,
               fontSize: 15,
               fontWeight: FontWeight.w800,
             ),
@@ -1950,174 +2608,13 @@ class _NoticePanel extends StatelessWidget {
           Text(
             description,
             style: TextStyle(
-              color: outlined ? _ink : const Color(0xFFE7E5FF),
+              color: const Color(0xFFE7E5FF),
               fontSize: 13,
               height: 1.4,
             ),
           ),
         ],
       ),
-    );
-  }
-}
-
-class _TutorialCard extends StatelessWidget {
-  const _TutorialCard({
-    required this.color,
-    required this.icon,
-    required this.title,
-    required this.description,
-  });
-
-  final Color color;
-  final IconData icon;
-  final String title;
-  final String description;
-
-  @override
-  Widget build(BuildContext context) {
-    return GamePanel(
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-            child: Icon(icon, color: Colors.white, size: 19),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            title,
-            style: const TextStyle(
-              color: _ink,
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            description,
-            style: const TextStyle(color: _muted, fontSize: 12, height: 1.3),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PendingMetricTile extends StatelessWidget {
-  const _PendingMetricTile({
-    required this.color,
-    required this.letter,
-    required this.label,
-  });
-
-  final Color color;
-  final String letter;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return GamePanel(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
-      child: Column(
-        children: [
-          Container(
-            width: 24,
-            height: 24,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: color),
-            ),
-            child: Text(
-              letter,
-              style: TextStyle(
-                color: color,
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-          const SizedBox(height: 9),
-          const Text(
-            'Pending',
-            style: TextStyle(
-              color: _muted,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: _ink,
-              fontSize: 12,
-              height: 1.2,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PendingMetricBar extends StatelessWidget {
-  const _PendingMetricBar({required this.label, required this.color});
-
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                label,
-                style: const TextStyle(
-                  color: _ink,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-            const Text(
-              'Barème provisoire',
-              style: TextStyle(
-                color: _muted,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Container(
-          height: 8,
-          decoration: BoxDecoration(
-            color: _border,
-            borderRadius: BorderRadius.circular(99),
-          ),
-          alignment: Alignment.centerLeft,
-          child: Container(
-            width: 18,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.35),
-              borderRadius: BorderRadius.circular(99),
-            ),
-          ),
-        ),
-      ],
     );
   }
 }
@@ -2186,52 +2683,9 @@ class _InsightCard extends StatelessWidget {
   }
 }
 
-class _RuleLine extends StatelessWidget {
-  const _RuleLine(this.number, this.label);
-
-  final String number;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 26,
-            height: 26,
-            alignment: Alignment.center,
-            decoration: const BoxDecoration(
-              color: _magenta,
-              shape: BoxShape.circle,
-            ),
-            child: Text(
-              number,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              label,
-              style: const TextStyle(color: _ink, fontSize: 14, height: 1.4),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 extension _StrategicChoiceStrategyVisual on StrategicChoiceStrategy {
   IconData get icon => switch (this) {
-    StrategicChoiceStrategy.avoidFlee => Icons.arrow_forward_rounded,
+    StrategicChoiceStrategy.avoidFlee => Icons.directions_run_rounded,
     StrategicChoiceStrategy.ruminate => Icons.sync_rounded,
     StrategicChoiceStrategy.breathePause => Icons.air_rounded,
     StrategicChoiceStrategy.cognitiveReappraisal =>
@@ -2240,6 +2694,6 @@ extension _StrategicChoiceStrategyVisual on StrategicChoiceStrategy {
       Icons.chat_bubble_outline_rounded,
     StrategicChoiceStrategy.humor => Icons.sentiment_satisfied_alt_rounded,
     StrategicChoiceStrategy.seekSupport => Icons.people_outline_rounded,
-    StrategicChoiceStrategy.directAction => Icons.open_in_full_rounded,
+    StrategicChoiceStrategy.directAction => Icons.touch_app_rounded,
   };
 }

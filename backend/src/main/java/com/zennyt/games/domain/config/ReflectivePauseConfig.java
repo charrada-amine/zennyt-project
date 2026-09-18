@@ -118,7 +118,31 @@ public final class ReflectivePauseConfig {
             Map.entry("TR-059", Set.of(ReflectivePauseResponseType.REFORMULATE_CALMLY)),
             Map.entry("TR-060", Set.of(
                 ReflectivePauseResponseType.BREATHE_ANALYZE,
-                ReflectivePauseResponseType.ASK_FOR_MORE_INFORMATION)));
+                ReflectivePauseResponseType.ASK_FOR_MORE_INFORMATION)),
+            Map.entry("TR-101", Set.of(ReflectivePauseResponseType.REFORMULATE_CALMLY)),
+            Map.entry("TR-102", Set.of(ReflectivePauseResponseType.BREATHE_ANALYZE)),
+            Map.entry("TR-103", Set.of(ReflectivePauseResponseType.ASK_FOR_MORE_INFORMATION)),
+            Map.entry("TR-104", Set.of(ReflectivePauseResponseType.ASK_FOR_MORE_INFORMATION)),
+            Map.entry("TR-105", Set.of(ReflectivePauseResponseType.BREATHE_ANALYZE)),
+            Map.entry("TR-106", Set.of(ReflectivePauseResponseType.ASK_FOR_MORE_INFORMATION)),
+            Map.entry("TR-107", Set.of(ReflectivePauseResponseType.REFORMULATE_CALMLY)),
+            Map.entry("TR-108", Set.of(ReflectivePauseResponseType.REFORMULATE_CALMLY)),
+            Map.entry("TR-109", Set.of(ReflectivePauseResponseType.BREATHE_ANALYZE)),
+            Map.entry("TR-110", Set.of(ReflectivePauseResponseType.ASK_FOR_MORE_INFORMATION)),
+            Map.entry("TR-111", Set.of(ReflectivePauseResponseType.ASK_FOR_MORE_INFORMATION)),
+            Map.entry("TR-112", Set.of(ReflectivePauseResponseType.ASK_FOR_MORE_INFORMATION)),
+            Map.entry("TR-113", Set.of(ReflectivePauseResponseType.REFORMULATE_CALMLY)),
+            Map.entry("TR-114", Set.of(ReflectivePauseResponseType.REFORMULATE_CALMLY)),
+            Map.entry("TR-115", Set.of(ReflectivePauseResponseType.ASK_FOR_MORE_INFORMATION)),
+            Map.entry("TR-116", Set.of(ReflectivePauseResponseType.BREATHE_ANALYZE)),
+            Map.entry("TR-117", Set.of(ReflectivePauseResponseType.REFORMULATE_CALMLY)),
+            Map.entry("TR-118", Set.of(ReflectivePauseResponseType.ASK_FOR_MORE_INFORMATION)),
+            Map.entry("TR-119", Set.of(ReflectivePauseResponseType.WAIT)),
+            Map.entry("TR-120", Set.of(ReflectivePauseResponseType.REFORMULATE_CALMLY)),
+            Map.entry("TR-121", Set.of(ReflectivePauseResponseType.BREATHE_ANALYZE)),
+            Map.entry("TR-122", Set.of(ReflectivePauseResponseType.WAIT)),
+            Map.entry("TR-123", Set.of(ReflectivePauseResponseType.ASK_FOR_MORE_INFORMATION)),
+            Map.entry("TR-124", Set.of(ReflectivePauseResponseType.BREATHE_ANALYZE)));
 
     public static Set<String> momentIds() {
         return RECOMMENDED.keySet();

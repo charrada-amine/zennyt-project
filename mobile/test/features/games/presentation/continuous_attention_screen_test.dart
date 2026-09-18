@@ -150,13 +150,16 @@ void main() {
         ),
         ContinuousAttentionConfig.totalTrials,
       );
-      expect(find.text('Journey complete'), findsOneWidget);
+      // Écran de score commun (référence « Je Bouge ») : score en %, points
+      // du barème en légende, trois tuiles, Replay + Insights.
+      expect(find.text('Je continue completed'), findsOneWidget);
       expect(find.byKey(const ValueKey('continuous-result-score')), findsOne);
-      expect(find.text('84'), findsOneWidget);
+      expect(find.text('84%'), findsOneWidget);
       expect(find.text('Provisional accuracy'), findsOneWidget);
+      expect(find.text('Replay'), findsOneWidget);
       expect(tester.takeException(), isNull);
 
-      await tester.tap(find.text('View descriptive insights'));
+      await tester.tap(find.text('Insights'));
       await tester.pumpAndSettle();
       expect(find.text('Descriptive insights'), findsOneWidget);
       await tester.scrollUntilVisible(
@@ -257,7 +260,7 @@ void main() {
     expect(tester.takeException(), isNull);
 
     await finishAcceleratedJourney(tester);
-    expect(find.text('Journey complete'), findsOneWidget);
+    expect(find.text('Je continue completed'), findsOneWidget);
     expect(find.byKey(const ValueKey('continuous-result-score')), findsOne);
     expect(tester.takeException(), isNull);
   });
@@ -291,7 +294,7 @@ void main() {
     await tester.tap(find.text('Start final round'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Journey complete'), findsOneWidget);
+    expect(find.text('Je continue completed'), findsOneWidget);
     expect(repository.startCallCount, 1);
     expect(repository.submitCallCount, 2);
     expect(

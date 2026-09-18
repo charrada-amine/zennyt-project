@@ -27,7 +27,7 @@ public interface StrategicChoicesCatalog {
      *
      * <p>C'est la ligne de base contre laquelle le score se lit. Sans elle, un
      * 15/30 passerait pour « la moitié », alors que le hasard rapporte déjà
-     * 38 % du maximum sur cette banque.
+     * 40 % du maximum sur cette banque.
      */
     double chanceBaseline(String situationId);
 

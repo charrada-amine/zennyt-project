@@ -1,0 +1,37 @@
+{
+  "generator": "image_gen.imagegen (built-in)",
+  "date": "2026-09-17",
+  "usage": "Pedagogical tutorial illustrations; no situations, recommended reactions or grading keys.",
+  "assets": [
+    {
+      "key": "Discover",
+      "file": "assets/games icons/Reflective Pause Tutorial Discover.png",
+      "prompt": "Use case: stylized-concept. Create one production tutorial illustration for the Zennyt Reflective Pause mobile game. Genuinely transparent RGBA PNG background. Match the previous Emotional Radar tutorial: playful refined rounded 2.5D objects, broad simple shapes, navy contours, restrained soft highlights, compact centered square composition taking 80% of canvas with generous transparent margins. Palette off-white #F6F8FF, navy #26224D, royal violet #4E46E8, magenta #D12E7D, sparing cyan #00A9D6. No enclosing tile, no background, no ground plane or large cast shadow, no text, letters, numbers, watermark, logo or checkerboard. Legible at 200px. One illustration only, no sheet. A violet video tablet with an off-white screen and simple neutral navy person silhouette inside, with one small magenta play triangle on the bezel; beside it one separate off-white message bubble with three short violet abstract strokes (not writing). Group these two objects as alternative formats for discovering a pressure situation: video OR written message. No alarm or angry face, no suggested response.",
+      "source": "/Users/mac/.codex/generated_images/01a0aa2c-ebf7-7672-b112-1adbca2f4207/exec-3e69a6d1-2450-4d17-91af-2afbaabaf5b7.png"
+    },
+    {
+      "key": "Wait",
+      "file": "assets/games icons/Reflective Pause Tutorial Wait.png",
+      "prompt": "Use case: stylized-concept. Create one production tutorial illustration for the Zennyt Reflective Pause mobile game. Genuinely transparent RGBA PNG background. Match the previous Emotional Radar tutorial: playful refined rounded 2.5D objects, broad simple shapes, navy contours, restrained soft highlights, compact centered square composition taking 80% of canvas with generous transparent margins. Palette off-white #F6F8FF, navy #26224D, royal violet #4E46E8, magenta #D12E7D, sparing cyan #00A9D6. No enclosing tile, no background, no ground plane or large cast shadow, no text, letters, numbers, watermark, logo or checkerboard. Legible at 200px. One illustration only, no sheet. A round navy and violet countdown timer with off-white unnumbered dial and partial magenta arc, next to a small CLOSED navy padlock with magenta keyhole. Exactly one timer, one closed lock. Indicates response options are temporarily locked until the reflection countdown ends. Do not show an unlocked lock or a racing timer. No green checkmark, no numerals.",
+      "source": "/Users/mac/.codex/generated_images/01a0aa2c-ebf7-7672-b112-1adbca2f4207/exec-f4bcc610-6947-476b-a325-81b55fa6cd70.png"
+    },
+    {
+      "key": "Choose",
+      "file": "assets/games icons/Reflective Pause Tutorial Choose.png",
+      "prompt": "Use case: stylized-concept. Create one production tutorial illustration for the Zennyt Reflective Pause mobile game. Genuinely transparent RGBA PNG background. Match the previous Emotional Radar tutorial: playful refined rounded 2.5D objects, broad simple shapes, navy contours, restrained soft highlights, compact centered square composition taking 80% of canvas with generous transparent margins. Palette off-white #F6F8FF, navy #26224D, royal violet #4E46E8, magenta #D12E7D, sparing cyan #00A9D6. No enclosing tile, no background, no ground plane or large cast shadow, no text, letters, numbers, watermark, logo or checkerboard. Legible at 200px. One illustration only, no sheet. Exactly five slim softly rounded off-white horizontal answer cards stacked vertically like a mobile answer list, each with one violet radio circle on the left and two violet abstract strokes (not writing). Exactly one card has a magenta outline and filled magenta radio circle; a small violet pointing hand near that card indicates selecting one natural response. No checkmarks, no right/wrong symbols, no emotional faces or prescribed good response.",
+      "source": "/Users/mac/.codex/generated_images/01a0aa2c-ebf7-7672-b112-1adbca2f4207/exec-23090185-5128-47ed-9674-963ea31f55f1.png"
+    },
+    {
+      "key": "Validate",
+      "file": "assets/games icons/Reflective Pause Tutorial Validate.png",
+      "prompt": "Use case: stylized-concept. Create one production tutorial illustration for the Zennyt Reflective Pause mobile game. Genuinely transparent RGBA PNG background. Match the previous Emotional Radar tutorial: playful refined rounded 2.5D objects, broad simple shapes, navy contours, restrained soft highlights, compact centered square composition taking 80% of canvas with generous transparent margins. Palette off-white #F6F8FF, navy #26224D, royal violet #4E46E8, magenta #D12E7D, sparing cyan #00A9D6. No enclosing tile, no background, no ground plane or large cast shadow, no text, letters, numbers, watermark, logo or checkerboard. Legible at 200px. One illustration only, no sheet. One off-white small document holding one magenta selected radio circle and two violet abstract strokes (not writing), moving via one single curved violet arrow into a navy tray with a magenta down arrow motif. Communicates SAVING a selected answer then proceeding, not grading it. No checkmark, trophy, green color, red cross or correct/incorrect symbolism.",
+      "source": "/Users/mac/.codex/generated_images/01a0aa2c-ebf7-7672-b112-1adbca2f4207/exec-c3c991a7-8589-49ad-ac68-bd60505d2a5c.png"
+    },
+    {
+      "key": "Review",
+      "file": "assets/games icons/Reflective Pause Tutorial Review.png",
+      "prompt": "Use case: stylized-concept. Create one production tutorial illustration for the Zennyt Reflective Pause mobile game. Genuinely transparent RGBA PNG background. Match the previous Emotional Radar tutorial: playful refined rounded 2.5D objects, broad simple shapes, navy contours, restrained soft highlights, compact centered square composition taking 80% of canvas with generous transparent margins. Palette off-white #F6F8FF, navy #26224D, royal violet #4E46E8, magenta #D12E7D, sparing cyan #00A9D6. No enclosing tile, no background, no ground plane or large cast shadow, no text, letters, numbers, watermark, logo or checkerboard. Legible at 200px. One illustration only, no sheet. One off-white compact dashboard with navy shallow rounded border, exactly three simple violet bars of different heights with small magenta dots above them, alongside one small navy magnifying glass. Represents reviewing an overall response pattern after the whole journey. No score numbers, no stars, trophy, medal, correct/wrong ticks or clinical diagnosis. Single grouped object illustration.",
+      "source": "/Users/mac/.codex/generated_images/01a0aa2c-ebf7-7672-b112-1adbca2f4207/exec-00e7882a-82fb-4b36-9bd5-51abfa39b740.png"
+    }
+  ]
+}

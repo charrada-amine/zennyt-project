@@ -137,14 +137,17 @@ class ReflectivePauseScoringTest {
     }
 
     @Test
-    @DisplayName("Le catalogue porte les 60 situations de la banque client")
-    void catalogHoldsTheSixtySituations() {
+    @DisplayName("Le catalogue porte les 84 situations des deux banques")
+    void catalogHoldsBothBanks() {
         // La table était écrite à la main sur dix moments inventés
         // (PRESSURE_01 à PRESSURE_10). Ces identifiants n'existent plus côté
         // écran, et un identifiant inconnu fait LEVER le domaine : une partie
         // jouée sur la vraie banque échouait à l'enregistrement.
-        assertThat(ReflectivePauseConfig.momentIds()).hasSize(60);
-        assertThat(ReflectivePauseConfig.momentIds()).contains("TR-001", "TR-060");
+        // 60 fiches du client + 24 situations de la proposition validée,
+        // calquée sur le STEM. Les identifiants sont disjoints.
+        assertThat(ReflectivePauseConfig.momentIds()).hasSize(84);
+        assertThat(ReflectivePauseConfig.momentIds())
+            .contains("TR-001", "TR-060", "TR-101", "TR-124");
 
         assertThatThrownBy(() -> new ReflectivePauseMomentMetric(
             "PRESSURE_01",

@@ -222,11 +222,16 @@ class DayStackUniverse {
     required this.id,
     required this.name,
     required this.tasks,
+    this.mission = '',
   });
 
   final String id;
   final String name;
   final List<DayStackTask> tasks;
+
+  /// Mission affichée en haut du plateau : ce que le joueur doit accomplir
+  /// dans CET univers, en une phrase courte. Vide si la banque n'en fournit pas.
+  final String mission;
 
   /// Nombre réel de contraintes horaires de cet univers.
   ///
@@ -243,6 +248,7 @@ class DayStackUniverse {
       DayStackUniverse(
         id: json['id'] as String,
         name: json['name'] as String,
+        mission: (json['mission'] as String?)?.trim() ?? '',
         tasks: List.unmodifiable(
           (json['tasks'] as List<dynamic>).map(
             (t) => DayStackTask.fromJson(t as Map<String, dynamic>),

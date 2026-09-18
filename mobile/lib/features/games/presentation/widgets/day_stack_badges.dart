@@ -29,6 +29,8 @@ library;
 
 import 'package:flutter/material.dart';
 
+import 'day_stack_emotes.dart';
+
 /// Couleur de badge d'une famille de tâches.
 ///
 /// Choisies assez sombres pour qu'une icône BLANCHE y ressorte, et assez
@@ -39,11 +41,15 @@ const Map<String, Color> kDayStackCategoryColors = {
   'Santé & sécurité': Color(0xFFD4353F), // rouge — soins, sécurité
   'Repas & pause': Color(0xFFB4651A), // ambre foncé — pauses, repas
   'Achats & commandes': Color(0xFF7A3FBF), // violet — achats, réservations
-  'Réception & transport': Color(0xFF0F6E8C), // bleu canard — livraisons, trajets
+  'Réception & transport': Color(
+    0xFF0F6E8C,
+  ), // bleu canard — livraisons, trajets
   'Stock & contrôle': Color(0xFF1F6F4A), // vert profond — inventaire, contrôle
   'Production & réalisation': Color(0xFF2A4FB8), // bleu — fabrication, montage
   'Documents & rapports': Color(0xFF4A5468), // ardoise — dossiers, plans
-  'Communication & coordination': Color(0xFFB03070), // magenta — réunions, appels
+  'Communication & coordination': Color(
+    0xFFB03070,
+  ), // magenta — réunions, appels
 };
 
 /// Couleur de repli pour une famille inconnue.
@@ -117,9 +123,14 @@ Color dayStackCategoryColor(String? category) =>
 IconData dayStackIcon(String? tablerName) =>
     kDayStackTablerToMaterial[tablerName] ?? Icons.circle_outlined;
 
-/// Badge carré arrondi d'une tâche.
+/// Badge d'une tâche.
 ///
-/// Dimensions et style repris des recommandations visuelles du référentiel :
+/// Avec [universeId] et [taskId], le badge montre l'emote illustrée de la
+/// tâche ([dayStackEmoteAssetPath]) : un PNG transparent qui porte son propre
+/// contour, sans carré coloré autour. Sans identité, ou si l'image ne se
+/// charge pas, il retombe sur le carré historique.
+///
+/// Carré historique repris des recommandations visuelles du référentiel :
 /// coin ~10 px, icône monochrome centrée, aucun dégradé, trait fin. Le texte de
 /// la tâche garde sa teinte neutre — la couleur ne sert qu'au badge.
 class DayStackTaskBadge extends StatelessWidget {
@@ -128,6 +139,9 @@ class DayStackTaskBadge extends StatelessWidget {
     required this.category,
     required this.icon,
     this.compact = false,
+    this.universeId,
+    this.taskId,
+    this.emoteSize,
   });
 
   final String? category;
@@ -136,26 +150,66 @@ class DayStackTaskBadge extends StatelessWidget {
   final String? icon;
 
   /// Version resserrée — 28 px au lieu de 38, icône 16 au lieu de 20.
+  /// Une emote compacte occupe [kDayStackEmoteCompactSize].
   final bool compact;
+
+  /// Univers de la tâche : les identifiants ne sont uniques que par univers.
+  final String? universeId;
+
+  /// Identifiant de tâche de la banque, jamais le libellé tiré.
+  final String? taskId;
+
+  /// Taille illustrée optionnelle, par exemple pour les schémas du tutoriel.
+  /// Sans valeur, les dimensions du calendrier et du badge historique restent
+  /// inchangées.
+  final double? emoteSize;
 
   @override
   Widget build(BuildContext context) {
-    final size = compact ? 28.0 : 38.0;
     final glyph = compact ? 16.0 : 20.0;
+    final emote = dayStackEmoteAssetPath(
+      universeId: universeId,
+      taskId: taskId,
+    );
+    final Widget child;
+    if (emote == null) {
+      child = _tile(compact ? 28.0 : 38.0, glyph);
+    } else {
+      final size =
+          emoteSize ??
+          (compact ? kDayStackEmoteCompactSize : kDayStackEmoteSize);
+      final ratio =
+          MediaQuery.maybeDevicePixelRatioOf(context) ??
+          View.of(context).devicePixelRatio;
+      child = Image.asset(
+        emote,
+        width: size,
+        height: size,
+        fit: BoxFit.contain,
+        cacheWidth: dayStackEmoteCacheWidth(size, ratio),
+        // Décorative : la catégorie est annoncée par le badge, le titre par
+        // la carte.
+        excludeFromSemantics: true,
+        // Même boîte que l'emote : un échec de chargement ne décale rien.
+        errorBuilder: (_, _, _) => _tile(size, glyph),
+      );
+    }
     return Semantics(
       // La catégorie est déjà portée par la couleur, qui n'est pas lisible par
       // un lecteur d'écran : on la dit.
       label: category,
-      child: Container(
-        width: size,
-        height: size,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: dayStackCategoryColor(category),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Icon(dayStackIcon(icon), size: glyph, color: Colors.white),
-      ),
+      child: child,
     );
   }
+
+  Widget _tile(double size, double glyph) => Container(
+    width: size,
+    height: size,
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      color: dayStackCategoryColor(category),
+      borderRadius: BorderRadius.circular(10),
+    ),
+    child: Icon(dayStackIcon(icon), size: glyph, color: Colors.white),
+  );
 }

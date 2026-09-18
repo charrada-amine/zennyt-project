@@ -25,7 +25,8 @@ void main() {
     List<String>? ids,
   }) {
     final situations =
-        ids ?? [for (var i = 1; i <= 10; i++) 'CS-${i.toString().padLeft(3, '0')}'];
+        ids ??
+        [for (var i = 1; i <= 10; i++) 'CS-${i.toString().padLeft(3, '0')}'];
     return StrategicChoicesMetrics(
       answers: [
         for (final id in situations)
@@ -39,19 +40,22 @@ void main() {
     );
   }
 
-  test('ruminer ne rapporte rien : 0/30 et dix réponses contre-productives', () {
-    final report = strategicChoicesReport(
-      journeyOf(StrategicChoiceStrategy.ruminate),
-      bank,
-    );
+  test(
+    'ruminer ne rapporte rien : 0/30 et dix réponses contre-productives',
+    () {
+      final report = strategicChoicesReport(
+        journeyOf(StrategicChoiceStrategy.ruminate),
+        bank,
+      );
 
-    expect(report.rawPoints, 0);
-    expect(report.maxPoints, 30);
-    expect(report.counterProductiveChoices, 10);
-    expect(report.optimalChoices, 0);
-    expect(report.level, 'Reactive strategies');
-    expect(report.chanceCorrectedPercent, 0);
-  });
+      expect(report.rawPoints, 0);
+      expect(report.maxPoints, 30);
+      expect(report.counterProductiveChoices, 10);
+      expect(report.optimalChoices, 0);
+      expect(report.level, 'Reactive strategies');
+      expect(report.chanceCorrectedPercent, 0);
+    },
+  );
 
   test('le maximum suit le nombre de situations jouées', () {
     expect(strategicChoicesMaxPoints(10), 30);
@@ -60,7 +64,7 @@ void main() {
 
   test('une stratégie constante se voit au nombre de stratégies mobilisées', () {
     // Aucun seuil de score ne peut trahir une partie menée avec un seul
-    // libellé : « Assertive communication » vaut 3 dans 23 fiches sur 60, donc
+    // libellé : « Assertive communication » vaut 3 dans 28 fiches sur 80, donc
     // un tirage favorable donne le maximum sans rien lire. C'est ce compteur
     // qui le dit.
     final report = strategicChoicesReport(
@@ -94,7 +98,7 @@ void main() {
     expect(strategicChoicesInterpret(0), 'Reactive strategies');
   });
 
-  test('le hasard vaut 0 sur l\'indice corrigé, pas 38 % comme en brut', () {
+  test('le hasard vaut 0 sur l\'indice corrigé, pas ~40 % comme en brut', () {
     final report = strategicChoicesReport(
       journeyOf(StrategicChoiceStrategy.breathePause),
       bank,

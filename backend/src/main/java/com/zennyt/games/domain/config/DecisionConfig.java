@@ -9,11 +9,13 @@ import java.util.Optional;
 import java.util.OptionalInt;
 
 /**
- * Configuration <b>MOTEUR</b> de « Je Décide » — <b>définitive</b>, issue de la
+ * Configuration <b>MOTEUR</b> de « Je Décide » — règles restantes issues de la
  * fiche « JE DÉCIDE ». Java pur, sans Spring.
  *
- * <p>Ce fichier ne contient QUE des valeurs fournies par la fiche : structure du
- * test, agrégation /18 → /90, mécanique de la règle DT, multiplicateurs
+ * <p>Exception produit autorisée le 2026-09-17 : retrait II, 24 items et quatre dimensions.
+ * Le barème des items restants est inchangé.
+ * <p>Les autres valeurs sont fournies par la fiche : structure du
+ * test, agrégation active /18 → /72, mécanique de la règle DT, multiplicateurs
  * linguistiques <b>fournis</b> (en/fr/de) et imputation. Il ne code <b>aucune</b>
  * valeur provisoire : celles-ci vivent exclusivement dans
  * {@link com.zennyt.games.domain.config.DecisionProvisionalRules}, et le moteur les
@@ -24,16 +26,18 @@ public final class DecisionConfig {
     private DecisionConfig() {
     }
 
+    // PROVISOIRE — retrait II confirmé le 2026-09-17 ; validation psychologue à obtenir.
+    // Parité : mobile/lib/features/games/domain/config/decision_config.dart.
     // ── Structure du test (fiche) ────────────────────────────────────────────
 
-    /** {@code capabilities_count} — 5 dimensions (II, ER, DT, CS, RE). */
-    public static final int CAPABILITIES_COUNT = 5;
+    /** {@code capabilities_count} — 4 dimensions actives (ER, DT, CS, RE) — retrait II autorisé le 2026-09-17. */
+    public static final int CAPABILITIES_COUNT = 4;
 
     /** {@code items_per_dimension} — 6 items par dimension. */
     public static final int ITEMS_PER_DIMENSION = 6;
 
-    /** {@code total_items} — 30 items notés (hors entraînement). */
-    public static final int TOTAL_ITEMS = 30;
+    /** {@code total_items} — 24 items notés (hors entraînement). */
+    public static final int TOTAL_ITEMS = CAPABILITIES_COUNT * ITEMS_PER_DIMENSION;
 
     /** {@code item_score_scale} — chaque item est noté sur 0..3. */
     public static final int ITEM_SCORE_MIN = 0;
@@ -96,8 +100,8 @@ public final class DecisionConfig {
     /** Score maximum d'une dimension (6 items × 3). */
     public static final int DIMENSION_MAX = ITEMS_PER_DIMENSION * ITEM_SCORE_MAX; // 18
 
-    /** Score brut maximum (5 dimensions × 18). */
-    public static final int RAW_MAX = CAPABILITIES_COUNT * DIMENSION_MAX; // 90
+    /** Score brut maximum (4 dimensions × 18). */
+    public static final int RAW_MAX = CAPABILITIES_COUNT * DIMENSION_MAX; // 72
 
     // ── Règle DT (fiche — seule dimension dont le score dépend du temps) ──────
 
@@ -186,6 +190,6 @@ public final class DecisionConfig {
 
     /** Dimensions attendues (ordre stable). */
     public static List<DecisionDimension> dimensions() {
-        return List.of(DecisionDimension.values());
+        return List.of(DecisionDimension.ER, DecisionDimension.DT, DecisionDimension.CS, DecisionDimension.RE);
     }
 }

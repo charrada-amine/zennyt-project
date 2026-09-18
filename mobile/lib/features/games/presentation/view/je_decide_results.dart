@@ -7,6 +7,7 @@ import '../../../../core/audio/sound_service.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../domain/entities/game_session.dart';
 import '../../domain/entities/score_breakdown.dart';
+import '../widgets/game_results_template.dart';
 import '../widgets/game_system_components.dart';
 
 const _ink = Color(0xFF28234F);
@@ -47,7 +48,7 @@ class DecisionProfile {
   /// Construit le profil à partir de la session soumise.
   ///
   /// Le détail par dimension est lu dans `scoreBreakdown` : une ligne critère par
-  /// dimension (II/ER/DT/CS/RE), notée /18. Une dimension non exploitable
+  /// dimension active (ER/DT/CS/RE), notée /18. Une dimension non exploitable
   /// (> 2 items manquants) arrive en ligne `info` et vaut 0 %.
   factory DecisionProfile.fromSession(GameSession session) {
     final score = session.lastAttempt?.score;
@@ -76,10 +77,9 @@ class DecisionProfile {
     );
   }
 
-  static const _dimensionOrder = ['II', 'ER', 'DT', 'CS', 'RE'];
+  static const _dimensionOrder = ['ER', 'DT', 'CS', 'RE'];
 
   static const _dimensionLabels = {
-    'II': 'Analytical Thinking',
     'ER': 'Risk Balance',
     'DT': 'Quick Choice',
     'CS': 'Decision Stability',
@@ -87,7 +87,6 @@ class DecisionProfile {
   };
 
   static const _dimensionShortLabels = {
-    'II': 'Analytical',
     'ER': 'Risk',
     'DT': 'Quick',
     'CS': 'Stability',
@@ -95,14 +94,19 @@ class DecisionProfile {
   };
 
   static const _dimensionDescriptions = {
-    'II': 'How you identify and compare the constraints of a situation before choosing.',
     'ER': 'How you weigh a guaranteed outcome against an uncertain one.',
     'DT': 'How you decide when time is limited.',
     'CS': 'How stable your choices stay across equivalent situations.',
     'RE': 'How you weigh an immediate reward against a larger delayed one.',
   };
 
-  static const shortLabels = ['Analytical', 'Risk', 'Quick', 'Stability', 'Control'];
+  static const shortLabels = [
+    'Analytical',
+    'Risk',
+    'Quick',
+    'Stability',
+    'Control',
+  ];
 }
 
 /// Résultat d'UNE dimension.
@@ -133,8 +137,9 @@ class DecisionDimensionResult {
 
   bool get exploitable => points != null;
 
-  int get percent =>
-      points == null || maxPoints == 0 ? 0 : (points! * 100 / maxPoints).round();
+  int get percent => points == null || maxPoints == 0
+      ? 0
+      : (points! * 100 / maxPoints).round();
 }
 
 enum DecisionResultsStep {
@@ -194,9 +199,16 @@ class _DecisionResultsFlowState extends State<DecisionResultsFlow> {
   /// Joue le son attaché à l'entrée dans [step], quel que soit le chemin
   /// emprunté pour y arriver (navigation interne ou pas d'entrée initial).
   void _announce(DecisionResultsStep step) {
+    // La dernière catégorie mène directement à la fin du parcours.
+    if (step == DecisionResultsStep.journeyComplete) {
+      SoundService.instance.playSfx(GameSfx.badgeUnlocked);
+    }
     // Révélation du profil = déverrouillage du badge de niveau.
     if (step == DecisionResultsStep.profile) {
       SoundService.instance.playSfx(GameSfx.badgeUnlocked);
+      // Même entrée que les autres écrans de score : le tableau sonne pendant
+      // le comptage.
+      SoundService.instance.playScoreboard();
     }
   }
 
@@ -209,13 +221,16 @@ class _DecisionResultsFlowState extends State<DecisionResultsFlow> {
       child: SafeArea(
         child: Column(
           children: [
-            _ResultsHeader(
-              eyebrow: _step == DecisionResultsStep.journeyComplete
-                  ? 'Decision Journey'
-                  : 'Your decision profile',
-              title: _title,
-              onClose: widget.onClose,
-            ),
+            // Le profil suit le modèle commun des écrans de résultats, qui porte
+            // son propre bouton retour : l'en-tête ferait doublon.
+            if (_step != DecisionResultsStep.profile)
+              _ResultsHeader(
+                eyebrow: _step == DecisionResultsStep.journeyComplete
+                    ? 'Decision Journey'
+                    : 'Your decision profile',
+                title: _title,
+                onClose: widget.onClose,
+              ),
             Expanded(
               child: AnimatedSwitcher(
                 duration: reduceMotion
@@ -223,10 +238,12 @@ class _DecisionResultsFlowState extends State<DecisionResultsFlow> {
                     : const Duration(milliseconds: 250),
                 child: KeyedSubtree(
                   key: ValueKey(_step),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 18),
-                    child: _buildStep(),
-                  ),
+                  child: _step == DecisionResultsStep.profile
+                      ? _buildStep()
+                      : Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 8, 20, 18),
+                          child: _buildStep(),
+                        ),
                 ),
               ),
             ),
@@ -257,6 +274,9 @@ class _DecisionResultsFlowState extends State<DecisionResultsFlow> {
     ),
     DecisionResultsStep.profile => _ProfileView(
       profile: widget.profile,
+      answered: widget.answered,
+      totalItems: widget.totalItems,
+      onClose: widget.onClose,
       onInsights: () => _go(DecisionResultsStep.details),
       onShare: () => _go(DecisionResultsStep.export),
     ),
@@ -457,80 +477,72 @@ class _PreparingProfileViewState extends State<_PreparingProfileView> {
 class _ProfileView extends StatelessWidget {
   const _ProfileView({
     required this.profile,
+    required this.answered,
+    required this.totalItems,
+    required this.onClose,
     required this.onInsights,
     required this.onShare,
   });
 
   final DecisionProfile profile;
+  final int answered;
+  final int totalItems;
+  final VoidCallback onClose;
 
   final VoidCallback onInsights;
   final VoidCallback onShare;
 
+  /// Dimension exploitable la mieux notée — lue dans le détail serveur.
+  DecisionDimensionResult? get _strongest {
+    DecisionDimensionResult? best;
+    for (final d in profile.dimensions) {
+      if (!d.exploitable) continue;
+      if (best == null || d.percent > best.percent) best = d;
+    }
+    return best;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return _ScrollableResult(
-      children: [
-        const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _ScoreRing(score: profile.score),
-            const SizedBox(width: 18),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Decision profile',
-                    key: const ValueKey('decision-profile-title'),
-                    style: AppTypography.headlineSmall.copyWith(
-                      color: _ink,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  // Niveau calculé serveur (seuils de la fiche + couche provisoire).
-                  _Pill(label: profile.level, color: _green),
-                ],
-              ),
-            ),
-          ],
+    // Modèle commun des écrans de résultats ([GameResultsTemplate]) ; le radar
+    // reste en complément, c'est la lecture d'ensemble du profil.
+    return GameResultsTemplate(
+      onBack: onClose,
+      titleKey: const ValueKey('decision-profile-title'),
+      scoreKey: const ValueKey('decision-profile-score'),
+      gameName: 'Decision Journey',
+      scoreLabel: 'Decision score',
+      scorePercent: profile.score,
+      points: profile.score,
+      maxPoints: 100,
+      scoreSemanticsLabel: 'Profile score ${profile.score} out of 100',
+      stats: [
+        // Niveau calculé serveur (seuils de la fiche + couche provisoire).
+        GameResultStat(
+          label: 'Level',
+          value: profile.level,
+          color: ZennytGamePalette.success,
         ),
-        const SizedBox(height: 18),
-        _ResultCard(
-          child: SizedBox(
-            height: 280,
-            child: _DecisionRadar(
-              values: profile.values,
-              labels: [for (final d in profile.dimensions) d.label],
-            ),
-          ),
+        GameResultStat(label: 'Scenarios', value: '$answered / $totalItems'),
+        GameResultStat(
+          label: 'Top dimension',
+          value: _strongest?.shortLabel ?? '—',
+          color: _magenta,
         ),
-        const SizedBox(height: 16),
-        Text(
-          profile.dimensions.any((d) => d.provisional)
-              ? 'Some dimensions are still scored neutrally while their model is '
-                    'being finalised — they do not yet tell you apart.'
-              : 'Each dimension is scored out of 18 by the server, then combined '
-                    'into a single weighted score.',
-          textAlign: TextAlign.center,
-          style: AppTypography.bodyMedium.copyWith(color: _muted, height: 1.4),
-        ),
-        const SizedBox(height: 24),
-        GamePrimaryButton(
-          key: const ValueKey('decision-view-insights'),
-          label: 'View insights',
-          onPressed: onInsights,
-        ),
-        const SizedBox(height: 10),
-        // Ce bouton NAVIGUE vers l'écran suivant, il ne partage rien : son
-        // libellé « Share profile » annonçait une action qu'il ne fait pas.
-        GameOutlineButton(label: 'Keep your profile', onPressed: onShare),
       ],
+      insight:
+          '${profile.dimensions.map((d) => '${d.shortLabel} ${d.exploitable ? '${d.percent}%' : '—'}').join(' · ')}. '
+          '${profile.dimensions.any((d) => d.provisional) ? 'Some dimensions are still scored neutrally while their model is being finalised — they do not yet tell you apart.' : 'Each dimension is scored out of 18 by the server, then combined into a single weighted score.'}',
+      primaryLabel: 'View insights',
+      primaryKey: const ValueKey('decision-view-insights'),
+      onPrimary: onInsights,
+      // Ce bouton NAVIGUE vers l'écran suivant, il ne partage rien : son
+      // libellé « Share profile » annonçait une action qu'il ne fait pas.
+      secondaryLabel: 'Keep profile',
+      onSecondary: onShare,
     );
   }
 }
-
 
 class _DetailsView extends StatelessWidget {
   const _DetailsView({
@@ -549,6 +561,18 @@ class _DetailsView extends StatelessWidget {
     return _ScrollableResult(
       children: [
         const SizedBox(height: 8),
+        // Lecture d'ensemble du profil, avant le détail dimension par
+        // dimension (retirée de l'écran de score, qui suit le modèle commun).
+        _ResultCard(
+          child: SizedBox(
+            height: 280,
+            child: _DecisionRadar(
+              values: profile.values,
+              labels: [for (final d in profile.dimensions) d.label],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
         for (var i = 0; i < profile.dimensions.length; i++)
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
@@ -842,87 +866,6 @@ class _PreparationStep extends StatelessWidget {
   }
 }
 
-class _ScoreRing extends StatelessWidget {
-  const _ScoreRing({required this.score});
-
-  final int score;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      label: 'Profile score $score out of 100',
-      child: SizedBox(
-        width: 106,
-        height: 106,
-        // Anneau + nombre s'animent ensemble de 0 vers le score final.
-        child: TweenAnimationBuilder<double>(
-          key: ValueKey<int>(score),
-          tween: Tween<double>(begin: 0, end: score.toDouble()),
-          duration: const Duration(milliseconds: 900),
-          curve: Curves.easeOutCubic,
-          builder: (context, animated, _) => Stack(
-            alignment: Alignment.center,
-            children: [
-              SizedBox.expand(
-                child: CircularProgressIndicator(
-                  value: animated / 100,
-                  strokeWidth: 10,
-                  backgroundColor: _border,
-                  valueColor: const AlwaysStoppedAnimation(_magenta),
-                ),
-              ),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    '${animated.round()}',
-                    style: AppTypography.headlineMedium.copyWith(
-                      color: _ink,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  Text(
-                    '/ 100',
-                    style: AppTypography.bodySmall.copyWith(color: _muted),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _Pill extends StatelessWidget {
-  const _Pill({required this.label, required this.color});
-
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(99),
-      ),
-      child: Text(
-        label,
-        style: AppTypography.bodySmall.copyWith(
-          color: color,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
-}
-
-
-
-
 class _DimensionCard extends StatelessWidget {
   const _DimensionCard({
     required this.label,
@@ -1129,7 +1072,8 @@ class _DecisionRadarPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2 + 4);
     final radius = math.min(size.width, size.height) * 0.31;
-    const sides = 5;
+    final sides = values.length;
+    if (sides < 3) return;
     final grid = Paint()
       ..color = _border
       ..style = PaintingStyle.stroke

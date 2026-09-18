@@ -10,7 +10,12 @@ import 'package:zennyt/features/games/domain/entities/decision_metrics.dart';
 class _MapCatalog implements DecisionScenarioCatalog {
   final Map<String, DecisionScenarioItem> _items = {};
 
-  void put(String id, DecisionDimension dim, DecisionItemFormat fmt, OptionQuality q) {
+  void put(
+    String id,
+    DecisionDimension dim,
+    DecisionItemFormat fmt,
+    OptionQuality q,
+  ) {
     _items[id] = DecisionScenarioItem(
       itemId: id,
       dimension: dim,
@@ -27,19 +32,25 @@ class _MapCatalog implements DecisionScenarioCatalog {
 }
 
 void main() {
-  DecisionMetrics buildAllDims(OptionQuality q, {int responseTimeMs = 15000, _MapCatalog? into}) {
+  DecisionMetrics buildAllDims(
+    OptionQuality q, {
+    int responseTimeMs = 15000,
+    _MapCatalog? into,
+  }) {
     final catalog = into ?? _MapCatalog();
     final items = <DecisionItemResponse>[];
-    for (final d in DecisionDimension.values) {
+    for (final d in DecisionConfig.dimensions) {
       for (var i = 1; i <= DecisionConfig.itemsPerDimension; i++) {
         final id = '${d.wire}-$i';
         catalog.put(id, d, DecisionItemFormat.standard, q);
-        items.add(DecisionItemResponse(
-          itemId: id,
-          dimension: d,
-          selectedOptionId: 'opt',
-          responseTimeMs: responseTimeMs,
-        ));
+        items.add(
+          DecisionItemResponse(
+            itemId: id,
+            dimension: d,
+            selectedOptionId: 'opt',
+            responseTimeMs: responseTimeMs,
+          ),
+        );
       }
     }
     return DecisionMetrics(items: items, sessionLanguage: 'en');
@@ -52,6 +63,38 @@ void main() {
     expect(score.rawPoints, 100);
     expect(score.maxPoints, 100);
     expect(score.level, 'Élevé');
+  });
+
+  test('II archivé n’ajoute aucun point ni axe au bilan actif /72', () {
+    final catalog = _MapCatalog();
+    final active = buildAllDims(OptionQuality.satisfactory, into: catalog);
+    final oldItems = <DecisionItemResponse>[];
+    for (var i = 1; i <= 6; i++) {
+      final id = 'II-$i';
+      catalog.put(
+        id,
+        DecisionDimension.ii,
+        DecisionItemFormat.standard,
+        OptionQuality.optimal,
+      );
+      oldItems.add(
+        DecisionItemResponse(
+          itemId: id,
+          dimension: DecisionDimension.ii,
+          selectedOptionId: 'opt',
+          responseTimeMs: 15000,
+        ),
+      );
+    }
+    final svc = DecisionScoring(catalog);
+    final archived = DecisionMetrics(
+      items: [...active.items, ...oldItems],
+      sessionLanguage: 'en',
+    );
+    expect(svc.score(archived, 0).rawPoints, svc.score(active, 0).rawPoints);
+    final lines = svc.breakdown(archived, svc.score(archived, 0));
+    expect(lines.any((line) => line.label == 'II'), isFalse);
+    expect(lines.singleWhere((line) => line.label == 'Brut').maxPoints, 72);
   });
 
   test('exemple validé de la fiche : raw=60 → SCW ≈ 66,7 → Normal', () {
@@ -69,29 +112,95 @@ void main() {
 
   test('DT : correct+rapide → 3 · correct+lent → 2 · incorrect → qualité', () {
     const svc = DecisionScoring(EmptyDecisionScenarioCatalog());
-    expect(svc.scoreItem(DecisionItemFormat.temporalDecision, OptionQuality.optimal, 1000, 1.0, 0), 3);
-    expect(svc.scoreItem(DecisionItemFormat.temporalDecision, OptionQuality.optimal, 6000, 1.0, 0), 2);
-    expect(svc.scoreItem(DecisionItemFormat.temporalDecision, OptionQuality.partial, 500, 1.0, 0), 1);
+    expect(
+      svc.scoreItem(
+        DecisionItemFormat.temporalDecision,
+        OptionQuality.optimal,
+        1000,
+        1.0,
+        0,
+      ),
+      3,
+    );
+    expect(
+      svc.scoreItem(
+        DecisionItemFormat.temporalDecision,
+        OptionQuality.optimal,
+        6000,
+        1.0,
+        0,
+      ),
+      2,
+    );
+    expect(
+      svc.scoreItem(
+        DecisionItemFormat.temporalDecision,
+        OptionQuality.partial,
+        500,
+        1.0,
+        0,
+      ),
+      1,
+    );
   });
 
   test('DT langue : même latence 6000 ms → 2 en en, 3 en fr', () {
     const svc = DecisionScoring(EmptyDecisionScenarioCatalog());
     expect(DecisionConfig.providedLanguageMultiplier('fr'), 1.20);
-    expect(svc.scoreItem(DecisionItemFormat.temporalDecision, OptionQuality.optimal, 6000, 1.00, 0), 2);
-    expect(svc.scoreItem(DecisionItemFormat.temporalDecision, OptionQuality.optimal, 6000, 1.20, 0), 3);
+    expect(
+      svc.scoreItem(
+        DecisionItemFormat.temporalDecision,
+        OptionQuality.optimal,
+        6000,
+        1.00,
+        0,
+      ),
+      2,
+    );
+    expect(
+      svc.scoreItem(
+        DecisionItemFormat.temporalDecision,
+        OptionQuality.optimal,
+        6000,
+        1.20,
+        0,
+      ),
+      3,
+    );
   });
 
   test('DT calibrage : un appareil lent ne fait pas basculer 3 → 2', () {
     const svc = DecisionScoring(EmptyDecisionScenarioCatalog());
-    expect(svc.scoreItem(DecisionItemFormat.temporalDecision, OptionQuality.optimal, 5400, 1.0, 0), 2);
-    expect(svc.scoreItem(DecisionItemFormat.temporalDecision, OptionQuality.optimal, 5400, 1.0, 800), 3);
+    expect(
+      svc.scoreItem(
+        DecisionItemFormat.temporalDecision,
+        OptionQuality.optimal,
+        5400,
+        1.0,
+        0,
+      ),
+      2,
+    );
+    expect(
+      svc.scoreItem(
+        DecisionItemFormat.temporalDecision,
+        OptionQuality.optimal,
+        5400,
+        1.0,
+        800,
+      ),
+      3,
+    );
   });
 
-  test('imputation : ≤ 2 manquants → moyenne du bloc · > 2 → non exploitable', () {
-    expect(DecisionConfig.imputedDimensionScore([3, 3, 3, 3]), 18);
-    expect(DecisionConfig.imputedDimensionScore([2, 2, 3, 1]), 12);
-    expect(DecisionConfig.imputedDimensionScore([3, 3, 3]), isNull);
-  });
+  test(
+    'imputation : ≤ 2 manquants → moyenne du bloc · > 2 → non exploitable',
+    () {
+      expect(DecisionConfig.imputedDimensionScore([3, 3, 3, 3]), 18);
+      expect(DecisionConfig.imputedDimensionScore([2, 2, 3, 1]), 12);
+      expect(DecisionConfig.imputedDimensionScore([3, 3, 3]), isNull);
+    },
+  );
 
   test('bornes de niveau (seul ≥ 75 vient de la fiche)', () {
     expect(DecisionProvisionalRules.levelForScw(80), 'Élevé');

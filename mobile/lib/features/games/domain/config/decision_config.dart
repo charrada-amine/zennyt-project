@@ -1,16 +1,18 @@
 import '../entities/decision_metrics.dart';
 
 /// Configuration MOTEUR (définitive) de « Je Décide » — miroir EXACT de
-/// `DecisionConfig.java` (backend). Ne contient QUE des valeurs de la fiche
-/// « JE DÉCIDE » ; aucune valeur provisoire (celles-ci vivent dans
-/// `decision_provisional_rules.dart`).
+/// `DecisionConfig.java` (backend). Règles de la fiche, sauf le retrait II
+/// explicitement autorisé le 2026-09-17. Les barèmes provisoires restent dans
+/// `decision_provisional_rules.dart`.
 class DecisionConfig {
   DecisionConfig._();
 
-  // Structure du test (fiche).
-  static const int capabilitiesCount = 5;
+  // PROVISOIRE — retrait II confirmé le 2026-09-17 ; validation psychologue à obtenir.
+  // Parité : backend/.../games/domain/config/DecisionConfig.java.
+  // Structure du parcours actif.
+  static const int capabilitiesCount = 4;
   static const int itemsPerDimension = 6;
-  static const int totalItems = 30;
+  static const int totalItems = capabilitiesCount * itemsPerDimension;
   static const int itemScoreMin = 0;
   static const int itemScoreMax = 3;
   static const int trainingItemsCount = 3;
@@ -20,7 +22,7 @@ class DecisionConfig {
 
   // Agrégation.
   static const int dimensionMax = itemsPerDimension * itemScoreMax; // 18
-  static const int rawMax = capabilitiesCount * dimensionMax; // 90
+  static const int rawMax = capabilitiesCount * dimensionMax; // 72
 
   /// Temps imparti à une question ORDINAIRE, en secondes.
   ///
@@ -82,10 +84,14 @@ class DecisionConfig {
     if (missing > maxImputableMissing || answered == 0) {
       return null; // bloc non exploitable / aucun item
     }
-    final mean =
-        answeredItemScores.reduce((a, b) => a + b) / answered;
+    final mean = answeredItemScores.reduce((a, b) => a + b) / answered;
     return (mean * itemsPerDimension).round();
   }
 
-  static const List<DecisionDimension> dimensions = DecisionDimension.values;
+  static const List<DecisionDimension> dimensions = [
+    DecisionDimension.er,
+    DecisionDimension.dt,
+    DecisionDimension.cs,
+    DecisionDimension.re,
+  ];
 }

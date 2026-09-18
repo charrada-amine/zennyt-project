@@ -81,7 +81,8 @@ class DecisionMetrics extends GameMetrics {
 
   @override
   Map<String, dynamic> toJson() => {
-    'items': items.map((i) => i.toJson()).toList(),
+    // Clé du DTO SubmitResultRequest.Metrics ; le formulaire GET utilise items.
+    'decisionItems': items.map((i) => i.toJson()).toList(),
     if (sessionLanguage != null) 'sessionLanguage': sessionLanguage,
     'administrationMode': administrationMode.wire,
     if (age != null) 'age': age,

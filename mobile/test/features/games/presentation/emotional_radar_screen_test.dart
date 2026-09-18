@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:zennyt/core/audio/sound_service.dart';
 import 'package:zennyt/features/games/data/games_mock_repository.dart';
 import 'package:zennyt/features/games/domain/config/emotional_radar_v2_config.dart';
 import 'package:zennyt/features/games/domain/entities/emotional_radar_v2.dart';
@@ -17,10 +19,10 @@ import 'package:zennyt/features/games/presentation/view/emotional_radar_screen.d
 /// - 6 propositions au niveau 1, 9 aux niveaux 3-4 (`choices_per_level`) ;
 /// - plus d'étape « nuance » — l'émotion est choisie directement ;
 /// - intensité à trois crans, Faible / Modérée / Intense ;
-/// - justification écrite obligatoire ;
+/// - aucune justification écrite ;
 /// - **aucun texte ne révèle l'émotion à identifier**.
 void main() {
-  /// Horloge injectable du mock : sans elle, le budget de réponse de 8 s
+  /// Horloge injectable du mock : sans elle, le budget de réponse de 30 s
   /// s'écoulerait au rythme du test et rendrait les scénarios instables.
   late int clockMs;
 
@@ -48,7 +50,11 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Start tutorial'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Start game'));
+    for (var page = 0; page < 4; page++) {
+      await tester.tap(find.text('Suivant'));
+      await tester.pumpAndSettle();
+    }
+    await tester.tap(find.text('Commencer la partie'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
   }
@@ -439,10 +445,324 @@ void main() {
     await tester.tap(find.text('Start tutorial'));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('30-second timer'), findsOneWidget);
-    expect(find.textContaining('6 or 9 options'), findsOneWidget);
-    expect(find.textContaining('Faible, Modérée or Intense'), findsOneWidget);
-    expect(find.textContaining('answer anyway'), findsOneWidget);
+    expect(find.text('Observe la scène'), findsOneWidget);
+    await tester.tap(find.text('Suivant'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('6 ou 9 propositions'), findsOneWidget);
+    await tester.tap(find.text('Suivant'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Faible, Modérée ou Intense'), findsOneWidget);
+    await tester.tap(find.text('Suivant'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('30 secondes'), findsOneWidget);
+    expect(find.textContaining('réponds quand même'), findsOneWidget);
     expect(find.textContaining('nuance'), findsNothing);
+    await tester.tap(find.text('Suivant'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('15 scènes'), findsOneWidget);
+    expect(find.text('Commencer la partie'), findsOneWidget);
+  });
+
+  // ── Retours client : écran unique, barre temporelle, sons, plein écran ────
+
+  void usePhoneSurface(WidgetTester tester, {double height = 640}) {
+    tester.view.physicalSize = Size(360 * 3, height * 3);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+  }
+
+  testWidgets('les commandes des cartes restent visibles sur petit écran', (
+    tester,
+  ) async {
+    usePhoneSurface(tester, height: 600);
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Start tutorial'));
+    await tester.pumpAndSettle();
+    expect(find.byType(PageView), findsOneWidget);
+    for (var page = 0; page < 4; page++) {
+      expect(tester.getRect(find.text('Suivant')).bottom, lessThan(600));
+      await tester.tap(find.text('Suivant'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    }
+    expect(
+      tester.getRect(find.text('Commencer la partie')).bottom,
+      lessThan(600),
+    );
+  });
+
+  testWidgets('le plateau tient sur un petit téléphone, sans défilement', (
+    tester,
+  ) async {
+    usePhoneSurface(tester);
+    await startGame(tester);
+
+    expect(tester.takeException(), isNull, reason: 'aucun débordement');
+    expect(find.byType(RadarEmotionButton), findsWidgets);
+    expect(
+      find.ancestor(
+        of: find.byType(RadarAnswerPanel),
+        matching: find.byType(Scrollable),
+      ),
+      findsNothing,
+    );
+    expect(tester.getRect(find.text('Valider')).bottom, lessThan(640));
+  });
+
+  testWidgets('neuf libellés longs ne débordent pas de leurs boutons', (
+    tester,
+  ) async {
+    usePhoneSurface(tester);
+    const labels = [
+      'Appréciation esthétique',
+      'Douleur empathique',
+      'Désir (craving)',
+      'Émerveillement',
+      'Malaise social',
+      'Déception',
+      'Soulagement',
+      'Nostalgie',
+      'Satisfaction',
+    ];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: RadarAnswerPanel(
+              scene: EmotionalRadarV2Scene(
+                sceneOrder: 1,
+                level: 3,
+                choicesCount: labels.length,
+                choices: [
+                  for (final label in labels)
+                    EmotionalRadarV2Choice(
+                      key: label,
+                      labelFr: label,
+                      labelEn: label,
+                    ),
+                ],
+                mediaStatus: 'PLACEHOLDER_PENDING',
+                maxResponseTimeMs: EmotionalRadarV2Config.maxResponseTimeMs,
+                remainingResponseTimeMs:
+                    EmotionalRadarV2Config.maxResponseTimeMs,
+                impulsiveThresholdMs: EmotionalRadarV2Config.minImpulsiveTimeMs,
+              ),
+              scale: 0.8,
+              selectedEmotionKey: null,
+              selectedIntensity: null,
+              validating: false,
+              onSelectEmotion: (_) {},
+              onSelectIntensity: (_) {},
+              onValidate: () {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+    for (final label in labels) {
+      final text = find.text(label);
+      final button = find.ancestor(
+        of: text,
+        matching: find.byType(RadarEmotionButton),
+      );
+      final textRect = tester.getRect(text);
+      final buttonRect = tester.getRect(button);
+      expect(
+        buttonRect.contains(textRect.topLeft) &&
+            buttonRect.contains(textRect.bottomRight - const Offset(1, 1)),
+        isTrue,
+        reason: '« $label » doit tenir dans son bouton',
+      );
+      final paragraph = tester.renderObject<RenderParagraph>(text);
+      expect(
+        paragraph.didExceedMaxLines,
+        isFalse,
+        reason: '« $label » ne doit pas être coupé',
+      );
+    }
+  });
+
+  testWidgets('la barre du haut suit le temps, plus le numéro de scène', (
+    tester,
+  ) async {
+    useLargeSurface(tester);
+    await startGame(tester);
+
+    double barValue() => tester
+        .widget<LinearProgressIndicator>(
+          find.descendant(
+            of: find.byType(RadarTimeBar),
+            matching: find.byType(LinearProgressIndicator),
+          ),
+        )
+        .value!;
+
+    expect(barValue(), closeTo(1.0, 0.02));
+    await tester.pump(const Duration(seconds: 15));
+    expect(barValue(), closeTo(0.5, 0.02));
+    // Le compteur de scènes reste affiché, indépendant de la barre.
+    expect(find.text('Scene 1 / 15'), findsOneWidget);
+    // Plus de compte à rebours sous la vidéo, ni de bandeau de niveau.
+    expect(find.text('Temps de réponse'), findsNothing);
+    expect(find.textContaining('propositions ·'), findsNothing);
+    expect(find.textContaining('Niveau 1'), findsNothing);
+  });
+
+  testWidgets('décompte sonore sur les cinq dernières secondes', (
+    tester,
+  ) async {
+    useLargeSurface(tester);
+    final played = <GameSfx>[];
+    SoundService.debugOnSfx = played.add;
+    addTearDown(() => SoundService.debugOnSfx = null);
+    await startGame(tester);
+    played.clear();
+
+    await tester.pump(const Duration(seconds: 24));
+    expect(played, isNot(contains(GameSfx.timerDecrease)));
+
+    await tester.pump(const Duration(milliseconds: 1100));
+    expect(played.where((s) => s == GameSfx.timerDecrease), hasLength(1));
+
+    await tester.pump(const Duration(seconds: 5));
+    expect(played.where((s) => s == GameSfx.timerDecrease), hasLength(5));
+    expect(played.where((s) => s == GameSfx.timerEnd), hasLength(1));
+  });
+
+  testWidgets('chaque bouton du plateau joue son effet sonore', (tester) async {
+    useLargeSurface(tester);
+    final played = <GameSfx>[];
+    SoundService.debugOnSfx = played.add;
+    addTearDown(() => SoundService.debugOnSfx = null);
+    await startGame(tester);
+
+    played.clear();
+    await tester.tap(find.byType(RadarEmotionButton).first);
+    expect(played, [GameSfx.buttonClick], reason: 'émotion');
+
+    played.clear();
+    await tester.tap(find.text('Modérée'));
+    expect(played, [GameSfx.buttonClick], reason: 'intensité');
+    await tester.pump();
+
+    played.clear();
+    await tester.tap(find.text('Valider'));
+    await tester.pumpAndSettle();
+    expect(played.first, GameSfx.buttonClick, reason: 'valider');
+    expect(
+      played,
+      anyOf(contains(GameSfx.correctChoice), contains(GameSfx.wrongChoice)),
+      reason: 'la correction se fait entendre',
+    );
+  });
+
+  testWidgets('le bouton pause joue le son de pause', (tester) async {
+    useLargeSurface(tester);
+    final played = <GameSfx>[];
+    SoundService.debugOnSfx = played.add;
+    addTearDown(() => SoundService.debugOnSfx = null);
+    await startGame(tester);
+
+    played.clear();
+    await tester.tap(find.byTooltip('Pause'));
+    expect(played, [GameSfx.pauseClick]);
+  });
+
+  testWidgets('l’aide reprend les cartes et préserve les réponses en cours', (
+    tester,
+  ) async {
+    useLargeSurface(tester);
+    await startGame(tester);
+    await tester.tap(find.byType(RadarEmotionButton).first);
+    await tester.tap(find.text('Modérée'));
+    await tester.pump();
+    final selectedEmotion = tester
+        .widget<RadarAnswerPanel>(find.byType(RadarAnswerPanel))
+        .selectedEmotionKey;
+    await tester.tap(find.byTooltip('Pause'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('View rules / Help'));
+    await tester.pumpAndSettle();
+    expect(find.text('Observe la scène'), findsOneWidget);
+    for (var page = 0; page < 4; page++) {
+      await tester.tap(find.text('Suivant'));
+      await tester.pumpAndSettle();
+    }
+    expect(find.text('Commencer la partie'), findsNothing);
+    await tester.tap(find.text('Reprendre la partie'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Resume'));
+    await tester.pumpAndSettle();
+    final panel = tester.widget<RadarAnswerPanel>(
+      find.byType(RadarAnswerPanel),
+    );
+    expect(panel.selectedEmotionKey, selectedEmotion);
+    expect(panel.selectedIntensity, EmotionalRadarV2Intensity.moderate);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('la correction remplace les propositions, sous la vidéo', (
+    tester,
+  ) async {
+    usePhoneSurface(tester);
+    await startGame(tester);
+
+    await tester.tap(find.byType(RadarEmotionButton).first);
+    await tester.pump();
+    await tester.tap(find.text('Intense'));
+    await tester.pump();
+    await tester.tap(find.text('Valider'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull, reason: 'aucun débordement');
+    expect(find.byType(RadarFeedbackCard), findsOneWidget);
+    expect(find.byType(RadarSceneStage), findsOneWidget);
+    expect(find.byType(RadarAnswerPanel), findsNothing);
+    expect(find.byType(Scrollable), findsNothing);
+    expect(tester.getRect(find.text('Next scene')).bottom, lessThan(640));
+    expect(
+      tester.getRect(find.byType(RadarSceneStage)).bottom,
+      lessThan(tester.getRect(find.byType(RadarFeedbackCard)).top),
+    );
+  });
+
+  testWidgets('passer à la correction ne recrée ni la page ni la vidéo', (
+    tester,
+  ) async {
+    useLargeSurface(tester);
+    await startGame(tester);
+
+    // Mêmes objets State avant et après : Flutter a conservé les widgets au
+    // lieu de reconstruire la page — c'est ce qui supprime le clignotement.
+    final video = tester.state(find.byType(EmotionalRadarVideo));
+    final scaffold = tester.state(find.byType(Scaffold));
+
+    await tester.tap(find.byType(RadarEmotionButton).first);
+    await tester.pump();
+    await tester.tap(find.text('Intense'));
+    await tester.pump();
+    await tester.tap(find.text('Valider'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(RadarFeedbackCard), findsOneWidget);
+    expect(tester.state(find.byType(EmotionalRadarVideo)), same(video));
+    expect(tester.state(find.byType(Scaffold)), same(scaffold));
+
+    // Préparation de la scène suivante : page à part, comme la version
+    // validée, puis retour au plateau de la scène 2.
+    await tester.tap(find.text('Next scene'));
+    await tester.pump();
+    expect(find.text('Preparing next scene...'), findsOneWidget);
+    expect(find.byType(RadarFeedbackCard), findsNothing);
+    // La page de préparation n'anime rien : on laisse s'écouler son délai.
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pumpAndSettle();
+    expect(find.byType(RadarAnswerPanel), findsOneWidget);
+    expect(find.text('Scene 2 / 15'), findsOneWidget);
   });
 }

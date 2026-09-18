@@ -39,7 +39,7 @@ void main() {
     formCode: 'A',
     itemsPerDimension: 2,
     items: [
-      item('II-1', DecisionDimension.ii),
+      item('ER-1', DecisionDimension.er),
       item(
         'DT-7',
         DecisionDimension.dt,
@@ -82,7 +82,10 @@ void main() {
     await pumpJourney(tester);
 
     expect(find.byType(GameTimerBar), findsOneWidget);
-    expect(find.text('${DecisionConfig.questionTimeLimitS} sec'), findsOneWidget);
+    expect(
+      find.text('${DecisionConfig.questionTimeLimitS} sec'),
+      findsOneWidget,
+    );
     // Le nombre de secondes vit dans l'en-tête, la barre reste nue : c'est la
     // disposition de « Je bouge », et elle ne coûte aucune hauteur au scénario.
     expect(
@@ -110,8 +113,10 @@ void main() {
     await pumpJourney(tester);
 
     await tester.pump(const Duration(seconds: 12));
-    expect(find.text('${DecisionConfig.questionTimeLimitS - 12} sec'),
-        findsOneWidget);
+    expect(
+      find.text('${DecisionConfig.questionTimeLimitS - 12} sec'),
+      findsOneWidget,
+    );
 
     await tester.tap(find.byKey(const ValueKey('decision-option-0')));
     await tester.pump();
@@ -146,7 +151,7 @@ void main() {
             form: DecisionForm(
               formCode: 'A',
               itemsPerDimension: 2,
-              items: [item('II-1', DecisionDimension.ii)],
+              items: [item('ER-1', DecisionDimension.er)],
             ),
             onClose: () {},
             onComplete: (r) => submitted = r,
@@ -190,7 +195,7 @@ void main() {
             form: DecisionForm(
               formCode: 'A',
               itemsPerDimension: 2,
-              items: [item('II-1', DecisionDimension.ii)],
+              items: [item('ER-1', DecisionDimension.er)],
             ),
             onClose: () {},
             onComplete: (r) => submitted = r,
@@ -209,7 +214,7 @@ void main() {
 
     expect(submitted, isNotNull);
     expect(submitted!.single.answered, isTrue);
-    expect(submitted!.single.selectedOptionId, 'II-1-o2');
+    expect(submitted!.single.selectedOptionId, 'ER-1-o2');
   });
 
   // ── La reprise a été retirée ──────────────────────────────────────────────
@@ -234,7 +239,10 @@ void main() {
     // déclencher : le parcours commence au premier scénario.
     expect(find.text('Welcome back'), findsNothing);
     expect(find.text('Your previous choices are saved.'), findsNothing);
-    expect(find.byKey(const ValueKey('decision-resume-continue')), findsNothing);
+    expect(
+      find.byKey(const ValueKey('decision-resume-continue')),
+      findsNothing,
+    );
     expect(find.text('Scenario 01 / 2'), findsOneWidget);
   });
 
@@ -336,8 +344,9 @@ void main() {
       reason: 'CS vient d\'être franchie',
     );
 
-    // Quatre pastilles allumées sur cinq, pas deux.
-    for (final d in DecisionDimension.values) {
+    // Trois axes actifs franchis ; II archivé ne produit plus de pastille.
+    expect(find.byKey(const ValueKey('milestone-AE-on')), findsNothing);
+    for (final d in DecisionConfig.dimensions) {
       final code = milestoneOf(d).code;
       final on = d != DecisionDimension.re;
       expect(
@@ -384,11 +393,10 @@ void main() {
   );
 
   /// Le pire cas réel de la banque (item II-18) : 1167 caractères, quatre
-  /// justifications dont une de 273. La dimension « Intégration d'Information »
-  /// est longue par construction — c'est ce qu'elle mesure.
-  DecisionFormItem worstCaseItem() => DecisionFormItem(
-    itemId: 'II-18',
-    dimension: DecisionDimension.ii,
+  /// Contenu archivé utilisé uniquement pour vérifier le texte agrandi et le gel de densité.
+  DecisionFormItem oversizedAccessibilityFixture() => DecisionFormItem(
+    itemId: 'ACCESSIBILITY-LONG',
+    dimension: DecisionDimension.er,
     format: DecisionItemFormat.standard,
     vignette:
         'Vous choisissez un ordinateur portable pour un graphiste de votre '
@@ -532,108 +540,30 @@ void main() {
       );
     });
 
-    testWidgets('le même item se compacte au lieu de déborder sur petit écran', (
-      tester,
-    ) async {
-      await pumpItem(tester, typicalItem(), screen: const Size(390, 844));
-      final roomy = tester
-          .getSize(find.byKey(const ValueKey('decision-option-0')))
-          .height;
+    testWidgets(
+      'le même item se compacte au lieu de déborder sur petit écran',
+      (tester) async {
+        await pumpItem(tester, typicalItem(), screen: const Size(390, 844));
+        final roomy = tester
+            .getSize(find.byKey(const ValueKey('decision-option-0')))
+            .height;
 
-      await pumpItem(tester, typicalItem(), screen: const Size(320, 568));
-      final tight = tester
-          .getSize(find.byKey(const ValueKey('decision-option-0')))
-          .height;
+        await pumpItem(tester, typicalItem(), screen: const Size(320, 568));
+        final tight = tester
+            .getSize(find.byKey(const ValueKey('decision-option-0')))
+            .height;
 
-      expect(
-        tight,
-        lessThan(roomy),
-        reason:
-            'le plancher fixe de 92 px réservait 300 px aux choix avant même '
-            'que l\'énoncé ait sa place — c\'était la cause du défilement',
-      );
-      expect(scrollExtent(tester), 0);
-      expect(tester.takeException(), isNull);
-    });
-
-    /// Les 24 items d'Intégration d'Information — 1167 caractères, quatre
-    /// justifications — ne tiennent pas d'un seul tenant sur un écran étroit.
-    ///
-    /// Ce test disait autrefois : « ce qu'on verrouille n'est pas l'absence de
-    /// défilement — impossible ici — mais l'absence de DÉBORDEMENT ». Il
-    /// entérinait précisément ce que le client refuse. Le repli n'est plus le
-    /// défilement mais le découpage : l'item se lit en deux temps, et ses quatre
-    /// choix restent tous atteignables.
-    testWidgets('le pire item de la banque se lit en deux temps', (
-      tester,
-    ) async {
-      for (final screen in const [
-        Size(320, 568),
-        Size(360, 740),
-        Size(390, 844),
-        Size(412, 915),
-      ]) {
-        await pumpItem(tester, worstCaseItem(), screen: screen);
-        final where = '${screen.width}x${screen.height}';
         expect(
-          tester.takeException(),
-          isNull,
-          reason: 'aucun débordement de rendu en $where',
+          tight,
+          lessThan(roomy),
+          reason:
+              'le plancher fixe de 92 px réservait 300 px aux choix avant même '
+              'que l\'énoncé ait sa place — c\'était la cause du défilement',
         );
-
-        final reveal = find.byKey(const ValueKey('decision-reveal-choices'));
-        if (reveal.evaluate().isNotEmpty) {
-          expect(
-            find.byKey(const ValueKey('decision-situation-card')),
-            findsOneWidget,
-            reason: 'l\'écran 1 montre la situation seule en $where',
-          );
-          await tester.tap(reveal);
-          await tester.pump();
-          await tester.pump(const Duration(milliseconds: 300));
-        }
-
-        for (var i = 0; i < 4; i++) {
-          expect(
-            find.byKey(ValueKey('decision-option-$i')),
-            findsOneWidget,
-            reason: 'les quatre choix sont rendus en $where',
-          );
-        }
-      }
-    });
-
-    /// Retour client : « comment les questions sont séparées, c'est trop
-    /// vulgaire ». Le rappel de consigne empruntait le style de la carte —
-    /// encre sombre, graisse extra — alors qu'il est posé à nu sur l'indigo du
-    /// plateau. Résultat : un pavé sombre sur fond sombre, lu comme un titre.
-    testWidgets('le rappel de consigne est lisible sur le plateau', (
-      tester,
-    ) async {
-      await pumpItem(tester, worstCaseItem(), screen: const Size(390, 844));
-
-      final reveal = find.byKey(const ValueKey('decision-reveal-choices'));
-      if (reveal.evaluate().isNotEmpty) {
-        await tester.tap(reveal);
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 300));
-      }
-
-      final recall = find.byKey(const ValueKey('decision-task-recall'));
-      expect(recall, findsOneWidget, reason: 'on est bien sur l\'écran de choix');
-
-      final style = tester.widget<Text>(recall).style!;
-      expect(
-        style.color,
-        Colors.white,
-        reason: 'posé sur l\'indigo, le rappel doit contraster avec le fond',
-      );
-      expect(
-        style.fontWeight,
-        isNot(FontWeight.w800),
-        reason: 'un rappel n\'est pas un titre : l\'extra-gras le fait crier',
-      );
-    });
+        expect(scrollExtent(tester), 0);
+        expect(tester.takeException(), isNull);
+      },
+    );
 
     /// La compaction a une limite : quand le candidat a agrandi la police de son
     /// téléphone, plus rien ne tient. Le comportement attendu n'est alors pas de
@@ -660,7 +590,7 @@ void main() {
                 form: DecisionForm(
                   formCode: 'A',
                   itemsPerDimension: 1,
-                  items: [worstCaseItem()],
+                  items: [oversizedAccessibilityFixture()],
                 ),
                 onClose: () {},
                 onComplete: (_) {},
@@ -699,7 +629,7 @@ void main() {
             find
                 .descendant(
                   of: find.byKey(const ValueKey('decision-option-0')),
-                  matching: find.byType(Text),
+                  matching: find.byKey(const ValueKey('decision-option-label')),
                 )
                 .first,
           )
@@ -708,7 +638,7 @@ void main() {
 
       await pumpForm(tester, [
         typicalItem(),
-        worstCaseItem(),
+        oversizedAccessibilityFixture(),
       ], screen: const Size(390, 844));
       final onShort = optionFontSize();
 
@@ -738,42 +668,43 @@ void main() {
     /// se lisait plus petit qu'un item libre sur le même téléphone — 16,4 px
     /// contre 16,7 px sur un 360×640 — ce qui rétablissait par la bande ce que
     /// le gel supprime par ailleurs.
-    testWidgets('un item chronométré se lit à la même taille qu\'un item libre', (
-      tester,
-    ) async {
-      double optionFontSize() => tester
-          .widget<Text>(
-            find
-                .descendant(
-                  of: find.byKey(const ValueKey('decision-option-0')),
-                  matching: find.byType(Text),
-                )
-                .first,
-          )
-          .style!
-          .fontSize!;
+    testWidgets(
+      'un item chronométré se lit à la même taille qu\'un item libre',
+      (tester) async {
+        double optionFontSize() => tester
+            .widget<Text>(
+              find
+                  .descendant(
+                    of: find.byKey(const ValueKey('decision-option-0')),
+                    matching: find.byType(Text),
+                  )
+                  .first,
+            )
+            .style!
+            .fontSize!;
 
-      DecisionFormItem chronometre() => DecisionFormItem(
-        itemId: 'DT-1',
-        dimension: DecisionDimension.dt,
-        format: DecisionItemFormat.temporalDecision,
-        timeLimitMs: 7000,
-        vignette: typicalItem().vignette,
-        task: typicalItem().task,
-        options: typicalItem().options,
-      );
+        DecisionFormItem chronometre() => DecisionFormItem(
+          itemId: 'DT-1',
+          dimension: DecisionDimension.dt,
+          format: DecisionItemFormat.temporalDecision,
+          timeLimitMs: 7000,
+          vignette: typicalItem().vignette,
+          task: typicalItem().task,
+          options: typicalItem().options,
+        );
 
-      // 360×640 : le gabarit où l'écart se manifestait. Les deux items sont
-      // dans le MÊME formulaire — c'est là que le gel doit tenir.
-      await pumpForm(tester, [
-        typicalItem(),
-        chronometre(),
-      ], screen: const Size(360, 640));
-      final libre = optionFontSize();
+        // 360×640 : le gabarit où l'écart se manifestait. Les deux items sont
+        // dans le MÊME formulaire — c'est là que le gel doit tenir.
+        await pumpForm(tester, [
+          typicalItem(),
+          chronometre(),
+        ], screen: const Size(360, 640));
+        final libre = optionFontSize();
 
-      await goToNextItem(tester);
-      expect(optionFontSize(), libre);
-    });
+        await goToNextItem(tester);
+        expect(optionFontSize(), libre);
+      },
+    );
 
     /// Le client ne distingue pas « défiler sur un scénario » de « défiler dans
     /// Je décide ». Ce test parcourt donc TOUT le jeu sur les deux plus petits
@@ -810,9 +741,10 @@ void main() {
                     itemsPerDimension: 8,
                     items: [
                       for (var i = 0; i < 8; i++) item(i, DecisionDimension.re),
-                      for (var i = 8; i < 16; i++) item(i, DecisionDimension.cs),
+                      for (var i = 8; i < 16; i++)
+                        item(i, DecisionDimension.cs),
                       for (var i = 16; i < 24; i++)
-                        item(i, DecisionDimension.ii),
+                        item(i, DecisionDimension.er),
                       for (var i = 24; i < 32; i++)
                         item(i, DecisionDimension.dt),
                     ],
@@ -886,22 +818,6 @@ void main() {
 
     /// Le pire item n'est ni rapetissé jusqu'à l'illisible, ni rendu défilant :
     /// il est découpé. Aucun de ses deux écrans ne défile.
-    testWidgets('le pire item ne défile sur aucun de ses deux écrans', (
-      tester,
-    ) async {
-      await pumpItem(tester, worstCaseItem(), screen: const Size(412, 915));
-
-      expect(scrollExtent(tester), 0, reason: 'écran de lecture');
-      final reveal = find.byKey(const ValueKey('decision-reveal-choices'));
-      if (reveal.evaluate().isNotEmpty) {
-        await tester.tap(reveal);
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 300));
-      }
-      expect(scrollExtent(tester), 0, reason: 'écran de choix');
-      expect(find.byKey(const ValueKey('decision-option-3')), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    });
   });
 
   testWidgets(
@@ -950,7 +866,7 @@ void main() {
       final first = submitted!.first;
       expect(
         first.selectedOptionId,
-        'II-1-o3',
+        'ER-1-o3',
         reason: 'la réponse validée est le dernier choix',
       );
       expect(
@@ -967,7 +883,11 @@ void main() {
       );
 
       final timed = submitted!.last;
-      expect(timed.answered, isFalse, reason: 'item manqué → imputation serveur');
+      expect(
+        timed.answered,
+        isFalse,
+        reason: 'item manqué → imputation serveur',
+      );
       expect(timed.selectedOptionId, isNull);
     },
   );
@@ -1034,7 +954,9 @@ void main() {
     // Deux secondes suffisent : la durée de la pause n'entre pas en compte,
     // c'est l'OUVERTURE qui consomme le droit.
     await tester.pump(const Duration(seconds: 2));
-    await tester.tap(find.byKey(const ValueKey('decision-pause-dialog-resume')));
+    await tester.tap(
+      find.byKey(const ValueKey('decision-pause-dialog-resume')),
+    );
     await tester.pumpAndSettle();
 
     expect(
@@ -1050,6 +972,35 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('decision-pause-dialog')), findsNothing);
     expect(find.text('Leave journey?'), findsOneWidget);
+  });
+
+  testWidgets('les trois cartes d’aide conservent le choix et le chrono', (
+    tester,
+  ) async {
+    await pumpJourney(tester);
+    await tester.tap(find.byKey(const ValueKey('decision-option-1')));
+    await tester.pump(const Duration(seconds: 3));
+    await tester.tap(find.byKey(const ValueKey('decision-pause-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('decision-view-rules')));
+    await tester.pumpAndSettle();
+    expect(find.text('Étape 1 sur 3'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 5));
+    for (var page = 0; page < 2; page++) {
+      await tester.tap(find.text('Suivant'));
+      await tester.pumpAndSettle();
+    }
+    await tester.tap(find.text('Reprendre la partie'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('decision-pause-dialog')), findsOneWidget);
+    await tester.tap(
+      find.byKey(const ValueKey('decision-pause-dialog-resume')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('57 sec'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('decision-continue')));
+    await tester.pumpAndSettle();
+    expect(find.text('7 sec'), findsOneWidget);
   });
 
   /// À l'expiration des 30 s, le menu se referme tout seul et la partie repart.

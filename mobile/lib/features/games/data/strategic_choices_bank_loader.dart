@@ -4,10 +4,10 @@ import 'package:flutter/services.dart';
 
 import '../domain/entities/strategic_choices_bank.dart';
 
-/// Charge la banque des 60 situations « Choix Stratégiques ».
+/// Charge la banque des 80 situations « Choix Stratégiques ».
 ///
-/// Même politique que les autres banques : l'asset fait ~119 Ko et ne change
-/// pas en cours d'exécution, on le garde donc en cache.
+/// Même politique que les autres banques : l'asset ne change pas en cours
+/// d'exécution, on le garde donc en cache.
 class StrategicChoicesBankLoader {
   StrategicChoicesBankLoader._();
 

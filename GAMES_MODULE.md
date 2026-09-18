@@ -22,12 +22,20 @@ Chaque **jeu** correspond à un `GameType` (un domaine cognitif = une fiche) et 
 | **« Je coordonne » — Sync Square** | `VISUOMOTOR_COORDINATION` | `COORDINATION_TRACKING_CORE` | Coordination visuo-motrice — suivi continu d'une cible sur trajectoire carrée fixe horaire | 🟢 **Complet /100 PROVISOIRE** — 2 segments de pratique + 12 tests ; précision globale seule dans le score, autres indicateurs descriptifs | Flutter custom |
 | **Memory Quest — « J'investigue »** | `MEMORY_QUEST` | `MEMORY_QUEST_CORE` | Mémoire de travail — Mission A (digit span) + B (objets) + distraction | 🟢 **Complet** — 7 niveaux (3→9), calibrage → timeout (score dépend du temps), `session_valid` ; composite **/100** | Flutter custom |
 | **« Je place » — Place & Bind** | `VISUOSPATIAL_MEMORY` | `OBJECT_LOCATION_BINDING_CORE` | Mémoire visuo-spatiale — liaison objet-emplacement sur grille 4×4 | 🟢 **Complet /100 PROVISOIRE** — pratique à 2 objets puis 6 niveaux de 3→8 objets ; layouts reconstruits serveur, indicateurs secondaires descriptifs | Flutter custom |
-| **« Je Décide »** | `DECISION` | `DECISION_CORE` | Prise de décision (II, ER, DT, CS, RE — /18 chacune → /90 → SCW /100) | 🟢 **Jouable end-to-end** (V59) : banque de 120 items en base, forme A de 30 items servie par `GET /decision/items`, notation serveur. ⚠️ CS et RE en **notation neutre provisoire** (modèles λ/k/cohérence non implémentés) ; formes B/C/D différées | Flutter (UI) / Java (moteur + contenu) |
+| **« Je Décide »** | `DECISION` | `DECISION_CORE` | Prise de décision (ER, DT, CS, RE — /18 chacune → /72 → SCW /100) | 🟢 **Jouable end-to-end** (V59) : banque historique de 120 items en base, 24 items actifs de la forme A servis par `GET /decision/items`, notation serveur. ⚠️ CS et RE en **notation neutre provisoire** (modèles λ/k/cohérence non implémentés) ; formes B/C/D différées | Flutter (UI) / Java (moteur + contenu) |
 | **Emotional Radar — « Je gère »** | `EMOTIONAL_REGULATION` | `EMOTIONAL_RADAR_CORE` | Régulation émotionnelle — reconnaissance d'émotion (famille + nuance + intensité) | 🟢 Jouable **9 pts/scène** — 3 scènes rédigées (27), 15 visées (135) ; **contenu servi par le backend** | Flutter custom |
 | **Reflective Pause — « Je gère »** | `EMOTIONAL_REGULATION` | `REFLECTIVE_PAUSE_CORE` | Régulation émotionnelle — contrôle de l'impulsivité sous pression | 🟢 **Complet /10** — 10 moments, pause minimale 3 s, résultats + insights calculés serveur | Flutter custom |
-| **Strategic Choices — preview mobile** | *(rattaché visuellement à `EMOTIONAL_REGULATION`)* | *(aucun mini-jeu contractuel)* | Régulation émotionnelle — pause, lecture d'une situation et choix d'une stratégie | 🟡 **Front-only non scoré** — 10 situations textuelles, réflexion 3 s, aucun appel API/Fit Score | Flutter custom |
+| **Strategic Choices — « Je gère »** | `EMOTIONAL_REGULATION` | `STRATEGIC_CHOICES_CORE` | Régulation émotionnelle — choix contextualisé d'une stratégie de coping | 🟢 Jouable **/30 PROVISOIRE** — 80 situations, 10 tirées ; 6 messages écrits et 74 scènes vidéo dont les médias restent à produire ; score serveur | Flutter custom + Java |
 
-> **Barème par mini-jeu** : Chemin Optimal / Ordonnancement / Tour de Hanoï → **/10** chacun ; leur somme = **profil Planifik /30**. Move Fast → points d'escalade (normalisés /100 pour l'interprétation). « Je continue » → balanced accuracy X/AX **/100 PROVISOIRE**, sans temps, d′ ni biais c dans le score. « Je coordonne » → précision globale pondérée par le temps, arrondie **/100 PROVISOIRE** ; précisions par vitesse/durée et distance moyenne restent descriptives. Memory Quest → **composite /100**. « Je place » → placements exacts / objets administrés sur les niveaux test, arrondis **/100 PROVISOIRE** ; swaps, distances, temps et pente de charge restent descriptifs. Emotional Radar /27 actuel + Reflective Pause /10 → composite émotionnel provisoire **/37**. **Strategic Choices n'a volontairement aucun score, `GameType`, `MiniGame`, session ni event tant que son barème et sa normalisation ne sont pas validés.** Score **toujours calculé serveur** (le client n'envoie que des métriques brutes).
+**Tutoriel mobile Radar V2 (2026-09-17)** : cinq cartes illustrées centrées sur le
+fond blanc habituel, comme Day Stack ; contenu aligné sur le parcours V2 actuel
+(choix direct parmi 6/9 émotions, intensité à trois niveaux, budget commun de 30 s,
+15 scènes). Les descriptions de famille/nuance et barèmes V1 conservées ci-dessous
+concernent le parcours historique ; cette refonte de présentation ne les modifie pas.
+En phase A V2, les médias restent provisoires et le tutoriel ne promet aucun score
+normatif ni nouvelle tentative soumise.
+
+> **Barème par mini-jeu** : Chemin Optimal / Ordonnancement / Tour de Hanoï → **/10** chacun ; leur somme = **profil Planifik /30**. Move Fast → points d'escalade (normalisés /100 pour l'interprétation). « Je continue » → balanced accuracy X/AX **/100 PROVISOIRE**, sans temps, d′ ni biais c dans le score. « Je coordonne » → précision globale pondérée par le temps, arrondie **/100 PROVISOIRE** ; précisions par vitesse/durée et distance moyenne restent descriptives. Memory Quest → **composite /100**. « Je place » → placements exacts / objets administrés sur les niveaux test, arrondis **/100 PROVISOIRE** ; swaps, distances, temps et pente de charge restent descriptifs. Emotional Radar /27 actuel + Reflective Pause /10 + Strategic Choices /30 → somme émotionnelle brute provisoire **/67** ; la normalisation du profil émotionnel /30 reste à valider. Score **toujours calculé serveur** (le client n'envoie que des métriques brutes).
 
 ---
 
@@ -261,8 +269,83 @@ Le mini-jeu enchaîne plusieurs niveaux. Le client envoie `levels[]` (une entré
 - **Réajustements** (score dérivé du nombre brut `adjustment_count`) : **<2 → 2 pts** · **2 à 4 → 1 pt** · **>4 → 0 pt** (⚠️ la valeur **2** tombe dans « 2 à 4 » = **1 pt**, pas 2)
 - Total = somme = **/10** ; interprétation mini-jeu partagée (0–3/4–6/7–10). Mock répliqué (`_scoreTaskScheduling`).
 
-**Day Stack — interaction du 2026-09-11 (choix utilisateur)** : chaque déplacement
-aboutissant à un nouveau rang est compté localement, sans alimenter
+**Day Stack — calendrier mobile du 2026-09-16 (choix utilisateur)** : le plateau
+reprend la lecture de la vue Jour Outlook sur le fond mauve Games. Les tâches sont
+présentées comme des rendez-vous mauves, avec titre blanc, badge de catégorie,
+durée, contraintes et dépendances lisibles. Une seule colonne horaire à gauche
+remplace la répétition début/fin dans chaque carte. Le calendrier défile verticalement,
+avec barre de défilement visible et auto-scroll lors du réordonnancement ; Valider
+reste fixe, centré et limité à 280 px. Le compteur de déplacements est retiré.
+Une zone de validation séparée par un trait fin occupe sa propre hauteur hors du
+calendrier, dont le rendu est découpé à sa zone défilante. Une marge de fin de liste
+permet de dégager entièrement la dernière tâche au-dessus du bouton. Les créneaux courts s'étirent pour conserver les consignes lisibles :
+la grille est un agenda adapté au jeu, pas une échelle temporelle strictement uniforme.
+Le composant `presentation/widgets/day_stack_calendar.dart` réutilise la palette
+Games et `DayStackTaskBadge`. Pendant le glissement, seule la carte est soulevée ;
+les plages d’attente, la carte source atténuée et la grille horaire restent en place.
+L’heure de début reste tracée même après une plage d’attente.
+L’ordre et les horaires se recalculent uniquement au dépôt. Aucun changement du
+calcul des horaires ni du score.
+Référence : [vue calendrier Outlook mobile](https://support.microsoft.com/en-us/outlook/optimize-the-outlook-mobile-app-for-your-ios-or-android-phone).
+
+**Day Stack — emotes par tâche (2026-09-16, demande utilisateur)** : une collection
+v1 est générée et vérifiée pour les **82 tâches / 7 univers**, dans
+`mobile/assets/Day Stack/emotes-v1/`. Les objets illustrés en 2.5D reprennent les
+formes arrondies, le bleu marine, le mauve, le magenta et le blanc cassé de la charte,
+avec un accent de catégorie existant et un contour clair pour les cartes mauves.
+Les PNG gardent leur fond transparent. `manifest.json` associe chaque image à
+**univers + identifiant de tâche**, aux quatre variantes et au prompt exact ; la
+clé composée évite les collisions comme `chargement_camion` entre univers.
+`index.html` propose une galerie avec recherche et trois fonds de relecture.
+Choix visuels provisoires : voir décision 61.
+
+**Day Stack — emotes intégrées au calendrier (2026-09-17, plan 001)** : chaque
+carte affiche l’emote de sa tâche à la place du carré coloré. `DayStackTaskBadge`
+reçoit deux paramètres optionnels `universeId` / `taskId` ; le chemin vient de
+`dayStackEmoteAssetPath` (`presentation/widgets/day_stack_emotes.dart`), sans
+lecture du manifest à l’exécution. La clé reste le couple univers + tâche : ni le
+libellé tiré, ni la catégorie, ni l’ancienne icône ne choisissent l’image.
+Le calendrier transmet l’univers à la carte, à sa source atténuée et au proxy de
+glissement par le même `_event()` : l’image suit la carte après réorganisation.
+Taille 32 px en compact (décision 62), 38 px en normal, `BoxFit.contain`, sans carré
+coloré ; le liseré de catégorie reste. Décodage limité par `cacheWidth` = taille ×
+densité d’écran, arrondi au supérieur (≈ 96 px au lieu de 1254 px sur un écran ×3) ;
+cela réduit la mémoire, pas le poids de l’APK. Repli : sans identité, carré
+historique 28/38 px ; si le PNG ne charge pas, même carré dans la boîte 32/38 px
+pour éviter un saut de mise en page. L’image est décorative (`excludeFromSemantics`)
+et la catégorie n’est plus annoncée deux fois. Les sept dossiers d’univers sont
+déclarés dans `pubspec.yaml` avec autorisation explicite ; manifest, galerie, prompts
+et planches de relecture ne sont pas embarqués. Une nouvelle tâche exigera une
+nouvelle emote et la mise à jour du manifest.
+
+**Day Stack — mission permanente (2026-09-16, demande utilisateur)** : sous la
+manche, une phrase verte reste visible pendant le défilement. Elle clignote une
+seule fois pendant 460 ms à l’entrée de chaque manche, puis reste stable, comme
+dans Memory Quest Image/Digits ; le défilement ne relance pas l’effet. Son contexte
+change avec l'univers ; toutes se terminent par « maintiens puis déplace les tâches
+en respectant horaires et étapes. » :
+
+| Univers | Début de la mission |
+|---------|--------------------|
+| Restaurant | Prépare le service du restaurant |
+| Bureau | Organise la journée au bureau |
+| Événement | Prépare l’événement |
+| Chantier | Organise les travaux du chantier |
+| Entrepôt | Prépare les commandes de l’entrepôt |
+| Soins | Organise la tournée de soins à domicile |
+| Déménagement | Prépare le déménagement |
+
+Les libellés vivent dans `_GameplayViewState` de `task_scheduling_screen.dart` ;
+ils ne modifient ni les tâches de la banque, ni les horaires, ni la notation.
+Le texte n'est pas tronqué et suit le grossissement accessible. Le composant
+partagé `presentation/widgets/memory_prompt.dart` porte la couleur et le
+clignotement ; ses options `style` / `textAlign` permettent le format compact
+Day Stack sans changer le rendu Memory Quest. Les animations désactivées
+conservent la consigne visible, sans effacement. Le test couvre les
+sept univers à 320×568 et la persistance de la mission pendant le défilement.
+
+**Day Stack — interaction du 2026-09-11 (choix utilisateur)** : les déplacements
+restent libres, sans alimenter
 `proactiveAdjustments` / `reactiveAdjustments` (restent à zéro). Les formules serveur/mock
 actuelles sont conservées : la composante d’autorégulation ne pénalise donc plus les
 réorganisations. Dépendances, horaires, collisions et temps morts ne sont évalués qu’à
@@ -646,6 +729,15 @@ pression**, attend un minimum de **3 secondes**, puis choisit naturellement une 
 répondre immédiatement, respirer/analyser, attendre, demander plus d'informations ou reformuler
 calmement. Aucune correction « bon/mauvais » n'est révélée pendant le parcours.
 
+**Tutoriel mobile (2026-09-17)** : cinq cartes illustrées centrées sur le fond
+blanc habituel, avec balayage, précédent/suivant et bouton de démarrage final.
+L’aide réutilise ce contenu en plein écran et revient au menu pause sans perdre
+le choix en cours. Étapes : découvrir le support, attendre le déverrouillage,
+choisir naturellement parmi cinq réponses, valider, consulter le bilan après dix
+situations. Le délai de réflexion reste administrable ; le texte n’annonce pas
+une durée fixe. La barre suivante reste un temps conseillé sans verrouillage.
+Le barème, les métriques et le protocole de passation restent inchangés.
+
 **Données envoyées par moment** : `momentId`, `selectedResponse`, `responseTimeMs`,
 `minimumTimerReached`. Le domaine impose exactement les 10 IDs `PRESSURE_01..10`, sans doublon,
 et vérifie `minimumTimerReached == (responseTimeMs >= 3000)`. Le client n'envoie **ni score ni
@@ -665,27 +757,31 @@ Le content map indique pour `PRESSURE_03` « Wait, then reformulate calmly » : 
 poids 3/4/3 et le composite émotionnel provisoire, restent à valider avec le psychologue.
 
 **Session émotionnelle partagée** : le mobile conserve en mémoire la session
-`EMOTIONAL_REGULATION` incomplète et la réutilise entre Emotional Radar et Reflective Pause. La
-session se complète après les deux tentatives ; avec les 3 scènes Radar actuelles, le composite
-est provisoirement **/37** (27 + 10). Le futur mini-jeu Strategic Choices et une normalisation
-globale /30 restent différés.
+`EMOTIONAL_REGULATION` incomplète et la réutilise entre Emotional Radar, Reflective Pause et
+Strategic Choices. La session se complète après les trois tentatives ; avec les 3 scènes Radar
+actuelles, la somme brute est provisoirement **/67** (27 + 10 + 30). La normalisation globale /30
+reste différée.
 
 ### 🧭 « Je Décide » (`DECISION_CORE`) — moteur définitif + couche provisoire isolée
+
+Test de frontière API : `backend/src/test/java/com/zennyt/games/api/dto/DecisionSubmissionContractTest.java`
+valide le décodage Jackson de `decisionItems` et le rejet de `items` en soumission,
+avec choix, chronométrage, changement d'avis et réponse expirée préservés.
 
 Prise de décision (fiche « JE DÉCIDE »). Architecture **imposée : deux couches strictement séparées**. Le moteur ne code jamais une valeur provisoire — il la lit dans le seul fichier `DecisionProvisionalRules`. Remplacer le provisoire ne demande **aucune** modification du moteur.
 
 **Couche MOTEUR (définitive — `DecisionConfig` + `DecisionScoringService`)**
-- **Structure** : 5 dimensions (`II, ER, DT, CS, RE`), **6 items/dimension**, 30 items notés, item /3, 3 items d'entraînement, ordre des blocs randomisé, mode évaluation, score **jamais** montré au joueur.
-- **Agrégation** : dimension = somme des 6 items → **/18** ; brut = somme des 5 dimensions → **/90** ; score agrégé du mini-jeu = **SCW /100** (un seul `Attempt`, `rawPoints=SCW`, `maxPoints=100` ; détail par dimension dans la réponse API).
+- **Structure active — retrait II autorisé le 2026-09-17** : 4 dimensions (`ER, DT, CS, RE`), **6 items/dimension**, 24 items notés, item /3, 3 items d'entraînement, ordre des blocs randomisé, mode évaluation, score **jamais** montré au joueur.
+- **Agrégation** : dimension = somme des 6 items → **/18** ; brut = somme des 4 dimensions actives → **/72** ; score agrégé du mini-jeu = **SCW /100** (un seul `Attempt`, `rawPoints=SCW`, `maxPoints=100` ; détail par dimension dans la réponse API).
 - **Règle DT** (seule dimension dont le score dépend du temps) : temps imparti effectif = `7 s × multiplicateur_langue + calibration_offset_ms` (**double ajustement** langue puis calibrage, socle `CalibrationService` réutilisé, non modifié). Correct (option OPTIMALE) et latence **< 75 %** → **3** ; correct mais **≥ 75 %** → **2** ; incorrect → **score de qualité de l'option**. Multiplicateurs **fournis** : `en 1.00 · fr 1.20 · de 1.25`.
 - **Imputation** : ≤ 2 items manquants dans un bloc → chaque manquant imputé par la **moyenne du bloc** (⇔ moyenne des présents × 6) ; **> 2 → bloc non exploitable** (exclu du SCW, `exploitable=false`).
-- **Interprétations automatiques** (textes de la fiche) : SCW ≥ 75 → *fonction décisionnelle élevée* · II bas + CS bas → *difficulté d'analyse et incohérence* · ER élevé + RE bas → *prise de risque sous émotion* · DT élevé → *bonne performance sous pression*.
+- **Interprétations automatiques** (textes de la fiche) : SCW ≥ 75 → *fonction décisionnelle élevée* · ER élevé + RE bas → *prise de risque sous émotion* · DT élevé → *bonne performance sous pression*.
 - **Qualité de session** : `avgTimePlausible`, `impulsiveRateOk`, `randomResponseRateOk`, `deviceLatencyWithinNorm` → `sessionUsable` ; contrôles **renforcés** en mode non supervisé.
 - **Indicateurs** : RT moyen/médian/écart-type, `impulsiveResponsePercent`, `slowResponsePercent`, `intraSessionVariability`, `decisionChangesCount`, `averageResponseTimeAdjustedMs`, `dtScoreCalibrationAdjusted` — exposés dans `GameSessionResponse.decisionIndicators`.
 
 **Couche PROVISOIRE (un seul fichier — `DecisionProvisionalRules`, chaque constante `// PROVISOIRE`)**
 - **a — mapping option → score par QUALITÉ** (pas par scénario) : enum `OptionQuality` avec les libellés exacts de la fiche — `OPTIMAL→3` (optimal/cohérent) · `SATISFACTORY→2` (satisfaisant/suboptimal) · `PARTIAL→1` (partiel/incohérent) · `DEFICIENT→0` (déficitaire/non pertinent). Le catalogue étiquette **chaque option** d'une qualité, jamais d'un score brut.
-- **b — poids SCW = 1.0** pour les 5 dimensions (la fiche dit « pondéré » sans donner les poids) : `scw = (Σ dim×poids)/(18×Σ poids)×100`. Vérifié sur l'exemple validé de la fiche (II=12, ER=9, DT=15, CS=14, RE=10 → raw=60 → **SCW ≈ 66,7**).
+- **b — poids SCW = 1.0** pour les dimensions actives (la fiche dit « pondéré » sans donner les poids) : `scw = (Σ dim×poids)/(18×Σ poids)×100`. Le helper garde le test mathématique de l’exemple historique à cinq dimensions ; le moteur actif exclut II et agrège seulement ER/DT/CS/RE. La version à quatre dimensions reste à valider par le psychologue.
 - **c — bornes de niveau** (seul ≥ 75 vient de la fiche) : **Élevé ≥ 75** · Normal 60–74 · Borderline 45–59 · Fragile < 45.
 - **d — règle CS** (paire liée) : la note dérive de la cohérence entre les deux réponses — cohérentes → OPTIMAL · partielles → SATISFACTORY · contradictoires → DEFICIENT (`coherenceQuality`).
 - **e — multiplicateurs es/it/pt** (estimations sectorielles : 1.22 / 1.18 / 1.22) + **fallback `ar`** documenté (1.20, tracé) plutôt qu'un échec.
@@ -695,7 +791,7 @@ Prise de décision (fiche « JE DÉCIDE »). Architecture **imposée : deux couc
 
 **À demander au psychologue pour remplacer le provisoire** : (bloquant) **catalogue des 30 scénarios + étiquetage `OptionQuality` des options** ; poids SCW réels ; bornes de niveau hors ≥ 75 ; multiplicateurs es/it/pt/ar ; échelles post-test fatigue/motivation (et age/educationLevel).
 
-**Détail du score** (`ScoreBreakdownService.decision`) : une ligne par dimension `/18`, puis brut `/90`, puis `SCW /100`. **Parité mock** à répliquer dans `games_mock_repository.dart` (câblage UI → backend = lot séparé ; les écrans `je_decide_*.dart` ne sont pas modifiés).
+**Détail du score** (`ScoreBreakdownService.decision`) : une ligne par dimension active `/18`, puis brut `/72`, puis `SCW /100`. **Parité mock** à répliquer dans `games_mock_repository.dart` (câblage UI → backend = lot séparé ; les écrans `je_decide_*.dart` ne sont pas modifiés).
 
 ### 🎯 Socle de calibrage appareil (transversal — Tâche 4)
 
@@ -783,21 +879,41 @@ sur l'onglet Careers/Progress ; les routes de jeu restent plein écran.
 | **Emotional Radar** | `domain/entities/emotional_radar.dart` | Entités : `BasicEmotion`, `SceneMediaType`, `EmotionalNuance` (+ `NuanceSource`), `EmotionalRadarScene` (**sans** réponse attendue), `SceneSet`, `Feedback`, `Metrics`. |
 | | `domain/config/emotional_radar_config.dart` | **Miroir Dart du barème** (3/4/2, dégradé, bonus off, libellés d'intensité, bandes). Parité backend. |
 | | `domain/config/emotional_radar_provisional_rules.dart` | **Miroir de la taxonomie** — `FIGMA` vs `PROVISIONAL`. |
-| | `presentation/view/emotional_radar_screen.dart` | Machine d'états `cover → tutorial → gameplay → feedback → transition → results` + pause / aide / plein écran / erreur. |
+| | `presentation/view/emotional_radar_screen.dart` | Machine d'états `cover → tutorial → gameplay → feedback → transition → results` + pause / aide / plein écran / erreur. `EmotionalRadarResultsView` : trois barres de synthèse pour l’intensité sous-estimée/correcte/surestimée, selon les comptes du rapport. |
+| | `presentation/widgets/emotional_radar_tutorial.dart` | Cinq cartes V2 : observation, émotion, intensité, temps, validation ; `GameTutorialDeck` réutilisé avant la partie et dans l’aide plein écran. Valeurs tirées de la configuration V2. |
+| | `mobile/assets/games icons/Emotional Radar Tutorial {Observe,Choose,Intensity,Time,Validate}.png` | Cinq nouvelles illustrations pédagogiques RGBA transparentes, dossier déjà déclaré ; aucun stimulus ni clé de correction. |
+| | `mobile/assets/emotional-radar-tutorial/{README.md,manifest.json}` | Prompts exacts, provenance, contrôle visuel et règles représentées. |
+| | `test/features/games/presentation/emotional_radar_tutorial_test.dart` · `goldens/emotional-radar-tutorial-{1…5}.png` | Chargement/décodage des cinq assets, gestes, validation finale, petit écran à 200 % et cinq captures. |
 | | `presentation/view/emotional_radar_gameplay.dart` | `SceneCard` (média + équivalent textuel voisin), `AnswerPanel` (révélation progressive), `FeedbackCard`. |
 | | `presentation/widgets/emotional_radar_video.dart` | Lecteur asset/réseau : lecture explicite, pause/replay, plein écran, retry, pause sur overlay et arrière-plan. |
 | **Démo / composants** | `presentation/widgets/game_system_components.dart` | `GameContentFrame` partagé pour limiter la largeur sur tablette ; composants de boutons/panneaux existants réutilisés. |
+| | `presentation/widgets/game_results_template.dart` | `insightTitle` optionnel et jauge publique `GameResultInsightMeter` ; mode compact par défaut conservé, variante pleine largeur avec valeur en points, description sémantique et respect du mouvement réduit. |
+| | `test/features/games/presentation/game_insights_visual_test.dart` · `goldens/{strategic-choice-icons,reflective-pause-insights,emotional-radar-intensity-insights}.png` | Huit tests : icônes et états, valeurs serveur/maxima, rapports absents/vides, défilement à 200 %, mouvement réduit et trois captures. |
 | | `mobile/assets/games_demo/emotional_radar/` | Trois MP4 silencieux et `SOURCES.md` (provenance, licence et empreintes). |
 | **Tests démo** | `test/features/games/data/demo_radar_media_test.dart` | Chargement MP4 et parité de notation avec le mock. |
 | | `test/features/games/presentation/{emotional_radar_video,task_scheduling_screen}_test.dart` | Lecture, cycle de vie, retry ; petits écrans, texte 200 %, placements, règles et soumission brute. |
 | | `presentation/widgets/emotional_radar_components.dart` | Boutons d'émotion, chips de nuance, sélecteur d'intensité, étapes verrouillées/validées, palette — cibles ≥ 48 px, jamais de sens porté par la couleur seule. |
-| **Reflective Pause** | `presentation/view/reflective_pause_screen.dart` | Flow complet `cover → intro → tutorial → 10 moments → saved → results → insights`, timer 3 s, métriques brutes seulement. |
+| **Reflective Pause** | `presentation/view/reflective_pause_screen.dart` | Flow complet `cover → intro → tutorial → 10 moments → saved → results → insights`, timer 3 s, métriques brutes seulement. `ReflectivePauseInsightsView` : profil en jauges normalisées sur les maxima 3/4/3, points serveur et compte de choix impulsifs. |
+| | `presentation/widgets/reflective_pause_tutorial.dart` | Cinq étapes pédagogiques avec `GameTutorialDeck`, avant démarrage et depuis l’aide ; valeurs de nombre issues des configurations existantes, aucune correction anticipée. |
+| | `mobile/assets/games icons/Reflective Pause Tutorial {Discover,Wait,Choose,Validate,Review}.png` | Cinq nouvelles illustrations transparentes, dossier déjà déclaré ; aucun stimulus ou choix recommandé. |
+| | `mobile/assets/reflective-pause-tutorial/{README.md,manifest.json}` | Prompts exacts, provenance, destination et vérification visuelle. |
+| | `test/features/games/presentation/reflective_pause_tutorial_test.dart` · `goldens/reflective-pause-tutorial-{1…5}.png` | Chargement et décodage des assets, balayage/retour, validation finale, petit écran à 200 % et cinq captures. |
 | | `presentation/emotional_regulation_session_provider.dart` | Réutilise la même session `EMOTIONAL_REGULATION` entre Radar et Reflective, sans permettre deux tentatives identiques. |
 | | `presentation/widgets/emotional_game_pause_dialog.dart` | Menu pause commun Radar/Reflective : reprise, règles/aide, sortie, mode d'entrée et audio. |
-| **Strategic Choices** | `domain/config/strategic_choices_content.dart` | Catalogue front-only des 10 situations et 8 stratégies du handoff ; aucune clé de correction ni règle de score embarquée. |
-| | `presentation/view/strategic_choices_screen.dart` | Flow `cover → intro → tutorial → 10 × (lecture → réflexion 3 s → choix → saved) → résultats → insights`, sans vidéo ni soumission backend ; réutilise les composants Games et le dialogue de pause émotionnel. |
+| **Strategic Choices** | `domain/config/strategic_choices_content.dart` | Réglages de présentation et catalogue stable des 8 stratégies ; aucune cotation envoyée dans le payload. |
+| | `domain/entities/strategic_choices_bank.dart` · `domain/entities/strategic_choices_metrics.dart` | Parse la banque de 80 situations, impose un message non vide pour `WRITTEN`, et sérialise uniquement situation, stratégie, temps et support. |
+| | `data/strategic_choices_bank_loader.dart` · `domain/service/strategic_choices_scoring.dart` | Charge l'asset en cache ; miroir offline du barème serveur pour le repository mock, avec correction du hasard et profil de coping. |
+| | `assets/games/strategic_choices_bank.json` | Banque mobile de 80 situations : 60 fiches client + 20 propositions ; 6 messages écrits littéraux et 74 scènes vidéo. |
+| | `presentation/view/strategic_choices_screen.dart` | Flow `cover → intro → tutorial → 10 × (lecture → réflexion 3 s → choix → saved) → résultats → insights`, soumission des métriques brutes et score serveur ; bulle dédiée aux écrits, placeholder uniquement pour les vidéos. `StrategicChoiceCard` : huit icônes adaptées, visibles même sous verrouillage/sélection, badge d’état séparé. |
+| | `backend/.../StrategicChoices{Config,ScoringService,Metrics,Report}` · `backend/.../JsonStrategicChoicesCatalog` | Validation des 10 réponses distinctes, catalogue autoritatif, somme /30, indice corrigé du hasard, profil de coping et breakdown provisoire. |
+| | `backend/src/main/resources/games/strategic_choices_bank.json` | Copie serveur de la banque, identique à l'asset mobile pour assurer la parité mock ⇄ backend. |
+| | `tooling/games/banks/{choix_strategiques_proposition.py,generer_pdf.py,fusionner.py}` | Source reproductible des 20 propositions, export JSON/PDF avec support et message, fusion idempotente qui conserve le champ `message`. |
+| | `presentation/widgets/strategic_choices_tutorial.dart` | Cinq cartes pédagogiques via `GameTutorialDeck`, utilisées avant la partie et dans l’aide ; choix autorisé pendant la réflexion, validation après celle-ci. |
+| | `mobile/assets/games icons/Strategic Choices Tutorial {Read,Reflect,Choose,Validate,Review}.png` | Cinq illustrations transparentes, dossier déjà déclaré ; aucune clé de correction ni stratégie recommandée. |
+| | `mobile/assets/strategic-choices-tutorial/{README.md,manifest.json}` | Prompts exacts, provenance, destinations et vérification des illustrations. |
+| | `test/features/games/presentation/strategic_choices_tutorial_test.dart` · `goldens/strategic-choices-tutorial-{1…5}.png` | Chargement/décodage des assets, gestes et retour, démarrage final, petit écran à 200 % et cinq captures. |
 | | `assets/games icons/Strategic Choices.png` · `Strategic Choices Purple.png` | Deux PNG RGBA 512×512 : emblème transparent pour hub/picker et variante violette dans le jeu. Le dossier `assets/games icons/` était déjà déclaré ; aucun changement de `pubspec.yaml`. |
-| | `test/features/games/presentation/strategic_choices_screen_test.dart` | Catalogue, flow complet 10 situations, pause sans restart, absence de faux score et accessibilité 390×844 / texte 200 %. |
+| | `test/features/games/{data/strategic_choices_bank_test.dart,presentation/strategic_choices_screen_test.dart}` | Invariants des 80 fiches et des 6 messages littéraux ; flow complet, score serveur, bulle écrite sans placeholder vidéo, pause et accessibilité. |
 | **Je continue** | `presentation/view/continuous_attention_screen.dart` | Parcours complet `cover → règles → tutoriels X/AX → pratiques → 20 blocs X → repos 2 min → 20 blocs AX → envoi → résultats/insights`. Tempo absolu 690/230 ms, clavier/espace + tactile, aucune correction pendant les tests. |
 | | `presentation/widgets/continuous_attention_pause_dialog.dart` | Pause/règles/sortie ; une interruption pendant une phase test impose le redémarrage de cette phase afin de ne pas fausser la vigilance mesurée. |
 | | `test/features/games/presentation/continuous_attention_screen_test.dart` | Parcours 44 blocs/1 364 essais, pause/règles/restart, retour système, audit invalide puis retry sur le même `sessionId`, résultats et accessibilité 390×844 jusqu'à 200 %. |
@@ -809,19 +925,38 @@ sur l'onglet Careers/Progress ; les routes de jeu restent plein écran.
 | | `presentation/widgets/je_place_pause_dialog.dart` | Pratique gelable/reprenable ; une pause mesurée persiste d'abord l'audit technique puis permet le redémarrage du run, avec règles et sortie. |
 | | `assets/games icons/Je Place.png` · `Je Place Object 01.png`…`20.png` | Logo et catalogue PNG 512×512 RGBA transparent, style Zennyt flat 2.5D, contrôlés à 48 px. |
 | **Memory Quest Image — concepts visuels** | `assets/games icons/Memory Quest Image Concept v2.png` · `Memory Quest Image Concept v3 Minimal.png` · `Memory Quest Image Concept v4 Objects.png` · `Memory Quest Image Concept v5 Modern Recall.png` · `Memory Quest Image Concept v6 Modern Tech.png` · `Memory Quest Image Concept v7 Quiz Shapes.png` | Six propositions originales 1254×1254. La piste v7 associe directement les formes du quiz — cercle, triangle, carré arrondi, étoile et hexagone — aux objets modernes à mémoriser : smartphone, caméra hybride et casque sans fil. Elle adopte un emblème géométrique sur fond bleu, sans reprendre la double flèche circulaire précédente. Concepts livrés pour validation, non branchés au hub et créés sans utiliser les logos Memory Quest Image/Digits existants comme références. |
+| **Memory Quest — tutoriels Digits/Image** | `presentation/widgets/memory_quest_tutorial.dart` | Six cartes par mode via `GameTutorialDeck`, dix pour le parcours historique combiné ; réutilisées avant démarrage et depuis l’aide. Aucun objet ni asset de partie dans les illustrations. |
+| **Assets tutoriels mémoire** | `assets/games icons/Memory Quest {Digits,Image} Tutorial … .png` · `assets/memory-quest-tutorial/` | Douze PNG transparents dédiés, manifest des prompts/originaux, README et audit logique préalable. Production dans le dossier déjà déclaré. |
+| **Tests tutoriels mémoire** | `test/features/games/presentation/memory_quest_tutorial_test.dart` · `goldens/memory-quest-{digits,images}-tutorial-{1…6}.png` | Neuf tests : chargement/décodage, navigation, action finale, 200 %, captures et mode combiné ; quatre tests de parcours/aide ajoutés dans `investigate_screen_test.dart`, navigation des captures existantes adaptée. |
 | | `test/features/games/domain/object_location_config_test.dart` | Constantes, zones de réserve et vecteur golden déterministe partagé avec Java. |
 | | `test/features/games/data/object_location_scoring_test.dart` | Rejeu, classification exclusive, score/validité, progression et rejets identiques au backend. |
 | | `test/features/games/presentation/je_place_screen_test.dart` | Flow, payload brut, pause/audit/retry, accessibilité et non-débordement 390×844 / texte 200 %. |
+| **Assets Day Stack** | `assets/Day Stack/emotes-v1/` | 82 emotes PNG transparentes par univers/tâche, manifeste/prompt exact, validation technique, huit planches de relecture, README et galerie locale. Seuls les sept dossiers d’univers sont déclarés dans `pubspec.yaml` et embarqués. |
+| **Consigne partagée** | `presentation/widgets/memory_prompt.dart` | `MemoryPrompt` : vert Memory Quest `#4ADE80`, clignotement unique 460 ms, reduced-motion sans effacement ; réutilisé par Memory Quest et Day Stack avec style/alignement optionnels. Réexport conservé depuis `investigate_screen.dart`. |
 | **presentation** | `presentation/games_providers.dart` | Bascule mock/backend via `--dart-define=GAMES_MOCK` (défaut `true`). |
-| | `presentation/games_controller.dart` | `AsyncNotifier<GameSession?>` : `start()` / `submit()`. |
+| | `presentation/games_controller.dart` | `AsyncNotifier<GameSession?>` : `start()` / `submit()` ; conservation optionnelle de la session pour réessayer un envoi Je Décide échoué, comportement des autres jeux inchangé. |
 | | `presentation/view/games_hub_screen.dart` | Hub jeux style maquette Progress : header « Play & discover your talent », 5 cartes de domaines cognitifs, illustration de catégorie + logos PNG officiels des jeux (`assets/games icons/`) ; le picker multi-jeux réutilise les mêmes images. `Cognitive Flexibility` propose Move Fast + Je continue + Je coordonne ; `Working Memory` propose Memory Quest + Je place ; `Emotional Regulation` propose Radar + Reflective Pause + la preview Strategic Choices, sans renommer les catégories. |
-| | `presentation/view/je_decide_screen.dart` | **« Je Décide »** : welcome → onboarding → entraînement → 30 items servis par `GET /decision/items` → soumission → profil réel. Ouvre la session backend, restaure un checkpoint local (index d'item). |
-| | `presentation/view/je_decide_gameplay.dart` | Gameplay piloté par les **30 items servis** : chrono DT sur le temps imparti renvoyé par le serveur, paires CS enchaînées, écrans de transition aux seules frontières de dimension, pause/règles, checkpoint. Mesure `responseTimeMs` (à la validation, via `package:clock`) et `decisionChangesCount`. XP visuel uniquement ; aucun score calculé. |
-| | `presentation/view/je_decide_results.dart` | Résultats : fin de parcours, préparation, radar accessible, score-ring, détail par dimension, export. `DecisionProfile.fromSession` projette la **réponse serveur** (SCW /100, niveau, /18 par dimension, marqueur de notation provisoire) — rien n'est calculé côté client. |
-| | `presentation/view/planifik_screen.dart` | Flow complet **Optimal Path** (intro Path Mind, How To Play, gameplay **multi-niveaux**, score, comparaison) + HUD stations, **menu pause** (`_PauseDialog`), légende, contrôles + bouton « Continue to scheduling » (→ Planifik #2). Voir [Flow Optimal Path](#-flow-optimal-path-mobile). |
-| | `presentation/view/task_scheduling_screen.dart` | **Day Stack** : toutes les tâches mélangées dans une liste pleine largeur ; numéros de position, appui maintenu directement sur la carte et auto-scroll natif. Déplacements comptés localement sans pénalité ; mesures figées à « Valider », soumission au dernier niveau, débrief puis score serveur/mock. |
+| | `presentation/view/je_decide_screen.dart` | **« Je Décide »** : accueil avec logo → trois cartes pédagogiques → un exemple → 24 items actifs servis par `GET /decision/items` → soumission → profil réel. Personnalisation retirée ; en-tête persistant et transition douce vers les cartes. Ouvre la session après l’exemple ; tutoriel sans démarrage de session. Envoi final verrouillé, réponses conservées pour réessayer, aucun profil de remplacement à zéro. |
+| | `presentation/widgets/je_decide_tutorial.dart` | Trois cartes illustrées via `GameTutorialDeck`, avant l’exemple et depuis l’aide : lire/choisir, scénarios liés et chrono. But et bilan annoncés une seule fois à l’accueil ; en-tête de la pile masqué uniquement lorsque l’écran fournit déjà la navigation. |
+| **Assets Je Décide** | `assets/games icons/Je Decide Tutorial {Read,Choose,Linked,Time,Practice,Profile}.png` · `assets/je-decide-tutorial/` | Trois PNG utilisés (`Choose`, `Linked`, `Time`) ; les six sources générées, prompts et provenance restent conservés. Logo `Je Decide transparent.png` repris du hub. Aucun changement de pubspec. |
+| | `test/features/games/presentation/je_decide_tutorial_test.dart` · `goldens/je-decide-tutorial-{1…3}.png` · `goldens/je-decide-welcome.png` · `goldens/je-decide-tutorial-entry.png` | Chargement/décodage des assets, balayage/retour, action finale, accueil/règles à 200 % et cinq captures. Cadre stable pendant entrée/retour, accueil sortant inactif et mouvement réduit vérifiés. Tests de parcours et d’aide adaptés ; choix et chrono conservés. |
+| | `presentation/view/je_decide_gameplay.dart` | Gameplay piloté par les **24 items actifs servis** : chrono DT sur le temps imparti renvoyé par le serveur, paires CS enchaînées, écrans de transition aux seules frontières de dimension, pause/règles, checkpoint. Questions II retirées, situation et réponses ensemble sur une seule page ; aucun bouton Voir les réponses/Relire. Mesure `responseTimeMs` (à la validation, via `package:clock`) et `decisionChangesCount`. XP visuel uniquement ; aucun score calculé. SFX badge à chaque frontière de catégorie, une seule fois par entrée. |
+| | `test/features/games/presentation/je_decide_no_scroll_test.dart` · `goldens/je-decide-active-question.png` | Deux banques actives, 24 questions sans II sur sept tailles d’écran ; situation et réponses sur une seule page, accès à la dernière réponse sans recouvrement du pied, texte à 200 %. Aucun défilement sur les téléphones de référence ; petits écrans et longs contextes DT peuvent défiler sur la même page. Captures provisoires du découpage retirées. |
+| **Contrat de soumission Je Décide** | `domain/entities/decision_metrics.dart` · `test/features/games/data/decision_submission_contract_test.dart` | POST sérialise `decisionItems`, GET formulaire garde `items` ; test du repository Dio avec rejet HTTP 400 de la mauvaise clé et projection du score serveur. |
+| | `presentation/view/je_decide_results.dart` | Résultats : fin de parcours, préparation, radar accessible, modèle de score partagé avec compteur animé, détail par dimension, export. SFX badge sur la dernière catégorie et la révélation du profil ; son de comptage conservé. `DecisionProfile.fromSession` projette la **réponse serveur** (SCW /100, niveau, /18 par dimension, marqueur de notation provisoire) — rien n'est calculé côté client. |
+| | `presentation/view/planifik_screen.dart` | Flow complet **Optimal Path** (intro Path Mind, deux cartes de règles (`OptimalPathTutorial`), gameplay **multi-niveaux**, score, comparaison) + HUD stations, **menu pause** (`_PauseDialog`), légende, contrôles + bouton « Continue to scheduling » (→ Planifik #2). Voir [Flow Optimal Path](#-flow-optimal-path-mobile). |
+| | `test/features/games/presentation/optimal_path_tutorial_test.dart` · `goldens/optimal-path-tutorial-{1,2}.png` | Quatre tests : navigation, texte à 200 %, captures natives et démarrage réel après la dernière carte. `planifik_attempts_test.dart` suit les nouveaux libellés sans modifier ses assertions métier. |
+| | `presentation/view/task_scheduling_screen.dart` | **Day Stack** : calendrier mauve défilant, mission verte contextualisée et validation séparée. Appui maintenu sur la carte seule, grille conservée pendant le drag, auto-scroll aux bords ; mesures figées à « Valider », soumission au dernier niveau, débrief puis score serveur/mock. |
+| | `presentation/widgets/day_stack_calendar.dart` | Agenda Day Stack : heures fixes pendant le glissement, carte seule soulevée, source atténuée, dépôt par position des cartes et défilement automatique aux bords. Transmet univers + tâche au badge de chaque carte. |
+| | `presentation/widgets/day_stack_badges.dart` | `DayStackTaskBadge` : emote de la tâche si `universeId`/`taskId` sont fournis, sinon carré coloré + icône Material historique (également repli d’erreur). Couleurs de catégories et table Tabler → Material. |
+| | `presentation/widgets/day_stack_emotes.dart` | Chemin d’emote par couple univers/tâche, tailles 32/38 px et largeur de décodage `cacheWidth`. |
+| | `presentation/widgets/game_tutorial_deck.dart` | Pile de cartes illustrées commune : balayage horizontal, précédent/suivant, progression, validation finale, descriptions sémantiques, reduced-motion et défilement interne sans masquer les contrôles. Variante `showHeader: false` pour un en-tête fourni par le jeu, affichage existant conservé par défaut. |
+| | `presentation/widgets/day_stack_tutorial.dart` | Six étapes visuelles Day Stack avec emotes du restaurant et schémas des contraintes ; utilisé avant la partie et depuis l’aide, sans démarrer ni modifier une session. |
+| | `test/features/games/presentation/game_tutorial_deck_test.dart` · `goldens/day-stack-tutorial-{1…6}.png` | Navigation par gestes/boutons, validation finale, petits écrans portrait/paysage à 200 %, sémantique et six captures avec assets réellement décodés. |
+| | `test/features/games/presentation/day_stack_{badges,emotes}_test.dart` | Couverture icônes/couleurs, repli sans identité ou PNG introuvable, décodage à la taille affichée, clé composite, 82 PNG chargés depuis le bundle. |
 | | `presentation/view/move_fast_screen.dart` | Écran complet « Je bouge » (intro, tutoriels, gameplay **niveau unique à règle aléatoire**, résultats). Voir [Niveau Move Fast](#-niveau-move-fast-mobile). |
-| | `presentation/view/predictive_puzzle_screen.dart` | Écran complet **Predictive Puzzle** : intro, règles, planification Tower of Hanoi, exécution auto, résultats, comparaison. Voir [Flow Predictive Puzzle](#-flow-predictive-puzzle-mobile). |
+| | `presentation/view/predictive_puzzle_screen.dart` | Écran complet **Predictive Puzzle** : intro, deux cartes de règles nettes (`PredictivePuzzleTutorial` + `GameTutorialDeck`), planification Tower of Hanoi, exécution auto, résultats, comparaison. Voir [Flow Predictive Puzzle](#-flow-predictive-puzzle-mobile). |
+| | `test/features/games/presentation/predictive_puzzle_tutorial_test.dart` · `goldens/predictive-puzzle-tutorial-{1,2}.png` | Quatre tests : navigation des deux cartes, petit écran à 200 %, captures des schémas natifs et parcours réel jusqu’au premier coup planifié. |
 | | `presentation/widgets/game_system_components.dart` | Design system jeux : palette, boutons, HUD, ruban de séries, contrôles directionnels, avion, tuiles de résultat. |
 | **presentation / flame** | `presentation/flame/planifik_game.dart` | **`FlameGame`** stations : tracé, `undo`/`clear`, `revision` (HUD live), ligne de route magenta, `buildLevelMetrics()` (métriques par niveau), layout col×row remplissant. Ne calcule **pas** de score. |
 | | `presentation/flame/cell_component.dart` | Station **circulaire** tactile + `BoardPalette` : LAB, MTG, bloc (éclair), étoile, chemin. |
@@ -860,7 +995,7 @@ Le hub n'est plus une liste `ListTile` générique. Il suit la maquette fournie 
 - Assets déclarés dans `mobile/pubspec.yaml` :
   `assets/04 Optimal Path/` (`image 120.png`, `image 120-1.png`, `image 121.png`,
   `image 121-1.png`, `image 121-2.png`) **et** `assets/04 Predictive Puzzle/`
-  (`discs.png` = disques de la carte intro, `golden_rule.png` = illustration règle d'or How-To-Play),
+  (`discs.png` = disques de la carte intro, `golden_rule.png` = source Figma historique conservée ; le tutoriel utilise désormais les widgets de disques et tours),
   ainsi que les sous-dossiers utilisés de `assets/04 Je Décide/`.
 - Routes actives : Cognitive Flexibility → sélecteur Move Fast (`/games/move-fast`),
   Je continue (`/games/je-continue`) ou Je coordonne (`/games/je-coordonne`), Working Memory →
@@ -872,24 +1007,34 @@ Navigation : `ProgressScreen` héberge `GamesHubScreen`. La route `/games` rend
 `MainNavigationScreen(initialTab: 2)`, et `AppBottomNav` accepte un `selectedTab` local afin
 d'afficher l'onglet Careers/Progress sans modifier `navTabProvider` pendant `initState`.
 
-### 🧭 Flow « Strategic Choices » (mobile — preview front-only)
+### 🧭 Flow « Strategic Choices » (mobile + score serveur provisoire)
 
 `strategic_choices_screen.dart` reprend la structure des jeux Emotional Regulation et la palette
-violette du handoff. Faute de médias livrés, les vidéos sont remplacées temporairement par les
-**10 situations textuelles exactes** :
+violette du handoff. La banque contient **80 situations** : 60 fiches client et 20 propositions.
+Chaque partie en tire 10 sans répétition :
 
 `cover → intro → tutorial → 10 × (read → reflect 3 s → choose 1/8 → answer saved) → results → insights`
 
+- tutoriel et aide en cinq cartes illustrées centrées sur le fond blanc habituel,
+  avec balayage, précédent/suivant et bouton final ; le nombre de stratégies provient
+  du catalogue et celui de situations de la constante du parcours ;
+- les textes distinguent lancement manuel, choix possible pendant le compte à rebours
+  et validation après sa fin ; aucune durée fixe ni cotation ajoutée ;
 - aucune correction right/wrong pendant le parcours ; la transition reste neutre ;
 - le timer de réflexion est gelé pendant la pause ; le menu partagé propose seulement reprise,
   règles/aide et sortie, jamais un redémarrage silencieux ;
-- résultats et insights restent explicitement **non scorés** : aucun exemple 82/100, percentile,
-  diagnostic ou classement n'est calculé ;
-- aucun repository, endpoint, session `EMOTIONAL_REGULATION`, Attempt, Domain Event ou Fit Score
-  n'est appelé/modifié par cette preview ;
+- les 6 situations `CS-102`, `CS-104`, `CS-108`, `CS-112`, `CS-115` et `CS-116` affichent le
+  message reçu littéral dans une bulle, sans emplacement vidéo ;
+- les 74 autres situations gardent un placeholder « Vidéo à venir » et leur scène textuelle,
+  afin de rester lisibles en attendant les médias ;
+- le client transmet seulement `situationId`, `selectedStrategy`, `responseTimeMs` et `medium` ;
+  le serveur applique la clé 0–3, renvoie le score brut **/30**, l'indice corrigé du hasard et le
+  profil descriptif de coping ;
+- le barème, son interprétation et la normalisation émotionnelle restent explicitement
+  **PROVISOIRES** et doivent être validés par le psychologue ;
 - la variante violette du logo est utilisée dans le jeu et la variante transparente dans le hub ;
-- vidéos, sous-titres/transcriptions, barème, mapping des 8 réponses, indicateurs et normalisation
-  du profil émotionnel restent bloqués jusqu'à validation produit/psychologue.
+- les 74 vidéos, leurs sous-titres/transcriptions et la normalisation du profil émotionnel restent
+  bloqués jusqu'à livraison/validation.
 
 ### 🎯 Flow « Je coordonne » (mobile)
 
@@ -965,7 +1110,7 @@ Figma **« Optimal Path »**. `enum _PlanifikStage { intro, howToPlay, gameplay,
 | Étape | Contenu |
 |-------|---------|
 | **Intro (Path Mind)** | Écran **pixel-perfect** : carte hero violet plein `#4F46E5` (illustration grille `_PathMindArt` + cercles de fond roses/cyan/violets en overflow hors carte), chip « Spatial Planning », 3 mini-cartes meta (Goal/Duration/Format), carte « Simple rule » (bordure périwinkle), **bouton capsule Start**. Marges 24, gaps 20/18/16/22, ombres douces, top-aligné. |
-| **How To Play** | Carousel 2 pages (PageView) : « Connect the Stations » (illustration `_StationsArt`) et « Scoring Breakdown » (barème tutoriel). |
+| **How To Play** | Deux cartes centrées sur fond blanc (`GameTutorialDeck`) : « Relie LAB à MTG », avec le schéma de stations rondes `_StationsArt` et un chemin magenta orthogonal ; « Choisis un trajet efficace », avec les quatre critères du barème existant. Textes courts, swipe, précédent/suivant et démarrage à la dernière carte. Couleurs issues de `BoardPalette`, aucun bitmap ajouté. |
 | **Gameplay (multi-niveaux)** | Fond violet, **HUD** (Score/Timer/Tries + Pause) + barre de progression, **plateau de stations circulaires** (`GameWidget`), bannière **Correct!/Wrong route!**, légende Start/Goal/Block/★/Path, boutons **Clear / Validate route**. |
 | **Score** | Même structure visuelle que Move Fast : titre Results, carte bleue **Cognitive score**, 3 tuiles de stats, panneau Summary insight, puis **Score breakdown panel** (barème reconstruit : chemin optimal 4pts, essais 3pts, zones coûteuses 2pts, bonus 1pt). |
 | **Comparison** | Même structure visuelle que Move Fast : titre Comparative Results, carte bleue benchmark/ranking, grille 2×2 de stats, panneau Performance evolution + CTA Replay. |
@@ -1009,7 +1154,7 @@ la phase de planning et la phase machine sont strictement séparées.
 | Étape | Contenu |
 |-------|---------|
 | **Intro** | Carte hero violette, chip « Predictive Reasoning », titre « Predictive Puzzle », metas Goal/Duration/Format, règle simple et CTA Start. Illustration de la carte = PNG Figma `assets/04 Predictive Puzzle/discs.png` (positionnée dans le `Stack`, sans peinture custom). |
-| **How To Play** | Deux pages : règle d'or Tower of Hanoi (jamais un grand disque sur un petit) illustrée par le PNG Figma `assets/04 Predictive Puzzle/golden_rule.png` ; puis « Plan before you act » (séquence de mouvements planifiés, hauteur adaptée au contenu). |
+| **How To Play** | Deux cartes centrées sur fond blanc (`GameTutorialDeck`) : « Petit sur grand, toujours » compare les empilements autorisé/interdit ; « Prépare tout, puis lance » sépare la préparation du plan et `Run Plan`. Disques/tours natifs réutilisés, texte court, balayage et boutons précédent/suivant. Le PNG de 297 × 135 pixels n’est plus agrandi. |
 | **Planning** | Fond violet, HUD Timer/Moves/Errors, trois tours A/B/C, feedback source → destination, queue horizontale de mouvements, Undo/Clear/Add Move. |
 | **Auto Run** | Les contrôles sont désactivés ; la machine rejoue la queue avec un tick régulier et marque le premier `failed_step_index` visuel. |
 | **Results / Comparison** | Même structure que les jeux précédents : score cognitif, tuile **Levels** (niveaux réussis), tuiles stats, résumé, benchmark optimal cumulé (`Σ 2^n − 1`), CTA Replay. |
@@ -1039,12 +1184,41 @@ Le mobile accumule un `PrevisionPuzzleLevelMetrics` **par niveau** (`_levelMetri
 (barème catégoriel de la fiche) puis font la **moyenne arrondie** via `scorePrevisionPuzzle` — un seul
 `Attempt` enregistré. `globalPlanSuccess` est exposé dans la réponse mais reste **hors du score**.
 
+### 🧠 Tutoriels Memory Quest Digits et Image — 2026-09-17
+
+Les routes séparées utilisent toujours `InvestigateScreen`, avec les modes
+`digits` et `images`. Le tutoriel passe par `MemoryQuestTutorial` avant
+`_startMission` : parcourir les cartes ne démarre pas de session ni de chrono.
+Fond habituel blanc, cartes centrées, balayage et précédent/suivant ; l’action
+« Je suis prêt » apparaît seulement à la fin. L’aide affiche les mêmes cartes
+dans un dialogue plein écran et retourne au cycle de pause existant.
+
+- **Digits, six cartes** : révélation un par un, rappel direct, rappel inverse,
+  question d’interférence dès le niveau 3, saisie complète/effacement/validation,
+  progression. Exemple illustré 3–7–2 → 2–7–3 pour l’inversion.
+- **Image, six cartes** : ordre initial, échanges automatiques, casse-tête visuel
+  dès le niveau 2, classement par appuis et annulation d’un rang, validation et
+  expiration du chrono, progression. Nouveaux symboles pédagogiques coquillage,
+  lune et plume ; aucun objet du catalogue réel ni SVG de distracteur réutilisé.
+- **Mode historique, dix cartes** : les deux missions, avec seulement la question
+  d’interférence des chiffres. Le tutoriel n’annonce pas un casse-tête visuel
+  supplémentaire que ce mode ne joue pas.
+
+Le départ à trois éléments, l’ajout d’un après un tour réussi et l’arrêt après
+deux tours ratés au même niveau viennent des configurations/parcours existants.
+Sept niveaux joués : trois à neuf éléments. Aucun délai réel, stimulus ou score
+modifié. **Audit préalable** : le moteur pur `MemoryImagesGame` n’est pas câblé
+aux routes. Mode `FULL` envoyé par Image et chrono de restitution sous pause
+reproduits ; autres écarts de timing/métriques relevés par lecture. Corrections
+ouvertes dans `mobile/assets/memory-quest-tutorial/AUDIT_LOGIQUE.md` ; elles ne
+sont pas masquées par les tests verts du tutoriel.
+
 ### 🧭 Flow « Je Décide » — Phases 1–4 (mobile)
 
 `je_decide_screen.dart` orchestre les écrans fournis dans les trois dossiers de handoff, dans une
 machine d'états locale :
 
-`welcome → onboarding (3 pages) → playerCard → avatar → practiceIntro → practiceScenario`
+`welcome → practiceIntro (3 cartes) → practiceScenario (1 exemple)`
 
 `→ analytical → riskBalance → quickChoice → xpFeedback → checkpoint → encouragement`
 
@@ -1052,14 +1226,47 @@ machine d'états locale :
 
 `→ journeyComplete → preparing → profile → strengths → details → export → hub`.
 
-- **Welcome** : hero violet, objectif/durée/format, étapes et confidentialité.
-- **Onboarding** : carousel « Every choice tells a story », « No pressure » et
-  « Your decision profile ».
-- **Player card** : nickname facultatif, preview et 4 thèmes couleur.
-- **Avatar** : 6 guides (`Navigator`, `Analyst`, `Explorer`, `Strategist`, `Pathfinder`, `Observer`)
-  à partir des PNG fournis.
-- **Practice** : tutoriel puis seul scénario fourni, `Practice 1/2 — Choosing a route`.
-  Le choix reste neutre : aucun état « correct/incorrect ».
+- **Welcome** : fond blanc, hero violet et logo officiel repris du hub ; un objectif court,
+  durée maximale dérivée de `DecisionConfig`, 24 questions, confidentialité et bilan en
+  quatre dimensions avec cotations provisoires signalées. « Commencer » ouvre les règles.
+  Les trois pages d’onboarding et le panneau répétitif « How it works » sont retirés.
+- **Continuité accueil/règles** : navigation supérieure, retour, menu et barre basse
+  conservent leur place. « Comment jouer » apparaît dans l’en-tête du jeu ; celui de
+  la pile est masqué par une option, sans doublon. Fond blanc conservé, contenu des
+  cartes introduit par fondu et glissement horizontal léger de 320 ms (6 % de la largeur),
+  retour vers l’accueil dans l’autre sens. Les anciens contenus ne répondent plus
+  aux gestes et ne sont plus annoncés pendant leur disparition. Avec mouvement réduit,
+  le changement d’étape est immédiat. Aucun nouvel écran ni illustration.
+- **Personnalisation retirée (2026-09-17)** : bouton « Personnaliser (facultatif) »,
+  écrans pseudo/thème/avatar, états, contrôleur et navigation associés supprimés à la
+  demande de l’utilisateur. L’accueil n’a plus qu’une action de lancement : « Commencer ».
+  Les fichiers graphiques d’avatars des maquettes sont conservés comme sources historiques,
+  sans utilisation dans le parcours ; aucune déclaration d’asset modifiée.
+- **Practice** : tutoriel puis seul scénario fourni, « Exemple d’entraînement — Choosing a route ».
+  Le compteur trompeur `Practice 1/2` est retiré. Le choix reste neutre : aucun état « correct/incorrect ».
+  **Tutoriel simplifié (2026-09-17)** : trois cartes centrées sur fond blanc, illustrations
+  `Choose`, `Linked`, `Time` et textes français courts. La première réunit lecture,
+  sélection et bouton « Continue » ; la deuxième explique les scénarios liés ; la
+  troisième présente le chrono. Balayage horizontal et précédent/suivant conservés ;
+  « Essayer l’exemple » apparaît à la dernière carte. Retour à l’accueil depuis les règles.
+  Un seul exemple précède l’ouverture de session et les 24 questions actives.
+  L’aide réutilise ces cartes en plein écran, revient au menu pause existant, conserve
+  le choix et laisse le chrono suspendu jusqu’à la reprise. Les délais réels restent
+  ceux du gameplay : minute ordinaire et budget serveur pour les choix rapides.
+- **Questions II retirées (2026-09-17, confirmation utilisateur)** : les six questions
+  d’analyse des contraintes disparaissent du parcours et du bilan. `activeBank` du port
+  `DecisionFormCatalog` filtre côté serveur, tant pour la lecture que pour le contrôle
+  des items soumis ; un item II soumis est désormais hors de la sélection autorisée.
+  Le moteur et son miroir Dart agrègent quatre dimensions sur /72, puis SCW /100 ;
+  ni axe II, ni points II, ni interprétation de difficulté d’analyse. Codes et textes II
+  restent archivés, sans suppression en base, car les choix DT réutilisent leurs contextes.
+  La démo sert également 24 questions ; parsing mobile défensif contre une ancienne
+  réponse API contenant II. Situation et réponses ensemble sur une page ; étapes
+  Situation/Réponse, écran de lecture et actions Voir les réponses/Relire retirés.
+  Densité gelée sur le formulaire actif ; sur petit écran ou à 200 %, les contenus
+  dépassant la hauteur restent accessibles en défilant sur cette même page, sans
+  recouvrement par Continue. Paires CS conservées, choix et cotation DT inchangés.
+  Aucun nouveau contenu, remplacement de question, dépendance ou migration.
 - **Gameplay Phase 2** : les cinq formats livrés sont représentés sans afficher leurs codes
   internes : choix à 3 cartes, risque à 2 options, choix rapide, scénario lié en deux parties
   consécutives et préférence immédiate/différée.
@@ -1073,10 +1280,28 @@ machine d'états locale :
   et finale (contrairement à Emotional Radar, qui persiste chaque scène côté serveur).
 - **Menu pause** : la croix gameplay ouvre un dialogue avec reprise, son/musique, règles et
   sauvegarde/sortie. Le timer DT est réellement suspendu puis reprend au même nombre de secondes.
-- **Résultats** : fin 30/30, préparation, radar avec équivalent textuel accessible, profil, cinq
+- **Résultats** : nombre réel de réponses /24, préparation, radar avec équivalent textuel accessible, profil, quatre
   dimensions détaillées et écran export/partage. Le score, le niveau et le détail /18 viennent tous
   de la réponse de soumission. Une dimension en notation provisoire est **signalée comme telle** :
   un 12/18 forfaitaire ne doit pas se lire comme une performance.
+- **Soumission HTTP corrigée (2026-09-17)** : l'erreur 400 relevée dans le
+  simulateur était `Unrecognized field "items"` sur `SubmitResultRequest.Metrics`.
+  Le formulaire GET garde `items`, mais les réponses POST doivent utiliser
+  `decisionItems`, clé déjà attendue par le backend. Contrat OpenAPI corrigé
+  avant la sérialisation mobile ; liste Dart `DecisionMetrics.items` et domaine
+  Java inchangés. Test Dio strict du vrai repository et test Jackson du DTO
+  serveur ajoutés ; tests avec repository simulé seuls ne détectaient pas ce défaut.
+- **Sons des catégories et score final (2026-09-17)** : `badgeUnlocked` joue une
+  fois à l'entrée de chaque transition après les questions 6, 12 et 18, puis à
+  `journeyComplete` après la dernière catégorie. Même son existant que les badges,
+  actuellement alias de `congrats-sfx.mp3`, sans nouvel asset ni indication de bonne/mauvaise
+  réponse. Le profil garde son SFX badge et son son de comptage. La soumission doit
+  contenir un résultat `DECISION_CORE` avant d'ouvrir le bilan : aucun échec réseau
+  ou résultat absent ne devient un profil artificiel à 0. Le loader et le panneau
+  d'erreur existants sont réutilisés, avec nouvelle tentative sur la même session
+  et les mêmes réponses ; zéro réellement noté par le serveur reste valide.
+  Compteur commun vérifié à une valeur intermédiaire puis au score final, son
+  coupé respecté et aucun SFX répété par un simple rebuild.
 - La bottom nav partagée reste visible pendant l'introduction et disparaît pendant la pratique et
   tout le gameplay/résultat.
 - **Hors ligne** : « Je Décide » est le seul jeu du module qui exige le backend. Le mock lève une
@@ -1087,6 +1312,71 @@ machine d'états locale :
 
 La carte `Decision-Making` du hub pointe exclusivement vers `/games/je-decide`. Predictive Puzzle
 reste dans `Executive Planning`.
+
+#### Investigation du retour arrière — 2026-09-16
+
+Deux défauts techniques sont reproduits par des tests widget de diagnostic temporaires :
+
+- **Carte joueur → onboarding** : après les trois pages, le bouton Retour remonte bien à
+  l'onboarding, mais le nouveau `PageView` repart à l'index **0** alors que `_onboardingPage`
+  reste à **2**. Le contenu de la première page est donc accompagné du bouton
+  « Create my player card » et de l'indicateur de la dernière page. Le `PageController`
+  est conservé, mais la position du `PageView` démonté n'est pas restaurée dans ce parcours.
+- **Retour système pendant le gameplay** : `JeDecideScreen.build` retourne le Scaffold de
+  gameplay avant le `PopScope` de l'introduction ; `DecisionGameplayView` n'en ajoute pas.
+  La route n'intercepte donc plus le retour système pendant la passation. Le test monté
+  en route racine observe `RoutePopDisposition.bubble` au lieu de `doNotPop` ; la destination
+  réelle dépend de la pile de navigation. À titre de comparaison, `InvestigateScreen`
+  conserve son `PopScope` autour de tous ses états.
+
+**Statut** : diagnostic confirmé, aucun correctif de navigation appliqué. La capture transmise
+est absente du chemin temporaire indiqué : l'écran exact et le type de retour du signalement
+restent à identifier. Le retour tactile « Back to the situation » du gameplay appelle une
+autre action (`_backToSituation`) et n'est pas identifié comme défaillant par cet audit.
+Avant une correction du retour système, préciser le comportement attendu pendant un item
+chronométré, pour préserver l'interdiction de pause existante.
+
+**Validation** : les deux assertions de diagnostic exposent les défauts ; leur fichier temporaire
+est retiré après exécution. Les suites existantes `je_decide_screen_test.dart` et
+`je_decide_gameplay_test.dart` restent vertes : **25 tests Flutter**, sans modification de code.
+Backend/ArchUnit et analyse globale non exécutés pour cette investigation de navigation.
+Arborescence, barèmes, API, parité mock/backend et roadmap d'implémentation inchangés.
+
+### 🃏 Tutoriel visuel Day Stack — 2026-09-17
+
+Les quatre blocs de paragraphes sont remplacés par **six cartes successives** :
+maintenir/déplacer, dépendances, fenêtre horaire, échéance, début « pile » et temps mort,
+puis validation. Chaque carte présente un schéma et une explication courte ; les exemples
+reprennent livraison, inventaire, cuisson et service du restaurant. Les emotes déjà
+embarquées sont agrandies à 80–132 px dans les exemples, sans modifier leur taille dans
+le calendrier. `DayStackTaskBadge.emoteSize` est une option de présentation ; ses valeurs
+par défaut et son repli restent inchangés.
+
+`GameTutorialDeck` réutilise `GamePanel` et `GamePrimaryButton` et représente la pile
+avec deux cartes arrière décoratives. Les cartes claires sont centrées, limitées à
+540 px de hauteur ; la scène illustrée est séparée du texte centré. Sur demande de
+l’utilisateur, le fond habituel blanc des tutoriels Planifik est rétabli, y compris
+les marges système et les côtés sur tablette. Titres et navigation bleu marine,
+repère de progression magenta ; aucun dégradé mauve à l’extérieur des cartes. Balayage horizontal ou « Suivant », retour à la
+carte précédente, repère d’étape et bouton final « Je suis prêt » / « Reprendre la partie ».
+Le bouton de retour existant conserve sa destination. Le contenu peut défiler verticalement
+**dans la carte** sur petit écran ou avec un texte agrandi ; aucun rétrécissement du texte
+explicatif, commandes toujours en dehors de cette zone. Les repères graphiques restent
+compacts et disposent d’une description sémantique équivalente. Les animations désactivées
+permettent une navigation immédiate.
+
+La première carte propose une **mini-démonstration manipulable** : appui maintenu sur la
+livraison, glissement dans la place libre, puis « Bien joué ! ». Un toucher simple ou
+l’action sémantique permet également d’essayer. Cette interaction locale ne modifie
+ni la banque, ni les placements de la partie, ni aucune métrique. Les autres scènes
+montrent de grandes emotes et des repères horaires simples. Les schémas seuls peuvent
+être ajustés à leur espace disponible ; le texte explicatif n’est jamais réduit.
+
+Parcourir le tutoriel initial n’ouvre pas de session mesurée. L’aide conserve les placements
+et reprend la session d’origine. Les horaires d’exemple correspondent à la banque ; le
+nombre de manches annoncé vient de `kDayStackLevels`, sans nouvelle constante métier.
+**Suite :** décliner le composant dans les autres tutoriels après définition de leurs cartes
+et contrôle de leurs mécaniques ; aucun autre tutoriel n’est converti dans cette livraison.
 
 ### Gestion d'état & bascule mock/backend
 
@@ -1182,10 +1472,10 @@ Les quatre jeux demandés sont accessibles dans les sélecteurs de catégorie ex
 
 | Jeu | Contenu fixe / dynamique | Démo et amélioration |
 |-----|--------------------------|---------------------|
-| Day Stack | 11–12 tâches par univers, toutes présentes et mélangées, 4 manches | Liste unique, appui maintenu sur toute la carte, défilement tactile et automatique aux bords ; bouton Valider fixe, aucun feedback avant validation, règles conservant l’ordre. |
+| Day Stack | 11–12 tâches par univers, toutes présentes et mélangées, 4 manches | Calendrier mauve, appui maintenu sur la carte seule avec heures visibles pendant le glissement, défilement tactile et automatique aux bords ; bouton Valider séparé, aucun feedback métier avant validation, règles conservant l’ordre ; tutoriel en six cartes illustrées, balayage et boutons. |
 | Emotional Radar | 3 situations fixes, réponses famille/nuance/intensité interactives | 3 vidéos locales de substitution, description textuelle, pause/relecture/plein écran. |
-| Reflective Pause | 10 situations fixes, réflexion et réponses chronométrées | Largeur lisible sur tablette et contraste des réponses verrouillées amélioré. |
-| Strategic Choices | 10 situations fixes, 8 stratégies, réflexion et récapitulatif interactifs | Choix de hauteur flexible et action principale fixe ; toujours sans score. |
+| Reflective Pause | 10 situations fixes, réflexion et réponses chronométrées | Largeur lisible sur tablette et contraste des réponses verrouillées amélioré ; tutoriel et aide en cinq cartes illustrées sur fond blanc. |
+| Strategic Choices | 80 situations, 10 tirées, 8 stratégies, réflexion et récapitulatif interactifs | 6 messages écrits jouables, 74 scènes lisibles en attente de vidéo ; score serveur /30 provisoire ; tutoriel et aide en cinq cartes illustrées. |
 
 Ces banques fixes ne sont pas des écrans statiques : les actions modifient réellement la session.
 Les clips sont illustratifs, **pas une reconstitution ni un stimulus psychométrique validé** ;
@@ -1201,7 +1491,7 @@ Livraison : `cd mobile && flutter build apk --release` ; APK universel dans
 `mobile/build/app/outputs/flutter-apk/app-release.apk`. `video_player` et la déclaration du
 dossier vidéo dans `pubspec.yaml` sont **explicitement autorisés**, ainsi que le lockfile et
 l'enregistrement natif générés. Prochaines étapes : remplacer les médias illustratifs par
-les stimuli validés et faire valider un éventuel barème Strategic Choices avant intégration.
+les stimuli validés et faire valider le barème Strategic Choices ainsi que la normalisation émotionnelle.
 
 Vérification de cette livraison : **36 tests ciblés verts**, analyse des fichiers modifiés sans
 diagnostic, build APK release (148 796 849 octets) et build web réussis. Installation Android
@@ -1216,6 +1506,7 @@ ArchUnit ne s'exécutent pas car la compilation des tests Recruitment échoue su
 |---------|--------|
 | Planifik #1 « Chemin Optimal » (Flame + barème + persistance) | 🟢 Fait |
 | Optimal Path — flow complet mobile (intro Path Mind, How To Play, gameplay, score, comparaison) | 🟢 Fait |
+| Optimal Path — amélioration légère des deux cartes de règles | 🟢 Implémentée — style des stations conservé, chemin orthogonal, couleurs du plateau, textes courts et critères de score illustrés ; 🟠 rendu sur appareil à valider (décision 71). |
 | Optimal Path — **4 niveaux randomisés par graphe BFS** + plateau de stations + **menu pause** | 🟢 Fait |
 | Optimal Path — barème figé en constantes `OptimalPathConfig` (clés de la fiche) | 🟢 Fait |
 | Optimal Path — **cumul multi-niveaux explicite** (score = moyenne /10 des niveaux, 1 seul `Attempt`) | 🟢 Fait |
@@ -1247,11 +1538,13 @@ ArchUnit ne s'exécutent pas car la compilation des tests Recruitment échoue su
 | Renommer `Cognitive Flexibility` en « Attention & Flexibility » | 🔴 Non appliqué — décision taxonomique à valider avec le psychologue et la matrice Fit Score |
 | Hub Games / Progress — maquette 5 domaines cognitifs, mini-logos des jeux dans les cartes + picker, bottom nav conservée | 🟢 Fait |
 | Planifik #3 `PREVISION_PUZZLE` — Predictive Puzzle | 🟢 Fait |
+| Predictive Puzzle — deux cartes de règles et schémas nets | 🟢 Implémentés — composants natifs du jeu, fond blanc, comparaison autorisé/interdit et préparation/exécution ; 🟠 rendu sur appareil à valider (décision 70). |
 | Predictive Puzzle — **3 niveaux (3 → 4 → 5 disques, optimal `2^n − 1`)** + disques responsive | 🟢 Fait |
 | Predictive Puzzle — **barème catégoriel de la fiche** (1er essai/erreurs/coups superflus), remplace l'ancienne formule inventée | 🟢 Fait |
 | Predictive Puzzle — cumul multi-niveaux (moyenne /10, 1 `Attempt`) + `globalPlanSuccess` hors score | 🟢 Fait |
 | Predictive Puzzle — `puzzle_levels` [3,4,5] & `max_sequence_errors` [3,2,1] | 🟠 Décisions produit **à valider** (fiche : 3 constant) |
 | **Planifik #2 `TASK_SCHEDULING` — « Ordonnancement de tâches »** (barème /10 : dépendances 3/0 + horaires 3/0 + cohérence 0–2 + réajustements dérivés) + écran mobile à liste réordonnable + parité mock | 🟢 Fait — Planifik complet **/30** sur ses 3 mini-jeux |
+| **Day Stack — emotes par tâche** | 🟢 Collection de 82 PNG générée, vérifiée et intégrée aux cartes du calendrier (repli icône, décodage limité) ; 🟠 taille et rendu à valider visuellement sur appareil (décision 62) |
 | **Planifik — jeu complet** (Chemin Optimal + Ordonnancement + Tour de Hanoï, profil global **/30**) | 🟢 **Complet** |
 | **« J'investigue » (`MEMORY_QUEST`) — Mission A Digit Span** (observe → rappel même ordre → rappel inverse → résultats), écran Flutter custom, timers data-driven (900 ms / ISI 250 ms), input-lock, clavier accessible (≥48 px), score **mock** (0–5/tâche → composite /100) | 🟡 Fait (mobile, hors-ligne) — tuile hub + route `/games/investigate` + catalogue d'objets (21) |
 | **« J'investigue » — Mission B (manipulation d'objets)** : observe l'ordre initial (5 s, verrouillé) → manipulations automatiques (échanges) → **restaurer l'ordre INITIAL** en tap-to-place ; objets par forme+libellé (accessibilité), score restauration → composite /100 | 🟡 Fait (mobile, hors-ligne) — enchaîné après la Mission A |
@@ -1259,18 +1552,24 @@ ArchUnit ne s'exécutent pas car la compilation des tests Recruitment échoue su
 | **« J'investigue » — backend (Phase 4)** : mini-jeu `MEMORY_QUEST_CORE`, `MemoryQuestMetrics` (mesures par tâche), `MemoryQuestScoringService` (tâches 0–5 → **composite /100**), indicateurs + détail du score exposés, migration **V12** (CHECK), parité mock ; mobile soumet via le repository (score serveur autoritatif) | 🟢 Fait |
 | **« J'investigue » — système de niveaux** (7 niveaux, longueur 3→9, +1 après 3 tâches réussies ; objets 4→12 ; distraction gatée niveau ≥ 3 ; arrêt à `max_sequence_length`/`max_session_duration_min`) | 🟢 Fait (backend + mobile + parité mock) |
 | **« J'investigue » — calibrage appareil → timeout** (1er module dont le **score dépend du temps**) : `max_task_time_ms + offset` ; tâche dépassant le seuil ajusté = échec voidé ; `session_valid` | 🟢 Fait — socle `DeviceCalibration`/`CalibrationService` **réutilisé** (non modifié) |
-| **« Je Décide » (`DECISION`)** | 🟢 Jouable end-to-end (V59) — banque 120 items en base, forme A de 30 items servie sans clé de correction, notation serveur, profil réel. Reste : modèles λ/k/cohérence pour ER-1..18, CS et RE, puis formes B/C/D |
+| Memory Quest Digits/Image — tutoriels visuels et aide | 🟢 Six cartes et illustrations nouvelles par jeu, objets de partie exclus, dix cartes adaptées au mode historique. 🟠 Rendu sur appareil et défauts préexistants de câblage ouverts dans l’audit du 2026-09-17. |
+| **« Je Décide » (`DECISION`)** | 🟢 Jouable end-to-end (V59) — accueil avec logo, transition vers les règles dans un cadre persistant, trois cartes utiles et un exemple, sans personnalisation ; questions II retirées et situation/réponses ensemble sur une page ; banque historique de 120 items, 24 items actifs servis sans clé de correction, notation serveur /72 → SCW /100 et profil réel sur quatre axes. Reste : modèles λ/k/cohérence pour ER-1..18, CS et RE, puis formes B/C/D |
 | **« Emotional Radar » (`EMOTIONAL_REGULATION`) — 5ᵉ domaine** : `GameType` + `EMOTIONAL_RADAR_CORE`, barème 9 pts/scène, écran Flutter complet (cover, tutoriel, gameplay à révélation progressive, feedback, transition, résultats, pause/aide/plein écran), parité mock | 🟢 **Fait** — jouable sur les 3 scènes rédigées (27 pts) |
 | Emotional Radar — **contenu servi par le backend** (texte/image/vidéo) : catalogue en base, `GamesMediaStoragePort` + adaptateur Cloudinary dédié, endpoint de téléversement | 🟢 Fait — 1ᵉʳ jeu du module dont le matériel n'est pas embarqué |
 | Emotional Radar — **notation par scène côté serveur** (clé de correction jamais envoyée au client ; score reconstruit depuis les réponses persistées) | 🟢 Fait — migration **V25**, table `emotional_radar_answers` |
 | Emotional Radar — taxonomie ANGER/DISGUST/SURPRISE (Ekman) | 🟠 **PROVISOIRE** — absente des maquettes, à valider par le psychologue |
+| Emotional Radar V2 — tutoriel visuel et aide | 🟢 Implémentés — cinq cartes et illustrations dédiées ; 🟠 contrôle visuel sur appareil ouvert (décision 65). Autres tutoriels à convertir dans une prochaine tâche. |
+| Choix stratégique / Reflective Pause / Radar émotionnel — icônes et insights | 🟢 Implémentés — icônes des huit stratégies toujours visibles, profil Reflective en jauges, comptes d’intensité Radar en barres ; 🟠 rendu sur appareil à valider (décision 72). |
 | Emotional Radar — 12 scènes manquantes (15 visées) | 🔴 En attente du psychologue — aucune scène inventée |
 | **« Reflective Pause » (`REFLECTIVE_PAUSE_CORE`)** : contrat, domaine pur, barème serveur 3/4/3, V26, API, breakdown et parité mock | 🟢 **Fait — /10**, 10 moments obligatoires |
 | Reflective Pause — mobile complet : cover, intro, tutoriel, timer 3 s, réponses, transition sauvegardée, résultats, insights, pause/règles, route et picker Emotional Regulation | 🟢 Fait — logo officiel net réutilisé |
-| Strategic Choices — preview mobile : logo double variante, hub/picker, cover, intro, tutoriel, 10 situations textuelles, réflexion 3 s, pause/règles, résultats et insights non scorés | 🟡 **Fait côté front uniquement** — route `/games/strategic-choices`, aucun appel backend |
-| Strategic Choices — vidéos, sous-titres/transcriptions, API, persistance, barème serveur, indicateurs et mapping des 8 stratégies | 🔴 Différé — médias et règles de calibration absents du handoff |
-| Domaine Emotional Regulation — session partagée Radar + Reflective, complétion + event | 🟢 Fait — composite provisoire **/37** (27 + 10) |
-| Profil global émotionnel /30 avec Strategic Choices | 🔴 Différé — aucune règle exploitable de scoring/normalisation fournie ; la preview ne modifie pas le /37 existant |
+| Reflective Pause — tutoriel illustré et aide | 🟢 Implémentés — cinq nouvelles illustrations, commandes accessibles, retour de l’aide avec sélection conservée ; 🟠 validation visuelle sur appareil ouverte. Les autres tutoriels restent à convertir. |
+| Strategic Choices — mobile + serveur : banque 80, tirage 10, métriques brutes, score /30, breakdown, mock et parité | 🟢 **Fait end-to-end**, barème et interprétation **PROVISOIRES** |
+| Strategic Choices — tutoriel visuel et aide | 🟢 Implémentés — cinq cartes et illustrations dédiées ; reprise avec sélection et réflexion conservées. 🟠 Rendu sur appareil à valider. Autres tutoriels à convertir ultérieurement. |
+| Strategic Choices — 6 messages écrits littéraux | 🟢 Jouables sans média : `CS-102/104/108/112/115/116` |
+| Strategic Choices — 74 vidéos, sous-titres/transcriptions | 🔴 Différé — scènes textuelles affichées en attendant les médias validés |
+| Domaine Emotional Regulation — session partagée Radar + Reflective + Strategic Choices, complétion + event | 🟢 Fait — somme brute provisoire **/67** (27 + 10 + 30) |
+| Profil global émotionnel normalisé /30 | 🔴 Différé — règle de normalisation non validée |
 | Bascule mock ⇄ backend | 🟢 `--dart-define=GAMES_MOCK` |
 | Socle de calibrage appareil (méthode « technique », transversal) | 🟢 Fait — appliqué à Move Fast (indicateurs `*Adjusted`), réutilisable Decision/Memory Quest |
 | Calibrage — table `games.device_calibrations` (V11) + fallback fiabilité réduite | 🟢 Fait |
@@ -1280,6 +1579,37 @@ ArchUnit ne s'exécutent pas car la compilation des tests Recruitment échoue su
 | **Application runtime des contenus/configurations administrés** | 🟢 Snapshot immuable par session ; les 8 `GameType` ont chacun un `SETTINGS` et un `MODIFIERS` publié. `sessionEnabled` contrôle réellement le démarrage de toute nouvelle session ; `reducedMotionDefault` est livré pour tous et consommé par les parcours possédant déjà une branche reduced-motion (Radar, Reflective Pause, Je continue, J'investigue). Radar applique aussi `sceneCount`, `orderMode`, aide, feedback et durée de transition. Rotation et banques publiées sont consommées par Je Décide/Emotional Radar. |
 
 ---
+
+**Roadmap Je Décide (2026-09-17)** : simplification d’accueil/tutoriel livrée à la
+demande de l’utilisateur : une introduction avec logo, trois cartes indispensables,
+un exemple, personnalisation retirée à la demande de l’utilisateur ; cadre persistant
+et passage animé vers les règles. Questions longues II retirées avec leur dimension du bilan, sur confirmation ;
+24 questions actives et quatre axes, situation et réponses sur une page.
+Clé POST `decisionItems` alignée avec le DTO serveur et testée sur le chemin HTTP.
+SFX des quatre fins de catégorie et compteur final vérifiés ; échec de soumission
+affiché avec nouvelle tentative conservant session/réponses, sans faux score à zéro.
+Captures, entrée/retour, mouvement réduit et accessibilité à 200 % vérifiés ;
+validation visuelle sur appareil ouverte. Passation, notation et protocoles inchangés.
+
+**Roadmap insights émotionnels (2026-09-17)** : icônes de Choix stratégique,
+profil visuel de Reflective Pause et répartition des évaluations d’intensité de
+Radar livrés. Vérification visuelle par captures ; rendu sur appareil à valider.
+Les scores, seuils d’interprétation et règles de partie restent identiques.
+
+**Roadmap Optimal Path (2026-09-17)** : légère amélioration des deux pages de
+règles livrée, en conservant les stations rondes et le barème existant. Captures
+et navigation vérifiées ; validation visuelle sur appareil ouverte. Gameplay,
+aide de pause, progression et calcul du score inchangés.
+
+**Roadmap Predictive Puzzle (2026-09-17)** : les deux fenêtres de règles sont
+harmonisées avec les tutoriels en cartes. Schémas natifs vérifiés par captures ;
+validation visuelle sur appareil ouverte. Aucun changement de progression ou de barème.
+
+**Roadmap Memory Quest (2026-09-17)** : tutoriels Digits/Image et aide illustrés
+livrés ; rendu sur appareil à valider. Priorités techniques ouvertes : projection
+du mode dans les métriques, suspension des horloges, budgets et compteurs des
+casse-têtes visuels, agrégation des métriques Image. Audit et reproductions dans
+`mobile/assets/memory-quest-tutorial/AUDIT_LOGIQUE.md`, sans changement de barème.
 
 ## 🧠 Décisions à valider avec le psychologue référent
 
@@ -1320,7 +1650,7 @@ Je place restent protégés plutôt qu'exposés comme contrôles sans effet.
 | 27 | **Emotional Radar — autorisation de l'upload média** | endpoint historique désormais **réservé à `ROLE_ADMIN`** ; médiathèque générique également protégée | Arbitrage résolu par la création de la console d'administration | `EmotionalRadarController.uploadMedia` · `GamesAdminController` |
 | 28 | **Reflective Pause — barème 3/4/3** | temps contrôlé /3 + non-impulsivité /4 + prise de recul /3 ; sous-scores à 0,1, somme arrondie une fois | Le handoff nomme les dimensions et le score /10 mais ne fixe pas explicitement les poids | `ReflectivePauseConfig` / miroir Dart |
 | 29 | **Reflective Pause — moment 3** | `WAIT` **ou** `REFORMULATE_CALMLY` comptent comme prise de recul | Content map : « Wait, then reformulate calmly » sans préférence entre les deux choix UI | `ReflectivePauseConfig.RECOMMENDED` |
-| 30 | **Profil émotionnel provisoire /37** | session complétée avec Radar actuel /27 + Reflective /10 | La planche globale prévoit 3 jeux ×10 = /30, mais Strategic Choices et la normalisation Radar /10 ne sont pas fournis | `MiniGame.EMOTIONAL_RADAR_CORE` + `REFLECTIVE_PAUSE_CORE` |
+| 30 | **Profil émotionnel provisoire /67 brut** | session complétée avec Radar actuel /27 + Reflective /10 + Strategic Choices /30 | La planche globale prévoit 3 jeux ×10 = /30, mais la normalisation des trois mini-jeux n'est pas fournie | Les trois `MiniGame` d'`EMOTIONAL_REGULATION` |
 | 31 | **« Je continue » — référence scientifique** | implémenter et nommer le protocole **Long Rosvold CPT X/AX** ; ne jamais utiliser les normes/T-scores Conners | La fiche cite « Conners CPT-3 » mais décrit 44 blocs X/AX à 690/230 ms, protocole Rosvold ; erreur de référence à corriger avec le psychologue | `ContinuousAttentionConfig` · contrat `ROSVOLD_LONG_V1` · UI |
 | 32 | **« Je continue » — score /100** | moyenne des balanced accuracies X_TEST et AX_TEST ; RT, d′ et biais c strictement hors score ; niveau neutre constant, aucune bande clinique | **PROVISOIRE — non validé par le psychologue** ; limite connue : « jamais répondre » et « toujours répondre » donnent 50/100 | `ContinuousAttentionProvisionalRules` + miroir Dart |
 | 33 | **Catégorie mobile de « Je continue »** | jeu affiché dans la carte existante **Cognitive Flexibility**, sans renommer la catégorie ; `GameType.CONTINUOUS_ATTENTION` séparé côté domaine | Attention soutenue et flexibilité cognitive sont distinctes ; « Attention & Flexibility » toucherait la taxonomie produit et la matrice Fit Score | `games_hub_screen.dart` |
@@ -1344,7 +1674,7 @@ Je place restent protégés plutôt qu'exposés comme contrôles sans effet.
 | 51 | **« Je place » — tolérances/interruptions** | ±100 ms encodage-rétention, ±250 ms rappel ; pause/focus/rotation/background ⇒ audit-only puis restart mesuré | Tolérance appareil et reprise après interruption non spécifiées | config + scorer + `je_place_screen.dart` |
 | 52 | **Catégorie mobile de « Je place »** | deuxième jeu de **Working Memory**, sans renommer la catégorie ni modifier `MEMORY_QUEST` | Placement produit cohérent avec la mémoire visuo-spatiale, mais taxonomie finale à confirmer | `games_hub_screen.dart` |
 | 53 | **Fit Score / Analytics de « Je place »** | event supprimé même après Attempt valide tant que le barème est provisoire | Aucun mapping vers la matrice Fit Score ni validation psychologue fournis | `SubmitGameResultUseCase.executeObjectLocation` |
-| 54 | **Strategic Choices — frontière de la preview front** | affiché comme 3ᵉ entrée de `Emotional Regulation`, avec scénarios textuels sans vidéo ; aucun `GameType`/`MiniGame`, score, session, Attempt, event ou Fit Score ajouté | Les 10 vidéos/captions/transcriptions, les poids des 8 stratégies, le calcul /100, les 3 indicateurs et la normalisation émotionnelle /30 ne sont pas fournis. La demande parle d'« Emotional Intelligence » mais les maquettes et la taxonomie active utilisent `Emotional Regulation` | `strategic_choices_content.dart` · `strategic_choices_screen.dart` · `games_hub_screen.dart` |
+| 54 | **Strategic Choices — barème et supports** | 3ᵉ mini-jeu d'`Emotional Regulation` ; 80 situations, 10 tirées ; somme des cotations 0–3 sur /30 et indice corrigé du hasard ; 6 scènes naturellement écrites converties en messages littéraux, 74 restent vidéo | **PROVISOIRE — à valider par le psychologue** : clé reconstruite par inférence, interprétation, stimuli vidéo et normalisation émotionnelle /30 non validés | `StrategicChoicesConfig` · banques JSON · `strategic_choices_screen.dart` · tooling de génération |
 | 55 | **Defaults d'exploitation de la console** | `sessionEnabled=true` dans `SETTINGS` et `reducedMotionDefault=false` dans `MODIFIERS` pour les 8 `GameType` ; ces valeurs reproduisent le comportement antérieur et sont versionnées, jamais rétroactives sur une session ouverte | La demande exige un contrôle complet mais ne fixe pas les valeurs initiales ni le vocabulaire des clés ; arbitrage produit à confirmer | `AdminConfigurationSchemaRegistry` · V74/V75 · `StartGameSessionUseCase` |
 | 19 | **« Je Décide » — équivalence des formes parallèles** | Forme A seule seedée (V59). Les 4 formes ne peuvent pas être équivalentes tant que ER-1..18, CS et RE sont en notation neutre : la seule forme contenant ER-19..24 serait la seule où ER discrimine, et le Fit Score compare les candidats globalement | Modèles d'aversion λ (ER), d'actualisation hyperbolique k (RE) et de cohérence de paire (CS) — 66 items sur 120 restent en notation neutre en attendant | `V67__games_decision_scenarios.sql`, `DecisionScoringService.java`, `decision_scenarios.json` |
 
@@ -1365,9 +1695,196 @@ Décisions additionnelles du 2026-09-06 :
 
 - **60 — Day Stack, réorganisation libre (2026-09-11)** : décision explicitement
   autorisée par le demandeur : liste complète mélangée, déplacements sans pénalité,
-  évaluation uniquement à la validation. Les déplacements sont un compteur local par
-  manche, hors payload de corrections. La portée psychométrique de l’autorégulation
+  évaluation uniquement à la validation. Le compteur visuel de déplacements et son
+  état local devenu inutile sont retirés sur demande le 2026-09-16, sans toucher au payload. La portée psychométrique de l’autorégulation
   sans retraits reste à valider ; aucune nouvelle formule de score n’est introduite.
+
+- **61 — Day Stack, emotes par tâche (2026-09-16)** : génération demandée par
+  l’utilisateur. **PROVISOIRE — à valider visuellement** : objets arrondis en 2.5D,
+  contour clair sur mauve, signes de direction pour les actions de camion ; patient A
+  distingué par un repère magenta, patient B par deux points cyan, sans lettres dans
+  les images. Ces repères n’ajoutent aucune règle métier. PNG non intégrés ; toute
+  déclaration dans `pubspec.yaml` reste soumise à l’autorisation explicite du §3 AGENTS.
+
+- **62 — Day Stack, emotes dans les cartes (2026-09-17)** : intégration demandée
+  (plan 001), déclaration des sept dossiers autorisée explicitement. **PROVISOIRE —
+  à valider visuellement sur appareil** : emote de 32 px dans les cartes (28 px pour
+  l’ancien carré), 38 px en taille normale, sans carré coloré autour ; le liseré garde
+  la couleur de catégorie. Les captures de test sont rendues à densité 1 et ne
+  valent pas validation visuelle. Aucune règle métier ni donnée de score modifiée.
+
+- **63 — Tutoriels en cartes, pilote Day Stack (2026-09-17)** : format visuel
+  successif demandé par l’utilisateur, réutilisable dans Games. **PROVISOIRE — à valider
+  visuellement sur appareil** : six cartes pour séparer les types d’horaires, emotes des
+  exemples à 64 px et pile mauve. Le texte explicatif conserve son grossissement accessible ;
+  les petits repères du schéma sont plafonnés à 120 % et décrits sémantiquement. Les tutoriels
+  des autres jeux restent à convertir ; aucune règle d’évaluation ni nouvelle dépendance.
+
+- **64 — Day Stack, nouvelle présentation du tutoriel (2026-09-17)** : la première
+  présentation du changelog 76 est refusée par l’utilisateur. Nouvelle direction : fond
+  mauve jusque dans les marges système, pile de cartes claires compacte, visuels agrandis,
+  texte centré et démonstration locale manipulable sur la première carte. **PROVISOIRE —
+  à valider visuellement sur appareil et par l’utilisateur** : dégradé, hauteur maximale
+  540 px, emotes de 80 à 132 px. Le format en six étapes et les règles expliquées restent
+  identiques ; aucun tutoriel d’un autre jeu ni barème modifié.
+
+  **Ajustement demandé ensuite (2026-09-17)** : cartes et présentation conservées,
+  dégradé de fond retiré au profit du blanc habituel des tutoriels Planifik. Titres et
+  navigation adaptés au fond clair ; les scènes illustrées dans les cartes restent intactes.
+
+- **65 — Radar émotionnel, tutoriel illustré (2026-09-17)** : conversion et nouvelles
+  illustrations demandées par l’utilisateur, dans la présentation Day Stack approuvée :
+  fond blanc, cartes centrées et texte court. **PROVISOIRE — à valider visuellement sur
+  appareil** : cinq PNG arrondis en 2.5D, couleurs Zennyt et symboles pédagogiques.
+  Les illustrations ne sont pas des stimuli psychométriques et ne représentent aucune
+  clé de correction. Le contenu suit V2 : émotion directe puis intensité, sans nuance
+  ni justification. Aucun changement de configuration, de timing réel, de score ou
+  de protocole ; aucune nouvelle dépendance ou déclaration d’asset.
+
+- **66 — Reflective Pause, tutoriel illustré (2026-09-17)** : même présentation
+  que Day Stack et Radar demandée par l’utilisateur : fond blanc et cartes centrées.
+  **PROVISOIRE — à valider visuellement sur appareil** : cinq illustrations arrondies
+  en 2.5D aux couleurs Zennyt. Elles expliquent les supports, le déverrouillage,
+  la sélection, la sauvegarde et le bilan ; aucune réaction recommandée ni correction
+  pendant le parcours. Le texte distingue délai de réflexion et temps conseillé,
+  sans imposer trois secondes à une session administrée. Aucun changement de règles,
+  de durée réelle, de scoring ou de déclaration d’assets.
+
+- **67 — Choix stratégiques, tutoriel illustré (2026-09-17)** : même présentation
+  que les trois tutoriels précédents demandée par l’utilisateur : fond blanc et cartes
+  centrées. **PROVISOIRE — à valider visuellement sur appareil** : cinq nouvelles
+  illustrations arrondies en 2.5D, palette Zennyt et boussole. Le choix reste possible
+  pendant la réflexion, la validation après sa fin. Les illustrations n’indiquent
+  aucune stratégie recommandée et le score garde son caractère provisoire. Aucun
+  changement de règle, de durée réelle, de barème ou de déclaration d’asset.
+
+- **68 — Je Décide, tutoriel illustré (2026-09-17)** : même présentation que les
+  tutoriels précédents demandée par l’utilisateur : fond blanc et cartes centrées.
+  **PROVISOIRE — à valider visuellement sur appareil** : six illustrations arrondies
+  en 2.5D, palette Zennyt et chemin magenta à étapes rappelant les assets existants.
+  Elles expliquent le parcours sans réponse recommandée ni clé de cotation. Les textes
+  distinguent minute ordinaire et choix rapides, validation ou passage à zéro, exemple
+  d’entraînement et bilan de cinq dimensions avec cotations provisoires signalées.
+  Aucun changement de protocole, scoring, durée réelle ou déclaration d’asset.
+
+- **69 — Memory Quest Digits et Image, tutoriels illustrés (2026-09-17)** :
+  refonte et générations nouvelles demandées par l’utilisateur, sans reprendre les
+  objets de partie. Fond blanc et cartes centrées approuvés conservés.
+  **PROVISOIRE — à valider visuellement sur appareil** : douze illustrations
+  2.5D pédagogiques ; exemple chiffré 3–7–2 et symboles coquillage/lune/plume
+  propres au tutoriel Image. Aucun stimulus ni clé de correction réel montré.
+  Six cartes par mode séparé, dix pour le mode historique ; contenu déterminé
+  après vérification du code et des règles. Défauts préexistants de soumission,
+  pause et métriques consignés dans l’audit, corrections ouvertes. Aucun changement
+  de protocole, scoring, durée réelle, dépendance ou déclaration d’asset.
+
+- **70 — Predictive Puzzle, netteté des deux cartes de règles (2026-09-17)** :
+  ajustement demandé par l’utilisateur, fond blanc et cartes centrées conservés.
+  **PROVISOIRE — à valider visuellement sur appareil** : remplacement de la
+  consommation du petit PNG par les widgets natifs `_Disc` / `_TowerView` ;
+  exemples petit-sur-grand autorisé et grand-sur-petit interdit. La seconde carte
+  montre un préfixe de trois coups, le plan restant à compléter puis `Run Plan`.
+  Deux cartes seulement, sans solution complète ni changement de règle métier.
+  Textes de carte accessibles à 200 %, dessin proportionné avec description sémantique.
+  Les nouveaux paramètres visuels de la tour gardent les valeurs de partie par défaut.
+  Aucun nouvel asset, aucune dépendance, aucune modification du protocole de pause.
+
+- **71 — Optimal Path, légère amélioration du tutoriel (2026-09-17)** :
+  ajustement demandé par l’utilisateur, avec conservation du style existant.
+  **PROVISOIRE — à valider visuellement sur appareil** : deux cartes centrées sur
+  fond blanc ; stations rondes mieux espacées, tracé magenta orthogonal et couleurs
+  `BoardPalette` identiques au jeu (LAB blanc/bleu, MTG vert, bloc rouge, étoile dorée).
+  Texte court conforme au tap/drag réel ; les quatre critères de score existants
+  sont présentés comme maxima par niveau, sans modifier leur calcul. Schémas
+  vectoriels proportionnés avec descriptions sémantiques ; texte de carte à 200 %.
+  Aucun nouvel écran, asset raster, dépendance ou changement du protocole de pause.
+
+- **72 — Choix stratégique et insights émotionnels (2026-09-17)** :
+  améliorations visuelles demandées par l’utilisateur. **PROVISOIRE — à valider
+  visuellement sur appareil** : huit pictogrammes Material selon la stratégie,
+  conservés sous cadenas et coche via un badge séparé ; fuite = course, action
+  directe = main qui agit, sans couleur dépendant de la cotation d’une réponse.
+  Reflective Pause compare les trois critères par leur propre maximum (3/4/3),
+  avec points serveur visibles et compte impulsif ; absence de rapport sans faux
+  point fort. Radar présente les comptes du rapport `intensityErrorDirection`
+  dans l’ordre sous-estimée/correcte/surestimée et conserve le pourcentage global
+  d’intensité ; il ne s’agit pas d’un graphique d’émotions inventées par le client.
+  Jauge de Games réutilisée en variante pleine largeur, mouvement réduit respecté.
+  Aucun changement de score, seuil psychométrique, métrique envoyée ou règle de pause.
+
+- **73 — Je Décide, parcours d’entrée simplifié (2026-09-17)** : parcours
+  validé par l’utilisateur, qui demande son implémentation : une page d’accueil avec
+  logo, but court, durée et 30 questions ; trois cartes utiles réunissant lire/choisir,
+  scénarios liés et chrono ; un seul exemple avant la partie. Les anciennes pages
+  d’onboarding et cartes supplémentaires sont retirées du parcours. Pseudo, thème et
+  avatar restent facultatifs, accessibles depuis l’accueil ; retour des règles à l’accueil.
+  Bilan à cinq dimensions et cotations provisoires annoncés à l’accueil et conservés aux résultats.
+  **PROVISOIRE — à valider visuellement sur appareil** : rendu des écrans et des trois
+  illustrations existantes. Aucun nouvel asset, dépendance, changement de passation,
+  score, délai réel, métrique ni règle de pause ; sources graphiques historiques conservées.
+
+- **74 — Je Décide, continuité accueil/règles (2026-09-17)** : l’utilisateur
+  demande d’améliorer la présentation et l’animation du passage. **PROVISOIRE — à
+  valider visuellement sur appareil** : conserver l’en-tête du jeu et la barre basse,
+  déplacer le titre « Comment jouer » dans l’en-tête existant, masquer le doublon dans
+  la pile par une option désactivée uniquement pour ce parcours. Fondu et glissement
+  léger de 320 ms à l’entrée et au retour ; mouvement réduit sans animation, contenus
+  sortants sans interaction ni annonce. Logo, trois illustrations et fond blanc conservés.
+  Les autres tutoriels gardent leur en-tête par défaut ; aucune modification de règle,
+  passation, score, métrique, chrono réel ni protocole de pause.
+
+- **75 — Je Décide, suppression de la personnalisation (2026-09-17)** :
+  demande explicite de l’utilisateur de retirer toute la partie jugée non fonctionnelle.
+  Bouton, écrans pseudo/thème/avatar et code local associés supprimés. Cette décision
+  remplace la branche facultative introduite en décision 73. Parcours unique : accueil,
+  trois cartes, un exemple, puis les 30 questions ; transition de la décision 74 conservée.
+  Les assets originaux restent archivés, sans modification de `pubspec.yaml`. Aucun
+  changement de scoring, de métrique, de passation ou de protocole de pause.
+
+- **76 — Je Décide, questions longues en deux étapes (2026-09-17)** :
+  l’utilisateur confirme que le signalement concerne la situation puis les réponses,
+  et demande une meilleure présentation avant d’envisager le retrait de ces questions.
+  **PROVISOIRE — à valider visuellement sur appareil** : repère Situation/Réponse en
+  pastilles dans la bande déjà réservée, lecture centrée et bouton Relire explicite
+  dans le pied de l’écran de choix, variante accessible à 200 %. Composants, couleurs
+  et flèches existants réutilisés ; aucune illustration suggérant une réponse ni asset créé.
+  Questions conservées intégralement, réponse sélectionnée conservée après relecture.
+  Aucun changement de timer, mesure temporelle, score, ordre ou taille de forme. Le
+  défilement des textes dépassant physiquement les plus petits écrans reste nécessaire,
+  avec les mêmes bornes connues. La suppression d’items n’est pas implémentée.
+
+- **77 — Je Décide, refonte des réponses longues (2026-09-17)** :
+  la capture de l’utilisateur montre les changements de la décision 76, jugés trop
+  légers. **PROVISOIRE — à valider visuellement sur appareil** : réponses regroupées
+  en lignes numérotées dans un seul panneau blanc, graisse réduite, consigne intégrée
+  au panneau et aperçu du contexte avec Relire en tête ; Continue pleine largeur.
+  Aperçu limité à une ligne, situation complète conservée et accessible par relecture ;
+  aucune réponse tronquée ni indication de qualité. Composants et palette existants
+  réutilisés sans asset créé. Capture dédiée au véritable item appartement II-3.
+  Contenus, ordre servi, score, chronomètres, pause et métriques inchangés ; maintien
+  des bornes connues de défilement sur petits écrans. Remplace la disposition du pied
+  de la décision 76, dont le repère Situation/Réponse et la lecture centrée sont conservés.
+
+- **78 — Je Décide, retrait II et version à 24 questions (2026-09-17)** :
+  après rejet des présentations sur deux pages, l’utilisateur confirme le retrait des
+  six questions II et de la dimension d’analyse des contraintes du bilan. Remplace les
+  décisions visuelles 76/77. Parcours et démo à 24 questions (6 ER/DT/CS/RE), bilan à
+  quatre axes, brut /72 et SCW /100 sur ces seuls axes ; règles d’item, budgets DT,
+  calibrage et imputation des dimensions restantes inchangés. Sélection centralisée
+  côté serveur, aucune suppression de contenus historiques ni des références DT.
+  Navigation Situation/Réponse supprimée ; une seule page, défilable si nécessaire
+  sur les plus petits écrans ou en texte agrandi. **PROVISOIRE — modification produit
+  autorisée, validation psychologue à obtenir** : cette version à quatre capacités
+  diffère de la fiche et du bilan historique à cinq axes ; comparabilité à valider.
+
+- **79 — Je Décide, SFX et résultat final (2026-09-17)** : correction demandée
+  des jalons silencieux et du bilan affichant 0 lors d'un échec d'envoi. Réutilisation
+  du SFX badge existant sur les quatre fins de catégorie et du compteur commun.
+  L'échec utilise le panneau existant et conserve les réponses en mémoire pour
+  réessayer sur la même session ; aucun barème, protocole ou asset ajouté.
+  **Décision technique**, aucun nouveau choix psychométrique. Écoute sur appareil
+  ouverte ; tests automatisés vérifient les déclenchements, la coupure du son,
+  l'absence de résultat artificiel et la progression du compteur.
 
 **Conforme à la fiche, NE PAS toucher** : profil global Planifik /30 (`interpretGlobal`), cœur du barème Move Fast (50 × multiplicateur, streak 4, bonus 250), barème catégoriel « Predictive Puzzle » (seule fiche validée), architecture par Domain Events.
 
@@ -1979,7 +2496,441 @@ hybride et casque audio sans fil. Export PNG RGB 1254×1254 sur fond bleu nuit, 
 concept non intégré. Aucun code, barème, contrat, endpoint, event, `pom.xml` ou `pubspec.yaml`
 modifié. Zones protégées inchangées.
 
-**Dernière mise à jour** : 2026-09-12 — **(66)** piste Memory Quest associant formes du quiz et objets modernes ;
+**Changelog (67)** — 2026-09-12 : correction reproductible des supports de **Strategic Choices**.
+Les situations `CS-102`, `CS-104`, `CS-108`, `CS-112`, `CS-115` et `CS-116` sont des messages
+écrits avec leur texte littéral ; les 74 autres restent vidéo. La source Python, l'export JSON, la
+fusion idempotente, les banques mobile/backend et le PDF de relecture conservent désormais le
+champ `message`. Le parseur rejette un écrit vide ou une vidéo portant un message, et un test widget
+déterministe vérifie la bulle écrite sans placeholder vidéo. La documentation et les commentaires
+obsolètes ont été alignés sur l'implémentation end-to-end existante. Validation : **23 tests Flutter
+ciblés verts**, analyse ciblée sans diagnostic, banques identiques et PDF de 13 pages contrôlé ; le
+test Java ciblé ne démarre pas localement car seul Java 17 est installé alors que le projet exige
+Java 21. Aucun contrat, dépendance, barème, migration existante, module `shared`/`core` ni autre
+bounded context modifié. Zones protégées inchangées.
+
+**Changelog (68)** — 2026-09-16 : investigation du retour arrière de « Je Décide ».
+Désynchronisation page/indicateur/bouton reproduite au retour de la carte joueur vers l'onboarding,
+et absence d'interception du retour système confirmée pendant le gameplay. Capture utilisateur
+indisponible ; identification du cas signalé et comportement attendu en item chronométré ouverts.
+Deux tests de diagnostic temporaires exposent les défauts puis sont retirés ; les **25 tests Flutter
+existants ciblés sont verts**. Seule cette documentation est modifiée par l'investigation ; aucun
+correctif, décision produit, contrat, backend, dépendance, core/shared ou barème protégé touché.
+
+**Changelog (69)** — 2026-09-16 : refonte visuelle du calendrier Day Stack sur demande
+utilisateur : fond et cartes mauves, textes blancs, badges existants, heures dans
+une seule colonne et défilement visible. Contraintes/dépendances restent affichées,
+réordonnancement et validation conservés. Tests de défilement adaptés et capture
+`test/features/games/presentation/goldens/day-stack-calendar-purple.png` ajoutée.
+Validation : **25 tests Flutter ciblés verts**, analyse ciblée sans diagnostic ;
+petit écran, texte 200 %, drag, auto-scroll et payload couverts. Backend/ArchUnit
+non relancés pour ce changement de présentation. Aucun contrat, score, dépendance,
+migration, core/shared ou zone protégée modifié. Référence Outlook et adaptation
+au mauve explicitement demandées ; aucune décision métier supplémentaire.
+
+**Changelog (70)** — 2026-09-16 : Day Stack — retrait du texte « déplacements sans
+pénalité » et du compteur UI inutilisé ; bouton partagé Valider centré (largeur
+maximale 280 px), zone séparée du calendrier par un trait discret, découpage explicite
+du viewport et marge de fin de liste. Tests de visibilité complète de la dernière
+tâche à 320×568, 390×844 et texte 200 %, capture de fin de calendrier ajoutée.
+Validation : **28 tests Flutter ciblés verts**, analyse des trois fichiers Dart sans
+diagnostic. Aucun backend/contrat, scoring, dépendance, migration, core/shared ou
+zone protégée modifié ; pas de nouvelle décision métier. Backend/ArchUnit non relancés.
+
+**Changelog (71)** — 2026-09-16 : Day Stack — ajout d'une mission courte et permanente
+sous la manche, contextualisée pour chacun des sept univers et précisant le geste
+ainsi que le respect des horaires/étapes. Texte blanc adaptable, calendrier et
+validation accessibles. Test des sept missions et captures de calendrier actualisés.
+Validation : **29 tests Flutter ciblés verts**, analyse ciblée des deux fichiers Dart
+sans diagnostic ; petits écrans, texte 200 %, dernière tâche, drag et payload couverts.
+Fichiers modifiés : écran Day Stack, son test, deux captures golden et cette documentation.
+Aucun fichier créé, backend/contrat/API, scoring, dépendance, migration, core/shared
+ou zone protégée modifié ; aucune décision métier ajoutée. Backend/ArchUnit non relancés.
+
+**Changelog (72)** — 2026-09-16 : Day Stack — mission verte et clignotement unique
+initial identique à Memory Quest Image/Digits (460 ms), puis texte stable.
+Extraction sans duplication de `MemoryPrompt` vers un widget Games partagé ;
+style/alignement optionnels, valeurs par défaut et réexport Memory Quest conservés.
+Test Day Stack adapté pour vérifier couleur et absence de relance au défilement ;
+captures actualisées. Validation : **48 tests Flutter ciblés verts** (Day Stack et
+Memory Quest, dont clignotement unique/changement de consigne/reduced-motion),
+analyse des quatre fichiers Dart sans diagnostic. Nouveau fichier : widget partagé ;
+fichiers modifiés : écrans Day Stack/Memory Quest, test Day Stack, deux captures,
+cette documentation. Aucun backend/contrat, barème, dépendance, migration,
+core/shared ou zone protégée modifié ; aucune décision métier supplémentaire.
+Backend/ArchUnit non relancés pour cette présentation.
+
+**Changelog (73)** — 2026-09-16 : Day Stack — correction de la disparition des
+repères horaires pendant le déplacement. Le proxy ne contient que le rendez-vous,
+sans la plage d’attente qui le précède ; grille et source atténuée restent en place
+jusqu’au dépôt. Heure de début après attente rétablie (ex. 18h00).
+Défilement automatique aux bords et annulation conservés.
+Test de régression sur « Accueillir les invités » à 18 h avec une longue attente,
+capture pendant le drag ajoutée, ordres de tests de glissement rendus déterministes.
+Validation : **49 tests Flutter ciblés verts** (30 Day Stack, 19 Memory Quest),
+analyse ciblée sans diagnostic ; captures vérifiées. Fichiers mobiles : calendrier,
+test Day Stack, captures golden ; documentation mise à jour. Backend/ArchUnit non
+relancés ; aucun backend/contrat/API, scoring, dépendance, migration, core/shared
+ou zone protégée touché. Aucune décision produit supplémentaire ni point ouvert
+pour cette correction.
+
+**Changelog (74)** — 2026-09-17 : génération demandée des **82 emotes Day Stack**,
+une par tâche dans les sept univers, avec l’outil intégré image_gen. PNG à fond
+transparent, objets arrondis en 2.5D et palette Zennyt ; signes d’action propres à
+chaque tâche. Galerie locale recherchable avec trois fonds, sept planches par
+univers et un aperçu général, manifeste avec prompts exacts/variantes, README et
+rapport technique ajoutés dans `mobile/assets/Day Stack/emotes-v1/`.
+Validation : **82/82 fichiers valides et transparents**, aucune image dupliquée,
+82 clés univers/tâche exhaustives et **328 variantes** correctement associées ;
+relecture visuelle des sept séries. Deux erreurs de connexion récupérées par
+relance du même outil, aucun CLI/API utilisé. Choix visuels provisoires tracés en
+décision 61. Aucun code Flutter/backend, contrat/API, score, dépendance,
+`pubspec.yaml`, `pom.xml`, migration ou core/shared modifié. Tests Flutter/backend
+et ArchUnit non relancés pour cette création d’assets ; zones protégées intactes.
+Point ouvert : collection à valider visuellement puis à intégrer, avec autorisation
+explicite requise pour sa déclaration dans `pubspec.yaml`.
+
+**Changelog (75)** — 2026-09-17 : intégration des **82 emotes Day Stack** dans les
+cartes du calendrier (plan 001). Nouveau `day_stack_emotes.dart` (chemin par couple
+univers/tâche, tailles, `cacheWidth`) ; `DayStackTaskBadge` accepte `universeId` /
+`taskId` optionnels, anciens appels inchangés ; le calendrier transmet l’univers à
+la carte, à la source atténuée et au proxy de glissement. Repli sur l’icône
+historique sans identité ou si le PNG ne charge pas, sans saut de mise en page.
+Annonce de la catégorie en double au lecteur d’écran supprimée (enveloppe
+`Semantics` redondante du calendrier). **`pubspec.yaml` : sept dossiers d’univers
+déclarés avec autorisation explicite**, aucune dépendance ni version modifiée,
+`pubspec.lock` inchangé. Tests : repli, décodage, clé composite, 82 PNG chargés
+depuis le bundle, même emote sur carte, source et proxy, après réorganisation et
+changement de variante ; canaux audio neutralisés dans le test d’écran (même
+méthode que `feedback_screenshots_test.dart`). Trois captures Day Stack régénérées
+et relues. Validation : **85 tests Day Stack ciblés verts** (73 avant, 12 ajoutés) ;
+suite mobile complète **549 verts, 5 échecs préexistants** Move Fast / capture
+« Je bouge » ; `flutter analyze` sans erreur, 15 avertissements et 58 infos hors
+Day Stack, préexistants. Backend/ArchUnit non relancés : aucun backend, contrat/API,
+score, migration, `pom.xml` ou core/shared modifié ; zones protégées intactes.
+Point ouvert : taille 32 px et rendu à valider sur appareil (décision 62).
+
+**Changelog (76)** — 2026-09-17 : refonte du tutoriel **Day Stack** en six cartes
+illustrées successives, avec textes courts et schémas construits à partir des emotes déjà
+intégrées. Nouveau composant Games `GameTutorialDeck` et contenu `DayStackTutorial` ;
+balayage, précédent/suivant, repère d’étape, bouton final et reprise depuis l’aide.
+`DayStackTaskBadge` reçoit une taille d’emote optionnelle pour les exemples, valeurs du
+calendrier préservées. Défilement interne des cartes pour garder le texte agrandi lisible
+et les commandes accessibles ; animations désactivables et descriptions sémantiques.
+Six captures ajoutées et relues avec PNG effectivement décodés. Sept nouveaux tests ;
+contrôles du tutoriel et de la reprise actualisés. Le test de drag des emotes vise désormais
+la carte déplaçable, au lieu du centre d’une ligne pouvant contenir une longue attente :
+son échec aléatoire avait été observé avant la refonte. **92 tests Flutter ciblés verts**,
+analyse des six fichiers Dart touchés sans diagnostic. Décision de présentation 63 tracée.
+Aucun backend, contrat/API, barème, métrique, migration, asset original, `pubspec.yaml`,
+`pom.xml` ou core/shared modifié par cette tâche ; backend/ArchUnit et suite mobile globale
+non relancés. Zones protégées intactes. Autres tutoriels à convertir dans une étape suivante.
+
+**Changelog (77)** — 2026-09-17 : deuxième présentation du tutoriel **Day Stack**
+après refus de la première. Fond mauve en dégradé plein écran, cartes claires centrées
+et plus compactes, zone illustrée distincte et texte centré. Grandes emotes existantes,
+scènes simplifiées et mini-démo de livraison déplaçable au doigt, avec toucher simple
+et action sémantique alternatifs ; aucun effet sur la partie ni session démarrée.
+Dégradé commun réutilisé pour les marges système/tablette et icônes système claires
+pendant le tutoriel. Six captures mises à jour et relues, test du déplacement de démo
+ajouté. Validation : **93 tests Flutter ciblés verts**, analyse ciblée sans diagnostic.
+Décision de présentation 64 tracée. Aucun nouvel asset, backend, contrat/API, barème,
+métrique, dépendance, `pubspec.yaml`, `pom.xml`, migration ou core/shared touché ;
+backend/ArchUnit et suite mobile globale non relancés. Zones protégées intactes.
+Point ouvert : nouvelle présentation à valider par l’utilisateur sur appareil.
+
+**Changelog (78)** — 2026-09-17 : Day Stack — rétablissement demandé du **fond
+habituel blanc des tutoriels Planifik**, après amélioration des cartes jugée meilleure.
+Dégradé extérieur retiré ; cartes illustrées compactes conservées au milieu. Titres et
+navigation bleu marine, progression magenta, icônes système foncées et contour discret
+pour conserver la séparation sur fond clair. Aucun changement de contenu, geste de démo,
+mesure ou navigation. Six captures actualisées, aperçu relu. Validation : **41 tests
+Flutter de présentation ciblés verts**, analyse des deux fichiers Dart modifiés sans
+diagnostic. Documentation courante et décision 64 précisées ; aucun nouveau fichier
+source ni décision produit autonome. Backend/contrat/API, barèmes, dépendances,
+`pubspec.yaml`, `pom.xml`, core/shared et zones protégées inchangés ; backend/ArchUnit
+et suite mobile globale non relancés. Point ouvert : contrôle visuel sur appareil.
+
+**Changelog (79)** — 2026-09-17 : **Radar émotionnel V2** — tutoriel et aide convertis
+aux cartes illustrées centrées sur le fond blanc habituel, en réutilisant `GameTutorialDeck`.
+Cinq nouvelles illustrations générées avec `image_gen.imagegen` et contrôlées : observation,
+choix d’émotion, trois intensités, chronomètre commun, validation des deux réponses.
+PNG transparents copiés dans le dossier `games icons` déjà déclaré ; prompts et provenance
+archivés. Textes français courts, valeurs dérivées de la configuration V2, pas de nuance
+ni justification écrite, aucun score normatif promis en phase A. Aide plein écran avec
+retour au menu pause et choix conservés. Anciens widgets locaux de tutoriel retirés,
+aucun changement du gameplay. Cinq tests ajoutés, navigation des tests existants adaptée
+et cinq captures relues avec images effectivement décodées. Validation : **38 tests Flutter
+ciblés distincts verts** (tutoriel, écran, pile partagée et lecteur vidéo) ; analyse ciblée des quatre fichiers Dart sans diagnostic. Décision 65 tracée.
+Aucun backend, contrat/API, barème, métrique, migration, dépendance, `pubspec.yaml`,
+`pom.xml` ou core/shared modifié ; backend/ArchUnit et suite mobile globale non relancés.
+Zones protégées intactes. Point ouvert : contrôle visuel sur appareil.
+
+**Changelog (80)** — 2026-09-17 : **Reflective Pause** — tutoriel et aide convertis
+en cinq cartes illustrées centrées sur le fond blanc habituel avec `GameTutorialDeck`.
+Cinq PNG pédagogiques transparents générés avec `image_gen.imagegen`, intégrés dans
+`games icons` déjà déclaré ; prompts et provenance archivés. Textes français courts :
+support écrit/vidéo, réflexion et déverrouillage, choix naturel parmi cinq propositions,
+sauvegarde, bilan après dix situations ; durée fixe évitée pour respecter les sessions
+administrées, temps conseillé distingué du verrouillage. Aide plein écran avec retour
+au menu pause, sélection et moment conservés. Introduction et gameplay préservés ;
+paramètre de note de bas de page devenu inutilisé retiré du widget local d’information.
+Cinq tests ajoutés, navigation des tests existants adaptée ; absence de session pendant
+les cartes vérifiée. Cinq captures contrôlées avec images effectivement décodées.
+Validation : **20 tests Flutter ciblés distincts verts**, analyse ciblée des quatre
+fichiers Dart sans diagnostic ; comparaison des cinq captures sans régénération verte.
+Décision 66 tracée. Aucun backend, contrat/API, score, métrique, migration, dépendance,
+`pubspec.yaml`, `pom.xml` ou core/shared modifié ; backend/ArchUnit et suite mobile
+complète non relancés. Zones protégées intactes. Point ouvert : rendu sur appareil.
+
+**Changelog (81)** — 2026-09-17 : **Choix stratégiques** — tutoriel et aide convertis
+aux cinq cartes illustrées centrées sur le fond blanc habituel, avec `GameTutorialDeck`.
+Cinq PNG pédagogiques générés avec `image_gen.imagegen`, copiés dans `games icons`
+déjà déclaré ; prompts et provenance archivés. Textes français courts suivant le
+parcours réel : lecture, lancement manuel de la réflexion, choix parmi huit stratégies
+possible pendant le délai, validation à la fin, score provisoire et tendances après
+dix situations. Aide plein écran avec retour au menu pause, sélection conservée et
+réflexion gelée. Ancienne grille et widgets locaux de tutoriel/règles retirés, introduction,
+gameplay et observations préservés. Cinq tests ajoutés et navigation existante adaptée ;
+cinq captures relues avec images réellement décodées. **21 tests Flutter ciblés verts**,
+comparaison des captures sans régénération verte et analyse des quatre fichiers Dart
+sans diagnostic. Décision 67 tracée. Aucun backend,
+contrat/API, score, métrique, migration, dépendance, `pubspec.yaml`, `pom.xml` ou core/shared
+modifié ; backend/ArchUnit et suite mobile globale non relancés. Zones protégées intactes.
+Point ouvert : rendu sur appareil à valider.
+
+**Changelog (82)** — 2026-09-17 : **Je Décide** — tutoriel et aide convertis à six
+cartes illustrées centrées sur fond blanc avec `GameTutorialDeck`. Six PNG générés
+avec `image_gen.imagegen`, copiés sans modification dans `games icons` déjà déclaré ;
+prompts et provenance archivés. Ancien bloc de tutoriel et lignes de règles remplacés ;
+accueil, onboarding, avatars, exemple et passation conservés. Textes suivant le parcours
+réel, aide plein écran avec retour au menu pause existant, choix et chrono préservés.
+Cinq tests ajoutés, navigation existante adaptée et six captures relues avec images
+réellement décodées. **53 tests Flutter ciblés verts**, analyse des six fichiers Dart
+sans diagnostic ; comparaison des captures sans régénération vérifiée séparément.
+Décision 68 tracée. Aucun backend, contrat/API, score, métrique, migration, dépendance,
+`pubspec.yaml`, `pom.xml` ou core/shared modifié. Backend/ArchUnit et suite mobile globale
+non relancés. Zones protégées intactes. Point ouvert : rendu sur appareil à valider.
+
+**Changelog (83)** — 2026-09-17 : **Memory Quest Digits et Image** — logique et
+règles vérifiées avant refonte, deux parcours en six cartes centrées sur fond blanc
+avec `GameTutorialDeck` ; mode historique conservé avec dix cartes adaptées.
+Douze nouvelles illustrations générées avec `image_gen.imagegen`, distinctes des
+objets et distracteurs de partie, copiées dans le dossier déjà déclaré. Prompts,
+originaux et direction provisoire archivés (décision 69). Ancien tutoriel textuel
+et lignes d’aide remplacés par le contenu propre au mode ; mécanisme de pause
+existant conservé. Neuf tests du tutoriel et quatre tests de parcours/aide ajoutés,
+douze captures avec images décodées relues. **84 tests Flutter ciblés verts**, plus
+deux captures existantes de restitution ; comparaison des nouveaux goldens sans
+régénération et analyse ciblée sans diagnostic. **18 tests de scoring Java verts
+en exécution isolée** ; Maven standard bloqué par des tests Recruitment préexistants.
+Audit : soumission Image en `FULL` et chrono non gelé sous pause reproduits,
+autres écarts de métriques/budgets consignés ; corrections ouvertes, pas de modification
+silencieuse de règles. Aucun backend, contrat/API, score, métrique de partie, migration,
+dépendance, `pubspec.yaml`, `pom.xml` ou core/shared modifié. Suites globales et ArchUnit
+non vérifiés. Zones protégées intactes. Rendu sur appareil à valider.
+
+**Changelog (84)** — 2026-09-17 : **Predictive Puzzle** — les deux fenêtres de
+règles deviennent deux cartes centrées sur fond blanc avec `GameTutorialDeck`.
+Le PNG Figma de 297 × 135 pixels, conservé sur disque, n’est plus agrandi dans
+le tutoriel ; `_Disc` et `_TowerView` servent aux schémas natifs autorisé/interdit.
+La seconde illustration distingue le plan à compléter et l’exécution automatique.
+Textes courts en français, libellés `Add Move` et `Run Plan` identiques aux boutons
+de partie. Aucun changement de règle, progression, score ou mécanisme de pause.
+Quatre tests ajoutés, deux captures relues ; **13 tests Flutter ciblés verts**
+(tutoriel, deck partagé, barème mock), comparaison des captures sans régénération
+et analyse ciblée sans diagnostic. Décision visuelle provisoire 70 tracée.
+Backend et suites globales non exécutés (aucun changement serveur).
+Aucun contrat/API, backend, migration, dépendance, `pubspec.yaml`, `pom.xml`
+ou core/shared modifié ; zones protégées intactes. Rendu sur appareil à valider.
+
+**Changelog (85)** — 2026-09-17 : **Optimal Path** — légère amélioration des
+deux pages de règles existantes avec `GameTutorialDeck` : cartes centrées sur
+fond blanc et textes courts en français. Style de stations rondes conservé ;
+`_StationsArt` trace désormais un chemin horizontal/vertical, avec palette
+`BoardPalette` et libellés LAB/MTG plus lisibles. La deuxième carte reprend les
+quatre critères du score existant, présentés comme maxima par niveau. Bouton
+« Commencer le parcours » à la dernière carte. Quatre tests du tutoriel et deux
+captures ajoutés ; parcours de `planifik_attempts_test.dart` adapté aux nouveaux
+boutons, assertions de limite d’essais inchangées. **23 tests Flutter ciblés verts**
+(tutoriel, deck partagé, essais/scoring mock et tracé tap/drag), comparaison des
+captures sans régénération et analyse ciblée sans diagnostic. Décision visuelle
+provisoire 71 tracée ; rendu sur appareil à valider. Gameplay, aide de pause,
+progression, score, backend, contrat/API, migrations, dépendances, `pubspec.yaml`,
+`pom.xml` et core/shared inchangés. Zones protégées intactes. Suites globales,
+backend et ArchUnit non exécutés (aucun changement serveur).
+
+**Changelog (86)** — 2026-09-17 : **Choix stratégique, Reflective Pause et
+Radar émotionnel** — icônes des huit stratégies visibles dans les états actif,
+verrouillé et sélectionné ; cadenas/coche deviennent des badges d’état séparés.
+Fuite et action directe ont des pictogrammes plus adaptés. Profil Reflective en
+jauges normalisées sur les maxima de configuration 3/4/3, avec points du rapport
+et compte de choix impulsifs ; absence d’indicateurs sans faux point fort.
+Radar restitue les comptes serveur sous-estimée/correcte/surestimée en barres dans
+la synthèse des résultats, titre adapté, statistiques et mentions provisoires conservées.
+`GameResultInsightMeter` réutilise la jauge compacte existante et ajoute une variante
+pleine largeur ; le titre de synthèse reste inchangé par défaut pour les autres jeux.
+Huit nouveaux tests et trois captures relues ; **64 tests Flutter ciblés verts**
+(les trois parcours, les nouvelles visualisations et le modèle de résultats commun),
+comparaison des captures sans régénération et analyse ciblée sans diagnostic.
+Décision visuelle provisoire 72 tracée ; rendu sur appareil à valider. Aucune règle,
+interprétation métier, cotation, métrique envoyée, pause, backend, contrat/API,
+migration, dépendance, `pubspec.yaml`, `pom.xml` ou core/shared modifié. Zones protégées
+intactes. Suites globales, backend et ArchUnit non exécutés (aucun changement serveur).
+
+**Changelog (87)** — 2026-09-17 : **Je Décide** — entrée raccourcie à une
+page d’accueil avec logo officiel, objectif court, durée et 30 questions ; trois cartes
+(lire/choisir, scénario lié, chronomètre), puis un seul exemple. Les trois anciennes
+pages d’onboarding et le panneau répétitif sont retirés ; pseudo/thème/avatar restent
+accessibles par « Personnaliser (facultatif) ». Retours à l’accueil et maintien des
+choix de personnalisation vérifiés. Mention `Practice 1/2` remplacée par un exemple
+sans compteur fictif. Bilan/provisoires annoncés à l’accueil, conservés aux résultats.
+Titre adaptable au texte agrandi ; accueil défilable et règles accessibles à 200 %.
+Trois illustrations existantes et boutons communs réutilisés ; sources historiques
+conservées. Quatre captures relues, dont une nouvelle d’accueil ; trois captures
+obsolètes retirées. **57 tests Flutter ciblés verts**, comparaison des captures sans
+régénération et analyse des cinq fichiers Dart concernés sans diagnostic. Parcours
+complet de 30 réponses, aide/pause, choix et chrono vérifiés. Décision 73 tracée ;
+rendu sur appareil à valider. Aucun backend, contrat/API, barème, métrique, délai,
+protocole de pause, migration, dépendance, `pubspec.yaml`, `pom.xml`, core/shared ou
+module tiers modifié. Zones protégées intactes ; suites globales, backend et ArchUnit
+non exécutés (aucun changement serveur).
+
+**Changelog (88)** — 2026-09-17 : **Je Décide** — amélioration de la
+présentation et de l’animation entre accueil et règles, à la demande de l’utilisateur.
+En-tête, retour, menu et barre basse conservés à leur place ; « Comment jouer » porté
+par l’en-tête du jeu, sans doublon. Variante optionnelle `showHeader` du composant
+Games `GameTutorialDeck`, active par défaut pour tous les autres usages. Fondu et
+léger glissement à l’entrée/retour, mouvement réduit sans animation ; contenus
+sortants inactifs et exclus des annonces. Fond blanc, logo et trois illustrations
+existantes conservés. Deux tests ajoutés, petit écran à 200 % parcourant les trois
+cartes et nouvelle capture d’entrée relue. **59 tests Flutter ciblés verts**, captures
+comparées sans régénération, analyse des quatre fichiers Dart concernés sans diagnostic.
+Décision visuelle provisoire 74 tracée ; rendu et animation sur appareil à valider.
+Aucune modification de passation, scoring, métrique, délai réel, pause, backend,
+contrat/API, migration, dépendance, `pubspec.yaml`, `pom.xml`, core/shared ou module
+tiers. Zones protégées intactes ; suites globales, backend et ArchUnit non exécutés.
+
+**Changelog (89)** — 2026-09-17 : **Je Décide** — suppression entière de la
+personnalisation à la demande de l’utilisateur : bouton d’accueil, écrans pseudo,
+thème et avatar, contrôleur, états, navigation et helpers uniquement utilisés par
+ces écrans retirés. Accueil avec « Commencer » comme seule action de lancement ;
+transition, trois cartes, exemple et parcours de 30 questions conservés. Tests de
+parcours adaptés, absence de personnalisation vérifiée et capture d’accueil relue.
+**59 tests Flutter ciblés verts**, captures comparées sans régénération et analyse
+des deux fichiers Dart modifiés sans diagnostic. Décision 75 remplace la branche
+facultative de la décision 73 ; docs de parcours/roadmap mises à jour, assets originaux
+conservés comme maquettes archivées. Aucun nouveau fichier, changement de backend,
+contrat/API, barème, métrique, délai réel, pause, migration, dépendance, `pubspec.yaml`,
+`pom.xml`, core/shared ou module tiers. Zones protégées intactes ; suites globales,
+backend et ArchUnit non exécutés. Rendu sur appareil à valider.
+
+**Changelog (90)** — 2026-09-17 : **Je Décide** — présentation des questions
+réparties sur Situation/Réponse améliorée après confirmation du cas par l’utilisateur.
+Étapes en pastilles avec étape active dans la bande déjà réservée, carte de lecture
+centrée et bouton « Voir les réponses ». Retour « Relire » visible à côté de Continue,
+conservant le choix posé ; variante retour avec tooltip à 200 %. `_OutlinedChip`
+réutilisé en variante compacte, usages précédents inchangés par défaut. Aucun texte,
+choix, item ou ordre modifié ; questions conservées. Deux tests ajoutés et deux captures
+sur vrais textes serveur créées/relues. **61 tests Flutter ciblés verts**, captures
+comparées sans régénération et analyse des deux fichiers Dart sans diagnostic. Banques
+réelles sur sept gabarits, tailles de police gelées, relecture et protocoles temporels
+vérifiés ; aucune hausse des bornes connues de défilement des textes trop longs pour
+les plus petits écrans. Décision visuelle provisoire 76 tracée ; rendu sur appareil
+à valider. Cycle de vie, chronomètres, pause, validation et mesures inchangés. Aucun
+backend, contrat/API, scoring, migration, dépendance, `pubspec.yaml`, `pom.xml`, core/shared
+ou module tiers modifié. Zones protégées intactes ; suites globales, backend et ArchUnit
+non exécutés.
+
+**Changelog (91)** — 2026-09-17 : **Je Décide** — refonte plus visible des réponses
+longues après retour de l’utilisateur sur la capture : gros blocs séparés remplacés
+par un panneau blanc unique avec réponses numérotées, séparateurs, texte moins gras
+et consigne intégrée. Aperçu du contexte avec Relire en tête ; Continue pleine largeur.
+Situation et réponses conservées intégralement, sélection préservée après relecture.
+Composants et palette Games réutilisés, aucun nouvel asset de production. Test/capture
+dédiés au véritable item appartement II-3 signalé ; tests de contraste et de taille
+stable des réponses adaptés aux lignes numérotées. **62 tests Flutter ciblés verts**,
+trois captures de gameplay comparées sans régénération et analyse des trois fichiers
+Dart sans diagnostic. Sept tailles d’écran, texte à 200 % et bornes connues de
+défilement vérifiés sans hausse. Décision visuelle provisoire 77 tracée ; rendu sur
+appareil à valider. Cycle de vie et mesures comparés à l’état avant refonte, inchangés.
+Aucun backend, contrat/API, scoring, migration, dépendance, `pubspec.yaml`, `pom.xml`,
+core/shared ou module tiers modifié. Zones protégées intactes ; suites globales,
+backend et ArchUnit non exécutés.
+
+**Changelog (92)** — 2026-09-17 : **Je Décide** — retrait confirmé des six questions
+II et de la dimension correspondante du parcours, du calcul et du bilan. Contrat
+OpenAPI précisé avant code ; sélection `activeBank` commune à la lecture et au contrôle
+serveur de soumission. Quatre dimensions, 24 questions, brut /72 puis SCW /100 ;
+parité Java/Dart, démo et parsing mobile adaptés. Situations II conservées comme
+archives et références de contexte DT ; aucune migration ou suppression en base.
+Navigation, widgets et captures provisoires Situation/Réponse retirés ; situation et
+réponses sur une page, défilement accessible sur petit écran/texte agrandi. Compteurs,
+durée affichée et radar à quatre axes adaptés. **73 tests Flutter ciblés verts**, captures
+comparées sans régénération ; **33 tests Java isolés verts, dont ArchUnit 3/3**. Build
+Maven habituel bloqué au testCompile par des erreurs Recruitment préexistantes ; aucun
+fichier de ce module corrigé. Décision 78 et roadmap tracées ; retrait II autorisé,
+autres zones protégées, règles d’item/DT, pause, dépendances, `pubspec.yaml`, `pom.xml`,
+core/shared et modules tiers inchangés. Analyse ciblée des 13 fichiers Dart sans diagnostic, nouvelle capture à 24 questions
+relue ; rendu sur appareil et validation psychologue des quatre axes ouverts.
+
+**Changelog (93)** — 2026-09-17 : **Je Décide** — SFX badge ajouté à toutes les
+transitions de catégorie, puis à la fin du parcours ; révélation du profil et son
+scoreboard conservés. La soumission échouée ouvrait le bilan avec un profil de
+remplacement à 0 : ce repli est supprimé, le résultat DECISION_CORE est requis.
+Réutilisation du loader/panneau d'erreur existants ; réponses et session gardées
+pour réessayer, envoi concurrent bloqué, autres jeux inchangés grâce à une option
+facultative du contrôleur. **50 tests Flutter ciblés verts** : quatre parcours complets
+(normal, erreur puis retry, résultat absent puis retry, SFX coupés), sons à chaque
+catégorie sans répétition, valeur intermédiaire et finale du compteur, zéro serveur
+valide, gameplay et disposition. Analyse des six fichiers Dart sans diagnostic.
+Doc/arborescence/roadmap et décision technique 79 mises à jour. Aucun changement
+backend, contrat, score, protocole, migration, dépendance, asset, pubspec, pom,
+core/shared ou module tiers pour cette correction ; zones protégées intactes.
+Backend/ArchUnit et suite mobile globale non relancés ; écoute sur appareil ouverte.
+
+**Changelog (94)** — 2026-09-17 : **Je Décide** — cause réelle du score indisponible
+identifiée dans le simulateur : HTTP 400, champ `items` inconnu dans
+`SubmitResultRequest.Metrics`. Le DTO serveur attend déjà `decisionItems` ; contrat
+OpenAPI corrigé en premier, puis JSON mobile aligné. Clé `items` du formulaire
+GET, modèle interne des réponses et barème inchangés. Test mobile ajouté sur le
+vrai repository Dio avec transport strict ; test Java Jackson ajouté sur le DTO.
+**21 tests Flutter ciblés et 2 tests Java isolés verts**. Analyse des deux fichiers
+Dart sans diagnostic. Hot reload envoyé au processus Flutter du simulateur, accueil
+Je Décide ouvert ; passage complet au score sur appareil encore à vérifier. Aucun
+changement de production backend, endpoint, scoring, migration, dépendance,
+asset, pubspec, pom, core/shared ou module tiers ; zones protégées intactes.
+Maven complet non relancé (blocage testCompile Recruitment déjà documenté).
+Aucune nouvelle décision produit : correction de sérialisation vers l'API existante.
+
+**Dernière mise à jour** : 2026-09-17 — **(94)** clé de soumission HTTP Je Décide corrigée ;
+**(93)** sons de catégorie et bilan fiable Je Décide ;
+**(92)** retrait II, 24 questions et bilan sur quatre axes ;
+**(91)** réponses longues Je Décide regroupées et contexte accessible ;
+**(90)** présentation des questions longues Je Décide en deux étapes ;
+**(89)** personnalisation Je Décide retirée ;
+**(88)** transition et cadre persistant accueil/règles Je Décide ;
+**(87)** accueil Je Décide simplifié, trois cartes et personnalisation facultative ;
+**(86)** icônes de Choix stratégique et visualisation des insights Reflective/Radar ;
+**(85)** légère amélioration des deux cartes Optimal Path ;
+**(84)** deux cartes de règles Predictive Puzzle nettes ;
+**(83)** tutoriels Memory Quest Digits/Image illustrés et audit préalable ;
+**(82)** tutoriel Je Décide et aide en cartes illustrées ;
+**(81)** tutoriel Choix stratégiques et aide en cartes illustrées ;
+**(80)** tutoriel Reflective Pause et aide en cartes illustrées ;
+**(79)** tutoriel Radar V2 illustré et aide ;
+**(78)** fond habituel du tutoriel rétabli, cartes centrées conservées ;
+**(77)** nouvelle présentation du tutoriel Day Stack et geste à essayer ;
+**(76)** tutoriel Day Stack en six cartes illustrées ;
+**(75)** 82 emotes Day Stack intégrées aux cartes du calendrier ;
+**(74)** 82 emotes Day Stack générées, catalogue et relecture ;
+**(73)** heures Day Stack conservées pendant le déplacement ;
+**(72)** mission Day Stack verte, clignotement Memory Quest partagé ;
+**(71)** missions Day Stack propres aux sept univers ;
+**(70)** validation Day Stack séparée du calendrier, compteur retiré ;
+**(69)** calendrier Day Stack mauve et défilant ;
+**(68)** diagnostic du retour arrière Je Décide, correction ouverte ;
+**(67)** supports écrits Strategic Choices reproductibles et testés ;
+**(66)** piste Memory Quest associant formes du quiz et objets modernes ;
 **(65)** piste Memory Quest aux objets technologiques modernisés ;
 **(64)** piste Memory Quest aux objets modernes et flèches circulaires ;
 **(63)** audit des tutoriels d’intelligence émotionnelle ;

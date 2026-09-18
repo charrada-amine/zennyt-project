@@ -309,8 +309,17 @@ void main() {
     expect(submitted.objectLocationLevels, hasLength(7));
     expect(repository.session.attempts, hasLength(1));
     expect(repository.session.attempts.single.score.rawPoints, 100);
-    expect(find.text('Journey complete'), findsOneWidget);
-    expect(find.text('100'), findsOneWidget);
+    expect(find.text('Je place completed'), findsOneWidget);
+    expect(
+      tester
+          .widget<Text>(find.byKey(const ValueKey('je-place-result-score')))
+          .data,
+      '100%',
+    );
+    expect(
+      find.text('100 / 100 points calculated by the server.'),
+      findsOneWidget,
+    );
     expect(find.text('Exact placement'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -344,8 +353,10 @@ class FakeObjectLocationClock implements ObjectLocationClock {
 
 class _RecordingRepository implements GamesRepository {
   @override
-  Future<DecisionForm> decisionItems(String sessionId, {String language = 'fr'}) =>
-      throw UnimplementedError();
+  Future<DecisionForm> decisionItems(
+    String sessionId, {
+    String language = 'fr',
+  }) => throw UnimplementedError();
 
   static const id = '00000000-0000-4000-8000-000000000004';
   static const _scoring = ObjectLocationScoring();

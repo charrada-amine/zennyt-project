@@ -18,28 +18,33 @@ void main() {
     bank = await ReflectivePauseBankLoader.load();
   });
 
-  test('les 60 situations du référentiel sont là, identifiants uniques', () {
-    expect(bank.situations, hasLength(60));
-    expect(bank.situations.map((s) => s.id).toSet(), hasLength(60));
+  test('les 84 situations sont là, identifiants uniques', () {
+    // 60 fiches du client (TR-001..060) + 24 situations de la proposition
+    // validée, calquée sur le STEM (TR-101..124). Les identifiants sont
+    // disjoints : les nouvelles s'ajoutent, elles ne remplacent rien.
+    expect(bank.situations, hasLength(84));
+    expect(bank.situations.map((s) => s.id).toSet(), hasLength(84));
+    expect(bank.byId('TR-124'), isNotNull);
     expect(bank.byId('TR-001').pilotValidated, isTrue);
     // TR-001 à TR-005 sont les pilotes validés par le psychologue.
     expect(bank.situations.where((s) => s.pilotValidated), hasLength(5));
   });
 
-  test('dix catégories de six situations, vingt par difficulté', () {
+  test('les dix catégories restent toutes couvertes', () {
+    // L'équilibre strict de la banque d'origine (6 par catégorie, 20 par
+    // difficulté) ne tient plus : l'apport suit le blueprint du STEM, qui
+    // structure par ÉMOTION et non par catégorie. Ce qui doit rester vrai,
+    // c'est qu'aucune catégorie ne disparaisse et qu'aucune ne domine.
     final parCategorie = <int, int>{};
     for (final s in bank.situations) {
       parCategorie[s.categoryNumber] = (parCategorie[s.categoryNumber] ?? 0) + 1;
     }
     expect(parCategorie.keys, hasLength(10));
-    expect(parCategorie.values.every((n) => n == 6), isTrue);
+    expect(parCategorie.values.every((n) => n >= 6), isTrue);
+    expect(parCategorie.values.every((n) => n <= 12), isTrue);
 
     for (final d in ReflectivePauseDifficulty.values) {
-      expect(
-        bank.byDifficulty(d),
-        hasLength(20),
-        reason: 'le tirage d\'une partie doit pouvoir rester équilibré',
-      );
+      expect(bank.byDifficulty(d).length, greaterThanOrEqualTo(20));
     }
   });
 
@@ -87,11 +92,29 @@ void main() {
     // Dans le document, « A » est la réponse impulsive des soixante fiches et
     // « B » toujours « respirer ». Affiché tel quel, l'ordre s'apprend en deux
     // situations et se répond sans lire la scène.
-    final brut = bank.situations.map((s) => s.choices.first.responseType).toSet();
+    // Le défaut est propre aux 60 fiches du client : « A » y est la réponse
+    // impulsive sans exception.
+    final clientBrut = bank.situations
+        .where((s) => s.id.startsWith('TR-0'))
+        .map((s) => s.choices.first.responseType)
+        .toSet();
     expect(
-      brut,
+      clientBrut,
       {ReflectivePauseResponseType.respondImpulsively},
-      reason: 'le défaut de la banque, qu\'il faut justement neutraliser',
+      reason: 'le défaut de la banque livrée, qu\'il faut neutraliser',
+    );
+
+    // Les situations de la proposition validée ne l'ont pas : leur ordre a été
+    // mélangé à la rédaction. Le mélange à l'affichage reste néanmoins appliqué
+    // à toute la banque, puisqu'elle mêle les deux.
+    final propositionBrut = bank.situations
+        .where((s) => s.id.startsWith('TR-1'))
+        .map((s) => s.choices.first.responseType)
+        .toSet();
+    expect(
+      propositionBrut.length,
+      greaterThan(1),
+      reason: 'la position ne doit plus trahir la catégorie',
     );
 
     var deplacees = 0;
@@ -118,7 +141,7 @@ void main() {
     expect(s.choicesInDisplayOrder(7).map((c) => c.letter).toList(), premier);
   });
 
-  test('les 60 situations sont des vidéos, comme la banque les déclare', () {
+  test('le support écrit existe désormais, sans avoir été inventé', () {
     // Le client attend « une vidéo OU un message écrit selon le scénario »,
     // mais la banque livrée ne fait pas ce partage : les soixante fiches
     // portent un prompt vidéo et une durée vidéo, y compris celles dont la
@@ -129,13 +152,30 @@ void main() {
     // Ce test dit donc l'état RÉEL de la banque, pas une règle définitive : le
     // jour où le client fournit des situations écrites, il tombe, et c'est
     // exactement le signal qu'on veut.
+    // Les 60 fiches du client déclarent toutes une mini-vidéo — y compris
+    // celles dont la scène est un SMS, dont le prompt interdit de rendre le
+    // texte lisible. La proposition validée apporte 7 situations réellement
+    // écrites, avec le texte littéral du message : elles sont jouables sans
+    // attendre la production vidéo.
+    final ecrites = bank.situations
+        .where((s) => s.medium == ReflectivePauseMedium.written)
+        .toList();
+    expect(ecrites, hasLength(7));
     expect(
-      bank.situations.map((s) => s.medium).toSet(),
-      {ReflectivePauseMedium.video},
+      ecrites.every((s) => s.trigger.isNotEmpty),
+      isTrue,
+      reason: 'une situation écrite sans message n\'est pas jouable',
+    );
+    expect(
+      bank.situations.where((s) => s.id.startsWith('TR-0')).every(
+            (s) => s.medium == ReflectivePauseMedium.video,
+          ),
+      isTrue,
+      reason: 'les 60 fiches du client restent toutes des vidéos',
     );
   });
 
-  test('le barème serveur connaît les 60 identifiants', () {
+  test('le barème serveur connaît les 84 identifiants', () {
     // La table était écrite à la main sur dix moments inventés. Un identifiant
     // absent fait lever le domaine : la partie échouerait à l'enregistrement.
     for (final s in bank.situations) {

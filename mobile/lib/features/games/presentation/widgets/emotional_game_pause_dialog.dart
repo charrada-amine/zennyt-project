@@ -47,20 +47,17 @@ class _EmotionalGamePauseDialogState extends State<EmotionalGamePauseDialog> {
           widget.onInputMode(value);
         },
       ),
-      buttons: [
-        GamePrimaryButton(
-          label: 'Resume',
+      actions: [
+        GamePauseMenuAction.resume(
           onPressed: () =>
               Navigator.of(context).pop(EmotionalGamePauseAction.resume),
         ),
         if (widget.showRules)
-          GameOutlineButton(
-            label: 'View rules / Help',
+          GamePauseMenuAction.rules(
             onPressed: () =>
                 Navigator.of(context).pop(EmotionalGamePauseAction.rules),
           ),
-        GamePauseExitButton(
-          label: 'Exit mission',
+        GamePauseMenuAction.exit(
           onPressed: () =>
               Navigator.of(context).pop(EmotionalGamePauseAction.exit),
         ),
