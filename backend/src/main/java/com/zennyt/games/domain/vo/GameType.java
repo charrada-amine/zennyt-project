@@ -42,5 +42,17 @@ public enum GameType {
      * « Je place » — liaison objet-position et mémoire de travail
      * visuospatiale. Type indépendant afin de préserver Memory Quest.
      */
-    VISUOSPATIAL_MEMORY
+    VISUOSPATIAL_MEMORY,
+    /**
+     * Décision comportementale — BART (risque révélé) et IST (recueil
+     * d'information). Deux mini-jeux, sur le modèle de {@link #PLANIFIK}.
+     *
+     * <p>Type <b>distinct de {@link #DECISION}</b> : ajouter des mini-jeux jouables
+     * à DECISION ferait passer ses mini-jeux attendus de 1 à 3, empêchant une
+     * session « Je Décide » d'atteindre COMPLETED et faisant tomber sa couverture
+     * de 100 à 33. Même raison que l'isolation de {@link #CONTINUOUS_ATTENTION}.
+     * Nom de travail, à arbitrer (docs/superpowers/specs/
+     * 2026-09-17-decision-behavioral-games-design.md §9).
+     */
+    DECISION_BEHAVIORAL
 }

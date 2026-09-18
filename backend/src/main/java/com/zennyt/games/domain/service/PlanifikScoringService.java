@@ -229,6 +229,10 @@ public class PlanifikScoringService {
             case VISUOSPATIAL_MEMORY ->
                 com.zennyt.games.domain.config.ObjectLocationProvisionalRules
                     .DESCRIPTIVE_LEVEL;
+            // BART + IST : scores provisoires, aucune bande validée.
+            case DECISION_BEHAVIORAL ->
+                com.zennyt.games.domain.config.BartProvisionalRules
+                    .DESCRIPTIVE_LEVEL;
         };
     }
 

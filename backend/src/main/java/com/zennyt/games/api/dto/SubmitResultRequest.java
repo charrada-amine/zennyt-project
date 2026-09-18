@@ -32,6 +32,16 @@ import com.zennyt.games.domain.vo.DeviceCalibration;
 import com.zennyt.games.domain.vo.DeviceCategory;
 import com.zennyt.games.domain.vo.InputMode;
 import com.zennyt.games.domain.vo.OptimalPathLevel;
+import com.zennyt.games.domain.vo.BartBalloonMetric;
+import com.zennyt.games.domain.vo.BartBalloonOutcome;
+import com.zennyt.games.domain.vo.BartMetrics;
+import com.zennyt.games.domain.vo.BartPhase;
+import com.zennyt.games.domain.vo.IstBoxOpening;
+import com.zennyt.games.domain.vo.IstColor;
+import com.zennyt.games.domain.vo.IstCondition;
+import com.zennyt.games.domain.vo.IstMetrics;
+import com.zennyt.games.domain.vo.IstPhase;
+import com.zennyt.games.domain.vo.IstTrialMetric;
 import com.zennyt.games.domain.vo.ObjectLocationActionType;
 import com.zennyt.games.domain.vo.ObjectLocationCompletionReason;
 import com.zennyt.games.domain.vo.ObjectLocationLevelMetric;
@@ -151,7 +161,40 @@ public record SubmitResultRequest(
         @Size(min = 1, max = 7) @Valid
         List<ObjectLocationLevelPayload> objectLocationLevels,
         @Min(0) Integer focusLossCount,
-        @Min(0) Integer orientationChangeCount
+        @Min(0) Integer orientationChangeCount,
+        // BART — pompes brutes par ballon. Le point d'éclatement n'est JAMAIS
+        // accepté du client : la séquence est reconstruite serveur depuis l'UUID.
+        @Size(min = 1, max = 32) @Valid List<BartBalloonPayload> bartBalloons,
+        // IST — ouvertures brutes par essai. Les couleurs révélées ne sont JAMAIS
+        // acceptées du client : les grilles sont reconstruites serveur.
+        @Size(min = 1, max = 22) @Valid List<IstTrialPayload> istTrials
+    ) {}
+
+    /** Un ballon BART : combien de pompes, et comment il s'est terminé. */
+    public record BartBalloonPayload(
+        @NotNull @Min(0) @Max(31) Integer balloonIndex,
+        @NotNull BartPhase phase,
+        @NotNull @Min(0) @Max(128) Integer pumpCount,
+        @NotNull BartBalloonOutcome outcome,
+        @NotNull @Size(max = 128) List<@NotNull @Min(0) Long> pumpTimestampsMs,
+        @Min(0) Long collectTimestampMs
+    ) {}
+
+    /** Un essai IST : cases ouvertes dans l'ordre, décision, confiance facultative. */
+    public record IstTrialPayload(
+        @NotNull @Min(0) @Max(21) Integer trialIndex,
+        @NotNull IstPhase phase,
+        @NotNull IstCondition condition,
+        @NotNull @Size(max = 25) @Valid List<IstBoxOpeningPayload> openings,
+        @NotNull IstColor chosenColor,
+        @NotNull @Min(0) Long decisionTimestampMs,
+        @Min(1) @Max(4) Integer confidence
+    ) {}
+
+    /** Une case ouverte ; sa couleur n'est pas transmise. */
+    public record IstBoxOpeningPayload(
+        @NotNull @Min(0) @Max(24) Integer boxIndex,
+        @NotNull @Min(0) Long timestampMs
     ) {}
 
     /** Timings et actions brutes d'un niveau « Je place ». */
@@ -435,7 +478,48 @@ public record SubmitResultRequest(
                 required(metrics.focusLossCount(), "focusLossCount"),
                 required(metrics.orientationChangeCount(), "orientationChangeCount"),
                 required(metrics.droppedFrameCount(), "droppedFrameCount"));
+            case BART_CORE -> new BartMetrics(
+                required(metrics.protocolVersion(), "protocolVersion"),
+                required(metrics.bartBalloons(), "bartBalloons").stream()
+                    .map(SubmitResultRequest::toBartBalloon).toList(),
+                required(metrics.sessionCompleted(), "sessionCompleted"),
+                required(metrics.interrupted(), "interrupted"),
+                required(metrics.backgroundEventCount(), "backgroundEventCount"),
+                required(metrics.focusLossCount(), "focusLossCount"));
+            case INFORMATION_SAMPLING_CORE -> new IstMetrics(
+                required(metrics.protocolVersion(), "protocolVersion"),
+                required(metrics.istTrials(), "istTrials").stream()
+                    .map(SubmitResultRequest::toIstTrial).toList(),
+                required(metrics.sessionCompleted(), "sessionCompleted"),
+                required(metrics.interrupted(), "interrupted"),
+                required(metrics.backgroundEventCount(), "backgroundEventCount"),
+                required(metrics.focusLossCount(), "focusLossCount"));
         };
+    }
+
+    private static BartBalloonMetric toBartBalloon(BartBalloonPayload payload) {
+        return new BartBalloonMetric(
+            required(payload.balloonIndex(), "balloonIndex"),
+            required(payload.phase(), "phase"),
+            required(payload.pumpCount(), "pumpCount"),
+            required(payload.outcome(), "outcome"),
+            required(payload.pumpTimestampsMs(), "pumpTimestampsMs"),
+            payload.collectTimestampMs());
+    }
+
+    private static IstTrialMetric toIstTrial(IstTrialPayload payload) {
+        return new IstTrialMetric(
+            required(payload.trialIndex(), "trialIndex"),
+            required(payload.phase(), "phase"),
+            required(payload.condition(), "condition"),
+            required(payload.openings(), "openings").stream()
+                .map(o -> new IstBoxOpening(
+                    required(o.boxIndex(), "boxIndex"),
+                    required(o.timestampMs(), "timestampMs")))
+                .toList(),
+            required(payload.chosenColor(), "chosenColor"),
+            required(payload.decisionTimestampMs(), "decisionTimestampMs"),
+            payload.confidence());
     }
 
     private static ObjectLocationLevelMetric toObjectLocationLevel(

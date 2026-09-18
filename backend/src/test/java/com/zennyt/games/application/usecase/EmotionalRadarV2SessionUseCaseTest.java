@@ -8,6 +8,7 @@ import com.zennyt.games.domain.catalog.DecisionFormCatalog;
 import com.zennyt.games.domain.event.GameResultRecordedEvent;
 import com.zennyt.games.domain.model.GameSession;
 import com.zennyt.games.domain.model.MiniGame;
+import com.zennyt.games.domain.repository.DecisionBehavioralMetricsRepository;
 import com.zennyt.games.domain.repository.ContinuousAttentionMetricsRepository;
 import com.zennyt.games.domain.repository.CoordinationMetricsRepository;
 import com.zennyt.games.domain.repository.DeviceCalibrationRepository;
@@ -297,6 +298,7 @@ class EmotionalRadarV2SessionUseCaseTest {
             mock(ContinuousAttentionMetricsRepository.class),
             mock(CoordinationMetricsRepository.class),
             mock(ObjectLocationMetricsRepository.class),
+            mock(DecisionBehavioralMetricsRepository.class),
             publisher,
             mock(DecisionScenarioCatalog.class),
             mock(DecisionFormCatalog.class),

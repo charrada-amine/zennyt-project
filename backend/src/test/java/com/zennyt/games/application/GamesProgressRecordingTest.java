@@ -8,6 +8,7 @@ import com.zennyt.games.domain.catalog.StrategicChoicesCatalog;
 import com.zennyt.games.domain.model.CatalogGame;
 import com.zennyt.games.domain.model.GameSession;
 import com.zennyt.games.domain.model.MiniGame;
+import com.zennyt.games.domain.repository.DecisionBehavioralMetricsRepository;
 import com.zennyt.games.domain.repository.ContinuousAttentionMetricsRepository;
 import com.zennyt.games.domain.repository.CoordinationMetricsRepository;
 import com.zennyt.games.domain.repository.DeviceCalibrationRepository;
@@ -52,6 +53,7 @@ class GamesProgressRecordingTest {
             mock(ContinuousAttentionMetricsRepository.class),
             mock(CoordinationMetricsRepository.class),
             mock(ObjectLocationMetricsRepository.class),
+            mock(DecisionBehavioralMetricsRepository.class),
             mock(ApplicationEventPublisher.class),
             mock(DecisionScenarioCatalog.class),
             mock(DecisionFormCatalog.class),

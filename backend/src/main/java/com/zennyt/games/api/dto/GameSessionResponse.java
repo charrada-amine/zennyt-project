@@ -13,6 +13,8 @@ import com.zennyt.games.domain.vo.MemoryQuestReport;
 import com.zennyt.games.domain.vo.MoveFastFlexibilityReport;
 import com.zennyt.games.domain.vo.ObjectLocationLevelReport;
 import com.zennyt.games.domain.vo.ObjectLocationReport;
+import com.zennyt.games.domain.vo.BartReport;
+import com.zennyt.games.domain.vo.IstReport;
 import com.zennyt.games.domain.vo.PrevisionPuzzleReport;
 import com.zennyt.games.domain.vo.ReflectivePauseReport;
 import com.zennyt.games.domain.vo.ScoreBreakdown;
@@ -43,8 +45,77 @@ public record GameSessionResponse(
     ContinuousAttentionIndicatorsResponse continuousAttentionIndicators,
     CoordinationIndicatorsResponse coordinationIndicators,
     ObjectLocationIndicatorsResponse objectLocationIndicators,
+    BartIndicatorsResponse bartIndicators,
+    IstIndicatorsResponse istIndicators,
     List<ScoreBreakdownLineResponse> scoreBreakdown
 ) {
+    /**
+     * Indicateurs BART. {@code efficiencyPercent} est le seul axe noté ;
+     * {@code adjustedAveragePumps} est un TRAIT descriptif, jamais un classement.
+     * Les points d'éclatement ne sont renvoyés qu'après soumission, pour audit.
+     */
+    public record BartIndicatorsResponse(
+        String protocolVersion,
+        boolean sessionValid,
+        List<String> validityIssues,
+        int testBalloonCount,
+        int collectedCount,
+        int explosionCount,
+        Double adjustedAveragePumps,
+        int totalEarnings,
+        int evOptimalEarnings,
+        int optimalFixedPumps,
+        int efficiencyPercent,
+        Double meanPumpsAfterExplosion,
+        Double meanPumpsAfterCollect,
+        Double medianInterPumpIntervalMs
+    ) {
+        static BartIndicatorsResponse from(BartReport r) {
+            return new BartIndicatorsResponse(r.protocolVersion(), r.sessionValid(),
+                r.validityIssues(), r.testBalloonCount(), r.collectedCount(),
+                r.explosionCount(), r.adjustedAveragePumps(), r.totalEarnings(),
+                r.evOptimalEarnings(), r.optimalFixedPumps(), r.efficiencyPercent(),
+                r.meanPumpsAfterExplosion(), r.meanPumpsAfterCollect(),
+                r.medianInterPumpIntervalMs());
+        }
+    }
+
+    /**
+     * Indicateurs IST. {@code calibrationBias} est descriptif et hors score ; aucune
+     * sensibilité métacognitive n'est calculée (20 essais n'y suffisent pas).
+     */
+    public record IstIndicatorsResponse(
+        String protocolVersion,
+        boolean sessionValid,
+        List<String> validityIssues,
+        int testTrialCount,
+        int correctCount,
+        double accuracyPercent,
+        double meanBoxesFixedWin,
+        double meanBoxesDecreasingWin,
+        double conditionDiscrimination,
+        double meanPCorrectAtDecision,
+        double meanPCorrectFixedWin,
+        double meanPCorrectDecreasingWin,
+        int totalEarnings,
+        int randomResponseCount,
+        Double medianInterActionIntervalMs,
+        int confidenceResponseCount,
+        Double calibrationBias,
+        int provisionalScore
+    ) {
+        static IstIndicatorsResponse from(IstReport r) {
+            return new IstIndicatorsResponse(r.protocolVersion(), r.sessionValid(),
+                r.validityIssues(), r.testTrialCount(), r.correctCount(),
+                r.accuracyPercent(), r.meanBoxesFixedWin(), r.meanBoxesDecreasingWin(),
+                r.conditionDiscrimination(), r.meanPCorrectAtDecision(),
+                r.meanPCorrectFixedWin(), r.meanPCorrectDecreasingWin(),
+                r.totalEarnings(), r.randomResponseCount(),
+                r.medianInterActionIntervalMs(), r.confidenceResponseCount(),
+                r.calibrationBias(), r.provisionalScore());
+        }
+    }
+
     public record GameRuntimeSnapshotResponse(
         UUID bankId,
         String bankCode,
@@ -498,7 +569,7 @@ public record GameSessionResponse(
     }
 
     public static GameSessionResponse from(GameSession s) {
-        return from(s, null, null, null, null, null, null, null, null, null, null);
+        return from(s, null, null, null, null, null, null, null, null, null, null, null, null);
     }
 
     public static GameSessionResponse from(GameSession s,
@@ -511,6 +582,8 @@ public record GameSessionResponse(
                                            ContinuousAttentionReport continuousAttentionReport,
                                            CoordinationReport coordinationReport,
                                            ObjectLocationReport objectLocationReport,
+                                           BartReport bartReport,
+                                           IstReport istReport,
                                            ScoreBreakdown scoreBreakdown) {
         return new GameSessionResponse(
             s.id(), s.playerId(), s.gameType().name(), s.status().name(),
@@ -533,6 +606,8 @@ public record GameSessionResponse(
                 : CoordinationIndicatorsResponse.from(coordinationReport),
             objectLocationReport == null ? null
                 : ObjectLocationIndicatorsResponse.from(objectLocationReport),
+            bartReport == null ? null : BartIndicatorsResponse.from(bartReport),
+            istReport == null ? null : IstIndicatorsResponse.from(istReport),
             scoreBreakdown == null ? null
                 : scoreBreakdown.lines().stream().map(ScoreBreakdownLineResponse::from).toList());
     }

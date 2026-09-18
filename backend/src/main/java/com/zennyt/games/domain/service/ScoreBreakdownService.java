@@ -15,6 +15,8 @@ import com.zennyt.games.domain.vo.MemoryQuestMetrics;
 import com.zennyt.games.domain.vo.MoveFastMetrics;
 import com.zennyt.games.domain.vo.OptimalPathLevel;
 import com.zennyt.games.domain.vo.ObjectLocationReport;
+import com.zennyt.games.domain.vo.BartReport;
+import com.zennyt.games.domain.vo.IstReport;
 import com.zennyt.games.domain.vo.PlanifikMetrics;
 import com.zennyt.games.domain.vo.PrevisionPuzzleLevel;
 import com.zennyt.games.domain.vo.PrevisionPuzzleMetrics;
@@ -55,6 +57,54 @@ public class ScoreBreakdownService {
         lines.add(Line.info("Distance moyenne",
             report.averageDisplacementCells() + " cellules"));
         lines.add(Line.info("Empan atteint", String.valueOf(report.span())));
+        lines.add(Line.info("Validité technique",
+            report.sessionValid() ? "valide" : String.join(", ", report.validityIssues())));
+        lines.add(Line.total("Score descriptif", score.rawPoints(), score.maxPoints()));
+        return new ScoreBreakdown(lines);
+    }
+
+    /**
+     * BART — seule l'efficience face au benchmark EV entre dans le /100.
+     * L'appétence au risque est affichée comme TRAIT, sans classement.
+     */
+    public ScoreBreakdown bart(BartReport report, Score score) {
+        List<Line> lines = new ArrayList<>();
+        lines.add(Line.note("Score provisoire = gains / gains de la stratégie fixe optimale ("
+            + report.optimalFixedPumps() + " pompes par ballon) sur les mêmes ballons, "
+            + "plafonné à 100, arrondi half-up une seule fois. L'appétence au risque "
+            + "est un trait descriptif : ni haute ni basse n'est meilleure."));
+        lines.add(Line.info("Gains / benchmark",
+            report.totalEarnings() + " / " + report.evOptimalEarnings() + " pts"));
+        lines.add(Line.info("Ballons collectés / éclatés",
+            report.collectedCount() + " / " + report.explosionCount()));
+        lines.add(Line.info("Pompes moyennes ajustées (descriptif)",
+            report.adjustedAveragePumps() == null ? "—"
+                : String.valueOf(report.adjustedAveragePumps())));
+        lines.add(Line.info("Validité technique",
+            report.sessionValid() ? "valide" : String.join(", ", report.validityIssues())));
+        lines.add(Line.total("Score descriptif", score.rawPoints(), score.maxPoints()));
+        return new ScoreBreakdown(lines);
+    }
+
+    /**
+     * IST — exactitude, preuve à la décision et discrimination entre conditions.
+     * Le biais de calibration reste hors score.
+     */
+    public ScoreBreakdown ist(IstReport report, Score score) {
+        List<Line> lines = new ArrayList<>();
+        lines.add(Line.note("Score provisoire = 40 % exactitude + 40 % preuve détenue à "
+            + "la décision + 20 % ajustement de l'échantillonnage à son coût, arrondi "
+            + "half-up une seule fois. Entraînement et confiance sont hors score."));
+        lines.add(Line.info("Décisions justes",
+            report.correctCount() + "/" + report.testTrialCount()
+                + " (" + report.accuracyPercent() + " %)"));
+        lines.add(Line.info("P(correct) moyen à la décision",
+            String.valueOf(report.meanPCorrectAtDecision())));
+        lines.add(Line.info("Cases ouvertes gain fixe / décroissant",
+            report.meanBoxesFixedWin() + " / " + report.meanBoxesDecreasingWin()));
+        lines.add(Line.info("Biais de calibration (descriptif)",
+            report.calibrationBias() == null ? "—"
+                : String.valueOf(report.calibrationBias())));
         lines.add(Line.info("Validité technique",
             report.sessionValid() ? "valide" : String.join(", ", report.validityIssues())));
         lines.add(Line.total("Score descriptif", score.rawPoints(), score.maxPoints()));

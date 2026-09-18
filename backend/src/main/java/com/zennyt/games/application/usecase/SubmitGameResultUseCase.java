@@ -10,6 +10,7 @@ import com.zennyt.games.domain.repository.DeviceCalibrationRepository;
 import com.zennyt.games.domain.repository.ContinuousAttentionMetricsRepository;
 import com.zennyt.games.domain.repository.CoordinationMetricsRepository;
 import com.zennyt.games.domain.repository.ObjectLocationMetricsRepository;
+import com.zennyt.games.domain.repository.DecisionBehavioralMetricsRepository;
 import com.zennyt.games.domain.repository.EmotionalRadarAnswerRepository;
 import com.zennyt.games.domain.repository.GameCompletionRepository;
 import com.zennyt.games.domain.repository.GameSessionRepository;
@@ -17,6 +18,8 @@ import com.zennyt.games.domain.service.CalibrationService;
 import com.zennyt.games.domain.service.ContinuousAttentionScoringService;
 import com.zennyt.games.domain.service.CoordinationScoringService;
 import com.zennyt.games.domain.service.ObjectLocationScoringService;
+import com.zennyt.games.domain.service.BartScoringService;
+import com.zennyt.games.domain.service.IstScoringService;
 import com.zennyt.games.domain.service.DecisionScoringService;
 import com.zennyt.games.domain.service.EmotionalRadarScoringService;
 import com.zennyt.games.domain.service.MemoryQuestScoringService;
@@ -35,6 +38,10 @@ import com.zennyt.games.domain.vo.CoordinationMetrics;
 import com.zennyt.games.domain.vo.CoordinationReport;
 import com.zennyt.games.domain.vo.ObjectLocationMetrics;
 import com.zennyt.games.domain.vo.ObjectLocationReport;
+import com.zennyt.games.domain.vo.BartMetrics;
+import com.zennyt.games.domain.vo.BartReport;
+import com.zennyt.games.domain.vo.IstMetrics;
+import com.zennyt.games.domain.vo.IstReport;
 import com.zennyt.games.domain.vo.DecisionReport;
 import com.zennyt.games.domain.vo.DeviceCalibration;
 import com.zennyt.games.domain.vo.EmotionalRadarAnswer;
@@ -87,6 +94,7 @@ public class SubmitGameResultUseCase {
     private final ContinuousAttentionMetricsRepository continuousAttentionMetrics;
     private final CoordinationMetricsRepository coordinationMetrics;
     private final ObjectLocationMetricsRepository objectLocationMetrics;
+    private final DecisionBehavioralMetricsRepository decisionBehavioralMetrics;
     private final ApplicationEventPublisher eventPublisher;
     private final PlanifikScoringService scoring = new PlanifikScoringService();
     private final CalibrationService calibration = new CalibrationService();
@@ -102,6 +110,8 @@ public class SubmitGameResultUseCase {
         new CoordinationScoringService();
     private final ObjectLocationScoringService objectLocation =
         new ObjectLocationScoringService();
+    private final BartScoringService bart = new BartScoringService();
+    private final IstScoringService ist = new IstScoringService();
     private final DecisionScoringService decision;
     private final DecisionFormCatalog decisionForms;
 
@@ -111,6 +121,7 @@ public class SubmitGameResultUseCase {
                                    ContinuousAttentionMetricsRepository continuousAttentionMetrics,
                                    CoordinationMetricsRepository coordinationMetrics,
                                    ObjectLocationMetricsRepository objectLocationMetrics,
+                                   DecisionBehavioralMetricsRepository decisionBehavioralMetrics,
                                    ApplicationEventPublisher eventPublisher,
                                    DecisionScenarioCatalog decisionCatalog,
                                    DecisionFormCatalog decisionForms,
@@ -121,6 +132,7 @@ public class SubmitGameResultUseCase {
         this.continuousAttentionMetrics = continuousAttentionMetrics;
         this.coordinationMetrics = coordinationMetrics;
         this.objectLocationMetrics = objectLocationMetrics;
+        this.decisionBehavioralMetrics = decisionBehavioralMetrics;
         this.eventPublisher = eventPublisher;
         // « Je Décide » : deux ports distincts. Le catalogue de NOTATION fournit la
         // qualité des options ; le catalogue de FORMES dit quels items la session
@@ -156,7 +168,27 @@ public class SubmitGameResultUseCase {
                           ContinuousAttentionReport continuousAttentionReport,
                           CoordinationReport coordinationReport,
                           ObjectLocationReport objectLocationReport,
+                          BartReport bartReport,
+                          IstReport istReport,
                           ScoreBreakdown scoreBreakdown) {
+
+        /** Signature antérieure au BART et à l'IST : leurs rapports restent absents. */
+        public Outcome(GameSession session,
+                       MoveFastFlexibilityReport moveFastReport,
+                       PrevisionPuzzleReport previsionPuzzleReport,
+                       MemoryQuestReport memoryQuestReport,
+                       DecisionReport decisionReport,
+                       EmotionalRadarReport emotionalRadarReport,
+                       ReflectivePauseReport reflectivePauseReport,
+                       ContinuousAttentionReport continuousAttentionReport,
+                       CoordinationReport coordinationReport,
+                       ObjectLocationReport objectLocationReport,
+                       ScoreBreakdown scoreBreakdown) {
+            this(session, moveFastReport, previsionPuzzleReport, memoryQuestReport,
+                decisionReport, emotionalRadarReport, reflectivePauseReport,
+                continuousAttentionReport, coordinationReport, objectLocationReport,
+                null, null, scoreBreakdown);
+        }
     }
 
     /**
@@ -218,6 +250,12 @@ public class SubmitGameResultUseCase {
         }
         if (command.miniGame() == MiniGame.OBJECT_LOCATION_BINDING_CORE) {
             return executeObjectLocation(command, session);
+        }
+        if (command.miniGame() == MiniGame.BART_CORE) {
+            return executeBart(command, session);
+        }
+        if (command.miniGame() == MiniGame.INFORMATION_SAMPLING_CORE) {
+            return executeIst(command, session);
         }
 
         assertDecisionItemsMatchAssignedForm(command, session);
@@ -422,6 +460,96 @@ public class SubmitGameResultUseCase {
             null, null, report, scoreBreakdown);
     }
 
+    /**
+     * Voie BART : le serveur régénère la séquence d'éclatement, rejoue les pompes,
+     * rejette toute issue impossible et conserve un run invalide sans Attempt.
+     */
+    private Outcome executeBart(SubmitGameResultCommand command, GameSession session) {
+        assertDecisionBehavioralSubmissionAllowed(session, MiniGame.BART_CORE);
+        BartMetrics metrics = expectMetrics(command, BartMetrics.class);
+        BartReport report = bart.report(command.sessionId(), metrics);
+        Score score = bart.score(report);
+        ScoreBreakdown scoreBreakdown = breakdown.bart(report, score);
+
+        if (!report.sessionValid()) {
+            decisionBehavioralMetrics.replaceBart(command.sessionId(), metrics, report);
+            saveCalibration(command);
+            return new Outcome(session, null, null, null, null, null, null,
+                null, null, null, report, null, scoreBreakdown);
+        }
+
+        session.recordResult(command.miniGame(), score, scoring);
+        decisionBehavioralMetrics.replaceBart(command.sessionId(), metrics, report);
+        GameSession saved = repository.save(session);
+        saveCalibration(command);
+        suppressProvisionalEvents(session);
+        return new Outcome(saved, null, null, null, null, null, null,
+            null, null, null, report, null, scoreBreakdown);
+    }
+
+    /**
+     * Voie IST : le serveur régénère les grilles, rejoue les ouvertures, calcule
+     * P(correct) sous la loi réelle et conserve un run invalide sans Attempt.
+     */
+    private Outcome executeIst(SubmitGameResultCommand command, GameSession session) {
+        assertDecisionBehavioralSubmissionAllowed(session, MiniGame.INFORMATION_SAMPLING_CORE);
+        IstMetrics metrics = expectMetrics(command, IstMetrics.class);
+        IstReport report = ist.report(command.sessionId(), metrics);
+        Score score = ist.score(report);
+        ScoreBreakdown scoreBreakdown = breakdown.ist(report, score);
+
+        if (!report.sessionValid()) {
+            decisionBehavioralMetrics.replaceIst(command.sessionId(), metrics, report);
+            saveCalibration(command);
+            return new Outcome(session, null, null, null, null, null, null,
+                null, null, null, null, report, scoreBreakdown);
+        }
+
+        session.recordResult(command.miniGame(), score, scoring);
+        decisionBehavioralMetrics.replaceIst(command.sessionId(), metrics, report);
+        GameSession saved = repository.save(session);
+        saveCalibration(command);
+        suppressProvisionalEvents(session);
+        return new Outcome(saved, null, null, null, null, null, null,
+            null, null, null, null, report, scoreBreakdown);
+    }
+
+    private void saveCalibration(SubmitGameResultCommand command) {
+        if (command.deviceCalibration() != null) {
+            calibrationRepository.save(command.deviceCalibration());
+        }
+    }
+
+    /**
+     * PROVISOIRE — barèmes BART et IST non validés par le psychologue : l'Attempt
+     * est enregistré (et clôt la session au second mini-jeu), mais l'événement vers
+     * Recruitment / Fit Score est supprimé, comme pour « Je place » à sa livraison.
+     *
+     * <p>Double garde : même émis, l'événement serait ignoré par Recruitment, car
+     * {@code DECISION_BEHAVIORAL} n'est rattaché à aucun {@code SoftSkillModule}.
+     * Réactiver uniquement après validation du barème ET décision explicite
+     * d'intégration inter-contextes.
+     */
+    private static void suppressProvisionalEvents(GameSession session) {
+        session.clearEvents();
+    }
+
+    private static void assertDecisionBehavioralSubmissionAllowed(
+            GameSession session, MiniGame miniGame) {
+        if (session.status() != SessionStatus.IN_PROGRESS) {
+            throw new IllegalStateException("Session non ouverte : " + session.status());
+        }
+        if (session.gameType() != GameType.DECISION_BEHAVIORAL) {
+            throw new IllegalArgumentException(
+                miniGame + " n'appartient pas au type " + session.gameType());
+        }
+        boolean alreadyRecorded = session.attempts().stream()
+            .anyMatch(attempt -> attempt.miniGame() == miniGame);
+        if (alreadyRecorded) {
+            throw new IllegalStateException("Mini-jeu déjà joué : " + miniGame);
+        }
+    }
+
     private static void assertObjectLocationSubmissionAllowed(GameSession session) {
         if (session.status() != SessionStatus.IN_PROGRESS) {
             throw new IllegalStateException("Session non ouverte : " + session.status());
@@ -593,6 +721,10 @@ public class SubmitGameResultUseCase {
             case OBJECT_LOCATION_BINDING_CORE -> objectLocation.score(
                 objectLocation.report(command.sessionId(),
                     expectMetrics(command, ObjectLocationMetrics.class)));
+            case BART_CORE -> bart.score(
+                bart.report(command.sessionId(), expectMetrics(command, BartMetrics.class)));
+            case INFORMATION_SAMPLING_CORE -> ist.score(
+                ist.report(command.sessionId(), expectMetrics(command, IstMetrics.class)));
         };
     }
 

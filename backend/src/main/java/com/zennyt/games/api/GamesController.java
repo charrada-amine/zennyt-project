@@ -89,6 +89,8 @@ public class GamesController {
             outcome.continuousAttentionReport(),
             outcome.coordinationReport(),
             outcome.objectLocationReport(),
+            outcome.bartReport(),
+            outcome.istReport(),
             outcome.scoreBreakdown()));
     }
 }
