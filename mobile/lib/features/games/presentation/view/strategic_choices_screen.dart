@@ -22,6 +22,8 @@ import '../widgets/emotional_game_pause_dialog.dart';
 import '../widgets/game_system_components.dart';
 import '../widgets/strategic_choices_tutorial.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 const _ink = Color(0xFF26224D);
 const _navy = Color(0xFF071333);
 const _muted = Color(0xFF71809A);
@@ -439,7 +441,7 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
             totalSituations: kStrategicChoicesPerJourney,
             reviewing: true,
             leading: _SquareIconButton(
-              icon: Icons.chevron_left_rounded,
+              icon: HugeIcons.strokeRoundedArrowLeft01,
               tooltip: 'Back',
               onTap: () => Navigator.of(context).pop(),
             ),
@@ -560,7 +562,7 @@ class _CoverView extends StatelessWidget {
         'Face à une situation stressante, plusieurs façons d’agir s’offrent à toi. Laquelle choisirais-tu ?',
     journey: const ['Lis', 'Réfléchis', 'Choisis'],
     leading: _SquareIconButton(
-      icon: Icons.chevron_left_rounded,
+      icon: HugeIcons.strokeRoundedArrowLeft01,
       tooltip: 'Back',
       onTap: onBack,
     ),
@@ -579,7 +581,7 @@ class _TutorialView extends StatelessWidget {
   Widget build(BuildContext context) => StrategicChoicesTutorial(
     totalSituations: kStrategicChoicesPerJourney,
     leading: _SquareIconButton(
-      icon: Icons.chevron_left_rounded,
+      icon: HugeIcons.strokeRoundedArrowLeft01,
       tooltip: 'Back',
       onTap: () {
         SoundService.instance.playSfx(GameSfx.buttonClick);
@@ -1027,8 +1029,8 @@ class _SituationCard extends StatelessWidget {
                 child: _SituationTitleChip(
                   title: situation.title,
                   icon: _written
-                      ? Icons.chat_bubble_outline_rounded
-                      : Icons.videocam_outlined,
+                      ? HugeIcons.strokeRoundedMessage01
+                      : HugeIcons.strokeRoundedVideo01,
                 ),
               ),
               const SizedBox(width: 8),
@@ -1062,8 +1064,8 @@ class _SituationCard extends StatelessWidget {
                 children: [
                   const Row(
                     children: [
-                      Icon(
-                        Icons.chat_bubble_outline_rounded,
+                      AppIcon(
+                        HugeIcons.strokeRoundedMessage01,
                         size: 14,
                         color: _magenta,
                       ),
@@ -1123,8 +1125,8 @@ class _SituationCard extends StatelessWidget {
                 child: const Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      Icons.movie_outlined,
+                    AppIcon(
+                      HugeIcons.strokeRoundedFilm01,
                       color: Color(0xFFB8F3D6),
                       size: 26,
                     ),
@@ -1269,7 +1271,7 @@ class _SituationTitleChip extends StatelessWidget {
   const _SituationTitleChip({required this.title, required this.icon});
 
   final String title;
-  final IconData icon;
+  final AppIconData icon;
 
   @override
   Widget build(BuildContext context) {
@@ -1283,7 +1285,7 @@ class _SituationTitleChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: _blue),
+          AppIcon(icon, size: 14, color: _blue),
           const SizedBox(width: 6),
           Flexible(
             child: FittedBox(
@@ -1445,7 +1447,7 @@ class StrategicChoiceCard extends StatelessWidget {
                     clipBehavior: Clip.none,
                     alignment: Alignment.center,
                     children: [
-                      Icon(
+                      AppIcon(
                         strategy.icon,
                         key: ValueKey('strategic-icon-${strategy.name}'),
                         size: 18,
@@ -1468,10 +1470,10 @@ class StrategicChoiceCard extends StatelessWidget {
                                 shape: BoxShape.circle,
                                 border: Border.all(color: Colors.white),
                               ),
-                              child: Icon(
+                              child: AppIcon(
                                 selected
-                                    ? Icons.check_rounded
-                                    : Icons.lock_outline,
+                                    ? HugeIcons.strokeRoundedTick02
+                                    : HugeIcons.strokeRoundedLockKey,
                                 size: 10,
                                 color: selected ? Colors.white : _muted,
                               ),
@@ -1531,8 +1533,8 @@ class _SavedView extends StatelessWidget {
                   shape: BoxShape.circle,
                   border: Border.all(color: _magenta, width: 2),
                 ),
-                child: const Icon(
-                  Icons.check_rounded,
+                child: const AppIcon(
+                  HugeIcons.strokeRoundedTick02,
                   color: _magenta,
                   size: 38,
                 ),
@@ -2111,7 +2113,7 @@ class _TopBar extends StatelessWidget {
     return Row(
       children: [
         _SquareIconButton(
-          icon: Icons.chevron_left_rounded,
+          icon: HugeIcons.strokeRoundedArrowLeft01,
           tooltip: 'Back',
           onTap: () {
             SoundService.instance.playSfx(GameSfx.buttonClick);
@@ -2142,7 +2144,7 @@ class _SquareIconButton extends StatelessWidget {
     required this.onTap,
   });
 
-  final IconData icon;
+  final AppIconData icon;
   final String tooltip;
   final VoidCallback onTap;
 
@@ -2166,7 +2168,7 @@ class _SquareIconButton extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: _border),
               ),
-              child: Icon(icon, color: _ink),
+              child: AppIcon(icon, color: _ink),
             ),
           ),
         ),
@@ -2182,7 +2184,7 @@ class _PurpleIconButton extends StatelessWidget {
     required this.onTap,
   });
 
-  final IconData icon;
+  final AppIconData icon;
   final String tooltip;
   final VoidCallback onTap;
 
@@ -2195,7 +2197,7 @@ class _PurpleIconButton extends StatelessWidget {
         message: tooltip,
         child: IconButton(
           onPressed: onTap,
-          icon: Icon(icon),
+          icon: AppIcon(icon),
           color: Colors.white,
           style: IconButton.styleFrom(
             minimumSize: const Size.square(48),
@@ -2273,16 +2275,16 @@ class _InsightCard extends StatelessWidget {
 }
 
 extension _StrategicChoiceStrategyVisual on StrategicChoiceStrategy {
-  IconData get icon => switch (this) {
-    StrategicChoiceStrategy.avoidFlee => Icons.directions_run_rounded,
-    StrategicChoiceStrategy.ruminate => Icons.sync_rounded,
-    StrategicChoiceStrategy.breathePause => Icons.air_rounded,
+  AppIconData get icon => switch (this) {
+    StrategicChoiceStrategy.avoidFlee => HugeIcons.strokeRoundedWorkoutRun,
+    StrategicChoiceStrategy.ruminate => HugeIcons.strokeRoundedReload,
+    StrategicChoiceStrategy.breathePause => HugeIcons.strokeRoundedFastWind,
     StrategicChoiceStrategy.cognitiveReappraisal =>
-      Icons.psychology_alt_outlined,
+      HugeIcons.strokeRoundedBrain02,
     StrategicChoiceStrategy.assertiveCommunication =>
-      Icons.chat_bubble_outline_rounded,
-    StrategicChoiceStrategy.humor => Icons.sentiment_satisfied_alt_rounded,
-    StrategicChoiceStrategy.seekSupport => Icons.people_outline_rounded,
-    StrategicChoiceStrategy.directAction => Icons.touch_app_rounded,
+      HugeIcons.strokeRoundedMessage01,
+    StrategicChoiceStrategy.humor => HugeIcons.strokeRoundedHappy,
+    StrategicChoiceStrategy.seekSupport => HugeIcons.strokeRoundedUserMultiple,
+    StrategicChoiceStrategy.directAction => HugeIcons.strokeRoundedTouch01,
   };
 }

@@ -9,6 +9,8 @@ import 'profile_avatar.dart';
 import '../../../../shared/widgets/app_motion.dart';
 import '../../../../core/audio/sound_service.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// Profile header section: avatar circle, user name, and "See your profile"
 /// link. Bound to the authenticated user.
 class ProfileHeaderSection extends ConsumerWidget {
@@ -91,8 +93,8 @@ class ProfileIdentityCard extends StatelessWidget {
                       ),
                       const Spacer(),
                       if (onTap != null)
-                        Icon(
-                          Icons.arrow_outward_rounded,
+                        AppIcon(
+                          HugeIcons.strokeRoundedArrowUpRight01,
                           color: colors.primary,
                         ),
                     ],

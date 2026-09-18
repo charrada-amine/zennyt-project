@@ -9,6 +9,8 @@ import '../../../../shared/widgets/zennyt_loader.dart';
 import '../../../fits/presentation/widgets/fit_scores_grid.dart';
 import '../providers/search_provider.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class SearchCandidatePage extends ConsumerStatefulWidget {
   const SearchCandidatePage({super.key});
   @override
@@ -45,7 +47,7 @@ class _SearchCandidatePageState extends ConsumerState<SearchCandidatePage> {
                   child: AppTextField(
                     hint: 'Role, company or location',
                     controller: _searchController,
-                    prefixIcon: Icons.search_rounded,
+                    prefixIcon: HugeIcons.strokeRoundedSearch01,
                     textInputAction: TextInputAction.search,
                     onChanged: (value) =>
                         ref.read(searchQueryProvider.notifier).update(value),
@@ -60,7 +62,7 @@ class _SearchCandidatePageState extends ConsumerState<SearchCandidatePage> {
                     style: IconButton.styleFrom(
                       minimumSize: const Size(52, 54),
                     ),
-                    icon: const Icon(Icons.tune_rounded),
+                    icon: const AppIcon(HugeIcons.strokeRoundedFilterHorizontal),
                   ),
                 ),
               ],
@@ -71,7 +73,7 @@ class _SearchCandidatePageState extends ConsumerState<SearchCandidatePage> {
                 child: TextButton.icon(
                   onPressed: () =>
                       ref.read(searchFiltersProvider.notifier).clear(),
-                  icon: const Icon(Icons.close_rounded, size: 16),
+                  icon: const AppIcon(HugeIcons.strokeRoundedCancel01, size: 16),
                   label: const Text('Clear filters'),
                 ),
               ),
@@ -124,7 +126,7 @@ class _SearchCandidatePageState extends ConsumerState<SearchCandidatePage> {
                 ),
                 child: Column(
                   children: [
-                    Icon(Icons.search_rounded, size: 38, color: colors.primary),
+                    AppIcon(HugeIcons.strokeRoundedSearch01, size: 38, color: colors.primary),
                     const SizedBox(height: 16),
                     Text(
                       'No results yet',

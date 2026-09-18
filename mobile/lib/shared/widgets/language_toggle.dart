@@ -5,6 +5,8 @@ import '../../core/localization/l10n_extension.dart';
 import '../../core/localization/locale_controller.dart';
 import '../../core/theme/theme.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// A compact pill that flips the app language between English and French.
 ///
 /// It shows the language you'd switch TO (e.g. "FR" while the app is in
@@ -45,7 +47,7 @@ class LanguageToggle extends ConsumerWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.language_rounded, size: 18, color: foreground),
+                AppIcon(HugeIcons.strokeRoundedGlobe02, size: 18, color: foreground),
                 const SizedBox(width: AppSpacing.xs),
                 Text(
                   target,

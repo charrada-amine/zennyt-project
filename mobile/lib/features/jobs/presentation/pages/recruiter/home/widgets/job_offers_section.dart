@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import 'package:zennyt/core/router/app_routes.dart';
 import 'package:zennyt/features/jobs/domain/entities/job.dart';
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class JobOffersSection extends StatelessWidget {
   final AsyncValue<List<JobOffer>> jobsAsync;
   const JobOffersSection({super.key, required this.jobsAsync});
@@ -33,8 +35,8 @@ class JobOffersSection extends StatelessWidget {
                 ),
                 GestureDetector(
                   onTap: () => context.pushNamed(AppRoutes.nCreateJob),
-                  child: const Icon(
-                    Icons.add_circle_outline,
+                  child: const AppIcon(
+                    HugeIcons.strokeRoundedAddCircle,
                     color: Color(0xFF21438A),
                   ),
                 ),
@@ -72,7 +74,7 @@ class _JobListBody extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.cloud_off_rounded, size: 20, color: Color(0xFFE53935)),
+            const AppIcon(HugeIcons.strokeRoundedCloudSlowWind, size: 20, color: Color(0xFFE53935)),
             const SizedBox(width: 8),
             const Flexible(
               child: Text(
@@ -272,8 +274,8 @@ class _HardSkillsAlertBanner extends StatelessWidget {
       level == HardSkillsAlertLevel.portfolioBased ? const Color(0xFF0F766E) : const Color(0xFFB45309);
   Color get _background =>
       level == HardSkillsAlertLevel.portfolioBased ? const Color(0xFFECFDF5) : const Color(0xFFFFFBEB);
-  IconData get _icon =>
-      level == HardSkillsAlertLevel.portfolioBased ? Icons.palette_outlined : Icons.info_outline;
+  AppIconData get _icon =>
+      level == HardSkillsAlertLevel.portfolioBased ? HugeIcons.strokeRoundedPaintBoard : HugeIcons.strokeRoundedInformationCircle;
 
   @override
   Widget build(BuildContext context) {
@@ -287,7 +289,7 @@ class _HardSkillsAlertBanner extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(_icon, size: 14, color: _color),
+          AppIcon(_icon, size: 14, color: _color),
           const SizedBox(width: 6),
           Expanded(
             child: Text(

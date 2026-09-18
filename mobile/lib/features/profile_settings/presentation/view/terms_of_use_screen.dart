@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/theme.dart';
 import '../../../auth/presentation/auth_providers.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// Terms of Use & Conditions (design screens 120, 274-275).
 ///
 /// Content is fetched from `GET /legal/terms-of-use`; the in-app transcription
@@ -44,8 +46,8 @@ class TermsOfUseScreen extends ConsumerWidget {
                     ),
                     child: IconButton(
                       onPressed: () => context.pop(),
-                      icon: Icon(
-                        Icons.arrow_back_ios_new_rounded,
+                      icon: AppIcon(
+                        HugeIcons.strokeRoundedArrowLeft01,
                         color: colors.primary,
                         size: 20,
                       ),

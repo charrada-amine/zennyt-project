@@ -9,6 +9,8 @@ import 'package:zennyt/features/jobs/domain/entities/test_attempt.dart';
 import 'package:zennyt/features/jobs/presentation/providers/jobs_provider.dart';
 import 'package:zennyt/shared/widgets/custom_app_bar.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// Hard-skills test runner (maquettes 96, 306 / 138-139).
 ///
 /// Démarre l'unique tentative du candidat (`POST /job-offers/{id}/test-attempts`),
@@ -174,7 +176,7 @@ class _TestTakingPageState extends ConsumerState<TestTakingPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline_rounded, color: Color(0xFFE53935), size: 34),
+              const AppIcon(HugeIcons.strokeRoundedAlertCircle, color: Color(0xFFE53935), size: 34),
               const SizedBox(height: 12),
               Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: Color(0xFF475569))),
               const SizedBox(height: 12),
@@ -276,7 +278,7 @@ class _AttemptBody extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.timer_outlined,
+                    AppIcon(HugeIcons.strokeRoundedTimer02,
                         size: 14, color: remaining < 60 ? const Color(0xFFEF4444) : const Color(0xFF64748B)),
                     const SizedBox(width: 4),
                     Text(
@@ -424,7 +426,7 @@ class _OptionTile extends StatelessWidget {
                 ),
               ),
             ),
-            if (selected) const Icon(Icons.check_circle_rounded, color: Color(0xFF11428D), size: 20),
+            if (selected) const AppIcon(HugeIcons.strokeRoundedCheckmarkCircle02, color: Color(0xFF11428D), size: 20),
           ],
         ),
       ),
@@ -447,8 +449,8 @@ class _TestResultView extends StatelessWidget {
             width: 96,
             height: 96,
             decoration: BoxDecoration(color: color.withValues(alpha: 0.12), shape: BoxShape.circle),
-            child: Icon(
-              result.passed ? Icons.verified_rounded : Icons.cancel_rounded,
+            child: AppIcon(
+              result.passed ? HugeIcons.strokeRoundedCheckmarkBadge01 : HugeIcons.strokeRoundedCancelCircle,
               color: color,
               size: 52,
             ),

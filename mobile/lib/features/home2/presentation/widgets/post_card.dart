@@ -6,6 +6,8 @@ import '../../../../core/theme/theme.dart';
 import '../../domain/entities/feed_post.dart';
 import 'feed_avatar.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// A single feed post: header (author / time / menu), optional text, link and
 /// image, the comments/shares line, and the like/comment/share action row.
 class PostCard extends StatelessWidget {
@@ -60,7 +62,7 @@ class PostCard extends StatelessWidget {
                 errorWidget: (_, _, _) => Container(
                   height: 200,
                   color: colors.inputFill,
-                  child: Icon(Icons.image_outlined, color: colors.textMuted),
+                  child: AppIcon(HugeIcons.strokeRoundedImage01, color: colors.textMuted),
                 ),
               ),
             ),
@@ -127,8 +129,8 @@ class _PostHeader extends StatelessWidget {
               const SizedBox(height: 3),
               Row(
                 children: [
-                  Icon(
-                    Icons.schedule_rounded,
+                  AppIcon(
+                    HugeIcons.strokeRoundedClock01,
                     size: 13,
                     color: colors.textMuted,
                   ),
@@ -158,7 +160,7 @@ class _PostMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
-      icon: Icon(Icons.more_horiz_rounded, color: colors.textSecondary),
+      icon: AppIcon(HugeIcons.strokeRoundedMoreHorizontal, color: colors.textSecondary),
       color: colors.cardSurface,
       elevation: 6,
       shape: RoundedRectangleBorder(
@@ -170,14 +172,14 @@ class _PostMenu extends StatelessWidget {
         PopupMenuItem(
           value: 'report',
           child: _MenuRow(
-            icon: Icons.outlined_flag_rounded,
+            icon: HugeIcons.strokeRoundedFlag02,
             label: AppStrings.report,
           ),
         ),
         PopupMenuItem(
           value: 'hide',
           child: _MenuRow(
-            icon: Icons.visibility_off_outlined,
+            icon: HugeIcons.strokeRoundedViewOff,
             label: AppStrings.hide,
           ),
         ),
@@ -189,7 +191,7 @@ class _PostMenu extends StatelessWidget {
 class _MenuRow extends StatelessWidget {
   const _MenuRow({required this.icon, required this.label});
 
-  final IconData icon;
+  final AppIconData icon;
   final String label;
 
   @override
@@ -197,7 +199,7 @@ class _MenuRow extends StatelessWidget {
     final colors = context.colors;
     return Row(
       children: [
-        Icon(icon, size: AppSpacing.iconMd, color: colors.iconDefault),
+        AppIcon(icon, size: AppSpacing.iconMd, color: colors.iconDefault),
         const SizedBox(width: AppSpacing.md),
         Text(
           label,
@@ -218,22 +220,22 @@ class _PostActions extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(
-          Icons.thumb_up_alt_outlined,
+        AppIcon(
+          HugeIcons.strokeRoundedThumbsUp,
           size: 22,
           color: colors.textSecondary,
         ),
         const SizedBox(width: AppSpacing.lg),
-        Icon(
-          Icons.mode_comment_outlined,
+        AppIcon(
+          HugeIcons.strokeRoundedComment01,
           size: 22,
           color: colors.textSecondary,
         ),
         const SizedBox(width: AppSpacing.lg),
         Transform.flip(
           flipX: true,
-          child: Icon(
-            Icons.reply_rounded,
+          child: AppIcon(
+            HugeIcons.strokeRoundedMailReply01,
             size: 24,
             color: colors.textSecondary,
           ),

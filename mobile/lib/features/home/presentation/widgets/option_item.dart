@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:zennyt/shared/icons/app_icons.dart';
 import 'package:zennyt/core/theme/theme.dart';
 
 class OptionItem extends StatelessWidget {
-  final FaIconData icon;
+  final AppIconData icon;
   final String label;
   final VoidCallback onTap;
   final Color? iconColor;
@@ -46,7 +46,7 @@ class OptionItem extends StatelessWidget {
                   ),
                 ),
                 child: Center(
-                  child: FaIcon(
+                  child: AppIcon(
                     icon,
                     color: effectiveIconColor,
                     size: 24,

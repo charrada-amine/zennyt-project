@@ -9,6 +9,8 @@ import '../viewmodel/recruiter_profile_viewmodel.dart';
 import '../widgets/profile_header_section.dart';
 import '../../../../shared/widgets/custom_app_bar.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class RecruiterProfileView extends ConsumerWidget {
   const RecruiterProfileView({super.key});
 
@@ -68,7 +70,7 @@ class RecruiterProfileView extends ConsumerWidget {
       metadata: companyName,
       actions: FilledButton.icon(
         onPressed: () => context.pushNamed('recruiterEditProfile'),
-        icon: const Icon(Icons.edit_outlined, size: 18),
+        icon: const AppIcon(HugeIcons.strokeRoundedPencilEdit01, size: 18),
         label: const Text('Edit Profile'),
       ),
     );
@@ -96,8 +98,8 @@ class RecruiterProfileView extends ConsumerWidget {
               onPressed: () {
                 context.pushNamed('recruiterEditProfile');
               },
-              icon: Icon(
-                Icons.edit_outlined,
+              icon: AppIcon(
+                HugeIcons.strokeRoundedPencilEdit01,
                 color: colors.textSecondary,
                 size: 20,
               ),
@@ -111,28 +113,28 @@ class RecruiterProfileView extends ConsumerWidget {
           colors,
           'Company size',
           profile?.companySize ?? '—',
-          Icons.people_outline_rounded,
+          HugeIcons.strokeRoundedUserMultiple,
         ),
         const SizedBox(height: AppSpacing.md),
         _buildInfoRow(
           colors,
           'Field of work',
           profile?.fieldOfWork ?? '—',
-          Icons.work_outline_rounded,
+          HugeIcons.strokeRoundedBriefcase01,
         ),
         const SizedBox(height: AppSpacing.md),
         _buildInfoRow(
           colors,
           'Company location',
           profile?.companyLocation ?? '—',
-          Icons.location_on_outlined,
+          HugeIcons.strokeRoundedLocation01,
         ),
         const SizedBox(height: AppSpacing.md),
         _buildInfoRow(
           colors,
           'Company Registration Number (EIN)',
           profile?.companyRegistrationNumber ?? '—',
-          Icons.verified_outlined,
+          HugeIcons.strokeRoundedCheckmarkBadge01,
         ),
       ],
     );
@@ -142,7 +144,7 @@ class RecruiterProfileView extends ConsumerWidget {
     AppColorScheme colors,
     String label,
     String value,
-    IconData icon,
+    AppIconData icon,
   ) {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -166,7 +168,7 @@ class RecruiterProfileView extends ConsumerWidget {
               color: colors.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: colors.primary, size: 20),
+            child: AppIcon(icon, color: colors.primary, size: 20),
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
@@ -236,8 +238,8 @@ class RecruiterProfileView extends ConsumerWidget {
             Positioned(
               top: -8,
               right: 8,
-              child: Icon(
-                Icons.format_quote_rounded,
+              child: AppIcon(
+                HugeIcons.strokeRoundedQuoteUp,
                 size: 80,
                 color: colors.primary.withValues(alpha: 0.05),
               ),
@@ -260,8 +262,8 @@ class RecruiterProfileView extends ConsumerWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    Icons.edit_note_rounded,
+                  AppIcon(
+                    HugeIcons.strokeRoundedNote01,
                     size: 18,
                     color: colors.primary,
                   ),

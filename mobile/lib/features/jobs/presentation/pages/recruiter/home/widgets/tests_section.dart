@@ -8,6 +8,8 @@ import 'add_test_card.dart';
 import 'share_bottom_sheet.dart';
 import 'test_card.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class TestsSection extends StatelessWidget {
   final AsyncValue<List<Assessment>> assessmentsAsync;
   const TestsSection({super.key, required this.assessmentsAsync});
@@ -69,7 +71,7 @@ class _TestsBody extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.cloud_off_rounded, size: 18, color: Color(0xFFE53935)),
+                AppIcon(HugeIcons.strokeRoundedCloudSlowWind, size: 18, color: Color(0xFFE53935)),
                 SizedBox(width: 8),
                 Flexible(
                   child: Text(

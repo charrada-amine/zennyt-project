@@ -18,6 +18,8 @@ import '../widgets/game_results_template.dart';
 import '../widgets/game_system_components.dart';
 import '../widgets/zennyt_loader.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 const _navy = Color(0xFF28234F);
 const _indigo = Color(0xFF5146E8);
 const _cyan = Color(0xFF087F91);
@@ -882,7 +884,7 @@ class _TopBar extends StatelessWidget {
       children: [
         _SquareButton(
           tooltip: 'Back',
-          icon: Icons.chevron_left_rounded,
+          icon: HugeIcons.strokeRoundedArrowLeft01,
           onTap: onBack,
         ),
         const SizedBox(width: 14),
@@ -916,7 +918,7 @@ class _TopBar extends StatelessWidget {
           const SizedBox(width: 12),
           _SquareButton(
             tooltip: 'Rules and help',
-            icon: Icons.more_horiz_rounded,
+            icon: HugeIcons.strokeRoundedMoreHorizontal,
             onTap: onMore!,
           ),
         ],
@@ -934,7 +936,7 @@ class _SquareButton extends StatelessWidget {
   });
 
   final String tooltip;
-  final IconData icon;
+  final AppIconData icon;
   final VoidCallback onTap;
 
   /// Variante posée sur le fond violet du gameplay : contours et icône clairs.
@@ -961,7 +963,7 @@ class _SquareButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(14),
           ),
         ),
-        icon: Icon(icon, size: 26),
+        icon: AppIcon(icon, size: 26),
       ),
     );
   }
@@ -1054,8 +1056,8 @@ class _CoverView extends StatelessWidget {
                       height: 132,
                       fit: BoxFit.contain,
                       filterQuality: FilterQuality.high,
-                      errorBuilder: (_, _, _) => const Icon(
-                        Icons.all_inclusive_rounded,
+                      errorBuilder: (_, _, _) => const AppIcon(
+                        HugeIcons.strokeRoundedInfinity01,
                         color: Colors.white,
                         size: 72,
                       ),
@@ -1103,7 +1105,7 @@ class _CoverView extends StatelessWidget {
             children: [
               GameOutlineButton(
                 label: 'View rules',
-                icon: Icons.help_outline_rounded,
+                icon: HugeIcons.strokeRoundedHelpCircle,
                 onPressed: onRules,
               ),
               const SizedBox(height: 10),
@@ -1244,7 +1246,7 @@ class _PrivacyNote extends StatelessWidget {
       ),
       child: const Row(
         children: [
-          Icon(Icons.lock_outline_rounded, color: _magenta, size: 22),
+          AppIcon(HugeIcons.strokeRoundedLockKey, color: _magenta, size: 22),
           SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -1284,19 +1286,19 @@ class _FormatView extends StatelessWidget {
       onButton: onContinue,
       children: const [
         _DetailCard(
-          icon: Icons.looks_one_rounded,
+          icon: HugeIcons.strokeRounded1Square,
           color: _cyan,
           title: 'First round',
           description: 'Respond to one target letter.',
         ),
         _DetailCard(
-          icon: Icons.coffee_rounded,
+          icon: HugeIcons.strokeRoundedCoffee01,
           color: _indigo,
           title: 'Scheduled recovery',
           description: 'A calm two-minute break separates the rounds.',
         ),
         _DetailCard(
-          icon: Icons.looks_two_rounded,
+          icon: HugeIcons.strokeRounded2Square,
           color: _magenta,
           title: 'Second round',
           description: 'Respond to a target sequence of two letters.',
@@ -1337,20 +1339,20 @@ class _TutorialView extends StatelessWidget {
       onButton: onStart,
       children: [
         _DetailCard(
-          icon: Icons.visibility_outlined,
+          icon: HugeIcons.strokeRoundedView,
           color: _indigo,
           title: 'Watch the center',
           description: 'Each letter appears briefly, followed by a blank beat.',
         ),
         _DetailCard(
-          icon: Icons.touch_app_outlined,
+          icon: HugeIcons.strokeRoundedTouch01,
           color: ax ? _magenta : _cyan,
           title: ax ? 'Respond only to A → X' : 'Respond only to X',
           description:
               'A tap and the Space key mean the same thing. One response is enough.',
         ),
         const _DetailCard(
-          icon: Icons.feedback_outlined,
+          icon: HugeIcons.strokeRoundedMessageQuestion,
           color: _magenta,
           title: 'Practice gives feedback',
           description:
@@ -1456,7 +1458,7 @@ class _StreamIllustration extends StatelessWidget {
         fit: BoxFit.contain,
         filterQuality: FilterQuality.high,
         errorBuilder: (_, _, _) =>
-            const Icon(Icons.all_inclusive_rounded, color: _indigo, size: 96),
+            const AppIcon(HugeIcons.strokeRoundedInfinity01, color: _indigo, size: 96),
       ),
     );
   }
@@ -1485,8 +1487,8 @@ class _RuleIllustration extends StatelessWidget {
               const _LetterCard(letter: 'A', borderColor: _cyan),
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 14),
-                child: Icon(
-                  Icons.arrow_forward_rounded,
+                child: AppIcon(
+                  HugeIcons.strokeRoundedArrowRight02,
                   color: _indigo,
                   size: 30,
                 ),
@@ -1537,7 +1539,7 @@ class _DetailCard extends StatelessWidget {
     required this.description,
   });
 
-  final IconData icon;
+  final AppIconData icon;
   final Color color;
   final String title;
   final String description;
@@ -1561,7 +1563,7 @@ class _DetailCard extends StatelessWidget {
               color: color.withValues(alpha: .10),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: color, size: 23),
+            child: AppIcon(icon, color: color, size: 23),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -1690,7 +1692,7 @@ class _GameplayView extends StatelessWidget {
                     const SizedBox(width: 10),
                     _SquareButton(
                       tooltip: 'Exit journey',
-                      icon: Icons.close_rounded,
+                      icon: HugeIcons.strokeRoundedCancel01,
                       onTap: onExit,
                       onDark: true,
                     ),
@@ -1803,7 +1805,7 @@ class _GameplayView extends StatelessWidget {
                   child: FilledButton.icon(
                     key: const ValueKey('continuous-response-button'),
                     onPressed: onRespond,
-                    icon: const Icon(Icons.touch_app_rounded),
+                    icon: const AppIcon(HugeIcons.strokeRoundedTouch01),
                     label: const Text('Tap or press Space'),
                     style: FilledButton.styleFrom(
                       backgroundColor: Colors.white,
@@ -1862,7 +1864,7 @@ class _ReadyView extends StatelessWidget {
             color: accent.withValues(alpha: .10),
             shape: BoxShape.circle,
           ),
-          child: Icon(Icons.track_changes_rounded, color: accent, size: 62),
+          child: AppIcon(HugeIcons.strokeRoundedTarget02, color: accent, size: 62),
         ),
       ),
       buttonLabel: buttonLabel,
@@ -1901,14 +1903,14 @@ class _ReadyView extends StatelessWidget {
           ),
         ),
         const _DetailCard(
-          icon: Icons.do_not_disturb_on_outlined,
+          icon: HugeIcons.strokeRoundedMinusSignCircle,
           color: _magenta,
           title: 'Stay on this screen',
           description:
               'A pause, interruption or app switch restarts this measured round from the beginning.',
         ),
         const _DetailCard(
-          icon: Icons.notifications_off_outlined,
+          icon: HugeIcons.strokeRoundedNotificationOff01,
           color: _indigo,
           title: 'Protect your focus',
           description:
@@ -1964,10 +1966,10 @@ class _RestView extends StatelessWidget {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(
+                          AppIcon(
                             onContinue == null
-                                ? Icons.self_improvement_rounded
-                                : Icons.check_circle_rounded,
+                                ? HugeIcons.strokeRoundedYoga01
+                                : HugeIcons.strokeRoundedCheckmarkCircle02,
                             color: onContinue == null ? _indigo : _cyan,
                             size: 48,
                           ),
@@ -2008,7 +2010,7 @@ class _RestView extends StatelessWidget {
               ),
               const SizedBox(height: 28),
               const _DetailCard(
-                icon: Icons.visibility_off_outlined,
+                icon: HugeIcons.strokeRoundedViewOff,
                 color: _cyan,
                 title: 'Rest your eyes',
                 description:
@@ -2016,7 +2018,7 @@ class _RestView extends StatelessWidget {
               ),
               const SizedBox(height: 11),
               const _DetailCard(
-                icon: Icons.water_drop_outlined,
+                icon: HugeIcons.strokeRoundedDroplet,
                 color: _indigo,
                 title: 'Stay nearby',
                 description: 'You can take a sip of water and continue calmly.',
@@ -2147,7 +2149,7 @@ class _ResultDisclaimer extends StatelessWidget {
       child: const Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.info_outline_rounded, color: _indigo, size: 22),
+          AppIcon(HugeIcons.strokeRoundedInformationCircle, color: _indigo, size: 22),
           SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -2200,7 +2202,7 @@ class _InsightsView extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               _InsightCard(
-                icon: Icons.gps_fixed_rounded,
+                icon: HugeIcons.strokeRoundedGps01,
                 color: _cyan,
                 title: 'Target accuracy',
                 value:
@@ -2211,7 +2213,7 @@ class _InsightsView extends StatelessWidget {
               ),
               const SizedBox(height: 13),
               _InsightCard(
-                icon: Icons.pan_tool_alt_outlined,
+                icon: HugeIcons.strokeRoundedTouch01,
                 color: _magenta,
                 title: 'Response control',
                 value:
@@ -2222,7 +2224,7 @@ class _InsightsView extends StatelessWidget {
               ),
               const SizedBox(height: 13),
               _InsightCard(
-                icon: Icons.speed_rounded,
+                icon: HugeIcons.strokeRoundedDashboardSpeed01,
                 color: _indigo,
                 title: 'Response timing',
                 value:
@@ -2233,7 +2235,7 @@ class _InsightsView extends StatelessWidget {
               ),
               const SizedBox(height: 13),
               _InsightCard(
-                icon: Icons.show_chart_rounded,
+                icon: HugeIcons.strokeRoundedChartLineData01,
                 color: _cyan,
                 title: 'Signal separation (d′)',
                 value:
@@ -2244,7 +2246,7 @@ class _InsightsView extends StatelessWidget {
               ),
               const SizedBox(height: 13),
               _InsightCard(
-                icon: Icons.balance_rounded,
+                icon: HugeIcons.strokeRoundedBalanceScale,
                 color: _magenta,
                 title: 'Response tendency (c)',
                 value:
@@ -2279,7 +2281,7 @@ class _InsightCard extends StatelessWidget {
     required this.description,
   });
 
-  final IconData icon;
+  final AppIconData icon;
   final Color color;
   final String title;
   final String value;
@@ -2299,7 +2301,7 @@ class _InsightCard extends StatelessWidget {
               color: color.withValues(alpha: .10),
               borderRadius: BorderRadius.circular(13),
             ),
-            child: Icon(icon, color: color),
+            child: AppIcon(icon, color: color),
           ),
           const SizedBox(width: 13),
           Expanded(
@@ -2360,7 +2362,7 @@ class _InterruptedView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _CenteredActionView(
-      icon: Icons.restart_alt_rounded,
+      icon: HugeIcons.strokeRoundedRotateClockwise,
       iconColor: _magenta,
       title: fullJourney ? 'Restart the journey' : 'Restart this focus round',
       message:
@@ -2390,7 +2392,7 @@ class _ErrorView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _CenteredActionView(
-      icon: Icons.cloud_off_rounded,
+      icon: HugeIcons.strokeRoundedCloudSlowWind,
       iconColor: _magenta,
       title: 'We could not save the journey',
       message: message,
@@ -2416,7 +2418,7 @@ class _CenteredActionView extends StatelessWidget {
     this.onTertiary,
   });
 
-  final IconData icon;
+  final AppIconData icon;
   final Color iconColor;
   final String title;
   final String message;
@@ -2442,7 +2444,7 @@ class _CenteredActionView extends StatelessWidget {
                 color: iconColor.withValues(alpha: .10),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: iconColor, size: 56),
+              child: AppIcon(icon, color: iconColor, size: 56),
             ),
             const SizedBox(height: 24),
             Text(
@@ -2510,7 +2512,7 @@ class _RulesDialog extends StatelessWidget {
           children: [
             const Row(
               children: [
-                Icon(Icons.rule_rounded, color: _indigo, size: 28),
+                AppIcon(HugeIcons.strokeRoundedTaskDaily01, color: _indigo, size: 28),
                 SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -2542,19 +2544,19 @@ class _RulesDialog extends StatelessWidget {
               ),
             const SizedBox(height: 14),
             const _RuleBullet(
-              icon: Icons.touch_app_outlined,
+              icon: HugeIcons.strokeRoundedTouch01,
               text: 'Tap the response button or press Space.',
             ),
             const _RuleBullet(
-              icon: Icons.filter_1_rounded,
+              icon: HugeIcons.strokeRoundedLayers01,
               text: 'Only the first response in a letter window is used.',
             ),
             const _RuleBullet(
-              icon: Icons.hourglass_bottom_rounded,
+              icon: HugeIcons.strokeRoundedHourglass,
               text: 'Responses during the blank interval are ignored.',
             ),
             const _RuleBullet(
-              icon: Icons.restart_alt_rounded,
+              icon: HugeIcons.strokeRoundedRotateClockwise,
               text:
                   'Pausing or leaving a measured round restarts that round from the beginning.',
             ),
@@ -2647,7 +2649,7 @@ class _RuleHelpCard extends StatelessWidget {
 class _RuleBullet extends StatelessWidget {
   const _RuleBullet({required this.icon, required this.text});
 
-  final IconData icon;
+  final AppIconData icon;
   final String text;
 
   @override
@@ -2657,7 +2659,7 @@ class _RuleBullet extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: _indigo, size: 21),
+          AppIcon(icon, color: _indigo, size: 21),
           const SizedBox(width: 10),
           Expanded(
             child: Text(

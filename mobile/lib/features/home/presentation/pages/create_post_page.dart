@@ -21,6 +21,8 @@ import '../widgets/create_post_text_field.dart';
 import '../widgets/selected_post_documents_preview.dart';
 import '../widgets/selected_post_media_preview.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class CreatePostPage extends ConsumerStatefulWidget {
   const CreatePostPage({super.key});
 
@@ -266,8 +268,8 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
           children: [
             Row(
               children: [
-                Icon(
-                  Icons.poll_outlined,
+                AppIcon(
+                  HugeIcons.strokeRoundedChartHistogram,
                   color: context.colors.textPrimary,
                   size: 20,
                 ),
@@ -287,8 +289,8 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
                       _attachedPoll = null;
                     });
                   },
-                  child: Icon(
-                    Icons.close,
+                  child: AppIcon(
+                    HugeIcons.strokeRoundedCancel01,
                     color: context.colors.textSecondary,
                     size: 20,
                   ),

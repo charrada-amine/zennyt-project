@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/theme.dart';
 import '../../../../core/avatar/avatar_service.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// Circular avatar that renders [imageUrl] when present, falling back to a
 /// generated avatar based on [fallbackSeed] (or a generic 'zennyt' seed).
 class ProfileAvatar extends StatelessWidget {
@@ -26,8 +28,8 @@ class ProfileAvatar extends StatelessWidget {
         ? imageUrl!
         : const AvatarService().defaultFor(fallbackSeed ?? 'zennyt');
 
-    Widget placeholder() => Icon(
-      Icons.person_rounded,
+    Widget placeholder() => AppIcon(
+      HugeIcons.strokeRoundedUser,
       size: size * 0.55,
       color: colors.textSecondary,
     );

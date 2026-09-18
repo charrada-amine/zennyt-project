@@ -3,6 +3,8 @@ import '../../../../core/audio/sound_service.dart';
 import '../../../../core/theme/theme.dart';
 import '../../../../shared/widgets/app_motion.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class TinderActionButtons extends StatelessWidget {
   const TinderActionButtons({
     super.key,
@@ -26,14 +28,14 @@ class TinderActionButtons extends StatelessWidget {
         _action(
           context,
           'Undo',
-          Icons.undo_rounded,
+          HugeIcons.strokeRoundedUndo02,
           context.colors.primary,
           canUndo ? onUndo : null,
         ),
         _action(
           context,
           'Pass',
-          Icons.close_rounded,
+          HugeIcons.strokeRoundedCancel01,
           context.colors.accent,
           enabled ? onReject : null,
           prominent: true,
@@ -41,7 +43,7 @@ class TinderActionButtons extends StatelessWidget {
         _action(
           context,
           'Like',
-          Icons.check_rounded,
+          HugeIcons.strokeRoundedTick02,
           context.colors.success,
           enabled ? onApprove : null,
           prominent: true,
@@ -49,7 +51,7 @@ class TinderActionButtons extends StatelessWidget {
         _action(
           context,
           'Skip',
-          Icons.skip_next_rounded,
+          HugeIcons.strokeRoundedNext,
           context.colors.primary,
           enabled ? onForward : null,
         ),
@@ -60,7 +62,7 @@ class TinderActionButtons extends StatelessWidget {
   Widget _action(
     BuildContext context,
     String label,
-    IconData icon,
+    AppIconData icon,
     Color color,
     VoidCallback? callback, {
     bool prominent = false,
@@ -88,7 +90,7 @@ class TinderActionButtons extends StatelessWidget {
           borderRadius: BorderRadius.circular(prominent ? 24 : 18),
         ),
       ),
-      icon: Icon(icon, size: prominent ? 30 : 22),
+      icon: AppIcon(icon, size: prominent ? 30 : 22),
     ),
   );
 }

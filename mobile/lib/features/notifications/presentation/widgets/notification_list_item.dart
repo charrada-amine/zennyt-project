@@ -1,9 +1,10 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import '../../../../core/constants.dart';
 import 'package:zennyt/l10n/gen/app_localizations.dart';
 import '../../domain/entities/app_notification.dart';
+
+import 'package:zennyt/shared/icons/app_icons.dart';
 
 class NotificationListItem extends StatelessWidget {
   final AppNotification notification;
@@ -20,32 +21,32 @@ class NotificationListItem extends StatelessWidget {
   Widget _getIconForType(NotificationType type, double size) {
     switch (type) {
       case NotificationType.newJob:
-        return Image.asset("assets/images/star.png",
-            width: size, height: size, fit: BoxFit.scaleDown);
+        return AppIcon(HugeIcons.strokeRoundedStar,
+            size: size, color: const Color(0xFF4C96E6));
       case NotificationType.interestConfirmed:
-        return Image.asset("assets/images/handshake.png",
-            width: size, height: size, fit: BoxFit.scaleDown);
+        return AppIcon(HugeIcons.strokeRoundedAgreement01,
+            size: size, color: const Color(0xFF2AC152));
       case NotificationType.newComment:
-        return Image.asset("assets/images/comment.png",
-            width: size, height: size, fit: BoxFit.scaleDown);
+        return AppIcon(HugeIcons.strokeRoundedComment01,
+            size: size, color: const Color(0xFF214389));
       case NotificationType.newLike:
-        return Image.asset("assets/images/fits_unselected.png",
-            width: size, height: size, fit: BoxFit.scaleDown);
+        return AppIcon(HugeIcons.strokeRoundedThumbsUp,
+            size: size, color: const Color(0xFF214389));
       case NotificationType.recommendedTraining:
-        return Image.asset("assets/images/training.png",
-            width: size, height: size, fit: BoxFit.scaleDown);
+        return AppIcon(HugeIcons.strokeRoundedMortarboard01,
+            size: size, color: const Color(0xFFD12E7D));
       case NotificationType.applicationRejected:
-        return Image.asset("assets/images/app_rejected.png",
-            width: size, height: size, fit: BoxFit.scaleDown);
+        return AppIcon(HugeIcons.strokeRoundedTaskRemove01,
+            size: size, color: const Color(0xFFE20000));
       case NotificationType.applicationApproved:
-        return Image.asset("assets/images/app_approved.png",
-            width: size, height: size, fit: BoxFit.scaleDown);
+        return AppIcon(HugeIcons.strokeRoundedTaskDone01,
+            size: size, color: const Color(0xFF2AC152));
       case NotificationType.identityVerification:
-        return Image.asset("assets/images/iden_ver.png",
-            width: size, height: size, fit: BoxFit.scaleDown);
+        return AppIcon(HugeIcons.strokeRoundedSecurityBlock,
+            size: size, color: const Color(0xFFE20000));
       case NotificationType.identityVerificationSuccess:
-        return Image.asset("assets/images/iden_ver_success.png",
-            width: size, height: size, fit: BoxFit.scaleDown);
+        return AppIcon(HugeIcons.strokeRoundedSecurityCheck,
+            size: size, color: const Color(0xFF2AC152));
     }
   }
 
@@ -106,10 +107,8 @@ class NotificationListItem extends StatelessWidget {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(
-                              AppConstants.isCupertino
-                                  ? CupertinoIcons.checkmark
-                                  : Icons.check,
+                            AppIcon(
+                              HugeIcons.strokeRoundedTick02,
                               color: Colors.white,
                               size: 24,
                             ),

@@ -21,6 +21,8 @@ import '../widgets/game_results_template.dart';
 import '../widgets/game_system_components.dart';
 import '../widgets/zennyt_loader.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 const _logoAsset = 'assets/games icons/Je Coordonne.png';
 // Reuse the Games design system instead of maintaining a parallel palette.
 const _navy = ZennytGamePalette.blue;
@@ -830,15 +832,15 @@ class _CoordinationTrackingScreenState
           borderColor: Color(0xFFD6DAFF),
           child: Column(
             children: [
-              _ReadyLine(icon: Icons.timer_outlined, text: 'About 56 seconds'),
+              _ReadyLine(icon: HugeIcons.strokeRoundedTimer02, text: 'About 56 seconds'),
               SizedBox(height: 12),
               _ReadyLine(
-                icon: Icons.visibility_off_outlined,
+                icon: HugeIcons.strokeRoundedViewOff,
                 text: 'No live score',
               ),
               SizedBox(height: 12),
               _ReadyLine(
-                icon: Icons.replay_rounded,
+                icon: HugeIcons.strokeRoundedReload,
                 text: 'An interruption restarts the test',
               ),
             ],
@@ -1054,7 +1056,7 @@ class _CoordinationTrackingScreenState
       content: [
         const SizedBox(height: 20),
         const _StateIcon(
-          icon: Icons.replay_rounded,
+          icon: HugeIcons.strokeRoundedReload,
           color: _orange,
           background: Color(0xFFFFF3E8),
         ),
@@ -1087,7 +1089,7 @@ class _CoordinationTrackingScreenState
       bottom: GamePrimaryButton(
         key: const ValueKey('coordination-restart-test'),
         label: 'Restart the test',
-        icon: Icons.replay_rounded,
+        icon: HugeIcons.strokeRoundedReload,
         onPressed: _prepareMeasured,
       ),
     );
@@ -1104,7 +1106,7 @@ class _CoordinationTrackingScreenState
       content: [
         const SizedBox(height: 24),
         const _StateIcon(
-          icon: Icons.cloud_off_rounded,
+          icon: HugeIcons.strokeRoundedCloudSlowWind,
           color: ZennytGamePalette.error,
           background: Color(0xFFFFEEEE),
         ),
@@ -1295,7 +1297,7 @@ class _CoordinationHeader extends StatelessWidget {
     required this.title,
     required this.onBack,
     this.onMenu,
-    this.menuIcon = Icons.more_horiz_rounded,
+    this.menuIcon = HugeIcons.strokeRoundedMoreHorizontal,
     this.menuTooltip = 'More options',
     this.onDark = false,
   });
@@ -1304,7 +1306,7 @@ class _CoordinationHeader extends StatelessWidget {
   final String title;
   final VoidCallback onBack;
   final VoidCallback? onMenu;
-  final IconData menuIcon;
+  final AppIconData menuIcon;
   final String menuTooltip;
   final bool onDark;
 
@@ -1314,7 +1316,7 @@ class _CoordinationHeader extends StatelessWidget {
       children: [
         _HeaderIconButton(
           tooltip: 'Back',
-          icon: Icons.chevron_left_rounded,
+          icon: HugeIcons.strokeRoundedArrowLeft01,
           onTap: onBack,
           onDark: onDark,
         ),
@@ -1367,7 +1369,7 @@ class _HeaderIconButton extends StatelessWidget {
   });
 
   final String tooltip;
-  final IconData icon;
+  final AppIconData icon;
   final VoidCallback onTap;
   final bool onDark;
 
@@ -1389,7 +1391,7 @@ class _HeaderIconButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(15),
           ),
         ),
-        icon: Icon(icon, size: 27),
+        icon: AppIcon(icon, size: 27),
       ),
     );
   }
@@ -1648,25 +1650,25 @@ class _TrackingStatus extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (icon, color, label) = !running
-        ? (Icons.ads_click_rounded, _orange, 'Enter the center to begin')
+        ? (HugeIcons.strokeRoundedCursor01, _orange, 'Enter the center to begin')
         : switch (feedback) {
             _TargetFeedback.centered => (
-              Icons.check_circle_rounded,
+              HugeIcons.strokeRoundedCheckmarkCircle02,
               ZennytGamePalette.success,
               'Centered · keep the rhythm',
             ),
             _TargetFeedback.edge => (
-              Icons.radio_button_checked_rounded,
+              HugeIcons.strokeRoundedRadioButton,
               _orange,
               'Inside · move toward the center',
             ),
             _TargetFeedback.outside => (
-              Icons.cancel_rounded,
+              HugeIcons.strokeRoundedCancelCircle,
               ZennytGamePalette.error,
               'Outside · reconnect calmly',
             ),
             _TargetFeedback.waiting => (
-              Icons.ads_click_rounded,
+              HugeIcons.strokeRoundedCursor01,
               _orange,
               'Enter the center to begin',
             ),
@@ -1682,7 +1684,7 @@ class _TrackingStatus extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: color, size: 22),
+          AppIcon(icon, color: color, size: 22),
           const SizedBox(width: 8),
           Flexible(
             child: Text(
@@ -1721,19 +1723,19 @@ class _FeedbackLegend extends StatelessWidget {
       children: const [
         _LegendItem(
           color: Colors.white,
-          icon: Icons.check_rounded,
+          icon: HugeIcons.strokeRoundedTick02,
           iconColor: ZennytGamePalette.success,
           label: 'Centered',
         ),
         _LegendItem(
           color: _orange,
-          icon: Icons.circle,
+          icon: AppIcons.circleFilled,
           iconColor: Colors.white,
           label: 'Inside',
         ),
         _LegendItem(
           color: ZennytGamePalette.error,
-          icon: Icons.close_rounded,
+          icon: HugeIcons.strokeRoundedCancel01,
           iconColor: Colors.white,
           label: 'Outside',
         ),
@@ -1751,7 +1753,7 @@ class _LegendItem extends StatelessWidget {
   });
 
   final Color color;
-  final IconData icon;
+  final AppIconData icon;
   final Color iconColor;
   final String label;
 
@@ -1775,7 +1777,7 @@ class _LegendItem extends StatelessWidget {
               shape: BoxShape.circle,
               border: Border.all(color: _border),
             ),
-            child: Icon(icon, size: 14, color: iconColor),
+            child: AppIcon(icon, size: 14, color: iconColor),
           ),
           const SizedBox(width: 6),
           Text(label, style: AppTypography.labelSmall.copyWith(color: _navy)),
@@ -1818,7 +1820,7 @@ class _TutorialIllustration extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             _TutorialDarkHint(
-              icon: Icons.ads_click_rounded,
+              icon: HugeIcons.strokeRoundedCursor01,
               label: 'Enter the center to begin',
             ),
           ],
@@ -1831,7 +1833,7 @@ class _TutorialIllustration extends StatelessWidget {
 class _TutorialDarkHint extends StatelessWidget {
   const _TutorialDarkHint({required this.icon, required this.label});
 
-  final IconData icon;
+  final AppIconData icon;
   final String label;
 
   @override
@@ -1846,7 +1848,7 @@ class _TutorialDarkHint extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: Colors.white, size: 17),
+          AppIcon(icon, color: Colors.white, size: 17),
           const SizedBox(width: 7),
           Flexible(
             child: Text(
@@ -1886,7 +1888,7 @@ class _TutorialFeedbackDemo extends StatelessWidget {
               Expanded(
                 child: _TutorialTargetState(
                   fill: Colors.white,
-                  icon: Icons.check_rounded,
+                  icon: HugeIcons.strokeRoundedTick02,
                   iconColor: ZennytGamePalette.success,
                   label: 'Centered',
                 ),
@@ -1895,7 +1897,7 @@ class _TutorialFeedbackDemo extends StatelessWidget {
               Expanded(
                 child: _TutorialTargetState(
                   fill: ZennytGamePalette.ruleOrange,
-                  icon: Icons.circle,
+                  icon: AppIcons.circleFilled,
                   iconColor: Colors.white,
                   label: 'Inside',
                 ),
@@ -1904,7 +1906,7 @@ class _TutorialFeedbackDemo extends StatelessWidget {
               Expanded(
                 child: _TutorialTargetState(
                   fill: ZennytGamePalette.error,
-                  icon: Icons.close_rounded,
+                  icon: HugeIcons.strokeRoundedCancel01,
                   iconColor: Colors.white,
                   label: 'Outside',
                 ),
@@ -1914,7 +1916,7 @@ class _TutorialFeedbackDemo extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         const _TutorialDarkHint(
-          icon: Icons.center_focus_strong_rounded,
+          icon: HugeIcons.strokeRoundedCenterFocus,
           label: 'Move calmly back toward the center',
         ),
       ],
@@ -1931,7 +1933,7 @@ class _TutorialTargetState extends StatelessWidget {
   });
 
   final Color fill;
-  final IconData icon;
+  final AppIconData icon;
   final Color iconColor;
   final String label;
 
@@ -1958,7 +1960,7 @@ class _TutorialTargetState extends StatelessWidget {
                 BoxShadow(color: Color(0x26071333), blurRadius: 12),
               ],
             ),
-            child: Icon(icon, color: iconColor, size: 27),
+            child: AppIcon(icon, color: iconColor, size: 27),
           ),
           const SizedBox(height: 9),
           FittedBox(
@@ -2002,8 +2004,8 @@ class _TutorialSpeedDemo extends StatelessWidget {
             _PacePill(label: 'STEADY', color: ZennytGamePalette.cyan),
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 10),
-              child: Icon(
-                Icons.sync_alt_rounded,
+              child: AppIcon(
+                HugeIcons.strokeRoundedArrowDataTransferHorizontal,
                 color: Colors.white70,
                 size: 21,
               ),
@@ -2277,7 +2279,7 @@ class _PrivacyNote extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.lock_outline_rounded, color: _pink),
+          const AppIcon(HugeIcons.strokeRoundedLockKey, color: _pink),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -2294,14 +2296,14 @@ class _PrivacyNote extends StatelessWidget {
 class _ReadyLine extends StatelessWidget {
   const _ReadyLine({required this.icon, required this.text});
 
-  final IconData icon;
+  final AppIconData icon;
   final String text;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, color: _violet, size: 22),
+        AppIcon(icon, color: _violet, size: 22),
         const SizedBox(width: 10),
         Expanded(
           child: Text(
@@ -2331,8 +2333,8 @@ class _CompletionBadge extends StatelessWidget {
           shape: BoxShape.circle,
           border: Border.all(color: ZennytGamePalette.success, width: 2),
         ),
-        child: const Icon(
-          Icons.check_rounded,
+        child: const AppIcon(
+          HugeIcons.strokeRoundedTick02,
           size: 58,
           color: ZennytGamePalette.success,
         ),
@@ -2348,7 +2350,7 @@ class _StateIcon extends StatelessWidget {
     required this.background,
   });
 
-  final IconData icon;
+  final AppIconData icon;
   final Color color;
   final Color background;
 
@@ -2359,7 +2361,7 @@ class _StateIcon extends StatelessWidget {
         width: 104,
         height: 104,
         decoration: BoxDecoration(color: background, shape: BoxShape.circle),
-        child: Icon(icon, color: color, size: 54),
+        child: AppIcon(icon, color: color, size: 54),
       ),
     );
   }
@@ -2409,22 +2411,22 @@ class _CoordinationRulesDialog extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             const _ReadyLine(
-              icon: Icons.ads_click_rounded,
+              icon: HugeIcons.strokeRoundedCursor01,
               text: 'Enter the inner half of the orange target to start.',
             ),
             const SizedBox(height: 12),
             const _ReadyLine(
-              icon: Icons.rotate_right_rounded,
+              icon: HugeIcons.strokeRoundedRotateRight01,
               text: 'Follow clockwise around the fixed square.',
             ),
             const SizedBox(height: 12),
             const _ReadyLine(
-              icon: Icons.speed_rounded,
+              icon: HugeIcons.strokeRoundedDashboardSpeed01,
               text: 'Keep following when the pace changes.',
             ),
             const SizedBox(height: 12),
             const _ReadyLine(
-              icon: Icons.restart_alt_rounded,
+              icon: HugeIcons.strokeRoundedRotateClockwise,
               text: 'Leaving or pausing a measured round restarts the test.',
             ),
             const SizedBox(height: 22),

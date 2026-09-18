@@ -2,6 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../../../helpers/app_icon_finders.dart';
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 // video_player's federated interface is provided by the approved player dependency.
 // ignore: depend_on_referenced_packages
 import 'package:video_player_platform_interface/video_player_platform_interface.dart';
@@ -129,7 +132,7 @@ void main() {
       expect(
         tester
             .widget<IconButton>(
-              find.widgetWithIcon(IconButton, Icons.play_arrow_rounded),
+              findWidgetWithAppIcon(IconButton, HugeIcons.strokeRoundedPlay),
             )
             .onPressed,
         isNull,

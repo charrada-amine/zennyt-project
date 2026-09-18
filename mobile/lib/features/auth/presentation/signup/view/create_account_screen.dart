@@ -17,6 +17,8 @@ import '../../../../../core/theme/theme.dart';
 import '../../widgets/auth_desktop_shell.dart';
 import '../viewmodel/signup_viewmodel.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class CreateAccountScreen extends ConsumerStatefulWidget {
   const CreateAccountScreen({super.key});
 
@@ -131,7 +133,7 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
             hint: context.l10n.firstName,
             controller: _firstName,
             textInputAction: TextInputAction.next,
-            prefixIcon: Icons.person_outline_rounded,
+            prefixIcon: HugeIcons.strokeRoundedUser,
             validator: (v) =>
                 _required(v, context.l10n.firstName),
           ),
@@ -140,7 +142,7 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
             hint: context.l10n.lastName,
             controller: _lastName,
             textInputAction: TextInputAction.next,
-            prefixIcon: Icons.person_outline_rounded,
+            prefixIcon: HugeIcons.strokeRoundedUser,
             validator: (v) => _required(v, context.l10n.lastName),
           ),
           const SizedBox(height: AppSpacing.md),
@@ -149,7 +151,7 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
             controller: _email,
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
-            prefixIcon: Icons.mail_outline_rounded,
+            prefixIcon: HugeIcons.strokeRoundedMail01,
             validator: _validateEmail,
           ),
           const SizedBox(height: AppSpacing.md),
@@ -158,7 +160,7 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
             controller: _phone,
             keyboardType: TextInputType.phone,
             textInputAction: TextInputAction.next,
-            prefixIcon: Icons.phone_outlined,
+            prefixIcon: HugeIcons.strokeRoundedCall,
             validator: _validatePhone,
           ),
           const SizedBox(height: AppSpacing.md),
@@ -171,7 +173,7 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
             hint: context.l10n.city,
             controller: _city,
             textInputAction: TextInputAction.next,
-            prefixIcon: Icons.location_city_outlined,
+            prefixIcon: HugeIcons.strokeRoundedCity01,
             validator: (v) => (v == null || v.trim().isEmpty)
                 ? context.l10n.cityRequired
                 : null,
@@ -182,7 +184,7 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
             controller: _password,
             obscureText: true,
             textInputAction: TextInputAction.next,
-            prefixIcon: Icons.lock_outline_rounded,
+            prefixIcon: HugeIcons.strokeRoundedLockKey,
             validator: _validatePassword,
           ),
           const SizedBox(height: AppSpacing.md),
@@ -191,7 +193,7 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
             controller: _confirm,
             obscureText: true,
             textInputAction: TextInputAction.done,
-            prefixIcon: Icons.lock_outline_rounded,
+            prefixIcon: HugeIcons.strokeRoundedLockKey,
             validator: _validateConfirm,
             onSubmitted: (_) => _submit(),
           ),
@@ -278,8 +280,8 @@ class _CountryField extends StatelessWidget {
     return DropdownButtonFormField<String>(
       initialValue: value,
       isExpanded: true,
-      icon: Icon(
-        Icons.keyboard_arrow_down_rounded,
+      icon: AppIcon(
+        HugeIcons.strokeRoundedArrowDown01,
         color: context.colors.textSecondary,
       ),
       style: AppTypography.bodyMedium.copyWith(
@@ -288,7 +290,7 @@ class _CountryField extends StatelessWidget {
       decoration: appInputDecoration(
         context,
         hint: context.l10n.country,
-        prefixIcon: const AppInputIcon(Icons.public_outlined),
+        prefixIcon: const AppInputIcon(HugeIcons.strokeRoundedGlobe02),
       ),
       hint: Text(
         context.l10n.country,

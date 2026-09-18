@@ -11,6 +11,8 @@ import '../../../../shared/widgets/platform_scaffold.dart';
 import '../widgets/help_chat_item.dart';
 import '../providers/help_center_providers.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class HelpCenterPage extends ConsumerStatefulWidget {
   const HelpCenterPage({super.key});
 
@@ -109,7 +111,7 @@ class _HelpCenterPageState extends ConsumerState<HelpCenterPage> {
                           child: CircularProgressIndicator(
                               strokeWidth: 2, color: Colors.white),
                         )
-                      : const Icon(Icons.add_comment_outlined, size: 20),
+                      : const AppIcon(HugeIcons.strokeRoundedCommentAdd01, size: 20),
                   label: const Text('Contacter le support'),
                 ),
               ),

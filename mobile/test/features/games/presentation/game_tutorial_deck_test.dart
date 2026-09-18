@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:zennyt/shared/icons/app_icons.dart';
 import 'package:zennyt/core/audio/sound_service.dart';
 import 'package:zennyt/features/games/presentation/widgets/game_tutorial_deck.dart';
 
@@ -63,8 +64,8 @@ void main() {
                         'Une courte explication pour comprendre '
                         'cette action et savoir quoi faire.',
                     illustrationLabel: 'Schéma de l’action ${index + 1}',
-                    illustration: const Icon(
-                      Icons.touch_app_outlined,
+                    illustration: const AppIcon(
+                      HugeIcons.strokeRoundedTouch01,
                       size: 64,
                     ),
                   ),

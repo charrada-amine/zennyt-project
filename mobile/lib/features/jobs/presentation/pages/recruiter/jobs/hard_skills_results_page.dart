@@ -6,6 +6,8 @@ import 'package:zennyt/features/jobs/domain/entities/test_attempt.dart';
 import 'package:zennyt/features/jobs/presentation/providers/jobs_provider.dart';
 import 'package:zennyt/shared/widgets/custom_app_bar.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// Résultats hard-skills d'une offre (maquette 191, recruteur propriétaire).
 ///
 /// Agrégat serveur (`GET /job-offers/{id}/test-results/summary`) + page de
@@ -59,7 +61,7 @@ class HardSkillsResultsPage extends ConsumerWidget {
                 padding: const EdgeInsets.only(top: 40),
                 child: Column(
                   children: [
-                    const Icon(Icons.cloud_off_rounded, color: Color(0xFFE53935)),
+                    const AppIcon(HugeIcons.strokeRoundedCloudSlowWind, color: Color(0xFFE53935)),
                     const SizedBox(height: 8),
                     const Text('Failed to load results.', style: TextStyle(color: Color(0xFF64748B))),
                     TextButton(
@@ -363,8 +365,8 @@ class _CandidateDetailSheet extends ConsumerWidget {
                           child: Text(a.questionText,
                               style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF1E293B))),
                         ),
-                        Icon(
-                          a.isCorrect ? Icons.check_circle_rounded : Icons.cancel_rounded,
+                        AppIcon(
+                          a.isCorrect ? HugeIcons.strokeRoundedCheckmarkCircle02 : HugeIcons.strokeRoundedCancelCircle,
                           size: 18,
                           color: a.isCorrect ? const Color(0xFF22C55E) : const Color(0xFFEF4444),
                         ),

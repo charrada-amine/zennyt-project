@@ -19,6 +19,8 @@ import '../../../../shared/widgets/role_tabs.dart';
 import '../../../../core/theme/theme.dart';
 import '../viewmodel/profile_setup_viewmodel.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class ProfileSetupScreen extends ConsumerStatefulWidget {
   const ProfileSetupScreen({super.key});
 
@@ -251,17 +253,17 @@ class _AvatarActionSheet extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           ListTile(
-            leading: const Icon(Icons.camera_alt_outlined),
+            leading: const AppIcon(HugeIcons.strokeRoundedCamera01),
             title: const Text(AppStrings.takePhoto),
             onTap: () => Navigator.pop(context, _AvatarAction.camera),
           ),
           ListTile(
-            leading: const Icon(Icons.photo_library_outlined),
+            leading: const AppIcon(HugeIcons.strokeRoundedAlbum02),
             title: const Text(AppStrings.chooseFromGallery),
             onTap: () => Navigator.pop(context, _AvatarAction.gallery),
           ),
           ListTile(
-            leading: const Icon(Icons.shuffle_rounded),
+            leading: const AppIcon(HugeIcons.strokeRoundedShuffle),
             title: const Text(AppStrings.shuffleAvatar),
             onTap: () => Navigator.pop(context, _AvatarAction.shuffle),
           ),
@@ -354,8 +356,8 @@ class _AvatarPicker extends StatelessWidget {
                   color: colors.actionCardFilled,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
-                  Icons.camera_alt_rounded,
+                child: const AppIcon(
+                  HugeIcons.strokeRoundedCamera01,
                   size: AppSpacing.iconSm,
                   color: Colors.white,
                 ),
@@ -412,8 +414,8 @@ class _FieldOfWorkSelector extends StatelessWidget {
                 color: colors.primary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                Icons.keyboard_arrow_down_rounded,
+              child: AppIcon(
+                HugeIcons.strokeRoundedArrowDown01,
                 size: AppSpacing.iconMd,
                 color: colors.primary,
               ),
@@ -453,10 +455,10 @@ class _UploadRow extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
+                AppIcon(
                   hasFile
-                      ? Icons.description_outlined
-                      : Icons.file_upload_outlined,
+                      ? HugeIcons.strokeRoundedFile02
+                      : HugeIcons.strokeRoundedFileUpload,
                   size: AppSpacing.iconMd,
                   color: colors.textSecondary,
                 ),
@@ -472,8 +474,8 @@ class _UploadRow extends StatelessWidget {
                 ),
                 if (hasFile) ...[
                   const SizedBox(width: AppSpacing.sm),
-                  Icon(
-                    Icons.check_circle,
+                  AppIcon(
+                    HugeIcons.strokeRoundedCheckmarkCircle02,
                     size: AppSpacing.iconSm,
                     color: colors.success,
                   ),

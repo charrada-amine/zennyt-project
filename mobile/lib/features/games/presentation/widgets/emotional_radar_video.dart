@@ -6,6 +6,8 @@ import 'package:video_player/video_player.dart';
 import '../../../../core/audio/sound_service.dart';
 import 'game_system_components.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// Radar media, including bundled demo clips. Playback is always user initiated.
 /// Leaving the app or opening a game overlay pauses without automatic resume.
 class EmotionalRadarVideo extends StatefulWidget {
@@ -292,12 +294,12 @@ class _EmotionalRadarVideoState extends State<EmotionalRadarVideo>
                   _togglePlayback();
                 }
               : null,
-          icon: Icon(
+          icon: AppIcon(
             value.isPlaying
-                ? Icons.pause_rounded
+                ? HugeIcons.strokeRoundedPause
                 : finished
-                ? Icons.replay_rounded
-                : Icons.play_arrow_rounded,
+                ? HugeIcons.strokeRoundedReload
+                : HugeIcons.strokeRoundedPlay,
           ),
           color: light ? Colors.white : ZennytGamePalette.gameBlue,
           constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
@@ -319,7 +321,7 @@ class _EmotionalRadarVideoState extends State<EmotionalRadarVideo>
               unawaited(_controller?.pause());
               widget.onFullscreen!();
             },
-            icon: const Icon(Icons.fullscreen_rounded),
+            icon: const AppIcon(HugeIcons.strokeRoundedFullScreen),
             color: light ? Colors.white : ZennytGamePalette.gameBlue,
             constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
           ),

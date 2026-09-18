@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../../../helpers/app_icon_finders.dart';
+import 'package:zennyt/shared/icons/app_icons.dart';
 import 'package:zennyt/core/audio/sound_service.dart';
 import 'package:zennyt/features/games/data/games_mock_repository.dart';
 import 'package:zennyt/features/games/domain/config/emotional_radar_v2_config.dart';
@@ -391,7 +393,7 @@ void main() {
     expect(scaffold.backgroundColor, Colors.black);
 
     // Sortie explicite : sans elle, le joueur reste coincé en paysage.
-    expect(find.byIcon(Icons.fullscreen_exit_rounded), findsOneWidget);
+    expect(findAppIcon(HugeIcons.strokeRoundedMinimizeScreen), findsOneWidget);
   });
 
   testWidgets('la correction vient du serveur et révèle l\'attendu', (

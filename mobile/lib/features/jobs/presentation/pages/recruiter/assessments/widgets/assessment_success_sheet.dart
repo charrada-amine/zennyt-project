@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import 'package:zennyt/core/router/app_routes.dart';
 import 'package:zennyt/features/jobs/domain/entities/assessment.dart';
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class AssessmentSuccessSheet extends StatefulWidget {
   final Assessment assessment;
 
@@ -64,7 +66,7 @@ class _AssessmentSuccessSheetState extends State<AssessmentSuccessSheet> {
                 width: 64,
                 height: 64,
                 decoration: const BoxDecoration(color: Color(0xFFEEF2FF), shape: BoxShape.circle),
-                child: const Icon(Icons.check_rounded, color: Color(0xFF5B4EF5), size: 36),
+                child: const AppIcon(HugeIcons.strokeRoundedTick02, color: Color(0xFF5B4EF5), size: 36),
               ),
               const SizedBox(height: 20),
               const Text(
@@ -114,8 +116,8 @@ class _AssessmentSuccessSheetState extends State<AssessmentSuccessSheet> {
                   icon: AnimatedSwitcher(
                     duration: const Duration(milliseconds: 200),
                     child: _isLinkCopied
-                        ? const Icon(Icons.arrow_forward_rounded, key: ValueKey('arrow'), size: 18)
-                        : const Icon(Icons.copy_outlined, key: ValueKey('copy'), size: 18),
+                        ? const AppIcon(HugeIcons.strokeRoundedArrowRight02, key: ValueKey('arrow'), size: 18)
+                        : const AppIcon(HugeIcons.strokeRoundedCopy01, key: ValueKey('copy'), size: 18),
                   ),
                   label: AnimatedSwitcher(
                     duration: const Duration(milliseconds: 200),

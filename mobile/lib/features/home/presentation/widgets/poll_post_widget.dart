@@ -5,6 +5,8 @@ import 'package:zennyt/core/theme/app_color_scheme.dart';
 import '../../domain/entities/post.dart';
 import '../providers/poll_provider.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class PollPostWidget extends ConsumerWidget {
   final String postId;
   final Poll poll;
@@ -81,8 +83,8 @@ class PollPostWidget extends ConsumerWidget {
                             : Colors.transparent,
                       ),
                       child: isThisSelected
-                          ? Icon(
-                              Icons.check,
+                          ? AppIcon(
+                              HugeIcons.strokeRoundedTick02,
                               size: 14,
                               color: colors.cardSurface,
                             )

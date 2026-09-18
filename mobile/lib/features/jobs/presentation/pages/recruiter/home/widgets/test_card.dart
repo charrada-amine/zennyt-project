@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'package:zennyt/features/jobs/domain/entities/assessment.dart';
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class TestCard extends StatelessWidget {
   final Assessment assessment;
   final VoidCallback onTap;
@@ -28,7 +30,7 @@ class TestCard extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.lightbulb_outline, color: Colors.white, size: 26),
+            const AppIcon(HugeIcons.strokeRoundedIdea01, color: Colors.white, size: 26),
             const SizedBox(height: 12),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),

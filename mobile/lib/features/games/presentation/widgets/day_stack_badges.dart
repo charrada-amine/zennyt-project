@@ -14,11 +14,11 @@
 ///
 /// ## Deux écarts assumés avec la proposition du client
 ///
-/// 1. **Icônes Material plutôt que Tabler.** Tabler n'est pas dans le projet ;
-///    l'intégrer voudrait dire 50 SVG à verser ou une dépendance de plus. Les
-///    variantes `outlined` de Material offrent le même trait fin, sans rien
-///    ajouter. La correspondance vit dans une seule table ci-dessous : passer
-///    aux vrais SVG Tabler plus tard ne touchera que ce fichier.
+/// 1. **Icônes HugeIcons plutôt que Tabler.** Tabler n'est pas dans le projet ;
+///    l'intégrer voudrait dire 50 SVG à verser ou une dépendance de plus.
+///    HugeIcons, déjà utilisé partout dans l'application, offre le même trait
+///    fin. La correspondance vit dans une seule table ci-dessous : passer aux
+///    vrais SVG Tabler plus tard ne touchera que ce fichier.
 ///
 /// 2. **Couleurs calibrées sur BLANC, pas sur le violet.** Le client a comparé
 ///    ses badges sur le fond violet de sa maquette. Dans le jeu, les tâches
@@ -30,6 +30,8 @@ library;
 import 'package:flutter/material.dart';
 
 import 'day_stack_emotes.dart';
+
+import 'package:zennyt/shared/icons/app_icons.dart';
 
 /// Couleur de badge d'une famille de tâches.
 ///
@@ -56,63 +58,63 @@ const Map<String, Color> kDayStackCategoryColors = {
 const Color kDayStackFallbackColor = Color(0xFF4A5468);
 
 /// Correspondance entre les noms d'icônes Tabler du référentiel et les icônes
-/// Material disponibles hors ligne.
+/// HugeIcons disponibles hors ligne.
 ///
 /// Volontairement exhaustive et explicite : un `switch` avec un cas par défaut
 /// laisserait passer en silence une icône absente, et le joueur verrait un
 /// badge générique sans que personne ne le remarque. Un test vérifie que les 50
 /// noms de la banque sont couverts.
-const Map<String, IconData> kDayStackTablerToMaterial = {
-  'ti-barcode': Icons.qr_code_2_outlined,
-  'ti-bell': Icons.notifications_none_rounded,
-  'ti-box': Icons.inventory_2_outlined,
-  'ti-building': Icons.apartment_outlined,
-  'ti-car': Icons.directions_car_outlined,
-  'ti-chart-bar': Icons.bar_chart_rounded,
-  'ti-checklist': Icons.checklist_rounded,
-  'ti-chef-hat': Icons.restaurant_menu_outlined,
-  'ti-clipboard-check': Icons.fact_check_outlined,
-  'ti-clipboard-list': Icons.assignment_outlined,
-  'ti-clock-hour-4': Icons.schedule_outlined,
-  'ti-coffee': Icons.local_cafe_outlined,
-  'ti-cut': Icons.content_cut_rounded,
-  'ti-database': Icons.storage_outlined,
-  'ti-droplet': Icons.water_drop_outlined,
-  'ti-edit': Icons.edit_outlined,
-  'ti-file-search': Icons.plagiarism_outlined,
-  'ti-file-text': Icons.description_outlined,
-  'ti-file-upload': Icons.upload_file_outlined,
-  'ti-first-aid-kit': Icons.medical_services_outlined,
-  'ti-flame': Icons.local_fire_department_outlined,
-  'ti-heart-handshake': Icons.volunteer_activism_outlined,
-  'ti-layout-grid': Icons.grid_view_outlined,
-  'ti-list': Icons.list_alt_outlined,
-  'ti-list-details': Icons.view_list_outlined,
-  'ti-mail': Icons.mail_outline_rounded,
-  'ti-mail-fast': Icons.forward_to_inbox_outlined,
-  'ti-map-pin': Icons.place_outlined,
-  'ti-meat': Icons.kebab_dining_outlined,
-  'ti-package': Icons.widgets_outlined,
-  'ti-phone': Icons.call_outlined,
-  'ti-pill': Icons.medication_outlined,
-  'ti-plug': Icons.power_outlined,
-  'ti-printer': Icons.print_outlined,
-  'ti-report-money': Icons.request_quote_outlined,
-  'ti-route': Icons.alt_route_rounded,
-  'ti-ruler-2': Icons.straighten_outlined,
-  'ti-send': Icons.send_outlined,
-  'ti-shield-check': Icons.verified_user_outlined,
-  'ti-shopping-cart': Icons.shopping_cart_outlined,
-  'ti-soup': Icons.soup_kitchen_outlined,
-  'ti-sparkles': Icons.auto_awesome_outlined,
-  'ti-spray': Icons.sanitizer_outlined,
-  'ti-tool': Icons.build_outlined,
-  'ti-tools-kitchen-2': Icons.restaurant_outlined,
-  'ti-truck': Icons.local_shipping_outlined,
-  'ti-truck-delivery': Icons.local_shipping_outlined,
-  'ti-users': Icons.groups_outlined,
-  'ti-volume': Icons.volume_up_outlined,
-  'ti-wall': Icons.foundation_outlined,
+const Map<String, AppIconData> kDayStackTablerToHuge = {
+  'ti-barcode': HugeIcons.strokeRoundedQrCode,
+  'ti-bell': HugeIcons.strokeRoundedNotification01,
+  'ti-box': HugeIcons.strokeRoundedPackageOpen,
+  'ti-building': HugeIcons.strokeRoundedBuilding03,
+  'ti-car': HugeIcons.strokeRoundedCar01,
+  'ti-chart-bar': HugeIcons.strokeRoundedChartHistogram,
+  'ti-checklist': HugeIcons.strokeRoundedCheckList,
+  'ti-chef-hat': HugeIcons.strokeRoundedChefHat,
+  'ti-clipboard-check': HugeIcons.strokeRoundedTaskDone01,
+  'ti-clipboard-list': HugeIcons.strokeRoundedTask01,
+  'ti-clock-hour-4': HugeIcons.strokeRoundedClock01,
+  'ti-coffee': HugeIcons.strokeRoundedCoffee02,
+  'ti-cut': HugeIcons.strokeRoundedScissor01,
+  'ti-database': HugeIcons.strokeRoundedDatabase,
+  'ti-droplet': HugeIcons.strokeRoundedDroplet,
+  'ti-edit': HugeIcons.strokeRoundedPencilEdit01,
+  'ti-file-search': HugeIcons.strokeRoundedFileSearch,
+  'ti-file-text': HugeIcons.strokeRoundedFile02,
+  'ti-file-upload': HugeIcons.strokeRoundedFileUpload,
+  'ti-first-aid-kit': HugeIcons.strokeRoundedFirstAidKit,
+  'ti-flame': HugeIcons.strokeRoundedFire,
+  'ti-heart-handshake': HugeIcons.strokeRoundedCharity,
+  'ti-layout-grid': HugeIcons.strokeRoundedGridView,
+  'ti-list': HugeIcons.strokeRoundedLeftToRightListBullet,
+  'ti-list-details': HugeIcons.strokeRoundedListView,
+  'ti-mail': HugeIcons.strokeRoundedMail01,
+  'ti-mail-fast': HugeIcons.strokeRoundedMailSend01,
+  'ti-map-pin': HugeIcons.strokeRoundedLocation01,
+  'ti-meat': HugeIcons.strokeRoundedSteak,
+  'ti-package': HugeIcons.strokeRoundedPackage,
+  'ti-phone': HugeIcons.strokeRoundedCall,
+  'ti-pill': HugeIcons.strokeRoundedMedicine02,
+  'ti-plug': HugeIcons.strokeRoundedPlug01,
+  'ti-printer': HugeIcons.strokeRoundedPrinter,
+  'ti-report-money': HugeIcons.strokeRoundedInvoice01,
+  'ti-route': HugeIcons.strokeRoundedRoute01,
+  'ti-ruler-2': HugeIcons.strokeRoundedRuler,
+  'ti-send': HugeIcons.strokeRoundedSent,
+  'ti-shield-check': HugeIcons.strokeRoundedSecurityCheck,
+  'ti-shopping-cart': HugeIcons.strokeRoundedShoppingCart01,
+  'ti-soup': HugeIcons.strokeRoundedRiceBowl01,
+  'ti-sparkles': HugeIcons.strokeRoundedSparkles,
+  'ti-spray': HugeIcons.strokeRoundedSprayCan,
+  'ti-tool': HugeIcons.strokeRoundedWrench01,
+  'ti-tools-kitchen-2': HugeIcons.strokeRoundedKitchenUtensils,
+  'ti-truck': HugeIcons.strokeRoundedDeliveryTruck01,
+  'ti-truck-delivery': HugeIcons.strokeRoundedDeliveryTruck02,
+  'ti-users': HugeIcons.strokeRoundedUserGroup,
+  'ti-volume': HugeIcons.strokeRoundedVolumeHigh,
+  'ti-wall': HugeIcons.strokeRoundedBrickWall,
 };
 
 /// Couleur de la famille [category].
@@ -120,8 +122,8 @@ Color dayStackCategoryColor(String? category) =>
     kDayStackCategoryColors[category] ?? kDayStackFallbackColor;
 
 /// Icône correspondant au nom Tabler [tablerName].
-IconData dayStackIcon(String? tablerName) =>
-    kDayStackTablerToMaterial[tablerName] ?? Icons.circle_outlined;
+AppIconData dayStackIcon(String? tablerName) =>
+    kDayStackTablerToHuge[tablerName] ?? HugeIcons.strokeRoundedCircle;
 
 /// Badge d'une tâche.
 ///
@@ -210,6 +212,6 @@ class DayStackTaskBadge extends StatelessWidget {
       color: dayStackCategoryColor(category),
       borderRadius: BorderRadius.circular(10),
     ),
-    child: Icon(dayStackIcon(icon), size: glyph, color: Colors.white),
+    child: AppIcon(dayStackIcon(icon), size: glyph, color: Colors.white),
   );
 }

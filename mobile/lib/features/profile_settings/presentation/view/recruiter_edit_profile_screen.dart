@@ -15,6 +15,8 @@ import '../../../auth/presentation/auth_providers.dart';
 import '../viewmodel/recruiter_profile_viewmodel.dart';
 import '../widgets/profile_avatar.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class RecruiterEditProfileScreen extends ConsumerStatefulWidget {
   const RecruiterEditProfileScreen({super.key});
 
@@ -192,7 +194,7 @@ class _RecruiterEditProfileScreenState extends ConsumerState<RecruiterEditProfil
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.photo_library_rounded),
+              leading: const AppIcon(HugeIcons.strokeRoundedAlbum02),
               title: Text(l10n.choosePhoto),
               onTap: () {
                 Navigator.of(ctx).pop();
@@ -202,7 +204,7 @@ class _RecruiterEditProfileScreenState extends ConsumerState<RecruiterEditProfil
               },
             ),
             ListTile(
-              leading: const Icon(Icons.camera_alt_rounded),
+              leading: const AppIcon(HugeIcons.strokeRoundedCamera01),
               title: Text(l10n.takePhoto),
               onTap: () {
                 Navigator.of(ctx).pop();
@@ -213,7 +215,7 @@ class _RecruiterEditProfileScreenState extends ConsumerState<RecruiterEditProfil
             ),
             if (!isLogo)
               ListTile(
-                leading: Icon(Icons.delete_rounded, color: colors.error),
+                leading: AppIcon(HugeIcons.strokeRoundedDelete02, color: colors.error),
                 title: Text(l10n.removePhoto, style: TextStyle(color: colors.error)),
                 onTap: () async {
                   Navigator.of(ctx).pop();
@@ -302,8 +304,8 @@ class _RecruiterEditProfileScreenState extends ConsumerState<RecruiterEditProfil
                                           width: 2,
                                         ),
                                       ),
-                                      child: const Icon(
-                                        Icons.camera_alt_rounded,
+                                      child: const AppIcon(
+                                        HugeIcons.strokeRoundedCamera01,
                                         size: 14,
                                         color: Colors.white,
                                       ),
@@ -337,14 +339,14 @@ class _RecruiterEditProfileScreenState extends ConsumerState<RecruiterEditProfil
                                             fit: BoxFit.cover,
                                             width: 60,
                                             height: 60,
-                                            errorBuilder: (context, error, stackTrace) => Icon(
-                                              Icons.business_rounded,
+                                            errorBuilder: (context, error, stackTrace) => AppIcon(
+                                              HugeIcons.strokeRoundedBuilding03,
                                               size: 28,
                                               color: colors.textSecondary,
                                             ),
                                           )
-                                        : Icon(
-                                            Icons.business_rounded,
+                                        : AppIcon(
+                                            HugeIcons.strokeRoundedBuilding03,
                                             size: 28,
                                             color: colors.textSecondary,
                                           ),
@@ -363,8 +365,8 @@ class _RecruiterEditProfileScreenState extends ConsumerState<RecruiterEditProfil
                                           width: 2,
                                         ),
                                       ),
-                                      child: const Icon(
-                                        Icons.camera_alt_rounded,
+                                      child: const AppIcon(
+                                        HugeIcons.strokeRoundedCamera01,
                                         size: 11,
                                         color: Colors.white,
                                       ),
@@ -492,8 +494,8 @@ class _RecruiterEditProfileScreenState extends ConsumerState<RecruiterEditProfil
             ),
             child: IconButton(
               onPressed: () => context.pop(),
-              icon: Icon(
-                Icons.arrow_back_ios_new_rounded,
+              icon: AppIcon(
+                HugeIcons.strokeRoundedArrowLeft01,
                 color: colors.textPrimary,
                 size: 18,
               ),

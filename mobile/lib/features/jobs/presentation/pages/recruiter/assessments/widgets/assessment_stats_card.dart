@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'package:zennyt/features/jobs/domain/entities/assessment.dart';
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 const _kViolet = Color(0xFF5B4EF5);
 const _kStatCardColor = Color(0x26FFFFFF);
 
@@ -38,21 +40,21 @@ class AssessmentStatsCard extends StatelessWidget {
             children: [
               Expanded(
                 child: _StatItem(
-                  icon: Icons.quiz_outlined,
+                  icon: HugeIcons.strokeRoundedQuiz01,
                   label: labelQuestions,
                   value: '${assessment.questions.length}',
                 ),
               ),
               Expanded(
                 child: _StatItem(
-                  icon: Icons.timer_outlined,
+                  icon: HugeIcons.strokeRoundedTimer02,
                   label: labelDuration,
                   value: assessment.durationDisplay,
                 ),
               ),
               Expanded(
                 child: _StatItem(
-                  icon: Icons.list_alt_outlined,
+                  icon: HugeIcons.strokeRoundedLeftToRightListBullet,
                   label: labelMax,
                   value: '${assessment.maxQuestions}',
                 ),
@@ -66,7 +68,7 @@ class AssessmentStatsCard extends StatelessWidget {
 }
 
 class _StatItem extends StatelessWidget {
-  final IconData icon;
+  final AppIconData icon;
   final String label;
   final String value;
 
@@ -81,7 +83,7 @@ class _StatItem extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: Colors.white.withValues(alpha: 0.9), size: 18),
+          AppIcon(icon, color: Colors.white.withValues(alpha: 0.9), size: 18),
           const SizedBox(height: 6),
           Text(
             value,

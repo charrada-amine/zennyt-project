@@ -10,6 +10,8 @@ import '../view/cv_viewer_screen.dart';
 import '../viewmodel/candidate_profile_viewmodel.dart';
 import 'profile_modals.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class CandidateOverviewTab extends ConsumerWidget {
   const CandidateOverviewTab({super.key});
 
@@ -29,8 +31,8 @@ class CandidateOverviewTab extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                Icons.cloud_off_rounded,
+              AppIcon(
+                HugeIcons.strokeRoundedCloudSlowWind,
                 color: colors.textSecondary,
                 size: 40,
               ),
@@ -184,8 +186,8 @@ class CandidateOverviewTab extends ConsumerWidget {
         if (onEdit != null)
           IconButton(
             onPressed: onEdit,
-            icon: Icon(
-              Icons.edit_outlined,
+            icon: AppIcon(
+              HugeIcons.strokeRoundedPencilEdit01,
               color: colors.textSecondary,
               size: 20,
             ),
@@ -195,7 +197,7 @@ class CandidateOverviewTab extends ConsumerWidget {
         if (onAdd != null)
           IconButton(
             onPressed: onAdd,
-            icon: Icon(Icons.add, color: colors.textSecondary, size: 22),
+            icon: AppIcon(HugeIcons.strokeRoundedAdd01, color: colors.textSecondary, size: 22),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
           ),
@@ -275,7 +277,7 @@ class CandidateOverviewTab extends ConsumerWidget {
     if (skills.isEmpty) {
       return _buildEmptyState(
         colors,
-        icon: Icons.code_rounded,
+        icon: HugeIcons.strokeRoundedSourceCode,
         title: 'No skills added yet',
         subtitle: 'Tap + to showcase your technical expertise',
       );
@@ -338,7 +340,7 @@ class CandidateOverviewTab extends ConsumerWidget {
     if (jobs.isEmpty) {
       return _buildEmptyState(
         colors,
-        icon: Icons.work_outline_rounded,
+        icon: HugeIcons.strokeRoundedBriefcase01,
         title: 'No positions added yet',
         subtitle: 'Tap + to highlight your professional journey',
       );
@@ -421,7 +423,7 @@ class CandidateOverviewTab extends ConsumerWidget {
     if (certs.isEmpty) {
       return _buildEmptyState(
         colors,
-        icon: Icons.workspace_premium_outlined,
+        icon: HugeIcons.strokeRoundedAward01,
         title: 'No certifications yet',
         subtitle: 'Tap + to add your professional credentials',
       );
@@ -504,7 +506,7 @@ class CandidateOverviewTab extends ConsumerWidget {
     if (edus.isEmpty) {
       return _buildEmptyState(
         colors,
-        icon: Icons.school_outlined,
+        icon: HugeIcons.strokeRoundedMortarboard01,
         title: 'No education added yet',
         subtitle: 'Tap + to add your academic background',
       );
@@ -588,8 +590,8 @@ class CandidateOverviewTab extends ConsumerWidget {
       children: [
         IconButton(
           onPressed: onEdit,
-          icon: Icon(
-            Icons.edit_outlined,
+          icon: AppIcon(
+            HugeIcons.strokeRoundedPencilEdit01,
             color: colors.textSecondary,
             size: 18,
           ),
@@ -599,8 +601,8 @@ class CandidateOverviewTab extends ConsumerWidget {
         const SizedBox(width: 8),
         IconButton(
           onPressed: onDelete,
-          icon: Icon(
-            Icons.delete_outline,
+          icon: AppIcon(
+            HugeIcons.strokeRoundedDelete02,
             color: colors.textSecondary,
             size: 18,
           ),
@@ -619,7 +621,7 @@ class CandidateOverviewTab extends ConsumerWidget {
     if (aboutMe.isEmpty) {
       return _buildEmptyState(
         colors,
-        icon: Icons.person_outline_rounded,
+        icon: HugeIcons.strokeRoundedUser,
         title: 'Tell your story',
         subtitle: 'Tap edit to introduce yourself to recruiters',
       );
@@ -643,7 +645,7 @@ class CandidateOverviewTab extends ConsumerWidget {
 
   Widget _buildEmptyState(
     AppColorScheme colors, {
-    required IconData icon,
+    required AppIconData icon,
     required String title,
     required String subtitle,
   }) {
@@ -670,7 +672,7 @@ class CandidateOverviewTab extends ConsumerWidget {
               color: colors.primary.withValues(alpha: 0.08),
               shape: BoxShape.circle,
             ),
-            child: Icon(
+            child: AppIcon(
               icon,
               size: 22,
               color: colors.primary.withValues(alpha: 0.6),
@@ -750,8 +752,8 @@ class CandidateOverviewTab extends ConsumerWidget {
                         : colors.textSecondary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(
-                    hasCv ? Icons.description_rounded : Icons.note_add_rounded,
+                  child: AppIcon(
+                    hasCv ? HugeIcons.strokeRoundedFile02 : HugeIcons.strokeRoundedNoteAdd,
                     color: hasCv ? colors.success : colors.textSecondary,
                     size: 22,
                   ),
@@ -797,8 +799,8 @@ class CandidateOverviewTab extends ConsumerWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
-                          Icons.check_circle_rounded,
+                        AppIcon(
+                          HugeIcons.strokeRoundedCheckmarkCircle02,
                           size: 14,
                           color: colors.success,
                         ),
@@ -832,7 +834,7 @@ class CandidateOverviewTab extends ConsumerWidget {
                   // View CV button
                   Expanded(
                     child: _CvActionButton(
-                      icon: Icons.open_in_new_rounded,
+                      icon: HugeIcons.strokeRoundedLinkSquare02,
                       label: 'View CV',
                       colors: colors,
                       isPrimary: false,
@@ -845,8 +847,8 @@ class CandidateOverviewTab extends ConsumerWidget {
                 Expanded(
                   child: _CvActionButton(
                     icon: hasCv
-                        ? Icons.swap_horiz_rounded
-                        : Icons.cloud_upload_rounded,
+                        ? HugeIcons.strokeRoundedArrowDataTransferHorizontal
+                        : HugeIcons.strokeRoundedCloudUpload,
                     label: hasCv ? 'Replace' : 'Upload CV',
                     colors: colors,
                     isPrimary: true,
@@ -857,7 +859,7 @@ class CandidateOverviewTab extends ConsumerWidget {
                   const SizedBox(width: AppSpacing.sm),
                   // Delete CV button
                   _CvActionButton(
-                    icon: Icons.delete_outline_rounded,
+                    icon: HugeIcons.strokeRoundedDelete02,
                     label: '',
                     colors: colors,
                     isPrimary: false,
@@ -907,7 +909,7 @@ class CandidateOverviewTab extends ConsumerWidget {
         _showSnackBar(
           context,
           colors,
-          icon: Icons.cloud_upload_rounded,
+          icon: HugeIcons.strokeRoundedCloudUpload,
           message: 'Uploading your CV...',
           isError: false,
           duration: const Duration(seconds: 10),
@@ -920,7 +922,7 @@ class CandidateOverviewTab extends ConsumerWidget {
           _showSnackBar(
             context,
             colors,
-            icon: Icons.check_circle_rounded,
+            icon: HugeIcons.strokeRoundedCheckmarkCircle02,
             message: 'CV uploaded successfully!',
             isError: false,
           );
@@ -931,7 +933,7 @@ class CandidateOverviewTab extends ConsumerWidget {
         _showSnackBar(
           context,
           colors,
-          icon: Icons.warning_amber_rounded,
+          icon: HugeIcons.strokeRoundedAlert02,
           message: validationError.message,
           isError: true,
         );
@@ -942,7 +944,7 @@ class CandidateOverviewTab extends ConsumerWidget {
         _showSnackBar(
           context,
           colors,
-          icon: Icons.error_outline_rounded,
+          icon: HugeIcons.strokeRoundedAlertCircle,
           message: apiErr.message,
           isError: true,
         );
@@ -953,7 +955,7 @@ class CandidateOverviewTab extends ConsumerWidget {
         _showSnackBar(
           context,
           colors,
-          icon: Icons.warning_amber_rounded,
+          icon: HugeIcons.strokeRoundedAlert02,
           message: 'Upload failed. Please check your connection and try again.',
           isError: true,
         );
@@ -983,7 +985,7 @@ class CandidateOverviewTab extends ConsumerWidget {
                   _showSnackBar(
                     context,
                     colors,
-                    icon: Icons.check_circle_rounded,
+                    icon: HugeIcons.strokeRoundedCheckmarkCircle02,
                     message: 'CV deleted.',
                     isError: false,
                   );
@@ -993,7 +995,7 @@ class CandidateOverviewTab extends ConsumerWidget {
                   _showSnackBar(
                     context,
                     colors,
-                    icon: Icons.error_outline_rounded,
+                    icon: HugeIcons.strokeRoundedAlertCircle,
                     message: apiErr.message,
                     isError: true,
                   );
@@ -1010,7 +1012,7 @@ class CandidateOverviewTab extends ConsumerWidget {
   void _showSnackBar(
     BuildContext context,
     AppColorScheme colors, {
-    required IconData icon,
+    required AppIconData icon,
     required String message,
     required bool isError,
     Duration duration = const Duration(seconds: 3),
@@ -1019,7 +1021,7 @@ class CandidateOverviewTab extends ConsumerWidget {
       SnackBar(
         content: Row(
           children: [
-            Icon(icon, color: Colors.white, size: 20),
+            AppIcon(icon, color: Colors.white, size: 20),
             const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: Text(
@@ -1057,7 +1059,7 @@ class _CvActionButton extends StatelessWidget {
     this.isIconOnly = false,
   });
 
-  final IconData icon;
+  final AppIconData icon;
   final String label;
   final AppColorScheme colors;
   final bool isPrimary;
@@ -1100,7 +1102,7 @@ class _CvActionButton extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: borderColor),
               ),
-              child: Icon(icon, color: fgColor, size: 20),
+              child: AppIcon(icon, color: fgColor, size: 20),
             ),
           ),
         ),
@@ -1124,7 +1126,7 @@ class _CvActionButton extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(icon, color: fgColor, size: 18),
+                AppIcon(icon, color: fgColor, size: 18),
                 const SizedBox(width: 6),
                 Text(
                   label,

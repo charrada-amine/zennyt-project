@@ -5,6 +5,8 @@ import 'day_stack_badges.dart';
 import 'game_system_components.dart';
 import 'game_tutorial_deck.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 // PROVISOIRE — taille des exemples à valider sur appareil (décision 64).
 const double _kDayStackTutorialEmoteSize = 112;
 
@@ -111,8 +113,8 @@ class _DayStackDemo extends StatelessWidget {
           ),
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 4),
-            child: Icon(
-              Icons.arrow_forward,
+            child: AppIcon(
+              HugeIcons.strokeRoundedArrowRight02,
               color: ZennytGamePalette.magenta,
               size: 24,
             ),
@@ -185,8 +187,8 @@ class _DayStackDemo extends StatelessWidget {
                     shape: BoxShape.circle,
                   ),
                   padding: const EdgeInsets.all(3),
-                  child: const Icon(
-                    Icons.check_circle,
+                  child: const AppIcon(
+                    HugeIcons.strokeRoundedCheckmarkCircle02,
                     color: ZennytGamePalette.success,
                     size: 36,
                   ),
@@ -296,8 +298,8 @@ class _MoveDemoState extends State<_MoveDemo> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.arrow_downward,
+              AppIcon(
+                HugeIcons.strokeRoundedArrowDown02,
                 color: candidates.isNotEmpty
                     ? ZennytGamePalette.success
                     : ZennytGamePalette.gameBlue,
@@ -335,8 +337,8 @@ class _MoveDemoState extends State<_MoveDemo> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                _moved ? Icons.check_circle : Icons.touch_app_outlined,
+              AppIcon(
+                _moved ? HugeIcons.strokeRoundedCheckmarkCircle02 : HugeIcons.strokeRoundedTouch01,
                 color: _moved
                     ? ZennytGamePalette.success
                     : ZennytGamePalette.magenta,

@@ -5,6 +5,8 @@ import '../../../../core/router/app_routes.dart';
 import '../../../../shared/widgets/zennyt_logo.dart';
 import '../../../../core/theme/theme.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// Home feed top bar: hamburger menu, centered Zennyt Careers logo, and a
 /// circular chat button.
 class FeedTopBar extends StatelessWidget {
@@ -26,7 +28,7 @@ class FeedTopBar extends StatelessWidget {
         children: [
           IconButton(
             onPressed: () => context.push(AppRoutes.profileSettings),
-            icon: Icon(Icons.menu_rounded, color: colors.textPrimary, size: 26),
+            icon: AppIcon(HugeIcons.strokeRoundedMenu01, color: colors.textPrimary, size: 26),
           ),
           const Expanded(
             child: Center(
@@ -47,8 +49,8 @@ class FeedTopBar extends StatelessWidget {
             ),
             child: IconButton(
               onPressed: () => context.push(AppRoutes.chats),
-              icon: Icon(
-                Icons.chat_bubble_rounded,
+              icon: AppIcon(
+                HugeIcons.strokeRoundedMessage01,
                 color: colors.actionCardFilled, // Accent color
                 size: 20,
               ),

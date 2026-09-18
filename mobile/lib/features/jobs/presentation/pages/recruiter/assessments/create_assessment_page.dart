@@ -12,6 +12,8 @@ import 'widgets/question_form_state.dart';
 import 'widgets/step1_form.dart';
 import 'widgets/step2_form.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// Assistant de création/édition d'un test (assessment) — porté depuis
 /// REC-04, branché sur `POST /assessments` du backend intégré.
 class CreateAssessmentPage extends ConsumerStatefulWidget {
@@ -139,7 +141,7 @@ class _CreateAssessmentPageState extends ConsumerState<CreateAssessmentPage> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: const Row(
             children: [
-              Icon(Icons.auto_awesome, color: Color(0xFF1D3557), size: 20),
+              AppIcon(HugeIcons.strokeRoundedSparkles, color: Color(0xFF1D3557), size: 20),
               SizedBox(width: 8),
               Text("Générer avec l'IA", style: TextStyle(fontSize: 18)),
             ],
@@ -167,6 +169,7 @@ class _CreateAssessmentPageState extends ConsumerState<CreateAssessmentPage> {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
+                  icon: const AppIcon(HugeIcons.strokeRoundedArrowDown01, size: 20),
                   initialValue: difficulty,
                   decoration: const InputDecoration(labelText: 'Difficulté'),
                   items: const [

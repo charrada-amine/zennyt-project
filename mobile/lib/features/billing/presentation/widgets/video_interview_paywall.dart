@@ -6,6 +6,8 @@ import 'package:zennyt/features/billing/domain/entities/billing.dart';
 import 'package:zennyt/features/billing/data/store_iap_service.dart';
 import 'package:zennyt/features/billing/presentation/providers/billing_providers.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// Paiement de l'entretien vidéo (maquette 282) : le recruteur règle un achat
 /// unique (consommable) via l'App Store / Google Play avant l'appel.
 ///
@@ -128,7 +130,7 @@ class _VideoInterviewPaywallState extends ConsumerState<VideoInterviewPaywall> {
               width: 60,
               height: 60,
               decoration: const BoxDecoration(color: Color(0xFFEEF2FF), shape: BoxShape.circle),
-              child: const Icon(Icons.videocam_rounded, color: Color(0xFF11428D), size: 30),
+              child: const AppIcon(HugeIcons.strokeRoundedVideo01, color: Color(0xFF11428D), size: 30),
             ),
             const SizedBox(height: 16),
             const Text(

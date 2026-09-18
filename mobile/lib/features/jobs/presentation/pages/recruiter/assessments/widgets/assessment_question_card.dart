@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'package:zennyt/features/jobs/domain/entities/assessment.dart';
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 const _kViolet = Color(0xFF5B4EF5);
 const _kCardBg = Color(0xFFF7F6FF);
 const _kBorderColor = Color(0xFFC7D2FE);
@@ -91,8 +93,8 @@ class _OptionItem extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(
-            isCorrect ? Icons.check_circle_rounded : Icons.radio_button_unchecked,
+          AppIcon(
+            isCorrect ? HugeIcons.strokeRoundedCheckmarkCircle02 : HugeIcons.strokeRoundedCircle,
             size: 16,
             color: isCorrect ? const Color(0xFF22C55E) : const Color(0xFF94A3B8),
           ),

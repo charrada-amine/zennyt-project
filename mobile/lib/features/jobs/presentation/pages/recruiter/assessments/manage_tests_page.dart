@@ -7,6 +7,8 @@ import 'package:zennyt/features/jobs/domain/entities/assessment.dart';
 import 'package:zennyt/features/jobs/presentation/providers/jobs_provider.dart';
 import 'package:zennyt/shared/widgets/custom_app_bar.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// Full list of the recruiter's tests (design 197) with edit/delete and an
 /// "Add a test" action. The horizontal preview on the Careers home links here.
 class ManageTestsPage extends ConsumerWidget {
@@ -140,7 +142,7 @@ class _TestRow extends StatelessWidget {
               color: const Color(0xFFEEF2FF),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.lightbulb_outline, color: Color(0xFF21438A), size: 22),
+            child: const AppIcon(HugeIcons.strokeRoundedIdea01, color: Color(0xFF21438A), size: 22),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -164,12 +166,12 @@ class _TestRow extends StatelessWidget {
           IconButton(
             tooltip: 'Edit',
             onPressed: onEdit,
-            icon: const Icon(Icons.edit_outlined, color: Color(0xFF21438A), size: 20),
+            icon: const AppIcon(HugeIcons.strokeRoundedPencilEdit01, color: Color(0xFF21438A), size: 20),
           ),
           IconButton(
             tooltip: 'Delete',
             onPressed: onDelete,
-            icon: const Icon(Icons.delete_outline, color: Color(0xFFE53935), size: 20),
+            icon: const AppIcon(HugeIcons.strokeRoundedDelete02, color: Color(0xFFE53935), size: 20),
           ),
         ],
       ),
@@ -190,7 +192,7 @@ class _AddButton extends StatelessWidget {
         width: 40,
         height: 40,
         decoration: kAppBarButtonDecoration(),
-        child: const Icon(Icons.add_rounded, color: Color(0xFF21438A), size: 22),
+        child: const AppIcon(HugeIcons.strokeRoundedAdd01, color: Color(0xFF21438A), size: 22),
       ),
     );
   }

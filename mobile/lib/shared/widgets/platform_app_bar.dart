@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/constants.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class PlatformAppBar extends StatelessWidget
     implements ObstructingPreferredSizeWidget {
   final Widget title;
@@ -35,6 +37,8 @@ class PlatformAppBar extends StatelessWidget
         // CupertinoNavigationBar's assert).
         heroTag: UniqueKey(),
         transitionBetweenRoutes: false,
+        // Pas de chevron Cupertino implicite : le retour est dessiné plus bas.
+        automaticallyImplyLeading: false,
         middle: title,
         leading: leading ??
             (showBack
@@ -53,8 +57,8 @@ class PlatformAppBar extends StatelessWidget
                           width: 0.5,
                         ),
                       ),
-                      child: Icon(
-                        CupertinoIcons.back,
+                      child: AppIcon(
+                        HugeIcons.strokeRoundedArrowLeft01,
                         size: 20,
                         color: colors.iconDefault,
                       ),
@@ -118,8 +122,8 @@ class PlatformAppBar extends StatelessWidget
                             width: 1.5,
                           ),
                         ),
-                        child: Icon(
-                          Icons.arrow_back_ios_rounded,
+                        child: AppIcon(
+                          HugeIcons.strokeRoundedArrowLeft01,
                           size: 18,
                           color: colors.iconDefault,
                         ),

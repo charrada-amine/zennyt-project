@@ -6,6 +6,8 @@ import '../../../../core/constants.dart';
 import '../../../../shared/widgets/important_alert.dart';
 import '../providers/call_ui_providers.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class CallInfoButton extends ConsumerWidget {
   const CallInfoButton({super.key});
 
@@ -19,7 +21,7 @@ class CallInfoButton extends ConsumerWidget {
         child: const CircleAvatar(
           radius: 16,
           backgroundColor: Colors.white24,
-          child: Icon(Icons.info_outline, color: Colors.white, size: 20),
+          child: AppIcon(HugeIcons.strokeRoundedInformationCircle, color: Colors.white, size: 20),
         ),
       ),
     );
@@ -86,7 +88,7 @@ class CallVirtualBackgroundPanel extends ConsumerWidget {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 _BgButton(
-                  icon: Icons.block,
+                  icon: HugeIcons.strokeRoundedBlocked,
                   label: "Aucun",
                   isActive: active == VirtualBgType.none,
                   onTap: () {
@@ -96,7 +98,7 @@ class CallVirtualBackgroundPanel extends ConsumerWidget {
                   },
                 ),
                 _BgButton(
-                  icon: Icons.blur_on,
+                  icon: HugeIcons.strokeRoundedBlur,
                   label: "Flou",
                   isActive: active == VirtualBgType.blur,
                   onTap: () {
@@ -106,7 +108,7 @@ class CallVirtualBackgroundPanel extends ConsumerWidget {
                   },
                 ),
                 _BgButton(
-                  icon: Icons.image_outlined,
+                  icon: HugeIcons.strokeRoundedImage01,
                   label: "Image",
                   isActive: active == VirtualBgType.image,
                   onTap: () {
@@ -161,7 +163,7 @@ class CallVirtualBackgroundPanel extends ConsumerWidget {
                           backgroundImage: AssetImage(availableBgImages[index]),
                           child: !isSelected
                               ? null
-                              : const Icon(Icons.check, color: Colors.white, size: 20),
+                              : const AppIcon(HugeIcons.strokeRoundedTick02, color: Colors.white, size: 20),
                         ),
                       ),
                     );
@@ -190,7 +192,7 @@ class CallVirtualBackgroundPanel extends ConsumerWidget {
 }
 
 class _BgButton extends StatelessWidget {
-  final IconData icon;
+  final AppIconData icon;
   final String label;
   final bool isActive;
   final VoidCallback onTap;
@@ -217,7 +219,7 @@ class _BgButton extends StatelessWidget {
             ),
             child: CircleAvatar(
               backgroundColor: context.colors.placeholderBg,
-              child: Icon(icon, color: context.colors.textPrimary),
+              child: AppIcon(icon, color: context.colors.textPrimary),
             ),
           ),
           const SizedBox(height: 8),

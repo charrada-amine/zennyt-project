@@ -10,6 +10,8 @@ import 'package:zennyt/features/wallet/domain/entities/wallet.dart';
 import 'package:zennyt/features/wallet/presentation/providers/wallet_providers.dart';
 import 'package:zennyt/shared/widgets/custom_app_bar.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// Portefeuille (maquettes 114/118) : solde, carte, actions et écritures.
 class WalletScreen extends ConsumerWidget {
   const WalletScreen({super.key});
@@ -167,7 +169,7 @@ class _BalanceCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.account_balance_wallet_rounded, color: Colors.white, size: 20),
+              const AppIcon(HugeIcons.strokeRoundedWallet01, color: Colors.white, size: 20),
               const SizedBox(width: 8),
               Text('Your balance',
                   style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 13)),
@@ -209,22 +211,22 @@ class _ActionsRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        _Action(icon: Icons.south_west_rounded, label: 'Withdraw', onTap: onWithdraw),
+        _Action(icon: HugeIcons.strokeRoundedArrowDownLeft01, label: 'Withdraw', onTap: onWithdraw),
         const SizedBox(width: 10),
         _Action(
-          icon: Icons.credit_card_rounded,
+          icon: HugeIcons.strokeRoundedCreditCard,
           label: wallet.card == null ? 'Add card' : 'Change card',
           onTap: onChangeCard,
         ),
         const SizedBox(width: 10),
-        _Action(icon: Icons.link_rounded, label: 'Share link', onTap: onShareLink),
+        _Action(icon: HugeIcons.strokeRoundedLink01, label: 'Share link', onTap: onShareLink),
       ],
     );
   }
 }
 
 class _Action extends StatelessWidget {
-  final IconData icon;
+  final AppIconData icon;
   final String label;
   final VoidCallback onTap;
   const _Action({required this.icon, required this.label, required this.onTap});
@@ -244,7 +246,7 @@ class _Action extends StatelessWidget {
           ),
           child: Column(
             children: [
-              Icon(icon, color: const Color(0xFF21438A), size: 20),
+              AppIcon(icon, color: const Color(0xFF21438A), size: 20),
               const SizedBox(height: 6),
               Text(label,
                   style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: Color(0xFF475569))),
@@ -278,7 +280,7 @@ class _TransactionTile extends StatelessWidget {
             width: 38,
             height: 38,
             decoration: BoxDecoration(color: color.withValues(alpha: 0.12), shape: BoxShape.circle),
-            child: Icon(positive ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded,
+            child: AppIcon(positive ? HugeIcons.strokeRoundedArrowDown02 : HugeIcons.strokeRoundedArrowUp02,
                 color: color, size: 18),
           ),
           const SizedBox(width: 12),

@@ -26,6 +26,8 @@ import '../widgets/game_results_template.dart';
 import '../widgets/game_system_components.dart';
 import '../widgets/zennyt_loader.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// Planifik #2 — « Planning journalier » (Day Stack).
 ///
 /// Une partie enchaîne [kDayStackLevels] manches, chacune sur un univers
@@ -763,7 +765,7 @@ class _GameplayViewState extends State<_GameplayView> {
                   foregroundColor: Colors.white,
                   minimumSize: const Size(48, 48),
                 ),
-                icon: Icon(widget.affordance.icon),
+                icon: AppIcon(widget.affordance.icon),
               ),
             ],
           ),
@@ -1154,8 +1156,8 @@ class _DebriefCard extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(
-                      Icons.close_rounded,
+                    const AppIcon(
+                      HugeIcons.strokeRoundedCancel01,
                       size: 14,
                       color: ZennytGamePalette.error,
                     ),
@@ -1780,7 +1782,7 @@ class _BackButton extends StatelessWidget {
             color: ZennytGamePalette.mist,
             borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
           ),
-          child: const Icon(Icons.chevron_left, color: ZennytGamePalette.blue),
+          child: const AppIcon(HugeIcons.strokeRoundedArrowLeft01, color: ZennytGamePalette.blue),
         ),
       ),
     );

@@ -22,6 +22,8 @@ import '../widgets/game_results_template.dart';
 import '../widgets/game_system_components.dart';
 import '../widgets/game_tutorial_deck.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// Jeu « Optimal Path » (Planifik — « Je planifie »).
 ///
 /// Flow complet aligné sur la maquette Figma :
@@ -265,7 +267,7 @@ class _PlanifikScreenState extends ConsumerState<PlanifikScreen> {
       ),
       _PlanifikStage.howToPlay => OptimalPathTutorial(
         leading: _SquareIconButton(
-          icon: Icons.chevron_left,
+          icon: HugeIcons.strokeRoundedArrowLeft01,
           onTap: () => setState(() => _stage = _PlanifikStage.intro),
         ),
         onComplete: _beginGame,
@@ -321,7 +323,7 @@ class _IntroView extends StatelessWidget {
     contextText:
         'Rejoins l’arrivée en évitant les obstacles et en récupérant les documents du parcours.',
     journey: const ['Observe', 'Trace', 'Valide'],
-    leading: _SquareIconButton(icon: Icons.chevron_left, onTap: onBack),
+    leading: _SquareIconButton(icon: HugeIcons.strokeRoundedArrowLeft01, onTap: onBack),
     startLabel: 'Start',
     onStart: onStart,
   );
@@ -330,7 +332,7 @@ class _IntroView extends StatelessWidget {
 class _SquareIconButton extends StatelessWidget {
   const _SquareIconButton({required this.icon, required this.onTap});
 
-  final IconData icon;
+  final AppIconData icon;
   final VoidCallback onTap;
 
   @override
@@ -349,7 +351,7 @@ class _SquareIconButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
             border: Border.all(color: ZennytGamePalette.border),
           ),
-          child: Icon(icon, color: ZennytGamePalette.ink, size: 24),
+          child: AppIcon(icon, color: ZennytGamePalette.ink, size: 24),
         ),
       ),
     );
@@ -481,28 +483,28 @@ class _OptimalScoreArt extends StatelessWidget {
         ),
         const SizedBox(height: 22),
         const _ScoringRow(
-          icon: Icons.gps_fixed_rounded,
+          icon: HugeIcons.strokeRoundedGps01,
           iconColor: BoardPalette.finish,
           label: 'Route optimale (±10 %)',
           points: '4 pts',
           pointsColor: ZennytGamePalette.ink,
         ),
         const _ScoringRow(
-          icon: Icons.replay_rounded,
+          icon: HugeIcons.strokeRoundedReload,
           iconColor: ZennytGamePalette.cyan,
           label: 'Peu d’essais',
           points: '3 pts',
           pointsColor: ZennytGamePalette.ink,
         ),
         const _ScoringRow(
-          icon: Icons.do_not_disturb_rounded,
+          icon: HugeIcons.strokeRoundedMinusSignCircle,
           iconColor: BoardPalette.blockIcon,
           label: 'Zones coûteuses évitées',
           points: '2 pts',
           pointsColor: ZennytGamePalette.ink,
         ),
         const _ScoringRow(
-          icon: Icons.star_rounded,
+          icon: AppIcons.starFilled,
           iconColor: BoardPalette.star,
           label: 'Objectifs atteints',
           points: '1 pt',
@@ -529,7 +531,7 @@ class _ScoringRow extends StatelessWidget {
     required this.pointsColor,
   });
 
-  final IconData icon;
+  final AppIconData icon;
   final Color iconColor;
   final String label;
   final String points;
@@ -541,7 +543,7 @@ class _ScoringRow extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
       child: Row(
         children: [
-          Icon(icon, color: iconColor, size: 24),
+          AppIcon(icon, color: iconColor, size: 24),
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Text(
@@ -1212,7 +1214,7 @@ class _HudIconButton extends StatelessWidget {
     required this.semanticsLabel,
   });
 
-  final IconData icon;
+  final AppIconData icon;
   final VoidCallback onTap;
   final String tooltip;
   final String semanticsLabel;
@@ -1234,7 +1236,7 @@ class _HudIconButton extends StatelessWidget {
               width: 52,
               height: 52,
               alignment: Alignment.center,
-              child: Icon(icon, color: Colors.white, size: 24),
+              child: AppIcon(icon, color: Colors.white, size: 24),
             ),
           ),
         ),
@@ -1315,7 +1317,7 @@ class _BoardLegendItem extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         star
-            ? Icon(Icons.star_rounded, color: color, size: 14)
+            ? AppIcon(AppIcons.starFilled, color: color, size: 14)
             : Container(
                 width: 12,
                 height: 12,
@@ -1355,8 +1357,8 @@ class _ClearButton extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                Icons.delete_outline_rounded,
+              AppIcon(
+                HugeIcons.strokeRoundedDelete02,
                 color: Colors.white.withValues(alpha: enabled ? 1 : 0.5),
                 size: 20,
               ),
@@ -1413,7 +1415,7 @@ class _ValidateButton extends StatelessWidget {
               : const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.check_rounded, color: Colors.white, size: 22),
+                    AppIcon(HugeIcons.strokeRoundedTick02, color: Colors.white, size: 22),
                     SizedBox(width: AppSpacing.sm),
                     Text(
                       'Validate route',
@@ -1460,8 +1462,8 @@ class _OptimalRulesDialog extends StatelessWidget {
                     color: ZennytGamePalette.gameBlue.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
                   ),
-                  child: const Icon(
-                    Icons.route_rounded,
+                  child: const AppIcon(
+                    HugeIcons.strokeRoundedRoute01,
                     color: ZennytGamePalette.gameBlue,
                     size: 24,
                   ),
@@ -1480,28 +1482,28 @@ class _OptimalRulesDialog extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.lg),
             _RuleLine(
-              icon: Icons.swipe_rounded,
+              icon: HugeIcons.strokeRoundedSwipeLeft01,
               text:
                   'Slide your finger from LAB across adjacent stations to '
                   'trace your route — or tap them one by one. Slide back to '
                   'erase the last step.',
             ),
             _RuleLine(
-              icon: Icons.flag_rounded,
+              icon: HugeIcons.strokeRoundedFlag02,
               text: 'Reach MTG with the shortest route. Avoid the blocks.',
             ),
             _RuleLine(
-              icon: Icons.star_rounded,
+              icon: AppIcons.starFilled,
               text: 'Grab star stations for bonus points.',
             ),
             _RuleLine(
-              icon: Icons.check_circle_rounded,
+              icon: HugeIcons.strokeRoundedCheckmarkCircle02,
               text: 'Validate when ready. Clear to restart the route.',
             ),
             const SizedBox(height: AppSpacing.md),
             GamePrimaryButton(
               label: 'Got it',
-              icon: Icons.check_rounded,
+              icon: HugeIcons.strokeRoundedTick02,
               color: ZennytGamePalette.gameBlue,
               onPressed: () => Navigator.of(context).pop(),
             ),
@@ -1515,7 +1517,7 @@ class _OptimalRulesDialog extends StatelessWidget {
 class _RuleLine extends StatelessWidget {
   const _RuleLine({required this.icon, required this.text});
 
-  final IconData icon;
+  final AppIconData icon;
   final String text;
 
   @override
@@ -1525,7 +1527,7 @@ class _RuleLine extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: ZennytGamePalette.gameBlue, size: 22),
+          AppIcon(icon, color: ZennytGamePalette.gameBlue, size: 22),
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Text(
@@ -1650,7 +1652,7 @@ class _ComparisonView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SquareIconButton(icon: Icons.chevron_left, onTap: onBack),
+          _SquareIconButton(icon: HugeIcons.strokeRoundedArrowLeft01, onTap: onBack),
           Center(
             child: Column(
               children: [

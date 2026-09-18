@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/theme.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// A single selectable row used in full-screen selection lists (e.g. the
 /// "Field of work" screen). Shows a trailing check when [selected].
 class SelectionListTile extends StatelessWidget {
@@ -42,8 +44,8 @@ class SelectionListTile extends StatelessWidget {
               ),
             ),
             if (selected)
-              Icon(
-                Icons.check,
+              AppIcon(
+                HugeIcons.strokeRoundedTick02,
                 color: colors.actionCardFilled,
                 size: AppSpacing.iconMd,
               ),

@@ -7,6 +7,8 @@ import 'package:zennyt/features/jobs/domain/entities/hired_candidate.dart';
 import 'package:zennyt/features/jobs/presentation/providers/jobs_provider.dart';
 import 'package:zennyt/shared/widgets/custom_app_bar.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// Recrutements du recruteur (maquette 258) : nom, poste, compte à rebours
 /// d'essai (D-xx) et annulation tant que la période d'essai court.
 class HiredCandidatesPage extends ConsumerWidget {
@@ -154,7 +156,7 @@ class _HireTile extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.schedule_rounded, size: 14, color: Color(0xFFF59E0B)),
+                  const AppIcon(HugeIcons.strokeRoundedClock01, size: 14, color: Color(0xFFF59E0B)),
                   const SizedBox(width: 5),
                   Text(
                     hire.daysRemaining != null ? 'D-${hire.daysRemaining}' : 'Cancel',

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:zennyt/shared/icons/app_icons.dart';
 import 'package:zennyt/core/theme/theme.dart';
 import 'package:zennyt/l10n/gen/app_localizations.dart';
 import 'option_item.dart';
@@ -44,7 +44,7 @@ class AddOptionsBottomSheet {
                 children: [
                   Expanded(
                     child: OptionItem(
-                      icon: FontAwesomeIcons.image,
+                      icon: HugeIcons.strokeRoundedImage01,
                       label: l10n.mediaLabel,
                       iconColor: const Color(0xFF6366F1),
                       bgColor: isDark ? const Color(0xFF1E1B4B) : const Color(0xFFEEF2FF),
@@ -56,7 +56,7 @@ class AddOptionsBottomSheet {
                   ),
                   Expanded(
                     child: OptionItem(
-                      icon: FontAwesomeIcons.trophy,
+                      icon: HugeIcons.strokeRoundedChampion,
                       label: l10n.scoreLabel,
                       iconColor: const Color(0xFFF59E0B),
                       bgColor: isDark ? const Color(0xFF451A03) : const Color(0xFFFEF3C7),
@@ -67,7 +67,7 @@ class AddOptionsBottomSheet {
                   ),
                   Expanded(
                     child: OptionItem(
-                      icon: FontAwesomeIcons.userPen,
+                      icon: HugeIcons.strokeRoundedUserEdit01,
                       label: l10n.aiResumeLabel,
                       iconColor: const Color(0xFFA855F7),
                       bgColor: isDark ? const Color(0xFF3B0764) : const Color(0xFFF3E8FF),
@@ -83,7 +83,7 @@ class AddOptionsBottomSheet {
                 children: [
                   Expanded(
                     child: OptionItem(
-                      icon: FontAwesomeIcons.fileLines,
+                      icon: HugeIcons.strokeRoundedFile02,
                       label: l10n.documentLabel,
                       iconColor: const Color(0xFF10B981),
                       bgColor: isDark ? const Color(0xFF064E3B) : const Color(0xFFD1FAE5),
@@ -95,7 +95,7 @@ class AddOptionsBottomSheet {
                   ),
                   Expanded(
                     child: OptionItem(
-                      icon: FontAwesomeIcons.squarePollVertical,
+                      icon: HugeIcons.strokeRoundedChartHistogram,
                       label: l10n.poll,
                       iconColor: const Color(0xFF0284C7),
                       bgColor: isDark ? const Color(0xFF0C4A6E) : const Color(0xFFE0F2FE),

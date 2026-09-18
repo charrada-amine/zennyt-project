@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../../core/router/app_routes.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class CvCameraCaptureScreen extends StatefulWidget {
   const CvCameraCaptureScreen({super.key});
 
@@ -142,8 +144,8 @@ class _CvCameraCaptureScreenState extends State<CvCameraCaptureScreen>
                 shape: BoxShape.circle,
                 color: colors.primary.withValues(alpha: 0.1),
               ),
-              child: Icon(
-                Icons.document_scanner_rounded,
+              child: AppIcon(
+                HugeIcons.strokeRoundedDocumentValidation,
                 size: 80,
                 color: colors.primary,
               ),
@@ -184,7 +186,7 @@ class _CvCameraCaptureScreenState extends State<CvCameraCaptureScreen>
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.camera_alt_rounded),
+                const AppIcon(HugeIcons.strokeRoundedCamera01),
                 const SizedBox(width: 12),
                 const Text(
                   'Start Scanning',
@@ -312,8 +314,8 @@ class _CvCameraCaptureScreenState extends State<CvCameraCaptureScreen>
                       onTap: () => _removeImage(index),
                       child: const Padding(
                         padding: EdgeInsets.all(8.0),
-                        child: Icon(
-                          Icons.delete_outline_rounded,
+                        child: AppIcon(
+                          HugeIcons.strokeRoundedDelete02,
                           color: Colors.white,
                           size: 20,
                         ),
@@ -369,7 +371,7 @@ class _CvCameraCaptureScreenState extends State<CvCameraCaptureScreen>
                   ),
                   foregroundColor: colors.primary,
                 ),
-                icon: const Icon(Icons.add_a_photo_rounded),
+                icon: const AppIcon(HugeIcons.strokeRoundedCameraAdd01),
                 label: const Text(
                   'Add Page',
                   style: TextStyle(fontWeight: FontWeight.w600),
@@ -389,7 +391,7 @@ class _CvCameraCaptureScreenState extends State<CvCameraCaptureScreen>
                     borderRadius: BorderRadius.circular(22),
                   ),
                 ),
-                icon: const Icon(Icons.auto_awesome_rounded),
+                icon: const AppIcon(HugeIcons.strokeRoundedSparkles),
                 label: const Text(
                   'Process CV',
                   style: TextStyle(fontWeight: FontWeight.bold),

@@ -1,6 +1,7 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
+import 'package:zennyt/shared/icons/app_icons.dart';
 import 'package:intl/intl.dart';
 import '../../domain/entities/chat.dart';
 import '../../../../core/constants.dart';
@@ -104,11 +105,10 @@ class ChatListItem extends StatelessWidget {
                                 ),
                                 child: Row(
                                   children: [
-                                    Image.asset(
-                                      'assets/images/star.png',
-                                      width: 15,
-                                      height: 15,
-                                      fit: BoxFit.contain,
+                                    const AppIcon(
+                                      AppIcons.starFilled,
+                                      size: 15,
+                                      color: Color(0xFF4C96E6),
                                     ),
                                     const SizedBox(width: 5),
                                     Text(

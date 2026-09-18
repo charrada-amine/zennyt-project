@@ -4,7 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+
 import 'package:zennyt/core/constants.dart';
 import 'package:zennyt/l10n/gen/app_localizations.dart';
 import 'package:zennyt/core/utils/link_extractor.dart';
@@ -21,6 +21,8 @@ import '../../../notifications/domain/entities/app_notification.dart';
 import '../../../notifications/presentation/providers/notification_providers.dart';
 import '../providers/home_providers.dart';
 import 'poll_post_widget.dart';
+
+import 'package:zennyt/shared/icons/app_icons.dart';
 
 class PostCard extends ConsumerStatefulWidget {
   final Post post;
@@ -183,7 +185,7 @@ class _PostCardState extends ConsumerState<PostCard> with SingleTickerProviderSt
               height: 200,
               color: context.colors.mediaErrorBg,
               child: Center(
-                  child: Icon(Icons.image, color: context.colors.textMuted)),
+                  child: AppIcon(HugeIcons.strokeRoundedImage01, color: context.colors.textMuted)),
             ),
             placeholder: (context, url) => const SizedBox(
               height: 200,
@@ -198,7 +200,7 @@ class _PostCardState extends ConsumerState<PostCard> with SingleTickerProviderSt
             height: 200,
             color: Colors.black12,
             child: const Center(
-              child: Icon(Icons.play_circle_fill, size: 50, color: Colors.white),
+              child: AppIcon(HugeIcons.strokeRoundedPlayCircle, size: 50, color: Colors.white),
             ),
           ),
         );
@@ -212,7 +214,7 @@ class _PostCardState extends ConsumerState<PostCard> with SingleTickerProviderSt
           ),
           child: Row(
             children: [
-              Icon(Icons.insert_drive_file, color: context.colors.textSecondary),
+              AppIcon(HugeIcons.strokeRoundedFile01, color: context.colors.textSecondary),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -222,7 +224,7 @@ class _PostCardState extends ConsumerState<PostCard> with SingleTickerProviderSt
                 ),
               ),
               const SizedBox(width: 8),
-              Icon(Icons.download, color: context.colors.textSecondary),
+              AppIcon(HugeIcons.strokeRoundedDownload01, color: context.colors.textSecondary),
             ],
           ),
         );
@@ -379,8 +381,8 @@ class _PostCardState extends ConsumerState<PostCard> with SingleTickerProviderSt
                     const SizedBox(height: 2),
                     Row(
                       children: [
-                        Icon(
-                          Icons.schedule_rounded,
+                        AppIcon(
+                          HugeIcons.strokeRoundedClock01,
                           size: 14,
                           color: colors.textMuted,
                         ),
@@ -395,8 +397,8 @@ class _PostCardState extends ConsumerState<PostCard> with SingleTickerProviderSt
                 ),
               ),
               PopupMenuButton<String>(
-                icon: Icon(
-                  Icons.more_horiz_rounded,
+                icon: AppIcon(
+                  HugeIcons.strokeRoundedMoreHorizontal,
                   color: colors.textMuted,
                 ),
                 color: colors.cardSurface,
@@ -409,8 +411,8 @@ class _PostCardState extends ConsumerState<PostCard> with SingleTickerProviderSt
                     onTap: blockAuthor,
                     child: Row(
                       children: [
-                        Image.asset('assets/images/block.png',
-                            width: 16, height: 16),
+                        const AppIcon(HugeIcons.strokeRoundedBlocked,
+                            size: 16, color: Color(0xFF214389)),
                         const SizedBox(width: 12),
                         Text(l10n.block,
                             style: TextStyle(
@@ -422,7 +424,7 @@ class _PostCardState extends ConsumerState<PostCard> with SingleTickerProviderSt
                     onTap: hidePost,
                     child: Row(
                       children: [
-                        FaIcon(FontAwesomeIcons.eyeSlash,
+                        AppIcon(HugeIcons.strokeRoundedViewOff,
                             color: colors.textMuted, size: 14),
                         const SizedBox(width: 12),
                         Text(l10n.hide,
@@ -473,10 +475,10 @@ class _PostCardState extends ConsumerState<PostCard> with SingleTickerProviderSt
                     onTap: toggleLike,
                     child: Padding(
                       padding: const EdgeInsets.all(8.0),
-                      child: FaIcon(
+                      child: AppIcon(
                         _isLiked
-                            ? FontAwesomeIcons.solidThumbsUp
-                            : FontAwesomeIcons.thumbsUp,
+                            ? AppIcons.thumbsUpFilled
+                            : HugeIcons.strokeRoundedThumbsUp,
                         color: _isLiked ? context.colors.linkColor : colors.textMuted,
                         size: 20,
                       ),
@@ -492,8 +494,8 @@ class _PostCardState extends ConsumerState<PostCard> with SingleTickerProviderSt
                   onTap: _openCommentsSheet,
                   child: Padding(
                     padding: const EdgeInsets.all(8.0),
-                    child: FaIcon(
-                      FontAwesomeIcons.commentDots,
+                    child: AppIcon(
+                      HugeIcons.strokeRoundedComment01,
                       color: colors.textMuted,
                       size: 20,
                     ),
@@ -508,8 +510,8 @@ class _PostCardState extends ConsumerState<PostCard> with SingleTickerProviderSt
                   onTap: () {},
                   child: Padding(
                     padding: const EdgeInsets.all(8.0),
-                    child: FaIcon(
-                      FontAwesomeIcons.share,
+                    child: AppIcon(
+                      HugeIcons.strokeRoundedShare01,
                       color: colors.textMuted,
                       size: 20,
                     ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zennyt/shared/icons/app_icons.dart';
 
 import 'package:zennyt/features/jobs/domain/entities/job.dart';
 
@@ -41,6 +42,7 @@ Future<void> showJobSalaryDialog(
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
+                icon: const AppIcon(HugeIcons.strokeRoundedArrowDown01, size: 20),
                 initialValue: selectedCurrency,
                 decoration: const InputDecoration(labelText: 'Currency'),
                 items: [

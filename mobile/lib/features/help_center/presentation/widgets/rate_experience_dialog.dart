@@ -1,10 +1,12 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+
 import 'package:zennyt/l10n/gen/app_localizations.dart';
 import '../../../../core/constants.dart';
 import '../../domain/entities/help_chat.dart';
+
+import 'package:zennyt/shared/icons/app_icons.dart';
 
 class RateExperienceDialog extends StatelessWidget {
   /// Emet un jeton stable, pas le libelle affiche : celui-ci est traduit, et envoyer
@@ -58,8 +60,8 @@ class RateExperienceDialog extends StatelessWidget {
                     color: Colors.white.withOpacity(0.6),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(
-                    Icons.close,
+                  child: AppIcon(
+                    HugeIcons.strokeRoundedCancel01,
                     size: 16,
                     color: context.colors.textMuted,
                   ),
@@ -73,17 +75,17 @@ class RateExperienceDialog extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               _buildRatingOption(
-                icon: FontAwesomeIcons.thumbsDown,
+                icon: HugeIcons.strokeRoundedThumbsDown,
                 label: l10n.poor,
                 rating: HelpChatRating.poor,
               ),
               _buildRatingOption(
-                icon: FontAwesomeIcons.thumbsUp,
+                icon: HugeIcons.strokeRoundedThumbsUp,
                 label: l10n.ok,
                 rating: HelpChatRating.ok,
               ),
               _buildRatingOption(
-                icon: FontAwesomeIcons.solidThumbsUp,
+                icon: AppIcons.thumbsUpFilled,
                 label: l10n.great,
                 rating: HelpChatRating.great,
               ),
@@ -95,7 +97,7 @@ class RateExperienceDialog extends StatelessWidget {
   }
 
   Widget _buildRatingOption({
-    required FaIconData icon,
+    required AppIconData icon,
     required String label,
     required HelpChatRating rating,
   }) {
@@ -112,7 +114,7 @@ class RateExperienceDialog extends StatelessWidget {
               border: Border.all(color: Colors.grey[200]!),
             ),
             child: Center(
-              child: FaIcon(
+              child: AppIcon(
                 icon,
                 size: 24,
                 color: AppColors.chipSelected,

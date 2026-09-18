@@ -4,6 +4,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/theme/theme.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// Full-screen in-app PDF viewer with download option.
 ///
 /// Uses `pdfrx` to render the PDF from a network URL directly inside the app.
@@ -31,7 +33,7 @@ class _CvViewerScreenState extends State<CvViewerScreen> {
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
-          icon: Icon(Icons.arrow_back_rounded, color: colors.textPrimary),
+          icon: AppIcon(HugeIcons.strokeRoundedArrowLeft02, color: colors.textPrimary),
         ),
         title: Text(
           'My CV',
@@ -62,8 +64,8 @@ class _CvViewerScreenState extends State<CvViewerScreen> {
                   );
               }
             },
-            icon: Icon(
-              Icons.download_rounded,
+            icon: AppIcon(
+              HugeIcons.strokeRoundedDownload01,
               color: colors.primary,
             ),
             tooltip: 'Download CV',
@@ -137,8 +139,8 @@ class _CvViewerScreenState extends State<CvViewerScreen> {
                             color: colors.error.withValues(alpha: 0.1),
                             shape: BoxShape.circle,
                           ),
-                          child: Icon(
-                            Icons.picture_as_pdf_rounded,
+                          child: AppIcon(
+                            HugeIcons.strokeRoundedPdf01,
                             color: colors.error,
                             size: 32,
                           ),
@@ -170,7 +172,7 @@ class _CvViewerScreenState extends State<CvViewerScreen> {
                               );
                             } catch (_) {}
                           },
-                          icon: const Icon(Icons.download_rounded, size: 20),
+                          icon: const AppIcon(HugeIcons.strokeRoundedDownload01, size: 20),
                           label: const Text('Download CV'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: colors.primary,

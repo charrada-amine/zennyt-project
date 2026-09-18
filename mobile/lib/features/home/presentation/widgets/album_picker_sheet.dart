@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:zennyt/core/constants.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class AlbumPickerSheet {
   static Future<void> show(
     BuildContext context, {
@@ -50,8 +52,8 @@ class AlbumPickerSheet {
                         ),
                       ),
                       trailing: isSelected
-                          ? const Icon(
-                              Icons.check,
+                          ? const AppIcon(
+                              HugeIcons.strokeRoundedTick02,
                               color: AppColors.primaryBlue,
                             )
                           : null,

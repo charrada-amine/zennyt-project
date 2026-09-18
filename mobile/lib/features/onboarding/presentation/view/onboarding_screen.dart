@@ -14,6 +14,8 @@ import '../../../../core/audio/sound_service.dart';
 import '../../domain/entities/onboarding_page.dart';
 import '../viewmodel/onboarding_viewmodel.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// Brand phrase rendered bold inside the welcome title; identical in every
 /// language so the highlight logic stays language-agnostic.
 const String _brandHighlight = 'Zennyt Careers';
@@ -198,7 +200,7 @@ class _OnboardingBackground extends StatelessWidget {
           ), // Using standard grey for placeholder
           errorWidget: (context, url, error) => const ColoredBox(
             color: AppColors.primaryDeep,
-            child: Icon(Icons.image_outlined, color: Colors.white, size: 48),
+            child: AppIcon(HugeIcons.strokeRoundedImage01, color: Colors.white, size: 48),
           ),
         ),
         // Subtle gradient so the white logo stays legible over bright photos.
@@ -274,7 +276,7 @@ class _OnboardingCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.xl),
           PrimaryButton(
             label: isLastPage ? context.l10n.getStarted : context.l10n.next,
-            icon: Icons.arrow_forward_rounded,
+            icon: HugeIcons.strokeRoundedArrowRight02,
             backgroundColor: context.colors.accent,
             onPressed: onNext,
           ),

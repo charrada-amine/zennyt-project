@@ -8,6 +8,8 @@ import '../../../../core/audio/sound_service.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class ZennytGamePalette {
   ZennytGamePalette._();
 
@@ -214,14 +216,14 @@ class GameWelcomePage extends StatelessWidget {
 }
 
 enum GameDirection {
-  up(Icons.arrow_upward, 'haut', 'Up'),
-  right(Icons.arrow_forward, 'droite', 'Right'),
-  down(Icons.arrow_downward, 'bas', 'Down'),
-  left(Icons.arrow_back, 'gauche', 'Left');
+  up(HugeIcons.strokeRoundedArrowUp02, 'haut', 'Up'),
+  right(HugeIcons.strokeRoundedArrowRight02, 'droite', 'Right'),
+  down(HugeIcons.strokeRoundedArrowDown02, 'bas', 'Down'),
+  left(HugeIcons.strokeRoundedArrowLeft02, 'gauche', 'Left');
 
   const GameDirection(this.icon, this.label, this.shortLabel);
 
-  final IconData icon;
+  final AppIconData icon;
 
   /// Libellé français, utilisé par les annonces d'accessibilité
   /// (« Répondre droite »).
@@ -245,7 +247,7 @@ class GamePrimaryButton extends StatelessWidget {
 
   final String label;
   final VoidCallback? onPressed;
-  final IconData? icon;
+  final AppIconData? icon;
   final Color color;
 
   /// Couleur du libellé. Blanc par défaut ; à fixer quand [color] est clair
@@ -264,7 +266,7 @@ class GamePrimaryButton extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: AppSpacing.iconMd),
+              AppIcon(icon, size: AppSpacing.iconMd),
               const SizedBox(width: AppSpacing.sm),
               // Le libellé doit pouvoir se rétrécir : à sa largeur naturelle,
               // icône + texte dépassaient le bouton (débordement observé de
@@ -316,7 +318,7 @@ class GameOutlineButton extends StatelessWidget {
 
   final String label;
   final VoidCallback? onPressed;
-  final IconData? icon;
+  final AppIconData? icon;
   final Color color;
 
   @override
@@ -328,7 +330,7 @@ class GameOutlineButton extends StatelessWidget {
               SoundService.instance.playSfx(GameSfx.buttonClick);
               onPressed!();
             },
-      icon: icon == null ? const SizedBox.shrink() : Icon(icon),
+      icon: icon == null ? const SizedBox.shrink() : AppIcon(icon),
       label: Text(label),
       style: OutlinedButton.styleFrom(
         foregroundColor: color,
@@ -468,7 +470,7 @@ class GameHud extends StatelessWidget {
                       borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
                     ),
                   ),
-                  icon: Icon(affordance.icon),
+                  icon: AppIcon(affordance.icon),
                 ),
               ),
             ),
@@ -949,7 +951,7 @@ class _DirectionButton extends StatelessWidget {
                 // La flèche rétrécit (34 → 26) pour dégager la place du
                 // libellé sans agrandir le bouton : la croix directionnelle
                 // garde exactement l'encombrement de la maquette.
-                Icon(direction.icon, size: size * 0.36, color: iconColor),
+                AppIcon(direction.icon, size: size * 0.36, color: iconColor),
                 const SizedBox(height: 2),
                 // Libellé demandé sous chaque bouton, volontairement petit :
                 // il nomme l'action sans concurrencer la flèche.
@@ -1712,14 +1714,14 @@ class GamePauseAllowance {
 /// sortie volontaire reste offerte, avec sa confirmation.
 enum GameMenuAffordance {
   pause(
-    icon: Icons.pause_rounded,
+    icon: HugeIcons.strokeRoundedPause,
     tooltip: 'Pause',
     semanticsLabel: 'Pause the mission',
   ),
   exit(
     // Même icône que le titre de [GameExitConfirmDialog] : le bouton annonce
     // exactement la boîte qu'il ouvre.
-    icon: Icons.logout_rounded,
+    icon: HugeIcons.strokeRoundedLogout01,
     tooltip: 'Exit mission',
     semanticsLabel: 'Exit the mission',
   );
@@ -1730,7 +1732,7 @@ enum GameMenuAffordance {
     required this.semanticsLabel,
   });
 
-  final IconData icon;
+  final AppIconData icon;
   final String tooltip;
   final String semanticsLabel;
 
@@ -1821,7 +1823,7 @@ class _GamePauseCountdownState extends State<_GamePauseCountdown> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.timer_outlined, size: 18, color: color),
+          AppIcon(HugeIcons.strokeRoundedTimer02, size: 18, color: color),
           const SizedBox(width: AppSpacing.xs),
           // Texte agrandi sur petit écran : le libellé rétrécit plutôt que de
           // déborder de la pastille.
@@ -1888,8 +1890,8 @@ class GameExitConfirmDialog extends StatelessWidget {
                 color: ZennytGamePalette.magenta.withValues(alpha: 0.10),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.logout_rounded,
+              child: const AppIcon(
+                HugeIcons.strokeRoundedLogout01,
                 color: ZennytGamePalette.magenta,
               ),
             ),
@@ -1959,14 +1961,14 @@ Future<T?> showGamePauseMenu<T>(
 /// Nature d'une action du menu pause : elle fixe son icône et son style, pour
 /// qu'une même action se présente de la même façon dans tous les jeux.
 enum GamePauseActionKind {
-  resume(Icons.play_arrow_rounded),
-  restart(Icons.replay_rounded),
-  rules(Icons.help_outline_rounded),
-  exit(Icons.logout_rounded);
+  resume(HugeIcons.strokeRoundedPlay),
+  restart(HugeIcons.strokeRoundedReload),
+  rules(HugeIcons.strokeRoundedHelpCircle),
+  exit(HugeIcons.strokeRoundedLogout01);
 
   const GamePauseActionKind(this.icon);
 
-  final IconData icon;
+  final AppIconData icon;
 }
 
 /// Une action du menu pause. Le jeu ne fournit que le libellé et le geste ; le
@@ -2398,7 +2400,7 @@ class GamePauseExitButton extends StatelessWidget {
 
   final String label;
   final VoidCallback onPressed;
-  final IconData? icon;
+  final AppIconData? icon;
 
   @override
   Widget build(BuildContext context) {
@@ -2421,7 +2423,7 @@ class GamePauseExitButton extends StatelessWidget {
           ),
           textStyle: AppTypography.buttonMedium.copyWith(letterSpacing: 0),
         ),
-        icon: icon == null ? const SizedBox.shrink() : Icon(icon),
+        icon: icon == null ? const SizedBox.shrink() : AppIcon(icon),
         label: Text(label),
       ),
     );

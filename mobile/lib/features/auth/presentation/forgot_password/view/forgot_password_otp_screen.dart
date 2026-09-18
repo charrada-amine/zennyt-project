@@ -14,6 +14,8 @@ import '../../../../../shared/widgets/language_toggle.dart';
 import '../../widgets/auth_desktop_shell.dart';
 import '../../auth_providers.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class ForgotPasswordOtpScreen extends ConsumerStatefulWidget {
   const ForgotPasswordOtpScreen({super.key, required this.email});
 
@@ -125,8 +127,8 @@ class _ForgotPasswordOtpScreenState
                 color: const Color(0xFF4CAF50).withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.check_circle_outline_rounded,
+              child: const AppIcon(
+                HugeIcons.strokeRoundedCheckmarkCircle02,
                 color: Color(0xFF4CAF50),
                 size: 36,
               ),
@@ -204,8 +206,8 @@ class _ForgotPasswordOtpScreenState
             color: colors.primary.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
-          child: Icon(
-            Icons.lock_outline_rounded,
+          child: AppIcon(
+            HugeIcons.strokeRoundedLockKey,
             color: colors.primary,
             size: 36,
           ),
@@ -266,7 +268,7 @@ class _ForgotPasswordOtpScreenState
           controller: _newPasswordController,
           obscureText: true,
           textInputAction: TextInputAction.next,
-          prefixIcon: Icons.lock_outline_rounded,
+          prefixIcon: HugeIcons.strokeRoundedLockKey,
         ),
         const SizedBox(height: AppSpacing.base),
 
@@ -276,7 +278,7 @@ class _ForgotPasswordOtpScreenState
           controller: _confirmPasswordController,
           obscureText: true,
           textInputAction: TextInputAction.done,
-          prefixIcon: Icons.lock_outline_rounded,
+          prefixIcon: HugeIcons.strokeRoundedLockKey,
           onSubmitted: (_) => _resetPassword(),
         ),
 
@@ -284,8 +286,8 @@ class _ForgotPasswordOtpScreenState
           const SizedBox(height: AppSpacing.sm),
           Row(
             children: [
-              Icon(
-                Icons.error_outline_rounded,
+              AppIcon(
+                HugeIcons.strokeRoundedAlertCircle,
                 size: 16,
                 color: colors.error,
               ),

@@ -5,6 +5,8 @@ import '../../../../core/audio/sound_service.dart';
 import '../../../../core/theme/app_spacing.dart';
 import 'game_system_components.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// Composants partagés par les deux jeux de décision comportementale (BART et
 /// IST), d'après les planches concept « BART · Concept » et « IST · Concept ».
 ///
@@ -82,7 +84,7 @@ class DecisionGameCover extends StatelessWidget {
               Align(
                 alignment: Alignment.centerLeft,
                 child: _SquareIconButton(
-                  icon: Icons.chevron_left_rounded,
+                  icon: HugeIcons.strokeRoundedArrowLeft01,
                   tooltip: 'Retour',
                   onPressed: onBack,
                   outlined: true,
@@ -179,7 +181,7 @@ class DecisionCoverTile extends StatelessWidget {
     this.value,
   });
 
-  final IconData icon;
+  final AppIconData icon;
   final String label;
   final String? value;
 
@@ -215,7 +217,7 @@ class DecisionCoverTile extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.xs),
-          Icon(icon, color: ZennytGamePalette.gameBlue, size: 30),
+          AppIcon(icon, color: ZennytGamePalette.gameBlue, size: 30),
         ],
       ),
     );
@@ -244,7 +246,7 @@ class DecisionTrialHeader extends StatelessWidget {
         Row(
           children: [
             _SquareIconButton(
-              icon: Icons.pause_rounded,
+              icon: HugeIcons.strokeRoundedPause,
               tooltip: 'Pause',
               onPressed: onPause,
             ),
@@ -421,7 +423,7 @@ class _SquareIconButton extends StatelessWidget {
     this.outlined = false,
   });
 
-  final IconData icon;
+  final AppIconData icon;
   final String tooltip;
   final VoidCallback onPressed;
   final bool outlined;
@@ -447,7 +449,7 @@ class _SquareIconButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
           ),
         ),
-        icon: Icon(icon, size: 30),
+        icon: AppIcon(icon, size: 30),
       ),
     );
   }

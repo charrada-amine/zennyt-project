@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+
 import 'package:go_router/go_router.dart';
 
 import '../../../../../core/localization/l10n_extension.dart';
@@ -17,6 +17,8 @@ import '../../../../../l10n/gen/app_localizations.dart';
 import '../../../../../core/theme/theme.dart';
 import '../../widgets/auth_desktop_shell.dart';
 import '../viewmodel/login_viewmodel.dart';
+
+import 'package:zennyt/shared/icons/app_icons.dart';
 
 /// Resolves a [LoginError] code to localized, user-facing text.
 String loginErrorText(AppLocalizations l10n, LoginError error) {
@@ -106,7 +108,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           keyboardType: TextInputType.emailAddress,
           textInputAction: TextInputAction.next,
           status: emailStatus,
-          prefixIcon: Icons.mail_outline_rounded,
+          prefixIcon: HugeIcons.strokeRoundedMail01,
           onChanged: (_) => ref
               .read(loginViewModelProvider.notifier)
               .clearEmailError(),
@@ -135,7 +137,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               obscureText: true,
               textInputAction: TextInputAction.done,
               status: passwordStatus,
-              prefixIcon: Icons.lock_outline_rounded,
+              prefixIcon: HugeIcons.strokeRoundedLockKey,
               onChanged: (_) => ref
                   .read(loginViewModelProvider.notifier)
                   .clearPasswordError(),
@@ -177,8 +179,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         const _OrDivider(),
         const SizedBox(height: AppSpacing.lg),
         SocialLoginButton(
-          icon: const FaIcon(
-            FontAwesomeIcons.google,
+          icon: const AppIcon(
+            HugeIcons.strokeRoundedGoogle,
             size: 20,
             color: Color(0xFF4285F4),
           ),
@@ -187,8 +189,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ),
         const SizedBox(height: AppSpacing.md),
         SocialLoginButton(
-          icon: FaIcon(
-            FontAwesomeIcons.github,
+          icon: AppIcon(
+            HugeIcons.strokeRoundedGithub,
             size: 20,
             color: colors.iconDefault,
           ),
@@ -233,8 +235,8 @@ class _FieldErrorText extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(
-          Icons.error_outline_rounded,
+        AppIcon(
+          HugeIcons.strokeRoundedAlertCircle,
           size: AppSpacing.iconSm,
           color: colors.error,
         ),

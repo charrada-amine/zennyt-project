@@ -5,6 +5,8 @@ import 'package:file_selector/file_selector.dart';
 import '../../../../../core/router/app_routes.dart';
 import '../../../../../core/upload/cv_file_validation.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class CvSourceBottomSheet extends ConsumerWidget {
   final String? cvUrl;
 
@@ -48,13 +50,13 @@ class CvSourceBottomSheet extends ConsumerWidget {
           const SizedBox(height: 24),
           if (cvUrl == null || cvUrl!.isEmpty)
             ListTile(
-              leading: const Icon(Icons.description_outlined),
+              leading: const AppIcon(HugeIcons.strokeRoundedFile02),
               title: const Text('Upload Document'),
               subtitle: const Text('PDF, PNG, JPG (Max 5MB)'),
               onTap: () => _pickFile(context),
             ),
           ListTile(
-            leading: const Icon(Icons.camera_alt_outlined),
+            leading: const AppIcon(HugeIcons.strokeRoundedCamera01),
             title: const Text('Scan with Camera'),
             subtitle: const Text('Take photos of your CV pages'),
             onTap: () {
@@ -64,8 +66,8 @@ class CvSourceBottomSheet extends ConsumerWidget {
           ),
           if (cvUrl != null && cvUrl!.isNotEmpty) ...[
             ListTile(
-              leading: const Icon(
-                Icons.cloud_done_outlined,
+              leading: const AppIcon(
+                HugeIcons.strokeRoundedCloudSavingDone01,
                 color: Colors.blue,
               ),
               title: const Text('Use Saved CV'),

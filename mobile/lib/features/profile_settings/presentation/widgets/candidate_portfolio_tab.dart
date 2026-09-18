@@ -7,6 +7,8 @@ import '../../../../core/router/app_routes.dart';
 import '../../../../core/utils/responsive.dart';
 import '../viewmodel/candidate_profile_viewmodel.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class CandidatePortfolioTab extends ConsumerWidget {
   const CandidatePortfolioTab({super.key});
 
@@ -49,8 +51,8 @@ class CandidatePortfolioTab extends ConsumerWidget {
                   shape: BoxShape.circle,
                   color: colors.primary.withValues(alpha: 0.08),
                 ),
-                child: Icon(
-                  Icons.photo_library_outlined,
+                child: AppIcon(
+                  HugeIcons.strokeRoundedAlbum02,
                   size: 32,
                   color: colors.primary.withValues(alpha: 0.6),
                 ),
@@ -101,7 +103,7 @@ class CandidatePortfolioTab extends ConsumerWidget {
                 const Spacer(),
                 IconButton(
                   onPressed: () => context.push(AppRoutes.sharePost),
-                  icon: Icon(Icons.add, color: colors.textSecondary),
+                  icon: AppIcon(HugeIcons.strokeRoundedAdd01, color: colors.textSecondary),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                 ),
@@ -160,7 +162,7 @@ class _PortfolioCard extends StatelessWidget {
                 ),
               ),
               PopupMenuButton<String>(
-                icon: Icon(Icons.more_vert, color: colors.textSecondary),
+                icon: AppIcon(HugeIcons.strokeRoundedMoreVertical, color: colors.textSecondary),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -175,8 +177,8 @@ class _PortfolioCard extends StatelessWidget {
                     value: 'delete',
                     child: Row(
                       children: [
-                        Icon(
-                          Icons.delete_outline,
+                        AppIcon(
+                          HugeIcons.strokeRoundedDelete02,
                           color: colors.error,
                           size: 20,
                         ),
@@ -194,8 +196,8 @@ class _PortfolioCard extends StatelessWidget {
                     value: 'share',
                     child: Row(
                       children: [
-                        Icon(
-                          Icons.share_outlined,
+                        AppIcon(
+                          HugeIcons.strokeRoundedShare01,
                           color: colors.primary,
                           size: 20,
                         ),

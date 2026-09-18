@@ -19,6 +19,8 @@ import '../widgets/game_system_components.dart';
 import '../widgets/je_decide_tutorial.dart';
 import '../widgets/zennyt_loader.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 const _ink = Color(0xFF28234F);
 const _muted = Color(0xFF7E8DB2);
 const _border = Color(0xFFD8E2F6);
@@ -360,7 +362,7 @@ class _DecisionHeader extends StatelessWidget {
           _HeaderButton(
             tooltip: 'Back',
             onPressed: onBack,
-            icon: Icons.chevron_left_rounded,
+            icon: HugeIcons.strokeRoundedArrowLeft01,
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -416,7 +418,7 @@ class _HeaderMoreButton extends StatelessWidget {
           SoundService.instance.playSfx(GameSfx.buttonClick);
           onPressed();
         },
-        icon: const Icon(Icons.more_horiz_rounded, color: _ink, size: 28),
+        icon: const AppIcon(HugeIcons.strokeRoundedMoreHorizontal, color: _ink, size: 28),
         style: IconButton.styleFrom(
           fixedSize: const Size(48, 48),
           backgroundColor: Colors.white,
@@ -439,7 +441,7 @@ class _HeaderButton extends StatelessWidget {
 
   final String tooltip;
   final VoidCallback onPressed;
-  final IconData icon;
+  final AppIconData icon;
 
   @override
   Widget build(BuildContext context) {
@@ -455,7 +457,7 @@ class _HeaderButton extends StatelessWidget {
           SoundService.instance.playSfx(GameSfx.buttonClick);
           onPressed();
         },
-        icon: Icon(icon, color: _ink, size: 28),
+        icon: AppIcon(icon, color: _ink, size: 28),
         style: IconButton.styleFrom(
           fixedSize: const Size(48, 48),
           backgroundColor: Colors.white,
@@ -497,7 +499,7 @@ class _SelectedMark extends StatelessWidget {
       width: 28,
       height: 28,
       decoration: const BoxDecoration(color: _magenta, shape: BoxShape.circle),
-      child: const Icon(Icons.check_rounded, color: Colors.white, size: 19),
+      child: const AppIcon(HugeIcons.strokeRoundedTick02, color: Colors.white, size: 19),
     );
   }
 }
@@ -778,7 +780,7 @@ class _DecisionLoadingView extends StatelessWidget {
           ),
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.cloud_off_rounded, size: 56, color: _muted),
+            const AppIcon(HugeIcons.strokeRoundedCloudSlowWind, size: 56, color: _muted),
             const SizedBox(height: 16),
             Text(
               submittingResult ? 'Score unavailable' : 'Journey unavailable',

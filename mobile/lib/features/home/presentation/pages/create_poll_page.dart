@@ -1,12 +1,13 @@
 // ignore_for_file: deprecated_member_use
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:zennyt/core/constants.dart';
 import 'package:zennyt/l10n/gen/app_localizations.dart';
 import '../providers/poll_provider.dart';
+
+import 'package:zennyt/shared/icons/app_icons.dart';
 
 class CreatePollPage extends ConsumerStatefulWidget {
   const CreatePollPage({super.key});
@@ -177,10 +178,8 @@ class _CreatePollPageState extends ConsumerState<CreatePollPage> {
                                 if (_optionControllers.length > 2)
                                   GestureDetector(
                                     onTap: () => _removeOption(index),
-                                    child: Icon(
-                                      AppConstants.isCupertino
-                                          ? CupertinoIcons.xmark_circle_fill
-                                          : Icons.cancel,
+                                    child: AppIcon(
+                                      HugeIcons.strokeRoundedCancelCircle,
                                       color: context.colors.textMuted,
                                       size: 20,
                                     ),
@@ -246,8 +245,8 @@ class _CreatePollPageState extends ConsumerState<CreatePollPage> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(
-                                Icons.add,
+                              const AppIcon(
+                                HugeIcons.strokeRoundedAdd01,
                                 color: AppColors.iconColor,
                                 size: 20,
                               ),
@@ -289,10 +288,8 @@ class _CreatePollPageState extends ConsumerState<CreatePollPage> {
                         child: DropdownButton<String>(
                           value: _selectedTimeframe,
                           isExpanded: true,
-                          icon: Icon(
-                            AppConstants.isCupertino
-                                ? CupertinoIcons.chevron_down
-                                : Icons.expand_more,
+                          icon: AppIcon(
+                            HugeIcons.strokeRoundedArrowDown01,
                             color: AppColors.iconColor,
                           ),
                           items: _timeframeValues.map((tf) {
@@ -350,8 +347,8 @@ class _CreatePollPageState extends ConsumerState<CreatePollPage> {
         children: [
           GestureDetector(
             onTap: () => context.pop(),
-            child: Icon(
-              AppConstants.isCupertino ? CupertinoIcons.xmark : Icons.close,
+            child: AppIcon(
+              HugeIcons.strokeRoundedCancel01,
               color: context.colors.textPrimary,
               size: 28,
             ),

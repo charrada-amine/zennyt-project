@@ -9,6 +9,8 @@ import '../../../../../shared/widgets/language_toggle.dart';
 import '../../../../../core/utils/responsive.dart';
 import '../../widgets/auth_desktop_shell.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class ForgotPasswordMethodScreen extends StatelessWidget {
   const ForgotPasswordMethodScreen({super.key});
 
@@ -41,7 +43,7 @@ class ForgotPasswordMethodScreen extends StatelessWidget {
 
         // Email option
         _ResetMethodCard(
-          icon: Icons.email_outlined,
+          icon: HugeIcons.strokeRoundedMail01,
           iconColor: colors.primary,
           title: l10n.resetViaEmail,
           subtitle: l10n.resetViaEmailDesc,
@@ -52,7 +54,7 @@ class ForgotPasswordMethodScreen extends StatelessWidget {
 
         // SMS option (Coming soon)
         _ResetMethodCard(
-          icon: Icons.sms_outlined,
+          icon: HugeIcons.strokeRoundedMessage02,
           iconColor: colors.textMuted,
           title: l10n.resetViaSms,
           subtitle: l10n.resetViaSmsDesc,
@@ -96,7 +98,7 @@ class _ResetMethodCard extends StatelessWidget {
     this.badge,
   });
 
-  final IconData icon;
+  final AppIconData icon;
   final Color iconColor;
   final String title;
   final String subtitle;
@@ -135,7 +137,7 @@ class _ResetMethodCard extends StatelessWidget {
                       color: iconColor.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(icon, color: iconColor, size: 26),
+                    child: AppIcon(icon, color: iconColor, size: 26),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -188,8 +190,8 @@ class _ResetMethodCard extends StatelessWidget {
                     ),
                   ),
                   if (enabled)
-                    Icon(
-                      Icons.arrow_forward_ios_rounded,
+                    AppIcon(
+                      HugeIcons.strokeRoundedArrowRight01,
                       color: colors.chevron,
                       size: 16,
                     ),

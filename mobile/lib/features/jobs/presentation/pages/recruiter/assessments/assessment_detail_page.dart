@@ -10,6 +10,8 @@ import 'widgets/assessment_question_card.dart';
 import 'widgets/assessment_shareable_link_card.dart';
 import 'widgets/assessment_stats_card.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class AssessmentDetailPage extends ConsumerWidget {
   final String assessmentId;
   const AssessmentDetailPage({super.key, required this.assessmentId});
@@ -62,7 +64,7 @@ class _AssessmentDetailBody extends ConsumerWidget {
                 width: 40,
                 height: 40,
                 decoration: kAppBarButtonDecoration(),
-                child: const Icon(Icons.delete_outline, color: Color(0xFFE53935), size: 20),
+                child: const AppIcon(HugeIcons.strokeRoundedDelete02, color: Color(0xFFE53935), size: 20),
               ),
             ),
             const SizedBox(width: 8),
@@ -79,7 +81,7 @@ class _AssessmentDetailBody extends ConsumerWidget {
                 width: 40,
                 height: 40,
                 decoration: kAppBarButtonDecoration(),
-                child: const Icon(Icons.edit_outlined, color: Color(0xFF21438A), size: 20),
+                child: const AppIcon(HugeIcons.strokeRoundedPencilEdit01, color: Color(0xFF21438A), size: 20),
               ),
             ),
           ],

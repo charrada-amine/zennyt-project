@@ -22,6 +22,8 @@ import '../widgets/emotional_radar_tutorial.dart';
 import '../widgets/zennyt_loader.dart';
 import 'emotional_radar_v2_gameplay.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// Étapes du parcours : Cover → Tutorial → Gameplay → Feedback → … → Results.
 enum _Stage {
   cover,
@@ -571,7 +573,7 @@ class _EmotionalRadarScreenState extends ConsumerState<EmotionalRadarScreen> {
                 label: _pauseAllowance.affordance.semanticsLabel,
                 child: IconButton(
                   onPressed: _openMenu,
-                  icon: Icon(
+                  icon: AppIcon(
                     _pauseAllowance.affordance.icon,
                     color: Colors.white,
                   ),
@@ -958,8 +960,8 @@ class _BackSquareButton extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: EmotionalRadarPalette.border),
             ),
-            child: const Icon(
-              Icons.chevron_left,
+            child: const AppIcon(
+              HugeIcons.strokeRoundedArrowLeft01,
               color: EmotionalRadarPalette.ink,
             ),
           ),
@@ -1163,8 +1165,8 @@ class _RadarProvisionalNotice extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Icon(
-          Icons.science_outlined,
+        const AppIcon(
+          HugeIcons.strokeRoundedTestTube,
           size: 18,
           color: ZennytGamePalette.muted,
         ),
@@ -1204,7 +1206,7 @@ class _ErrorView extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.cloud_off, size: 56, color: Colors.white70),
+              const AppIcon(HugeIcons.strokeRoundedCloudSlowWind, size: 56, color: Colors.white70),
               const SizedBox(height: 18),
               const Text(
                 'The scenes could not be loaded',

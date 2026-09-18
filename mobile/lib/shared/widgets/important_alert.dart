@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../l10n/gen/app_localizations.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class ImportantAlert extends StatelessWidget {
   final VoidCallback onClose;
 
@@ -32,7 +34,7 @@ class ImportantAlert extends StatelessWidget {
               ),
               GestureDetector(
                 onTap: onClose,
-                child: const Icon(Icons.close, color: Colors.grey, size: 20),
+                child: const AppIcon(HugeIcons.strokeRoundedCancel01, color: Colors.grey, size: 20),
               ),
             ],
           ),

@@ -5,6 +5,8 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import 'game_system_components.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// Modèle commun — et **unique** — des écrans de score final des jeux.
 ///
 /// Reprend à l'identique l'écran de « Je Bouge », retenu comme référence par
@@ -301,7 +303,7 @@ class GameResultInsightMeter extends StatelessWidget {
   final GameResultInsightBar bar;
   final bool compact;
   final String? valueLabel;
-  final IconData? icon;
+  final AppIconData? icon;
 
   @override
   Widget build(BuildContext context) {
@@ -347,7 +349,7 @@ class GameResultInsightMeter extends StatelessWidget {
                 Row(
                   children: [
                     if (icon != null) ...[
-                      Icon(icon, size: 22, color: bar.color),
+                      AppIcon(icon, size: 22, color: bar.color),
                       const SizedBox(width: 10),
                     ],
                     Expanded(child: label),
@@ -408,7 +410,7 @@ class GameResultsBackButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
           ),
         ),
-        icon: const Icon(Icons.chevron_left),
+        icon: const AppIcon(HugeIcons.strokeRoundedArrowLeft01),
       ),
     );
   }

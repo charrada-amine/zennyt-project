@@ -9,6 +9,8 @@ import 'package:zennyt/features/jobs/domain/entities/job.dart';
 import 'package:zennyt/features/jobs/presentation/providers/jobs_provider.dart';
 import 'package:zennyt/shared/widgets/custom_app_bar.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// Détail d'une offre d'emploi, partagé candidat / recruteur — remplace le
 /// placeholder `_NotYetPortedPage` (`AppRoutes.jobDetail`, REC-04 non porté).
 ///
@@ -73,7 +75,7 @@ class _JobOfferDetailBodyState extends ConsumerState<_JobOfferDetailBody>
               ? Row(
                   children: [
                     _IconButton(
-                      icon: Icons.bar_chart_rounded,
+                      icon: HugeIcons.strokeRoundedChartHistogram,
                       tooltip: 'Results',
                       onTap: () => context.pushNamed(
                         AppRoutes.nJobResults,
@@ -82,7 +84,7 @@ class _JobOfferDetailBodyState extends ConsumerState<_JobOfferDetailBody>
                     ),
                     const SizedBox(width: 8),
                     _IconButton(
-                      icon: Icons.edit_outlined,
+                      icon: HugeIcons.strokeRoundedPencilEdit01,
                       tooltip: 'Edit',
                       onTap: () async {
                         await context.pushNamed(
@@ -454,7 +456,7 @@ class _ResultBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(passed ? Icons.check_circle_rounded : Icons.cancel_rounded, color: color),
+          AppIcon(passed ? HugeIcons.strokeRoundedCheckmarkCircle02 : HugeIcons.strokeRoundedCancelCircle, color: color),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -498,7 +500,7 @@ class _Chip extends StatelessWidget {
 }
 
 class _IconButton extends StatelessWidget {
-  final IconData icon;
+  final AppIconData icon;
   final String tooltip;
   final VoidCallback onTap;
   const _IconButton({required this.icon, required this.tooltip, required this.onTap});
@@ -514,7 +516,7 @@ class _IconButton extends StatelessWidget {
           width: 40,
           height: 40,
           decoration: kAppBarButtonDecoration(),
-          child: Icon(icon, color: const Color(0xFF21438A), size: 20),
+          child: AppIcon(icon, color: const Color(0xFF21438A), size: 20),
         ),
       ),
     );
@@ -532,7 +534,7 @@ class _ErrorBody extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.cloud_off_rounded, color: Color(0xFFE53935), size: 32),
+          const AppIcon(HugeIcons.strokeRoundedCloudSlowWind, color: Color(0xFFE53935), size: 32),
           const SizedBox(height: 12),
           Text(message, style: const TextStyle(color: Color(0xFF64748B))),
           const SizedBox(height: 12),

@@ -7,6 +7,8 @@ import 'package:zennyt/features/jobs/domain/entities/assessment.dart';
 import 'package:zennyt/features/jobs/presentation/providers/jobs_provider.dart';
 import 'widgets/assessment_preview_sheet.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// Sélection d'un test à attacher à l'offre — porté depuis REC-04.
 class SelectAssessmentPage extends ConsumerStatefulWidget {
   final String? currentSelectedId;
@@ -75,7 +77,7 @@ class _SelectAssessmentPageState extends ConsumerState<SelectAssessmentPage> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.quiz_outlined, size: 48, color: Color(0xFF8A90A2)),
+                    AppIcon(HugeIcons.strokeRoundedQuiz01, size: 48, color: Color(0xFF8A90A2)),
                     SizedBox(height: 12),
                     Text('No tests available',
                         style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
@@ -208,8 +210,8 @@ class AssessmentGridCard extends StatelessWidget {
               top: 10,
               right: 10,
               child: isSelected
-                  ? const Icon(Icons.check_circle, color: Colors.white, size: 22)
-                  : Icon(Icons.visibility_outlined, color: elementColor, size: 20),
+                  ? const AppIcon(HugeIcons.strokeRoundedCheckmarkCircle02, color: Colors.white, size: 22)
+                  : AppIcon(HugeIcons.strokeRoundedView, color: elementColor, size: 20),
             ),
             Center(
               child: Padding(
@@ -217,7 +219,7 @@ class AssessmentGridCard extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.lightbulb_outline, color: elementColor, size: 34),
+                    AppIcon(HugeIcons.strokeRoundedIdea01, color: elementColor, size: 34),
                     const SizedBox(height: 12),
                     Text(
                       title,

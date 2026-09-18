@@ -1,7 +1,8 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:zennyt/core/constants.dart';
+
+import 'package:zennyt/shared/icons/app_icons.dart';
 
 class MediaGridTile extends StatelessWidget {
   final AssetEntity? asset;
@@ -27,10 +28,8 @@ class MediaGridTile extends StatelessWidget {
           if (isCamera)
             ColoredBox(
               color: AppColors.chipUnselected,
-              child: Icon(
-                AppConstants.isCupertino
-                    ? CupertinoIcons.camera
-                    : Icons.photo_camera_outlined,
+              child: AppIcon(
+                HugeIcons.strokeRoundedCamera01,
                 color: AppColors.primaryGrey,
                 size: 32,
               ),
@@ -42,8 +41,8 @@ class MediaGridTile extends StatelessWidget {
 
           if (!isCamera && asset?.type == AssetType.video)
             const Center(
-              child: Icon(
-                Icons.play_circle_outline,
+              child: AppIcon(
+                HugeIcons.strokeRoundedPlayCircle,
                 color: Colors.white,
                 size: 36,
               ),
@@ -74,7 +73,7 @@ class MediaGridTile extends StatelessWidget {
                   border: Border.all(color: Colors.white, width: 1.5),
                 ),
                 child: isSelected
-                    ? const Icon(Icons.check, size: 14, color: Colors.white)
+                    ? const AppIcon(HugeIcons.strokeRoundedTick02, size: 14, color: Colors.white)
                     : null,
               ),
             ),

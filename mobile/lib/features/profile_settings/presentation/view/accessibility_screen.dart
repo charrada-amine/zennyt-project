@@ -11,6 +11,8 @@ import '../../../../core/utils/responsive.dart';
 import '../../../auth/domain/entities/user_preferences.dart';
 import '../providers/preferences_provider.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class AccessibilityScreen extends ConsumerStatefulWidget {
   const AccessibilityScreen({super.key});
 
@@ -64,8 +66,8 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
                       colors,
                       label: l10n.language,
                       subtitle: currentLanguage,
-                      trailing: Icon(
-                        Icons.arrow_forward_ios_rounded,
+                      trailing: AppIcon(
+                        HugeIcons.strokeRoundedArrowRight01,
                         color: colors.chevron,
                         size: 16,
                       ),
@@ -132,7 +134,7 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
                               children: [
                                 _buildSliderButton(
                                   colors,
-                                  icon: Icons.remove,
+                                  icon: HugeIcons.strokeRoundedRemove01,
                                   onTap: () {
                                     if (a11y.textSizePx > 10) {
                                       ref
@@ -171,7 +173,7 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
                                 const SizedBox(width: 12),
                                 _buildSliderButton(
                                   colors,
-                                  icon: Icons.add,
+                                  icon: HugeIcons.strokeRoundedAdd01,
                                   onTap: () {
                                     if (a11y.textSizePx < 30) {
                                       ref
@@ -263,8 +265,8 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
           ),
           child: IconButton(
             onPressed: () => context.pop(),
-            icon: Icon(
-              Icons.arrow_back_ios_new_rounded,
+            icon: AppIcon(
+              HugeIcons.strokeRoundedArrowLeft01,
               color: colors.textPrimary,
               size: 18,
             ),
@@ -329,7 +331,7 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
 
   Widget _buildSliderButton(
     AppColorScheme colors, {
-    required IconData icon,
+    required AppIconData icon,
     required VoidCallback onTap,
   }) {
     return InkWell(
@@ -349,7 +351,7 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
             ),
           ],
         ),
-        child: Icon(icon, size: 16, color: colors.textPrimary),
+        child: AppIcon(icon, size: 16, color: colors.textPrimary),
       ),
     );
   }

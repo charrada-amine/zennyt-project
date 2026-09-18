@@ -20,6 +20,8 @@ import '../widgets/game_results_template.dart';
 import '../widgets/game_system_components.dart';
 import '../widgets/game_tutorial_deck.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// A difficulty level of the Predictive Puzzle. Difficulty scales purely by the
 /// number of discs: a standard Tower of Hanoi with `discCount` discs has a
 /// deterministic optimal of `2^discCount - 1` moves (7 → 15 → 31), so each extra
@@ -583,7 +585,7 @@ class _PredictivePuzzleScreenState
       ),
       _PuzzleStage.rule => PredictivePuzzleTutorial(
         leading: _SquareIconButton(
-          icon: Icons.chevron_left,
+          icon: HugeIcons.strokeRoundedArrowLeft01,
           onTap: () => setState(() => _stage = _PuzzleStage.intro),
         ),
         onComplete: _beginGame,
@@ -687,7 +689,7 @@ class _PredictiveIntroView extends StatelessWidget {
     contextText:
         'Prépare ton plan : la machine exécutera tes déplacements sans correction en cours de route.',
     journey: const ['Prépare', 'Planifie', 'Exécute'],
-    leading: _SquareIconButton(icon: Icons.chevron_left, onTap: onBack),
+    leading: _SquareIconButton(icon: HugeIcons.strokeRoundedArrowLeft01, onTap: onBack),
     startLabel: 'Start',
     onStart: onStart,
   );
@@ -764,8 +766,8 @@ class _GoldenRuleArt extends StatelessWidget {
                 Expanded(
                   child: Column(
                     children: [
-                      Icon(
-                        allowed ? Icons.check_circle : Icons.cancel,
+                      AppIcon(
+                        allowed ? HugeIcons.strokeRoundedCheckmarkCircle02 : HugeIcons.strokeRoundedCancelCircle,
                         color: allowed
                             ? ZennytGamePalette.success
                             : ZennytGamePalette.error,
@@ -926,7 +928,7 @@ class _PuzzleGameplayView extends StatelessWidget {
                       ),
                       padding: EdgeInsets.zero,
                     ),
-                    child: Icon(affordance.icon, color: Colors.white),
+                    child: AppIcon(affordance.icon, color: Colors.white),
                   ),
                 ),
               ),
@@ -1081,15 +1083,15 @@ class _PuzzleGameplayView extends StatelessWidget {
                     borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
                   ),
                 ),
-                icon: const Icon(Icons.undo_rounded),
+                icon: const AppIcon(HugeIcons.strokeRoundedUndo02),
               ),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: GamePrimaryButton(
                   label: targetReady ? 'Run Plan' : 'Add Move',
                   icon: targetReady
-                      ? Icons.play_arrow_rounded
-                      : Icons.add_rounded,
+                      ? HugeIcons.strokeRoundedPlay
+                      : HugeIcons.strokeRoundedAdd01,
                   color: ZennytGamePalette.success,
                   // « Run Plan » garde le clic générique ; « Add Move » ne joue
                   // que le son du disque déposé (géré dans _addMove).
@@ -1434,8 +1436,8 @@ class _QueuePlaceholder extends StatelessWidget {
               letterSpacing: 0,
             ),
           ),
-          Icon(
-            Icons.add_rounded,
+          AppIcon(
+            HugeIcons.strokeRoundedAdd01,
             color: Colors.white.withValues(alpha: 0.45),
             size: 18,
           ),
@@ -1566,7 +1568,7 @@ class _PredictiveComparisonView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SquareIconButton(icon: Icons.chevron_left, onTap: onBack),
+          _SquareIconButton(icon: HugeIcons.strokeRoundedArrowLeft01, onTap: onBack),
           Center(
             child: Column(
               children: [
@@ -1661,7 +1663,7 @@ class _PredictiveComparisonView extends StatelessWidget {
 class _SquareIconButton extends StatelessWidget {
   const _SquareIconButton({required this.icon, required this.onTap});
 
-  final IconData icon;
+  final AppIconData icon;
   final VoidCallback onTap;
 
   @override
@@ -1680,7 +1682,7 @@ class _SquareIconButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
             border: Border.all(color: ZennytGamePalette.border),
           ),
-          child: Icon(icon, color: ZennytGamePalette.ink, size: 24),
+          child: AppIcon(icon, color: ZennytGamePalette.ink, size: 24),
         ),
       ),
     );
@@ -1716,8 +1718,8 @@ class _SequencePreviewArt extends StatelessWidget {
             letterSpacing: 0,
           ),
         ),
-        const Icon(
-          Icons.arrow_downward_rounded,
+        const AppIcon(
+          HugeIcons.strokeRoundedArrowDown02,
           color: ZennytGamePalette.magenta,
           size: 26,
         ),
@@ -1725,8 +1727,8 @@ class _SequencePreviewArt extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.play_circle_fill_rounded,
+            const AppIcon(
+              HugeIcons.strokeRoundedPlayCircle,
               color: ZennytGamePalette.magenta,
               size: 28,
             ),

@@ -16,6 +16,8 @@ import '../widgets/call_action_button.dart';
 import '../widgets/call_control_button.dart';
 import '../../../../shared/widgets/important_alert.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class VideoCallPage extends ConsumerStatefulWidget {
   final String contactName;
   final String? conversationId;
@@ -607,7 +609,7 @@ class _VideoCallPageState extends ConsumerState<VideoCallPage> {
               child: const CircleAvatar(
                 radius: 16,
                 backgroundColor: Colors.white24,
-                child: Icon(Icons.info_outline, color: Colors.white, size: 20),
+                child: AppIcon(HugeIcons.strokeRoundedInformationCircle, color: Colors.white, size: 20),
               ),
             ),
           ),
@@ -643,15 +645,15 @@ class _VideoCallPageState extends ConsumerState<VideoCallPage> {
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         _EffectButton(
-                            icon: Icons.tag_faces,
+                            icon: HugeIcons.strokeRoundedHappy,
                             label: 'Filter 1',
                             onTap: () => _applyEffect('Filter 1')),
                         _EffectButton(
-                            icon: Icons.sentiment_satisfied,
+                            icon: HugeIcons.strokeRoundedHappy,
                             label: 'Filter 2',
                             onTap: () => _applyEffect('Filter 2')),
                         _EffectButton(
-                            icon: Icons.face,
+                            icon: HugeIcons.strokeRoundedHappy,
                             label: 'Filter 3',
                             onTap: () => _applyEffect('Filter 3')),
                       ],
@@ -708,8 +710,8 @@ class _VideoCallPageState extends ConsumerState<VideoCallPage> {
                         children: [
                           CallControlButton(
                             icon: AppConstants.isCupertino
-                                ? CupertinoIcons.dial
-                                : Icons.light_mode_outlined,
+                                ? HugeIcons.strokeRoundedDialpadSquare01
+                                : HugeIcons.strokeRoundedSun03,
                             label: l10n.effects,
                             onTap: () => ref
                                 .read(showEffectsProvider.notifier)
@@ -718,11 +720,11 @@ class _VideoCallPageState extends ConsumerState<VideoCallPage> {
                           CallControlButton(
                             icon: AppConstants.isCupertino
                                 ? (isMuted
-                                    ? CupertinoIcons.mic_slash_fill
-                                    : CupertinoIcons.mic_fill)
+                                    ? HugeIcons.strokeRoundedMicOff01
+                                    : HugeIcons.strokeRoundedMic01)
                                 : (isMuted
-                                    ? Icons.mic_off_outlined
-                                    : Icons.mic_none_outlined),
+                                    ? HugeIcons.strokeRoundedMicOff01
+                                    : HugeIcons.strokeRoundedMic01),
                             label: l10n.mute,
                             onTap: () {
                               final newMuted = !isMuted;
@@ -735,16 +737,14 @@ class _VideoCallPageState extends ConsumerState<VideoCallPage> {
                           ),
                           if (!isCameraOff && _isRendering)
                             CallControlButton(
-                              icon: AppConstants.isCupertino
-                                  ? CupertinoIcons.switch_camera_solid
-                                  : Icons.flip_camera_ios_outlined,
+                              icon: HugeIcons.strokeRoundedCameraRotated01,
                               label: l10n.flip,
                               onTap: _switchCamera,
                             ),
                           CallControlButton(
                             icon: AppConstants.isCupertino
-                                ? CupertinoIcons.xmark_circle_fill
-                                : Icons.close,
+                                ? HugeIcons.strokeRoundedCancelCircle
+                                : HugeIcons.strokeRoundedCancel01,
                             label: l10n.end,
                             backgroundColor: Colors.red,
                             onTap: _endCall,
@@ -765,22 +765,22 @@ class _VideoCallPageState extends ConsumerState<VideoCallPage> {
                                   ? Stack(
                                       alignment: Alignment.center,
                                       children: [
-                                        const Icon(
-                                            CupertinoIcons.video_camera_solid),
+                                        const AppIcon(
+                                            HugeIcons.strokeRoundedVideo01),
                                         Transform.rotate(
                                           angle: 0.785398,
-                                          child: const Icon(
-                                              CupertinoIcons.minus,
+                                          child: const AppIcon(
+                                              HugeIcons.strokeRoundedRemove01,
                                               size: 28,
                                               color: Colors.red),
                                         ),
                                       ],
                                     )
-                                  : const Icon(
-                                      CupertinoIcons.video_camera_solid))
+                                  : const AppIcon(
+                                      HugeIcons.strokeRoundedVideo01))
                               : (isCameraOff
-                                  ? const Icon(Icons.videocam_outlined)
-                                  : const Icon(Icons.videocam_off_outlined)),
+                                  ? const AppIcon(HugeIcons.strokeRoundedVideo01)
+                                  : const AppIcon(HugeIcons.strokeRoundedVideoOff)),
                           label: isCameraOff ? l10n.videoOn : l10n.cameraOff,
                           onTap: () async {
                             final turningOn = isCameraOff;
@@ -816,11 +816,11 @@ class _VideoCallPageState extends ConsumerState<VideoCallPage> {
                         CallActionButton(
                           icon: AppConstants.isCupertino
                               ? (isSpeakerOn
-                                  ? const Icon(CupertinoIcons.speaker_1_fill)
-                                  : const Icon(CupertinoIcons.speaker_3_fill))
+                                  ? const AppIcon(HugeIcons.strokeRoundedVolumeLow)
+                                  : const AppIcon(HugeIcons.strokeRoundedVolumeHigh))
                               : (isSpeakerOn
-                                  ? const Icon(Icons.volume_down_outlined)
-                                  : const Icon(Icons.volume_up_outlined)),
+                                  ? const AppIcon(HugeIcons.strokeRoundedVolumeLow)
+                                  : const AppIcon(HugeIcons.strokeRoundedVolumeHigh)),
                           label: isSpeakerOn ? l10n.earpiece : l10n.speaker,
                           onTap: () async {
                             final newVal = !isSpeakerOn;
@@ -849,7 +849,7 @@ class _VideoCallPageState extends ConsumerState<VideoCallPage> {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class _EffectButton extends StatelessWidget {
-  final IconData icon;
+  final AppIconData icon;
   final String label;
   final VoidCallback onTap;
 
@@ -867,7 +867,7 @@ class _EffectButton extends StatelessWidget {
         children: [
           CircleAvatar(
             backgroundColor: Colors.grey[200],
-            child: Icon(icon, color: Colors.black87),
+            child: AppIcon(icon, color: Colors.black87),
           ),
           const SizedBox(height: 8),
           Text(label,

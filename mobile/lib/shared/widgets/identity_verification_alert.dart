@@ -3,6 +3,8 @@
 import 'package:flutter/material.dart';
 import '../../l10n/gen/app_localizations.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 class IdentityVerificationAlert extends StatelessWidget {
   final VoidCallback onClose;
   final VoidCallback onVerify;
@@ -61,8 +63,8 @@ class IdentityVerificationAlert extends StatelessWidget {
                     color: Color(0xFFEEEEEE),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
-                    Icons.close,
+                  child: const AppIcon(
+                    HugeIcons.strokeRoundedCancel01,
                     size: 16,
                     color: Color(0xFF666666),
                   ),

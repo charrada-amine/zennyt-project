@@ -6,6 +6,8 @@ import '../../core/router/app_routes.dart';
 import '../../features/auth/presentation/auth_controller.dart';
 import '../../features/auth/presentation/current_user_provider.dart';
 
+import 'package:zennyt/shared/icons/app_icons.dart';
+
 /// Avatar de l'utilisateur connecté (photo ou initiales) avec le menu de
 /// session : identité + « Se déconnecter ».
 class SessionAvatar extends ConsumerWidget {
@@ -52,7 +54,7 @@ class SessionAvatar extends ConsumerWidget {
           value: 'logout',
           child: Row(
             children: [
-              Icon(Icons.logout, size: 18, color: Color(0xFFE53935)),
+              AppIcon(HugeIcons.strokeRoundedLogout01, size: 18, color: Color(0xFFE53935)),
               SizedBox(width: 8),
               Text('Se déconnecter',
                   style: TextStyle(color: Color(0xFFE53935))),
@@ -93,7 +95,7 @@ class SessionAvatar extends ConsumerWidget {
                 border: Border.all(color: Colors.white, width: 1.5),
               ),
               child: const Center(
-                child: Icon(Icons.menu, size: 10, color: Colors.white),
+                child: AppIcon(HugeIcons.strokeRoundedMenu01, size: 10, color: Colors.white),
               ),
             ),
           ),
