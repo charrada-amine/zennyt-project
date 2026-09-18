@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zennyt/core/storage/shared_preferences_provider.dart';
+import 'package:zennyt/features/auth/presentation/current_user_provider.dart';
 import 'package:zennyt/features/games/domain/entities/games_progress.dart';
 import 'package:zennyt/features/games/presentation/games_providers.dart';
 import 'package:zennyt/features/games/presentation/view/games_hub_screen.dart';
@@ -11,6 +12,7 @@ Future<void> _pumpHub(
   WidgetTester tester, {
   double textScale = 1,
   GamesProgress? progress,
+  bool introSeen = true,
 }) async {
   tester.view.physicalSize = const Size(390 * 3, 844 * 3);
   tester.view.devicePixelRatio = 3;
@@ -18,14 +20,20 @@ Future<void> _pumpHub(
   addTearDown(tester.view.resetDevicePixelRatio);
 
   // Pre-agree to the monitoring consent (design 76) so tapping a card opens the
-  // game picker directly, not the consent dialog.
-  SharedPreferences.setMockInitialValues({'games_monitoring_consent': true});
+  // game picker directly, not the consent dialog. The « Play & discover » intro
+  // is marked as seen unless a test covers it.
+  SharedPreferences.setMockInitialValues({
+    'games_monitoring_consent': true,
+    'games_hub_intro_seen': introSeen,
+  });
   final prefs = await SharedPreferences.getInstance();
 
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
+        // Pas d'amorçage d'auth (réseau) : l'avatar retombe sur la pastille.
+        currentUserProvider.overrideWithValue(null),
         gamesProgressProvider.overrideWith((ref) async => progress),
       ],
       child: MaterialApp(
@@ -39,7 +47,12 @@ Future<void> _pumpHub(
       ),
     ),
   );
-  await tester.pumpAndSettle();
+  if (introSeen) {
+    await tester.pumpAndSettle();
+  } else {
+    // L'intro anime ses pastilles en boucle : pas de pumpAndSettle.
+    await tester.pump(const Duration(milliseconds: 500));
+  }
 }
 
 void main() {
@@ -318,14 +331,75 @@ void main() {
         },
       ),
     );
-    expect(find.text('Coverage 20%'), findsOneWidget, reason: '3 / 15');
-    expect(find.text('Coverage 0%'), findsNothing);
+    expect(find.text('20%'), findsOneWidget, reason: '3 / 15');
+    expect(find.text('3 of 15 games completed'), findsOneWidget);
+    expect(find.text('0%'), findsNothing);
   });
 
   testWidgets('progression inconnue : un tiret, pas un faux 0 %', (
     tester,
   ) async {
     await _pumpHub(tester);
-    expect(find.text('Coverage —'), findsOneWidget);
+    expect(find.text('—'), findsOneWidget);
+    expect(find.text('0%'), findsNothing);
+  });
+
+  testWidgets('première visite : l\'intro, puis le catalogue', (tester) async {
+    await _pumpHub(tester, introSeen: false);
+
+    expect(find.text('Explore games'), findsOneWidget);
+    expect(find.text('Skip for now'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('game-category-cognitive-flexibility')),
+      findsNothing,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('games-intro-explore')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Explore games'), findsNothing);
+    expect(find.text('Your journey'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('game-category-cognitive-flexibility')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('les filtres restreignent les catégories', (tester) async {
+    await _pumpHub(tester);
+
+    await tester.tap(find.text('Planning'));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('game-category-executive-planning')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('game-category-working-memory')),
+      findsNothing,
+    );
+
+    await tester.tap(find.text('All'));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('game-category-working-memory')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('le sélecteur marque les jeux déjà joués', (tester) async {
+    await _pumpHub(
+      tester,
+      progress: const GamesProgress(completed: {CatalogGame.moveFast}),
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('game-category-cognitive-flexibility')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Choose a game to play'), findsOneWidget);
+    expect(find.text('Played'), findsOneWidget);
+    expect(find.text('1 played'), findsOneWidget);
   });
 }
