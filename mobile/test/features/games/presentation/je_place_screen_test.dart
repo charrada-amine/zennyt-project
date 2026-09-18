@@ -111,7 +111,7 @@ void main() {
     await advanceToRecall(tester, clock, layouts.first.objectCount);
     await placePerfect(tester, clock, layouts.first);
     expect(find.text('Practice complete'), findsOneWidget);
-    await tester.tap(find.text('Continue'));
+    await tester.tap(find.text('Continuer'));
     await tester.pump();
     expect(find.text('Build the picture, one level at a time'), findsOneWidget);
     return layouts;
@@ -185,10 +185,10 @@ void main() {
 
     await tester.tap(find.byTooltip('Pause'));
     await tester.pumpAndSettle();
-    expect(find.text('Resume'), findsOneWidget);
+    expect(find.text('Reprendre'), findsOneWidget);
     clock.advance(1000);
     await tester.pump(const Duration(seconds: 1));
-    await tester.tap(find.text('Resume'));
+    await tester.tap(find.text('Reprendre'));
     await tester.pump();
     expect(find.text('2s'), findsOneWidget);
 
@@ -209,15 +209,15 @@ void main() {
 
     await tester.tap(find.byTooltip('Pause'));
     await tester.pumpAndSettle();
-    expect(find.text('Resume'), findsNothing);
+    expect(find.text('Reprendre'), findsNothing);
     expect(find.text('Restart run'), findsOneWidget);
-    expect(find.text('View rules / Help'), findsOneWidget);
+    expect(find.text('Règles / Aide'), findsOneWidget);
 
-    await tester.tap(find.text('View rules / Help'));
+    await tester.tap(find.text('Règles / Aide'));
     await tester.pumpAndSettle();
     expect(find.text('Rules / Help'), findsOneWidget);
     expect(find.textContaining('4 × 4'), findsOneWidget);
-    await tester.tap(find.text('Got it'));
+    await tester.tap(find.text('Compris'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Restart run'));
     await tester.pumpAndSettle();
@@ -309,7 +309,7 @@ void main() {
     expect(submitted.objectLocationLevels, hasLength(7));
     expect(repository.session.attempts, hasLength(1));
     expect(repository.session.attempts.single.score.rawPoints, 100);
-    expect(find.text('Je place completed'), findsOneWidget);
+    expect(find.text('Je place terminé'), findsOneWidget);
     expect(
       tester
           .widget<Text>(find.byKey(const ValueKey('je-place-result-score')))
@@ -317,7 +317,7 @@ void main() {
       '100%',
     );
     expect(
-      find.text('100 / 100 points calculated by the server.'),
+      find.text('100 / 100 points calculés par le serveur.'),
       findsOneWidget,
     );
     expect(find.text('Exact placement'), findsOneWidget);

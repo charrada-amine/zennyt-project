@@ -24,14 +24,14 @@ final class StrategicChoicesContent {
 }
 
 enum StrategicChoiceStrategy {
-  avoidFlee('Avoid / flee', 'AVOID_FLEE'),
-  ruminate('Ruminate', 'RUMINATE'),
-  breathePause('Breathe / pause', 'BREATHE_PAUSE'),
-  cognitiveReappraisal('Cognitive reappraisal', 'COGNITIVE_REAPPRAISAL'),
-  assertiveCommunication('Assertive communication', 'ASSERTIVE_COMMUNICATION'),
-  humor('Humor', 'HUMOR'),
-  seekSupport('Seek support', 'SEEK_SUPPORT'),
-  directAction('Direct action', 'DIRECT_ACTION');
+  avoidFlee('Éviter / fuir', 'AVOID_FLEE'),
+  ruminate('Ruminer', 'RUMINATE'),
+  breathePause('Respirer / pause', 'BREATHE_PAUSE'),
+  cognitiveReappraisal('Recadrage cognitif', 'COGNITIVE_REAPPRAISAL'),
+  assertiveCommunication('Communication assertive', 'ASSERTIVE_COMMUNICATION'),
+  humor('Humour', 'HUMOR'),
+  seekSupport('Chercher du soutien', 'SEEK_SUPPORT'),
+  directAction('Action directe', 'DIRECT_ACTION');
 
   const StrategicChoiceStrategy(this.label, this.wire);
 

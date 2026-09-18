@@ -49,7 +49,7 @@ void main() {
   }
 
   Future<void> startGame(WidgetTester tester) async {
-    await tester.tap(find.text('Start mission'));
+    await tester.tap(find.text('Commencer la mission'));
     await tester.pumpAndSettle();
     while (find.text('Suivant').evaluate().isNotEmpty) {
       await tester.tap(find.text('Suivant'));
@@ -85,16 +85,16 @@ void main() {
     if (quizAnswer != null) {
       // L'interférence s'intercale ICI, entre la mémorisation et le rappel :
       // aucune seconde séquence n'est présentée.
-      expect(find.textContaining('Quick check'), findsOneWidget);
+      expect(find.textContaining('Vérification rapide'), findsOneWidget);
       await tester.tap(find.byKey(ValueKey('choice-$quizAnswer')));
       await tester.pump();
     }
     final direct = answer ?? sequence;
     await typeDigits(tester, direct);
-    await tester.tap(find.text('Validate'));
+    await tester.tap(find.text('Valider'));
     await tester.pump();
     await typeDigits(tester, direct.reversed.toList());
-    await tester.tap(find.text('Validate'));
+    await tester.tap(find.text('Valider'));
     await tester.pump(const Duration(milliseconds: 900));
   }
 
@@ -110,11 +110,11 @@ void main() {
           ),
         ),
       );
-      await tester.tap(find.text('Start mission'));
+      await tester.tap(find.text('Commencer la mission'));
       await tester.pumpAndSettle();
       expect(find.text('Étape 1 sur 6'), findsOneWidget);
       expect(find.text('Je suis prêt'), findsNothing);
-      expect(find.text('Level 1'), findsNothing);
+      expect(find.text('Niveau 1'), findsNothing);
       expect(
         find.text(
           mode == InvestigateMode.digits
@@ -123,9 +123,9 @@ void main() {
         ),
         findsOneWidget,
       );
-      await tester.tap(find.bySemanticsLabel('Back'));
+      await tester.tap(find.bySemanticsLabel('Retour'));
       await tester.pumpAndSettle();
-      expect(find.text('Start mission'), findsOneWidget);
+      expect(find.text('Commencer la mission'), findsOneWidget);
     });
 
     testWidgets('${mode.name} : l’aide utilise les cartes du bon jeu', (
@@ -144,9 +144,9 @@ void main() {
         await watchSequence(tester, 3);
         await typeDigits(tester, [level1Seq.first]);
       }
-      await tester.tap(find.bySemanticsLabel('Pause the mission'));
+      await tester.tap(find.bySemanticsLabel('Mettre la mission en pause'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('View rules / Help'));
+      await tester.tap(find.text('Règles / Aide'));
       await tester.pumpAndSettle();
       expect(find.text('Étape 1 sur 6'), findsOneWidget);
       expect(
@@ -163,10 +163,10 @@ void main() {
       }
       await tester.tap(find.text('Retour au menu pause'));
       await tester.pumpAndSettle();
-      expect(find.text('Resume'), findsOneWidget);
-      await tester.tap(find.text('Resume'));
+      expect(find.text('Reprendre'), findsOneWidget);
+      await tester.tap(find.text('Reprendre'));
       await tester.pumpAndSettle();
-      expect(find.text('Level 1'), findsOneWidget);
+      expect(find.text('Niveau 1'), findsOneWidget);
       if (mode == InvestigateMode.digits) {
         expect(find.text('${level1Seq.first}'), findsWidgets);
       }
@@ -203,15 +203,15 @@ void main() {
     final r = rng();
 
     // ── Niveau 1 : 3 chiffres, réussi → montée au niveau 2 ─────────────────
-    expect(find.text('Level 1'), findsOneWidget);
+    expect(find.text('Niveau 1'), findsOneWidget);
     await playDigitRound(tester, drawSequence(r, 1));
     expect(distractionsStarted, 0, reason: 'pas de distraction au niveau 1');
-    expect(find.text('Level 2'), findsOneWidget);
+    expect(find.text('Niveau 2'), findsOneWidget);
 
     // ── Niveau 2 : 4 chiffres, réussi → montée au niveau 3 ─────────────────
     await playDigitRound(tester, drawSequence(r, 2));
     expect(distractionsStarted, 0, reason: 'pas de distraction au niveau 2');
-    expect(find.text('Level 3'), findsOneWidget);
+    expect(find.text('Niveau 3'), findsOneWidget);
 
     // ── Niveau 3 : 5 chiffres — l'interférence s'ajoute ────────────────────
     //
@@ -230,7 +230,7 @@ void main() {
           'la distraction arrive dès la '
           'première mémorisation du niveau 3',
     );
-    expect(find.textContaining('Quick check'), findsOneWidget);
+    expect(find.textContaining('Vérification rapide'), findsOneWidget);
     expect(
       protectedSeq,
       level3Seq,
@@ -243,14 +243,14 @@ void main() {
     // Rappel direct puis inverse de la séquence protégée — aucune seconde
     // mémorisation ne s'est intercalée.
     await typeDigits(tester, level3Seq);
-    await tester.tap(find.text('Validate'));
+    await tester.tap(find.text('Valider'));
     await tester.pump();
     await typeDigits(tester, level3Seq.reversed.toList());
-    await tester.tap(find.text('Validate'));
+    await tester.tap(find.text('Valider'));
     await tester.pump(const Duration(milliseconds: 900));
 
     expect(
-      find.text('Level 4'),
+      find.text('Niveau 4'),
       findsOneWidget,
       reason: 'un niveau intégralement réussi ne doit jamais se rejouer',
     );
@@ -296,7 +296,7 @@ void main() {
     final r = rng();
     await playDigitRound(tester, drawSequence(r, 1));
     await playDigitRound(tester, drawSequence(r, 2));
-    expect(find.text('Level 3'), findsOneWidget);
+    expect(find.text('Niveau 3'), findsOneWidget);
 
     final level3Length = MemoryQuestConfig.sequenceLengthForLevel(3);
 
@@ -316,22 +316,22 @@ void main() {
 
       final wrong = [for (final d in roundSeq) (d + 1) % 10];
       await typeDigits(tester, wrong);
-      await tester.tap(find.text('Validate'));
+      await tester.tap(find.text('Valider'));
       await tester.pump();
       await typeDigits(tester, wrong.reversed.toList());
-      await tester.tap(find.text('Validate'));
+      await tester.tap(find.text('Valider'));
       await tester.pump(const Duration(milliseconds: 900));
     }
 
     await failLevel3(1);
     expect(
-      find.text('Level 3'),
+      find.text('Niveau 3'),
       findsOneWidget,
       reason: 'un premier échec rejoue le niveau, il ne le fait pas reculer',
     );
 
     await failLevel3(2);
-    expect(find.text('Results'), findsOneWidget);
+    expect(find.text('Résultats'), findsOneWidget);
 
     await tester.pumpAndSettle();
   });
@@ -362,7 +362,7 @@ void main() {
 
       // La séquence ne s'allonge pas : on rejoue le niveau 1.
       expect(
-        find.text('Level 1'),
+        find.text('Niveau 1'),
         findsOneWidget,
         reason: 'un tour raté ne doit pas faire monter de niveau',
       );
@@ -375,7 +375,7 @@ void main() {
         answer: [for (final d in attempt2) (d + 1) % 10],
       );
 
-      expect(find.text('Results'), findsOneWidget);
+      expect(find.text('Résultats'), findsOneWidget);
 
       // La soumission au dépôt de démo est asynchrone (latence simulée) : on la
       // laisse aboutir, sinon sa minuterie reste en vol au teardown.
@@ -425,30 +425,30 @@ void main() {
         await tester.tap(find.text(obj.labelEn).first);
         await tester.pump();
       }
-      await tester.tap(find.text('Validate'));
+      await tester.tap(find.text('Valider'));
       await tester.pump();
     }
 
     // ── Niveau 1 : aucune interférence ─────────────────────────────────────
-    expect(find.text('Level 1'), findsOneWidget);
+    expect(find.text('Niveau 1'), findsOneWidget);
     expect(objects, hasLength(3), reason: 'le jeu démarre à 3 objets');
     await watchObjects(tester, 3);
-    expect(find.text('Restore the STARTING order'), findsOneWidget);
-    expect(find.text('Find the odd one out'), findsNothing);
-    expect(find.text('Complete the pattern'), findsNothing);
+    expect(find.text('Retrouve l’ordre de DÉPART'), findsOneWidget);
+    expect(find.text('Trouve l’intrus'), findsNothing);
+    expect(find.text('Complète le motif'), findsNothing);
     await restore();
 
     // ── Niveau 2 : l'interférence s'intercale AVANT la restauration ────────
     // Le jeu des images l'introduit dès le second palier, plus tôt que le jeu
     // des chiffres (niveau 3).
-    expect(find.text('Level 2'), findsOneWidget);
+    expect(find.text('Niveau 2'), findsOneWidget);
     expect(objects, hasLength(4), reason: 'un objet de plus par niveau');
     await watchObjects(tester, 4);
 
     // L'une des deux épreuves visuelles est présentée — jamais un calcul.
-    final isOddOneOut = find.text('Find the odd one out').evaluate().isNotEmpty;
+    final isOddOneOut = find.text('Trouve l’intrus').evaluate().isNotEmpty;
     expect(
-      isOddOneOut || find.text('Complete the pattern').evaluate().isNotEmpty,
+      isOddOneOut || find.text('Complète le motif').evaluate().isNotEmpty,
       isTrue,
       reason: 'une tâche parasite visuelle doit être à l\'écran',
     );
@@ -458,12 +458,12 @@ void main() {
       reason: 'aucun calcul : c\'est le jeu des images',
     );
     expect(
-      find.text('Restore the STARTING order'),
+      find.text('Retrouve l’ordre de DÉPART'),
       findsNothing,
       reason: 'la tâche parasite précède la restauration',
     );
     // Le bandeau de charge compte des OBJETS : il affichait « 0 digits ».
-    expect(find.text('4 objects'), findsOneWidget);
+    expect(find.text('4 objets'), findsOneWidget);
 
     // Répondre à l'épreuve (juste ou faux, peu importe ici) rend la main à la
     // restauration après un court retour visuel.
@@ -474,10 +474,10 @@ void main() {
     );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 600));
-    expect(find.text('Restore the STARTING order'), findsOneWidget);
+    expect(find.text('Retrouve l’ordre de DÉPART'), findsOneWidget);
     await restore();
 
-    expect(find.text('Level 3'), findsOneWidget);
+    expect(find.text('Niveau 3'), findsOneWidget);
     expect(
       missionBCount,
       3,
@@ -509,22 +509,22 @@ void main() {
     await startGame(tester);
 
     // La manche commence directement par les objets.
-    expect(find.text('Memorize the starting order'), findsOneWidget);
+    expect(find.text('Mémorise l’ordre initial'), findsOneWidget);
     await tester.pump(const Duration(milliseconds: 5200));
     await tester.pump(const Duration(milliseconds: 6200));
-    expect(find.text('Restore the STARTING order'), findsOneWidget);
+    expect(find.text('Retrouve l’ordre de DÉPART'), findsOneWidget);
 
     for (final obj in initialObjects) {
       await tester.tap(find.text(obj.labelEn).first);
       await tester.pump();
     }
-    await tester.tap(find.text('Validate'));
+    await tester.tap(find.text('Valider'));
     await tester.pump();
 
     // Contrairement au jeu des chiffres, aucun rappel inversé ne suit : le tour
     // se termine sur la restauration et le niveau monte.
-    expect(find.textContaining('REVERSE'), findsNothing);
-    expect(find.text('Level 2'), findsOneWidget);
+    expect(find.textContaining('INVERSE'), findsNothing);
+    expect(find.text('Niveau 2'), findsOneWidget);
 
     // Le niveau 2 relance une mission d'objets, désormais suivie d'une tâche
     // parasite : on s'y arrête. Son compte à rebours est un `Timer` annulé au
@@ -532,7 +532,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 6300));
     await tester.pump(const Duration(milliseconds: 6200));
     expect(
-      find.textContaining('REVERSE'),
+      find.textContaining('INVERSE'),
       findsNothing,
       reason: 'jamais d\'ordre inverse dans le jeu des images',
     );
@@ -562,37 +562,37 @@ void main() {
     );
     await startGame(tester);
 
-    expect(find.text('Level 1'), findsOneWidget);
+    expect(find.text('Niveau 1'), findsOneWidget);
     await watchSequence(tester, level1Seq.length);
 
-    expect(find.textContaining('SAME order'), findsOneWidget);
+    expect(find.textContaining('MÊME ordre'), findsOneWidget);
     await typeDigits(tester, level1Seq);
-    await tester.tap(find.text('Validate'));
+    await tester.tap(find.text('Valider'));
     await tester.pump();
 
-    expect(find.textContaining('REVERSE order'), findsOneWidget);
+    expect(find.textContaining('ordre INVERSE'), findsOneWidget);
     await typeDigits(tester, level1Seq.reversed.toList());
-    await tester.tap(find.text('Validate'));
+    await tester.tap(find.text('Valider'));
 
     // Feedback → mission d'objets (3 objets au niveau 1).
     await tester.pump(const Duration(milliseconds: 1000));
-    expect(find.text('Memorize the starting order'), findsOneWidget);
+    expect(find.text('Mémorise l’ordre initial'), findsOneWidget);
     expect(initialObjects, hasLength(MemoryQuestConfig.objectCountForLevel(1)));
 
     await tester.pump(const Duration(milliseconds: 5200));
     await tester.pump(const Duration(milliseconds: 6200));
-    expect(find.text('Restore the STARTING order'), findsOneWidget);
+    expect(find.text('Retrouve l’ordre de DÉPART'), findsOneWidget);
 
     for (final obj in initialObjects) {
       await tester.tap(find.text(obj.labelEn).first);
       await tester.pump();
     }
-    await tester.tap(find.text('Validate'));
+    await tester.tap(find.text('Valider'));
     await tester.pump();
 
     // Niveau 1 : la distraction est gatée, le tour réussi mène au niveau 2.
     expect(distractionStarted, isFalse);
-    expect(find.text('Level 2'), findsOneWidget);
+    expect(find.text('Niveau 2'), findsOneWidget);
 
     // Le niveau 2 relance une observation de 4 chiffres ; on la laisse arriver
     // au rappel — état sans minuterie en vol — avant de démonter.
@@ -686,7 +686,7 @@ void main() {
     // Mémorisation, manipulations, rétention.
     await tester.pump(const Duration(milliseconds: 5200));
     await tester.pump(const Duration(milliseconds: 6200));
-    expect(find.text('Restore the STARTING order'), findsOneWidget);
+    expect(find.text('Retrouve l’ordre de DÉPART'), findsOneWidget);
     return initial;
   }
 
@@ -723,7 +723,7 @@ void main() {
 
     // Aucun rang au départ, et Validate est fermé.
     expect(find.text('1'), findsNothing);
-    final validate = find.widgetWithText(GamePrimaryButton, 'Validate');
+    final validate = find.widgetWithText(GamePrimaryButton, 'Valider');
     expect(tester.widget<GamePrimaryButton>(validate).onPressed, isNull);
 
     // Trois clics, trois rangs.
@@ -762,7 +762,7 @@ void main() {
     // l'ordre initial a été reconstitué 1, 3, 2 — donc un seul objet en place.
     await tester.tap(validate);
     await tester.pump(const Duration(milliseconds: 900));
-    expect(find.text('Restore the STARTING order'), findsNothing);
+    expect(find.text('Retrouve l’ordre de DÉPART'), findsNothing);
 
     // Le niveau 2 relance une mémorisation d'objets ; on la laisse atteindre la
     // restauration — état sans minuterie en vol — avant de démonter.
@@ -796,7 +796,7 @@ void main() {
     testWidgets('elle disparaît puis revient, une fois et une seule', (
       tester,
     ) async {
-      await mount(tester, 'Memorize the starting order');
+      await mount(tester, 'Mémorise l’ordre de départ');
 
       // Échantillonnage image par image sur toute la durée annoncée, plus une
       // marge : c'est la marge qui prouve le « une seule fois ».
@@ -838,11 +838,11 @@ void main() {
     ) async {
       // Les phases d'observation et de manipulation partagent la même vue :
       // sans cela, la seconde consigne arriverait sans se signaler.
-      await mount(tester, 'Memorize the starting order');
+      await mount(tester, 'Mémorise l’ordre de départ');
       await tester.pump(MemoryPrompt.blinkDuration * 2);
       expect(opacityOf(tester), closeTo(1, 0.001));
 
-      await mount(tester, 'Watch the manipulations');
+      await mount(tester, 'Observe les manipulations');
       await tester.pump(MemoryPrompt.blinkDuration ~/ 4);
       expect(
         opacityOf(tester),
@@ -860,7 +860,7 @@ void main() {
           data: MediaQueryData(disableAnimations: true),
           child: MaterialApp(
             home: Scaffold(
-              body: Center(child: MemoryPrompt('Restore the STARTING order')),
+              body: Center(child: MemoryPrompt('Retrouve l’ordre de DÉPART')),
             ),
           ),
         ),
@@ -876,11 +876,11 @@ void main() {
         findsNothing,
       );
       await tester.pump(MemoryPrompt.blinkDuration);
-      expect(find.text('Restore the STARTING order'), findsOneWidget);
+      expect(find.text('Retrouve l’ordre de DÉPART'), findsOneWidget);
     });
 
     testWidgets('elle porte bien la couleur retenue', (tester) async {
-      await mount(tester, 'Memorize the starting order');
+      await mount(tester, 'Mémorise l’ordre de départ');
       final label = tester.widget<Text>(
         find.descendant(
           of: find.byType(MemoryPrompt),
@@ -909,7 +909,7 @@ void main() {
       await watchSequence(tester, level1Seq.length);
 
       // ── Rappel direct : même vert, et le clignotement est en cours ───────
-      expect(find.text('Type the sequence in the SAME order'), findsOneWidget);
+      expect(find.text('Saisis la séquence dans le MÊME ordre'), findsOneWidget);
       final direct = tester.widget<Text>(
         find.descendant(
           of: find.byType(MemoryPrompt),
@@ -933,10 +933,10 @@ void main() {
 
       // ── Passage à l'ordre inverse : le clignotement se rejoue ────────────
       await typeDigits(tester, level1Seq);
-      await tester.tap(find.text('Validate'));
+      await tester.tap(find.text('Valider'));
       await tester.pump();
 
-      expect(find.text('Type the sequence in REVERSE order'), findsOneWidget);
+      expect(find.text('Saisis la séquence dans l’ordre INVERSE'), findsOneWidget);
       await tester.pump(MemoryPrompt.blinkDuration ~/ 4);
       expect(
         opacityOf(tester),
@@ -1038,15 +1038,15 @@ void main() {
       await startGame(tester);
       await watchObjects(tester, MemoryQuestConfig.objectCountForLevel(1));
 
-      expect(find.text('Restore the STARTING order'), findsOneWidget);
+      expect(find.text('Retrouve l’ordre de DÉPART'), findsOneWidget);
 
       final limitMs = MemoryQuestConfig.restoreTimeLimitMs(objects.length);
       final startSeconds = (limitMs / 1000).ceil();
-      expect(find.text('${startSeconds}s left'), findsOneWidget);
+      expect(find.text('$startSeconds s restantes'), findsOneWidget);
 
       // Le rebours descend réellement.
       await tester.pump(const Duration(seconds: 1));
-      expect(find.text('${startSeconds - 1}s left'), findsOneWidget);
+      expect(find.text('${startSeconds - 1} s restantes'), findsOneWidget);
 
       // Un seul rang posé, puis on laisse le temps filer : le tour se clôt sans
       // que le joueur touche « Validate ».
@@ -1056,7 +1056,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 1200)); // feedback
 
       expect(
-        find.text('Restore the STARTING order'),
+        find.text('Retrouve l’ordre de DÉPART'),
         findsNothing,
         reason: 'le temps écoulé clôt la restitution',
       );
@@ -1065,7 +1065,7 @@ void main() {
       // filer la seconde tentative aussi, ce qui doit terminer la partie
       // (maxFailuresPerLevel = 2).
       await watchObjects(tester, MemoryQuestConfig.objectCountForLevel(1));
-      expect(find.text('Restore the STARTING order'), findsOneWidget);
+      expect(find.text('Retrouve l’ordre de DÉPART'), findsOneWidget);
       await tester.pump(
         Duration(
           milliseconds:
@@ -1074,7 +1074,7 @@ void main() {
       );
       await tester.pump(const Duration(milliseconds: 1200));
 
-      expect(find.text('Results'), findsOneWidget);
+      expect(find.text('Résultats'), findsOneWidget);
       await tester.pumpAndSettle();
     },
   );
@@ -1124,7 +1124,7 @@ void main() {
 
     // 2. Restitution — même barre, et elle se vide aussi.
     await watchObjects(tester, MemoryQuestConfig.objectCountForLevel(1));
-    expect(find.text('Restore the STARTING order'), findsOneWidget);
+    expect(find.text('Retrouve l’ordre de DÉPART'), findsOneWidget);
     expect(find.byType(GameTimerBar), findsOneWidget);
 
     // `watchObjects` avance en gros blocs, le rebours a donc déjà tourné : on

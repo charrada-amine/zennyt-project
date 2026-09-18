@@ -164,7 +164,7 @@ void main() {
       expect(metrics.coordinationSegments.first.samples.first.timestampMs, 0);
       expect(metrics.coordinationSegments[2].samples.first.timestampMs, 14000);
       expect(metrics.inputSource, CoordinationInputSource.touch);
-      expect(find.text('Je coordonne completed'), findsOneWidget);
+      expect(find.text('Je coordonne terminé'), findsOneWidget);
       expect(find.byKey(const ValueKey('coordination-result-score')), findsOne);
       expect(tester.takeException(), isNull);
     },
@@ -188,16 +188,16 @@ void main() {
     await tester.tap(find.byTooltip('Pause'));
     await tester.pumpAndSettle();
     expect(find.text('Pause'), findsOneWidget);
-    expect(find.text('Resume'), findsNothing);
+    expect(find.text('Reprendre'), findsNothing);
     expect(find.text('Restart phase'), findsOneWidget);
-    expect(find.text('View rules / Help'), findsOneWidget);
+    expect(find.text('Règles / Aide'), findsOneWidget);
     expect(find.text('Exit journey'), findsOneWidget);
 
-    await tester.tap(find.text('View rules / Help'));
+    await tester.tap(find.text('Règles / Aide'));
     await tester.pumpAndSettle();
     expect(find.text('Rules / Help'), findsOneWidget);
     expect(find.textContaining('fixed square'), findsOneWidget);
-    await tester.tap(find.text('Got it'));
+    await tester.tap(find.text('Compris'));
     await tester.pumpAndSettle();
     expect(find.text('Pause'), findsOneWidget);
     await tester.tap(find.text('Restart phase'));
@@ -218,8 +218,8 @@ void main() {
 
       await tester.tap(find.byTooltip('Pause'));
       await tester.pumpAndSettle();
-      expect(find.text('Resume'), findsOneWidget);
-      await tester.tap(find.text('Resume'));
+      expect(find.text('Reprendre'), findsOneWidget);
+      await tester.tap(find.text('Reprendre'));
       await tester.pump();
       await tester.pump(const Duration(seconds: 1));
 
@@ -276,7 +276,7 @@ void main() {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pumpAndSettle();
     expect(find.text('Pause'), findsOneWidget);
-    await tester.tap(find.text('Resume'));
+    await tester.tap(find.text('Reprendre'));
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));
 

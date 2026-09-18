@@ -879,7 +879,7 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
   Color get _planeColor => _ruleColor;
 
   String get _ruleLabel {
-    return _rule == _MoveFastRule.orientation ? 'Orientation' : 'Movement';
+    return _rule == _MoveFastRule.orientation ? 'Orientation' : 'Mouvement';
   }
 
   double get _accuracy {
@@ -932,33 +932,33 @@ class _MoveFastScreenState extends ConsumerState<MoveFastScreen> {
     return switch (_stage) {
       _MoveFastStage.intro => _IntroView(onStart: _startTutorials),
       _MoveFastStage.tutorialOrientation => _TutorialView(
-        title: 'Rule 1',
+        title: 'Règle 1',
         chip: 'Orientation',
         chipColor: ZennytGamePalette.success,
-        heading: 'Watch the nose',
-        body: 'Watch the nose cue, then choose the matching arrow.',
+        heading: 'Observe le nez',
+        body: 'Regarde où pointe le nez, puis choisis la flèche correspondante.',
         stimulus: const _MoveFastStimulus(
           noseDirection: GameDirection.right,
           movementDirection: GameDirection.left,
         ),
         planeColor: ZennytGamePalette.magenta,
-        cueLabel: 'Cue',
+        cueLabel: 'Indice',
         correctDirection: GameDirection.right,
         onDirection: _handleDirection,
         onBack: () => setState(() => _stage = _MoveFastStage.intro),
       ),
       _MoveFastStage.tutorialMovement => _TutorialView(
-        title: 'Rule 2',
-        chip: 'Movement',
+        title: 'Règle 2',
+        chip: 'Mouvement',
         chipColor: ZennytGamePalette.ruleOrange,
-        heading: 'Follow the movement',
-        body: 'The nose points up, but the motion cue goes right.',
+        heading: 'Suis le mouvement',
+        body: 'Le nez pointe vers le haut, mais le mouvement va vers la droite.',
         stimulus: const _MoveFastStimulus(
           noseDirection: GameDirection.up,
           movementDirection: GameDirection.right,
         ),
         planeColor: ZennytGamePalette.ruleOrange,
-        cueLabel: 'Motion cue',
+        cueLabel: 'Mouvement',
         correctDirection: GameDirection.right,
         showMovement: true,
         onDirection: _handleDirection,
@@ -1143,13 +1143,13 @@ class _IntroView extends StatelessWidget {
                       children: [
                         const SizedBox(height: AppSpacing.xs),
                         SizedBox(
-                          // 170 px suffisent à « Cognitive Flexibility » quand
+                          // 170 px suffisent à « Flexibilité cognitive » quand
                           // la police a sa taille pleine ; sur un écran étroit
                           // le texte y était tronqué, alors que la carte offre
                           // la place — on lui donne toute la largeur.
                           width: width < 340 ? width : 170,
                           child: const GameRuleChip(
-                            label: 'Cognitive Flexibility',
+                            label: 'Flexibilité cognitive',
                             color: Colors.white,
                             filled: true,
                           ),
@@ -1169,7 +1169,7 @@ class _IntroView extends StatelessWidget {
                         SizedBox(
                           width: textWidth,
                           child: Text(
-                            'Rules change. Respond fast. Keep the right cue.',
+                            'Les règles changent. Réponds vite. Garde le bon indice.',
                             style: AppTypography.titleMedium.copyWith(
                               color: Colors.white,
                               letterSpacing: 0,
@@ -1197,12 +1197,12 @@ class _IntroView extends StatelessWidget {
           const Row(
             children: [
               Expanded(
-                child: ResultStatTile(label: 'Goal', value: 'Flexibility'),
+                child: ResultStatTile(label: 'Objectif', value: 'Flexibilité'),
               ),
               SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: ResultStatTile(
-                  label: 'Duration',
+                  label: 'Durée',
                   // Annoncé au candidat = budget réel de la session
                   // (`MoveFastConfig.sessionSeconds`), pas une estimation.
                   value: '15 min',
@@ -1222,7 +1222,7 @@ class _IntroView extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Simple rule',
+                  'Règle simple',
                   style: AppTypography.titleMedium.copyWith(
                     color: ZennytGamePalette.blue,
                     letterSpacing: 0,
@@ -1230,7 +1230,7 @@ class _IntroView extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.md),
                 Text(
-                  'The plane color tells you which rule is active: Orientation or Movement.',
+                  'La couleur de l’avion indique la règle active : Orientation ou Mouvement.',
                   style: AppTypography.bodyLarge.copyWith(
                     color: ZennytGamePalette.muted,
                     letterSpacing: 0,
@@ -1240,7 +1240,7 @@ class _IntroView extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.xxl),
-          GamePrimaryButton(label: 'Start', onPressed: onStart),
+          GamePrimaryButton(label: 'Commencer', onPressed: onStart),
         ],
       ),
     );
@@ -1437,7 +1437,7 @@ class _MovementCue extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              'Nose: ${stimulus.noseDirection.label}',
+              'Nez : ${stimulus.noseDirection.label}',
               style: AppTypography.labelMedium.copyWith(
                 color: ZennytGamePalette.muted,
                 letterSpacing: 0,
@@ -2396,27 +2396,27 @@ class _ResultsView extends StatelessWidget {
       onBack: onBack,
       gameName: 'Move Fast',
       pending: resultPending,
-      scoreLabel: 'Cognitive score',
+      scoreLabel: 'Score cognitif',
       scorePercent: cognitiveScore,
       points: rawScore,
       stats: [
         GameResultStat(
-          label: 'Accuracy',
+          label: 'Précision',
           value: '${(accuracy * 100).round()}%',
           color: ZennytGamePalette.success,
         ),
-        GameResultStat(label: 'Reaction', value: '${reaction}s'),
+        GameResultStat(label: 'Réaction', value: '$reaction s'),
         GameResultStat(
-          label: 'Best Streak',
-          value: '$bestCorrectStreak correct',
+          label: 'Meilleure série',
+          value: '$bestCorrectStreak ${bestCorrectStreak > 1 ? 'justes' : 'juste'}',
           color: ZennytGamePalette.magenta,
         ),
       ],
       insight:
-          'The player keeps the active rule in mind and quickly adjusts attention when the instruction changes.',
-      primaryLabel: 'Replay',
+          'Le joueur garde la règle active en tête et réajuste vite son attention quand la consigne change.',
+      primaryLabel: 'Rejouer',
       onPrimary: onReplay,
-      secondaryLabel: 'Compare',
+      secondaryLabel: 'Comparer',
       onSecondary: onCompare,
     );
   }
@@ -2447,14 +2447,14 @@ class _ComparisonView extends StatelessWidget {
             child: Column(
               children: [
                 Text(
-                  'Comparative Results',
+                  'Résultats comparatifs',
                   style: AppTypography.headlineLarge.copyWith(
                     color: ZennytGamePalette.blue,
                     letterSpacing: 0,
                   ),
                 ),
                 Text(
-                  'Ranking data required from platform',
+                  'Données de classement fournies par la plateforme',
                   style: AppTypography.bodyMedium.copyWith(
                     color: ZennytGamePalette.muted,
                     letterSpacing: 0,
@@ -2484,7 +2484,7 @@ class _ComparisonView extends StatelessWidget {
                 const SizedBox(width: AppSpacing.lg),
                 Expanded(
                   child: Text(
-                    'in your professional network',
+                    'dans ton réseau professionnel',
                     style: AppTypography.titleLarge.copyWith(
                       color: Colors.white,
                       letterSpacing: 0,
@@ -2504,23 +2504,23 @@ class _ComparisonView extends StatelessWidget {
             physics: const NeverScrollableScrollPhysics(),
             children: [
               const ResultStatTile(
-                label: 'My network',
+                label: 'Mon réseau',
                 value: '#12 / 148',
                 valueColor: ZennytGamePalette.blue,
               ),
               const ResultStatTile(
-                label: 'Global',
-                value: '#1,284',
+                label: 'Général',
+                value: '#1 284',
                 valueColor: ZennytGamePalette.blue,
               ),
               ResultStatTile(
-                label: 'Previous attempt',
+                label: 'Tentative précédente',
                 value: '+$scoreDelta pts',
                 valueColor: ZennytGamePalette.blue,
               ),
               ResultStatTile(
-                label: 'Best streak',
-                value: '$bestCorrectStreak correct',
+                label: 'Meilleure série',
+                value: '$bestCorrectStreak ${bestCorrectStreak > 1 ? 'justes' : 'juste'}',
                 valueColor: ZennytGamePalette.blue,
               ),
             ],
@@ -2532,7 +2532,7 @@ class _ComparisonView extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Performance evolution',
+                  'Évolution des performances',
                   style: AppTypography.titleMedium.copyWith(
                     color: ZennytGamePalette.blue,
                     letterSpacing: 0,
@@ -2540,7 +2540,7 @@ class _ComparisonView extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
-                  'Last attempts show faster adaptation and longer completed-series streaks.',
+                  'Les dernières tentatives montrent une adaptation plus rapide et des séries complètes plus longues.',
                   style: AppTypography.bodyMedium.copyWith(
                     color: ZennytGamePalette.muted,
                     letterSpacing: 0,
@@ -2553,7 +2553,7 @@ class _ComparisonView extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.xl),
           GamePrimaryButton(
-            label: 'Replay to improve ranking',
+            label: 'Rejouer pour améliorer ton classement',
             onPressed: onReplay,
           ),
         ],

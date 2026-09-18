@@ -45,11 +45,11 @@ void main() {
       ),
     );
     await tester.pump();
-    await tester.tap(find.text('Start'));
+    await tester.tap(find.text('Commencer'));
     await tester.pump();
-    await tester.tap(find.text('Right'));
+    await tester.tap(find.text('Droite'));
     await tester.pump();
-    await tester.tap(find.text('Right'));
+    await tester.tap(find.text('Droite'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 150));
   }
@@ -238,7 +238,7 @@ void main() {
     // serait une anticipation, pas une réaction — et elle ne doit surtout pas
     // être comptée contre le joueur.
     await tester.pump(settle ~/ 2);
-    await tester.tap(find.text('Left')); // volontairement la mauvaise flèche
+    await tester.tap(find.text('Gauche')); // volontairement la mauvaise flèche
     await tester.pump();
     expect(
       find.text('reset'),
@@ -267,7 +267,7 @@ void main() {
     await tester.tap(find.byTooltip('Pause'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
-    expect(find.text('Resume'), findsOneWidget);
+    expect(find.text('Reprendre'), findsOneWidget);
 
     // Trois secondes dans le menu : bien au-delà des 2 000 ms de l'essai.
     await tester.pump(const Duration(seconds: 3));
@@ -277,7 +277,7 @@ void main() {
       reason: 'le jeu est en pause : aucun essai ne peut être perdu',
     );
 
-    await tester.tap(find.text('Resume'));
+    await tester.tap(find.text('Reprendre'));
     await tester.pump();
     // La reprise rejoue l'attente d'acrobatie PUIS réarme une échéance
     // ENTIÈRE : elle ne reprend pas un reliquat.
@@ -558,7 +558,7 @@ void main() {
       var worstHeading = 0.0;
 
       for (var pass = 0; pass < 3; pass++) {
-        await tester.tap(find.text('Right'));
+        await tester.tap(find.text('Droite'));
         await tester.pump(frame);
         var previous = attitude();
         for (var i = 1; i < segment; i++) {

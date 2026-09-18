@@ -169,7 +169,7 @@ const _logoJePlace = 'assets/games icons/Je Place.png';
 const _logoJeDecide = 'assets/games icons/Je Decide transparent.png';
 const _logoBart = 'assets/games/bart_logo.svg';
 const _logoIst = 'assets/games/ist_logo.svg';
-const _logoOptimalPath = 'assets/games icons/Optimal Path transparent.png';
+const _logoOptimalPath = 'assets/games icons/Optimal Path menu original.png';
 const _logoTaskScheduling =
     'assets/games icons/Task Scheduling transparent.png';
 const _logoPredictivePuzzle =
@@ -185,11 +185,11 @@ const _introIllustration = 'assets/images/games_hub_girl.png';
 
 /// Filtres du catalogue (puces sous la carte « Your journey »).
 enum _HubFilter {
-  all('All'),
-  cognitive('Cognitive'),
-  decision('Decision'),
-  planning('Planning'),
-  emotional('Emotional');
+  all('Tous'),
+  cognitive('Cognitif'),
+  decision('Décision'),
+  planning('Planification'),
+  emotional('Émotions');
 
   const _HubFilter(this.label);
 
@@ -255,7 +255,17 @@ class _GameCategory {
   List<_GameEntry> get playable =>
       games.where((g) => g.enabled).toList(growable: false);
 
-  String get gamesLabel => '${games.length} games';
+  String get gamesLabel => gameCountLabel(games.length);
+
+  /// Catégorie terminée : chacun de ses jeux jouables a été fini au moins une
+  /// fois, d'après le serveur. Les jeux encore fermés (« Bientôt ») ne comptent
+  /// pas : ils ne peuvent pas être terminés.
+  bool isCompleted(Set<CatalogGame>? completed) {
+    final open = playable;
+    return completed != null &&
+        open.isNotEmpty &&
+        open.every((g) => completed.contains(g.game));
+  }
 
   int playedCount(Set<CatalogGame>? completed) => completed == null
       ? 0
@@ -265,8 +275,8 @@ class _GameCategory {
 const _categories = <_GameCategory>[
   _GameCategory(
     id: 'cognitive-flexibility',
-    title: 'Cognitive Flexibility',
-    tagline: 'Adapt. Switch. Think differently.',
+    title: 'Flexibilité cognitive',
+    tagline: 'S’adapter. Basculer. Penser autrement.',
     filter: _HubFilter.cognitive,
     accent: Color(0xFFE0559B),
     tint: Color(0xFFFDEDF4),
@@ -275,7 +285,7 @@ const _categories = <_GameCategory>[
     games: [
       _GameEntry(
         label: 'Move Fast',
-        subtitle: 'Rule switching · Je bouge',
+        subtitle: 'Changement de règle · Je bouge',
         route: AppRoutes.gamesMoveFast,
         logoAsset: _logoMoveFast,
         fallbackIcon: HugeIcons.strokeRoundedNavigation03,
@@ -283,7 +293,7 @@ const _categories = <_GameCategory>[
       ),
       _GameEntry(
         label: 'Je continue',
-        subtitle: 'Sustained attention · 25 min',
+        subtitle: 'Attention soutenue · 25 min',
         route: AppRoutes.gamesJeContinue,
         enabled: false,
         logoAsset: _logoJeContinue,
@@ -292,7 +302,7 @@ const _categories = <_GameCategory>[
       ),
       _GameEntry(
         label: 'Je coordonne',
-        subtitle: 'Eye-hand tracking · 3 min',
+        subtitle: 'Coordination œil-main · 3 min',
         route: AppRoutes.gamesJeCoordonne,
         enabled: false,
         logoAsset: _logoJeCoordonne,
@@ -303,8 +313,8 @@ const _categories = <_GameCategory>[
   ),
   _GameCategory(
     id: 'working-memory',
-    title: 'Working Memory',
-    tagline: 'Remember. Use. Solve.',
+    title: 'Mémoire de travail',
+    tagline: 'Retenir. Utiliser. Résoudre.',
     filter: _HubFilter.cognitive,
     accent: Color(0xFF4F6BED),
     tint: Color(0xFFEEF1FE),
@@ -315,7 +325,7 @@ const _categories = <_GameCategory>[
       // chiffres et la mémoire des images se jouent et se valident séparément.
       _GameEntry(
         label: 'Memory Quest · Digits',
-        subtitle: 'Digit span · J\'investigue',
+        subtitle: 'Empan de chiffres · J\'investigue',
         route: AppRoutes.gamesInvestigateDigits,
         logoAsset: _logoMemoryQuest,
         fallbackIcon: HugeIcons.strokeRoundedPin,
@@ -323,7 +333,7 @@ const _categories = <_GameCategory>[
       ),
       _GameEntry(
         label: 'Memory Quest · Images',
-        subtitle: 'Object span · J\'investigue',
+        subtitle: 'Empan d\'objets · J\'investigue',
         route: AppRoutes.gamesInvestigateImages,
         logoAsset: _logoMemoryQuest,
         fallbackIcon: HugeIcons.strokeRoundedImage01,
@@ -331,7 +341,7 @@ const _categories = <_GameCategory>[
       ),
       _GameEntry(
         label: 'Je place',
-        subtitle: 'Object-location memory · 5 min',
+        subtitle: 'Mémoire des emplacements · 5 min',
         route: AppRoutes.gamesJePlace,
         enabled: false,
         logoAsset: _logoJePlace,
@@ -344,8 +354,8 @@ const _categories = <_GameCategory>[
   // appartient à Planifik.
   _GameCategory(
     id: 'decision-making',
-    title: 'Decision-Making',
-    tagline: 'Analyze. Choose. Act.',
+    title: 'Prise de décision',
+    tagline: 'Analyser. Choisir. Agir.',
     filter: _HubFilter.decision,
     accent: Color(0xFFEE8A1E),
     tint: Color(0xFFFFF4E6),
@@ -353,7 +363,7 @@ const _categories = <_GameCategory>[
     games: [
       _GameEntry(
         label: 'Je Décide',
-        subtitle: 'Everyday choices · decision style',
+        subtitle: 'Choix du quotidien · style de décision',
         route: AppRoutes.gamesJeDecide,
         logoAsset: _logoJeDecide,
         fallbackIcon: HugeIcons.strokeRoundedRoute01,
@@ -363,7 +373,7 @@ const _categories = <_GameCategory>[
       // Barèmes PROVISOIRES : l'événement Fit Score reste suspendu.
       _GameEntry(
         label: 'BART',
-        subtitle: 'Risk taking · inflate or collect',
+        subtitle: 'Prise de risque · gonfler ou collecter',
         route: AppRoutes.gamesBart,
         logoAsset: _logoBart,
         fallbackIcon: HugeIcons.strokeRoundedChartBubble01,
@@ -371,7 +381,7 @@ const _categories = <_GameCategory>[
       ),
       _GameEntry(
         label: 'IST',
-        subtitle: 'Information sampling · observe then decide',
+        subtitle: 'Recueil d\'informations · observer puis décider',
         route: AppRoutes.gamesIst,
         logoAsset: _logoIst,
         fallbackIcon: HugeIcons.strokeRoundedGridTable,
@@ -382,8 +392,8 @@ const _categories = <_GameCategory>[
   // Executive Planning (Planifik) : 3 mini-jeux → menu de sélection.
   _GameCategory(
     id: 'executive-planning',
-    title: 'Executive Planning',
-    tagline: 'Plan. Organize. Achieve.',
+    title: 'Planification exécutive',
+    tagline: 'Planifier. Organiser. Réussir.',
     filter: _HubFilter.planning,
     accent: Color(0xFF22A06B),
     tint: Color(0xFFE8F7EF),
@@ -391,7 +401,7 @@ const _categories = <_GameCategory>[
     games: [
       _GameEntry(
         label: 'Optimal Path',
-        subtitle: 'Path Mind · shortest route',
+        subtitle: 'Path Mind · trajet le plus court',
         route: AppRoutes.gamesPlanifik,
         logoAsset: _logoOptimalPath,
         fallbackIcon: HugeIcons.strokeRoundedRoute01,
@@ -399,7 +409,7 @@ const _categories = <_GameCategory>[
       ),
       _GameEntry(
         label: 'Day Stack',
-        subtitle: 'Task scheduling · dependencies & deadlines',
+        subtitle: 'Planification des tâches · dépendances et échéances',
         route: AppRoutes.gamesTaskScheduling,
         logoAsset: _logoTaskScheduling,
         fallbackIcon: HugeIcons.strokeRoundedCalendar01,
@@ -407,7 +417,7 @@ const _categories = <_GameCategory>[
       ),
       _GameEntry(
         label: 'Predictive Puzzle',
-        subtitle: 'Tower of Hanoi · foresight',
+        subtitle: 'Tour de Hanoï · anticipation',
         route: AppRoutes.gamesPredictivePuzzle,
         logoAsset: _logoPredictivePuzzle,
         fallbackIcon: HugeIcons.strokeRoundedPuzzle,
@@ -417,8 +427,8 @@ const _categories = <_GameCategory>[
   ),
   _GameCategory(
     id: 'emotional-regulation',
-    title: 'Emotional Regulation',
-    tagline: 'Stay calm. Stay in control.',
+    title: 'Régulation émotionnelle',
+    tagline: 'Rester calme. Garder le contrôle.',
     filter: _HubFilter.emotional,
     accent: Color(0xFF7C5CE0),
     tint: Color(0xFFF2EEFE),
@@ -426,7 +436,7 @@ const _categories = <_GameCategory>[
     games: [
       _GameEntry(
         label: 'Emotional Radar',
-        subtitle: 'Recognize emotions in real situations',
+        subtitle: 'Reconnaître les émotions en situation réelle',
         route: AppRoutes.gamesEmotionalRadar,
         logoAsset: _logoEmotionalRadar,
         fallbackIcon: HugeIcons.strokeRoundedFavourite,
@@ -434,7 +444,7 @@ const _categories = <_GameCategory>[
       ),
       _GameEntry(
         label: 'Reflective Pause',
-        subtitle: 'Impulse control · pressure moments',
+        subtitle: 'Contrôle de l\'impulsivité · moments de pression',
         route: AppRoutes.gamesReflectivePause,
         logoAsset: _logoReflectivePause,
         fallbackIcon: HugeIcons.strokeRoundedTimer02,
@@ -442,7 +452,7 @@ const _categories = <_GameCategory>[
       ),
       _GameEntry(
         label: 'Strategic Choices',
-        subtitle: 'Reflect · choose · respond',
+        subtitle: 'Réfléchir · choisir · répondre',
         route: AppRoutes.gamesStrategicChoices,
         logoAsset: _logoStrategicChoices,
         fallbackIcon: HugeIcons.strokeRoundedGitBranch,
@@ -460,8 +470,13 @@ const _categories = <_GameCategory>[
 /// croire qu'aucune partie n'a été jouée.
 String _coverageLabel(AsyncValue<GamesProgress?> progress) {
   final percent = progress.value?.coveragePercent;
-  return percent == null ? '—' : '$percent%';
+  return percent == null ? '—' : '$percent %';
 }
+
+/// Nombre de jeux d'une catégorie, calculé depuis sa liste : ajouter ou
+/// retirer un jeu met le libellé à jour sans autre retouche.
+@visibleForTesting
+String gameCountLabel(int count) => count <= 1 ? '$count jeu' : '$count jeux';
 
 /// Ouvre un jeu, puis relit la progression au retour : la partie qui vient de
 /// se terminer doit apparaître aussitôt dans la couverture.
@@ -532,7 +547,6 @@ class _GamesCatalogState extends ConsumerState<_GamesCatalog> {
   Widget build(BuildContext context) {
     final progress = ref.watch(gamesProgressProvider);
     final completed = progress.value?.completed;
-    final localProgress = ref.watch(local_progress.gamesProgressProvider);
     final visible = _categories
         .where((c) => _filter == _HubFilter.all || c.filter == _filter)
         .toList(growable: false);
@@ -563,8 +577,6 @@ class _GamesCatalogState extends ConsumerState<_GamesCatalog> {
                       key: ValueKey('game-category-${category.id}'),
                       category: category,
                       completed: completed,
-                      locallyCompleted: localProgress.completedDimensions
-                          .contains(category.title),
                     ),
                     const SizedBox(height: 12),
                   ],
@@ -587,7 +599,7 @@ class _GamesHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final textScale = MediaQuery.textScalerOf(context).scale(1);
     final title = Text(
-      'Play & discover\nyour talent',
+      'Joue et découvre\nton talent',
       textAlign: TextAlign.center,
       style: AppTypography.headlineLarge.copyWith(
         color: _hub(context).ink,
@@ -636,9 +648,9 @@ class _HeaderButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      label: 'Back',
+      label: 'Retour',
       child: Tooltip(
-        message: 'Back',
+        message: 'Retour',
         excludeFromSemantics: true,
         child: Material(
           color: _hub(context).card,
@@ -769,12 +781,12 @@ class _JourneyCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final largeText = MediaQuery.textScalerOf(context).scale(1) > 1.5;
     final known = progress.value;
-    final title = kLot1DemoBuild ? 'Games demo' : 'Your journey';
+    final title = kLot1DemoBuild ? 'Démo des jeux' : 'Ton parcours';
     final subtitle = kLot1DemoBuild
-        ? 'Practice sessions · sample results'
+        ? 'Sessions d’entraînement · résultats d’exemple'
         : known == null || known.completedGames == 0
-            ? 'Complete games to unlock your full profile'
-            : '${known.completedGames} of ${known.totalGames} games completed';
+            ? 'Termine des jeux pour débloquer ton profil complet'
+            : '${known.completedGames} jeux terminés sur ${known.totalGames}';
     final ratio = known == null || kLot1DemoBuild
         ? 0.0
         : known.completedGames / known.totalGames;
@@ -1078,16 +1090,12 @@ class _GameCategoryCard extends ConsumerWidget {
     super.key,
     required this.category,
     required this.completed,
-    this.locallyCompleted = false,
   });
 
   final _GameCategory category;
 
   /// Jeux terminés selon le serveur (`null` : progression inconnue).
   final Set<CatalogGame>? completed;
-
-  /// Surlignage provisoire côté client (voir `markCompleted`).
-  final bool locallyCompleted;
 
   Future<void> _handleTap(BuildContext context, WidgetRef ref) async {
     final playable = category.playable;
@@ -1112,11 +1120,6 @@ class _GameCategoryCard extends ConsumerWidget {
       if (route == null || !context.mounted) return;
       await _openGame(context, route);
     }
-    // Surlignage provisoire de la carte, côté client ; la couverture serveur
-    // est relue par [_openGame] au retour.
-    ref
-        .read(local_progress.gamesProgressProvider.notifier)
-        .markCompleted(category.title);
   }
 
   @override
@@ -1124,7 +1127,9 @@ class _GameCategoryCard extends ConsumerWidget {
     // Carte inactive quand la catégorie n'a aucun jeu ouvert.
     final enabled = category.playable.isNotEmpty;
     final played = category.playedCount(completed);
-    final done = played == category.games.length || locallyCompleted;
+    // Terminée seulement quand le serveur a enregistré chaque jeu jouable :
+    // ouvrir un jeu puis revenir ne suffit pas.
+    final done = category.isCompleted(completed);
 
     final content = Padding(
       padding: const EdgeInsets.fromLTRB(12, 12, 14, 12),
@@ -1177,7 +1182,7 @@ class _GameCategoryCard extends ConsumerWidget {
                     if (played > 0)
                       _MetaLabel(
                         icon: HugeIcons.strokeRoundedCheckmarkCircle02,
-                        label: '$played/${category.games.length} played',
+                        label: '$played/${category.games.length} joués',
                         color: _hub(context).success,
                       ),
                   ],
@@ -1407,7 +1412,7 @@ Future<bool?> _showGamesConsentDialog(BuildContext context) {
                 children: [
                   Expanded(
                     child: Text(
-                      'Important!',
+                      'Important !',
                       style: TextStyle(
                         color: _hub(context).ink,
                         fontSize: 20,
@@ -1427,9 +1432,10 @@ Future<bool?> _showGamesConsentDialog(BuildContext context) {
               ),
               const SizedBox(height: 12),
               Text(
-                'To preserve the integrity of the assessments, monitoring technologies may '
-                'collect screenshots, webcam images, and keystroke dynamics during the tests. '
-                'This data is used solely to detect impersonation, cheating, or identity fraud.',
+                'Pour préserver l’intégrité des évaluations, des technologies de surveillance peuvent '
+                'collecter des captures d’écran, des images de la webcam et la dynamique de frappe '
+                'pendant les tests. Ces données servent uniquement à détecter l’usurpation '
+                'd’identité, la triche ou la fraude.',
                 style: TextStyle(color: _hub(context).muted, fontSize: 13.5, height: 1.45),
               ),
               const SizedBox(height: 12),
@@ -1445,7 +1451,7 @@ Future<bool?> _showGamesConsentDialog(BuildContext context) {
                     child: Padding(
                       padding: EdgeInsets.only(top: 12),
                       child: Text(
-                        'I understand and agree to the monitoring conditions.',
+                        'Je comprends et j’accepte les conditions de surveillance.',
                         style: TextStyle(color: _hub(context).ink, fontSize: 13, fontWeight: FontWeight.w500),
                       ),
                     ),
@@ -1464,7 +1470,7 @@ Future<bool?> _showGamesConsentDialog(BuildContext context) {
                     disabledBackgroundColor: const Color(0xFFCBD5E1),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
                   ),
-                  child: const Text('Continue', style: TextStyle(fontWeight: FontWeight.w700)),
+                  child: const Text('Continuer', style: TextStyle(fontWeight: FontWeight.w700)),
                 ),
               ),
             ],
@@ -1525,7 +1531,7 @@ class _GameLogoBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       image: true,
-      label: '${game.label} logo',
+      label: 'Logo ${game.label}',
       child: SizedBox(
         key: ValueKey('$contextName-game-logo-${game.label}'),
         width: size,

@@ -189,7 +189,7 @@ void main() {
     );
 
     // Intro → How To Play → gameplay.
-    await tester.tap(find.widgetWithText(FilledButton, 'Start'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Commencer'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Suivant')); // carte 1 → 2
     await tester.pumpAndSettle();
@@ -200,7 +200,7 @@ void main() {
       const Duration(milliseconds: 300),
     ); // onLoad + start() mock
 
-    expect(find.text('Validate route'), findsOneWidget); // on est bien en jeu
+    expect(find.text('Valider le trajet'), findsOneWidget); // on est bien en jeu
 
     // find.byType ne matche pas GameWidget<PlanifikGame> (générique) → prédicat.
     final gameWidget = tester
@@ -236,7 +236,7 @@ void main() {
       expect(game.stepCount, greaterThanOrEqualTo(1));
       expect(game.isComplete, isFalse);
 
-      await tester.tap(find.text('Validate route'));
+      await tester.tap(find.text('Valider le trajet'));
       // Horloge de test (fake) : fait courir les timers app (reset feedback +
       // game.clear) — nécessaire pour réinitialiser le trajet entre 2 essais.
       await tester.pump(const Duration(milliseconds: 1400));
@@ -247,6 +247,6 @@ void main() {
 
     // Passage automatique au niveau suivant (timer 1500 ms).
     await tester.pump(const Duration(milliseconds: 1600));
-    expect(find.textContaining('Level 2/'), findsOneWidget);
+    expect(find.textContaining('Niveau 2/'), findsOneWidget);
   });
 }

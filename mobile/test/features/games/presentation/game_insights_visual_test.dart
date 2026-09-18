@@ -18,7 +18,7 @@ const _indicators = ReflectivePauseIndicators(
   abilityToStepBackScore: 0.6,
   impulsiveChoiceCount: 5,
   averageResponseTimeMs: 5200,
-  level: 'Good stress management',
+  level: 'Bonne gestion du stress',
 );
 
 EmotionalRadarV2Report _report({int scenes = 15}) => EmotionalRadarV2Report(
@@ -201,7 +201,7 @@ void main() {
         0.5,
         closeTo(0.2, 0.001),
       ]);
-      expect(find.text('Strongest area'), findsOneWidget);
+      expect(find.text('Point fort'), findsOneWidget);
       expect(tester.takeException(), isNull);
       await expectLater(
         find.byKey(const ValueKey('insights-capture')),
@@ -222,8 +222,8 @@ void main() {
       ),
     );
     expect(find.byType(GameResultInsightMeter), findsNothing);
-    expect(find.text('Strongest area'), findsNothing);
-    expect(find.textContaining('No insights available'), findsOneWidget);
+    expect(find.text('Point fort'), findsNothing);
+    expect(find.textContaining('Aucune analyse disponible'), findsOneWidget);
   });
 
   testWidgets(
@@ -240,13 +240,13 @@ void main() {
         scale: 2,
       );
       expect(tester.takeException(), isNull);
-      expect(find.text('Back to games').hitTestable(), findsOneWidget);
+      expect(find.text('Retour aux jeux').hitTestable(), findsOneWidget);
       await tester.scrollUntilVisible(
-        find.text('Recommendation'),
+        find.text('Recommandation'),
         350,
         scrollable: find.byType(Scrollable),
       );
-      expect(find.text('Recommendation'), findsOneWidget);
+      expect(find.text('Recommandation'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );

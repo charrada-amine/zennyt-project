@@ -23,7 +23,6 @@ import '../widgets/game_system_components.dart';
 import '../widgets/game_results_template.dart';
 import '../widgets/reflective_pause_tutorial.dart';
 import '../widgets/zennyt_loader.dart';
-
 import 'package:zennyt/shared/icons/app_icons.dart';
 
 const _ink = Color(0xFF28234F);
@@ -289,7 +288,7 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
   Future<void> _backOrExit() async {
     if (_pauseAllowance.canOpen) return _openPause();
     SoundService.instance.playSfx(GameSfx.buttonClick);
-    if (!await GameExitConfirmDialog.show(context, missionLabel: 'journey')) {
+    if (!await GameExitConfirmDialog.show(context, missionLabel: 'le parcours')) {
       return;
     }
     if (mounted) context.go(AppRoutes.games);
@@ -326,7 +325,7 @@ class _ReflectivePauseScreenState extends ConsumerState<ReflectivePauseScreen> {
       if (_pauseAllowance.canReopen) return _openPause(reopen: true);
     } else if (action == EmotionalGamePauseAction.exit) {
       // Quitter annule la tentative : confirmation explicite d'abord.
-      if (await GameExitConfirmDialog.show(context, missionLabel: 'journey')) {
+      if (await GameExitConfirmDialog.show(context, missionLabel: 'le parcours')) {
         if (mounted) context.go(AppRoutes.games);
         return;
       }
@@ -546,7 +545,7 @@ class _TopBar extends StatelessWidget {
       children: [
         _SquareIconButton(
           icon: HugeIcons.strokeRoundedArrowLeft01,
-          tooltip: 'Back',
+          tooltip: 'Retour',
           // En jeu, le retour ouvre la pause, qui joue son propre son.
           onTap: onPause != null
               ? onBack
@@ -634,14 +633,15 @@ class _CoverView extends StatelessWidget {
     mission: 'Prends un temps de recul avant de choisir ta réponse.',
     contextText:
         'Une situation te met sous pression. Accorde-toi une pause avant de choisir ta réaction.',
+    contextDetail: 'Choisis ensuite la réponse qui te vient naturellement.',
     journey: const ['Découvre', 'Attends', 'Réponds'],
     leading: _SquareIconButton(
       icon: HugeIcons.strokeRoundedArrowLeft01,
-      tooltip: 'Back',
+      tooltip: 'Retour',
       onTap: onBack,
     ),
     startKey: const ValueKey('reflective-start-mission'),
-    startLabel: 'Start mission',
+    startLabel: 'Commencer la mission',
     onStart: onStart,
   );
 }
@@ -656,19 +656,19 @@ class _IntroView extends StatelessWidget {
   Widget build(BuildContext context) {
     return _InfoPage(
       onBack: onBack,
-      title: 'Train calm responses\nunder pressure',
+      title: 'Réagis avec calme\nsous pression',
       subtitle:
-          'You will move through short moments that can trigger an immediate reaction.',
+          'Tu vas traverser de courts moments qui peuvent provoquer une réaction immédiate.',
       icon: HugeIcons.strokeRoundedTimer02,
       items: const [
-        ('Pause first', 'Give yourself one calm moment before acting.'),
-        ('Choose naturally', 'Select the response that feels most like you.'),
+        ('D’abord, une pause', 'Accorde-toi un moment de calme avant d’agir.'),
+        ('Choisis naturellement', 'Sélectionne la réponse qui te ressemble le plus.'),
         (
-          'Notice patterns',
-          'Your final indicators reveal your response habits.',
+          'Repère tes tendances',
+          'Tes indicateurs finaux révèlent tes habitudes de réaction.',
         ),
       ],
-      buttonLabel: 'Continue',
+      buttonLabel: 'Continuer',
       onButton: onContinue,
     );
   }
@@ -684,7 +684,7 @@ class _TutorialView extends StatelessWidget {
   Widget build(BuildContext context) => ReflectivePauseTutorial(
     leading: _SquareIconButton(
       icon: HugeIcons.strokeRoundedArrowLeft01,
-      tooltip: 'Back',
+      tooltip: 'Retour',
       onTap: () {
         SoundService.instance.playSfx(GameSfx.buttonClick);
         onBack();
@@ -1054,7 +1054,7 @@ class _GameplayView extends StatelessWidget {
                 ? 'Response choices are now available'
                 : '$remainingSeconds seconds before choices become available',
             child: GamePrimaryButton(
-              label: 'Validate response',
+              label: 'Valider ma réponse',
               onPressed: minimumReached && selectedResponse != null
                   ? onValidate
                   : null,
@@ -1474,7 +1474,7 @@ class _SavedView extends StatelessWidget {
     return Center(
       child: Semantics(
         liveRegion: true,
-        label: 'Answer saved',
+        label: 'Réponse enregistrée',
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -1489,7 +1489,7 @@ class _SavedView extends StatelessWidget {
             ),
             const SizedBox(height: 22),
             const Text(
-              'Answer saved',
+              'Réponse enregistrée',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 28,
@@ -1499,8 +1499,8 @@ class _SavedView extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               momentNumber < totalMoments
-                  ? 'Moving calmly to the next moment.'
-                  : 'Your response pattern is ready.',
+                  ? 'Passage en douceur au moment suivant.'
+                  : 'Ton profil de réponse est prêt.',
               style: const TextStyle(color: Colors.white70, fontSize: 16),
             ),
           ],
@@ -1529,9 +1529,9 @@ class _ResultsView extends StatelessWidget {
 
   /// Bandes d'interprétation du barème, dans l'ordre.
   static const _bands = [
-    (min: 0, max: 4, label: 'Strong impulsivity'),
-    (min: 5, max: 7, label: 'Good stress management'),
-    (min: 8, max: 10, label: 'Very good self-control'),
+    (min: 0, max: 4, label: 'Forte impulsivité'),
+    (min: 5, max: 7, label: 'Bonne gestion du stress'),
+    (min: 8, max: 10, label: 'Très bonne maîtrise de soi'),
   ];
 
   @override
@@ -1556,7 +1556,7 @@ class _ResultsView extends StatelessWidget {
                   _TopBar(onBack: onBack),
                   const SizedBox(height: 18),
                   const Text(
-                    'Results preview',
+                    'Aperçu des résultats',
                     style: TextStyle(
                       color: _ink,
                       fontSize: 34,
@@ -1567,7 +1567,7 @@ class _ResultsView extends StatelessWidget {
                   _ScoreCard(raw: raw, max: max, level: level),
                   const SizedBox(height: 22),
                   const Text(
-                    'Indicators',
+                    'Indicateurs',
                     style: TextStyle(
                       color: _ink,
                       fontSize: 20,
@@ -1577,21 +1577,21 @@ class _ResultsView extends StatelessWidget {
                   const SizedBox(height: 16),
                   _IndicatorBar(
                     icon: HugeIcons.strokeRoundedTimer02,
-                    label: 'Controlled reaction time',
+                    label: 'Temps de réaction maîtrisé',
                     value: indicators?.controlledReactionTimeScore ?? 0,
                     max: 3,
                     color: _magenta,
                   ),
                   _IndicatorBar(
                     icon: HugeIcons.strokeRoundedPauseCircle,
-                    label: 'Non-impulsive responses',
+                    label: 'Réponses non impulsives',
                     value: indicators?.nonImpulsiveResponsesScore ?? 0,
                     max: 4,
                     color: _violet,
                   ),
                   _IndicatorBar(
                     icon: HugeIcons.strokeRoundedIdea01,
-                    label: 'Ability to step back',
+                    label: 'Capacité de recul',
                     value: indicators?.abilityToStepBackScore ?? 0,
                     max: 3,
                     color: _green,
@@ -1606,7 +1606,7 @@ class _ResultsView extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.fromLTRB(24, 8, 24, 18),
           child: GamePrimaryButton(
-            label: 'View learning insights',
+            label: 'Voir l’analyse détaillée',
             onPressed: onInsights,
           ),
         ),
@@ -1626,24 +1626,33 @@ class _ResultsView extends StatelessWidget {
   /// Phrase de synthèse, choisie selon la bande du score.
   static String summaryOf(int? raw) {
     if (raw == null) {
-      return 'Your answers are saved. The summary appears once the server has '
-          'calculated your score.';
+      return 'Tes réponses sont enregistrées. La synthèse apparaîtra dès que le '
+          'serveur aura calculé ton score.';
     }
     if (raw >= 8) {
-      return 'You stayed calm across most pressure moments and avoided '
-          'repeated impulsive reactions.';
+      return 'Tu es resté calme dans la plupart des moments de pression et tu as '
+          'évité les réactions impulsives répétées.';
     }
     if (raw >= 5) {
-      return 'You mostly paused before reacting, with a few quick answers '
-          'under pressure.';
+      return 'Tu as le plus souvent pris un temps avant de réagir, avec quelques '
+          'réponses rapides sous pression.';
     }
-    return 'Pressure often pushed you to answer quickly. A short pause before '
-        'responding helps regain control.';
+    return 'La pression t’a souvent poussé à répondre vite. Une courte pause '
+        'avant de répondre aide à reprendre le contrôle.';
   }
 }
 
 class _ScoreCard extends StatelessWidget {
   const _ScoreCard({required this.raw, required this.max, required this.level});
+
+  /// Le serveur renvoie le palier en anglais : on l'affiche en français sans
+  /// toucher à la valeur reçue. Un palier inconnu reste affiché tel quel.
+  static String _levelLabel(String level) => switch (level) {
+    'Strong impulsivity' => 'Forte impulsivité',
+    'Good stress management' => 'Bonne gestion du stress',
+    'Very good self-control' => 'Très bonne maîtrise de soi',
+    _ => level,
+  };
 
   final int? raw;
   final int max;
@@ -1704,7 +1713,7 @@ class _ScoreCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text(
-                'Level: $level',
+                'Niveau : ${_levelLabel(level!)}',
                 style: const TextStyle(
                   color: Color(0xFF15803D),
                   fontSize: 14,
@@ -1823,7 +1832,7 @@ class _ScoreInterpretation extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Score interpretation',
+            'Interprétation du score',
             style: TextStyle(
               color: _ink,
               fontSize: 17,
@@ -1833,7 +1842,7 @@ class _ScoreInterpretation extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             [
-              if (band != null) '$raw / $max maps to $band.',
+              if (band != null) '$raw / $max correspond à : $band.',
               for (final b in _ResultsView._bands)
                 '${b.min}–${b.max}: ${b.label}',
             ].join('\n'),
@@ -1866,23 +1875,23 @@ class ReflectivePauseInsightsView extends StatelessWidget {
     final stepBack = indicators?.abilityToStepBackScore ?? 0;
     final strongest = _strongestInsight(controlled, nonImpulsive, stepBack);
     final risk = (indicators?.impulsiveChoiceCount ?? 0) == 0
-        ? 'You avoided impulsive answers across all pressure moments.'
-        : 'Watch for moments where speed pushes you toward defensive answers.';
+        ? 'Tu as évité les réponses impulsives dans tous les moments de pression.'
+        : 'Repère les moments où la vitesse te pousse vers des réponses défensives.';
     final pressure = controlled >= 1.5
-        ? 'You often paused before reacting, which supports better emotional control.'
-        : 'A slightly longer pause can help you regain control under pressure.';
+        ? 'Tu as souvent pris un temps avant de réagir, ce qui favorise un meilleur contrôle émotionnel.'
+        : 'Une pause un peu plus longue peut t’aider à reprendre le contrôle sous pression.';
     return Column(
       children: [
         Expanded(
           child: ListView(
             padding: const EdgeInsets.fromLTRB(24, 18, 24, 18),
             children: [
-              _TopBar(onBack: onBack, title: 'Learning insights'),
+              _TopBar(onBack: onBack, title: 'Analyse détaillée'),
               const SizedBox(height: 28),
               if (indicators == null || indicators!.momentsPlayed == 0)
                 const GamePanel(
                   child: Text(
-                    'No insights available yet. Complete a session to see your profile.',
+                    'Aucune analyse disponible pour l’instant. Termine une session pour voir ton profil.',
                   ),
                 )
               else ...[
@@ -1892,7 +1901,7 @@ class ReflectivePauseInsightsView extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       const Text(
-                        'Your regulation profile',
+                        'Ton profil de régulation',
                         style: TextStyle(
                           color: _ink,
                           fontSize: 18,
@@ -1901,7 +1910,7 @@ class ReflectivePauseInsightsView extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       const Text(
-                        'Each bar shows progress within its own criterion.',
+                        'Chaque barre montre la progression sur son propre critère.',
                         style: TextStyle(
                           color: _muted,
                           fontSize: 13,
@@ -1911,21 +1920,21 @@ class ReflectivePauseInsightsView extends StatelessWidget {
                       const SizedBox(height: 24),
                       for (final metric in [
                         (
-                          label: 'Controlled reaction time',
+                          label: 'Temps de réaction maîtrisé',
                           score: controlled,
                           max: ReflectivePauseConfig.controlledReactionMax,
                           color: _violet,
                           icon: HugeIcons.strokeRoundedPauseCircle,
                         ),
                         (
-                          label: 'Non-impulsive responses',
+                          label: 'Réponses non impulsives',
                           score: nonImpulsive,
                           max: ReflectivePauseConfig.nonImpulsiveMax,
                           color: _green,
                           icon: HugeIcons.strokeRoundedMessage01,
                         ),
                         (
-                          label: 'Ability to step back',
+                          label: 'Capacité de recul',
                           score: stepBack,
                           max: ReflectivePauseConfig.stepBackMax,
                           color: _magenta,
@@ -1953,22 +1962,22 @@ class ReflectivePauseInsightsView extends StatelessWidget {
                 _InsightCard(
                   icon: HugeIcons.strokeRoundedMessage01,
                   iconColor: _violet,
-                  title: 'Strongest area',
+                  title: 'Point fort',
                   description: strongest,
                 ),
                 const SizedBox(height: 20),
                 _InsightCard(
                   icon: HugeIcons.strokeRoundedFlash,
                   iconColor: _magenta,
-                  title: 'Impulsivity risk',
+                  title: 'Risque d’impulsivité',
                   description:
-                      '${indicators!.impulsiveChoiceCount} / ${indicators!.momentsPlayed} impulsive choices. $risk',
+                      '${indicators!.impulsiveChoiceCount} / ${indicators!.momentsPlayed} choix impulsifs. $risk',
                 ),
                 const SizedBox(height: 20),
                 _InsightCard(
                   icon: HugeIcons.strokeRoundedPauseCircle,
                   iconColor: _green,
-                  title: 'Pressure pattern',
+                  title: 'Réaction à la pression',
                   description: pressure,
                 ),
                 const SizedBox(height: 20),
@@ -1988,7 +1997,7 @@ class ReflectivePauseInsightsView extends StatelessWidget {
                         SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'Recommendation',
+                            'Recommandation',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 17,
@@ -2000,7 +2009,7 @@ class ReflectivePauseInsightsView extends StatelessWidget {
                     ),
                     SizedBox(height: 24),
                     Text(
-                      'Before responding, ask: Do I need to reply now, or do I need one moment to regulate first?',
+                      'Avant de répondre, demande-toi : dois-je répondre maintenant, ou ai-je d’abord besoin d’un moment pour me réguler ?',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 19,
@@ -2016,7 +2025,7 @@ class ReflectivePauseInsightsView extends StatelessWidget {
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(24, 8, 24, 18),
-          child: GamePrimaryButton(label: 'Back to games', onPressed: onFinish),
+          child: GamePrimaryButton(label: 'Retour aux jeux', onPressed: onFinish),
         ),
       ],
     );
@@ -2031,12 +2040,12 @@ class ReflectivePauseInsightsView extends StatelessWidget {
     final nonImpulsiveRate = nonImpulsive / 4;
     final stepBackRate = stepBack / 3;
     if (stepBackRate >= controlledRate && stepBackRate >= nonImpulsiveRate) {
-      return 'Your strongest pattern is creating distance before reacting.';
+      return 'Ton point fort : prendre de la distance avant de réagir.';
     }
     if (nonImpulsiveRate >= controlledRate) {
-      return 'Your strongest pattern is choosing deliberate responses under pressure.';
+      return 'Ton point fort : choisir des réponses réfléchies sous pression.';
     }
-    return 'Your strongest pattern is pausing before reacting.';
+    return 'Ton point fort : marquer une pause avant de réagir.';
   }
 }
 
@@ -2123,7 +2132,7 @@ class _ReflectiveRulesDialog extends StatelessWidget {
         child: ReflectivePauseTutorial(
           leading: _SquareIconButton(
             icon: HugeIcons.strokeRoundedArrowLeft01,
-            tooltip: 'Back',
+            tooltip: 'Retour',
             onTap: () => Navigator.of(context).pop(),
           ),
           onComplete: () => Navigator.of(context).pop(),
@@ -2166,7 +2175,7 @@ class _ErrorView extends StatelessWidget {
           const AppIcon(HugeIcons.strokeRoundedAlertCircle, color: _magenta, size: 56),
           const SizedBox(height: 18),
           const Text(
-            'Unable to continue',
+            'Impossible de continuer',
             style: TextStyle(
               color: _ink,
               fontSize: 24,
@@ -2180,7 +2189,7 @@ class _ErrorView extends StatelessWidget {
             style: const TextStyle(color: _muted, fontSize: 14),
           ),
           const Spacer(),
-          GamePrimaryButton(label: 'Try again', onPressed: onRetry),
+          GamePrimaryButton(label: 'Réessayer', onPressed: onRetry),
         ],
       ),
     );

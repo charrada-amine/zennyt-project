@@ -903,8 +903,11 @@ sur l'onglet Careers/Progress ; les routes de jeu restent plein écran.
 | | `test/features/games/presentation/emotional_radar_tutorial_test.dart` · `goldens/emotional-radar-tutorial-{1…5}.png` | Chargement/décodage des cinq assets, gestes, validation finale, petit écran à 200 % et cinq captures. |
 | | `presentation/view/emotional_radar_gameplay.dart` | `SceneCard` (média + équivalent textuel voisin), `AnswerPanel` (révélation progressive), `FeedbackCard`. |
 | | `presentation/widgets/emotional_radar_video.dart` | Lecteur asset/réseau : lecture explicite, pause/replay, plein écran, retry, pause sur overlay et arrière-plan. |
-| **Démo / composants** | `presentation/widgets/game_system_components.dart` | `GameContentFrame` partagé pour limiter la largeur sur tablette ; `GameWelcomePage` réutilise les boutons/panneaux existants pour un accueil court (logo officiel, nom, mission, action), sans superposition ni pied masquant le contenu. Carte, court contexte et trois repères du parcours centrés ensemble ; écart final de 8/20 px selon la hauteur. Variantes optionnelles `contextText` et `journey`, logo officiel adapté à la hauteur. Texte agrandi : défilement de toute la page. |
-| **Accueils adaptés au téléphone** | `test/features/games/presentation/game_entry_layout_test.dart` · `goldens/entry-{memory-digits,memory-images,je-decide,optimal-path,predictive-puzzle,emotional-radar,reflective-pause,strategic-choices}.png` | 32 tests : huit accueils à 360×800, 360×640, 320×568 et texte à 200 % ; titres complets, bouton accessible, zone système Android respectée, absence de navigation basse, passage direct aux cartes Strategic Choices. Proximité carte/action vérifiée ; huit captures actualisées et contrôlées. |
+| **Démo / composants** | `presentation/widgets/game_system_components.dart` | `GameContentFrame` partagé pour limiter la largeur sur tablette ; `GameWelcomePage` réutilise les boutons/panneaux existants pour un accueil court (logo officiel, nom, mission, action), sans superposition ni pied masquant le contenu. Carte, court contexte et trois repères du parcours centrés ensemble ; écart final de 6/16 px selon la hauteur. Variantes optionnelles `contextText`, `contextDetail` et `journey`, logo officiel de 64/168 px selon la hauteur disponible ; `logoScale` optionnel (défaut 1), Optimal Path agrandi de 15 % et borné à la largeur du panneau. Texte agrandi : défilement de toute la page. |
+| **Logo original Optimal Path — hub/picker** | `test/features/games/presentation/games_hub_screen_test.dart` · `goldens/optimal-path-logo-white-background.png` | Vérifie le PNG original et l’absence de pastille mauve dans catégorie/sélecteur ; capture du picker sur surface blanche contrôlée. |
+| **Logo Optimal Path original du menu** | `assets/games icons/Optimal Path menu original.png` | PNG RGBA 284×332 restauré à l’identique depuis le logo d’origine versionné (`b081324`) ; utilisé par hub/picker uniquement. Dossier d’assets déjà déclaré, aucun changement de pubspec. |
+| **Logo Optimal Path validé** | `assets/games icons/Optimal Path transparent.png` | PNG RGBA 1254×1254, nouvelle génération validée par l’utilisateur : départ magenta/indigo, sept stations fines, chemin magenta, arrivée verte cochée. Logo généré conservé uniquement à l’accueil ; hub/picker revenus au logo d’origine à la demande de l’utilisateur, sans pastille mauve. Transparence conservée, sans changement de pubspec. |
+| **Accueils adaptés au téléphone** | `test/features/games/presentation/game_entry_layout_test.dart` · `goldens/entry-{memory-digits,memory-images,je-decide,optimal-path,predictive-puzzle,emotional-radar,reflective-pause,strategic-choices}.png` | 64 tests : huit accueils à 320×568, 360×640, 360×800, 390×844, 430×932, 768×1024, 800×360 et texte à 200 % ; titres complets, bouton accessible, zone système Android respectée, absence de navigation basse, passage direct aux cartes Strategic Choices. Proximité carte/action vérifiée ; huit captures actualisées et contrôlées. |
 | | `presentation/widgets/game_results_template.dart` | `insightTitle` optionnel et jauge publique `GameResultInsightMeter` ; mode compact par défaut conservé, variante pleine largeur avec valeur en points, description sémantique et respect du mouvement réduit. |
 | | `test/features/games/presentation/game_insights_visual_test.dart` · `goldens/{strategic-choice-icons,reflective-pause-insights,emotional-radar-intensity-insights}.png` | Huit tests : icônes et états, valeurs serveur/maxima, rapports absents/vides, défilement à 200 %, mouvement réduit et trois captures. |
 | | `mobile/assets/games_demo/emotional_radar/` | Trois MP4 silencieux et `SOURCES.md` (provenance, licence et empreintes). |
@@ -1036,9 +1039,12 @@ Les règles détaillées restent dans les cartes. Le titre **Optimal Path** remp
 Carte, contexte, parcours et action forment un groupe centré : le bouton reste
 près des repères, sans grand vide entre les éléments. Sur petite hauteur, logo,
 espacements et titres s’adaptent ; aucun texte tronqué. Aucun défilement nécessaire
-au texte normal sur les tailles testées ; texte agrandi et écran plus petit peuvent
-faire défiler le groupe. Le retour reste en haut. Paramètres de contexte/parcours
-optionnels pour préserver les usages qui n’en ont pas besoin.
+au texte normal sur les formats portrait testés ; texte agrandi, paysage de
+faible hauteur et écran plus petit peuvent faire défiler le groupe. Le retour reste en haut. Paramètres de contexte/parcours
+optionnels pour préserver les usages qui n’en ont pas besoin. Les logos passent
+à 168 px sur hauteur standard et 64 px sur petite hauteur. Un complément de
+contexte par jeu apparaît avec l’espace disponible (`contextDetail`), tandis
+que le contexte essentiel reste présent sur petit écran. Aucun texte tronqué.
 Day Stack reste inchangé et sert de référence. Strategic Choices ne présente
 plus sa seconde introduction : son action d’accueil ouvre les cartes directement.
 
@@ -1587,7 +1593,7 @@ ArchUnit ne s'exécutent pas car la compilation des tests Recruitment échoue su
 | **« J'investigue » — backend (Phase 4)** : mini-jeu `MEMORY_QUEST_CORE`, `MemoryQuestMetrics` (mesures par tâche), `MemoryQuestScoringService` (tâches 0–5 → **composite /100**), indicateurs + détail du score exposés, migration **V12** (CHECK), parité mock ; mobile soumet via le repository (score serveur autoritatif) | 🟢 Fait |
 | **« J'investigue » — système de niveaux** (7 niveaux, longueur 3→9, +1 après 3 tâches réussies ; objets 4→12 ; distraction gatée niveau ≥ 3 ; arrêt à `max_sequence_length`/`max_session_duration_min`) | 🟢 Fait (backend + mobile + parité mock) |
 | **« J'investigue » — calibrage appareil → timeout** (1er module dont le **score dépend du temps**) : `max_task_time_ms + offset` ; tâche dépassant le seuil ajusté = échec voidé ; `session_valid` | 🟢 Fait — socle `DeviceCalibration`/`CalibrationService` **réutilisé** (non modifié) |
-| Accueils et navigation des jeux — téléphone | 🟢 Huit accueils allégés, titres/logos séparés, navigation basse retirée des jeux/tutoriels, entrée Strategic Choices directe ; 32 tests de disposition et huit captures. 🟠 Contrôle sur téléphone réel ouvert (décision 80). Day Stack inchangé. |
+| Accueils et navigation des jeux — téléphone | 🟢 Huit accueils allégés, titres/logos séparés, navigation basse retirée des jeux/tutoriels, entrée Strategic Choices directe ; 64 tests de disposition (sept formats dont tablette/paysage et texte agrandi) et huit captures. 🟠 Contrôle sur téléphone réel ouvert (décision 80). Day Stack inchangé. |
 | Memory Quest Digits/Image — tutoriels visuels et aide | 🟢 Six cartes et illustrations nouvelles par jeu, objets de partie exclus, dix cartes adaptées au mode historique. 🟠 Rendu sur appareil et défauts préexistants de câblage ouverts dans l’audit du 2026-09-17. |
 | **« Je Décide » (`DECISION`)** | 🟢 Jouable end-to-end (V59) — accueil avec logo, transition vers les règles dans un cadre persistant, trois cartes utiles et un exemple, sans personnalisation ; questions II retirées et situation/réponses ensemble sur une page ; banque historique de 120 items, 24 items actifs servis sans clé de correction, notation serveur /72 → SCW /100 et profil réel sur quatre axes. Reste : modèles λ/k/cohérence pour ER-1..18, CS et RE, puis formes B/C/D |
 | **« Emotional Radar » (`EMOTIONAL_REGULATION`) — 5ᵉ domaine** : `GameType` + `EMOTIONAL_RADAR_CORE`, barème 9 pts/scène, écran Flutter complet (cover, tutoriel, gameplay à révélation progressive, feedback, transition, résultats, pause/aide/plein écran), parité mock | 🟢 **Fait** — jouable sur les 3 scènes rédigées (27 pts) |
@@ -1619,7 +1625,9 @@ ArchUnit ne s'exécutent pas car la compilation des tests Recruitment échoue su
 **Roadmap accueils mobiles (2026-09-18)** : accueils enrichis sur demande de
 l’utilisateur : logo officiel, nom, mission, bref contexte propre au jeu et trois
 repères numérotés. Groupe centré avec action proche du parcours ; logo et espace
-adaptés à la hauteur. Textes détaillés conservés dans les tutoriels. Navigation basse retirée des routes de jeux, seconde entrée
+adaptés à la hauteur, logos agrandis et contexte complété sur hauteur standard.
+Sept formats, tablette/paysage et texte 200 % vérifiés. Textes détaillés conservés
+dans les tutoriels. Navigation basse retirée des routes de jeux, seconde entrée
 Strategic Choices supprimée. Petits écrans et texte agrandi vérifiés ; contrôle
 sur téléphone réel à effectuer. Aucun changement de règles, barèmes ou assets.
 
@@ -1639,7 +1647,11 @@ profil visuel de Reflective Pause et répartition des évaluations d’intensit�
 Radar livrés. Vérification visuelle par captures ; rendu sur appareil à valider.
 Les scores, seuils d’interprétation et règles de partie restent identiques.
 
-**Roadmap Optimal Path (2026-09-17)** : légère amélioration des deux pages de
+**Roadmap Optimal Path (2026-09-18)** : à la demande de l’utilisateur, hub et
+picker reviennent au logo original transparent, sans pastille mauve. Le logo
+nouvellement généré/approuvé reste à l’accueil uniquement ; aucune régénération.
+Agrandissement d’accueil de 15 %, proportions et largeur
+disponible respectées, sept formats et texte agrandi vérifiés. Légère amélioration des deux pages de
 règles livrée, en conservant les stations rondes et le barème existant. Captures
 et navigation vérifiées ; validation visuelle sur appareil ouverte. Gameplay,
 aide de pause, progression et calcul du score inchangés.
@@ -1980,6 +1992,57 @@ Décisions additionnelles du 2026-09-06 :
   conservé. **PROVISOIRE — à valider visuellement sur téléphone réel** : huit
   captures, petits formats et texte agrandi vérifiés ; règles détaillées conservées.
   Aucun nouveau logo, asset, dépendance, barème, délai ou protocole ajouté.
+
+- **83 — Logos agrandis et contexte adapté (2026-09-18)** : ajustement demandé
+  par l’utilisateur, en conservant les logos officiels. Logo 144→168 px sur hauteur
+  standard et 48→64 px sur petite hauteur ; espacements/padding adaptés pour garder
+  le bouton accessible. Chaque jeu possède une phrase de contexte complémentaire,
+  affichée uniquement avec une hauteur suffisante ; mission et contexte essentiel
+  restent sur tous les formats. Complète la décision 82. Aucun texte tronqué ni
+  réduit artificiellement ; paysage de faible hauteur et texte agrandi font défiler
+  le groupe au besoin. **PROVISOIRE — à valider sur téléphone réel** : 64 tests de
+  disposition sur sept formats et texte 200 %, dont tablette/paysage, huit captures.
+  Aucun nouveau logo, asset, dépendance, score, règle ni protocole modifié.
+
+- **84 — Optimal Path, logo d’accueil (2026-09-18)** : l’utilisateur demande
+  d’agrandir légèrement le logo « Mind Path ». PNG officiel Optimal Path conservé,
+  agrandissement de 15 % (environ 193 px standard et 74 px compact), sans changer
+  ses proportions ; taille bornée à la largeur intérieure du panneau. Paramètre
+  `logoScale` de `GameWelcomePage` à 1 par défaut pour préserver les autres jeux.
+  **PROVISOIRE — contrôle sur téléphone réel ouvert** : sept formats et texte
+  200 % vérifiés ; aucun nouveau logo, asset, règle, score ni dépendance.
+
+- **85 — Optimal Path, nouveau logo approuvé (2026-09-18)** : l’utilisateur
+  valide explicitement la dernière génération présentée, après refus d’une
+  variante trop proche de l’original. PNG remplacé au chemin existant : départ
+  magenta avec centre indigo, sept stations plus petites, arrivée verte cochée ;
+  chemin orthogonal et couleurs conservés. Accueil, hub et picker utilisent le
+  même asset. Production par l’outil imagegen intégré, transparence RGBA vérifiée,
+  image copiée sans modification depuis `exec-e93527e5-c314-4197-ac11-f0f1b89403c8.png`.
+  Validation graphique utilisateur obtenue ; contrôle sur appareil réel ouvert.
+  Aucun nouveau chemin d’asset, pubspec, règle, score ou dépendance modifié.
+
+**Prompt exact de la retouche finale du logo validé (outil imagegen intégré)** :
+
+```text
+Precise-object-edit / transparent-background cleanup. Polish this exact logo without changing its design. Preserve exactly the nine-node 3x3 composition, magenta ring and navy dot starting station, seven smaller white circular intermediate nodes, the magenta orthogonal route behind the nodes, and large green arrival station with white check. Important: remove ALL stray white speckles, torn alpha-edge fragments, black speckles, colored fringes and scratch-like residue around and between the shapes. Redraw as impeccably clean flat vector-style raster artwork: mathematically smooth round circles, solid flat color fills, perfectly crisp anti-aliased borders, uniformly thick magenta path with neatly rounded turns. NO gradients, no texture, no grain, no chalk-like edges, no noise, no glow, no shadows. The result must look like a professionally exported clean SVG logo. Background fully transparent with genuine clean alpha, only the intended nine circles, route and checkmark visible. No text, no tile or backdrop. Keep colors magenta #D12E7D, green #22C55E, off-white #F6F8FF, indigo #26224D. Single centered square logo, same proportions and composition. Do not revert to the original nine identical big nodes.
+```
+
+- **86 — Optimal Path, contraste sur fond blanc (2026-09-18)** : correction
+  demandée par l’utilisateur. Le logo approuvé contient des stations blanches ;
+  le badge Games réutilisé dans hub/picker les place sur `gameBlue`, mauve déjà
+  utilisé à l’accueil. Coins arrondis, asset transparent et dimensions du badge
+  conservés. Variante appliquée uniquement à `CatalogGame.optimalPath`.
+  **Décision technique de présentation**, aucun nouveau logo/couleur/score ;
+  capture du picker et tests d’asset/contraste vérifiés. Contrôle appareil ouvert.
+
+- **87 — Optimal Path, retour au logo original dans le menu (2026-09-18)** :
+  demande explicite de l’utilisateur. Copie identique du PNG original versionné
+  pour hub/picker, sans fond mauve ; logo généré conservé dans l’accueil. Cette
+  décision remplace la présentation de la décision 86 pour le menu. Les chemins
+  sont distincts afin de respecter ce périmètre. Dossier déjà déclaré dans pubspec,
+  aucune dépendance ni nouveau visuel inventé. Tests d’asset/absence de pastille et
+  capture du menu vérifiés ; contrôle sur appareil réel ouvert.
 
 **Conforme à la fiche, NE PAS toucher** : profil global Planifik /30 (`interpretGlobal`), cœur du barème Move Fast (50 × multiplicateur, streak 4, bonus 250), barème catégoriel « Predictive Puzzle » (seule fiche validée), architecture par Domain Events.
 
@@ -3053,7 +3116,78 @@ ballon, hub + deux routes) et mock à parité exacte. Correction Flyway : les mi
 0 échec** (base 714). Mobile : 15 tests de parité + 6 tests d'écran verts. Décisions à valider :
 voir la section dédiée (98).
 
-**Dernière mise à jour** : 2026-09-18 — **(98)** BART + IST, correction Flyway V77/V78 ;
+**Changelog (99)** — 2026-09-18 : **Accueils, logos agrandis et contexte enrichi** —
+logos officiels de `GameWelcomePage` agrandis à 168/64 px selon la hauteur ; padding
+et espacements adaptés. Paramètre optionnel `contextDetail`, phrase complémentaire
+propre à chaque jeu avec priorité au contexte essentiel sur petit écran. Les huit
+accueils demandés sont concernés ; Day Stack inchangé. Tests de disposition 32→64 :
+320×568, 360×640, 360×800, 390×844, 430×932, 768×1024, 800×360, texte 200 %.
+Portrait standard sans défilement ; paysage court/texte agrandi défilables sans
+contenu masqué. **100 tests Flutter ciblés verts**, analyse de neuf fichiers sans
+diagnostic ; huit captures d’accueil et captures Je Décide actualisées/contrôlées.
+Modifiés : composant Games, sept écrans, test/captures et cette doc ; aucun fichier
+créé. Inventaire/statut/roadmap mis à jour, décision 83 tracée. Backend/API/contrat,
+barèmes, migrations, assets de production, pubspec/pom, core/shared et modules tiers
+inchangés ; zones protégées intactes. Fichiers lock déjà modifiés au début de la
+session conservés sans intervention. Backend/ArchUnit non relancés ; contrôle sur
+appareil réel ouvert.
+
+**Changelog (100)** — 2026-09-18 : **Optimal Path, logo agrandi de 15 %** —
+PNG officiel conservé, proportions respectées ; `logoScale` optionnel sur le
+composant Games avec défaut 1 et largeur bornée au panneau. Actif uniquement dans
+l’accueil Optimal Path. Capture correspondante actualisée et vérifiée ; inventaire,
+roadmap et décision 84 mis à jour. Validation : **70 tests Flutter ciblés verts**, analyse des deux fichiers Dart sans diagnostic. Modifiés :
+`game_system_components.dart`, `planifik_screen.dart`, capture d’accueil et cette
+doc ; aucun fichier créé. Backend/API/contrat, scoring, migrations, assets de
+production, dépendances, pubspec/pom, core/shared et modules tiers inchangés ;
+zones protégées intactes. Backend/ArchUnit non relancés. Modifications précédentes
+et fichiers lock préexistants conservés ; contrôle sur téléphone réel ouvert.
+
+**Changelog (101)** — 2026-09-18 : **Optimal Path, logo généré approuvé intégré** —
+remplacement du PNG existant par la dernière proposition validée, transparent RGBA
+1254×1254 ; asset partagé par accueil/hub/picker, sans changement de chemin ou de
+pubspec. Capture d’accueil mise à jour et contrôlée. Test d’entrée Optimal Path
+aligné sur son libellé « Commencer » déjà présent (francisation en cours par ailleurs).
+**8 tests Flutter de disposition verts** sur sept formats et texte 200 % ; aucun
+code de production Dart modifié dans cette intégration. Modifiés : PNG, capture,
+ligne de test d’entrée et cette doc ; aucun fichier créé. Décision 85, prompt final,
+inventaire et roadmap tracés. Backend/API/contrat, score, migration, dépendances,
+pubspec/pom, core/shared et modules tiers inchangés ; zones protégées intactes.
+Modifications préexistantes conservées. Backend/ArchUnit et suite globale non
+relancés ; contrôle sur appareil réel ouvert.
+
+**Changelog (102)** — 2026-09-18 : **Optimal Path, lisibilité sur fond blanc** —
+`_GameLogoBadge` réutilisé dans le hub/picker ajoute un fond mauve `gameBlue`
+uniquement pour Optimal Path. Les stations blanches du logo approuvé restent
+visibles ; asset, dimensions et arrondis conservés. Test existant des logos
+complété avec le contraste dans catégorie/picker et une capture du sélecteur.
+Validation : **13 tests Flutter ciblés verts**, analyse des deux fichiers sans diagnostic ;
+capture contrôlée. Fichiers modifiés : hub Games, son test et cette
+doc ; créée : capture `goldens/optimal-path-logo-white-background.png`. Inventaire,
+roadmap et décision 86 actualisés. Backend/API/contrat, score, migrations, asset de
+production, pubspec/pom, dépendances, core/shared et modules tiers inchangés ; zones
+protégées intactes. Modifications préexistantes conservées. Backend/ArchUnit non
+relancés ; contrôle sur appareil réel ouvert.
+
+**Changelog (103)** — 2026-09-18 : **Optimal Path, logo original rétabli dans le menu** —
+création de `Optimal Path menu original.png`, copie exacte du PNG d’origine
+versionné ; `_logoOptimalPath` du hub/picker pointe vers cette copie. Pastille
+mauve retirée du badge réutilisé ; logo généré de l’accueil conservé. Tests d’asset
+et absence de fond alignés, capture du sélecteur actualisée et contrôlée.
+Validation : **13 tests Flutter ciblés verts**, analyse des deux fichiers sans diagnostic,
+capture contrôlée. Modifiés : hub Games, son test/capture et cette
+doc ; créé : PNG original restauré pour le menu. Inventaire/roadmap et décision 87
+mis à jour ; aucun nouvel asset inventé, dépendance ou déclaration pubspec.
+Backend/API/contrat, score, migration, pubspec/pom, core/shared et modules tiers
+inchangés ; zones protégées intactes. Modifications préexistantes conservées.
+Backend/ArchUnit non relancés ; contrôle sur appareil réel ouvert.
+
+**Dernière mise à jour** : 2026-09-18 — **(103)** logo original Optimal Path dans hub/picker, sans pastille mauve ;
+**(102)** logo Optimal Path sur badge mauve dans hub/picker ;
+**(101)** logo Optimal Path généré et approuvé intégré ;
+**(100)** logo d’accueil Optimal Path agrandi de 15 % ;
+**(99)** logos agrandis, contexte complémentaire et formats tablette/paysage vérifiés ;
+**(98)** BART + IST, correction Flyway V77/V78 ;
 **(97)** accueils enrichis d’un contexte et de trois repères par jeu ;
 **(96)** carte et bouton rapprochés, accueils centrés et logos agrandis ;
 **(95)** accueils courts, navigation basse retirée des jeux et entrée Strategic Choices directe ;

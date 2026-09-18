@@ -1011,7 +1011,7 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
         countdown: _pauseAllowance.remaining,
         onCountdownExpired: () =>
             Navigator.of(context).pop(GamePauseAction.resume),
-        description: 'The game timer and the sequence are frozen.',
+        description: 'Le chrono et la séquence sont figés.',
         actions: [
           GamePauseMenuAction.resume(
             onPressed: () => Navigator.of(context).pop(GamePauseAction.resume),
@@ -1169,26 +1169,26 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
 
   Widget _buildGameplay() {
     final phaseLabel = switch (_stage) {
-      _Stage.observeSequence => 'Memorize',
-      _Stage.recallSameOrder => 'Recall',
-      _Stage.recallReverseOrder => 'Recall ↺',
+      _Stage.observeSequence => 'Mémorise',
+      _Stage.recallSameOrder => 'Rappel',
+      _Stage.recallReverseOrder => 'Rappel ↺',
       _Stage.observeObjects => 'Observation',
       _Stage.manipulateObjects => 'Manipulation',
-      _Stage.restoreOrder => 'Restore',
+      _Stage.restoreOrder => 'Restitution',
       _Stage.distraction => 'Distraction',
-      _ => 'Check',
+      _ => 'Vérification',
     };
     // Le bandeau de charge annonce ce que le joueur doit tenir en mémoire. En
     // mode images il compte des OBJETS, y compris pendant l'interférence :
     // sinon il affichait « 0 digits », la séquence de chiffres n'existant pas.
     final loadChip = !widget.mode.playsDigits
-        ? '${_objects.length} objects'
+        ? '${_objects.length} objets'
         : _isMissionB
-        ? '${_objects.length} objects'
+        ? '${_objects.length} objets'
         : _isDistraction
-        ? '${_sequence.length} digits'
-        : '$_length digits';
-    final rightChip = 'Level $_level';
+        ? '${_sequence.length} chiffres'
+        : '$_length chiffres';
+    final rightChip = 'Niveau $_level';
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 20),
       child: Column(
@@ -1241,7 +1241,7 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
                 choices: _distractChoices,
                 secondsLeft: _distractSecondsLeft,
                 totalSeconds: _distractSeconds,
-                reminder: 'Hold the ${_sequence.length} digits in mind',
+                reminder: 'Garde les ${_sequence.length} chiffres en tête',
                 onPick: _pickDistraction,
               ),
               _Stage.recallSameOrder ||
@@ -1266,18 +1266,18 @@ class _InvestigateScreenState extends ConsumerState<InvestigateScreen> {
                     playerFactor: _playerFactor,
                   ),
                 ),
-                title: 'Memorize the starting order',
+                title: 'Mémorise l’ordre initial',
                 subtitle:
-                    'Watch the objects carefully. You will restore this order later.',
+                    'Observe bien les objets. Tu devras retrouver cet ordre plus tard.',
               ),
               _Stage.manipulateObjects => _ObjectsPhaseView(
                 order: _shownOrder,
                 languageCode: _lang,
                 highlightA: _highlightA,
                 highlightB: _highlightB,
-                title: 'Watch the manipulations',
+                title: 'Observe les manipulations',
                 subtitle:
-                    'Objects are moving. Keep the STARTING order in mind, not the new one.',
+                    'Les objets bougent. Garde en tête l’ordre de DÉPART, pas le nouveau.',
               ),
               _Stage.restoreOrder => _RestoreView(
                 board: _board,
@@ -1317,14 +1317,14 @@ class _GameHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // [Expanded] et non [Spacer] : le titre doit CÉDER de la place au
-        // bouton pause. Sur un écran de 320 px, « Working Memory Mission » à sa
+        // bouton pause. Sur un écran de 320 px, « Mission mémoire de travail » à sa
         // largeur naturelle poussait le bouton hors du cadre (débordement 14 px).
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Investigate',
+                'J’investigue',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: AppTypography.headlineLarge.copyWith(
@@ -1333,7 +1333,7 @@ class _GameHeader extends StatelessWidget {
                 ),
               ),
               Text(
-                'Working Memory Mission',
+                'Mission mémoire de travail',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: AppTypography.bodyMedium.copyWith(
@@ -1452,7 +1452,7 @@ class _ObserveView extends StatelessWidget {
         Expanded(child: card),
         const SizedBox(height: AppSpacing.base),
         Text(
-          'Digit ${index + 1} of $total',
+          'Chiffre ${index + 1} sur $total',
           style: AppTypography.titleMedium.copyWith(
             color: Colors.white,
             letterSpacing: 0,
@@ -1473,7 +1473,7 @@ class _ObserveView extends StatelessWidget {
             // débordait de 146 px sur un écran de 320.
             Flexible(
               child: Text(
-                'Watch carefully. Input is locked.',
+                'Observe bien. La saisie est bloquée.',
                 textAlign: TextAlign.center,
                 style: AppTypography.bodyMedium.copyWith(
                   color: Colors.white,
@@ -1537,10 +1537,10 @@ class _RecallView extends StatelessWidget {
         // nouveau texte : le passage SAME -> REVERSE se remarque de lui-meme.
         MemoryPrompt(
           afterDistraction
-              ? 'Now recall the digits you memorized'
+              ? 'Rappelle maintenant les chiffres mémorisés'
               : reverse
-              ? 'Type the sequence in REVERSE order'
-              : 'Type the sequence in the SAME order',
+              ? 'Saisis la séquence dans l’ordre INVERSE'
+              : 'Saisis la séquence dans le MÊME ordre',
         ),
         const SizedBox(height: AppSpacing.base),
         // Slots de saisie (l'original reste caché).
@@ -1573,7 +1573,7 @@ class _RecallView extends StatelessWidget {
         _Keypad(onKey: onKey, onBackspace: onBackspace),
         const SizedBox(height: AppSpacing.base),
         GamePrimaryButton(
-          label: 'Validate',
+          label: 'Valider',
           onPressed: full ? onValidate : null,
         ),
       ],
@@ -1595,7 +1595,7 @@ class _Keypad extends StatelessWidget {
           padding: const EdgeInsets.all(5),
           child: Semantics(
             button: true,
-            label: digit != null ? 'Digit $digit' : label,
+            label: digit != null ? 'Chiffre $digit' : label,
             child: InkWell(
               key: ValueKey(digit != null ? 'kp-$digit' : 'kp-back'),
               onTap: onTap ?? (digit != null ? () => onKey(digit) : null),
@@ -1667,7 +1667,7 @@ class _FeedbackView extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.base),
           Text(
-            correct ? 'Well recalled' : 'Sequence noted',
+            correct ? 'Bien rappelé' : 'Séquence enregistrée',
             style: AppTypography.titleLarge.copyWith(
               color: Colors.white,
               letterSpacing: 0,
@@ -1683,7 +1683,7 @@ class _FeedbackView extends StatelessWidget {
 
 /// Couleur des trois consignes qui portent l'enjeu de la manche : « Memorize
 /// the starting order » à l'observation, « Watch the manipulations » pendant la
-/// distraction, « Restore the STARTING order » au rappel.
+/// distraction, « Retrouve l’ordre de DÉPART » au rappel.
 ///
 /// Retour client : les faire ressortir « pour que le joueur fasse attention ».
 /// Une seule constante pour les trois écrans — les consignes qui se répondent
@@ -1889,11 +1889,11 @@ class _RestoreView extends StatelessWidget {
     final complete = ranking.length == board.length;
     return Column(
       children: [
-        const MemoryPrompt('Restore the STARTING order'),
+        const MemoryPrompt('Retrouve l’ordre de DÉPART'),
         const SizedBox(height: AppSpacing.sm),
         Text(
-          'Tap the objects in their starting order. Tap a numbered object '
-          'again to clear its rank.',
+          'Touche les objets dans leur ordre de départ. Touche à nouveau un '
+          'objet numéroté pour retirer son rang.',
           textAlign: TextAlign.center,
           style: AppTypography.bodyMedium.copyWith(
             color: Colors.white.withValues(alpha: 0.9),
@@ -1903,7 +1903,7 @@ class _RestoreView extends StatelessWidget {
         const SizedBox(height: AppSpacing.md),
         GameTimerBar(
           progress: progress,
-          label: '${secondsLeft}s left',
+          label: '$secondsLeft s restantes',
           // Les dernières secondes se signalent : le rebours valide d'office,
           // le joueur doit pouvoir l'anticiper plutôt que le subir.
           color: secondsLeft <= 3
@@ -1945,7 +1945,7 @@ class _RestoreView extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.base),
         GamePrimaryButton(
-          label: 'Validate',
+          label: 'Valider',
           onPressed: complete && enabled ? onValidate : null,
         ),
       ],
@@ -2069,7 +2069,7 @@ class _ObjectTile extends StatelessWidget {
     }
     return Semantics(
       button: true,
-      label: rank == null ? label : '$label, rank $rank',
+      label: rank == null ? label : '$label, rang $rank',
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
@@ -2134,7 +2134,7 @@ class _LockedBar extends StatelessWidget {
           const AppIcon(HugeIcons.strokeRoundedLockKey, color: Colors.white, size: 18),
           const SizedBox(width: 8),
           Text(
-            'Input locked',
+            'Saisie bloquée',
             style: AppTypography.titleSmall.copyWith(
               color: Colors.white,
               letterSpacing: 0,
@@ -2205,8 +2205,8 @@ class _ObjectDistractionView extends StatelessWidget {
       children: [
         Text(
           c.kind == MemoryDistractionKind.oddOneOut
-              ? 'Find the odd one out'
-              : 'Complete the pattern',
+              ? 'Trouve l’intrus'
+              : 'Complète le motif',
           textAlign: TextAlign.center,
           style: AppTypography.titleLarge.copyWith(
             color: Colors.white,
@@ -2215,7 +2215,7 @@ class _ObjectDistractionView extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.xs),
         Text(
-          'Hold the $objectCount objects in mind',
+          'Garde les $objectCount objets en tête',
           textAlign: TextAlign.center,
           style: AppTypography.bodyMedium.copyWith(
             color: Colors.white.withValues(alpha: 0.75),
@@ -2366,7 +2366,7 @@ class _PuzzleBoard extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.lg),
           Text(
-            'Pick the missing piece',
+            'Choisis la pièce manquante',
             style: AppTypography.bodyMedium.copyWith(
               color: Colors.white.withValues(alpha: 0.8),
               letterSpacing: 0,
@@ -2429,7 +2429,7 @@ class _GlyphTile extends StatelessWidget {
     final patternAsset = pattern.assetPath;
     return Semantics(
       button: onTap != null,
-      label: '${glyph.name} tile',
+      label: 'Tuile ${glyph.name}',
       child: Material(
         color: Colors.white.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
@@ -2533,7 +2533,7 @@ class _DistractionView extends StatelessWidget {
         ),
         const Spacer(),
         Text(
-          'Quick check',
+          'Vérification rapide',
           style: AppTypography.bodyMedium.copyWith(
             color: Colors.white.withValues(alpha: 0.85),
             letterSpacing: 0,
@@ -2574,7 +2574,7 @@ class _DistractionView extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   child: Semantics(
                     button: true,
-                    label: 'Answer $c',
+                    label: 'Réponse $c',
                     child: InkWell(
                       key: ValueKey('choice-$c'),
                       onTap: () => onPick(c),
@@ -2646,13 +2646,18 @@ class _IntroView extends StatelessWidget {
       InvestigateMode.full =>
         'Chiffres et images mettent ta mémoire à l’épreuve. Garde le fil malgré les interruptions.',
     },
+    contextDetail: switch (mode) {
+      InvestigateMode.digits => 'Le défi grandit à chaque palier.',
+      InvestigateMode.images => 'Classe ensuite les images par appuis.',
+      InvestigateMode.full => 'Observe attentivement avant de répondre.',
+    },
     journey: switch (mode) {
       InvestigateMode.digits => const ['Observe', 'Retiens', 'Restitue'],
       InvestigateMode.images => const ['Observe', 'Retiens', 'Classe'],
       InvestigateMode.full => const ['Observe', 'Retiens', 'Restitue'],
     },
     leading: _BackButton(onPressed: onBack),
-    startLabel: 'Start mission',
+    startLabel: 'Commencer la mission',
     onStart: onStart,
   );
 }
@@ -2726,9 +2731,9 @@ class _ResultsView extends StatelessWidget {
                     '$distractionScore/5, and the quick check was '
                     '${distractionQuestionCorrect ? 'correct' : 'missed'}.'}'
           ' Indicative score — not a diagnosis.',
-      primaryLabel: 'Replay',
+      primaryLabel: 'Rejouer',
       onPrimary: onReplay,
-      secondaryLabel: 'Back to games',
+      secondaryLabel: 'Retour aux jeux',
       onSecondary: onBack,
     );
   }
@@ -2745,7 +2750,7 @@ class _BackButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      label: 'Back',
+      label: 'Retour',
       child: InkWell(
         onTap: onPressed,
         borderRadius: BorderRadius.circular(AppSpacing.radiusMd),

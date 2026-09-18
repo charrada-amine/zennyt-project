@@ -54,7 +54,7 @@ class StrategicChoicesTutorial extends StatelessWidget {
         GameTutorialStep(
           title: 'Lance la réflexion',
           description:
-              'Appuie sur « Start reflection ». '
+              'Appuie sur « Lancer la réflexion ». '
               'Tu peux choisir pendant le compte à rebours.',
           illustration: image(1),
           illustrationLabel:

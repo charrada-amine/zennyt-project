@@ -21,7 +21,6 @@ import '../games_providers.dart';
 import '../widgets/emotional_game_pause_dialog.dart';
 import '../widgets/game_system_components.dart';
 import '../widgets/strategic_choices_tutorial.dart';
-
 import 'package:zennyt/shared/icons/app_icons.dart';
 
 const _ink = Color(0xFF26224D);
@@ -366,7 +365,7 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
   Future<void> _backOrExit() async {
     if (_pauseAllowance.canOpen) return _openPause();
     SoundService.instance.playSfx(GameSfx.buttonClick);
-    if (!await GameExitConfirmDialog.show(context, missionLabel: 'journey')) {
+    if (!await GameExitConfirmDialog.show(context, missionLabel: 'le parcours')) {
       return;
     }
     if (mounted) context.go(AppRoutes.games);
@@ -409,7 +408,7 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
         // Quitter annule la tentative : confirmation explicite d'abord.
         if (await GameExitConfirmDialog.show(
           context,
-          missionLabel: 'journey',
+          missionLabel: 'le parcours',
         )) {
           if (mounted) context.go(AppRoutes.games);
           return;
@@ -442,7 +441,7 @@ class _StrategicChoicesScreenState extends ConsumerState<StrategicChoicesScreen>
             reviewing: true,
             leading: _SquareIconButton(
               icon: HugeIcons.strokeRoundedArrowLeft01,
-              tooltip: 'Back',
+              tooltip: 'Retour',
               onTap: () => Navigator.of(context).pop(),
             ),
             onComplete: () => Navigator.of(context).pop(),
@@ -560,13 +559,14 @@ class _CoverView extends StatelessWidget {
     mission: 'Choisis la stratégie adaptée à chaque situation de tension.',
     contextText:
         'Face à une situation stressante, plusieurs façons d’agir s’offrent à toi. Laquelle choisirais-tu ?',
+    contextDetail: 'Prends un temps de réflexion avant de valider.',
     journey: const ['Lis', 'Réfléchis', 'Choisis'],
     leading: _SquareIconButton(
       icon: HugeIcons.strokeRoundedArrowLeft01,
-      tooltip: 'Back',
+      tooltip: 'Retour',
       onTap: onBack,
     ),
-    startLabel: 'Start mission',
+    startLabel: 'Commencer la mission',
     onStart: onStart,
   );
 }
@@ -582,7 +582,7 @@ class _TutorialView extends StatelessWidget {
     totalSituations: kStrategicChoicesPerJourney,
     leading: _SquareIconButton(
       icon: HugeIcons.strokeRoundedArrowLeft01,
-      tooltip: 'Back',
+      tooltip: 'Retour',
       onTap: () {
         SoundService.instance.playSfx(GameSfx.buttonClick);
         onBack();
@@ -630,12 +630,12 @@ class _GameplayView extends StatelessWidget {
   final GameMenuAffordance affordance;
 
   String get _statusLabel => switch (phase) {
-    _ScenarioPhase.reading => 'Read first · choices locked',
+    _ScenarioPhase.reading => 'Lis d’abord · choix verrouillés',
     _ScenarioPhase.reflecting =>
-      'Reflection time · choices available · validate waits',
+      'Temps de réflexion · choix possibles · validation en attente',
     _ScenarioPhase.ready when selected == null =>
-      'Reflection complete · choose one strategy',
-    _ScenarioPhase.ready => 'Ready to validate · one strategy selected',
+      'Réflexion terminée · choisis une stratégie',
+    _ScenarioPhase.ready => 'Prêt à valider · une stratégie choisie',
   };
 
   @override
@@ -871,13 +871,13 @@ class _GameplayView extends StatelessWidget {
           if (phase == _ScenarioPhase.reading)
             GamePrimaryButton(
               key: const ValueKey('strategic-start-reflection'),
-              label: 'Start reflection',
+              label: 'Lancer la réflexion',
               onPressed: onStartReflection,
             )
           else
             GamePrimaryButton(
               key: const ValueKey('strategic-validate'),
-              label: 'Validate my answer',
+              label: 'Valider ma réponse',
               onPressed: phase == _ScenarioPhase.ready && selected != null
                   ? onValidate
                   : null,
@@ -907,8 +907,8 @@ class _SituationProgress extends StatelessWidget {
         ? 0.0
         : (situationNumber - 1) / totalSituations;
     return Semantics(
-      label: 'Progress',
-      value: 'Situation $situationNumber of $totalSituations',
+      label: 'Progression',
+      value: 'Situation $situationNumber sur $totalSituations',
       child: TweenAnimationBuilder<double>(
         tween: Tween(begin: from, end: target),
         duration: const Duration(milliseconds: 450),
@@ -1541,7 +1541,7 @@ class _SavedView extends StatelessWidget {
               ),
               const SizedBox(height: 18),
               const Text(
-                'Answer saved',
+                'Réponse enregistrée',
                 style: TextStyle(
                   color: _ink,
                   fontSize: 25,
@@ -1551,8 +1551,8 @@ class _SavedView extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 situationNumber < kStrategicChoicesPerJourney
-                    ? 'Moving to the next situation...'
-                    : 'Preparing your journey recap...',
+                    ? 'Passage à la situation suivante…'
+                    : 'Préparation du bilan de ton parcours…',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: _muted,
@@ -1624,22 +1624,22 @@ class _ResultsView extends StatelessWidget {
     final profile = [
       (
         letter: 'O',
-        tile: 'Optimal\nchoices',
-        bar: 'Optimal strategy choices',
+        tile: 'Choix\noptimaux',
+        bar: 'Choix de stratégies optimales',
         value: _share('Stratégie optimale retenue'),
         color: _green,
       ),
       (
         letter: 'P',
-        tile: 'Problem-\nfocused',
-        bar: 'Problem-focused coping',
+        tile: 'Centré\nproblème',
+        bar: 'Coping centré sur le problème',
         value: _share('Centré problème'),
         color: _magenta,
       ),
       (
         letter: 'N',
-        tile: 'Non-\ndysfunctional',
-        bar: 'Non-dysfunctional coping',
+        tile: 'Non\ndysfonctionnel',
+        bar: 'Coping non dysfonctionnel',
         value: dysfunctional == null ? null : 100 - dysfunctional,
         color: _violet,
       ),
@@ -1659,7 +1659,7 @@ class _ResultsView extends StatelessWidget {
                   _TopBar(onBack: onBack),
                   const SizedBox(height: 16),
                   const Text(
-                    'Final summary',
+                    'Bilan final',
                     style: TextStyle(
                       color: _ink,
                       fontSize: 34,
@@ -1668,7 +1668,7 @@ class _ResultsView extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'A coaching report based on your choices across '
+                    'Un bilan de coaching fondé sur tes choix dans '
                     '$answerCount situations.',
                     style: const TextStyle(
                       color: _muted,
@@ -1684,7 +1684,7 @@ class _ResultsView extends StatelessWidget {
                   ),
                   const SizedBox(height: 26),
                   const Text(
-                    'Learning profile',
+                    'Profil d’apprentissage',
                     style: TextStyle(
                       color: _ink,
                       fontSize: 20,
@@ -1750,7 +1750,7 @@ class _ResultsView extends StatelessWidget {
                 const SizedBox(height: 10),
               ],
               GamePrimaryButton(
-                label: 'See detailed insights',
+                label: 'Voir l’analyse détaillée',
                 onPressed: onInsights,
               ),
             ],
@@ -1778,16 +1778,16 @@ class _GlobalScoreCard extends StatelessWidget {
   static ({String badge, String pattern})? _labels(String? level) =>
       switch (level) {
         'Highly adaptive strategies' => (
-          badge: 'Advanced',
-          pattern: 'Strong adaptive coping pattern',
+          badge: 'Avancé',
+          pattern: 'Coping très adaptatif',
         ),
         'Adaptive strategies' => (
-          badge: 'Intermediate',
-          pattern: 'Adaptive coping pattern',
+          badge: 'Intermédiaire',
+          pattern: 'Coping adaptatif',
         ),
         'Reactive strategies' => (
-          badge: 'Developing',
-          pattern: 'Reactive coping pattern',
+          badge: 'En progression',
+          pattern: 'Coping réactif',
         ),
         null => null,
         final other => (badge: other, pattern: ''),
@@ -1822,7 +1822,7 @@ class _GlobalScoreCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Global score',
+            'Score global',
             style: TextStyle(
               color: _muted,
               fontSize: 15,
@@ -2054,7 +2054,7 @@ class _InsightsView extends StatelessWidget {
         _TopBar(onBack: onBack),
         const SizedBox(height: 14),
         const Text(
-          'Learning insights',
+          'Analyse détaillée',
           style: TextStyle(
             color: _ink,
             fontSize: 31,
@@ -2070,13 +2070,13 @@ class _InsightsView extends StatelessWidget {
         const SizedBox(height: 18),
         _InsightCard(
           color: _blue,
-          title: 'Most used strategy',
-          description: _mostUsed?.label ?? 'No strategy recorded',
+          title: 'Stratégie la plus utilisée',
+          description: _mostUsed?.label ?? 'Aucune stratégie enregistrée',
         ),
         const SizedBox(height: 12),
         const _InsightCard(
           color: _green,
-          title: 'Current scope',
+          title: 'Portée actuelle',
           description:
               'Vos réponses sont envoyées au serveur, qui calcule le score. '
               'Le barème reste provisoire : il a été reconstruit sans '
@@ -2085,19 +2085,19 @@ class _InsightsView extends StatelessWidget {
         const SizedBox(height: 12),
         const _InsightCard(
           color: _magenta,
-          title: 'Trap tendencies',
+          title: 'Tendances pièges',
           description:
-              'No trap label is shown. These interpretations remain hidden until calibration is approved.',
+              'Aucune étiquette de piège n’est affichée. Ces interprétations restent masquées tant que l’étalonnage n’est pas validé.',
         ),
         const SizedBox(height: 12),
         const _InsightCard(
           color: _navy,
-          title: 'Recommendation',
+          title: 'Recommandation',
           description:
-              'Before choosing, ask: Is this problem solvable now, or do I first need to regulate my state?',
+              'Avant de choisir, demande-toi : ce problème peut-il se résoudre maintenant, ou dois-je d’abord réguler mon état ?',
         ),
         const SizedBox(height: 26),
-        GamePrimaryButton(label: 'Finish mission', onPressed: onFinish),
+        GamePrimaryButton(label: 'Terminer la mission', onPressed: onFinish),
       ],
     );
   }
@@ -2114,7 +2114,7 @@ class _TopBar extends StatelessWidget {
       children: [
         _SquareIconButton(
           icon: HugeIcons.strokeRoundedArrowLeft01,
-          tooltip: 'Back',
+          tooltip: 'Retour',
           onTap: () {
             SoundService.instance.playSfx(GameSfx.buttonClick);
             onBack();
@@ -2123,7 +2123,7 @@ class _TopBar extends StatelessWidget {
         const SizedBox(width: 12),
         const Expanded(
           child: Text(
-            'Zennyt Games',
+            'Jeux Zennyt',
             textAlign: TextAlign.right,
             style: TextStyle(
               color: _muted,

@@ -186,7 +186,7 @@ void main() {
     await shoot(tester, 'menu-pause-compte-a-rebours');
   });
 
-  testWidgets('capture — confirmation avant Exit mission', (tester) async {
+  testWidgets('capture — confirmation avant Quitter la mission', (tester) async {
     await sized(tester, small);
     await tester.pumpWidget(
       const MaterialApp(
@@ -244,23 +244,23 @@ void main() {
     }
 
     // Intro → les deux écrans de tutoriel attendent la direction « droite ».
-    await tapVisible(tester, find.text('Start'));
+    await tapVisible(tester, find.text('Commencer'));
     await settle();
     // Les libellés ajoutés sous les flèches servent aussi de prise de test.
-    await tapVisible(tester, find.text('Right'));
+    await tapVisible(tester, find.text('Droite'));
     await settle();
-    await tapVisible(tester, find.text('Right'));
+    await tapVisible(tester, find.text('Droite'));
     await settle();
 
     // Bascule en tactile via le menu pause.
     // « Pause » et non plus « Mettre en pause » : l'infobulle était le dernier
     // libellé français d'une interface entièrement anglaise, et elle vient d'un
-    // enum partagé qui porte aussi « Exit mission ».
+    // enum partagé qui porte aussi « Quitter la mission ».
     await tapVisible(tester, find.byTooltip('Pause'));
     await settle();
     await tapVisible(tester, find.text('Tactile'));
     await settle();
-    await tapVisible(tester, find.text('Resume'));
+    await tapVisible(tester, find.text('Reprendre'));
     await settle();
 
     expect(find.text('Tactile mode'), findsOneWidget);
@@ -282,7 +282,7 @@ void main() {
 
   // ── « J'investigue » : restauration côte à côte, cartes réduites ──────────
   //
-  // Pilote le jeu jusqu'à la phase « Restore the STARTING order » — la seule où
+  // Pilote le jeu jusqu'à la phase « Retrouve l’ordre de DÉPART » — la seule où
   // les emplacements et la réserve coexistent, donc la seule que le passage en
   // côte à côte modifie.
   for (final entry in {'large': large, 'small': small}.entries) {
@@ -310,7 +310,7 @@ void main() {
         ),
       );
 
-      await tapVisible(tester, find.text('Start mission'));
+      await tapVisible(tester, find.text('Commencer la mission'));
       await tester.pumpAndSettle();
       while (find.text('Suivant').evaluate().isNotEmpty) {
         await tapVisible(tester, find.text('Suivant'));
@@ -324,17 +324,17 @@ void main() {
       for (final d in level1Seq) {
         await tapVisible(tester, find.byKey(ValueKey('kp-$d')));
       }
-      await tapVisible(tester, find.text('Validate'));
+      await tapVisible(tester, find.text('Valider'));
       for (final d in level1Seq.reversed) {
         await tapVisible(tester, find.byKey(ValueKey('kp-$d')));
       }
-      await tapVisible(tester, find.text('Validate'));
+      await tapVisible(tester, find.text('Valider'));
 
       // Feedback → mission B : observation, manipulations, rétention.
       await tester.pump(const Duration(milliseconds: 1000));
       await tester.pump(const Duration(milliseconds: 5200));
       await tester.pump(const Duration(milliseconds: 6200));
-      expect(find.text('Restore the STARTING order'), findsOneWidget);
+      expect(find.text('Retrouve l’ordre de DÉPART'), findsOneWidget);
       expect(initialObjects, isNotEmpty);
 
       await shoot(tester, 'j-investigue-restore-${entry.key}');

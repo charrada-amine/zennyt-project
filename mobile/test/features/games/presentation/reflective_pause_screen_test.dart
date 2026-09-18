@@ -129,9 +129,9 @@ void main() {
   }
 
   Future<void> reachGameplay(WidgetTester tester) async {
-    await tester.tap(find.text('Start mission'));
+    await tester.tap(find.text('Commencer la mission'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Continue'));
+    await tester.tap(find.text('Continuer'));
     await tester.pumpAndSettle();
     for (var page = 0; page < 4; page++) {
       await tester.tap(find.text('Suivant'));
@@ -152,13 +152,13 @@ void main() {
     expect(find.text('Reflective Pause'), findsWidgets);
     expect(find.text('Impulse Control'), findsNothing);
     expect(find.text('View tutorial'), findsNothing);
-    expect(find.text('Start mission'), findsOneWidget);
+    expect(find.text('Commencer la mission'), findsOneWidget);
 
-    await tester.tap(find.text('Start mission'));
+    await tester.tap(find.text('Commencer la mission'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Train calm responses'), findsOneWidget);
+    expect(find.textContaining('Réagis avec calme'), findsOneWidget);
 
-    await tester.tap(find.text('Continue'));
+    await tester.tap(find.text('Continuer'));
     await tester.pumpAndSettle();
     expect(find.text('Comment jouer'), findsOneWidget);
     expect(find.text('Découvre la situation'), findsOneWidget);
@@ -224,10 +224,10 @@ void main() {
 
     await tester.tap(find.byTooltip('Pause'));
     await tester.pumpAndSettle();
-    expect(find.text('Input mode'), findsOneWidget);
-    expect(find.text('View rules / Help'), findsOneWidget);
-    expect(find.text('Exit mission'), findsOneWidget);
-    await tester.tap(find.text('Resume'));
+    expect(find.text('Mode de saisie'), findsOneWidget);
+    expect(find.text('Règles / Aide'), findsOneWidget);
+    expect(find.text('Quitter la mission'), findsOneWidget);
+    await tester.tap(find.text('Reprendre'));
     await tester.pump();
 
     await tester.pump(const Duration(milliseconds: 3100));
@@ -238,7 +238,7 @@ void main() {
     );
 
     await tapChoice(tester, ReflectivePauseResponseType.breatheAnalyze);
-    final validate = find.text('Validate response');
+    final validate = find.text('Valider ma réponse');
     await tester.ensureVisible(validate);
     await tester.tap(validate);
     await tester.pump(const Duration(milliseconds: 750));
@@ -263,7 +263,7 @@ void main() {
       );
       await tester.tap(find.byTooltip('Pause'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('View rules / Help'));
+      await tester.tap(find.text('Règles / Aide'));
       await tester.pumpAndSettle();
       expect(find.text('Découvre la situation'), findsOneWidget);
       for (var page = 0; page < 4; page++) {
@@ -273,7 +273,7 @@ void main() {
       expect(find.text('Commencer la partie'), findsNothing);
       await tester.tap(find.text('Reprendre la partie'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Resume'));
+      await tester.tap(find.text('Reprendre'));
       await tester.pumpAndSettle();
       expect(find.text('Moment 1 / 10'), findsOneWidget);
       expect(
@@ -283,7 +283,7 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(find.text('Validate response').hitTestable(), findsOneWidget);
+      expect(find.text('Valider ma réponse').hitTestable(), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
@@ -298,7 +298,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 3100));
       await tester.pump();
       await tapChoice(tester, ReflectivePauseResponseType.breatheAnalyze);
-      final validate = find.text('Validate response');
+      final validate = find.text('Valider ma réponse');
       await tester.ensureVisible(validate);
       await tester.tap(validate);
       await tester.pump(const Duration(milliseconds: 750));
@@ -307,32 +307,32 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     await tester.pumpAndSettle();
 
-    // Écran « Results preview » de la maquette, sur le barème serveur.
-    expect(find.text('Results preview'), findsOneWidget);
+    // Écran « Aperçu des résultats » de la maquette, sur le barème serveur.
+    expect(find.text('Aperçu des résultats'), findsOneWidget);
     // Huit des dix situations imposées attendent « respirer », que le parcours
     // coche partout : 3,0 (toutes les pauses) + 4,0 (aucune impulsive)
     // + 3 × 8/10 = 2,4 → 9,4, arrondi une seule fois.
     expect(find.text('9 / 10'), findsOneWidget);
-    expect(find.text('Level: Very good self-control'), findsOneWidget);
-    expect(find.text('Controlled reaction time'), findsOneWidget);
-    expect(find.text('Non-impulsive responses'), findsOneWidget);
-    expect(find.text('Ability to step back'), findsOneWidget);
+    expect(find.text('Niveau : Très bonne maîtrise de soi'), findsOneWidget);
+    expect(find.text('Temps de réaction maîtrisé'), findsOneWidget);
+    expect(find.text('Réponses non impulsives'), findsOneWidget);
+    expect(find.text('Capacité de recul'), findsOneWidget);
     expect(find.text('3 / 3'), findsOneWidget);
     expect(find.text('4 / 4'), findsOneWidget);
     expect(find.text('2.4 / 3'), findsOneWidget);
     // L'interprétation situe le score obtenu dans le barème.
     expect(
-      find.textContaining('9 / 10 maps to Very good self-control.'),
+      find.textContaining('9 / 10 correspond à : Très bonne maîtrise de soi.'),
       findsOneWidget,
     );
 
-    await tester.tap(find.text('View learning insights'));
+    await tester.tap(find.text('Voir l’analyse détaillée'));
     await tester.pumpAndSettle();
-    expect(find.text('Learning insights'), findsOneWidget);
-    expect(find.text('Strongest area'), findsOneWidget);
-    expect(find.text('Impulsivity risk'), findsOneWidget);
-    expect(find.text('Pressure pattern'), findsOneWidget);
-    expect(find.text('Recommendation'), findsOneWidget);
+    expect(find.text('Analyse détaillée'), findsOneWidget);
+    expect(find.text('Point fort'), findsOneWidget);
+    expect(find.text('Risque d’impulsivité'), findsOneWidget);
+    expect(find.text('Réaction à la pression'), findsOneWidget);
+    expect(find.text('Recommandation'), findsOneWidget);
   });
 
   group('écran unique, fond mauve, sons', () {
@@ -359,7 +359,7 @@ void main() {
             reason: 'réponse ${type.wire} coupée',
           );
         }
-        expect(find.text('Validate response').hitTestable(), findsOneWidget);
+        expect(find.text('Valider ma réponse').hitTestable(), findsOneWidget);
 
         final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
         expect(scaffold.backgroundColor, ZennytGamePalette.gameBlue);
@@ -368,9 +368,9 @@ void main() {
 
     testWidgets('le tutoriel tient sur un petit écran', (tester) async {
       await pumpGame(tester, size: const Size(360, 640));
-      await tester.tap(find.text('Start mission'));
+      await tester.tap(find.text('Commencer la mission'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Continue'));
+      await tester.tap(find.text('Continuer'));
       await tester.pumpAndSettle();
       expect(find.byType(PageView), findsOneWidget);
       for (var page = 0; page < 4; page++) {
@@ -430,7 +430,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 3100));
       await tester.pump();
       expect(counter, findsNothing);
-      expect(find.text('Validate response'), findsOneWidget);
+      expect(find.text('Valider ma réponse'), findsOneWidget);
     });
 
     testWidgets('sons : décompte, pause et réponse', (tester) async {

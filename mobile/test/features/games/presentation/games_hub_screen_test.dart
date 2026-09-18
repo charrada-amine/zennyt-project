@@ -99,7 +99,7 @@ void main() {
     // que parce que la police de remplacement des tests, plus large que la
     // vraie, empêchait la seconde carte de se peindre.
     expect(
-      find.descendant(of: flexibilityCard, matching: find.text('3 games')),
+      find.descendant(of: flexibilityCard, matching: find.text('3 jeux')),
       findsOneWidget,
     );
     await tester.tap(flexibilityCard);
@@ -178,7 +178,7 @@ void main() {
     );
     expectAssetLogo(
       'category-game-logo-Optimal Path',
-      'assets/games icons/Optimal Path transparent.png',
+      'assets/games icons/Optimal Path menu original.png',
     );
     expect(
       find.byKey(const ValueKey('category-game-logo-Day Stack')),
@@ -222,14 +222,14 @@ void main() {
     await tester.tap(planningCard);
     await tester.pumpAndSettle();
 
-    expect(find.text('Choose a game to play'), findsOneWidget);
+    expect(find.text('Choisis un jeu'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('picker-game-logo-Optimal Path')),
       findsOneWidget,
     );
     expectAssetLogo(
       'picker-game-logo-Optimal Path',
-      'assets/games icons/Optimal Path transparent.png',
+      'assets/games icons/Optimal Path menu original.png',
     );
     expect(
       find.byKey(const ValueKey('picker-game-logo-Day Stack')),
@@ -255,7 +255,7 @@ void main() {
     // donc le sélecteur avec les trois logos.
     await tester.tap(emotionCard);
     await tester.pumpAndSettle();
-    expect(find.text('Choose a game to play'), findsOneWidget);
+    expect(find.text('Choisis un jeu'), findsOneWidget);
     for (final logo in const [
       ('Emotional Radar', 'assets/games icons/Emotional Radar.png'),
       ('Reflective Pause', 'assets/games icons/Reflective Pause.png'),
@@ -276,8 +276,8 @@ void main() {
         await _pumpHub(tester, textScale: textScale);
 
         expect(tester.takeException(), isNull);
-        expect(find.byTooltip('Back'), findsOneWidget);
-        expect(find.bySemanticsLabel('Back'), findsOneWidget);
+        expect(find.byTooltip('Retour'), findsOneWidget);
+        expect(find.bySemanticsLabel('Retour'), findsOneWidget);
         expect(
           find.byKey(const ValueKey('category-game-logo-Move Fast')),
           findsOneWidget,
@@ -331,9 +331,9 @@ void main() {
         },
       ),
     );
-    expect(find.text('20%'), findsOneWidget, reason: '3 / 15');
-    expect(find.text('3 of 15 games completed'), findsOneWidget);
-    expect(find.text('0%'), findsNothing);
+    expect(find.text('20 %'), findsOneWidget, reason: '3 / 15');
+    expect(find.text('3 jeux terminés sur 15'), findsOneWidget);
+    expect(find.text('0 %'), findsNothing);
   });
 
   testWidgets('progression inconnue : un tiret, pas un faux 0 %', (
@@ -341,14 +341,14 @@ void main() {
   ) async {
     await _pumpHub(tester);
     expect(find.text('—'), findsOneWidget);
-    expect(find.text('0%'), findsNothing);
+    expect(find.text('0 %'), findsNothing);
   });
 
   testWidgets('première visite : l\'intro, puis le catalogue', (tester) async {
     await _pumpHub(tester, introSeen: false);
 
-    expect(find.text('Explore games'), findsOneWidget);
-    expect(find.text('Skip for now'), findsOneWidget);
+    expect(find.text('Découvrir les jeux'), findsOneWidget);
+    expect(find.text('Plus tard'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('game-category-cognitive-flexibility')),
       findsNothing,
@@ -357,8 +357,8 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('games-intro-explore')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Explore games'), findsNothing);
-    expect(find.text('Your journey'), findsOneWidget);
+    expect(find.text('Découvrir les jeux'), findsNothing);
+    expect(find.text('Ton parcours'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('game-category-cognitive-flexibility')),
       findsOneWidget,
@@ -368,7 +368,7 @@ void main() {
   testWidgets('les filtres restreignent les catégories', (tester) async {
     await _pumpHub(tester);
 
-    await tester.tap(find.text('Planning'));
+    await tester.tap(find.text('Planification'));
     await tester.pumpAndSettle();
     expect(
       find.byKey(const ValueKey('game-category-executive-planning')),
@@ -379,7 +379,7 @@ void main() {
       findsNothing,
     );
 
-    await tester.tap(find.text('All'));
+    await tester.tap(find.text('Tous'));
     await tester.pumpAndSettle();
     expect(
       find.byKey(const ValueKey('game-category-working-memory')),
@@ -398,8 +398,59 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Choose a game to play'), findsOneWidget);
-    expect(find.text('Played'), findsOneWidget);
-    expect(find.text('1 played'), findsOneWidget);
+    expect(find.text('Choisis un jeu'), findsOneWidget);
+    expect(find.text('Joué'), findsOneWidget);
+    expect(find.text('1 joué'), findsOneWidget);
+  });
+
+  test('le nombre de jeux accorde « jeu » au singulier', () {
+    expect(gameCountLabel(1), '1 jeu');
+    expect(gameCountLabel(3), '3 jeux');
+  });
+
+  testWidgets('Optimal Path garde son logo d’origine, sans pastille', (
+    tester,
+  ) async {
+    await _pumpHub(tester);
+
+    void expectOriginalMenuLogo(String key) {
+      expect(
+        find.descendant(
+          of: find.byKey(ValueKey(key)),
+          matching: find.byType(ColoredBox),
+        ),
+        findsNothing,
+        reason: 'logo original sans pastille mauve',
+      );
+    }
+
+    final planningCard = find.byKey(
+      const ValueKey('game-category-executive-planning'),
+    );
+    await tester.scrollUntilVisible(
+      planningCard,
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    expectOriginalMenuLogo('category-game-logo-Optimal Path');
+
+    await tester.tap(planningCard);
+    await tester.pumpAndSettle();
+    expectOriginalMenuLogo('picker-game-logo-Optimal Path');
+
+    final picker = find.byType(BottomSheet);
+    for (final image in tester.widgetList<Image>(
+      find.descendant(of: picker, matching: find.byType(Image)),
+    )) {
+      await tester.runAsync(
+        () => precacheImage(image.image, tester.element(picker)),
+      );
+    }
+    await tester.pumpAndSettle();
+    await expectLater(
+      picker,
+      matchesGoldenFile('goldens/optimal-path-logo-white-background.png'),
+    );
   });
 }

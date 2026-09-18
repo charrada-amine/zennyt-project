@@ -64,7 +64,7 @@ void main() {
 
   test('une stratégie constante se voit au nombre de stratégies mobilisées', () {
     // Aucun seuil de score ne peut trahir une partie menée avec un seul
-    // libellé : « Assertive communication » vaut 3 dans 28 fiches sur 80, donc
+    // libellé : « Communication assertive » vaut 3 dans 28 fiches sur 80, donc
     // un tirage favorable donne le maximum sans rien lire. C'est ce compteur
     // qui le dit.
     final report = strategicChoicesReport(
@@ -141,7 +141,7 @@ void main() {
       10,
     );
 
-    // « Seek support » recouvre chez Carver deux échelles rangées dans deux
+    // « Chercher du soutien » recouvre chez Carver deux échelles rangées dans deux
     // familles : la classer d'office fausserait le profil.
     final soutien = strategicChoicesReport(
       journeyOf(StrategicChoiceStrategy.seekSupport),

@@ -152,11 +152,11 @@ void main() {
       );
       // Écran de score commun (référence « Je Bouge ») : score en %, points
       // du barème en légende, trois tuiles, Replay + Insights.
-      expect(find.text('Je continue completed'), findsOneWidget);
+      expect(find.text('Je continue terminé'), findsOneWidget);
       expect(find.byKey(const ValueKey('continuous-result-score')), findsOne);
       expect(find.text('84%'), findsOneWidget);
       expect(find.text('Provisional accuracy'), findsOneWidget);
-      expect(find.text('Replay'), findsOneWidget);
+      expect(find.text('Rejouer'), findsOneWidget);
       expect(tester.takeException(), isNull);
 
       await tester.tap(find.text('Insights'));
@@ -223,16 +223,16 @@ void main() {
       // …seulement une sortie, qui prévient que rien ne sera enregistré.
       await tester.tap(find.byTooltip('Exit journey'));
       await tester.pumpAndSettle();
-      expect(find.text('Leave journey?'), findsOneWidget);
+      expect(find.text('Quitter le parcours ?'), findsOneWidget);
       expect(
-        find.textContaining('no score will be recorded'),
+        find.textContaining('aucun score ne sera enregistré'),
         findsOneWidget,
       );
 
       // Renoncer à sortir ramène à la passation, sans pause intercalée.
-      await tester.ensureVisible(find.text('Continue journey'));
+      await tester.ensureVisible(find.text('Continuer le parcours'));
       await tester.pump();
-      await tester.tap(find.text('Continue journey'));
+      await tester.tap(find.text('Continuer le parcours'));
       await tester.pumpAndSettle();
       expect(find.text('First rule · Practice'), findsOneWidget);
       expect(find.byTooltip('Pause'), findsNothing);
@@ -260,7 +260,7 @@ void main() {
     expect(tester.takeException(), isNull);
 
     await finishAcceleratedJourney(tester);
-    expect(find.text('Je continue completed'), findsOneWidget);
+    expect(find.text('Je continue terminé'), findsOneWidget);
     expect(find.byKey(const ValueKey('continuous-result-score')), findsOne);
     expect(tester.takeException(), isNull);
   });
@@ -294,7 +294,7 @@ void main() {
     await tester.tap(find.text('Start final round'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Je continue completed'), findsOneWidget);
+    expect(find.text('Je continue terminé'), findsOneWidget);
     expect(repository.startCallCount, 1);
     expect(repository.submitCallCount, 2);
     expect(

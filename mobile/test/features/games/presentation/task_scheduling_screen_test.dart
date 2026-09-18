@@ -759,7 +759,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Score non calculé'), findsNothing);
     expect(
-      find.textContaining('/ 10 points calculated by the server'),
+      find.textContaining('/ 10 points calculés par le serveur'),
       findsOneWidget,
     );
   });
@@ -786,7 +786,7 @@ void main() {
     await tester.tap(find.text('Voir mon score'));
     await tester.pumpAndSettle();
     expect(
-      find.textContaining('/ 10 points calculated by the server'),
+      find.textContaining('/ 10 points calculés par le serveur'),
       findsOneWidget,
     );
     expect(find.textContaining('manche(s)'), findsOneWidget);
@@ -798,7 +798,7 @@ void main() {
     await start(tester);
     await tester.tap(find.byTooltip('Pause'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('View rules / Help'));
+    await tester.tap(find.text('Règles / Aide'));
     await tester.pumpAndSettle();
 
     // Chaque règle apparaît dans sa carte ; aucune session supplémentaire
@@ -1052,14 +1052,14 @@ void main() {
     // seul essai, le geste le plus naturel éjectait le joueur vers Tower of
     // Hanoi, un autre jeu, sans qu'il l'ait demandé.
     expect(find.textContaining('Hano'), findsNothing);
-    expect(find.text('Replay'), findsOneWidget);
-    expect(find.text('Compare'), findsOneWidget);
+    expect(find.text('Rejouer'), findsOneWidget);
+    expect(find.text('Comparer'), findsOneWidget);
     // Synthèse de la maquette : quatre barres sur les mesures cumulées.
     for (final label in const [
-      'Dependencies respected',
-      'Deadlines met',
-      'Schedule consistency',
-      'Adjustments (<2)',
+      'Dépendances respectées',
+      'Échéances tenues',
+      'Cohérence du planning',
+      'Ajustements (<2)',
     ]) {
       expect(find.text(label), findsOneWidget, reason: label);
     }
@@ -1070,10 +1070,10 @@ void main() {
     await start(tester);
     await finishGame(tester);
 
-    await tester.tap(find.text('Compare'));
+    await tester.tap(find.text('Comparer'));
     await tester.pumpAndSettle();
-    expect(find.text('Comparative Results'), findsOneWidget);
-    expect(find.text('Ranking data required from platform'), findsOneWidget);
+    expect(find.text('Résultats comparatifs'), findsOneWidget);
+    expect(find.text('Données de classement fournies par la plateforme'), findsOneWidget);
     // Première partie de la visite : rien à comparer, et l'écran le dit.
     expect(
       tester
@@ -1084,10 +1084,10 @@ void main() {
     expect(find.textContaining('#'), findsNothing, reason: 'aucun rang');
 
     // Seconde partie : l'écart de points devient réel.
-    await tester.tap(find.text('Replay to improve'));
+    await tester.tap(find.text('Rejouer pour progresser'));
     await tester.pumpAndSettle();
     await finishGame(tester);
-    await tester.tap(find.text('Compare'));
+    await tester.tap(find.text('Comparer'));
     await tester.pumpAndSettle();
     expect(
       tester
@@ -1095,7 +1095,7 @@ void main() {
           .data,
       matches(RegExp(r'^([+-]\d+|0)$')),
     );
-    expect(find.text('Previous attempt'), findsOneWidget);
+    expect(find.text('Tentative précédente'), findsOneWidget);
   });
 
   testWidgets('rules preserve placements and the original session', (
@@ -1106,7 +1106,7 @@ void main() {
     final before = order(tester);
     await tester.tap(find.byTooltip('Pause'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('View rules / Help'));
+    await tester.tap(find.text('Règles / Aide'));
     await tester.pumpAndSettle();
     await advanceTutorial(tester);
     await tester.ensureVisible(find.text('Reprendre la partie'));
@@ -1159,7 +1159,7 @@ void main() {
 
       // Le score vient du serveur, jamais de l'écran.
       expect(
-        find.textContaining('/ 10 points calculated by the server'),
+        find.textContaining('/ 10 points calculés par le serveur'),
         findsOneWidget,
       );
     },
@@ -1184,8 +1184,8 @@ void main() {
           findsNothing,
           reason: 'menu pause',
         );
-        expect(find.text('Exit mission').hitTestable(), findsOneWidget);
-        await tester.tap(find.text('View rules / Help'));
+        expect(find.text('Quitter la mission').hitTestable(), findsOneWidget);
+        await tester.tap(find.text('Règles / Aide'));
         await tester.pumpAndSettle();
         expect(find.byType(PageView), findsOneWidget);
         expect(find.text('Suivant').hitTestable(), findsOneWidget);
@@ -1201,8 +1201,8 @@ void main() {
       await start(tester, size: small);
       await finishGame(tester);
       expect(find.byType(Scrollable), findsNothing);
-      expect(find.text('Replay').hitTestable(), findsOneWidget);
-      expect(find.text('Compare').hitTestable(), findsOneWidget);
+      expect(find.text('Rejouer').hitTestable(), findsOneWidget);
+      expect(find.text('Comparer').hitTestable(), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 

@@ -61,7 +61,7 @@ class _GamePickerSheet extends StatelessWidget {
                   itemBuilder: (_, index) {
                     if (index == 0) {
                       return Text(
-                        'Choose a game to play',
+                        'Choisis un jeu',
                         style: TextStyle(
                           color: _hub(context).ink,
                           fontFamily: AppTypography.fontFamily,
@@ -200,12 +200,12 @@ class _PickerHero extends StatelessWidget {
               ),
               _HeroStat(
                 icon: HugeIcons.strokeRoundedGameController03,
-                label: '$open of ${category.games.length} open',
+                label: '$open sur ${category.games.length} ouverts',
               ),
               if (completed != null)
                 _HeroStat(
                   icon: HugeIcons.strokeRoundedCheckmarkCircle02,
-                  label: '$played played',
+                  label: played > 1 ? '$played joués' : '$played joué',
                   color: played > 0 ? _hub(context).success : null,
                 ),
             ],
@@ -316,7 +316,7 @@ class _GamePickerTile extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'GAME ${index.toString().padLeft(2, '0')}',
+                      'JEU ${index.toString().padLeft(2, '0')}',
                       style: TextStyle(
                         color: on ? accent : _hub(context).muted,
                         fontFamily: AppTypography.fontFamily,
@@ -351,7 +351,7 @@ class _GamePickerTile extends StatelessWidget {
                       const SizedBox(height: 6),
                       _MetaLabel(
                         icon: HugeIcons.strokeRoundedCheckmarkCircle02,
-                        label: 'Played',
+                        label: 'Joué',
                         color: _hub(context).success,
                       ),
                     ],

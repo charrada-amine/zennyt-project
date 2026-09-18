@@ -396,7 +396,7 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
     // Fenêtre consommée : on ne gèle rien. Geler le temps de réponse ici
     // rendrait la pause renouvelable à volonté par simple ouverture de la
     // boîte, ce que la fenêtre unique existe pour empêcher.
-    if (await GameExitConfirmDialog.show(context, missionLabel: 'journey')) {
+    if (await GameExitConfirmDialog.show(context, missionLabel: 'le parcours')) {
       if (mounted) widget.onClose();
     }
   }
@@ -445,7 +445,7 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
         // message de confirmation serait faux et la règle contournable.
         if (await GameExitConfirmDialog.show(
           context,
-          missionLabel: 'journey',
+          missionLabel: 'le parcours',
         )) {
           if (mounted) widget.onClose();
           return;
@@ -616,7 +616,7 @@ class _DecisionGameplayViewState extends State<DecisionGameplayView> {
             SizedBox(height: gapBeforeButton),
             GamePrimaryButton(
               key: const ValueKey('decision-continue'),
-              label: 'Continue',
+              label: 'Continuer',
               onPressed: _selection == null ? null : _validate,
             ),
           ],
@@ -1799,7 +1799,7 @@ class _BadgeView extends StatelessWidget {
               const SizedBox(height: 22),
               GamePrimaryButton(
                 key: const ValueKey('decision-badge-continue'),
-                label: 'Continue',
+                label: 'Continuer',
                 onPressed: onContinue,
               ),
             ],
@@ -1953,7 +1953,7 @@ class _EncouragementView extends StatelessWidget {
         const SizedBox(height: 28),
         GamePrimaryButton(
           key: const ValueKey('decision-encouragement-continue'),
-          label: 'Continue',
+          label: 'Continuer',
           onPressed: onContinue,
         ),
       ],
@@ -2027,7 +2027,7 @@ class _DimensionCompleteView extends StatelessWidget {
         const SizedBox(height: 28),
         GamePrimaryButton(
           key: const ValueKey('decision-dimension-continue'),
-          label: 'Continue',
+          label: 'Continuer',
           onPressed: onContinue,
         ),
       ],

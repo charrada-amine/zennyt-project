@@ -140,7 +140,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Start'));
+    await tester.tap(find.text('Commencer'));
     await tester.pumpAndSettle();
     expect(find.text('Étape 1 sur 2'), findsOneWidget);
     expect(repository.starts, 0);
@@ -154,7 +154,7 @@ void main() {
     await tester.pump();
     expect(repository.starts, 1);
     expect(find.byType(GameWidget<PlanifikGame>), findsOneWidget);
-    expect(find.text('Validate route'), findsOneWidget);
+    expect(find.text('Valider le trajet'), findsOneWidget);
     expect(find.byType(OptimalPathTutorial), findsNothing);
     await tester.pumpWidget(const SizedBox.shrink());
   });

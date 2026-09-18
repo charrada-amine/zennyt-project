@@ -141,21 +141,21 @@ class _JeDecideScreenState extends ConsumerState<JeDecideScreen> {
 
   ({String eyebrow, String title}) get _headerCopy => switch (_stage) {
     _DecisionStage.welcome => (
-      eyebrow: 'Decision Journey',
-      title: 'Zennyt Games',
+      eyebrow: 'Parcours de décision',
+      title: 'Jeux Zennyt',
     ),
     _DecisionStage.practiceIntro => (
-      eyebrow: 'Decision Journey',
+      eyebrow: 'Parcours de décision',
       title: 'Comment jouer',
     ),
     _DecisionStage.practiceScenario => (
       eyebrow: 'Je Décide',
       title: 'Entraînement',
     ),
-    _DecisionStage.gameplay => (eyebrow: 'Decision Journey', title: 'Gameplay'),
+    _DecisionStage.gameplay => (eyebrow: 'Parcours de décision', title: 'Partie'),
     _DecisionStage.results => (
-      eyebrow: 'Decision Journey',
-      title: 'Your profile',
+      eyebrow: 'Parcours de décision',
+      title: 'Ton profil',
     ),
   };
 
@@ -360,7 +360,7 @@ class _DecisionHeader extends StatelessWidget {
       child: Row(
         children: [
           _HeaderButton(
-            tooltip: 'Back',
+            tooltip: 'Retour',
             onPressed: onBack,
             icon: HugeIcons.strokeRoundedArrowLeft01,
           ),
@@ -408,10 +408,10 @@ class _HeaderMoreButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      label: 'Open journey menu',
+      label: 'Ouvrir le menu du parcours',
       child: IconButton(
         key: const ValueKey('decision-more-menu'),
-        tooltip: 'Journey menu',
+        tooltip: 'Menu du parcours',
         // Ce bouton ouvre les règles/aide : il doit cliquer comme les autres.
         // `IconButton` brut n'hérite pas du clic des boutons partagés.
         onPressed: () {
@@ -484,6 +484,7 @@ class _WelcomeView extends StatelessWidget {
         'Choisis face à des situations du quotidien pour découvrir ton style de décision.',
     contextText:
         'Un dilemme, plusieurs possibilités. Explore les compromis entre risques, temps et priorités.',
+    contextDetail: 'Chaque choix nourrit ton bilan final.',
     journey: const ['Lis', 'Choisis', 'Découvre'],
     startKey: const ValueKey('welcome-start'),
     onStart: onStart,
@@ -566,7 +567,7 @@ class _PracticeScenarioView extends StatelessWidget {
                         ),
                         const SizedBox(height: 18),
                         Text(
-                          'Choosing a route',
+                          'Choisir un itinéraire',
                           style: AppTypography.displaySmall.copyWith(
                             color: _ink,
                             fontWeight: FontWeight.w800,
@@ -574,7 +575,7 @@ class _PracticeScenarioView extends StatelessWidget {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          'You’re heading to an important meeting. One route is faster but less predictable. Another is slower but more reliable. Which one would you choose?',
+                          'Tu te rends à une réunion importante. Un itinéraire est plus rapide mais moins prévisible. Un autre est plus lent mais plus fiable. Lequel choisirais-tu ?',
                           style: AppTypography.bodyLarge.copyWith(
                             color: _ink,
                             fontSize: 18,
@@ -587,22 +588,22 @@ class _PracticeScenarioView extends StatelessWidget {
                   const SizedBox(height: 28),
                   _ChoiceCard(
                     key: const ValueKey('choice-faster'),
-                    title: 'Faster route',
-                    subtitle: 'Shorter travel time • Less predictable',
+                    title: 'Itinéraire rapide',
+                    subtitle: 'Trajet plus court • Moins prévisible',
                     selected: selectedChoice == 0,
                     onTap: () => onSelected(0),
                   ),
                   const SizedBox(height: 18),
                   _ChoiceCard(
                     key: const ValueKey('choice-reliable'),
-                    title: 'Reliable route',
-                    subtitle: 'Longer travel time • More predictable',
+                    title: 'Itinéraire fiable',
+                    subtitle: 'Trajet plus long • Plus prévisible',
                     selected: selectedChoice == 1,
                     onTap: () => onSelected(1),
                   ),
                   const SizedBox(height: 28),
                   Text(
-                    'Your choice is saved when you tap a card.',
+                    'Ton choix est enregistré dès que tu touches une carte.',
                     textAlign: TextAlign.center,
                     style: AppTypography.bodyMedium.copyWith(
                       color: _muted,
@@ -616,7 +617,7 @@ class _PracticeScenarioView extends StatelessWidget {
           const SizedBox(height: 18),
           GamePrimaryButton(
             key: const ValueKey('practice-continue'),
-            label: 'Continue',
+            label: 'Continuer',
             onPressed: onContinue,
           ),
         ],
@@ -783,7 +784,7 @@ class _DecisionLoadingView extends StatelessWidget {
             const AppIcon(HugeIcons.strokeRoundedCloudSlowWind, size: 56, color: _muted),
             const SizedBox(height: 16),
             Text(
-              submittingResult ? 'Score unavailable' : 'Journey unavailable',
+              submittingResult ? 'Score indisponible' : 'Parcours indisponible',
               style: AppTypography.headlineSmall.copyWith(
                 color: _ink,
                 fontWeight: FontWeight.w800,
@@ -792,9 +793,9 @@ class _DecisionLoadingView extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               submittingResult
-                  ? 'Your answers are kept here. Check your connection and try again to receive your score.'
-                  : 'The decision scenarios are served by Zennyt and could not be '
-                        'loaded. Check your connection and try again.',
+                  ? 'Tes réponses sont conservées ici. Vérifie ta connexion et réessaie pour recevoir ton score.'
+                  : 'Les scénarios de décision sont fournis par Zennyt et n’ont pas pu '
+                        'être chargés. Vérifie ta connexion et réessaie.',
               textAlign: TextAlign.center,
               style: AppTypography.bodyMedium.copyWith(
                 color: _muted,
@@ -808,11 +809,11 @@ class _DecisionLoadingView extends StatelessWidget {
                     ? 'decision-retry-result'
                     : 'decision-retry-form',
               ),
-              label: 'Try again',
+              label: 'Réessayer',
               onPressed: onRetry,
             ),
             const SizedBox(height: 10),
-            GameOutlineButton(label: 'Back to games', onPressed: onBack),
+            GameOutlineButton(label: 'Retour aux jeux', onPressed: onBack),
           ],
         ),
       ),

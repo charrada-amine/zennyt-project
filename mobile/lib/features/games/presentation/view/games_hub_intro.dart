@@ -49,7 +49,7 @@ class _GamesIntroState extends State<_GamesIntro>
                 onPressed: widget.onSkip,
                 style: TextButton.styleFrom(foregroundColor: _hub(context).ink),
                 child: Text(
-                  'Skip for now',
+                  'Plus tard',
                   style: TextStyle(
                     fontFamily: AppTypography.fontFamily,
                     fontSize: 14,
@@ -129,11 +129,11 @@ class _IntroHeadline extends StatelessWidget {
           TextSpan(
             children: [
               TextSpan(
-                text: 'Play & discover\n',
+                text: 'Joue et découvre\n',
                 style: headline.copyWith(color: _hub(context).ink),
               ),
               TextSpan(
-                text: 'your talent',
+                text: 'ton talent',
                 style: headline.copyWith(color: _hub(context).violet),
               ),
             ],
@@ -142,7 +142,7 @@ class _IntroHeadline extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Text(
-          'Short games. Real insights.\nA better you.',
+          'Des jeux courts. De vrais repères.\nLe meilleur de toi.',
           textAlign: TextAlign.center,
           style: TextStyle(
             color: _hub(context).muted,
@@ -378,7 +378,7 @@ class _SpeechBubble extends StatelessWidget {
         ],
       ),
       child: Text(
-        'Games that\nreveal your\nstrengths',
+        'Des jeux qui\nrévèlent tes\nforces',
         style: TextStyle(
           color: _hub(context).ink,
           fontFamily: AppTypography.fontFamily,
@@ -423,22 +423,22 @@ class _IntroPanel extends StatelessWidget {
               Expanded(
                 child: _IntroPerk(
                   icon: HugeIcons.strokeRoundedClock01,
-                  title: '10–13 mins',
-                  caption: 'per game',
+                  title: '10–13 min',
+                  caption: 'par jeu',
                 ),
               ),
               Expanded(
                 child: _IntroPerk(
                   icon: HugeIcons.strokeRoundedChartLineData01,
-                  title: 'Personalized',
-                  caption: 'insights',
+                  title: 'Analyses',
+                  caption: 'personnalisées',
                 ),
               ),
               Expanded(
                 child: _IntroPerk(
                   icon: HugeIcons.strokeRoundedAward01,
-                  title: 'Track your',
-                  caption: 'progress',
+                  title: 'Suis ta',
+                  caption: 'progression',
                 ),
               ),
             ],
@@ -453,7 +453,7 @@ class _IntroPanel extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Learn more',
+                  'En savoir plus',
                   style: TextStyle(
                     fontFamily: AppTypography.fontFamily,
                     fontSize: 15,
@@ -526,7 +526,7 @@ class _ExploreButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      label: 'Explore games',
+      label: 'Découvrir les jeux',
       excludeSemantics: true,
       child: Material(
         color: _hub(context).cta,
@@ -543,7 +543,7 @@ class _ExploreButton extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    'Explore games',
+                    'Découvrir les jeux',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: _hub(context).onCta,
@@ -610,7 +610,7 @@ Future<void> _showLearnMore(BuildContext context) {
             ),
             const SizedBox(height: 18),
             Text(
-              'How it works',
+              'Comment ça marche',
               style: AppTypography.headlineLarge.copyWith(
                 color: _hub(context).ink,
                 fontSize: 22,
@@ -620,8 +620,8 @@ Future<void> _showLearnMore(BuildContext context) {
             ),
             const SizedBox(height: 6),
             Text(
-              'Each game measures one skill. Play at your own pace — every '
-              'finished game adds to your talent profile.',
+              'Chaque jeu mesure une aptitude. Joue à ton rythme : chaque jeu '
+              'terminé enrichit ton profil de talents.',
               style: TextStyle(
                 color: _hub(context).muted,
                 fontFamily: AppTypography.fontFamily,
@@ -680,7 +680,7 @@ Future<void> _showLearnMore(BuildContext context) {
                   ),
                 ),
                 child: const Text(
-                  'Got it',
+                  'Compris',
                   style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
                 ),
               ),

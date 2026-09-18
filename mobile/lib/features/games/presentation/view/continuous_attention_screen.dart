@@ -17,7 +17,6 @@ import '../games_providers.dart';
 import '../widgets/game_results_template.dart';
 import '../widgets/game_system_components.dart';
 import '../widgets/zennyt_loader.dart';
-
 import 'package:zennyt/shared/icons/app_icons.dart';
 
 const _navy = Color(0xFF28234F);
@@ -634,7 +633,7 @@ class _ContinuousAttentionScreenState
   /// phase, ni fenêtre de 30 s ici — seulement une sortie, qui annule la
   /// session comme n'importe quel abandon.
   Future<void> _exitJourney() async {
-    if (!await GameExitConfirmDialog.show(context, missionLabel: 'journey')) {
+    if (!await GameExitConfirmDialog.show(context, missionLabel: 'le parcours')) {
       return;
     }
     if (!mounted) return;
@@ -869,7 +868,7 @@ class _TopBar extends StatelessWidget {
   const _TopBar({
     required this.onBack,
     required this.title,
-    this.eyebrow = 'Zennyt Games',
+    this.eyebrow = 'Jeux Zennyt',
     this.onMore,
   });
 
@@ -883,7 +882,7 @@ class _TopBar extends StatelessWidget {
     return Row(
       children: [
         _SquareButton(
-          tooltip: 'Back',
+          tooltip: 'Retour',
           icon: HugeIcons.strokeRoundedArrowLeft01,
           onTap: onBack,
         ),
@@ -2122,7 +2121,7 @@ class _ResultsView extends StatelessWidget {
           'Rule A → X: ${_phaseSummary(report.axPhase)} '
           'Timing flags: ${report.timingDeviationCount}.',
       notice: const _ResultDisclaimer(),
-      primaryLabel: 'Replay',
+      primaryLabel: 'Rejouer',
       onPrimary: onReplay,
       secondaryLabel: 'Insights',
       onSecondary: onInsights,
@@ -2262,7 +2261,7 @@ class _InsightsView extends StatelessWidget {
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(22, 8, 22, 18),
-          child: GamePrimaryButton(label: 'Back to games', onPressed: onFinish),
+          child: GamePrimaryButton(label: 'Retour aux jeux', onPressed: onFinish),
         ),
       ],
     );
@@ -2396,9 +2395,9 @@ class _ErrorView extends StatelessWidget {
       iconColor: _magenta,
       title: 'We could not save the journey',
       message: message,
-      primaryLabel: 'Try again',
+      primaryLabel: 'Réessayer',
       onPrimary: onRetry,
-      secondaryLabel: 'Back to games',
+      secondaryLabel: 'Retour aux jeux',
       onSecondary: onBack,
     );
   }
@@ -2564,7 +2563,7 @@ class _RulesDialog extends StatelessWidget {
             GamePrimaryButton(
               // [GamePrimaryButton] joue déjà le clic : le rejouer ici
               // superposait deux fois le même son.
-              label: 'Got it',
+              label: 'Compris',
               onPressed: () => Navigator.of(context).pop(),
             ),
           ],

@@ -185,7 +185,7 @@ void main() {
 
   test('aucune stratégie constante ne sature le barème', () {
     // Un joueur qui coche toujours le même libellé, sans lire la scène, ne
-    // doit pas s'approcher du plafond. « Assertive communication » obtient
+    // doit pas s'approcher du plafond. « Communication assertive » obtient
     // aujourd'hui 1,94/3 de moyenne contre 2,99 pour un jeu parfait : c'est
     // exploitable, et ce test fige le niveau pour qu'il ne s'aggrave pas.
     double moyenne(StrategicChoiceStrategy s) =>

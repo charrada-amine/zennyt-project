@@ -59,39 +59,39 @@ void main() {
       'memory-digits',
       InvestigateScreen(mode: InvestigateMode.digits),
       'Memory Quest · Digits',
-      'Start mission',
+      'Commencer la mission',
     ),
     (
       'memory-images',
       InvestigateScreen(mode: InvestigateMode.images),
       'Memory Quest · Images',
-      'Start mission',
+      'Commencer la mission',
     ),
     ('je-decide', JeDecideScreen(), 'Je Décide', 'Commencer'),
-    ('optimal-path', PlanifikScreen(), 'Optimal Path', 'Start'),
+    ('optimal-path', PlanifikScreen(), 'Optimal Path', 'Commencer'),
     (
       'predictive-puzzle',
       PredictivePuzzleScreen(),
       'Predictive Puzzle',
-      'Start',
+      'Commencer',
     ),
     (
       'emotional-radar',
       EmotionalRadarScreen(),
       'Emotional Radar',
-      'Start tutorial',
+      'Commencer le tutoriel',
     ),
     (
       'reflective-pause',
       ReflectivePauseScreen(),
       'Reflective Pause',
-      'Start mission',
+      'Commencer la mission',
     ),
     (
       'strategic-choices',
       StrategicChoicesScreen(),
       'Strategic Choices',
-      'Start mission',
+      'Commencer la mission',
     ),
   ];
 
@@ -101,6 +101,10 @@ void main() {
       (Size(360, 640), 1.0),
       (Size(320, 568), 1.0),
       (Size(360, 800), 2.0),
+      (Size(390, 844), 1.0),
+      (Size(430, 932), 1.0),
+      (Size(768, 1024), 1.0),
+      (Size(800, 360), 1.0),
     ]) {
       testWidgets('$id : $size texte $scale, titre et bouton accessibles', (
         tester,
@@ -146,13 +150,13 @@ void main() {
               tester
                   .getRect(find.byKey(const ValueKey('welcome-journey')))
                   .bottom,
-          inInclusiveRange(8, 20),
+          inInclusiveRange(6, 16),
           reason: 'le bouton reste proche des repères du parcours',
         );
         final scrollables = tester.stateList<ScrollableState>(
           find.byType(Scrollable),
         );
-        if (scale == 1) {
+        if (scale == 1 && size.height >= 568) {
           for (final scroll in scrollables) {
             expect(
               scroll.position.maxScrollExtent,
@@ -164,7 +168,7 @@ void main() {
           final rect = tester.getRect(start);
           expect(rect.bottom, lessThanOrEqualTo(size.height - 48));
         } else {
-          // Un unique défilement de page est autorisé pour le texte agrandi.
+          // Texte agrandi/paysage court : le groupe entier défile sans masquage.
           await tester.ensureVisible(start);
           await tester.pumpAndSettle();
           expect(start.hitTestable(), findsOneWidget);

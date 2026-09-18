@@ -21,7 +21,6 @@ import '../games_controller.dart';
 import '../widgets/game_results_template.dart';
 import '../widgets/game_system_components.dart';
 import '../widgets/game_tutorial_deck.dart';
-
 import 'package:zennyt/shared/icons/app_icons.dart';
 
 /// Jeu « Optimal Path » (Planifik — « Je planifie »).
@@ -319,12 +318,14 @@ class _IntroView extends StatelessWidget {
   Widget build(BuildContext context) => GameWelcomePage(
     title: 'Optimal Path',
     logoAsset: 'assets/games icons/Optimal Path transparent.png',
+    logoScale: 1.15,
     mission: 'Trace le meilleur chemin en respectant les contraintes.',
     contextText:
         'Rejoins l’arrivée en évitant les obstacles et en récupérant les documents du parcours.',
+    contextDetail: 'Anticipe le trajet avant de le tracer.',
     journey: const ['Observe', 'Trace', 'Valide'],
     leading: _SquareIconButton(icon: HugeIcons.strokeRoundedArrowLeft01, onTap: onBack),
-    startLabel: 'Start',
+    startLabel: 'Commencer',
     onStart: onStart,
   );
 }
@@ -393,7 +394,7 @@ class OptimalPathTutorial extends StatelessWidget {
         title: 'Choisis un trajet efficace',
         description:
             'Privilégie une route courte et peu d’essais. Récupère les étoiles '
-            'sans grand détour. Quand ton trajet est prêt, appuie sur « Validate route ».',
+            'sans grand détour. Quand ton trajet est prêt, appuie sur « Valider le trajet ».',
         illustration: _OptimalScoreArt(),
         illustrationLabel:
             'Chaque niveau vaut jusqu’à dix points : route optimale quatre, '
@@ -1046,8 +1047,8 @@ class _GameplayViewState extends State<_GameplayView> {
                   Expanded(child: GameWidget(game: game)),
                   const SizedBox(height: AppSpacing.md),
                   Text(
-                    'Level ${widget.level}/${widget.totalLevels} — swipe or tap '
-                    'stations to trace Leila\'s route.',
+                    'Niveau ${widget.level}/${widget.totalLevels} — glisse ou touche '
+                    'les stations pour tracer le trajet de Leila.',
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: Colors.white,
@@ -1134,13 +1135,13 @@ class _OptimalHud extends StatelessWidget {
             ),
             const SizedBox(width: AppSpacing.sm),
             Expanded(
-              child: _HudStatPill(label: 'Timer', value: timeLabel),
+              child: _HudStatPill(label: 'Temps', value: timeLabel),
             ),
             const SizedBox(width: AppSpacing.sm),
             Expanded(
               // Plafonné : n'affiche jamais X/3 avec X > 3 (limite dure = 3).
               child: _HudStatPill(
-                label: 'Tries',
+                label: 'Essais',
                 value: '${tries > 3 ? 3 : tries}/3',
               ),
             ),
@@ -1257,7 +1258,7 @@ class _FeedbackBanner extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
-          correct ? 'Correct!' : 'Wrong route!',
+          correct ? 'Correct !' : 'Mauvais trajet !',
           style: const TextStyle(
             color: Colors.white,
             fontSize: 17,
@@ -1290,11 +1291,11 @@ class _BoardLegend extends StatelessWidget {
       spacing: AppSpacing.md,
       runSpacing: 6,
       children: [
-        _BoardLegendItem(color: Colors.white, label: 'Start'),
-        _BoardLegendItem(color: Color(0xFF22C55E), label: 'Goal'),
-        _BoardLegendItem(color: Color(0xFFE8574C), label: 'Block'),
-        _BoardLegendItem(color: Color(0xFFF5B800), label: 'Star', star: true),
-        _BoardLegendItem(color: Color(0xFFD12E7D), label: 'Path'),
+        _BoardLegendItem(color: Colors.white, label: 'Départ'),
+        _BoardLegendItem(color: Color(0xFF22C55E), label: 'Arrivée'),
+        _BoardLegendItem(color: Color(0xFFE8574C), label: 'Bloc'),
+        _BoardLegendItem(color: Color(0xFFF5B800), label: 'Étoile', star: true),
+        _BoardLegendItem(color: Color(0xFFD12E7D), label: 'Chemin'),
       ],
     );
   }
@@ -1364,7 +1365,7 @@ class _ClearButton extends StatelessWidget {
               ),
               const SizedBox(width: AppSpacing.sm),
               Text(
-                'Clear',
+                'Effacer',
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: enabled ? 1 : 0.5),
                   fontSize: 16,
@@ -1418,7 +1419,7 @@ class _ValidateButton extends StatelessWidget {
                     AppIcon(HugeIcons.strokeRoundedTick02, color: Colors.white, size: 22),
                     SizedBox(width: AppSpacing.sm),
                     Text(
-                      'Validate route',
+                      'Valider le trajet',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 16,
@@ -1471,7 +1472,7 @@ class _OptimalRulesDialog extends StatelessWidget {
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Text(
-                    'How to play',
+                    'Comment jouer',
                     style: AppTypography.titleLarge.copyWith(
                       color: ZennytGamePalette.ink,
                       letterSpacing: 0,
@@ -1484,25 +1485,25 @@ class _OptimalRulesDialog extends StatelessWidget {
             _RuleLine(
               icon: HugeIcons.strokeRoundedSwipeLeft01,
               text:
-                  'Slide your finger from LAB across adjacent stations to '
-                  'trace your route — or tap them one by one. Slide back to '
-                  'erase the last step.',
+                  'Fais glisser ton doigt depuis LAB sur les stations voisines '
+                  'pour tracer ton trajet, ou touche-les une par une. Glisse en '
+                  'arrière pour effacer le dernier pas.',
             ),
             _RuleLine(
               icon: HugeIcons.strokeRoundedFlag02,
-              text: 'Reach MTG with the shortest route. Avoid the blocks.',
+              text: 'Rejoins MTG par le trajet le plus court. Évite les blocs.',
             ),
             _RuleLine(
               icon: AppIcons.starFilled,
-              text: 'Grab star stations for bonus points.',
+              text: 'Passe par les étoiles pour gagner des points bonus.',
             ),
             _RuleLine(
               icon: HugeIcons.strokeRoundedCheckmarkCircle02,
-              text: 'Validate when ready. Clear to restart the route.',
+              text: 'Valide quand tu es prêt. Efface pour recommencer le trajet.',
             ),
             const SizedBox(height: AppSpacing.md),
             GamePrimaryButton(
-              label: 'Got it',
+              label: 'Compris',
               icon: HugeIcons.strokeRoundedTick02,
               color: ZennytGamePalette.gameBlue,
               onPressed: () => Navigator.of(context).pop(),
@@ -1580,22 +1581,22 @@ class _ScoreView extends StatelessWidget {
       onBack: onBack,
       gameName: 'Path Mind',
       pending: attempt == null,
-      scoreLabel: 'Cognitive score',
+      scoreLabel: 'Score cognitif',
       scorePercent: attempt?.score.normalized.round(),
       points: attempt?.score.rawPoints,
       maxPoints: attempt?.score.maxPoints,
       stats: [
         GameResultStat(
-          label: 'Efficiency',
+          label: 'Efficacité',
           value: '$routeEfficiency%',
           color: ZennytGamePalette.success,
         ),
         GameResultStat(
-          label: 'Route',
+          label: 'Trajet',
           value: metrics == null ? '—' : '${metrics!.pathLength}',
         ),
         GameResultStat(
-          label: 'Delta',
+          label: 'Écart',
           value: metrics == null
               ? '—'
               : delta <= 0
@@ -1611,14 +1612,14 @@ class _ScoreView extends StatelessWidget {
       // client : le joueur voit son résultat et l'analyse, pas le barème.
       insight: metrics == null
           ? null
-          : 'Route of ${metrics!.pathLength} steps for an optimal '
-                '${metrics!.optimalLength}. The player plans a route under '
-                'constraints, balances optional objectives, and compares the '
-                'chosen path with the optimal graph route.',
+          : 'Trajet de ${metrics!.pathLength} pas pour un optimum de '
+                '${metrics!.optimalLength}. Le joueur planifie un trajet sous '
+                'contraintes, arbitre les objectifs facultatifs et compare le '
+                'chemin choisi au trajet optimal.',
       // « Finish » faisait doublon avec le retour, qui ramène déjà au hub.
-      primaryLabel: 'Replay',
+      primaryLabel: 'Rejouer',
       onPrimary: onReplay,
-      secondaryLabel: 'Compare',
+      secondaryLabel: 'Comparer',
       onSecondary: onCompare,
     );
   }
@@ -1657,14 +1658,14 @@ class _ComparisonView extends StatelessWidget {
             child: Column(
               children: [
                 Text(
-                  'Comparative Results',
+                  'Résultats comparatifs',
                   style: AppTypography.headlineLarge.copyWith(
                     color: ZennytGamePalette.blue,
                     letterSpacing: 0,
                   ),
                 ),
                 Text(
-                  'Optimal route benchmark',
+                  'Référence : trajet optimal',
                   style: AppTypography.bodyMedium.copyWith(
                     color: ZennytGamePalette.muted,
                     letterSpacing: 0,
@@ -1694,7 +1695,7 @@ class _ComparisonView extends StatelessWidget {
                 const SizedBox(width: AppSpacing.lg),
                 Expanded(
                   child: Text(
-                    'against the optimal planning route',
+                    'par rapport au trajet optimal',
                     style: AppTypography.titleLarge.copyWith(
                       color: Colors.white,
                       letterSpacing: 0,
@@ -1714,7 +1715,7 @@ class _ComparisonView extends StatelessWidget {
             physics: const NeverScrollableScrollPhysics(),
             children: [
               ResultStatTile(
-                label: 'Your route',
+                label: 'Ton trajet',
                 value: '$steps',
                 valueColor: ZennytGamePalette.blue,
               ),
@@ -1724,12 +1725,12 @@ class _ComparisonView extends StatelessWidget {
                 valueColor: ZennytGamePalette.blue,
               ),
               ResultStatTile(
-                label: 'Difference',
-                value: delta <= 0 ? 'Optimal' : '+$delta steps',
+                label: 'Différence',
+                value: delta <= 0 ? 'Optimal' : '+$delta pas',
                 valueColor: ZennytGamePalette.blue,
               ),
               ResultStatTile(
-                label: 'Level',
+                label: 'Niveau',
                 value: session?.lastAttempt?.score.level ?? '—',
                 valueColor: ZennytGamePalette.blue,
               ),
@@ -1742,7 +1743,7 @@ class _ComparisonView extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Performance evolution',
+                  'Évolution des performances',
                   style: AppTypography.titleMedium.copyWith(
                     color: ZennytGamePalette.blue,
                     letterSpacing: 0,
@@ -1751,8 +1752,8 @@ class _ComparisonView extends StatelessWidget {
                 const SizedBox(height: AppSpacing.sm),
                 Text(
                   (m?.costlyZonesAvoided ?? true)
-                      ? 'The route avoided costly zones and stayed close to the optimal graph solution.'
-                      : 'The route reached the goal, but crossed a costly zone. Replay to improve the benchmark.',
+                      ? 'Le trajet a évité les zones coûteuses et est resté proche de la solution optimale.'
+                      : 'Le trajet a atteint l’arrivée mais a traversé une zone coûteuse. Rejoue pour améliorer ta référence.',
                   style: AppTypography.bodyMedium.copyWith(
                     color: ZennytGamePalette.muted,
                     letterSpacing: 0,
@@ -1765,7 +1766,7 @@ class _ComparisonView extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.xl),
           GamePrimaryButton(
-            label: 'Replay to improve ranking',
+            label: 'Rejouer pour améliorer ton classement',
             onPressed: onReplay,
           ),
         ],
