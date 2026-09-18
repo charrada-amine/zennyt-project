@@ -32,7 +32,7 @@ void main() {
 
       final progress = await repo.gamesProgress();
       expect(progress.completed, {CatalogGame.reflectivePause});
-      expect(progress.coveragePercent, 8, reason: '1 / 13');
+      expect(progress.coveragePercent, 7, reason: '1 / 15');
     },
   );
 }

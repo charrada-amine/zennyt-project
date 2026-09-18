@@ -318,7 +318,7 @@ void main() {
         },
       ),
     );
-    expect(find.text('Coverage 23%'), findsOneWidget, reason: '3 / 13');
+    expect(find.text('Coverage 20%'), findsOneWidget, reason: '3 / 15');
     expect(find.text('Coverage 0%'), findsNothing);
   });
 

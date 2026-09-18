@@ -322,7 +322,7 @@ class _BartScreenState extends ConsumerState<BartScreen>
             Expanded(
               child: DecisionValueTile(
                 label: 'Banque',
-                value: '$_bank pts',
+                value: _pts(_bank),
                 valueKey: const ValueKey('bart-bank'),
               ),
             ),
@@ -330,7 +330,7 @@ class _BartScreenState extends ConsumerState<BartScreen>
             Expanded(
               child: DecisionValueTile(
                 label: 'Réserve',
-                value: '$reserve pts',
+                value: _pts(reserve),
                 valueColor: ZennytGamePalette.magenta,
                 valueKey: const ValueKey('bart-reserve'),
               ),
@@ -349,9 +349,13 @@ class _BartScreenState extends ConsumerState<BartScreen>
             ),
             child: Stack(
               children: [
+                // Tuyau pompe → bout de la ficelle, sous le ballon et la pompe.
+                const Positioned.fill(
+                  child: CustomPaint(painter: _HosePainter()),
+                ),
                 Positioned(
                   left: 0,
-                  right: 110,
+                  right: _pumpLaneWidth,
                   bottom: 0,
                   top: 0,
                   child: _Balloon(pumps: _pumps),
@@ -359,8 +363,8 @@ class _BartScreenState extends ConsumerState<BartScreen>
                 Positioned(
                   right: 0,
                   bottom: 0,
-                  width: 120,
-                  height: 150,
+                  width: _pumpWidth,
+                  height: _pumpHeight,
                   child: SvgPicture.asset(
                     _pumpPressed
                         ? DecisionBehavioralAssets.pumpPressed
@@ -400,6 +404,7 @@ class _BartScreenState extends ConsumerState<BartScreen>
                 key: const ValueKey('bart-collect'),
                 label: 'Collecter',
                 color: Colors.white,
+                foregroundColor: ZennytGamePalette.ink,
                 onPressed: _collect,
                 playClickSound: false,
               ),
@@ -477,7 +482,7 @@ class _BartScreenState extends ConsumerState<BartScreen>
               const Divider(height: AppSpacing.xxl),
               _OutcomeRow(
                 label: exploded ? 'Réserve' : 'Réserve collectée',
-                value: exploded ? '0 pt' : '+$_lastReserve pts',
+                value: exploded ? _pts(0) : '+${_pts(_lastReserve)}',
                 color: exploded
                     ? ZennytGamePalette.magenta
                     : ZennytGamePalette.success,
@@ -485,7 +490,7 @@ class _BartScreenState extends ConsumerState<BartScreen>
               const Divider(height: AppSpacing.xl),
               _OutcomeRow(
                 label: exploded ? 'Banque conservée' : 'Banque',
-                value: '$_bank pts',
+                value: _pts(_bank),
                 color: ZennytGamePalette.ink,
               ),
             ],
@@ -565,6 +570,67 @@ class _BartScreenState extends ConsumerState<BartScreen>
       onSecondary: () => context.go(AppRoutes.games),
     );
   }
+}
+
+/// Points au singulier jusqu'à 1 inclus, comme en français (« 0 pt », « 1 pt »).
+String _pts(int value) => value <= 1 ? '$value pt' : '$value pts';
+
+// Géométrie du plateau : la pompe occupe un couloir à droite, le ballon le reste.
+const double _pumpLaneWidth = 110;
+const double _pumpWidth = 120;
+const double _pumpHeight = 150;
+
+/// Relie la sortie du tuyau de la pompe au bout de la ficelle du ballon.
+///
+/// Le ballon est ancré en bas-centre et mis à l'échelle depuis ce point : le bout
+/// de sa ficelle (y = 236 sur 240 dans le SVG) reste donc au bas de sa zone quelle
+/// que soit sa taille, et le tuyau n'a jamais à suivre le gonflage. La sortie du
+/// tuyau vient de bart_pump_*.svg (point (4, 120) sur 160 × 200, rendu à 0,75).
+class _HosePainter extends CustomPainter {
+  const _HosePainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const pumpScale = _pumpWidth / 160;
+    final outlet = Offset(
+      size.width - _pumpWidth + 4 * pumpScale,
+      size.height - _pumpHeight + 120 * pumpScale,
+    );
+    final stringEnd = Offset(
+      (size.width - _pumpLaneWidth) / 2,
+      size.height - 4,
+    );
+    final hose = Path()
+      ..moveTo(outlet.dx, outlet.dy)
+      ..cubicTo(
+        outlet.dx - 34,
+        outlet.dy - 26,
+        stringEnd.dx + 56,
+        size.height - 2,
+        stringEnd.dx,
+        stringEnd.dy,
+      );
+    canvas
+      ..drawPath(
+        hose,
+        Paint()
+          ..color = const Color(0xFF1F1B4D)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 9 * pumpScale
+          ..strokeCap = StrokeCap.round,
+      )
+      ..drawPath(
+        hose,
+        Paint()
+          ..color = const Color(0xFF9AA3C7)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3 * pumpScale
+          ..strokeCap = StrokeCap.round,
+      );
+  }
+
+  @override
+  bool shouldRepaint(covariant _HosePainter oldDelegate) => false;
 }
 
 /// Ballon dont la taille ne dépend QUE du nombre de pompes (ancre : le nœud).
