@@ -350,9 +350,9 @@ backend, puis le mobile (AGENTS.md §7.5).
 
 ---
 
-## 7. Schéma de base — `V84__games_decision_behavioral.sql`
+## 7. Schéma de base — `V86__games_decision_behavioral.sql`
 
-Dernière migration existante : `V83__engagement_billing.sql`. La nouvelle prend donc **V84**.
+Dernière migration existante : `V83__engagement_billing.sql`. Les deux migrations games `V77`/`V78` entrant en collision avec identity sont renumérotées **V84**/**V85** (voir la correction Flyway) ; la nouvelle prend donc **V86**.
 
 > ⚠️ Ne jamais modifier une migration existante (AGENTS.md §7.6).
 

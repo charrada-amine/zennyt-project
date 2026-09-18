@@ -20,10 +20,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /** Couverture du catalogue affichée dans le hub (« Coverage n % »). */
 class GamesProgressTest {
 
+    /**
+     * 13 jeux jusqu'au 2026-09-18, 15 depuis BART et IST (V86). Tous comptent dans
+     * le dénominateur de la couverture affichée : leur arrivée fait baisser la
+     * couverture de chaque joueur existant — voulu, puisque 100 % signifie « chaque
+     * jeu du catalogue terminé au moins une fois ».
+     */
     @Test
-    void theCatalogCountsThirteenGamesMemoryQuestTwice() {
-        assertEquals(13, CatalogGame.values().length);
-        assertEquals(13, new GamesProgress(Map.of()).totalGames());
+    void theCatalogCountsFifteenGamesMemoryQuestTwice() {
+        assertEquals(15, CatalogGame.values().length);
+        assertEquals(15, new GamesProgress(Map.of()).totalGames());
     }
 
     @Test
@@ -59,7 +65,7 @@ class GamesProgressTest {
         some.put(CatalogGame.DECISION, Instant.EPOCH);
         GamesProgress two = new GamesProgress(some);
         assertEquals(2, two.completedGames());
-        assertEquals(15, two.coveragePercent(), "2 / 13 = 15,4 %");
+        assertEquals(13, two.coveragePercent(), "2 / 15 = 13,3 %");
         assertTrue(two.isCompleted(CatalogGame.MOVE_FAST));
         assertFalse(two.isCompleted(CatalogGame.OPTIMAL_PATH));
 

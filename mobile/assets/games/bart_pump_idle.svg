@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 200" width="160" height="200">
+  <!-- BART · pompe au repos (poignée haute). -->
+  <path d="M54 160 C22 160 16 132 4 120" fill="none" stroke="#1F1B4D" stroke-width="9" stroke-linecap="round"/>
+  <path d="M54 160 C22 160 16 132 4 120" fill="none" stroke="#9AA3C7" stroke-width="3" stroke-linecap="round"/>
+  <rect x="76" y="46" width="10" height="50" fill="#CFD3E6" stroke="#1F1B4D" stroke-width="4"/>
+  <rect x="38" y="30" width="86" height="20" rx="10" fill="#2BB5E0" stroke="#1F1B4D" stroke-width="6"/>
+  <rect x="52" y="92" width="58" height="86" rx="12" fill="#FFFFFF" stroke="#1F1B4D" stroke-width="6"/>
+  <rect x="55" y="98" width="52" height="10" fill="#E8388F"/>
+  <rect x="62" y="116" width="8" height="46" rx="4" fill="#E2E8F4"/>
+  <rect x="28" y="174" width="106" height="18" rx="9" fill="#26224D" stroke="#1F1B4D" stroke-width="4"/>
+</svg>

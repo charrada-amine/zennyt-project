@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 240" width="200" height="240">
+  <!-- BART · état « ballon éclaté » : la réserve du ballon est perdue. -->
+  <ellipse cx="104" cy="200" rx="58" ry="9" fill="#E7E6FB"/>
+  <path d="M100 30 L100 50 M136 40 L126 56 M64 40 L74 56 M166 84 L148 90 M34 84 L52 90"
+        stroke="#8E8AF0" stroke-width="5" stroke-linecap="round"/>
+  <path d="M68 172 L58 136 L80 142 L84 110 L102 132 L118 104 L124 138 L146 124 L140 158 L156 170 C134 188 92 190 68 172 Z"
+        fill="#E8388F" stroke="#1F1B4D" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M86 170 L84 150 L98 156 L108 140 L114 160 L130 156 L128 172 C114 180 98 180 86 170 Z" fill="#C21F74" opacity="0.6"/>
+  <path d="M28 104 L50 96 L46 120 Z" fill="#E8388F" stroke="#1F1B4D" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M150 58 L174 70 L154 82 Z" fill="#E8388F" stroke="#1F1B4D" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M160 114 L182 124 L166 136 L158 126 Z" fill="#E8388F" stroke="#1F1B4D" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M40 150 L56 144 L54 160 Z" fill="#E8388F" stroke="#1F1B4D" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M98 188 L100 196 L106 188" fill="#C21F74" stroke="#1F1B4D" stroke-width="4" stroke-linejoin="round"/>
+</svg>

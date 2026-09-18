@@ -8,6 +8,7 @@ import com.zennyt.games.domain.catalog.DecisionScenarioCatalog;
 import com.zennyt.games.domain.event.GameResultRecordedEvent;
 import com.zennyt.games.domain.model.GameSession;
 import com.zennyt.games.domain.model.MiniGame;
+import com.zennyt.games.domain.repository.DecisionBehavioralMetricsRepository;
 import com.zennyt.games.domain.repository.ContinuousAttentionMetricsRepository;
 import com.zennyt.games.domain.repository.CoordinationMetricsRepository;
 import com.zennyt.games.domain.repository.DeviceCalibrationRepository;
@@ -58,6 +59,7 @@ class SubmitContinuousAttentionResultUseCaseTest {
             rawMetrics,
             mock(CoordinationMetricsRepository.class),
             mock(ObjectLocationMetricsRepository.class),
+            mock(DecisionBehavioralMetricsRepository.class),
             events,
             mock(DecisionScenarioCatalog.class),
             mock(DecisionFormCatalog.class),

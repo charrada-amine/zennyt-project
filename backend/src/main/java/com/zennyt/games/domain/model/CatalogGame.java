@@ -29,7 +29,9 @@ public enum CatalogGame {
     PREDICTIVE_PUZZLE,
     EMOTIONAL_RADAR,
     REFLECTIVE_PAUSE,
-    STRATEGIC_CHOICES;
+    STRATEGIC_CHOICES,
+    BART,
+    INFORMATION_SAMPLING;
 
     /**
      * Jeux du catalogue terminés par un résultat enregistré de [miniGame].
@@ -53,6 +55,8 @@ public enum CatalogGame {
             case REFLECTIVE_PAUSE_CORE -> EnumSet.of(REFLECTIVE_PAUSE);
             case STRATEGIC_CHOICES_CORE -> EnumSet.of(STRATEGIC_CHOICES);
             case MEMORY_QUEST_CORE -> memoryQuest(metrics);
+            case BART_CORE -> EnumSet.of(BART);
+            case INFORMATION_SAMPLING_CORE -> EnumSet.of(INFORMATION_SAMPLING);
         };
     }
 

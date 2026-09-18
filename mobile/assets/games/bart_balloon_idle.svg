@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 240" width="200" height="240">
+  <!-- BART · état « nouveau ballon » (0 pompe). Ancre du nœud : (100,188), commune à tous les états. -->
+  <path d="M100 104 C124 104 140 124 140 146 C140 166 121 180 100 182 C79 180 60 166 60 146 C60 124 76 104 100 104 Z"
+        fill="#E8388F" stroke="#1F1B4D" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M126 118 C138 132 139 152 128 168 C132 150 132 134 126 118 Z" fill="#C21F74" opacity="0.6"/>
+    <path d="M68 150 C71 158 76 164 82 168" fill="none" stroke="#1F1B4D" stroke-width="3" stroke-linecap="round" opacity="0.35"/>
+  <ellipse cx="82" cy="124" rx="7" ry="11" transform="rotate(-25 82 124)" fill="#FFFFFF" opacity="0.85"/>
+  <path d="M92 180 L100 190 L108 180 Z" fill="#C21F74" stroke="#1F1B4D" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M100 190 C92 204 110 214 100 236" fill="none" stroke="#1F1B4D" stroke-width="4" stroke-linecap="round"/>
+</svg>

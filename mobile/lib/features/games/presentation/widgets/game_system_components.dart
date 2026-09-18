@@ -239,6 +239,7 @@ class GamePrimaryButton extends StatelessWidget {
     required this.onPressed,
     this.icon,
     this.color = ZennytGamePalette.magenta,
+    this.foregroundColor = Colors.white,
     this.playClickSound = true,
   });
 
@@ -246,6 +247,10 @@ class GamePrimaryButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final IconData? icon;
   final Color color;
+
+  /// Couleur du libellé. Blanc par défaut ; à fixer quand [color] est clair
+  /// (bouton blanc « Collecter » du BART), sinon le libellé disparaît.
+  final Color foregroundColor;
 
   /// Joue le clic générique de bouton. À désactiver quand l'action déclenche
   /// déjà son propre son (ex. « Add Move » du Predictive-Puzzle → son de disque).
@@ -287,7 +292,7 @@ class GamePrimaryButton extends StatelessWidget {
       style: FilledButton.styleFrom(
         backgroundColor: color,
         disabledBackgroundColor: ZennytGamePalette.border,
-        foregroundColor: Colors.white,
+        foregroundColor: foregroundColor,
         disabledForegroundColor: ZennytGamePalette.muted,
         minimumSize: const Size.fromHeight(52),
         shape: RoundedRectangleBorder(

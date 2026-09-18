@@ -37,6 +37,9 @@ import '../domain/repositories/emotional_radar_v2_repository.dart';
 import 'continuous_attention_scoring.dart';
 import 'coordination_tracking_scoring.dart';
 import 'object_location_scoring.dart';
+import 'decision_behavioral_scoring.dart';
+import '../domain/entities/bart_metrics.dart';
+import '../domain/entities/ist_metrics.dart';
 
 /// [GamesRepository] MOCK — permet de jouer en totale autonomie, sans backend.
 ///
@@ -106,6 +109,9 @@ class GamesMockRepository
   static const _continuousAttentionScoring = ContinuousAttentionScoring();
   static const _coordinationTrackingScoring = CoordinationTrackingScoring();
   static const _objectLocationScoring = ObjectLocationScoring();
+  // BART + IST — miroir de BartScoringService / IstScoringService (backend).
+  static const _bartScoring = BartScoring();
+  static const _istScoring = IstScoring();
 
   // Config « Chemin Optimal » — miroir de OptimalPathConfig (backend).
   static const double _optimalPathTolerance = 0.10; // optimal_path_tolerance
@@ -542,6 +548,46 @@ class GamesMockRepository
       _sessions[sessionId] = audited;
       return audited;
     }
+    // BART / IST — deux mini-jeux de DECISION_BEHAVIORAL, même règle que le
+    // serveur : type vérifié, mini-jeu non déjà joué, run invalide audit-only.
+    BartScoringResult? bartResult;
+    IstScoringResult? istResult;
+    if (miniGame == MiniGame.bartCore ||
+        miniGame == MiniGame.informationSamplingCore) {
+      if (current.gameType != GameType.decisionBehavioral) {
+        throw StateError('${miniGame.wire} does not belong to ${current.gameType.wire}');
+      }
+      if (current.status != 'IN_PROGRESS' ||
+          current.attempts.any((attempt) => attempt.miniGame == miniGame)) {
+        throw StateError('${miniGame.wire} already recorded for $sessionId');
+      }
+      bartResult = miniGame == MiniGame.bartCore
+          ? _bartScoring.score(sessionId: sessionId, metrics: metrics as BartMetrics)
+          : null;
+      istResult = miniGame == MiniGame.informationSamplingCore
+          ? _istScoring.score(sessionId: sessionId, metrics: metrics as IstMetrics)
+          : null;
+      final valid = bartResult?.indicators.sessionValid ??
+          istResult!.indicators.sessionValid;
+      if (!valid) {
+        final audited = GameSession(
+          id: current.id,
+          gameType: current.gameType,
+          status: current.status,
+          compositeRaw: current.compositeRaw,
+          compositeMax: current.compositeMax,
+          normalized: current.normalized,
+          attempts: current.attempts,
+          startedAt: current.startedAt,
+          completedAt: current.completedAt,
+          scoreBreakdown: bartResult?.breakdown ?? istResult!.breakdown,
+          bartIndicators: bartResult?.indicators ?? current.bartIndicators,
+          istIndicators: istResult?.indicators ?? current.istIndicators,
+        );
+        _sessions[sessionId] = audited;
+        return audited;
+      }
+    }
     final score = switch (miniGame) {
       MiniGame.optimalPath => _scoreOptimalPath(metrics as PlanifikMetrics),
       MiniGame.previsionPuzzle => _scorePrevisionPuzzle(
@@ -571,6 +617,8 @@ class GamesMockRepository
       MiniGame.continuousAttentionCore => continuousAttentionResult!.score,
       MiniGame.coordinationTrackingCore => coordinationTrackingResult!.score,
       MiniGame.objectLocationBindingCore => objectLocationResult!.score,
+      MiniGame.bartCore => bartResult!.score,
+      MiniGame.informationSamplingCore => istResult!.score,
     };
     final attempts = [
       ...current.attempts,
@@ -600,7 +648,9 @@ class GamesMockRepository
       attempts: attempts,
       startedAt: current.startedAt,
       completedAt: complete ? DateTime.now() : current.completedAt,
-      scoreBreakdown: _buildBreakdown(miniGame, metrics, score, sessionId),
+      scoreBreakdown: bartResult?.breakdown ??
+          istResult?.breakdown ??
+          _buildBreakdown(miniGame, metrics, score, sessionId),
       reflectivePauseIndicators: miniGame == MiniGame.reflectivePauseCore
           ? _reflectivePauseIndicators(metrics as ReflectivePauseMetrics, score)
           : current.reflectivePauseIndicators,
@@ -614,6 +664,8 @@ class GamesMockRepository
       objectLocationIndicators: miniGame == MiniGame.objectLocationBindingCore
           ? objectLocationResult!.indicators
           : current.objectLocationIndicators,
+      bartIndicators: bartResult?.indicators ?? current.bartIndicators,
+      istIndicators: istResult?.indicators ?? current.istIndicators,
     );
     _sessions[sessionId] = updated;
     _completedGames.addAll(CatalogGame.completedBy(miniGame, metrics));
@@ -884,6 +936,13 @@ class GamesMockRepository
         score,
       ),
       MiniGame.decisionCore => _decisionBreakdown(),
+      // BART / IST : le détail est produit avec le score (decision_behavioral_scoring).
+      MiniGame.bartCore => _bartScoring
+          .score(sessionId: sessionId, metrics: metrics as BartMetrics)
+          .breakdown,
+      MiniGame.informationSamplingCore => _istScoring
+          .score(sessionId: sessionId, metrics: metrics as IstMetrics)
+          .breakdown,
       MiniGame.emotionalRadarCore => _breakdownEmotionalRadar(sessionId, score),
       MiniGame.reflectivePauseCore => _breakdownReflectivePause(
         metrics as ReflectivePauseMetrics,
@@ -1469,6 +1528,8 @@ class GamesMockRepository
       GameType.continuousAttention => 1,
       GameType.visuomotorCoordination => 1,
       GameType.visuospatialMemory => 1,
+      // BART /100 + IST /100 — miroir de MiniGame.isPlayable() côté serveur.
+      GameType.decisionBehavioral => 2,
     };
   }
 
@@ -1547,6 +1608,9 @@ class GamesMockRepository
         recorded.contains(MiniGame.coordinationTrackingCore) ? 0 : 100,
       GameType.visuospatialMemory =>
         recorded.contains(MiniGame.objectLocationBindingCore) ? 0 : 100,
+      GameType.decisionBehavioral =>
+        (recorded.contains(MiniGame.bartCore) ? 0 : 100) +
+            (recorded.contains(MiniGame.informationSamplingCore) ? 0 : 100),
     };
   }
 

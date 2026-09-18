@@ -665,7 +665,8 @@ components:
                 enum: [MOVE_FAST, CONTINUOUS_ATTENTION, COORDINATION_TRACKING,
                        MEMORY_QUEST_DIGITS, MEMORY_QUEST_IMAGES, OBJECT_LOCATION,
                        DECISION, OPTIMAL_PATH, TASK_SCHEDULING, PREDICTIVE_PUZZLE,
-                       EMOTIONAL_RADAR, REFLECTIVE_PAUSE, STRATEGIC_CHOICES]
+                       EMOTIONAL_RADAR, REFLECTIVE_PAUSE, STRATEGIC_CHOICES,
+                       BART, INFORMATION_SAMPLING]
               completed: { type: boolean }
               lastCompletedAt: { type: string, format: date-time, nullable: true }
     AdminStatus:
@@ -882,7 +883,10 @@ components:
         VISUOMOTOR_COORDINATION (« Je coordonne ») est lui aussi indépendant.
         VISUOSPATIAL_MEMORY (« Je place ») apparaît à côté de Memory Quest sans
         modifier son agrégat ni son barème historique.
-      enum: [PLANIFIK, MOVE_FAST, MEMORY_QUEST, DECISION, EMOTIONAL_REGULATION, CONTINUOUS_ATTENTION, VISUOMOTOR_COORDINATION, VISUOSPATIAL_MEMORY]
+        DECISION_BEHAVIORAL héberge BART_CORE et INFORMATION_SAMPLING_CORE, deux
+        paradigmes comportementaux de décision. Il reste distinct de DECISION : y
+        ajouter des mini-jeux empêcherait une session « Je Décide » de se clore.
+      enum: [PLANIFIK, MOVE_FAST, MEMORY_QUEST, DECISION, EMOTIONAL_REGULATION, CONTINUOUS_ATTENTION, VISUOMOTOR_COORDINATION, VISUOSPATIAL_MEMORY, DECISION_BEHAVIORAL]
 
     MiniGame:
       type: string
@@ -895,8 +899,10 @@ components:
         une trajectoire carrée fixe, horaire et prédictible ; aucun score,
         inside/outside ni distance calculée par le client n'est accepté.
         OBJECT_LOCATION_BINDING_CORE ne reçoit ni grille attendue, ni position
-        d'origine, ni score : le serveur les reconstruit.
-      enum: [OPTIMAL_PATH, TASK_SCHEDULING, PREVISION_PUZZLE, MOVE_FAST_CORE, MEMORY_QUEST_CORE, DECISION_CORE, EMOTIONAL_RADAR_CORE, REFLECTIVE_PAUSE_CORE, CONTINUOUS_ATTENTION_CORE, COORDINATION_TRACKING_CORE, OBJECT_LOCATION_BINDING_CORE, STRATEGIC_CHOICES_CORE]
+        d'origine, ni score : le serveur les reconstruit. BART_CORE ne reçoit
+        jamais de point d'éclatement ; INFORMATION_SAMPLING_CORE jamais de couleur
+        révélée : séquences et grilles sont reconstruites depuis sessionId.
+      enum: [OPTIMAL_PATH, TASK_SCHEDULING, PREVISION_PUZZLE, MOVE_FAST_CORE, MEMORY_QUEST_CORE, DECISION_CORE, EMOTIONAL_RADAR_CORE, REFLECTIVE_PAUSE_CORE, CONTINUOUS_ATTENTION_CORE, COORDINATION_TRACKING_CORE, OBJECT_LOCATION_BINDING_CORE, STRATEGIC_CHOICES_CORE, BART_CORE, INFORMATION_SAMPLING_CORE]
 
     SessionStatus:
       type: string
@@ -2737,6 +2743,212 @@ components:
           type: string
           example: Very good self-control
 
+    BartPhase:
+      type: string
+      description: PRACTICE (ballons 0-1) est persistée pour audit, jamais notée.
+      enum: [PRACTICE, TEST]
+
+    BartBalloonOutcome:
+      type: string
+      enum: [COLLECTED, EXPLODED]
+
+    BartBalloonMetric:
+      type: object
+      description: >
+        Un ballon tel que mesuré. Le client déclare ses pompes et l'issue ; le
+        serveur rejoue contre sa séquence et rejette toute issue impossible
+        (HTTP 400) : collecte à une pompe >= point d'éclatement, ou éclatement
+        déclaré ailleurs qu'au point serveur.
+      required: [balloonIndex, phase, pumpCount, outcome, pumpTimestampsMs]
+      properties:
+        balloonIndex: { type: integer, minimum: 0, maximum: 31 }
+        phase: { $ref: '#/components/schemas/BartPhase' }
+        pumpCount:
+          type: integer
+          minimum: 0
+          maximum: 128
+          description: Si EXPLODED, la dernière pompe est celle qui a fait éclater.
+        outcome: { $ref: '#/components/schemas/BartBalloonOutcome' }
+        pumpTimestampsMs:
+          type: array
+          maxItems: 128
+          description: Un horodatage par pompe, croissant, depuis l'apparition du ballon.
+          items: { type: integer, format: int64, minimum: 0 }
+        collectTimestampMs:
+          type: integer
+          format: int64
+          minimum: 0
+          nullable: true
+          description: Obligatoire si COLLECTED, absent si EXPLODED.
+
+    BartMetrics:
+      type: object
+      description: >
+        Trace brute du BART (Lejuez et al., 2002). Le serveur dérive les points
+        d'éclatement de sessionId|BART_LEJUEZ_V1 (FNV-1a 32 bits + xorshift32,
+        uniforme sur 1..128). Aucun point d'éclatement, gain ni score n'est
+        accepté du client.
+      required: [protocolVersion, bartBalloons, sessionCompleted, interrupted,
+                 backgroundEventCount, focusLossCount]
+      properties:
+        protocolVersion: { type: string, enum: [BART_LEJUEZ_V1] }
+        bartBalloons:
+          type: array
+          minItems: 1
+          maxItems: 32
+          description: Ballons joués dans l'ordre, contigus depuis 0.
+          items: { $ref: '#/components/schemas/BartBalloonMetric' }
+        sessionCompleted: { type: boolean, description: Vrai si et seulement si 32 ballons. }
+        interrupted: { type: boolean }
+        backgroundEventCount: { type: integer, minimum: 0 }
+        focusLossCount: { type: integer, minimum: 0 }
+
+    BartIndicators:
+      type: object
+      description: >
+        PROVISOIRE — efficiencyPercent est le seul axe noté : gains face à la
+        stratégie fixe optimale en espérance (optimalFixedPumps = 64) jouée sur
+        les mêmes ballons, plafonné à 100. adjustedAveragePumps est un TRAIT
+        descriptif (appétence au risque) : aucun pôle n'est meilleur.
+      required: [protocolVersion, sessionValid, validityIssues, testBalloonCount,
+                 collectedCount, explosionCount, totalEarnings, evOptimalEarnings,
+                 optimalFixedPumps, efficiencyPercent]
+      properties:
+        protocolVersion: { type: string }
+        sessionValid: { type: boolean }
+        validityIssues:
+          type: array
+          items:
+            type: string
+            enum: [INCOMPLETE, INTERRUPTED, BACKGROUND, FOCUS_LOSS, NON_ENGAGED,
+                   IMPLAUSIBLE_TIMING, DEGENERATE_SEQUENCE]
+        testBalloonCount: { type: integer, minimum: 0, maximum: 30 }
+        collectedCount: { type: integer, minimum: 0 }
+        explosionCount: { type: integer, minimum: 0 }
+        adjustedAveragePumps:
+          type: number
+          format: double
+          nullable: true
+          description: Moyenne des pompes sur les ballons notés COLLECTÉS seulement.
+        totalEarnings: { type: integer, minimum: 0 }
+        evOptimalEarnings: { type: integer, minimum: 0 }
+        optimalFixedPumps: { type: integer, minimum: 0 }
+        efficiencyPercent: { type: integer, minimum: 0, maximum: 100 }
+        meanPumpsAfterExplosion: { type: number, format: double, nullable: true }
+        meanPumpsAfterCollect: { type: number, format: double, nullable: true }
+        medianInterPumpIntervalMs: { type: number, format: double, nullable: true }
+
+    IstPhase:
+      type: string
+      description: PRACTICE (essais 0-1) est persistée pour audit, jamais notée.
+      enum: [PRACTICE, TEST]
+
+    IstCondition:
+      type: string
+      description: >
+        FIXED_WIN — 100 points si juste, quel que soit l'échantillonnage.
+        DECREASING_WIN — 250 points moins 10 par case ouverte (plancher 0).
+        Erreur : -100 dans les deux cas. Ordre : entraînement FW, entraînement DW,
+        10 FW, 10 DW.
+      enum: [FIXED_WIN, DECREASING_WIN]
+
+    IstColor:
+      type: string
+      enum: [BLUE, ORANGE]
+
+    IstBoxOpening:
+      type: object
+      description: Une case ouverte. Sa couleur n'est jamais transmise.
+      required: [boxIndex, timestampMs]
+      properties:
+        boxIndex: { type: integer, minimum: 0, maximum: 24 }
+        timestampMs: { type: integer, format: int64, minimum: 0 }
+
+    IstTrialMetric:
+      type: object
+      required: [trialIndex, phase, condition, openings, chosenColor, decisionTimestampMs]
+      properties:
+        trialIndex: { type: integer, minimum: 0, maximum: 21 }
+        phase: { $ref: '#/components/schemas/IstPhase' }
+        condition: { $ref: '#/components/schemas/IstCondition' }
+        openings:
+          type: array
+          maxItems: 25
+          description: Dans l'ordre d'ouverture, sans doublon, horodatages croissants.
+          items: { $ref: '#/components/schemas/IstBoxOpening' }
+        chosenColor: { $ref: '#/components/schemas/IstColor' }
+        decisionTimestampMs: { type: integer, format: int64, minimum: 0 }
+        confidence:
+          type: integer
+          minimum: 1
+          maximum: 4
+          nullable: true
+          description: >
+            1 = au hasard, 2 = plutôt sûr, 3 = sûr, 4 = certain ; absent si passé.
+            PROVISOIRE — mappé sur 0,5 / 2/3 / 5/6 / 1.
+
+    IstMetrics:
+      type: object
+      description: >
+        Trace brute de l'IST (Clark et al., 2006). Le serveur dérive les grilles
+        de sessionId|IST_CLARK_V1 et calcule P(correct) sous la loi de génération
+        réelle. Aucune couleur révélée ni score n'est accepté du client.
+      required: [protocolVersion, istTrials, sessionCompleted, interrupted,
+                 backgroundEventCount, focusLossCount]
+      properties:
+        protocolVersion: { type: string, enum: [IST_CLARK_V1] }
+        istTrials:
+          type: array
+          minItems: 1
+          maxItems: 22
+          items: { $ref: '#/components/schemas/IstTrialMetric' }
+        sessionCompleted: { type: boolean, description: Vrai si et seulement si 22 essais. }
+        interrupted: { type: boolean }
+        backgroundEventCount: { type: integer, minimum: 0 }
+        focusLossCount: { type: integer, minimum: 0 }
+
+    IstIndicators:
+      type: object
+      description: >
+        PROVISOIRE — score /100 = 40 % exactitude + 40 % P(correct) moyen à la
+        décision (0,5 → 0, 1 → 1) + 20 % discrimination entre conditions (5 cases
+        d'écart = plein). calibrationBias est descriptif et hors score ; aucune
+        sensibilité métacognitive n'est calculée (20 essais n'y suffisent pas).
+      required: [protocolVersion, sessionValid, validityIssues, testTrialCount,
+                 correctCount, accuracyPercent, meanBoxesFixedWin,
+                 meanBoxesDecreasingWin, conditionDiscrimination,
+                 meanPCorrectAtDecision, meanPCorrectFixedWin,
+                 meanPCorrectDecreasingWin, totalEarnings, randomResponseCount,
+                 confidenceResponseCount, provisionalScore]
+      properties:
+        protocolVersion: { type: string }
+        sessionValid: { type: boolean }
+        validityIssues:
+          type: array
+          items:
+            type: string
+            enum: [INCOMPLETE, INTERRUPTED, BACKGROUND, FOCUS_LOSS, NON_ENGAGED,
+                   IMPLAUSIBLE_TIMING, RANDOM_RESPONSES]
+        testTrialCount: { type: integer, minimum: 0, maximum: 20 }
+        correctCount: { type: integer, minimum: 0 }
+        accuracyPercent: { type: number, format: double, minimum: 0, maximum: 100 }
+        meanBoxesFixedWin: { type: number, format: double, minimum: 0, maximum: 25 }
+        meanBoxesDecreasingWin: { type: number, format: double, minimum: 0, maximum: 25 }
+        conditionDiscrimination: { type: number, format: double }
+        meanPCorrectAtDecision: { type: number, format: double, minimum: 0, maximum: 1 }
+        meanPCorrectFixedWin: { type: number, format: double, minimum: 0, maximum: 1 }
+        meanPCorrectDecreasingWin: { type: number, format: double, minimum: 0, maximum: 1 }
+        totalEarnings: { type: integer }
+        randomResponseCount: { type: integer, minimum: 0 }
+        medianInterActionIntervalMs: { type: number, format: double, nullable: true }
+        confidenceResponseCount: { type: integer, minimum: 0 }
+        calibrationBias:
+          type: number
+          format: double
+          nullable: true
+          description: Confiance moyenne − exactitude ; positif = surconfiance.
+        provisionalScore: { type: integer, minimum: 0, maximum: 100 }
+
     GameMetrics:
       # NB : membres en $ref nus (source de vérité = SubmitResultRequest.toMetrics côté
       # code, la génération games n'étant pas consommée par les contrôleurs, écrits à la
@@ -2756,6 +2968,8 @@ components:
         - $ref: '#/components/schemas/ContinuousAttentionMetrics'
         - $ref: '#/components/schemas/CoordinationMetrics'
         - $ref: '#/components/schemas/ObjectLocationMetrics'
+        - $ref: '#/components/schemas/BartMetrics'
+        - $ref: '#/components/schemas/IstMetrics'
 
     SubmitResultRequest:
       type: object
@@ -2843,6 +3057,14 @@ components:
           description: >
             Présent uniquement après « Je place ». Layout, score et catégories
             d'erreur sont reconstruits côté serveur depuis les actions brutes.
+        bartIndicators:
+          allOf: [ { $ref: '#/components/schemas/BartIndicators' } ]
+          nullable: true
+          description: Présent uniquement après le BART, y compris pour un run audit-only.
+        istIndicators:
+          allOf: [ { $ref: '#/components/schemas/IstIndicators' } ]
+          nullable: true
+          description: Présent uniquement après l'IST, y compris pour un run audit-only.
         scoreBreakdown:
           type: array
           nullable: true

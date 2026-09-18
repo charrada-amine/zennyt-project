@@ -14,7 +14,13 @@ enum MiniGame {
   coordinationTrackingCore('COORDINATION_TRACKING_CORE'),
 
   /// « Je place » — raw object/location restitution protocol.
-  objectLocationBindingCore('OBJECT_LOCATION_BINDING_CORE');
+  objectLocationBindingCore('OBJECT_LOCATION_BINDING_CORE'),
+
+  /// BART — Balloon Analogue Risk Task (Lejuez et al., 2002).
+  bartCore('BART_CORE'),
+
+  /// IST — Information Sampling Task (Clark et al., 2006).
+  informationSamplingCore('INFORMATION_SAMPLING_CORE');
 
   final String wire;
   const MiniGame(this.wire);

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 240" width="200" height="240">
+  <!-- BART · état « réserve collectée » : le ballon s'envole, les points sont en banque. -->
+  <ellipse cx="100" cy="226" rx="46" ry="7" fill="#E7E6FB"/>
+  <g transform="rotate(-8 100 120)">
+    <path d="M100 6 C141 6 169 37 169 77 C169 117 135 148 100 155 C65 148 31 117 31 77 C31 37 59 6 100 6 Z"
+          fill="#E8388F" stroke="#1F1B4D" stroke-width="6" stroke-linejoin="round"/>
+    <path d="M146 28 C168 50 171 96 144 130 C155 98 157 62 146 28 Z" fill="#C21F74" opacity="0.55"/>
+    <ellipse cx="70" cy="46" rx="13" ry="23" transform="rotate(-25 70 46)" fill="#FFFFFF" opacity="0.9"/>
+    <path d="M93 153 L100 166 L107 153 Z" fill="#C21F74" stroke="#1F1B4D" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M100 166 C88 180 112 192 96 214" fill="none" stroke="#1F1B4D" stroke-width="4" stroke-linecap="round"/>
+  </g>
+  <circle cx="154" cy="150" r="22" fill="#22C55E" stroke="#1F1B4D" stroke-width="5"/>
+  <path d="M144 150 L151 158 L165 142" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M34 150 L34 166 M26 158 L42 158" stroke="#FFC94D" stroke-width="5" stroke-linecap="round"/>
+  <path d="M168 40 L168 52 M162 46 L174 46" stroke="#FFC94D" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="24" cy="96" r="4" fill="#FFC94D"/>
+</svg>

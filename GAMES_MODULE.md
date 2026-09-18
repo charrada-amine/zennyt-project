@@ -26,6 +26,8 @@ Chaque **jeu** correspond à un `GameType` (un domaine cognitif = une fiche) et 
 | **Emotional Radar — « Je gère »** | `EMOTIONAL_REGULATION` | `EMOTIONAL_RADAR_CORE` | Régulation émotionnelle — reconnaissance d'émotion (famille + nuance + intensité) | 🟢 Jouable **9 pts/scène** — 3 scènes rédigées (27), 15 visées (135) ; **contenu servi par le backend** | Flutter custom |
 | **Reflective Pause — « Je gère »** | `EMOTIONAL_REGULATION` | `REFLECTIVE_PAUSE_CORE` | Régulation émotionnelle — contrôle de l'impulsivité sous pression | 🟢 **Complet /10** — 10 moments, pause minimale 3 s, résultats + insights calculés serveur | Flutter custom |
 | **Strategic Choices — « Je gère »** | `EMOTIONAL_REGULATION` | `STRATEGIC_CHOICES_CORE` | Régulation émotionnelle — choix contextualisé d'une stratégie de coping | 🟢 Jouable **/30 PROVISOIRE** — 80 situations, 10 tirées ; 6 messages écrits et 74 scènes vidéo dont les médias restent à produire ; score serveur | Flutter custom + Java |
+| **BART — Balloon Analogue Risk Task** | `DECISION_BEHAVIORAL` | `BART_CORE` | Prise de décision comportementale — risque révélé (Lejuez 2002) | 🟢 **Jouable /100 PROVISOIRE** — 2 ballons d'entraînement + 30 notés, point d'éclatement uniforme 1..128 dérivé de l'UUID ; score = efficience face à la stratégie fixe optimale (64 pompes) sur les mêmes ballons ; appétence au risque descriptive, non classée ; événement Fit Score suspendu | Flutter custom + SVG |
+| **IST — Information Sampling Task** | `DECISION_BEHAVIORAL` | `INFORMATION_SAMPLING_CORE` | Prise de décision comportementale — recueil d'information / impulsivité de réflexion (Clark 2006) | 🟢 **Jouable /100 PROVISOIRE** — 2 entraînements + 10 gain fixe + 10 gain décroissant ; P(correct) exact sous la loi de génération ; couche confiance = biais de calibration seul ; événement Fit Score suspendu | Flutter custom |
 
 **Tutoriel mobile Radar V2 (2026-09-17)** : cinq cartes illustrées centrées sur le
 fond blanc habituel, comme Day Stack ; contenu aligné sur le parcours V2 actuel
@@ -72,6 +74,13 @@ Contexte **indépendant** : ne dépend que de `shared`, s'intègre au reste **un
 `GameResultRecordedEvent`.
 
 ### Arborescence & rôle de chaque fichier
+
+> **BART + IST (98)** — `domain/config/{Bart,Ist}Config` (moteur, protocoles publiés) et
+> `{Bart,Ist}ProvisionalRules` (tout le provisoire) ; `domain/service/BartSequenceGenerator`,
+> `BartActionReplayer`, `BartScoringService`, `IstLayoutGenerator`, `IstPosteriorModel`
+> (P(correct) exact), `IstActionReplayer`, `IstScoringService`, `MetacognitionService`
+> (biais de calibration seul), `DecisionBehavioralStatistics` ; VO `Bart*` / `Ist*` ; port
+> `DecisionBehavioralMetricsRepository` + adaptateur JDBC ; migration `V86`.
 
 | Couche | Fichier | Rôle |
 |--------|---------|------|
@@ -844,6 +853,14 @@ Routage : `mobile/lib/core/router/app_router.dart` (`/games`, `/games/planifik`,
 sur l'onglet Careers/Progress ; les routes de jeu restent plein écran.
 
 ### Arborescence & rôle de chaque fichier
+
+> **BART + IST (98)** — `domain/config/{bart,ist}_config.dart` + `*_provisional_rules.dart`,
+> `domain/service/deterministic_random.dart` (FNV-1a + xorshift32 partagés, extraits de
+> `object_location_config.dart`), `domain/entities/{bart,ist}_metrics.dart`,
+> `data/decision_behavioral_scoring.dart` (miroir exact des services Java, parité figée par
+> tests), `presentation/view/{bart,ist}_screen.dart`,
+> `presentation/widgets/decision_behavioral_components.dart`, SVG `assets/games/bart_*.svg`
+> et `ist_logo.svg`.
 
 | Couche | Fichier | Rôle |
 |--------|---------|------|
@@ -1638,6 +1655,20 @@ casse-têtes visuels, agrégation des métriques Image. Audit et reproductions d
 `mobile/assets/memory-quest-tutorial/AUDIT_LOGIQUE.md`, sans changement de barème.
 
 ## 🧠 Décisions à valider avec le psychologue référent
+
+**BART + IST (98) — liste complète dans `docs/PREUVES_SCIENTIFIQUES_JEUX_DECISION.md` §9.**
+Bloquant pour sortir du provisoire : (a) formule d'efficience EV du BART (stratégie fixe
+`n* = 64`, plafond 100, séquence dégénérée → invalide) ; (b) poids du score IST 0,4 / 0,4 / 0,2 ;
+(c) a priori de génération des grilles IST (majorité 13 à 19 cases), dont dépend P(correct) —
+choisi pour contourner le désaccord Bennett 2017 / Axelsen 2018 sur la formule publiée, dont le
+texte intégral n'a pas pu être obtenu ; (d) échelle de confiance 0,5 / 2⁄3 / 5⁄6 / 1 — corrige le
+0,625 du design initial, qui donnait 62,5 % à « au hasard » ; (e) seuils de validité. Questions de
+fond : points sans valeur monétaire alors que les paradigmes ont été validés avec de l'argent ;
+transfert à une population de candidats, bien plus homogène que les échantillons cliniques
+d'origine ; pas de retour d'information après chaque essai IST (absent des maquettes, présent
+dans le protocole d'origine) ; aucun état visuel « ballon sous tension » (seule la taille,
+fonction des seules pompes, sert d'indice). Événement Fit Score **suspendu** et
+`DECISION_BEHAVIORAL` rattaché à aucun `SoftSkillModule`.
 
 État livraison (54) : admin/Docker unifiés sur `zennyt`, huit timers live câblés dans les quatre
 parcours concernés, UI filtrable par jeu et statut. Activation mobile live différée à la demande
@@ -3011,7 +3042,19 @@ Backend, contrat, API, scores, migrations, assets de production, pubspec/pom,
 core/shared et modules tiers inchangés ; zones protégées intactes. Backend/ArchUnit
 non relancés ; contrôle sur téléphone réel ouvert.
 
-**Dernière mise à jour** : 2026-09-18 — **(97)** accueils enrichis d’un contexte et de trois repères par jeu ;
+**Changelog (98)** — 2026-09-18 : **BART + IST** — nouveau `GameType`
+`DECISION_BEHAVIORAL` (distinct de `DECISION`, dont la complétion et la couverture seraient
+cassées par des mini-jeux supplémentaires) avec `BART_CORE` et `INFORMATION_SAMPLING_CORE`.
+Contrat, backend, migration, mobile (écrans d'après les planches concept, SVG des états du
+ballon, hub + deux routes) et mock à parité exacte. Correction Flyway : les migrations games
+`V77`/`V78` entraient en collision avec identity (démarrage impossible) → renumérotées
+`V84`/`V85`, script de réconciliation fourni ; nouvelle migration `V86`. Catalogue du hub
+13 → 15 jeux : la couverture affichée de chaque joueur existant baisse. **Backend 749 tests,
+0 échec** (base 714). Mobile : 15 tests de parité + 6 tests d'écran verts. Décisions à valider :
+voir la section dédiée (98).
+
+**Dernière mise à jour** : 2026-09-18 — **(98)** BART + IST, correction Flyway V77/V78 ;
+**(97)** accueils enrichis d’un contexte et de trois repères par jeu ;
 **(96)** carte et bouton rapprochés, accueils centrés et logos agrandis ;
 **(95)** accueils courts, navigation basse retirée des jeux et entrée Strategic Choices directe ;
 **(94)** clé de soumission HTTP Je Décide corrigée ;

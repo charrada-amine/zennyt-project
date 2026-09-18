@@ -1,9 +1,11 @@
+import 'bart_metrics.dart';
 import 'continuous_attention_metrics.dart';
 import 'coordination_tracking_metrics.dart';
 import 'game_score.dart';
 import 'game_runtime_snapshot.dart';
 import 'game_type.dart';
 import 'mini_game.dart';
+import 'ist_metrics.dart';
 import 'object_location_metrics.dart';
 import 'reflective_pause_metrics.dart';
 import 'score_breakdown.dart';
@@ -39,6 +41,8 @@ class GameSession {
     this.continuousAttentionIndicators,
     this.coordinationIndicators,
     this.objectLocationIndicators,
+    this.bartIndicators,
+    this.istIndicators,
   });
 
   final String id;
@@ -66,6 +70,12 @@ class GameSession {
 
   /// Présent après une soumission « Je place ».
   final ObjectLocationIndicators? objectLocationIndicators;
+
+  /// Présent après une soumission BART (y compris un run audit-only).
+  final BartIndicators? bartIndicators;
+
+  /// Présent après une soumission IST (y compris un run audit-only).
+  final IstIndicators? istIndicators;
 
   bool get isCompleted => status == 'COMPLETED';
 

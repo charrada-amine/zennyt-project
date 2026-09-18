@@ -180,6 +180,8 @@ class DemoGamesRepository extends GamesMockRepository {
       continuousAttentionIndicators: session.continuousAttentionIndicators,
       coordinationIndicators: session.coordinationIndicators,
       objectLocationIndicators: session.objectLocationIndicators,
+      bartIndicators: session.bartIndicators,
+      istIndicators: session.istIndicators,
     );
   }
 

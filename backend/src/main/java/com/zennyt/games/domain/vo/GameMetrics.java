@@ -7,5 +7,5 @@ public sealed interface GameMetrics
             EmotionalRadarMetrics, ReflectivePauseMetrics,
             StrategicChoicesMetrics,
             ContinuousAttentionMetrics, CoordinationMetrics,
-            ObjectLocationMetrics {
+            ObjectLocationMetrics, BartMetrics, IstMetrics {
 }

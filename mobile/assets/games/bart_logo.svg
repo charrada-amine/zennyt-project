@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240">
+  <!-- BART · logo (couverture et hub) : ballon relié à la pompe. -->
+  <circle cx="120" cy="120" r="112" fill="#EDEBFF"/>
+  <path d="M96 176 C110 214 150 206 162 190" fill="none" stroke="#1F1B4D" stroke-width="7" stroke-linecap="round"/>
+  <path d="M96 176 C110 214 150 206 162 190" fill="none" stroke="#9AA3C7" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M96 30 C132 30 156 58 156 92 C156 126 126 152 96 158 C66 152 36 126 36 92 C36 58 60 30 96 30 Z"
+        fill="#E8388F" stroke="#1F1B4D" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M136 50 C154 70 157 108 134 138 C143 110 145 78 136 50 Z" fill="#C21F74" opacity="0.55"/>
+  <ellipse cx="68" cy="68" rx="12" ry="21" transform="rotate(-25 68 68)" fill="#FFFFFF" opacity="0.9"/>
+  <path d="M89 157 L96 170 L103 157 Z" fill="#C21F74" stroke="#1F1B4D" stroke-width="5" stroke-linejoin="round"/>
+  <rect x="181" y="128" width="8" height="34" fill="#CFD3E6" stroke="#1F1B4D" stroke-width="3.5"/>
+  <rect x="158" y="118" width="54" height="14" rx="7" fill="#2BB5E0" stroke="#1F1B4D" stroke-width="5"/>
+  <rect x="164" y="158" width="42" height="52" rx="9" fill="#FFFFFF" stroke="#1F1B4D" stroke-width="5"/>
+  <rect x="166.5" y="163" width="37" height="7" fill="#E8388F"/>
+  <rect x="152" y="206" width="66" height="12" rx="6" fill="#26224D" stroke="#1F1B4D" stroke-width="3.5"/>
+</svg>

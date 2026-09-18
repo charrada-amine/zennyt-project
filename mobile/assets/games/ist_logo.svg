@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240">
+  <!-- IST · logo (couverture et hub) : grille partiellement révélée + loupe. -->
+  <circle cx="120" cy="120" r="112" fill="#EDEBFF"/>
+  <g transform="rotate(-10 110 130)">
+    <rect x="30" y="58" width="158" height="158" rx="20" fill="#3A2FA8" stroke="#1F1B4D" stroke-width="6"/>
+    <rect x="40" y="66" width="30" height="30" rx="7" fill="#2FD9F5"/>
+    <rect x="76" y="66" width="30" height="30" rx="7" fill="#FF9F43"/>
+    <rect x="112" y="66" width="30" height="30" rx="7" fill="#2FD9F5"/>
+    <rect x="148" y="66" width="30" height="30" rx="7" fill="#9B8FF2"/>
+    <rect x="40" y="102" width="30" height="30" rx="7" fill="#FF9F43"/>
+    <rect x="76" y="102" width="30" height="30" rx="7" fill="#2FD9F5"/>
+    <rect x="112" y="102" width="30" height="30" rx="7" fill="#9B8FF2"/>
+    <rect x="148" y="102" width="30" height="30" rx="7" fill="#9B8FF2"/>
+    <rect x="40" y="138" width="30" height="30" rx="7" fill="#2FD9F5"/>
+    <rect x="76" y="138" width="30" height="30" rx="7" fill="#9B8FF2"/>
+    <rect x="112" y="138" width="30" height="30" rx="7" fill="#9B8FF2"/>
+    <rect x="148" y="138" width="30" height="30" rx="7" fill="#9B8FF2"/>
+    <rect x="40" y="174" width="30" height="30" rx="7" fill="#9B8FF2"/>
+    <rect x="76" y="174" width="30" height="30" rx="7" fill="#9B8FF2"/>
+    <rect x="112" y="174" width="30" height="30" rx="7" fill="#9B8FF2"/>
+    <rect x="148" y="174" width="30" height="30" rx="7" fill="#9B8FF2"/>
+  </g>
+  <path d="M190 104 L220 138" stroke="#1F1B4D" stroke-width="20" stroke-linecap="round"/>
+  <path d="M190 104 L220 138" stroke="#E8388F" stroke-width="11" stroke-linecap="round"/>
+  <circle cx="168" cy="78" r="38" fill="#BFE9FF" stroke="#1F1B4D" stroke-width="8"/>
+  <path d="M150 64 C156 54 168 50 178 54" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round"/>
+</svg>

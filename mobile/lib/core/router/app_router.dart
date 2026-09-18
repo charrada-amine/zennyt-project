@@ -32,6 +32,8 @@ import '../../features/games/presentation/view/continuous_attention_screen.dart'
 import '../../features/games/presentation/view/coordination_tracking_screen.dart';
 import '../../features/games/presentation/view/investigate_screen.dart';
 import '../../features/games/presentation/view/je_place_screen.dart';
+import '../../features/games/presentation/view/bart_screen.dart';
+import '../../features/games/presentation/view/ist_screen.dart';
 import '../../features/games/presentation/view/je_decide_screen.dart';
 import '../../features/games/presentation/view/move_fast_screen.dart';
 import '../../features/games/presentation/view/planifik_screen.dart';
@@ -398,6 +400,16 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.gamesJePlace,
         name: AppRoutes.nGamesJePlace,
         builder: (context, state) => const JePlaceScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.gamesBart,
+        name: AppRoutes.nGamesBart,
+        builder: (context, state) => const BartScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.gamesIst,
+        name: AppRoutes.nGamesIst,
+        builder: (context, state) => const IstScreen(),
       ),
       GoRoute(
         path: AppRoutes.gamesJeDecide,
