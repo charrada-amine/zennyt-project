@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-/** Persistance JDBC des traces brutes et indicateurs serveur de BART et IST (V84). */
+/** Persistance JDBC des traces brutes et indicateurs serveur de BART et IST (V86). */
 @Component
 public class DecisionBehavioralMetricsRepositoryAdapter
         implements DecisionBehavioralMetricsRepository {

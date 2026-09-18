@@ -21,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class GamesProgressTest {
 
     /**
-     * 13 jeux jusqu'au 2026-09-18, 15 depuis BART et IST (V84). Tous comptent dans
+     * 13 jeux jusqu'au 2026-09-18, 15 depuis BART et IST (V86). Tous comptent dans
      * le dénominateur de la couverture affichée : leur arrivée fait baisser la
      * couverture de chaque joueur existant — voulu, puisque 100 % signifie « chaque
      * jeu du catalogue terminé au moins une fois ».

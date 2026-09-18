@@ -1,4 +1,4 @@
--- V84 — Décision comportementale : BART (risque révélé) + IST (recueil d'information).
+-- V86 — Décision comportementale : BART (risque révélé) + IST (recueil d'information).
 --
 -- Nouveau GameType DECISION_BEHAVIORAL, distinct de DECISION : y ajouter des
 -- mini-jeux jouables empêcherait une session « Je Décide » d'atteindre COMPLETED.
@@ -19,8 +19,8 @@ ALTER TABLE games.game_sessions ADD CONSTRAINT ck_game_sessions_type
                          'VISUOMOTOR_COORDINATION', 'VISUOSPATIAL_MEMORY',
                          'DECISION_BEHAVIORAL'));
 
--- 2. Mini-jeux enregistrables (dernière définition : V77). Sans cet élargissement,
---    la première tentative valide échoue en HTTP 500 à l'insertion (cf. V77).
+-- 2. Mini-jeux enregistrables (dernière définition : V84, ex-V77). Sans cet élargissement,
+--    la première tentative valide échoue en HTTP 500 à l'insertion (cf. V84).
 ALTER TABLE games.game_attempts DROP CONSTRAINT IF EXISTS ck_game_attempts_mini_game;
 ALTER TABLE games.game_attempts ADD CONSTRAINT ck_game_attempts_mini_game
     CHECK (mini_game IN ('OPTIMAL_PATH', 'TASK_SCHEDULING', 'PREVISION_PUZZLE',
@@ -32,7 +32,7 @@ ALTER TABLE games.game_attempts ADD CONSTRAINT ck_game_attempts_mini_game
                          'STRATEGIC_CHOICES_CORE',
                          'BART_CORE', 'INFORMATION_SAMPLING_CORE'));
 
--- 3. Couverture du hub (dernière définition : V78) — liste recopiée à l'identique,
+-- 3. Couverture du hub (dernière définition : V85, ex-V78) — liste recopiée à l'identique,
 --    plus les deux nouveaux jeux du catalogue.
 ALTER TABLE games.player_game_completions
     DROP CONSTRAINT IF EXISTS ck_player_game_completions_key;
