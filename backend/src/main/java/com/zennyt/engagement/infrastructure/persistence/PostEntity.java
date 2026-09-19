@@ -2,23 +2,29 @@ package com.zennyt.engagement.infrastructure.persistence;
 
 import com.zennyt.engagement.domain.vo.PostVisibility;
 import jakarta.persistence.*;
+import org.hibernate.Length;
+import org.hibernate.annotations.Check;
+import org.hibernate.annotations.ColumnDefault;
 
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "posts", schema = "engagement")
+@Table(name = "posts", schema = "engagement", indexes = {
+    @Index(name = "idx_engagement_posts_author", columnList = "author_id, created_at DESC"),
+    @Index(name = "idx_engagement_posts_created", columnList = "created_at DESC, id DESC")})
+@Check(name = "posts_comments_count_check", constraints = "comments_count >= 0")
 class PostEntity {
     @Id private UUID id;
     @Column(nullable = false) private UUID authorId;
-    @Enumerated(EnumType.STRING) @Column(nullable = false) private PostVisibility visibility;
-    @Column(columnDefinition = "TEXT") private String content;
+    @Enumerated(EnumType.STRING) @Column(nullable = false, length = 20) private PostVisibility visibility;
+    @Column(length = Length.LONG32) private String content;
     private UUID pollId;
-    @Column(columnDefinition = "TEXT") private String pollQuestion;
-    private String pollDuration;
-    @Column(nullable = false) private int commentsCount;
+    @Column(length = Length.LONG32) private String pollQuestion;
+    @Column(length = 100) private String pollDuration;
+    @ColumnDefault("0") @Column(nullable = false) private int commentsCount;
     @Column(nullable = false) private Instant createdAt;
-    @Version private long version;
+    @Version @ColumnDefault("0") private long version;
 
     protected PostEntity() {}
 

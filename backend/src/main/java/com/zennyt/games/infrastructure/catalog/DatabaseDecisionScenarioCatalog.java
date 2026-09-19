@@ -26,7 +26,8 @@ import java.util.stream.Collectors;
  *
  * <p>Remplace {@code JsonDecisionScenarioCatalog}, qui lisait la banque en ressource.
  * Le passage en base ne change <b>aucun score</b> : les mêmes 120 items, les mêmes
- * qualités d'option. Le JSON reste dans le dépôt comme source du seed Flyway.
+ * qualités d'option. Le JSON reste dans le dépôt comme source des données de référence
+ * ({@code db/reference-data.sql}).
  *
  * <p>Le contenu servi passe par le port de présentation, jamais par le port de
  * notation : ce dernier ne connaît que les qualités et n'a rien à publier.

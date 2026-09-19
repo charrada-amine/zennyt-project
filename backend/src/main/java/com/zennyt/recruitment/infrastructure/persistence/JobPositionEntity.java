@@ -9,30 +9,41 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Index;
+import jakarta.persistence.UniqueConstraint;
+import org.hibernate.Length;
+import org.hibernate.annotations.Check;
+import org.hibernate.annotations.ColumnDefault;
 
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "job_positions", schema = "recruitment")
+// Index unique partiel uq_job_positions_name_no_sector (métiers transverses) : db/schema-complements.sql.
+@Table(name = "job_positions", schema = "recruitment",
+    uniqueConstraints = @UniqueConstraint(name = "uq_job_positions_name_sector", columnNames = {"name", "sector"}),
+    indexes = @Index(name = "ix_job_positions_status", columnList = "status"))
+@Check(name = "ck_job_positions_type_evaluation_hard", constraints = "type_evaluation_hard IN ('QCM', 'PORTFOLIO', 'MIXTE')")
 public class JobPositionEntity {
     @Id private UUID id;
-    @Column(nullable = false) private String name;
-    private String sector;
-    @Enumerated(EnumType.STRING) private JobProfileType profileType;
+    @Column(nullable = false, length = 150) private String name;
+    @Column(length = 100) private String sector;
+    @Enumerated(EnumType.STRING) @Column(length = 20) private JobProfileType profileType;
     /** F32 — mode de mesure du hard skills, propre au métier (décision D-C, V60). */
-    @Enumerated(EnumType.STRING) @Column(name = "type_evaluation_hard", nullable = false)
+    @ColumnDefault("'QCM'")
+    @Enumerated(EnumType.STRING) @Column(name = "type_evaluation_hard", nullable = false, length = 20)
     private TypeEvaluationHard typeEvaluationHard = TypeEvaluationHard.QCM;
-    @Column(nullable = false) private boolean calibrated;
-    @Enumerated(EnumType.STRING) @Column(nullable = false) private JobPositionStatus status;
+    @ColumnDefault("false") @Column(nullable = false) private boolean calibrated;
+    @ColumnDefault("'PENDING_APPROVAL'")
+    @Enumerated(EnumType.STRING) @Column(nullable = false, length = 20) private JobPositionStatus status;
     private UUID proposedByRecruiterId;
-    private String juniorLabel;
-    private String seniorLabel;
-    private String leadLabel;
-    private String managerLabel;
+    @Column(length = 100) private String juniorLabel;
+    @Column(length = 100) private String seniorLabel;
+    @Column(length = 100) private String leadLabel;
+    @Column(length = 100) private String managerLabel;
     @Column(nullable = false) private Instant createdAt;
-    @Column(columnDefinition = "TEXT") private String embedding;
-    @Enumerated(EnumType.STRING) private JobProfileType suggestedProfileType;
+    @Column(length = Length.LONG32) private String embedding;
+    @Enumerated(EnumType.STRING) @Column(length = 20) private JobProfileType suggestedProfileType;
 
     protected JobPositionEntity() {}
 

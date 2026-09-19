@@ -2,12 +2,14 @@ package com.zennyt.recruitment.infrastructure.persistence;
 
 import com.zennyt.recruitment.domain.vo.TestAttemptStatus;
 import jakarta.persistence.*;
+import org.hibernate.Length;
 
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "test_attempts", schema = "recruitment")
+@Table(name = "test_attempts", schema = "recruitment",
+    indexes = @Index(name = "idx_test_attempts_candidate_job", columnList = "candidate_id, job_offer_id"))
 public class TestAttemptEntity {
     @Id private UUID id;
     @Column(nullable = false) private UUID jobOfferId;
@@ -15,8 +17,8 @@ public class TestAttemptEntity {
     @Column(nullable = false) private UUID candidateId;
     @Column(nullable = false) private Instant startedAt;
     @Column(nullable = false) private Instant expiresAt;
-    @Column(columnDefinition = "TEXT") private String presentedQuestionsJson;
-    @Enumerated(EnumType.STRING) @Column(nullable = false) private TestAttemptStatus status;
+    @Column(length = Length.LONG32) private String presentedQuestionsJson;
+    @Enumerated(EnumType.STRING) @Column(nullable = false, length = 20) private TestAttemptStatus status;
 
     protected TestAttemptEntity() {}
 

@@ -1,12 +1,14 @@
 package com.zennyt.engagement.infrastructure.persistence;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.Check;
 
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
 @Table(name = "wallet_cards", schema = "engagement")
+@Check(name = "ck_wallet_cards_expiry_month", constraints = "expiry_month >= 1 AND expiry_month <= 12")
 class WalletCardEntity {
     @Id @Column(name = "user_id") private UUID userId;
     @Column(nullable = false, length = 4) private String last4;

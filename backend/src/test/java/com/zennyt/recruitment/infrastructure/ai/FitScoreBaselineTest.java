@@ -39,7 +39,7 @@ class FitScoreBaselineTest {
 
     private final DeterministicFitScoreCalculator calculator = new DeterministicFitScoreCalculator();
 
-    /** Le référentiel de V42__job_role_profiles.sql, recopié à l'identique. */
+    /** Le référentiel de {@code db/reference-data.sql} (job_role_profiles, ex-V42 + V53), recopié à l'identique. */
     private static JobRoleProfile profile(JobProfileType type, ExperienceLevel level) {
         int[] hardCurve;   // JUNIOR, SENIOR, LEAD, MANAGER
         int[] modules;     // flex, mémoire, décision, planification, régulation

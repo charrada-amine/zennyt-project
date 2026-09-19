@@ -2,24 +2,27 @@ package com.zennyt.recruitment.infrastructure.persistence;
 
 import com.zennyt.recruitment.domain.vo.PaymentStatus;
 import jakarta.persistence.*;
+import org.hibernate.annotations.ColumnDefault;
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "video_conference_payments", schema = "recruitment")
+@Table(name = "video_conference_payments", schema = "recruitment", indexes = {
+    @Index(name = "idx_payments_match", columnList = "match_id"),
+    @Index(name = "idx_payments_recruiter", columnList = "recruiter_id")})
 public class VideoConferencePaymentEntity {
     @Id private UUID id;
     @Column(nullable = false) private UUID recruiterId;
     @Column(nullable = false) private UUID candidateId;
     @Column(nullable = false) private UUID matchId;
-    private double amount;
-    private double tax;
-    private double total;
+    @ColumnDefault("0") private double amount;
+    @ColumnDefault("0") private double tax;
+    @ColumnDefault("0") private double total;
     @Column(nullable = false) private String currency;
     @Enumerated(EnumType.STRING) @Column(nullable = false) private PaymentStatus status;
     private String paymentMethodLast4;
     private String paymentMethodType;
-    private boolean otpVerified;
+    @ColumnDefault("false") private boolean otpVerified;
     @Column(nullable = false) private Instant createdAt;
     private Instant confirmedAt;
 

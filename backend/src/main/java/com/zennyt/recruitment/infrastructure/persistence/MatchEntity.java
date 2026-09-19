@@ -5,7 +5,9 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "matches", schema = "recruitment")
+@Table(name = "matches", schema = "recruitment", indexes = {
+    @Index(name = "idx_matches_candidate", columnList = "candidate_id"),
+    @Index(name = "idx_matches_recruiter", columnList = "recruiter_id")})
 public class MatchEntity {
     @Id private UUID id;
     @Column(nullable = false) private UUID candidateId;

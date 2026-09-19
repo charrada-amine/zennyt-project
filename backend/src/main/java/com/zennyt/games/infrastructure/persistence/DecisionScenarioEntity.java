@@ -13,19 +13,36 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
+import jakarta.persistence.ForeignKey;
+import jakarta.persistence.Index;
+import jakarta.persistence.UniqueConstraint;
+import org.hibernate.Length;
+import org.hibernate.annotations.Check;
+import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.util.ArrayList;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
 /**
  * Entité JPA d'un item « Je Décide » (table {@code games.decision_scenarios}, V59).
  *
- * <p>Le contenu vient de la banque de 120 items du psychologue, seedée par Flyway
- * depuis {@code resources/games/decision_scenarios.json}.
+ * <p>Le contenu vient de la banque de 120 items du psychologue
+ * ({@code resources/games/decision_scenarios.json}), insérée par les données de référence
+ * ({@code db/reference-data.sql}).
  */
 @Entity
-@Table(name = "decision_scenarios", schema = "games")
+@Table(name = "decision_scenarios", schema = "games",
+    uniqueConstraints = @UniqueConstraint(name = "ux_decision_scenarios_item", columnNames = {"item_id"}),
+    indexes = @Index(name = "ix_decision_scenarios_dimension", columnList = "dimension, position"))
+@Check(name = "ck_decision_scenarios_dimension", constraints = "dimension IN ('II', 'ER', 'DT', 'CS', 'RE')")
+@Check(name = "ck_decision_scenarios_format", constraints = "format IN ('STANDARD', 'TEMPORAL_DECISION', 'COHERENCE_PAIR')")
+@Check(name = "ck_decision_scenarios_pair", constraints = "(format = 'COHERENCE_PAIR') = (pair_id IS NOT NULL)")
+@Check(name = "ck_decision_scenarios_position", constraints = "position >= 1")
+@Check(name = "ck_decision_scenarios_vignette", constraints = "(vignette IS NOT NULL) <> (vignette_ref IS NOT NULL)")
 public class DecisionScenarioEntity {
 
     @Id
@@ -46,13 +63,13 @@ public class DecisionScenarioEntity {
     private String pairId;
 
     /** Null pour les items DT : ils réutilisent la vignette de {@link #vignetteRef}. */
-    @Column(name = "vignette")
+    @Column(name = "vignette", length = Length.LONG32)
     private String vignette;
 
     @Column(name = "vignette_ref", length = 20)
     private String vignetteRef;
 
-    @Column(name = "task", nullable = false)
+    @Column(name = "task", nullable = false, length = Length.LONG32)
     private String task;
 
     @Column(name = "optimal_option", length = 40)
@@ -64,8 +81,19 @@ public class DecisionScenarioEntity {
     @Column(name = "position", nullable = false)
     private int position;
 
+    /** Horodatages d'audit, alimentés par la base ({@code DEFAULT now()}) : jamais écrits ici. */
+    @ColumnDefault("now()")
+    @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
+    private Instant createdAt;
+
+    @ColumnDefault("now()")
+    @Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
+    private Instant updatedAt;
+
     @OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
-    @JoinColumn(name = "scenario_id")
+    @JoinColumn(name = "scenario_id", nullable = false,
+        foreignKey = @ForeignKey(name = "decision_scenario_options_scenario_id_fkey"))
+    @OnDelete(action = OnDeleteAction.CASCADE)
     @OrderBy("position ASC")
     private List<DecisionScenarioOptionEntity> options = new ArrayList<>();
 

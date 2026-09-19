@@ -6,18 +6,27 @@ import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Check;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.Instant;
 
 @Entity
-@Table(name = "skills")
+// Index idx_skills_name sur lower(name) : db/schema-complements.sql.
+@Table(name = "skills", indexes = @Index(name = "idx_skills_type", columnList = "type"))
+@Check(name = "ck_skill_level", constraints = "level IS NULL OR level >= 1 AND level <= 5")
+@Check(name = "ck_skill_type", constraints = "type IN ('TECHNICAL', 'SOFT')")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class SkillEntity {
     @Getter(AccessLevel.PACKAGE)
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "profile_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "profile_id", nullable = false,
+        foreignKey = @ForeignKey(name = "skills_profile_id_fkey"))
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private ProfileEntity profile;
     @Column(nullable = false, length = 100)
     private String name;

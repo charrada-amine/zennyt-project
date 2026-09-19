@@ -9,6 +9,15 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
 import jakarta.persistence.Table;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.ForeignKey;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.UniqueConstraint;
+import org.hibernate.annotations.Check;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.io.Serializable;
 import java.time.Instant;
@@ -22,7 +31,15 @@ import java.util.UUID;
  * par session, ce qui rend la validation idempotente.
  */
 @Entity
-@Table(name = "emotional_radar_answers", schema = "games")
+// Trigger de contrainte ck_emotional_radar_answer_scene_reference (scene_id) : db/schema-complements.sql.
+@Table(name = "emotional_radar_answers", schema = "games",
+    // Ordre des colonnes de la clé primaire, fusionné dans emotional_radar_answers_pkey.
+    uniqueConstraints = @UniqueConstraint(name = "emotional_radar_answers_pkey", columnNames = {"session_id", "scene_id"}),
+    indexes = @Index(name = "ix_er_answers_session", columnList = "session_id"))
+@Check(name = "ck_er_answers_intensity", constraints = "selected_intensity >= 1 AND selected_intensity <= 5")
+@Check(name = "ck_er_answers_points", constraints = "emotion_points >= 0 AND emotion_points <= 3"
+    + " AND nuance_points >= 0 AND nuance_points <= 4 AND intensity_points >= 0 AND intensity_points <= 2"
+    + " AND scene_points >= 0 AND scene_points <= 10")
 @IdClass(EmotionalRadarAnswerEntity.AnswerId.class)
 public class EmotionalRadarAnswerEntity {
 
@@ -60,6 +77,13 @@ public class EmotionalRadarAnswerEntity {
     @Id
     @Column(name = "session_id", nullable = false)
     private UUID sessionId;
+
+    /** Clé étrangère {@code games.game_sessions(id) ON DELETE CASCADE} ; lecture seule. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "session_id", insertable = false, updatable = false,
+        foreignKey = @ForeignKey(name = "emotional_radar_answers_session_id_fkey"))
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private GameSessionEntity session;
 
     @Id
     @Column(name = "scene_id", nullable = false)

@@ -2,13 +2,22 @@ package com.zennyt.recruitment.infrastructure.persistence;
 
 import com.zennyt.recruitment.domain.vo.*;
 import jakarta.persistence.*;
+import org.hibernate.Length;
+import org.hibernate.annotations.Check;
+import org.hibernate.annotations.ColumnDefault;
 
 import java.time.Instant;
 import java.util.UUID;
 
 /** Entité JPA pour la table job_offers. */
 @Entity
-@Table(name = "job_offers", schema = "recruitment")
+// Index partiel idx_job_offers_position : db/schema-complements.sql.
+@Table(name = "job_offers", schema = "recruitment", indexes = {
+    @Index(name = "idx_job_offers_recruiter", columnList = "recruiter_id"),
+    @Index(name = "idx_job_offers_status", columnList = "status"),
+    @Index(name = "idx_job_offers_status_posted_at", columnList = "status, posted_at")})
+@Check(name = "ck_job_offers_salary_currency", constraints = "salary_currency IN ('EUR', 'USD', 'GBP', 'MAD', 'TND')")
+@Check(name = "ck_job_offers_salary_period", constraints = "salary_period IN ('MONTHLY', 'YEARLY')")
 public class JobOfferEntity {
 
     @Id
@@ -21,22 +30,29 @@ public class JobOfferEntity {
     private String locationCountry;
     private Double salaryMin;
     private Double salaryMax;
-    @Column(name = "salary_currency", length = 3) private String salaryCurrency;
-    @Enumerated(EnumType.STRING) @Column(name = "salary_period", length = 10) private SalaryPeriod salaryPeriod;
+    @ColumnDefault("'EUR'") @Column(name = "salary_currency", nullable = false, length = 3) private String salaryCurrency;
+    @ColumnDefault("'MONTHLY'")
+    @Enumerated(EnumType.STRING) @Column(name = "salary_period", nullable = false, length = 10) private SalaryPeriod salaryPeriod;
 
     @Enumerated(EnumType.STRING) @Column(nullable = false) private ContractType contractType;
     @Enumerated(EnumType.STRING) @Column(nullable = false) private WorkplaceType workplaceType;
     @Enumerated(EnumType.STRING) @Column(nullable = false) private ExperienceLevel experienceLevel;
 
-    @Column(columnDefinition = "TEXT") private String description;
-    @Column(columnDefinition = "TEXT") private String responsibilities;
-    @Column(columnDefinition = "TEXT") private String minimumQualifications;
-    @Column(columnDefinition = "TEXT") private String preferredQualifications;
-    @Column(columnDefinition = "TEXT") private String whatWeOffer;
-    @Column(columnDefinition = "TEXT") private String howToApply;
+    @Column(length = Length.LONG32) private String description;
+    @Column(length = Length.LONG32) private String responsibilities;
+    @Column(length = Length.LONG32) private String minimumQualifications;
+    @Column(length = Length.LONG32) private String preferredQualifications;
+    @Column(length = Length.LONG32) private String whatWeOffer;
+    @Column(length = Length.LONG32) private String howToApply;
     private UUID assessmentId;
-    private UUID jobPositionId;
-    private boolean openToInternational;
+    @Column(name = "job_position_id") private UUID jobPositionId;
+
+    /** Clé étrangère {@code recruitment.job_positions(id)} ; lecture seule, écrite via {@link #jobPositionId}. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "job_position_id", insertable = false, updatable = false,
+        foreignKey = @ForeignKey(name = "job_offers_job_position_id_fkey"))
+    private JobPositionEntity jobPosition;
+    @ColumnDefault("false") private boolean openToInternational;
 
     @Enumerated(EnumType.STRING) @Column(nullable = false) private JobOfferStatus status;
     @Column(nullable = false) private Instant postedAt;

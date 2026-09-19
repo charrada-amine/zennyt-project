@@ -163,9 +163,17 @@ Ces règles sont vérifiées automatiquement par **ArchUnit** en CI. Si tu les e
    métriques brutes, jamais un résultat calculé. (Anti-triche par conception.)
 5. **Contract-first** : toute évolution d'API modifie `contracts/<module>.openapi.yaml` **en
    premier**, puis le backend, puis le mobile.
-6. **Le schéma DB passe par Flyway uniquement** (`ddl-auto: validate`). Nouvelle migration
-   `V<n>__*.sql` ; **ne modifie JAMAIS une migration existante**. Vérifie d'abord si une migration
-   est vraiment nécessaire (la contrainte existe peut-être déjà).
+6. **Le schéma DB est défini par les entités JPA** (`ddl-auto: update` — voir
+   `shared/infrastructure/persistence/SchemaInitializationConfig`). Tout changement de schéma se fait
+   sur l'entité : table, colonne (type, longueur, nullabilité, `@ColumnDefault`), contraintes nommées
+   (`@Check`, `@UniqueConstraint`, `@Index`, `@ForeignKey` + `@OnDelete`). Ce que JPA n'exprime pas
+   (fonction, trigger, index partiel ou sur expression) va dans `db/schema-complements.sql`, en SQL
+   idempotent ; une donnée de référence, dans un **nouveau** lot de `db/reference-data.sql`.
+   **Hibernate `update` ne fait qu'ajouter** (tables, colonnes, index, contraintes) : il ne renomme,
+   ne retype et ne supprime rien, et ne modifie jamais une contrainte existante. N'utilise pas
+   `columnDefinition` : `update` ne sait pas le comparer à la base et relancerait un `ALTER COLUMN`
+   à chaque démarrage — une colonne `text` s'écrit `@Column(length = Length.LONG32)`. Vérifie d'abord
+   si le changement est vraiment nécessaire (la contrainte existe peut-être déjà).
 7. **Parité mock ⇄ backend** : si un mock mobile reproduit une logique serveur, les deux doivent
    rester identiques. Toute modification de l'un impose la modification de l'autre **dans la même
    PR**, avec un commentaire croisé pointant l'un vers l'autre.
@@ -222,7 +230,9 @@ Arrête-toi et pose la question dans **tous** ces cas :
 - Tu trouves **deux endpoints similaires** et tu ne sais pas lequel garder.
 - Une **spécification est ambiguë** ou contredit le code existant.
 - Tu t'apprêtes à **modifier un barème / une règle métier validée** (zone protégée).
-- Tu t'apprêtes à **modifier une migration Flyway existante**.
+- Tu t'apprêtes à **renommer, retyper ou supprimer** une table, une colonne ou une contrainte
+  existante (Hibernate `update` ne le fait pas : il faut un script de reprise écrit et appliqué sur
+  chaque base), ou à **modifier un lot existant** de `db/reference-data.sql`.
 - Le travail demandé impliquerait de **supprimer du code existant** dont tu n'es pas sûr qu'il soit
   mort.
 

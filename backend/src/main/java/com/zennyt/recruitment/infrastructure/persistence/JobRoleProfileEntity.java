@@ -8,16 +8,24 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import org.hibernate.annotations.Check;
+import org.hibernate.annotations.ColumnDefault;
 
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "job_role_profiles", schema = "recruitment")
+// Trigger trg_job_role_profiles_touch (updated_at automatique) : db/schema-complements.sql.
+@Table(name = "job_role_profiles", schema = "recruitment",
+    uniqueConstraints = @UniqueConstraint(name = "uq_job_role_profiles_type_level", columnNames = {"profile_type", "level"}))
+@Check(name = "ck_job_role_profiles_modules", constraints = "(cognitive_flexibility_weight + working_memory_weight"
+    + " + decision_making_weight + executive_planning_weight + emotional_regulation_weight) = 100")
+@Check(name = "ck_job_role_profiles_soft_hard", constraints = "(soft_weight + hard_weight) = 100")
 public class JobRoleProfileEntity {
     @Id private UUID id;
-    @Enumerated(EnumType.STRING) @Column(name = "profile_type", nullable = false) private JobProfileType profileType;
-    @Enumerated(EnumType.STRING) @Column(nullable = false) private ExperienceLevel level;
+    @Enumerated(EnumType.STRING) @Column(name = "profile_type", nullable = false, length = 20) private JobProfileType profileType;
+    @Enumerated(EnumType.STRING) @Column(nullable = false, length = 20) private ExperienceLevel level;
     @Column(name = "soft_weight", nullable = false) private int softWeight;
     @Column(name = "hard_weight", nullable = false) private int hardWeight;
     @Column(name = "expected_hard_weight", nullable = false) private int expectedHardWeight;
@@ -26,9 +34,9 @@ public class JobRoleProfileEntity {
     @Column(name = "decision_making_weight", nullable = false) private int decisionMakingWeight;
     @Column(name = "executive_planning_weight", nullable = false) private int executivePlanningWeight;
     @Column(name = "emotional_regulation_weight", nullable = false) private int emotionalRegulationWeight;
-    @Column(nullable = false) private boolean calibrated;
+    @ColumnDefault("false") @Column(nullable = false) private boolean calibrated;
     /** F11 — horodatage du referentiel, prerequis du balayage de peremption (F12). */
-    @Column(name = "updated_at", nullable = false) private Instant updatedAt;
+    @ColumnDefault("now()") @Column(name = "updated_at", nullable = false) private Instant updatedAt;
 
     protected JobRoleProfileEntity() {}
 

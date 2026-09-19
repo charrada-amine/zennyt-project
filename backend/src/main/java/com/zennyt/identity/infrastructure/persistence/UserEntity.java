@@ -6,12 +6,17 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Check;
+import org.hibernate.annotations.ColumnDefault;
 
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "users")
+@Table(name = "users", uniqueConstraints = {
+    @UniqueConstraint(name = "users_email_key", columnNames = {"email"}),
+    @UniqueConstraint(name = "users_public_id_key", columnNames = {"public_id"})})
+@Check(name = "ck_users_role", constraints = "role IN ('CANDIDATE', 'STUDENT', 'RECRUITER', 'ADMIN')")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
@@ -20,7 +25,7 @@ public class UserEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "public_id", nullable = false, unique = true, updatable = false)
+    @Column(name = "public_id", nullable = false, updatable = false)
     private UUID publicId;
 
     @Column(name = "first_name", nullable = false, length = 100)
@@ -29,7 +34,7 @@ public class UserEntity {
     @Column(name = "last_name", nullable = false, length = 100)
     private String lastName;
 
-    @Column(nullable = false, unique = true, length = 150)
+    @Column(nullable = false, length = 150)
     private String email;
 
     @Column(name = "phone_number", length = 30)
@@ -57,12 +62,15 @@ public class UserEntity {
     @Column(name = "profile_image_public_id", length = 255)
     private String profileImagePublicId;
 
+    @ColumnDefault("false")
     @Column(name = "terms_accepted", nullable = false)
     private boolean termsAccepted;
 
+    @ColumnDefault("false")
     @Column(name = "email_verified", nullable = false)
     private boolean emailVerified;
 
+    @ColumnDefault("true")
     @Column(name = "is_active", nullable = false)
     private boolean active;
 

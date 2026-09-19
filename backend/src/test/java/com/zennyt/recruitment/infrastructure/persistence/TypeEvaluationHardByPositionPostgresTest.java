@@ -24,8 +24,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * F32 / décision D-C — le mode de mesure du hard skills appartient au métier.
  *
- * <p>Ne peut se vérifier que sur une vraie base : c'est la migration V60 qui porte
- * l'intention, en reprenant les 142 métiers seedés. Le CdC §4.3 nomme explicitement
+ * <p>Ne peut se vérifier que sur une vraie base : ce sont les données de référence
+ * ({@code db/reference-data.sql}, reprises de la migration V60) qui portent l'intention,
+ * sur les 142 métiers seedés. Le CdC §4.3 nomme explicitement
  * UX/UI Designer et Motion designer comme hybrides (Mixte) et Photographe, Illustrateur,
  * Compositeur, Scénariste, Directeur artistique comme Portfolio — <b>tous ARTISTIQUE</b>.
  * Tant que le champ vivait sur {@code job_role_profile} (profil × niveau), cette
@@ -84,7 +85,7 @@ class TypeEvaluationHardByPositionPostgresTest {
     }
 
     /**
-     * Le domaine doit relire ce que la migration a écrit — un champ correct en base mais
+     * Le domaine doit relire ce que les données de référence ont écrit — un champ correct en base mais
      * perdu au mapping ne servirait à rien.
      */
     @Test

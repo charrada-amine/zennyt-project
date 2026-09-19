@@ -2,11 +2,14 @@ package com.zennyt.recruitment.infrastructure.persistence;
 
 import com.zennyt.recruitment.domain.vo.JobOpportunityStatus;
 import jakarta.persistence.*;
+import org.hibernate.annotations.ColumnDefault;
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "job_opportunity_offers", schema = "recruitment")
+@Table(name = "job_opportunity_offers", schema = "recruitment", indexes = {
+    @Index(name = "idx_opportunity_candidate", columnList = "candidate_id"),
+    @Index(name = "idx_opportunity_recruiter", columnList = "recruiter_id")})
 public class JobOpportunityOfferEntity {
     @Id private UUID id;
     @Column(nullable = false) private UUID recruiterId;
@@ -17,7 +20,7 @@ public class JobOpportunityOfferEntity {
     private Double salaryMax;
     private String salaryCurrency;
     @Enumerated(EnumType.STRING) @Column(nullable = false) private JobOpportunityStatus status;
-    private boolean otpVerified;
+    @ColumnDefault("false") private boolean otpVerified;
     @Column(nullable = false) private Instant sentAt;
     private Instant respondedAt;
 

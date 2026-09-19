@@ -7,6 +7,10 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Index;
+import jakarta.persistence.UniqueConstraint;
+import org.hibernate.Length;
+import org.hibernate.annotations.Check;
 
 import java.util.UUID;
 
@@ -18,7 +22,11 @@ import java.util.UUID;
  * stocké — il est porté par {@link OptionQuality#points()}, seule source de vérité.
  */
 @Entity
-@Table(name = "decision_scenario_options", schema = "games")
+@Table(name = "decision_scenario_options", schema = "games",
+    uniqueConstraints = @UniqueConstraint(name = "ux_decision_options_code", columnNames = {"scenario_id", "option_id"}),
+    indexes = @Index(name = "ix_decision_options_scenario", columnList = "scenario_id, position"))
+@Check(name = "ck_decision_options_position", constraints = "position >= 1")
+@Check(name = "ck_decision_options_quality", constraints = "quality IN ('OPTIMAL', 'SATISFACTORY', 'PARTIAL', 'DEFICIENT')")
 public class DecisionScenarioOptionEntity {
 
     @Id
@@ -27,7 +35,7 @@ public class DecisionScenarioOptionEntity {
     @Column(name = "option_id", nullable = false, length = 40)
     private String optionId;
 
-    @Column(name = "label", nullable = false)
+    @Column(name = "label", nullable = false, length = Length.LONG32)
     private String label;
 
     @Enumerated(EnumType.STRING)

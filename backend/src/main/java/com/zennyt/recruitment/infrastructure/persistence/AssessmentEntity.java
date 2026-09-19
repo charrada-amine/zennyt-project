@@ -2,11 +2,13 @@ package com.zennyt.recruitment.infrastructure.persistence;
 
 import com.zennyt.recruitment.domain.vo.AssessmentGenerationMode;
 import jakarta.persistence.*;
+import org.hibernate.Length;
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "assessments", schema = "recruitment")
+@Table(name = "assessments", schema = "recruitment",
+    indexes = @Index(name = "idx_assessments_recruiter", columnList = "created_by_recruiter_id"))
 public class AssessmentEntity {
     @Id private UUID id;
     @Column(nullable = false) private UUID createdByRecruiterId;
@@ -15,7 +17,7 @@ public class AssessmentEntity {
     private int maxQuestions;
     @Enumerated(EnumType.STRING) private AssessmentGenerationMode generationSource;
     private String shareableLink;
-    @Column(columnDefinition = "TEXT") private String questionsJson;
+    @Column(length = Length.LONG32) private String questionsJson;
     @Column(nullable = false) private Instant createdAt;
     @Column(nullable = false) private Instant updatedAt;
 

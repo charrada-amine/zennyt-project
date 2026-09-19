@@ -2,17 +2,20 @@ package com.zennyt.engagement.infrastructure.persistence;
 
 import com.zennyt.engagement.domain.vo.PushPlatform;
 import jakarta.persistence.*;
+import org.hibernate.Length;
 
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "push_devices", schema = "engagement")
+@Table(name = "push_devices", schema = "engagement",
+    uniqueConstraints = @UniqueConstraint(name = "push_devices_token_key", columnNames = {"token"}),
+    indexes = @Index(name = "idx_engagement_push_devices_user", columnList = "user_id"))
 class PushDeviceEntity {
     @Id private UUID id;
     @Column(nullable = false) private UUID userId;
-    @Column(nullable = false, unique = true, columnDefinition = "TEXT") private String token;
-    @Enumerated(EnumType.STRING) @Column(nullable = false) private PushPlatform platform;
+    @Column(nullable = false, length = Length.LONG32) private String token;
+    @Enumerated(EnumType.STRING) @Column(nullable = false, length = 20) private PushPlatform platform;
     private String deviceName;
     @Column(nullable = false) private Instant updatedAt;
 

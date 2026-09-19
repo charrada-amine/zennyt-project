@@ -2,9 +2,13 @@ package com.zennyt.identity.infrastructure.persistence;
 
 import com.zennyt.identity.domain.model.Position;
 import jakarta.persistence.*;
+import org.hibernate.Length;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -17,7 +21,10 @@ public class PositionEntity {
     @Getter(AccessLevel.PACKAGE)
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "profile_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "profile_id", nullable = false,
+        foreignKey = @ForeignKey(name = "positions_profile_id_fkey"))
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private ProfileEntity profile;
     @Column(nullable = false, length = 150)
     private String title;
@@ -25,12 +32,13 @@ public class PositionEntity {
     private String companyName;
     @Column(length = 150)
     private String location;
-    @Column(columnDefinition = "TEXT")
+    @Column(length = Length.LONG32)
     private String description;
     @Column(name = "start_date")
     private LocalDate startDate;
     @Column(name = "end_date")
     private LocalDate endDate;
+    @ColumnDefault("false")
     @Column(name = "is_current", nullable = false)
     private boolean current;
     @Column(name = "created_at", nullable = false)
