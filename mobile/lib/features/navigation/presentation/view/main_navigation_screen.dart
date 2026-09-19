@@ -55,7 +55,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
           FitsScreen(),
           ProgressScreen(),
           SearchScreen(),
-          NotificationsPage()
+          NotificationsPage(),
         ],
       ),
       bottomNavigationBar: AppBottomNav(

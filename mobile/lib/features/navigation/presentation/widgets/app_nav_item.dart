@@ -31,21 +31,21 @@ class AppNavItem extends StatelessWidget {
   final Widget Function(bool selected)? iconBuilder;
   final bool showBadge;
 
-  static const double _iconSize = 26;
+  static const double _iconSize = 24;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final active = colors.navLabelSelected;
+    final inactive = colors.navLabelUnselected;
 
     Widget iconWidget = iconBuilder != null
         ? iconBuilder!(selected)
         : AppIcon(
             selected ? (activeIcon ?? icon) : icon,
             size: _iconSize,
-            strokeWidth: selected ? 2.1 : 1.6,
-            color: selected
-                ? colors.navLabelSelected
-                : colors.navLabelUnselected,
+            strokeWidth: selected ? 2.0 : 1.6,
+            color: selected ? active : inactive,
           );
 
     if (showBadge) {
@@ -54,13 +54,13 @@ class AppNavItem extends StatelessWidget {
         children: [
           iconWidget,
           Positioned(
-            right: -1,
-            top: -1,
+            right: -2,
+            top: -2,
             child: Container(
-              width: 8,
-              height: 8,
+              width: 9,
+              height: 9,
               decoration: BoxDecoration(
-                color: colors.actionCardFilled, // Accent color equivalent
+                color: colors.actionCardFilled,
                 shape: BoxShape.circle,
                 border: Border.all(color: colors.navBg, width: 1.5),
               ),
@@ -71,32 +71,51 @@ class AppNavItem extends StatelessWidget {
     }
 
     return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                height: _iconSize + 2,
-                child: Center(child: iconWidget),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: AppTypography.labelSmall.copyWith(
-                  fontSize: 10,
-                  color: selected
-                      ? colors.navLabelSelected
-                      : colors.navLabelUnselected,
-                  fontWeight: selected
-                      ? AppTypography.semiBold
-                      : AppTypography.medium,
+      child: Semantics(
+        button: true,
+        selected: selected,
+        label: label,
+        excludeSemantics: true,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          splashColor: active.withValues(alpha: 0.08),
+          highlightColor: Colors.transparent,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Onglet actif : une pastille teintée derrière l'icône.
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOutCubic,
+                  width: selected ? 52 : 40,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? active.withValues(alpha: 0.12)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Center(child: iconWidget),
                 ),
-              ),
-            ],
+                const SizedBox(height: 3),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    style: AppTypography.labelSmall.copyWith(
+                      fontSize: 11,
+                      letterSpacing: 0,
+                      color: selected ? active : inactive,
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

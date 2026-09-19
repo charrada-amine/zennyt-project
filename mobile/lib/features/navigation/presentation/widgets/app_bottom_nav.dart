@@ -51,25 +51,26 @@ class AppBottomNav extends ConsumerWidget {
       ref.read(navTabProvider.notifier).select(i);
     }
 
-    return Container(
-      margin: const EdgeInsets.fromLTRB(14, 6, 14, 8),
-      padding: const EdgeInsets.symmetric(horizontal: 6),
+    // Barre ancrée pleine largeur (même surface d'un bord à l'autre, filet
+    // en haut) : la version « pilule flottante » laissait une bande blanche
+    // sous elle et coupait le contenu net au-dessus.
+    return DecoratedBox(
       decoration: BoxDecoration(
         color: colors.navBg,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: colors.navBorder),
+        border: Border(top: BorderSide(color: colors.navBorder)),
         boxShadow: [
           BoxShadow(
-            color: colors.primary.withValues(alpha: .08),
-            blurRadius: 28,
-            offset: const Offset(0, 8),
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 16,
+            offset: const Offset(0, -4),
           ),
         ],
       ),
       child: SafeArea(
         top: false,
+        minimum: const EdgeInsets.only(bottom: 6),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 3),
+          padding: const EdgeInsets.fromLTRB(8, 6, 8, 0),
           child: Row(
             children: [
               AppNavItem(
