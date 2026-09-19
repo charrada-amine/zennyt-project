@@ -115,7 +115,12 @@ class _HomePageState extends ConsumerState<HomePage> {
                     return SingleChildScrollView(
                       physics: const AlwaysScrollableScrollPhysics(),
                       child: Padding(
-                        padding: const EdgeInsets.fromLTRB(32, 56, 32, 32),
+                        padding: EdgeInsets.fromLTRB(
+                          32,
+                          56,
+                          32,
+                          32 + MediaQuery.paddingOf(context).bottom,
+                        ),
                         child: Column(
                           children: [
                             Container(
@@ -174,8 +179,12 @@ class _HomePageState extends ConsumerState<HomePage> {
                   return ListView.builder(
                     controller: _scrollController,
                     physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.only(
-                        top: 8, left: 16, right: 16, bottom: 16),
+                    padding: EdgeInsets.only(
+                      top: 8,
+                      left: 16,
+                      right: 16,
+                      bottom: 16 + MediaQuery.paddingOf(context).bottom,
+                    ),
                     itemCount: posts.length + (hasMore ? 1 : 0),
                     itemBuilder: (context, index) {
                       if (index == posts.length) {

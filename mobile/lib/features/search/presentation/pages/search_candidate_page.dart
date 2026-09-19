@@ -37,7 +37,12 @@ class _SearchCandidatePageState extends ConsumerState<SearchCandidatePage> {
       backgroundColor: colors.scaffoldBg,
       appBar: const CustomAppBar(title: 'Search'),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
+        padding: EdgeInsets.fromLTRB(
+          24,
+          4,
+          24,
+          24 + MediaQuery.paddingOf(context).bottom,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

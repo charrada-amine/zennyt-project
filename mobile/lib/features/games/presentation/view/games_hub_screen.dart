@@ -563,7 +563,14 @@ class _GamesCatalogState extends ConsumerState<_GamesCatalog> {
             ),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
+                // + inset bas : la barre d'onglets Liquid Glass (iOS 26) flotte
+                // au-dessus de la liste.
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  18,
+                  20,
+                  28 + MediaQuery.paddingOf(context).bottom,
+                ),
                 children: [
                   _JourneyCard(progress: progress),
                   const SizedBox(height: 18),

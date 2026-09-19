@@ -108,6 +108,14 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
         ),
         child: body,
       );
+    } else if (PlatformInfo.isIOS) {
+      // CupertinoTabBar (iOS < 26) consomme lui-même l'encoche du bas : on la
+      // retire des onglets, comme le fait Scaffold.bottomNavigationBar.
+      body = MediaQuery.removePadding(
+        context: context,
+        removeBottom: true,
+        child: body,
+      );
     }
 
     return AdaptiveScaffold(

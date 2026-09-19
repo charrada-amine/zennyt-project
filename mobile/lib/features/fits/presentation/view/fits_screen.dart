@@ -180,7 +180,6 @@ class _FitsScreenState extends ConsumerState<FitsScreen> {
         child: Scaffold(
           backgroundColor: colors.scaffoldBg,
           body: SafeArea(
-            bottom: false,
             child: Column(
               children: [
                 _FitsHeader(onBack: () => setState(() => _swiping = false)),
@@ -260,7 +259,6 @@ class _FitsScreenState extends ConsumerState<FitsScreen> {
       backgroundColor: colors.scaffoldBg,
       resizeToAvoidBottomInset: false,
       body: SafeArea(
-        bottom: false,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

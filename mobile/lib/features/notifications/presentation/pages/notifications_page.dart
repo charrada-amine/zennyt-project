@@ -231,6 +231,9 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
               onRefresh: _refreshNotifications,
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.paddingOf(context).bottom,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
