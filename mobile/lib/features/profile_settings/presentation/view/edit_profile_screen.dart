@@ -20,6 +20,7 @@ import '../widgets/profile_avatar.dart';
 
 import 'package:zennyt/shared/icons/app_icons.dart';
 import 'package:zennyt/core/widgets/zennyt_switch.dart';
+import 'package:zennyt/shared/widgets/app_select.dart';
 
 class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
@@ -590,25 +591,36 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
             ),
           ),
           DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
+            child: AppSelect<String>(
               value: options.contains(value) ? value : options.first,
-              isExpanded: true,
-              isDense: true,
-              icon: AppIcon(
-                HugeIcons.strokeRoundedArrowDown01,
-                color: colors.primary,
-                size: 22,
-              ),
+              options: options,
+              labelOf: (opt) => opt,
               style: AppTypography.bodyMedium.copyWith(
                 color: colors.textPrimary,
                 fontWeight: FontWeight.w500,
               ),
-              dropdownColor: colors.scaffoldBg,
-              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-              items: options.map((opt) {
-                return DropdownMenuItem(value: opt, child: Text(opt));
-              }).toList(),
+              chevronColor: colors.primary,
               onChanged: onChanged,
+              material: DropdownButton<String>(
+                value: options.contains(value) ? value : options.first,
+                isExpanded: true,
+                isDense: true,
+                icon: AppIcon(
+                  HugeIcons.strokeRoundedArrowDown01,
+                  color: colors.primary,
+                  size: 22,
+                ),
+                style: AppTypography.bodyMedium.copyWith(
+                  color: colors.textPrimary,
+                  fontWeight: FontWeight.w500,
+                ),
+                dropdownColor: colors.scaffoldBg,
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                items: options.map((opt) {
+                  return DropdownMenuItem(value: opt, child: Text(opt));
+                }).toList(),
+                onChanged: onChanged,
+              ),
             ),
           ),
         ],

@@ -13,6 +13,7 @@ import 'widgets/step1_form.dart';
 import 'widgets/step2_form.dart';
 
 import 'package:zennyt/shared/icons/app_icons.dart';
+import 'package:zennyt/shared/widgets/app_select.dart';
 
 /// Assistant de création/édition d'un test (assessment) — porté depuis
 /// REC-04, branché sur `POST /assessments` du backend intégré.
@@ -168,16 +169,27 @@ class _CreateAssessmentPageState extends ConsumerState<CreateAssessmentPage> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  icon: const AppIcon(HugeIcons.strokeRoundedArrowDown01, size: 20),
-                  initialValue: difficulty,
+                AppSelect<String>(
+                  value: difficulty,
+                  options: const ['JUNIOR', 'MID', 'SENIOR'],
+                  labelOf: (level) => const {
+                    'JUNIOR': 'Junior',
+                    'MID': 'Intermédiaire',
+                    'SENIOR': 'Senior',
+                  }[level]!,
                   decoration: const InputDecoration(labelText: 'Difficulté'),
-                  items: const [
-                    DropdownMenuItem(value: 'JUNIOR', child: Text('Junior')),
-                    DropdownMenuItem(value: 'MID', child: Text('Intermédiaire')),
-                    DropdownMenuItem(value: 'SENIOR', child: Text('Senior')),
-                  ],
                   onChanged: (v) => setDialogState(() => difficulty = v ?? 'MID'),
+                  material: DropdownButtonFormField<String>(
+                    icon: const AppIcon(HugeIcons.strokeRoundedArrowDown01, size: 20),
+                    initialValue: difficulty,
+                    decoration: const InputDecoration(labelText: 'Difficulté'),
+                    items: const [
+                      DropdownMenuItem(value: 'JUNIOR', child: Text('Junior')),
+                      DropdownMenuItem(value: 'MID', child: Text('Intermédiaire')),
+                      DropdownMenuItem(value: 'SENIOR', child: Text('Senior')),
+                    ],
+                    onChanged: (v) => setDialogState(() => difficulty = v ?? 'MID'),
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Text(

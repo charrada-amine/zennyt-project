@@ -8,6 +8,7 @@ import 'package:zennyt/l10n/gen/app_localizations.dart';
 import '../providers/poll_provider.dart';
 
 import 'package:zennyt/shared/icons/app_icons.dart';
+import 'package:zennyt/shared/widgets/app_select.dart';
 
 class CreatePollPage extends ConsumerStatefulWidget {
   const CreatePollPage({super.key});
@@ -285,32 +286,42 @@ class _CreatePollPageState extends ConsumerState<CreatePollPage> {
                         ),
                       ),
                       child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
+                        child: AppSelect<String>(
                           value: _selectedTimeframe,
-                          isExpanded: true,
-                          icon: AppIcon(
-                            HugeIcons.strokeRoundedArrowDown01,
-                            color: AppColors.iconColor,
-                          ),
-                          items: _timeframeValues.map((tf) {
-                            return DropdownMenuItem(
-                              value: tf,
-                              child: Text(
-                                _timeframeLabel(l10n, tf),
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  color: AppColors.textDark,
-                                ),
-                              ),
-                            );
-                          }).toList(),
+                          options: _timeframeValues,
+                          labelOf: (tf) => _timeframeLabel(l10n, tf),
+                          style: const TextStyle(fontSize: 15, color: AppColors.textDark),
+                          chevronColor: AppColors.iconColor,
                           onChanged: (value) {
-                            if (value != null) {
-                              setState(() {
-                                _selectedTimeframe = value;
-                              });
-                            }
+                            if (value != null) setState(() => _selectedTimeframe = value);
                           },
+                          material: DropdownButton<String>(
+                            value: _selectedTimeframe,
+                            isExpanded: true,
+                            icon: AppIcon(
+                              HugeIcons.strokeRoundedArrowDown01,
+                              color: AppColors.iconColor,
+                            ),
+                            items: _timeframeValues.map((tf) {
+                              return DropdownMenuItem(
+                                value: tf,
+                                child: Text(
+                                  _timeframeLabel(l10n, tf),
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    color: AppColors.textDark,
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              if (value != null) {
+                                setState(() {
+                                  _selectedTimeframe = value;
+                                });
+                              }
+                            },
+                          ),
                         ),
                       ),
                     ),

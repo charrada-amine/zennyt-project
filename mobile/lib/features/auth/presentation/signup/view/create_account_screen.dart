@@ -20,6 +20,7 @@ import '../../widgets/auth_desktop_shell.dart';
 import '../viewmodel/signup_viewmodel.dart';
 
 import 'package:zennyt/shared/icons/app_icons.dart';
+import 'package:zennyt/shared/widgets/app_select.dart';
 
 class CreateAccountScreen extends ConsumerStatefulWidget {
   const CreateAccountScreen({super.key});
@@ -279,33 +280,46 @@ class _CountryField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DropdownButtonFormField<String>(
-      initialValue: value,
-      isExpanded: true,
-      icon: AppIcon(
-        HugeIcons.strokeRoundedArrowDown01,
-        color: context.colors.textSecondary,
-      ),
-      style: AppTypography.bodyMedium.copyWith(
-        color: context.colors.textPrimary,
-      ),
+    return AppSelect<String>(
+      value: value,
+      options: AppLocations.countries,
+      labelOf: (country) => country,
+      hint: context.l10n.country,
       decoration: appInputDecoration(
         context,
         hint: context.l10n.country,
         prefixIcon: const AppInputIcon(HugeIcons.strokeRoundedGlobe02),
       ),
-      hint: Text(
-        context.l10n.country,
-        style: AppTypography.bodyMedium.copyWith(
-          color: context.colors.textMuted,
-        ),
-      ),
       validator: (v) => v == null ? context.l10n.countryRequired : null,
-      items: [
-        for (final c in AppLocations.countries)
-          DropdownMenuItem(value: c, child: Text(c)),
-      ],
       onChanged: onChanged,
+      material: DropdownButtonFormField<String>(
+        initialValue: value,
+        isExpanded: true,
+        icon: AppIcon(
+          HugeIcons.strokeRoundedArrowDown01,
+          color: context.colors.textSecondary,
+        ),
+        style: AppTypography.bodyMedium.copyWith(
+          color: context.colors.textPrimary,
+        ),
+        decoration: appInputDecoration(
+          context,
+          hint: context.l10n.country,
+          prefixIcon: const AppInputIcon(HugeIcons.strokeRoundedGlobe02),
+        ),
+        hint: Text(
+          context.l10n.country,
+          style: AppTypography.bodyMedium.copyWith(
+            color: context.colors.textMuted,
+          ),
+        ),
+        validator: (v) => v == null ? context.l10n.countryRequired : null,
+        items: [
+          for (final c in AppLocations.countries)
+            DropdownMenuItem(value: c, child: Text(c)),
+        ],
+        onChanged: onChanged,
+      ),
     );
   }
 }
