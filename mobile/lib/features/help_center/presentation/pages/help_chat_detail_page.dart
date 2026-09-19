@@ -218,7 +218,7 @@ class _HelpChatDetailPageState extends ConsumerState<HelpChatDetailPage> {
                     loading: () => Center(
                       child: AppConstants.isCupertino
                           ? const CupertinoActivityIndicator()
-                          : const CircularProgressIndicator(),
+                          : const CircularProgressIndicator.adaptive(),
                     ),
                     error: (error, _) => Center(child: Text('Erreur: $error')),
                   ),
@@ -460,7 +460,7 @@ class _HelpChatDetailPageState extends ConsumerState<HelpChatDetailPage> {
                     height: 26,
                     child: Padding(
                       padding: EdgeInsets.all(3),
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                      child: CircularProgressIndicator.adaptive(strokeWidth: 2),
                     ),
                   )
                 : GestureDetector(

@@ -26,7 +26,7 @@ class HardSkillsResultsPage extends ConsumerWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF9FBFF),
       appBar: CustomAppBar(title: 'Hard Skills Scores', onBack: () => context.pop()),
-      body: RefreshIndicator(
+      body: RefreshIndicator.adaptive(
         onRefresh: () async {
           ref.invalidate(jobTestResultsProvider(jobId));
           ref.invalidate(jobTestResultsSummaryProvider(jobId));
@@ -36,7 +36,7 @@ class HardSkillsResultsPage extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
           children: [
             jobAsync.when(
-              loading: () => const SizedBox(height: 90, child: Center(child: CircularProgressIndicator())),
+              loading: () => const SizedBox(height: 90, child: Center(child: CircularProgressIndicator.adaptive())),
               error: (_, _) => const SizedBox.shrink(),
               data: (job) => _JobHeaderCard(
                 title: job.title,
@@ -55,7 +55,7 @@ class HardSkillsResultsPage extends ConsumerWidget {
             resultsAsync.when(
               loading: () => const Padding(
                 padding: EdgeInsets.only(top: 40),
-                child: Center(child: CircularProgressIndicator()),
+                child: Center(child: CircularProgressIndicator.adaptive()),
               ),
               error: (e, _) => Padding(
                 padding: const EdgeInsets.only(top: 40),
@@ -313,7 +313,7 @@ class _CandidateDetailSheet extends ConsumerWidget {
       maxChildSize: 0.92,
       minChildSize: 0.5,
       builder: (context, scroll) => async.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(child: CircularProgressIndicator.adaptive()),
         error: (_, _) => const Center(child: Text('Failed to load the correction.')),
         data: (detail) => ListView(
           controller: scroll,

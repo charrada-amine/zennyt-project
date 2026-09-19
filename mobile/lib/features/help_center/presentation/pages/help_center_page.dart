@@ -12,6 +12,7 @@ import '../widgets/help_chat_item.dart';
 import '../providers/help_center_providers.dart';
 
 import 'package:zennyt/shared/icons/app_icons.dart';
+import 'package:zennyt/shared/widgets/app_spinner.dart';
 
 class HelpCenterPage extends ConsumerStatefulWidget {
   const HelpCenterPage({super.key});
@@ -107,7 +108,7 @@ class _HelpCenterPageState extends ConsumerState<HelpCenterPage> {
                       ? const SizedBox(
                           width: 18,
                           height: 18,
-                          child: CircularProgressIndicator(
+                          child: AppSpinner(
                               strokeWidth: 2, color: Colors.white),
                         )
                       : const AppIcon(HugeIcons.strokeRoundedCommentAdd01, size: 20),
@@ -151,7 +152,7 @@ class _HelpCenterPageState extends ConsumerState<HelpCenterPage> {
                 loading: () => Center(
                   child: AppConstants.isCupertino
                       ? const CupertinoActivityIndicator()
-                      : const CircularProgressIndicator(),
+                      : const CircularProgressIndicator.adaptive(),
                 ),
                 error: (error, _) => Center(child: Text('Erreur: $error')),
               ),

@@ -7,6 +7,7 @@ import 'package:zennyt/features/billing/data/store_iap_service.dart';
 import 'package:zennyt/features/billing/presentation/providers/billing_providers.dart';
 
 import 'package:zennyt/shared/icons/app_icons.dart';
+import 'package:zennyt/shared/widgets/app_spinner.dart';
 
 /// Paiement de l'entretien vidéo (maquette 282) : le recruteur règle un achat
 /// unique (consommable) via l'App Store / Google Play avant l'appel.
@@ -156,7 +157,7 @@ class _VideoInterviewPaywallState extends ConsumerState<VideoInterviewPaywall> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),
                 child: _busy
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white))
+                    ? const SizedBox(width: 20, height: 20, child: AppSpinner(strokeWidth: 2.4, color: Colors.white))
                     : const Text('Pay now', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
               ),
             ),

@@ -34,13 +34,13 @@ class ReferralScreen extends ConsumerWidget {
           onTap: () => _showInviteDialog(context, ref),
         ),
       ),
-      body: RefreshIndicator(
+      body: RefreshIndicator.adaptive(
         onRefresh: () => ref.read(referralsProvider.notifier).refresh(),
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
           children: [
             linkAsync.when(
-              loading: () => const SizedBox(height: 120, child: Center(child: CircularProgressIndicator())),
+              loading: () => const SizedBox(height: 120, child: Center(child: CircularProgressIndicator.adaptive())),
               error: (_, _) => const SizedBox.shrink(),
               data: (link) => _LinkCard(link: link),
             ),
@@ -48,7 +48,7 @@ class ReferralScreen extends ConsumerWidget {
             referralsAsync.when(
               loading: () => const Padding(
                 padding: EdgeInsets.only(top: 40),
-                child: Center(child: CircularProgressIndicator()),
+                child: Center(child: CircularProgressIndicator.adaptive()),
               ),
               error: (_, _) => const Padding(
                 padding: EdgeInsets.only(top: 40),

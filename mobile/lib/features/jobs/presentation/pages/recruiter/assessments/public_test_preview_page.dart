@@ -24,7 +24,7 @@ class PublicTestPreviewPage extends ConsumerWidget {
       backgroundColor: Colors.white,
       appBar: CustomAppBar(title: 'Test preview', onBack: () => context.pop()),
       body: async.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(child: CircularProgressIndicator.adaptive()),
         error: (_, _) => Center(
           child: Padding(
             padding: const EdgeInsets.all(24),

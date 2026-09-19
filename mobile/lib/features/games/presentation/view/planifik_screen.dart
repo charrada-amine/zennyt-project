@@ -22,6 +22,7 @@ import '../widgets/game_results_template.dart';
 import '../widgets/game_system_components.dart';
 import '../widgets/game_tutorial_deck.dart';
 import 'package:zennyt/shared/icons/app_icons.dart';
+import 'package:zennyt/shared/widgets/app_spinner.dart';
 
 /// Jeu « Optimal Path » (Planifik — « Je planifie »).
 ///
@@ -1408,7 +1409,7 @@ class _ValidateButton extends StatelessWidget {
               ? const SizedBox(
                   width: 20,
                   height: 20,
-                  child: CircularProgressIndicator(
+                  child: AppSpinner(
                     strokeWidth: 2,
                     color: Colors.white,
                   ),

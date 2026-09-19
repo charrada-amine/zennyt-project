@@ -23,6 +23,7 @@ import '../widgets/emotional_radar_video.dart';
 import '../widgets/game_system_components.dart';
 
 import 'package:zennyt/shared/icons/app_icons.dart';
+import 'package:zennyt/shared/widgets/app_spinner.dart';
 
 /// Nombre de boutons d'émotion par ligne.
 ///
@@ -751,7 +752,7 @@ class _RadarValidateButton extends StatelessWidget {
             ? const SizedBox(
                 width: 20,
                 height: 20,
-                child: CircularProgressIndicator(
+                child: AppSpinner(
                   strokeWidth: 2,
                   color: Colors.white,
                 ),

@@ -12,6 +12,7 @@ import '../../../../../core/localization/l10n_extension.dart';
 import '../../../../../core/theme/theme.dart';
 
 import 'package:zennyt/shared/icons/app_icons.dart';
+import 'package:zennyt/shared/widgets/app_spinner.dart';
 
 class CvReviewScreen extends ConsumerStatefulWidget {
   const CvReviewScreen({super.key});
@@ -641,7 +642,7 @@ class _CvReviewScreenState extends ConsumerState<CvReviewScreen> {
                   const SizedBox(
                     width: 20,
                     height: 20,
-                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                    child: AppSpinner(color: Colors.white, strokeWidth: 2.5),
                   ),
                   const SizedBox(width: 12),
                   Text(

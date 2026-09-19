@@ -88,13 +88,13 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF9FBFF),
       appBar: CustomAppBar(title: 'Plans & Pricing', onBack: () => context.pop()),
-      body: RefreshIndicator(
+      body: RefreshIndicator.adaptive(
         onRefresh: () async {
           ref.invalidate(plansProvider);
           await _loadProducts();
         },
         child: plansAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const Center(child: CircularProgressIndicator.adaptive()),
           error: (_, _) => ListView(
             children: [
               const SizedBox(height: 120),
@@ -115,7 +115,7 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
               if (_loadingProducts)
                 const Padding(
                   padding: EdgeInsets.only(bottom: 12),
-                  child: Center(child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))),
+                  child: Center(child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator.adaptive(strokeWidth: 2))),
                 ),
               for (final plan in plans)
                 _PlanCard(

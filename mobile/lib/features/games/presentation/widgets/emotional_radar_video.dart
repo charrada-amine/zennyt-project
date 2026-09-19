@@ -154,7 +154,7 @@ class _EmotionalRadarVideoState extends State<EmotionalRadarVideo>
         child: AspectRatio(
           aspectRatio: 16 / 9,
           child: Center(
-            child: CircularProgressIndicator(semanticsLabel: 'Loading video'),
+            child: CircularProgressIndicator.adaptive(semanticsLabel: 'Loading video'),
           ),
         ),
       );
@@ -184,7 +184,7 @@ class _EmotionalRadarVideoState extends State<EmotionalRadarVideo>
               ),
               if (value.isBuffering)
                 const Center(
-                  child: CircularProgressIndicator(
+                  child: CircularProgressIndicator.adaptive(
                     semanticsLabel: 'Buffering video',
                   ),
                 ),
@@ -232,7 +232,7 @@ class _EmotionalRadarVideoState extends State<EmotionalRadarVideo>
                   VideoPlayer(controller),
                   if (value.isBuffering)
                     const Center(
-                      child: CircularProgressIndicator(
+                      child: CircularProgressIndicator.adaptive(
                         semanticsLabel: 'Buffering video',
                       ),
                     ),

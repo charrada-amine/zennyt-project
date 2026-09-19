@@ -22,10 +22,10 @@ class HiredCandidatesPage extends ConsumerWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF9FBFF),
       appBar: CustomAppBar(title: 'Hired Candidates', onBack: () => context.pop()),
-      body: RefreshIndicator(
+      body: RefreshIndicator.adaptive(
         onRefresh: () => ref.read(hiredCandidatesProvider.notifier).refresh(),
         child: async.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const Center(child: CircularProgressIndicator.adaptive()),
           error: (_, _) => ListView(
             children: [
               const SizedBox(height: 120),

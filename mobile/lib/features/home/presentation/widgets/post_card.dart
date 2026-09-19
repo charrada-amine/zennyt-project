@@ -190,7 +190,7 @@ class _PostCardState extends ConsumerState<PostCard> with SingleTickerProviderSt
             ),
             placeholder: (context, url) => const SizedBox(
               height: 200,
-              child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+              child: Center(child: CircularProgressIndicator.adaptive(strokeWidth: 2)),
             ),
           ),
         );

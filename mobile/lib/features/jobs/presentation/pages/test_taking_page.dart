@@ -11,6 +11,7 @@ import 'package:zennyt/shared/widgets/custom_app_bar.dart';
 
 import 'package:zennyt/shared/icons/app_icons.dart';
 import 'package:zennyt/shared/widgets/app_dialog.dart';
+import 'package:zennyt/shared/widgets/app_spinner.dart';
 
 /// Hard-skills test runner (maquettes 96, 306 / 138-139).
 ///
@@ -164,7 +165,7 @@ class _TestTakingPageState extends ConsumerState<TestTakingPage> {
 
     Widget body;
     if (_loading) {
-      body = const Center(child: CircularProgressIndicator());
+      body = const Center(child: CircularProgressIndicator.adaptive());
     } else if (_error != null) {
       body = Center(
         child: Padding(
@@ -357,7 +358,7 @@ class _AttemptBody extends StatelessWidget {
                       ? const SizedBox(
                           width: 20,
                           height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white),
+                          child: AppSpinner(strokeWidth: 2.4, color: Colors.white),
                         )
                       : Text(isLast ? 'Submit' : 'Next',
                           textAlign: TextAlign.center,

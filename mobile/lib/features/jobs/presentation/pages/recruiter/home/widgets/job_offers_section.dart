@@ -6,6 +6,7 @@ import 'package:zennyt/core/router/app_routes.dart';
 import 'package:zennyt/core/theme/theme.dart';
 import 'package:zennyt/features/jobs/domain/entities/job.dart';
 import 'package:zennyt/shared/icons/app_icons.dart';
+import 'package:zennyt/shared/widgets/app_spinner.dart';
 
 class JobOffersSection extends StatelessWidget {
   final AsyncValue<List<JobOffer>> jobsAsync;
@@ -64,7 +65,7 @@ class _JobListBody extends StatelessWidget {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 40),
         child: Center(
-          child: CircularProgressIndicator(color: Color(0xFF5046E5)),
+          child: AppSpinner(color: Color(0xFF5046E5)),
         ),
       );
     }

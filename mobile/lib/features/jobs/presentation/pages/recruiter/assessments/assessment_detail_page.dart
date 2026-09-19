@@ -24,7 +24,7 @@ class AssessmentDetailPage extends ConsumerWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       body: asyncAssessment.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(child: CircularProgressIndicator.adaptive()),
         error: (e, _) => Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,

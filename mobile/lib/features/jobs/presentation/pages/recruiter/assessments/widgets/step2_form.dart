@@ -279,7 +279,7 @@ class _Step2BottomBar extends StatelessWidget {
                 ),
                 onPressed: isLoading ? null : onNext,
                 child: isLoading
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator.adaptive(strokeWidth: 2))
                     : Text(
                         isLastQuestion ? 'Finish' : 'Continue',
                         style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),

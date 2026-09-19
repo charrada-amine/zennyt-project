@@ -31,10 +31,10 @@ class ManageTestsPage extends ConsumerWidget {
           },
         ),
       ),
-      body: RefreshIndicator(
+      body: RefreshIndicator.adaptive(
         onRefresh: () => ref.read(assessmentsProvider.notifier).refresh(),
         child: async.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const Center(child: CircularProgressIndicator.adaptive()),
           error: (_, _) => ListView(
             children: [
               const SizedBox(height: 120),

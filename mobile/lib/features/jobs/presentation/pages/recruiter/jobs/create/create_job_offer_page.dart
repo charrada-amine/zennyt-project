@@ -12,6 +12,7 @@ import 'package:zennyt/features/jobs/domain/repositories/jobs_repository.dart';
 import 'package:zennyt/features/jobs/presentation/providers/jobs_provider.dart';
 import 'package:zennyt/shared/icons/app_icons.dart';
 import 'package:zennyt/shared/widgets/custom_app_bar.dart';
+import 'package:zennyt/shared/widgets/app_spinner.dart';
 
 /// Création / édition d'une offre (`POST /job-offers`, `PUT /job-offers/{id}`).
 ///
@@ -1310,7 +1311,7 @@ class _SubmitBar extends StatelessWidget {
                     ? const SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(
+                        child: AppSpinner(
                           strokeWidth: 2.4,
                           color: Colors.white,
                         ),

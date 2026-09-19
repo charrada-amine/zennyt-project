@@ -105,7 +105,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             thickness: 2,
           ),
           Expanded(
-            child: RefreshIndicator(
+            child: RefreshIndicator.adaptive(
               onRefresh: _onRefresh,
               child: postsAsync.when(
                 data: (posts) {
@@ -191,7 +191,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                         return const Padding(
                           padding: EdgeInsets.symmetric(vertical: 16),
                           child: Center(
-                            child: CircularProgressIndicator(),
+                            child: CircularProgressIndicator.adaptive(),
                           ),
                         );
                       }
@@ -203,7 +203,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                     },
                   );
                 },
-                loading: () => const Center(child: CircularProgressIndicator()),
+                loading: () => const Center(child: CircularProgressIndicator.adaptive()),
                 error: (error, _) => Center(child: Text(AppLocalizations.of(context).homeError(error.toString()))),
               ),
             ),

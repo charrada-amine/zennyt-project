@@ -22,7 +22,7 @@ class CandidateOverviewTab extends ConsumerWidget {
     final colors = context.colors;
 
     if (state.isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: CircularProgressIndicator.adaptive());
     }
 
     if (state.errorMessage != null) {
