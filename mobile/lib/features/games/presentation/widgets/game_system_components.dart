@@ -1,3 +1,5 @@
+import 'package:adaptive_platform_ui/adaptive_platform_ui.dart'
+    show AdaptiveSegmentedControl;
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -2389,14 +2391,11 @@ class GamePauseInputModeToggle extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppSpacing.sm),
-        SegmentedButton<bool>(
-          segments: const [
-            ButtonSegment(value: true, label: Text('Boutons')),
-            ButtonSegment(value: false, label: Text('Tactile')),
-          ],
-          selected: {buttonsSelected},
-          showSelectedIcon: true,
-          onSelectionChanged: (selected) => onChanged(selected.first),
+        AdaptiveSegmentedControl(
+          labels: const ['Boutons', 'Tactile'],
+          selectedIndex: buttonsSelected ? 0 : 1,
+          shrinkWrap: true,
+          onValueChanged: (index) => onChanged(index == 0),
         ),
       ],
     );
