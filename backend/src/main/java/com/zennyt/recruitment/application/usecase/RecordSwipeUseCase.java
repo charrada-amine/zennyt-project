@@ -79,19 +79,24 @@ public class RecordSwipeUseCase {
                 "Un swipe existe déjà pour cette paire — annulez-le avant de re-swiper");
         }
 
+        // Les événements se lisent sur l'agrégat d'ORIGINE : les repositories renvoient
+        // une instance reconstruite depuis la persistance, qui n'en porte aucun (même
+        // règle que Create/UpdateJobOfferUseCase et SubmitTestAttemptUseCase). Lus sur
+        // l'instance sauvegardée, MatchCreatedEvent se perdait : Engagement n'ouvrait ni
+        // conversation ni notification « Nouveau match ».
         Swipe swipe = Swipe.record(jobOfferId, candidateId, side, direction);
         Swipe saved = swipeRepository.save(swipe);
-        saved.domainEvents().forEach(eventPublisher::publishEvent);
-        saved.clearEvents();
+        swipe.domainEvents().forEach(eventPublisher::publishEvent);
+        swipe.clearEvents();
 
         Match match = null;
         if (direction == SwipeDirection.RIGHT) {
             var reciprocal = swipeRepository.find(jobOfferId, candidateId, saved.mutualSide());
             if (reciprocal.isPresent() && reciprocal.get().direction() == SwipeDirection.RIGHT) {
-                match = Match.create(candidateId, jobOfferId, offer.recruiterId(), offer.title());
-                match = matchRepository.save(match);
-                match.domainEvents().forEach(eventPublisher::publishEvent);
-                match.clearEvents();
+                Match created = Match.create(candidateId, jobOfferId, offer.recruiterId(), offer.title());
+                match = matchRepository.save(created);
+                created.domainEvents().forEach(eventPublisher::publishEvent);
+                created.clearEvents();
             }
         }
         return new Result(saved, match);
