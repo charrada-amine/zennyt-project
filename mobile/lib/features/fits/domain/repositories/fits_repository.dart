@@ -1,5 +1,6 @@
 import '../../../jobs/domain/entities/job.dart';
 import '../entities/candidate_profile.dart';
+import '../entities/fit_resume.dart';
 import '../entities/match_entity.dart';
 import '../entities/swipe_result.dart';
 
@@ -50,4 +51,18 @@ abstract class FitsRepository {
 
   /// `GET /job-offers/{jobId}/matches`.
   Future<List<MatchEntity>> getRecruiterMatches({required String jobOfferId});
+
+  /// `GET /candidates/{candidateId}/resume?jobOfferId=` — recruiter-facing AI
+  /// resume (soft skills + hard skills for the sourced offer).
+  Future<FitResume> getCandidateResume({
+    required String candidateId,
+    required String jobOfferId,
+  });
+
+  /// `DELETE /fit-scores?candidateId=&jobOfferId=` — "Remove from Fit Scores"
+  /// for the connected recruiter (mask the pair, keep the global score).
+  Future<void> dismissFitScore({
+    required String candidateId,
+    required String jobOfferId,
+  });
 }

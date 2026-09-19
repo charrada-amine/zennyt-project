@@ -11,7 +11,8 @@ import java.util.Map;
 
 /**
  * Exécute le VRAI DeterministicFitScoreCalculator contre le référentiel seedé
- * par V42__job_role_profiles.sql (valeurs recopiées à l'identique).
+ * (backend/src/main/resources/db/reference-data.sql, job_role_profiles — ex-V42 ;
+ * valeurs recopiées à l'identique).
  *
  * Modules Games -> modules CdC : MOVE_FAST=Flex.cogn, MEMORY_QUEST=Mém.travail,
  * DECISION=Prise décision, PLANIFIK=Planif.exéc, EMOTIONAL_REGULATION=Régul.émot.

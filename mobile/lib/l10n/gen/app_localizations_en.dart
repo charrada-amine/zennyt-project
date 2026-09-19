@@ -762,6 +762,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get newProject => 'New Project';
 
   @override
+  String get composerPrompt => 'Share a project or an update…';
+
+  @override
+  String get emptyFeedTitle => 'Your feed is quiet for now';
+
+  @override
+  String get emptyFeedBody =>
+      'Share your first project so recruiters and friends can see what you build.';
+
+  @override
+  String get shareAProject => 'Share a project';
+
+  @override
   String get noChats => 'Aucun chat';
 
   @override
@@ -812,7 +825,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pollDisclaimer =>
-      '* We do not allow requests related to political opinions, medical information, or other sensitive data.\nThis option is only intended for questions related to Progress Careers.';
+      '* We do not allow requests related to political opinions, medical information, or other sensitive data.\nThis option is only intended for questions related to Zennyt.';
 
   @override
   String get poor => 'Poor';
@@ -856,6 +869,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get recruiter => 'Recruiter';
+
+  @override
+  String get counterpartCandidate => 'Candidate';
 
   @override
   String get rejectAction => 'Reject';

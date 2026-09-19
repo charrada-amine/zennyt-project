@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zennyt/core/theme/theme.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -89,6 +90,14 @@ class _TestsBody extends StatelessWidget {
 
     final assessments = assessmentsAsync.value ?? [];
 
+    // Aucun test : une vraie invitation plutôt qu'une tuile « + » isolée.
+    if (!assessmentsAsync.isLoading && assessments.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 24),
+        child: _NoTestsCard(),
+      );
+    }
+
     return SizedBox(
       height: 110,
       child: assessmentsAsync.isLoading
@@ -122,6 +131,82 @@ class _TestsBody extends StatelessWidget {
                 ),
               ],
             ),
+    );
+  }
+}
+
+class _NoTestsCard extends StatelessWidget {
+  const _NoTestsCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Material(
+      color: colors.cardSurface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(color: colors.border),
+      ),
+      child: InkWell(
+        key: const ValueKey('tests-empty-create'),
+        borderRadius: BorderRadius.circular(18),
+        onTap: () => context.pushNamed(AppRoutes.nCreateAssessment),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD12E7D).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Center(
+                  child: AppIcon(
+                    HugeIcons.strokeRoundedQuiz01,
+                    color: Color(0xFFD12E7D),
+                    size: 24,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Create your first hard-skills test',
+                      style: TextStyle(
+                        color: colors.textPrimary,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14.5,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Attach it to an offer to score candidates on the technical side too.',
+                      style: TextStyle(color: colors.textSecondary, fontSize: 12.5, height: 1.35),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Container(
+                width: 36,
+                height: 36,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFD12E7D),
+                  shape: BoxShape.circle,
+                ),
+                child: const Center(
+                  child: AppIcon(HugeIcons.strokeRoundedAdd01, color: Colors.white, size: 20),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

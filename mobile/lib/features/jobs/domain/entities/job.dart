@@ -135,6 +135,25 @@ enum HardSkillsAlertLevel {
       .firstWhere((e) => e.value == v, orElse: () => HardSkillsAlertLevel.none);
 }
 
+/// Where the signed-in candidate stands with an offer (`myApplication` on the
+/// detail response). Applying = a RIGHT swipe; a mutual match wins.
+enum MyApplication {
+  none('NONE'),
+  applied('APPLIED'),
+  passed('PASSED'),
+  matched('MATCHED');
+
+  final String value;
+  const MyApplication(this.value);
+
+  /// Null for recruiters / anonymous responses, which carry no application.
+  static MyApplication? fromString(String? v) {
+    if (v == null) return null;
+    return MyApplication.values
+        .firstWhere((e) => e.value == v, orElse: () => MyApplication.none);
+  }
+}
+
 class JobOffer extends Equatable {
   final String id;
   final String recruiterId;
@@ -185,6 +204,9 @@ class JobOffer extends Equatable {
   /// one. Defaults to `none` when absent from the response.
   final HardSkillsAlertLevel hardSkillsAlert;
 
+  /// The signed-in candidate's application on this offer (null for a recruiter).
+  final MyApplication? myApplication;
+
   const JobOffer({
     required this.id,
     required this.recruiterId,
@@ -219,6 +241,7 @@ class JobOffer extends Equatable {
     this.shareableLink,
     this.fitScore,
     this.hardSkillsAlert = HardSkillsAlertLevel.none,
+    this.myApplication,
   });
 
   JobOffer copyWith({
@@ -255,6 +278,7 @@ class JobOffer extends Equatable {
     String? shareableLink,
     int? fitScore,
     HardSkillsAlertLevel? hardSkillsAlert,
+    MyApplication? myApplication,
   }) {
     return JobOffer(
       id: id ?? this.id,
@@ -290,6 +314,7 @@ class JobOffer extends Equatable {
       shareableLink: shareableLink ?? this.shareableLink,
       fitScore: fitScore ?? this.fitScore,
       hardSkillsAlert: hardSkillsAlert ?? this.hardSkillsAlert,
+      myApplication: myApplication ?? this.myApplication,
     );
   }
 
@@ -320,6 +345,6 @@ class JobOffer extends Equatable {
     minimumQualifications, preferredQualifications, whatWeOffer,
     howToApply, companyInfo, assessmentId, jobPositionId, openToInternational,
     status, postedAt, applicantCount, successRate, shareableLink, fitScore,
-    hardSkillsAlert,
+    hardSkillsAlert, myApplication,
   ];
 }

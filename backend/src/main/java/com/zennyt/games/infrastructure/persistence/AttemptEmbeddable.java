@@ -19,7 +19,7 @@ import java.time.Instant;
 public class AttemptEmbeddable {
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "mini_game", nullable = false)
+    @Column(name = "mini_game", nullable = false, length = 40)
     private MiniGame miniGame;
 
     @Column(name = "raw_points", nullable = false)
@@ -28,7 +28,7 @@ public class AttemptEmbeddable {
     @Column(name = "max_points", nullable = false)
     private int maxPoints;
 
-    @Column(name = "level", nullable = false)
+    @Column(name = "level", nullable = false, length = 80)
     private String level;
 
     @Column(name = "recorded_at", nullable = false)

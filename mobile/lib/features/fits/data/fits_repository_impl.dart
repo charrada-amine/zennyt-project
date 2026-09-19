@@ -1,9 +1,11 @@
 import 'package:dio/dio.dart';
+import 'package:zennyt/core/network/page_items.dart';
 
 import '../../../core/error/api_exception.dart';
 import '../../auth/domain/entities/app_user.dart';
 import '../../jobs/domain/entities/job.dart';
 import '../domain/entities/candidate_profile.dart';
+import '../domain/entities/fit_resume.dart';
 import '../domain/entities/match_entity.dart';
 import '../domain/entities/swipe_result.dart';
 import '../domain/repositories/fits_repository.dart';
@@ -31,13 +33,11 @@ class FitsRepositoryImpl implements FitsRepository {
   @override
   Future<List<JobOffer>> getMyActiveOffers() {
     return _guard(() async {
-      final res = await _dio.get<List<dynamic>>(
+      final res = await _dio.get<Object>(
         '/recruiters/me/job-offers',
-        queryParameters: {'status': 'ACTIVE'},
+        queryParameters: {'status': 'ACTIVE', 'size': 100},
       );
-      return res.data!
-          .map((e) => _jobOfferFromJson(e as Map<String, dynamic>))
-          .toList();
+      return pageItems(res.data).map(_jobOfferFromJson).toList();
     });
   }
 
@@ -71,13 +71,39 @@ class FitsRepositoryImpl implements FitsRepository {
   @override
   Future<List<CandidateProfile>> getCandidateMatchingDeck(String jobOfferId) {
     return _guard(() async {
-      final res = await _dio.get<Map<String, dynamic>>(
-        '/job-offers/$jobOfferId/candidates/matching-deck',
-      );
-      final content = res.data!['content'] as List<dynamic>;
-      return content
-          .map((e) => _candidateFromDeckJson(e as Map<String, dynamic>))
-          .toList();
+      // Le deck ne porte que l'identité ; le Fit Score, le lieu et les scores
+      // viennent du flux candidat de la même offre. Sans cette fusion, chaque
+      // carte affichait « 0 % », un lieu vide et un rôle vide.
+      final results = await Future.wait([
+        _dio.get<Object>('/job-offers/$jobOfferId/candidates/matching-deck',
+            queryParameters: {'size': 50}),
+        _dio
+            .get<Object>('/recruiters/me/candidate-feed',
+                queryParameters: {'jobOfferId': jobOfferId, 'size': 100})
+            .then<Response<Object>?>((r) => r)
+            .catchError((Object _) => null),
+      ]);
+      final feed = {
+        for (final json in pageItems(results[1]?.data))
+          json['candidateId']?.toString() ?? '': _candidateFromFeedJson(json),
+      };
+      return pageItems(results[0]!.data).map((json) {
+        final deck = _candidateFromDeckJson(json);
+        final scored = feed[deck.user.id];
+        if (scored == null) return deck;
+        return CandidateProfile(
+          user: deck.user,
+          targetRole: deck.targetRole.isNotEmpty ? deck.targetRole : scored.targetRole,
+          seniority: scored.seniority,
+          fitScore: scored.fitScore,
+          location: scored.location,
+          softSkillsLevel: scored.softSkillsLevel,
+          hardSkills: scored.hardSkills,
+          partialData: scored.partialData,
+          contractTypes: scored.contractTypes,
+          isImmediate: scored.isImmediate,
+        );
+      }).toList();
     });
   }
 
@@ -182,20 +208,51 @@ class FitsRepositoryImpl implements FitsRepository {
   @override
   Future<List<MatchEntity>> getCandidateMatches() {
     return _guard(() async {
-      final res = await _dio.get<List<dynamic>>('/candidates/me/matches');
-      return res.data!
-          .map((e) => _matchFromJson(e as Map<String, dynamic>))
-          .toList();
+      final res = await _dio.get<Object>(
+        '/candidates/me/matches',
+        queryParameters: {'size': 100},
+      );
+      return pageItems(res.data).map(_matchFromJson).toList();
     });
   }
 
   @override
   Future<List<MatchEntity>> getRecruiterMatches({required String jobOfferId}) {
     return _guard(() async {
-      final res = await _dio.get<List<dynamic>>('/job-offers/$jobOfferId/matches');
-      return res.data!
-          .map((e) => _matchFromJson(e as Map<String, dynamic>))
+      final res = await _dio.get<Object>(
+        '/job-offers/$jobOfferId/matches',
+        queryParameters: {'size': 100},
+      );
+      return pageItems(res.data)
+          .map((json) => _matchFromJson(json, jobOfferId: jobOfferId))
           .toList();
+    });
+  }
+
+  @override
+  Future<FitResume> getCandidateResume({
+    required String candidateId,
+    required String jobOfferId,
+  }) {
+    return _guard(() async {
+      final res = await _dio.get<Map<String, dynamic>>(
+        '/candidates/$candidateId/resume',
+        queryParameters: {'jobOfferId': jobOfferId},
+      );
+      return FitResume.fromJson(res.data ?? const {});
+    });
+  }
+
+  @override
+  Future<void> dismissFitScore({
+    required String candidateId,
+    required String jobOfferId,
+  }) {
+    return _guard(() {
+      return _dio.delete<void>('/fit-scores', queryParameters: {
+        'candidateId': candidateId,
+        'jobOfferId': jobOfferId,
+      });
     });
   }
 
@@ -211,6 +268,11 @@ class FitsRepositoryImpl implements FitsRepository {
         remote: json['remote'] as bool? ?? false,
         salaryMin: (json['salaryMin'] as num?)?.toDouble() ?? 0,
         salaryMax: (json['salaryMax'] as num?)?.toDouble() ?? 0,
+        // Le contrat porte devise + périodicité depuis la maquette 213 ; sans
+        // ces deux champs la chip salaire du deck affichait « €15K/Mo » par
+        // défaut même pour une offre en USD annuelle.
+        salaryCurrency: json['salaryCurrency'] as String? ?? 'EUR',
+        salaryPeriod: SalaryPeriod.fromString(json['salaryPeriod'] as String?),
         currency: json['currency'] as String? ?? '',
         contractType: ContractType.fromString(json['contractType'] as String? ?? ''),
         workplaceType: WorkplaceType.fromString(json['workplaceType'] as String? ?? ''),
@@ -229,7 +291,8 @@ class FitsRepositoryImpl implements FitsRepository {
         openToInternational: json['openToInternational'] as bool? ?? false,
         status: JobStatus.fromString(json['status'] as String? ?? 'ACTIVE'),
         postedAt: json['postedAt'] != null
-            ? DateTime.tryParse(json['postedAt'] as String) ?? DateTime.now()
+            ? (DateTime.tryParse(json['postedAt'] as String) ?? DateTime.now())
+                .toLocal()
             : DateTime.now(),
         // F17 (FITSCORE_REMEDIATION.md §3 index F17): the candidate's Fit Score
         // for this offer — this mapper only ever backs candidate-facing calls
@@ -252,8 +315,12 @@ class FitsRepositoryImpl implements FitsRepository {
     final lastName = spaceIndex == -1 ? '' : fullName.substring(spaceIndex + 1);
     final softSkills = (json['softSkillsScore'] as num?)?.toInt();
     final hardSkillScore = (json['hardSkillScore'] as num?)?.toInt();
+    // Le flux renvoie `city` / `country` à plat (l'ancien objet `location` reste lu).
     final locationJson = json['location'] as Map<String, dynamic>?;
-    final location = [locationJson?['city'], locationJson?['country']]
+    final location = [
+      json['city'] ?? locationJson?['city'],
+      json['country'] ?? locationJson?['country'],
+    ]
         .whereType<String>()
         .where((p) => p.isNotEmpty)
         .join(', ');
@@ -261,9 +328,10 @@ class FitsRepositoryImpl implements FitsRepository {
     return CandidateProfile(
       user: AppUser(
         id: json['candidateId'] as String,
-        firstName: firstName,
+        firstName: firstName.isEmpty ? 'Candidate' : firstName,
         lastName: lastName,
         email: '',
+        profileImageUrl: json['avatarUrl'] as String?,
       ),
       targetRole: json['targetRole'] as String? ?? '',
       seniority: '',
@@ -284,17 +352,25 @@ class FitsRepositoryImpl implements FitsRepository {
     return 'Developing';
   }
 
-  static MatchEntity _matchFromJson(Map<String, dynamic> json) => MatchEntity(
-        matchId: json['matchId'] as String? ?? '',
-        candidateId: json['candidateId'] as String? ?? '',
-        jobOfferId: json['jobOfferId'] as String? ?? '',
-        candidateName: json['candidateName'] as String? ?? '',
-        jobTitle: json['jobTitle'] as String? ?? '',
-        companyName: json['companyName'] as String? ?? '',
-        matchedAt: json['matchedAt'] != null
-            ? DateTime.tryParse(json['matchedAt'] as String) ?? DateTime.now()
-            : DateTime.now(),
-      );
+  /// Match côté candidat (`{id, jobOffer: {id, title, companyName}, matchedAt}`)
+  /// ou côté recruteur (`{id, candidate: {id, fullName, avatarUrl}, matchedAt}`) ;
+  /// l'ancienne forme à plat reste lue par sécurité.
+  static MatchEntity _matchFromJson(Map<String, dynamic> json, {String? jobOfferId}) {
+    final offer = json['jobOffer'] as Map<String, dynamic>? ?? const {};
+    final candidate = json['candidate'] as Map<String, dynamic>? ?? const {};
+    return MatchEntity(
+      matchId: json['id'] as String? ?? json['matchId'] as String? ?? '',
+      candidateId: candidate['id'] as String? ?? json['candidateId'] as String? ?? '',
+      jobOfferId:
+          offer['id'] as String? ?? json['jobOfferId'] as String? ?? jobOfferId ?? '',
+      candidateName:
+          candidate['fullName'] as String? ?? json['candidateName'] as String? ?? '',
+      jobTitle: offer['title'] as String? ?? json['jobTitle'] as String? ?? '',
+      companyName: offer['companyName'] as String? ?? json['companyName'] as String? ?? '',
+      matchedAt: DateTime.tryParse(json['matchedAt'] as String? ?? '')?.toLocal() ??
+          DateTime.now(),
+    );
+  }
 
   /// Runs [action], converting any [DioException] into a typed [ApiException].
   Future<T> _guard<T>(Future<T> Function() action) async {

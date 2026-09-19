@@ -8,6 +8,8 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import org.hibernate.Length;
 
 import java.io.Serializable;
 import java.time.Instant;
@@ -15,13 +17,15 @@ import java.util.Objects;
 import java.util.UUID;
 
 @Entity
-@Table(name = "soft_skills_summary", schema = "recruitment")
+@Table(name = "soft_skills_summary", schema = "recruitment",
+    // Ordre des colonnes de la clé primaire, fusionné dans soft_skills_summary_pkey.
+    uniqueConstraints = @UniqueConstraint(name = "soft_skills_summary_pkey", columnNames = {"candidate_id", "audience"}))
 @IdClass(SoftSkillsSummaryEntity.Key.class)
 public class SoftSkillsSummaryEntity {
     @Id private UUID candidateId;
     @Id @Enumerated(EnumType.STRING) @Column(nullable = false, length = 16) private ResumeAudience audience;
-    @Column(nullable = false, columnDefinition = "TEXT") private String textFr;
-    @Column(nullable = false, columnDefinition = "TEXT") private String textEn;
+    @Column(nullable = false, length = Length.LONG32) private String textFr;
+    @Column(nullable = false, length = Length.LONG32) private String textEn;
     @Column(nullable = false) private Instant updatedAt;
 
     protected SoftSkillsSummaryEntity() {}

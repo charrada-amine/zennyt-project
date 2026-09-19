@@ -3,20 +3,30 @@ package com.zennyt.engagement.infrastructure.persistence;
 import com.zennyt.engagement.domain.vo.MessageContentType;
 import com.zennyt.engagement.domain.vo.MessageSenderRole;
 import jakarta.persistence.*;
+import org.hibernate.Length;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "messages", schema = "engagement")
+@Table(name = "messages", schema = "engagement",
+    indexes = @Index(name = "idx_engagement_messages_conversation_sent", columnList = "conversation_id, sent_at DESC, id DESC"))
 class MessageEntity {
     @Id private UUID id;
-    @Column(nullable = false) private UUID conversationId;
+    @Column(name = "conversation_id", nullable = false) private UUID conversationId;
+    /** Clé étrangère {@code engagement.conversations(id) ON DELETE CASCADE} ; lecture seule, la colonne est écrite via {@link #conversationId}. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "conversation_id", insertable = false, updatable = false,
+        foreignKey = @ForeignKey(name = "messages_conversation_id_fkey"))
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private ConversationEntity conversation;
     @Column(nullable = false) private UUID senderId;
-    @Enumerated(EnumType.STRING) @Column(nullable = false) private MessageSenderRole senderRole;
-    @Column(nullable = false, columnDefinition = "TEXT") private String content;
-    @Enumerated(EnumType.STRING) @Column(nullable = false) private MessageContentType contentType;
-    @Column(columnDefinition = "TEXT") private String attachmentUrl;
+    @Enumerated(EnumType.STRING) @Column(nullable = false, length = 20) private MessageSenderRole senderRole;
+    @Column(nullable = false, length = Length.LONG32) private String content;
+    @Enumerated(EnumType.STRING) @Column(nullable = false, length = 20) private MessageContentType contentType;
+    @Column(length = Length.LONG32) private String attachmentUrl;
     @Column(nullable = false) private Instant sentAt;
     private Instant readAt;
 

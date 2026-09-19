@@ -19,7 +19,8 @@ class NotificationRepositoryImpl implements NotificationRepository {
 
   @override
   Future<Either<Failure, List<AppNotification>>> getNotifications(
-      String userId) async {
+    String userId,
+  ) async {
     if (await networkInfo.isConnected) {
       try {
         final models = await remoteDataSource.getNotifications(userId);
@@ -62,7 +63,8 @@ class NotificationRepositoryImpl implements NotificationRepository {
 
   @override
   Future<Either<Failure, void>> createNotification(
-      AppNotification notification) async {
+    AppNotification notification,
+  ) async {
     if (await networkInfo.isConnected) {
       try {
         final model = AppNotificationModel(

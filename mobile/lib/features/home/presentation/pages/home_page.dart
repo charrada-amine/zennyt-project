@@ -1,6 +1,7 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
+import 'package:zennyt/shared/widgets/zennyt_logo.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:zennyt/core/constants.dart';
@@ -56,13 +57,11 @@ class _HomePageState extends ConsumerState<HomePage> {
     return PlatformScaffold(
       backgroundColor: context.colors.panelBackground,
       appBar: PlatformAppBar(
-        title: SizedBox(
-          height: 48,
-          width: 150,
-          child: Image.asset(
-            'assets/images/progress_logo.png',
-            fit: BoxFit.contain,
-          ),
+        // Marque : Zennyt (« Progress Careers » n'était qu'un nom provisoire).
+        title: const ZennytLogo(
+          axis: Axis.horizontal,
+          showTagline: true,
+          size: 30,
         ),
         showBack: false,
         leading: GestureDetector(
@@ -78,19 +77,12 @@ class _HomePageState extends ConsumerState<HomePage> {
             onTap: () => context.push(AppRoutes.chats),
             child: Container(
               margin: const EdgeInsets.only(right: 16),
-              width: 40,
-              height: 40,
-              padding: const EdgeInsets.all(4),
+              width: 42,
+              height: 42,
+              // Pas d'ombre : la barre d'app la coupait en un carré gris.
               decoration: BoxDecoration(
-                color: context.colors.cardSurface,
+                color: const Color(0xFFD02F7C).withValues(alpha: 0.10),
                 shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 16,
-                    spreadRadius: 3,
-                  ),
-                ],
               ),
               child: const Center(
                 child: AppIcon(
@@ -118,14 +110,60 @@ class _HomePageState extends ConsumerState<HomePage> {
               child: postsAsync.when(
                 data: (posts) {
                   if (posts.isEmpty) {
+                    final l10n = AppLocalizations.of(context);
+                    final colors = context.colors;
                     return SingleChildScrollView(
                       physics: const AlwaysScrollableScrollPhysics(),
                       child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Text(
-                          AppLocalizations.of(context).noPostsToShow,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: context.colors.textMuted),
+                        padding: const EdgeInsets.fromLTRB(32, 56, 32, 32),
+                        child: Column(
+                          children: [
+                            Container(
+                              width: 72,
+                              height: 72,
+                              decoration: BoxDecoration(
+                                color: colors.primary.withValues(alpha: 0.08),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Center(
+                                child: AppIcon(
+                                  HugeIcons.strokeRoundedNews,
+                                  color: colors.primary,
+                                  size: 32,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 18),
+                            Text(
+                              l10n.emptyFeedTitle,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: colors.textPrimary,
+                                fontSize: 17,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              l10n.emptyFeedBody,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: colors.textSecondary,
+                                fontSize: 14,
+                                height: 1.4,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            FilledButton.icon(
+                              onPressed: () => context.push('/create-post'),
+                              icon: const AppIcon(
+                                HugeIcons.strokeRoundedAdd01,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                              label: Text(l10n.shareAProject),
+                            ),
+                          ],
                         ),
                       ),
                     );

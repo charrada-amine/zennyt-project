@@ -9,5 +9,5 @@ class IdentityVerificationNotifier extends Notifier<bool> {
 
 final identityVerificationProvider =
     NotifierProvider<IdentityVerificationNotifier, bool>(
-  IdentityVerificationNotifier.new,
-);
+      IdentityVerificationNotifier.new,
+    );

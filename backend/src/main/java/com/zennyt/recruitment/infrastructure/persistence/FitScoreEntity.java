@@ -1,11 +1,17 @@
 package com.zennyt.recruitment.infrastructure.persistence;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.Check;
+import org.hibernate.annotations.ColumnDefault;
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "fit_scores", schema = "recruitment")
+// Index unique uq_fit_scores_candidate_job (candidate_id, job_offer_id) : db/schema-complements.sql.
+@Table(name = "fit_scores", schema = "recruitment", indexes = {
+    @Index(name = "idx_fit_scores_candidate_job", columnList = "candidate_id, job_offer_id"),
+    @Index(name = "idx_fit_scores_computed_at", columnList = "computed_at")})
+@Check(name = "ck_fit_scores_soft_skill_score", constraints = "soft_skill_score IS NULL OR soft_skill_score >= 0 AND soft_skill_score <= 100")
 public class FitScoreEntity {
     @Id private UUID id;
     @Column(nullable = false) private UUID candidateId;
@@ -13,7 +19,7 @@ public class FitScoreEntity {
     @Column(nullable = false) private int score;
     private Integer softSkillScore;
     private Integer hardSkillScore;
-    @Column(nullable = false) private int coverageRatio;
+    @ColumnDefault("100") @Column(nullable = false) private int coverageRatio;
     @Column(nullable = false) private Instant computedAt;
 
     protected FitScoreEntity() {}

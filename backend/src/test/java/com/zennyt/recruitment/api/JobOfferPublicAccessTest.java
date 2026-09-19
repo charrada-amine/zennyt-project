@@ -25,7 +25,8 @@ class JobOfferPublicAccessTest {
         mock(com.zennyt.recruitment.domain.repository.FitScoreRepository.class),
         mock(com.zennyt.recruitment.application.usecase.GetSwipeDeckUseCase.class),
         mock(com.zennyt.recruitment.domain.repository.RecruitmentActorRepository.class),
-        mock(com.zennyt.recruitment.application.JobRoleProfileResolver.class));
+        mock(com.zennyt.recruitment.application.JobRoleProfileResolver.class),
+        mock(com.zennyt.recruitment.domain.repository.MatchRepository.class));
 
     @Test
     void publicDetailHidesEveryNonActiveOffer() {

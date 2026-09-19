@@ -8,20 +8,22 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import org.hibernate.Length;
 
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
 @Table(name = "hard_skills_summary", schema = "recruitment",
-    uniqueConstraints = @UniqueConstraint(columnNames = {"candidate_id", "job_position_id", "audience"}))
+    uniqueConstraints = @UniqueConstraint(name = "uq_hard_skills_summary_candidate_position",
+        columnNames = {"candidate_id", "job_position_id", "audience"}))
 public class HardSkillsSummaryEntity {
     @Id private UUID id;
     @Column(name = "candidate_id", nullable = false) private UUID candidateId;
     @Column(name = "job_position_id", nullable = false) private UUID jobPositionId;
     @Enumerated(EnumType.STRING) @Column(nullable = false, length = 16) private ResumeAudience audience;
-    @Column(nullable = false, columnDefinition = "TEXT") private String textFr;
-    @Column(nullable = false, columnDefinition = "TEXT") private String textEn;
+    @Column(nullable = false, length = Length.LONG32) private String textFr;
+    @Column(nullable = false, length = Length.LONG32) private String textEn;
     @Column(nullable = false) private Instant updatedAt;
 
     protected HardSkillsSummaryEntity() {}

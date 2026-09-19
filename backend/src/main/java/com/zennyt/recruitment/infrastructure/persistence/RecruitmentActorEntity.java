@@ -8,12 +8,15 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Index;
+import org.hibernate.Length;
 
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "actors", schema = "recruitment")
+@Table(name = "actors", schema = "recruitment",
+    indexes = @Index(name = "idx_recruitment_actors_active_role", columnList = "active, role"))
 public class RecruitmentActorEntity {
     @Id
     @Column(name = "public_user_id", nullable = false)
@@ -25,22 +28,22 @@ public class RecruitmentActorEntity {
     @Column(name = "active", nullable = false)
     private boolean active;
 
-    @Column(name = "full_name")
+    @Column(name = "full_name", length = 200)
     private String fullName;
 
-    @Column(name = "avatar_url")
+    @Column(name = "avatar_url", length = 500)
     private String avatarUrl;
 
-    @Column(name = "city")
+    @Column(name = "city", length = 100)
     private String city;
 
-    @Column(name = "country")
+    @Column(name = "country", length = 100)
     private String country;
 
     @Column(name = "company_name")
     private String companyName;
 
-    @Column(name = "company_info", columnDefinition = "TEXT")
+    @Column(name = "company_info", length = Length.LONG32)
     private String companyInfo;
 
     @Enumerated(EnumType.STRING)
@@ -60,10 +63,10 @@ public class RecruitmentActorEntity {
     @Column(name = "years_of_experience")
     private Integer yearsOfExperience;
 
-    @Column(name = "looking_for", columnDefinition = "TEXT")
+    @Column(name = "looking_for", length = Length.LONG32)
     private String lookingFor;
 
-    @Column(name = "looking_for_embedding", columnDefinition = "TEXT")
+    @Column(name = "looking_for_embedding", length = Length.LONG32)
     private String lookingForEmbedding;
 
     @Column(name = "last_event_at", nullable = false)

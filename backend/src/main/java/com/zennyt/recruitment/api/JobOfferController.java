@@ -7,6 +7,7 @@ import com.zennyt.recruitment.application.usecase.*;
 import com.zennyt.recruitment.domain.model.JobOffer;
 import com.zennyt.recruitment.domain.model.JobRoleProfile;
 import com.zennyt.recruitment.domain.repository.JobOfferRepository;
+import com.zennyt.recruitment.domain.repository.MatchRepository;
 import com.zennyt.recruitment.domain.repository.SwipeRepository;
 import com.zennyt.recruitment.domain.repository.AssessmentRepository;
 import com.zennyt.recruitment.domain.repository.FitScoreRepository;
@@ -44,6 +45,7 @@ public class JobOfferController {
     private final GetSwipeDeckUseCase swipeDeck;
     private final RecruitmentActorRepository actors;
     private final JobRoleProfileResolver roleProfileResolver;
+    private final MatchRepository matchRepository;
 
     public JobOfferController(CreateJobOfferUseCase createUseCase,
                                ReplaceJobOfferUseCase replaceUseCase,
@@ -55,7 +57,8 @@ public class JobOfferController {
                                FitScoreRepository fitScoreRepository,
                                GetSwipeDeckUseCase swipeDeck,
                                RecruitmentActorRepository actors,
-                               JobRoleProfileResolver roleProfileResolver) {
+                               JobRoleProfileResolver roleProfileResolver,
+                               MatchRepository matchRepository) {
         this.createUseCase = createUseCase;
         this.replaceUseCase = replaceUseCase;
         this.updateUseCase = updateUseCase;
@@ -67,6 +70,7 @@ public class JobOfferController {
         this.swipeDeck = swipeDeck;
         this.actors = actors;
         this.roleProfileResolver = roleProfileResolver;
+        this.matchRepository = matchRepository;
     }
 
     /** POST /api/v1/job-offers — Créer une offre (publiée ACTIVE, postedAt serveur) */
@@ -255,7 +259,25 @@ public class JobOfferController {
             : resolved.weights().hardSkillsAlert(mode);
         return JobOfferResponse.from(offer, applicantCounts.getOrDefault(offer.id(), 0L), link, fitScore,
             recruiter.map(a -> a.companyName()).orElse(null), recruiter.map(a -> a.companyInfo()).orElse(null),
-            alert, mode);
+            alert, mode, myApplication(offer, authentication));
+    }
+
+    /**
+     * Où en est le candidat connecté avec cette offre (bouton « Postuler » du détail).
+     * Postuler = swipe RIGHT côté candidat ; le match mutuel l'emporte. {@code null}
+     * pour un recruteur ou un visiteur non connecté.
+     */
+    private JobOfferResponse.MyApplication myApplication(JobOffer offer, Authentication authentication) {
+        if (!isCandidate(authentication)) return null;
+        UUID candidateId = UUID.fromString(authentication.getName());
+        if (matchRepository.findByCandidateIdAndJobOfferId(candidateId, offer.id()).isPresent()) {
+            return JobOfferResponse.MyApplication.MATCHED;
+        }
+        return swipeRepository.find(offer.id(), candidateId, SwipeSide.CANDIDATE)
+            .map(swipe -> swipe.direction() == SwipeDirection.RIGHT
+                ? JobOfferResponse.MyApplication.APPLIED
+                : JobOfferResponse.MyApplication.PASSED)
+            .orElse(JobOfferResponse.MyApplication.NONE);
     }
 
     private String shareableLink(JobOffer offer) {

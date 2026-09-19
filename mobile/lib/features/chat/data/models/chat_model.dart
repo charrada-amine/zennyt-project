@@ -50,7 +50,7 @@ class ConversationModel {
               ? DateTime.fromMillisecondsSinceEpoch(
                   (json['lastMessageAt'].toDouble() * 1000).toInt(),
                 )
-              : DateTime.parse(json['lastMessageAt'] as String))
+              : DateTime.parse(json['lastMessageAt'] as String).toLocal())
           : DateTime.now(),
       unreadCount: json['unreadCount'] as int? ?? 0,
       isHiringContact: json['isHiringContact'] as bool? ?? false,

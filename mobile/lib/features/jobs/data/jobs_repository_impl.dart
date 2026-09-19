@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:zennyt/core/network/page_items.dart';
 
 import 'package:zennyt/core/error/api_exception.dart';
 import 'package:zennyt/features/jobs/domain/entities/assessment.dart';
@@ -21,8 +22,11 @@ class JobsRepositoryImpl implements JobsRepository {
   @override
   Future<List<JobOffer>> getJobOffers() {
     return _guard(() async {
-      final res = await _dio.get<List<dynamic>>('/recruiters/me/job-offers');
-      return res.data!.map((e) => _jobFromJson(e as Map<String, dynamic>)).toList();
+      final res = await _dio.get<Object>(
+        '/recruiters/me/job-offers',
+        queryParameters: {'size': 100},
+      );
+      return pageItems(res.data).map(_jobFromJson).toList();
     });
   }
 
@@ -268,6 +272,31 @@ class JobsRepositoryImpl implements JobsRepository {
   // ── Hard-skills test attempts & results ───────────────────────────────────
 
   @override
+  Future<MyApplication> applyToJobOffer(String jobOfferId, {bool reconsider = false}) async {
+    try {
+      if (reconsider) {
+        await _dio.delete<void>('/job-offers/$jobOfferId/swipes/me');
+      }
+      final res = await _dio.post<Map<String, dynamic>>(
+        '/job-offers/$jobOfferId/swipes',
+        data: {'direction': 'RIGHT'},
+      );
+      return res.data?['matched'] == true
+          ? MyApplication.matched
+          : MyApplication.applied;
+    } on DioException catch (e) {
+      // Déjà postulé (swipe existant) ou déjà en match : ce n'est pas une erreur
+      // pour le candidat, juste l'état actuel de sa candidature.
+      final code = e.response?.statusCode == 409 && e.response?.data is Map
+          ? (e.response!.data as Map)['error']
+          : null;
+      if (code == 'ALREADY_MATCHED') return MyApplication.matched;
+      if (code == 'SWIPE_ALREADY_EXISTS') return MyApplication.applied;
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  @override
   Future<TestAttemptStarted> startTestAttempt(String jobOfferId) {
     return _guard(() async {
       final res = await _dio.post<Map<String, dynamic>>(
@@ -419,6 +448,7 @@ class JobsRepositoryImpl implements JobsRepository {
       // contract), populated on the candidate-facing deck/search response.
       fitScore: (json['fitScore'] as num?)?.toInt(),
       hardSkillsAlert: HardSkillsAlertLevel.fromString(json['hardSkillsAlert'] as String?),
+      myApplication: MyApplication.fromString(json['myApplication'] as String?),
     );
   }
 

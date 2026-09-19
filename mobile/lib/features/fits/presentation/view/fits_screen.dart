@@ -1,29 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../shared/widgets/custom_app_bar.dart';
 import '../../../../shared/widgets/session_avatar.dart';
 import '../../../../core/enums/user_role.dart';
 import '../../../auth/presentation/current_user_provider.dart';
 import '../../../jobs/domain/entities/job.dart';
 import '../../domain/entities/candidate_profile.dart';
+import '../../domain/entities/swipe_result.dart';
 import '../providers/swipe_deck_provider.dart';
 import '../widgets/fit_card_data.dart';
 import '../widgets/fit_scores_grid.dart';
 import '../../../../core/theme/theme.dart';
-import '../../../../core/audio/sound_service.dart';
 import '../../../../core/router/app_routes.dart';
-import 'package:go_router/go_router.dart';
 import '../../../../shared/widgets/primary_button.dart';
 import '../../../../shared/widgets/zennyt_loader.dart';
-import '../widgets/search_filter_bar.dart';
-import '../widgets/tinder_action_buttons.dart';
-import '../widgets/tinder_card.dart';
+import '../widgets/resume_sheet.dart';
+import 'fits_swipe_view.dart';
+import '../widgets/fits_palette.dart';
+import '../../../navigation/presentation/viewmodel/nav_tab_provider.dart';
 
 import 'package:zennyt/shared/icons/app_icons.dart';
 
 /// Écran Fits — porté depuis REC-04 (mobile/zennyt), branché sur le backend
 /// intégré. Deck bidirectionnel : offres pour le candidat, candidats
 /// fit-scorés pour le recruteur.
+///
+/// Refonte « maquettes Fits pro / Fits job » (2026-09-19) : écran fixe (sans
+/// défilement) — recherche + grille Fit Scores 2 colonnes ; « View more » ouvre
+/// l'interface de swipe ([FitsSwipeView]) à la place de la grille,
+/// avec les onglets « Job Offers | Professionnels ». L'onglet applicable est
+/// déterminé par le rôle : un candidat source des offres, un recruteur source
+/// des professionnels (voir RECRUITMENT_MODULE.md, décision à valider).
 class FitsScreen extends ConsumerStatefulWidget {
   const FitsScreen({super.key});
 
@@ -32,31 +40,9 @@ class FitsScreen extends ConsumerStatefulWidget {
 }
 
 class _FitsScreenState extends ConsumerState<FitsScreen> {
-  final PageController _pageController = PageController();
   String _query = '';
-  bool _showAll = false;
-  int _mode = 0;
-
-  void _selectMode(int mode) {
-    if (_mode == mode) return;
-    SoundService.instance.vibrateSelection();
-    setState(() => _mode = mode);
-    if (AppMotion.reduced(context)) {
-      _pageController.jumpToPage(mode);
-    } else {
-      _pageController.animateToPage(
-        mode,
-        duration: AppMotion.navigation,
-        curve: AppMotion.curve,
-      );
-    }
-  }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
+  bool _swiping = false;
+  ContractType? _contractFilter;
 
   @override
   Widget build(BuildContext context) {
@@ -158,21 +144,10 @@ class _FitsScreenState extends ConsumerState<FitsScreen> {
       );
     }
 
-    final deckAsync = ref.watch(recruiterSwipeDeckProvider);
-
     return _buildScaffold(
-      context: context,
-      jobContextChips: _JobContextSelector(jobs: jobs),
-      deckAsync: deckAsync,
-      toCardData: (c) => FitCardData.fromCandidate(c),
-      suggestionsTitle: 'Fit Scores',
-      onSwipeLeft: () =>
-          ref.read(recruiterSwipeDeckProvider.notifier).swipeLeft(),
-      onSwipeRight: () =>
-          ref.read(recruiterSwipeDeckProvider.notifier).swipeRight(),
-      onUndo: () => ref.read(recruiterSwipeDeckProvider.notifier).undo(),
-      onForward: () => ref.read(recruiterSwipeDeckProvider.notifier).skip(),
-      onReload: () => ref.read(recruiterSwipeDeckProvider.notifier).reload(),
+      context,
+      isRecruiter: true,
+      jobs: jobs,
     );
   }
 
@@ -181,42 +156,44 @@ class _FitsScreenState extends ConsumerState<FitsScreen> {
       candidateSwipeDeckProvider,
       FitCardData.fromJobOffer,
     );
-    final deckAsync = ref.watch(candidateSwipeDeckProvider);
-
-    return _buildScaffold(
-      context: context,
-      jobContextChips: null,
-      deckAsync: deckAsync,
-      toCardData: (j) => FitCardData.fromJobOffer(j),
-      suggestionsTitle: 'Recommended for you',
-      onSwipeLeft: () =>
-          ref.read(candidateSwipeDeckProvider.notifier).swipeLeft(),
-      onSwipeRight: () =>
-          ref.read(candidateSwipeDeckProvider.notifier).swipeRight(),
-      onUndo: () => ref.read(candidateSwipeDeckProvider.notifier).undo(),
-      onForward: () => ref.read(candidateSwipeDeckProvider.notifier).skip(),
-      onReload: () => ref.read(candidateSwipeDeckProvider.notifier).reload(),
-    );
+    return _buildScaffold(context, isRecruiter: false, jobs: const []);
   }
 
-  Widget _buildScaffold<T>({
-    required BuildContext context,
-    required Widget? jobContextChips,
-    required AsyncValue<SwipeDeckState<T>> deckAsync,
-    required FitCardData Function(T) toCardData,
-    required String suggestionsTitle,
-    required VoidCallback onSwipeLeft,
-    required VoidCallback onSwipeRight,
-    required VoidCallback onUndo,
-    required VoidCallback onForward,
-    required VoidCallback onReload,
+  Widget _buildScaffold(
+    BuildContext context, {
+    required bool isRecruiter,
+    required List<JobOffer> jobs,
   }) {
-    final remaining = deckAsync.asData?.value.remaining ?? const [];
-    final canUndo = deckAsync.asData?.value.canUndo ?? false;
-    final cards = remaining.map(toCardData).toList();
+    final deck = DeckBinding.watch(ref, isRecruiter: isRecruiter);
+    final colors = context.colors;
+    final palette = FitsPalette.of(context);
+    // Only recruiters have an offer context; watching it for a candidate would
+    // hit `/recruiters/me/job-offers` for nothing (and pollute the deck load).
+    final activeJob = isRecruiter ? ref.watch(activeJobContextProvider) : null;
+
+    if (_swiping) {
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) setState(() => _swiping = false);
+        },
+        child: Scaffold(
+          backgroundColor: colors.scaffoldBg,
+          body: SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                _FitsHeader(onBack: () => setState(() => _swiping = false)),
+                Expanded(child: FitsSwipeView(isRecruiter: isRecruiter)),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     final query = _query.trim().toLowerCase();
-    final found = cards
+    var found = deck.cards
         .where(
           (card) =>
               query.isEmpty ||
@@ -225,228 +202,319 @@ class _FitsScreenState extends ConsumerState<FitsScreen> {
                   .contains(query),
         )
         .toList();
-    final visibleCards = _showAll ? found : found.take(4).toList();
-    final colors = context.colors;
+    if (!isRecruiter && _contractFilter != null) {
+      found = found
+          .where((card) => card.contractLabel == _contractFilter!.label)
+          .toList();
+    }
 
-    Widget status({required bool failed}) => Center(
-      child: Padding(
-        padding: const EdgeInsets.all(28),
+    final Widget results;
+    if (deck.loading) {
+      results = const Center(child: ZennytLoader());
+    } else if (deck.hasError || deck.cards.isEmpty) {
+      results = FitsDeckStatus(failed: deck.hasError, onReload: deck.onReload);
+    } else if (found.isEmpty) {
+      results = Align(
+        alignment: Alignment.topLeft,
+        child: Text(
+          'No results for “$_query”.',
+          style: AppTypography.bodyMedium.copyWith(color: colors.textSecondary),
+        ),
+      );
+    } else {
+      // Pas de défilement : on n'affiche que les rangées qui tiennent (2 au
+      // plus), le reste du deck se parcourt dans l'interface de swipe.
+      results = LayoutBuilder(
+        builder: (context, constraints) {
+          final rowHeight = MediaQuery.textScalerOf(context).scale(176) + 16;
+          final rows = ((constraints.maxHeight + 16) / rowHeight)
+              .floor()
+              .clamp(1, 2);
+          return ClipRect(
+            child: SingleChildScrollView(
+              physics: const NeverScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(20, 2, 20, 0),
+              child: FitScoresGrid(
+                items: found.take(rows * 2).toList(),
+                onMore: (card) => _showCardActions(
+                  card,
+                  isRecruiter: isRecruiter,
+                  activeJob: activeJob,
+                ),
+                onResume: isRecruiter && activeJob != null
+                    ? (card) => showCandidateResumeSheet(
+                          context,
+                          candidateId: card.id,
+                          candidateName: card.title,
+                          jobOfferId: activeJob.id,
+                        )
+                    : null,
+              ),
+            ),
+          );
+        },
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: colors.scaffoldBg,
+      resizeToAvoidBottomInset: false,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _FitsHeader(
+              // Onglet racine : le retour ramène à l'accueil.
+              onBack: () => ref.read(navTabProvider.notifier).select(0),
+              trailing: const SessionAvatar(),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(36, 6, 36, 0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _SearchField(
+                      palette: palette,
+                      onChanged: (value) => setState(() => _query = value),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  _FilterButton(
+                    palette: palette,
+                    onPressed: () =>
+                        _showFilters(isRecruiter: isRecruiter, jobs: jobs),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 22),
+            Center(child: _SegmentedTabs(isRecruiter: isRecruiter)),
+            const SizedBox(height: 22),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Text(
+                'Fit Scores',
+                style: AppTypography.titleLarge.copyWith(
+                  color: colors.textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Expanded(child: results),
+            if (!deck.loading && !deck.hasError && deck.cards.isNotEmpty)
+              Material(
+                color: palette.viewMoreBg,
+                child: InkWell(
+                  onTap: () => setState(() => _swiping = true),
+                  child: SizedBox(
+                    height: 50,
+                    child: Center(
+                      child: Text(
+                        'View more',
+                        style: AppTypography.labelLarge.copyWith(
+                          color: colors.textSecondary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Kebab menu of one grid card. Kept to real actions per role:
+  /// a recruiter hides the pair from their Fit Scores / opens the AI resume,
+  /// a candidate marks the offer as "not interested" (a LEFT swipe).
+  void _showCardActions(
+    FitCardData card, {
+    required bool isRecruiter,
+    required JobOffer? activeJob,
+  }) {
+    if (isRecruiter && activeJob != null) {
+      showModalBottomSheet<void>(
+        context: context,
+        builder: (sheetContext) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const AppIcon(HugeIcons.strokeRoundedAiBrain01),
+                title: const Text('Resume AI'),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  showCandidateResumeSheet(
+                    context,
+                    candidateId: card.id,
+                    candidateName: card.title,
+                    jobOfferId: activeJob.id,
+                  );
+                },
+              ),
+              ListTile(
+                leading: const AppIcon(HugeIcons.strokeRoundedRemove01),
+                title: const Text('Remove from Fit Scores'),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  _dismissCandidate(card.id, activeJob.id);
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+      return;
+    }
+    // Candidate-side offer card.
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            AppIcon(
-              failed
-                  ? HugeIcons.strokeRoundedWifiOff01
-                  : HugeIcons.strokeRoundedCheckmarkCircle02,
-              color: colors.primary,
-              size: 42,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              failed ? 'Could not load your matches' : 'You’re all caught up',
-              textAlign: TextAlign.center,
-              style: AppTypography.titleLarge.copyWith(
-                color: colors.textDarkBlue,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              failed
-                  ? 'Check your connection and try again.'
-                  : 'Check back for new opportunities.',
-              textAlign: TextAlign.center,
-              style: AppTypography.bodyMedium.copyWith(
-                color: colors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 20),
-            PrimaryButton(
-              label: failed ? 'Try again' : 'Refresh',
-              onPressed: onReload,
+            ListTile(
+              leading: const AppIcon(HugeIcons.strokeRoundedCancel01),
+              title: const Text('Not interested'),
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                _passOffer(card.id);
+              },
             ),
           ],
         ),
       ),
     );
+  }
 
-    return Scaffold(
-      backgroundColor: colors.scaffoldBg,
-      appBar: const CustomAppBar(
-        title: 'Fits',
-        trailingAction: SessionAvatar(),
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
-            child: Container(
-              padding: const EdgeInsets.all(5),
-              decoration: BoxDecoration(
-                color: colors.inputFill,
-                borderRadius: BorderRadius.circular(20),
+  Future<void> _dismissCandidate(String candidateId, String jobOfferId) async {
+    try {
+      await ref.read(fitsRepositoryProvider).dismissFitScore(
+            candidateId: candidateId,
+            jobOfferId: jobOfferId,
+          );
+    } catch (_) {
+      // Best-effort : le rechargement ci-dessous reflète l'état serveur réel.
+    }
+    if (mounted) await ref.read(recruiterSwipeDeckProvider.notifier).reload();
+  }
+
+  Future<void> _passOffer(String jobOfferId) async {
+    try {
+      await ref.read(fitsRepositoryProvider).swipe(
+            targetId: jobOfferId,
+            targetType: SwipeTargetType.jobOffer,
+            jobOfferId: jobOfferId,
+            direction: SwipeDirection.left,
+          );
+    } catch (_) {
+      // Best-effort : le rechargement reflète l'état serveur réel.
+    }
+    if (mounted) await ref.read(candidateSwipeDeckProvider.notifier).reload();
+  }
+
+  /// Filter button: recruiters pick the offer they source for; candidates
+  /// narrow the deck by contract type. Both are local/behavioural, not new
+  /// endpoints.
+  void _showFilters({required bool isRecruiter, List<JobOffer> jobs = const []}) {
+    if (isRecruiter) {
+      if (jobs.isEmpty) return;
+      final active = ref.read(activeJobContextProvider);
+      showModalBottomSheet<void>(
+        context: context,
+        builder: (sheetContext) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
+                child: Text(
+                  'Source candidates for',
+                  style: AppTypography.titleMedium.copyWith(
+                    color: context.colors.textDarkBlue,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
-              child: Row(
-                children: [
-                  for (final (index, label, icon) in [
-                    (0, 'Discover', HugeIcons.strokeRoundedGridView),
-                    (1, 'Match', HugeIcons.strokeRoundedPaintBrush01),
-                  ])
-                    Expanded(
-                      child: Semantics(
-                        selected: _mode == index,
-                        child: TextButton.icon(
-                          onPressed: () => _selectMode(index),
-                          icon: AppIcon(icon, size: 18),
-                          label: Text(label),
-                          style: TextButton.styleFrom(
-                            backgroundColor: _mode == index
-                                ? colors.cardSurface
-                                : Colors.transparent,
-                            foregroundColor: _mode == index
-                                ? colors.primary
-                                : colors.textSecondary,
-                          ),
-                        ),
-                      ),
+              for (final job in jobs)
+                ListTile(
+                  selected: job.id == active?.id,
+                  leading: AppIcon(
+                    job.id == active?.id
+                        ? HugeIcons.strokeRoundedCheckmarkCircle02
+                        : HugeIcons.strokeRoundedCircle,
+                    color: context.colors.primary,
+                  ),
+                  title: Text(job.title),
+                  subtitle: Text(job.locationDisplay),
+                  onTap: () {
+                    ref.read(selectedJobContextProvider.notifier).select(job);
+                    ref.invalidate(recruiterSwipeDeckProvider);
+                    Navigator.of(sheetContext).pop();
+                  },
+                ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      );
+      return;
+    }
+
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: StatefulBuilder(
+          builder: (context, setSheetState) => Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
+                child: Text(
+                  'Contract type',
+                  style: AppTypography.titleMedium.copyWith(
+                    color: context.colors.textDarkBlue,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    ChoiceChip(
+                      label: const Text('All'),
+                      selected: _contractFilter == null,
+                      onSelected: (_) {
+                        setState(() => _contractFilter = null);
+                        setSheetState(() {});
+                      },
                     ),
-                ],
+                    for (final type in ContractType.values)
+                      ChoiceChip(
+                        label: Text(type.label),
+                        selected: _contractFilter == type,
+                        onSelected: (_) {
+                          setState(() => _contractFilter = type);
+                          setSheetState(() {});
+                        },
+                      ),
+                  ],
+                ),
               ),
-            ),
+            ],
           ),
-          Expanded(
-            child: PageView(
-              controller: _pageController,
-              physics: const NeverScrollableScrollPhysics(),
-              children: [
-                SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        suggestionsTitle,
-                        style: AppTypography.displaySmall.copyWith(
-                          color: colors.textDarkBlue,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -.8,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      SearchFilterBar(
-                        onChanged: (value) => setState(() {
-                          _query = value;
-                          _showAll = false;
-                        }),
-                      ),
-                      if (jobContextChips != null) ...[
-                        const SizedBox(height: 14),
-                        jobContextChips,
-                      ],
-                      const SizedBox(height: 24),
-                      if (deckAsync.isLoading)
-                        const Padding(
-                          padding: EdgeInsets.all(48),
-                          child: Center(child: ZennytLoader()),
-                        )
-                      else if (deckAsync.hasError)
-                        status(failed: true)
-                      else if (cards.isEmpty)
-                        status(failed: false)
-                      else if (visibleCards.isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.all(24),
-                          child: Text(
-                            'No results for “$_query”.',
-                            style: AppTypography.bodyMedium.copyWith(
-                              color: colors.textSecondary,
-                            ),
-                          ),
-                        )
-                      else
-                        FitScoresGrid(items: visibleCards),
-                      if (found.length > 4)
-                        Center(
-                          child: TextButton.icon(
-                            onPressed: () =>
-                                setState(() => _showAll = !_showAll),
-                            icon: AppIcon(
-                              _showAll
-                                  ? HugeIcons.strokeRoundedArrowUp01
-                                  : HugeIcons.strokeRoundedArrowDown01,
-                            ),
-                            label: Text(
-                              _showAll
-                                  ? 'Show less'
-                                  : 'View all ${found.length}',
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 4, 24, 4),
-                  child: Column(
-                    children: [
-                      Expanded(
-                        child: deckAsync.isLoading
-                            ? const Center(child: ZennytLoader())
-                            : deckAsync.hasError
-                            ? status(failed: true)
-                            : cards.isEmpty
-                            ? status(failed: false)
-                            : Stack(
-                                clipBehavior: Clip.none,
-                                children: [
-                                  if (cards.length > 1)
-                                    Positioned.fill(
-                                      child: Padding(
-                                        padding: const EdgeInsets.only(
-                                          top: 12,
-                                          left: 10,
-                                          right: 10,
-                                        ),
-                                        child: IgnorePointer(
-                                          child: TinderCard(
-                                            data: cards[1],
-                                            onSwipeLeft: () {},
-                                            onSwipeRight: () {},
-                                            isFront: false,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  Positioned.fill(
-                                    bottom: cards.length > 1 ? 10 : 0,
-                                    child: TinderCard(
-                                      key: ValueKey(cards.first.id),
-                                      data: cards.first,
-                                      onSwipeLeft: onSwipeLeft,
-                                      onSwipeRight: onSwipeRight,
-                                      isFront: true,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                      ),
-                      TinderActionButtons(
-                        canUndo: canUndo,
-                        enabled:
-                            cards.isNotEmpty &&
-                            !deckAsync.isLoading &&
-                            !deckAsync.hasError,
-                        onUndo: onUndo,
-                        onReject: onSwipeLeft,
-                        onApprove: onSwipeRight,
-                        onForward: onForward,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -491,51 +559,214 @@ class _FitsScreenState extends ConsumerState<FitsScreen> {
   }
 }
 
-class _JobContextSelector extends ConsumerWidget {
-  final List<JobOffer> jobs;
-  const _JobContextSelector({required this.jobs});
+/// « Job Offers | Professionnels » — l'onglet actif dépend du rôle : un
+/// candidat source des offres, un recruteur source des professionnels. L'autre
+/// onglet est affiché mais inactif (pas de dataset cross-rôle inventé).
+class _SegmentedTabs extends StatelessWidget {
+  const _SegmentedTabs({required this.isRecruiter});
+  final bool isRecruiter;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final active = ref.watch(activeJobContextProvider);
-
-    return SizedBox(
-      height: 48,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: jobs.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
-        itemBuilder: (context, i) {
-          final job = jobs[i];
-          final isSelected = job.id == active?.id;
-          return GestureDetector(
-            onTap: () {
-              ref.read(selectedJobContextProvider.notifier).select(job);
-              ref.invalidate(recruiterSwipeDeckProvider);
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? context.colors.primary
-                    : context.colors.inputFill,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                'Sourcing: ${job.title}',
-                style: TextStyle(
-                  color: isSelected
-                      ? Colors.white
-                      : context.colors.textSecondary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          );
-        },
+  Widget build(BuildContext context) {
+    final palette = FitsPalette.of(context);
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: palette.segmentBg,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _tab(context, palette, 'Job Offers', selected: !isRecruiter),
+          _tab(context, palette, 'Professionnels', selected: isRecruiter),
+        ],
       ),
     );
   }
+
+  Widget _tab(
+    BuildContext context,
+    FitsPalette palette,
+    String label, {
+    required bool selected,
+  }) {
+    return Semantics(
+      selected: selected,
+      enabled: selected,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected ? palette.navy : Colors.transparent,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Text(
+          label,
+          style: AppTypography.bodyMedium.copyWith(
+            fontSize: 14.5,
+            fontWeight: FontWeight.w500,
+            color: selected
+                ? Colors.white
+                : palette.dark
+                    ? context.colors.textSecondary
+                    : palette.navy,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// En-tête des maquettes : retour carré à gauche, « Fits » centré, avatar de
+/// session à droite.
+class _FitsHeader extends StatelessWidget {
+  const _FitsHeader({required this.onBack, this.trailing});
+  final VoidCallback onBack;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return SizedBox(
+      height: 76,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 48,
+              height: 48,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: .06),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: colors.cardSurface,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(color: colors.border),
+                  ),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: onBack,
+                    child: Tooltip(
+                      message: MaterialLocalizations.of(context).backButtonTooltip,
+                      child: Center(
+                        child: AppIcon(
+                          HugeIcons.strokeRoundedArrowLeft01,
+                          size: 24,
+                          strokeWidth: 2,
+                          color: colors.textPrimary,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Expanded(
+              child: Text(
+                'Fits',
+                textAlign: TextAlign.center,
+                style: AppTypography.titleLarge.copyWith(
+                  color: FitsPalette.of(context).title,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            SizedBox(width: 48, child: Center(child: trailing)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SearchField extends StatelessWidget {
+  const _SearchField({required this.palette, required this.onChanged});
+  final FitsPalette palette;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final border = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: BorderSide(color: palette.fieldBorder),
+    );
+    return SizedBox(
+      height: 36,
+      child: TextFormField(
+        onChanged: onChanged,
+        textInputAction: TextInputAction.search,
+        style: AppTypography.bodyMedium.copyWith(color: colors.textPrimary),
+        decoration: InputDecoration(
+          hintText: 'Search',
+          hintStyle: AppTypography.bodyMedium.copyWith(
+            color: colors.textSecondary,
+            fontSize: 14,
+          ),
+          isDense: true,
+          filled: true,
+          fillColor: colors.cardSurface,
+          contentPadding: EdgeInsets.zero,
+          prefixIcon: Padding(
+            padding: const EdgeInsets.only(left: 12, right: 8),
+            child: AppIcon(
+              HugeIcons.strokeRoundedSearch01,
+              size: 20,
+              color: colors.textSecondary,
+            ),
+          ),
+          prefixIconConstraints: const BoxConstraints(minWidth: 40),
+          border: border,
+          enabledBorder: border,
+          focusedBorder: border.copyWith(
+            borderSide: BorderSide(color: palette.navy, width: 1.4),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FilterButton extends StatelessWidget {
+  const _FilterButton({required this.palette, required this.onPressed});
+  final FitsPalette palette;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: 36,
+        height: 36,
+        child: Material(
+          color: context.colors.cardSurface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+            side: BorderSide(color: palette.navy, width: 1.3),
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: onPressed,
+            child: Tooltip(
+              message: 'Filters',
+              child: Center(
+                child: AppIcon(
+                  HugeIcons.strokeRoundedFilterHorizontal,
+                  size: 20,
+                  color: palette.navy,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
 }

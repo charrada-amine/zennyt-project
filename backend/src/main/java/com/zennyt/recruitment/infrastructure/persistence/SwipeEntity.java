@@ -7,13 +7,17 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "swipes", schema = "recruitment")
+@Table(name = "swipes", schema = "recruitment",
+    uniqueConstraints = @UniqueConstraint(name = "uq_swipes_pair_side", columnNames = {"job_offer_id", "candidate_id", "side"}),
+    indexes = {
+        @Index(name = "idx_swipes_candidate", columnList = "candidate_id"),
+        @Index(name = "idx_swipes_job_offer", columnList = "job_offer_id")})
 public class SwipeEntity {
     @Id private UUID id;
     @Column(nullable = false) private UUID jobOfferId;
     @Column(nullable = false) private UUID candidateId;
-    @Enumerated(EnumType.STRING) @Column(nullable = false) private SwipeSide side;
-    @Enumerated(EnumType.STRING) @Column(nullable = false) private SwipeDirection direction;
+    @Enumerated(EnumType.STRING) @Column(nullable = false, length = 20) private SwipeSide side;
+    @Enumerated(EnumType.STRING) @Column(nullable = false, length = 10) private SwipeDirection direction;
     @Column(nullable = false) private Instant createdAt;
 
     protected SwipeEntity() {}

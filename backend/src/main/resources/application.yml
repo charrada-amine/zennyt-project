@@ -13,11 +13,23 @@ spring:
       # 8 connexions restent disponibles pour les requêtes utilisateur.
       maximum-pool-size: ${DB_POOL_MAX:10}
   jpa:
+    # Le schéma est généré par Hibernate depuis les entités JPA — il n'y a plus de
+    # migrations. Ordre au démarrage : voir SchemaInitializationConfig.
+    database-platform: com.zennyt.shared.infrastructure.persistence.ZennytPostgreSQLDialect
+    # db/schema-complements.sql et db/reference-data.sql passent APRÈS Hibernate.
+    defer-datasource-initialization: true
     hibernate:
-      ddl-auto: validate          # le schéma est géré par migrations (Flyway/Liquibase), jamais auto
+      ddl-auto: update            # crée ce qui manque ; ne supprime ni ne modifie jamais l'existant
     properties:
       hibernate:
         default_schema: public
+        hbm2ddl:
+          create_namespaces: true # schémas games, recruitment, engagement, analytics
+          halt_on_error: true     # une instruction DDL en échec arrête le démarrage au lieu d'être ignorée
+        schema_update:
+          # Crée une contrainte d'unicité absente, sans jamais tenter d'abord de supprimer
+          # celles qui existent (comportement par défaut d'Hibernate).
+          unique_constraint_strategy: RECREATE_QUIETLY
   servlet:
     multipart:
       max-file-size: 5MB

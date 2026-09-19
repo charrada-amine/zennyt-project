@@ -76,7 +76,7 @@ class _ChangePhoneScreenState extends ConsumerState<ChangePhoneScreen> {
           const SizedBox(height: AppSpacing.xl),
           Center(
             child: SizedBox(
-              width: 190,
+              width: double.infinity,
               child: PrimaryButton(
                 label: AppStrings.confirm,
                 onPressed: _confirm,

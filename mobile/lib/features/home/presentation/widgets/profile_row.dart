@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zennyt/shared/icons/app_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:zennyt/core/constants/app_constants.dart';
@@ -32,19 +33,38 @@ class ProfileRow extends ConsumerWidget {
               children: [
                 InitialsAvatar(
                   url: avatarUrl,
-                  size: 48,
+                  size: 44,
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
+                // Un vrai champ de publication plutôt qu'un libellé « New Project »
+                // flottant : on comprend qu'on peut écrire ici.
                 Expanded(
-                  child: Text(
-                    l10n.newProject,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: colors.textSecondary,
-                      fontFamily: 'inter',
-                      fontWeight: AppWeights.medium,
+                  child: Container(
+                    height: 46,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    alignment: Alignment.centerLeft,
+                    decoration: BoxDecoration(
+                      color: colors.inputFill,
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: colors.border),
+                    ),
+                    child: Text(
+                      l10n.composerPrompt,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 14.5,
+                        color: colors.textSecondary,
+                        fontWeight: AppWeights.medium,
+                      ),
                     ),
                   ),
+                ),
+                const SizedBox(width: 8),
+                AppIcon(
+                  HugeIcons.strokeRoundedImage01,
+                  color: colors.accent,
+                  size: 24,
                 ),
               ],
             ),

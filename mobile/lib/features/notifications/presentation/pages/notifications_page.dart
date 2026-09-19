@@ -2,7 +2,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:zennyt/shared/widgets/platform_scaffold.dart';
 import '../providers/notification_providers.dart';
 import '../../domain/usecases/mark_notification_read.dart';
 import '../../../../core/constants.dart';
@@ -11,12 +10,11 @@ import '../../../../shared/widgets/identity_verification_dialog.dart';
 import '../providers/identity_verification_provider.dart';
 import '../widgets/notification_list_item.dart';
 import '../utils/notification_date_grouper.dart';
-import '../../../../shared/widgets/platform_app_bar.dart';
+import '../../../../shared/widgets/custom_app_bar.dart';
 import '../../domain/entities/app_notification.dart';
 import '../../../chat/presentation/providers/chat_providers.dart';
 import '../../../chat/domain/entities/chat.dart';
 import '../../../home/presentation/providers/home_providers.dart';
-import '../../../navigation/presentation/viewmodel/nav_tab_provider.dart';
 
 import 'package:zennyt/shared/icons/app_icons.dart';
 
@@ -44,16 +42,16 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
   }
 
   Future<void> _onNotificationTap(
-      AppNotification notification, String userId) async {
+    AppNotification notification,
+    String userId,
+  ) async {
     if (notification.type == NotificationType.identityVerification) {
       _showVerificationDialog();
       return;
     }
 
-    if (notification.type != NotificationType.newJob ||
-        notification.chatId == null) {
-      return;
-    }
+    // Toute notification rattachée à une conversation (message, match…) l'ouvre ;
+    // les autres sont simplement marquées comme lues.
 
     if (!notification.isRead) {
       await ref.read(markNotificationReadUseCaseProvider)(
@@ -62,12 +60,13 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
       ref.invalidate(notificationsProvider);
     }
 
-    if (!mounted) return;
+    if (!mounted || notification.chatId == null) return;
 
     try {
       final conversations = await ref.read(conversationsProvider.future);
-      final conversation =
-          conversations.firstWhere((c) => c.id == notification.chatId);
+      final conversation = conversations.firstWhere(
+        (c) => c.id == notification.chatId,
+      );
       if (mounted) {
         context.push('/chats/${conversation.id}', extra: conversation);
       }
@@ -147,37 +146,6 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                 ),
               ),
             ],
-            const Spacer(),
-            TextButton(
-              onPressed: () {},
-              style: TextButton.styleFrom(
-                padding: EdgeInsets.zero,
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    l10n.showAll,
-                    style: TextStyle(
-                      color: context.colors.textSecondary,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  SizedBox(
-                    width: 50,
-                    child: Divider(
-                      height: 1,
-                      thickness: 1,
-                      color: context.colors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
           ],
         ),
       );
@@ -204,25 +172,11 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
     final currentUserAsync = ref.watch(currentUserProvider);
     final isVerified = ref.watch(identityVerificationProvider);
 
-    return PlatformScaffold(
-      appBar: PlatformAppBar(
-        showBack: true,
-        onLeadingPressed: () {
-          if (Navigator.canPop(context)) {
-            Navigator.pop(context);
-          } else {
-            ref.read(navTabProvider.notifier).select(0);
-          }
-        },
-        title: Text(
-          l10n.notifications,
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: context.colors.textPrimary,
-          ),
-        ),
-        actions: isVerified ? null : [_buildVerificationInfoIcon()],
+    return Scaffold(
+      // Même en-tête que les autres onglets ; pas de retour sur la racine d'un onglet.
+      appBar: CustomAppBar(
+        title: l10n.notifications,
+        trailingAction: isVerified ? null : _buildVerificationInfoIcon(),
       ),
       backgroundColor: context.colors.scaffoldBg,
       body: currentUserAsync.when(

@@ -94,7 +94,7 @@ class MessageModel {
 
   static DateTime _parseDateTime(dynamic value) {
     if (value == null) return DateTime.now();
-    if (value is String) return DateTime.parse(value);
+    if (value is String) return DateTime.parse(value).toLocal();
     if (value is num) return DateTime.fromMillisecondsSinceEpoch((value * 1000).toInt());
     return DateTime.now();
   }

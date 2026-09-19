@@ -2,12 +2,17 @@ package com.zennyt.recruitment.infrastructure.persistence;
 
 import com.zennyt.recruitment.domain.vo.TestResultStatus;
 import jakarta.persistence.*;
+import org.hibernate.Length;
 
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "test_results", schema = "recruitment")
+@Table(name = "test_results", schema = "recruitment",
+    uniqueConstraints = @UniqueConstraint(name = "uq_test_results_candidate_job", columnNames = {"candidate_id", "job_offer_id"}),
+    indexes = {
+        @Index(name = "idx_test_results_candidate", columnList = "candidate_id, completed_at DESC"),
+        @Index(name = "idx_test_results_job_offer", columnList = "job_offer_id")})
 public class TestResultEntity {
     @Id private UUID id;
     @Column(nullable = false) private UUID jobOfferId;
@@ -16,11 +21,11 @@ public class TestResultEntity {
     private int score;
     private int percentage;
     private boolean passed;
-    @Column(columnDefinition = "TEXT") private String answersJson;
+    @Column(length = Length.LONG32) private String answersJson;
     @Column(nullable = false) private Instant startedAt;
     @Column(nullable = false) private Instant completedAt;
     private int duration;
-    @Enumerated(EnumType.STRING) @Column(nullable = false) private TestResultStatus status;
+    @Enumerated(EnumType.STRING) @Column(nullable = false, length = 20) private TestResultStatus status;
 
     protected TestResultEntity() {}
 

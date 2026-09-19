@@ -1448,6 +1448,30 @@ abstract class AppLocalizations {
   /// **'New Project'**
   String get newProject;
 
+  /// No description provided for @composerPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Share a project or an update…'**
+  String get composerPrompt;
+
+  /// No description provided for @emptyFeedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your feed is quiet for now'**
+  String get emptyFeedTitle;
+
+  /// No description provided for @emptyFeedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Share your first project so recruiters and friends can see what you build.'**
+  String get emptyFeedBody;
+
+  /// No description provided for @shareAProject.
+  ///
+  /// In en, this message translates to:
+  /// **'Share a project'**
+  String get shareAProject;
+
   /// No description provided for @noChats.
   ///
   /// In en, this message translates to:
@@ -1541,7 +1565,7 @@ abstract class AppLocalizations {
   /// No description provided for @pollDisclaimer.
   ///
   /// In en, this message translates to:
-  /// **'* We do not allow requests related to political opinions, medical information, or other sensitive data.\nThis option is only intended for questions related to Progress Careers.'**
+  /// **'* We do not allow requests related to political opinions, medical information, or other sensitive data.\nThis option is only intended for questions related to Zennyt.'**
   String get pollDisclaimer;
 
   /// No description provided for @poor.
@@ -1627,6 +1651,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Recruiter'**
   String get recruiter;
+
+  /// No description provided for @counterpartCandidate.
+  ///
+  /// In en, this message translates to:
+  /// **'Candidate'**
+  String get counterpartCandidate;
 
   /// No description provided for @rejectAction.
   ///

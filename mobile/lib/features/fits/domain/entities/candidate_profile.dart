@@ -46,7 +46,11 @@ class CandidateProfile extends Equatable {
   String get id => user.id;
   String get name => user.fullName;
   String get avatarUrl =>
-      user.profileImageUrl ?? 'https://i.pravatar.cc/300?u=${user.id}';
+      // Pas de photo : l'avatar illustré du reste de l'app (DiceBear), jamais la
+      // photo d'une vraie personne tirée au hasard (pravatar).
+      (user.profileImageUrl?.isNotEmpty ?? false)
+          ? user.profileImageUrl!
+          : 'https://api.dicebear.com/9.x/avataaars/png?seed=${Uri.encodeComponent(user.id)}';
 
   @override
   List<Object?> get props => [user, targetRole, seniority, fitScore, location];

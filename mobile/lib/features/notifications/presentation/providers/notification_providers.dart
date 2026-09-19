@@ -11,22 +11,24 @@ final getNotificationsUseCaseProvider = Provider<GetNotifications>((ref) {
   return sl();
 });
 
-final markNotificationReadUseCaseProvider =
-    Provider<MarkNotificationRead>((ref) {
+final markNotificationReadUseCaseProvider = Provider<MarkNotificationRead>((
+  ref,
+) {
   return sl();
 });
 
 final markAllNotificationsReadUseCaseProvider =
     Provider<MarkAllNotificationsRead>((ref) {
-  return sl();
-});
+      return sl();
+    });
 
 final createNotificationUseCaseProvider = Provider<CreateNotification>((ref) {
   return sl();
 });
 
-final notificationsProvider =
-    FutureProvider<List<AppNotification>>((ref) async {
+final notificationsProvider = FutureProvider<List<AppNotification>>((
+  ref,
+) async {
   final currentUser = await ref.watch(currentUserProvider.future);
   final usecase = ref.watch(getNotificationsUseCaseProvider);
   final result = await usecase(currentUser.id);

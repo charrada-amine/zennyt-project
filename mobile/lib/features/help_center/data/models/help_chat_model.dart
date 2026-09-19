@@ -30,7 +30,7 @@ class HelpChatModel {
           ? null
           : (horodatage is num
               ? DateTime.fromMillisecondsSinceEpoch((horodatage * 1000).toInt())
-              : DateTime.parse(horodatage as String)),
+              : DateTime.parse(horodatage as String).toLocal()),
       rating: json['rating'] as String?,
       ratingComment: json['ratingComment'] as String?,
     );

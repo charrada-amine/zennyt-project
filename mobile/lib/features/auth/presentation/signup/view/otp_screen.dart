@@ -180,7 +180,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
         const SizedBox(height: AppSpacing.xl),
         Center(
           child: SizedBox(
-            width: 190,
+            width: double.infinity,
             child: PrimaryButton(
               label: AppStrings.continueLabel,
               loading: state.isLoading,

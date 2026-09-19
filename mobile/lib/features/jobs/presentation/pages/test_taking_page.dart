@@ -265,11 +265,15 @@ class _AttemptBody extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
           child: Row(
             children: [
-              Text(
-                'Question number ${index + 1} / ${attempt.questions.length}',
-                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF1E1B4B)),
+              // Libellé souple : sur un petit écran ou en grand texte, il passe à la
+              // ligne au lieu de pousser le chronomètre hors de l'écran.
+              Expanded(
+                child: Text(
+                  'Question ${index + 1} / ${attempt.questions.length}',
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF1E1B4B)),
+                ),
               ),
-              const Spacer(),
+              const SizedBox(width: 12),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
@@ -277,6 +281,7 @@ class _AttemptBody extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     AppIcon(HugeIcons.strokeRoundedTimer02,
                         size: 14, color: remaining < 60 ? const Color(0xFFEF4444) : const Color(0xFF64748B)),
@@ -321,11 +326,13 @@ class _AttemptBody extends StatelessWidget {
           ),
         ),
         Container(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
           decoration: const BoxDecoration(
             border: Border(top: BorderSide(color: Color(0xFFF1F5F9))),
           ),
-          child: Row(
+          child: SafeArea(
+            top: false,
+            child: Row(
             children: [
               if (index > 0)
                 Expanded(
@@ -356,11 +363,13 @@ class _AttemptBody extends StatelessWidget {
                           height: 20,
                           child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white),
                         )
-                      : Text(isLast ? 'Submit' : 'Next question',
+                      : Text(isLast ? 'Submit' : 'Next',
+                          textAlign: TextAlign.center,
                           style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
                 ),
               ),
             ],
+            ),
           ),
         ),
       ],
@@ -511,10 +520,17 @@ class _ResultRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label, style: const TextStyle(color: Color(0xFF64748B), fontSize: 13.5)),
-          const Spacer(),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF1E293B), fontSize: 13.5)),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF1E293B), fontSize: 13.5),
+            ),
+          ),
         ],
       ),
     );

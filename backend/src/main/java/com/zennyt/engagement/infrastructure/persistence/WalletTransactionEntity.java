@@ -2,12 +2,15 @@ package com.zennyt.engagement.infrastructure.persistence;
 
 import com.zennyt.engagement.domain.vo.WalletTransactionKind;
 import jakarta.persistence.*;
+import org.hibernate.annotations.Check;
 
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "wallet_transactions", schema = "engagement")
+@Table(name = "wallet_transactions", schema = "engagement",
+    indexes = @Index(name = "idx_wallet_transactions_user", columnList = "user_id, created_at DESC"))
+@Check(name = "ck_wallet_transactions_kind", constraints = "kind IN ('CREDIT', 'DEBIT', 'WITHDRAWAL')")
 class WalletTransactionEntity {
     @Id private UUID id;
     @Column(name = "user_id", nullable = false) private UUID userId;

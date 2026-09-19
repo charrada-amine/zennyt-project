@@ -3,6 +3,9 @@ package com.zennyt.games.infrastructure.persistence;
 import com.zennyt.games.domain.vo.DeviceCategory;
 import com.zennyt.games.domain.vo.InputMode;
 import jakarta.persistence.*;
+import org.hibernate.annotations.Check;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.util.UUID;
 
@@ -15,21 +18,32 @@ import java.util.UUID;
  */
 @Entity
 @Table(name = "device_calibrations", schema = "games")
+@Check(name = "ck_device_calibrations_category", constraints = "device_category IN ('MOBILE', 'TABLET', 'DESKTOP')")
+@Check(name = "ck_device_calibrations_input_mode", constraints = "input_mode IN ('KEYBOARD', 'TOUCH', 'MOUSE', 'SWIPE')")
+@Check(name = "ck_device_calibrations_method", constraints = "calibration_method IN ('technique', 'hardware_profile_fallback')")
+@Check(name = "ck_device_calibrations_refresh", constraints = "refresh_rate_hz > 0")
 public class DeviceCalibrationEntity {
 
     @Id
     @Column(name = "session_id")
     private UUID sessionId;
 
-    @Column(name = "calibration_method", nullable = false)
+    /** Clé étrangère {@code games.game_sessions(id) ON DELETE CASCADE} ; lecture seule. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "session_id", insertable = false, updatable = false,
+        foreignKey = @ForeignKey(name = "device_calibrations_session_id_fkey"))
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private GameSessionEntity session;
+
+    @Column(name = "calibration_method", nullable = false, length = 40)
     private String calibrationMethod;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "input_mode", nullable = false)
+    @Column(name = "input_mode", nullable = false, length = 20)
     private InputMode inputMode;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "device_category", nullable = false)
+    @Column(name = "device_category", nullable = false, length = 20)
     private DeviceCategory deviceCategory;
 
     @Column(name = "refresh_rate_hz", nullable = false)

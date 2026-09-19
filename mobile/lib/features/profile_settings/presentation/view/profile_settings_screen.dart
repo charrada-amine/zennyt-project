@@ -40,17 +40,17 @@ class ProfileSettingsScreen extends ConsumerWidget {
                 child: const AppReveal(child: ProfileHeaderSection()),
               ),
               const SizedBox(height: AppSpacing.lg),
+              // Maquette : les deux cartes d'action juste sous l'en-tête, pour
+              // tous les rôles (le portefeuille sert aussi aux recruteurs).
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: hPadding),
+                child: const AppReveal(child: ProfileActionCards()),
+              ),
+              const SizedBox(height: AppSpacing.lg),
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: hPadding),
                 child: SettingsMenuList(recruiter: isRecruiter),
               ),
-              if (!isRecruiter) ...[
-                const SizedBox(height: AppSpacing.lg),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: hPadding),
-                  child: const ProfileActionCards(),
-                ),
-              ],
             ],
           ),
         ),

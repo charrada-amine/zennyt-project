@@ -5,20 +5,24 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import org.hibernate.annotations.Check;
+import org.hibernate.annotations.ColumnDefault;
 
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
 @Table(name = "soft_skills_projection", schema = "recruitment",
-    uniqueConstraints = @UniqueConstraint(columnNames = {"candidate_id", "module"}))
+    uniqueConstraints = @UniqueConstraint(name = "uq_soft_skills_projection_candidate_module", columnNames = {"candidate_id", "module"}))
+@Check(name = "ck_soft_skills_projection_coverage", constraints = "coverage_ratio >= 0 AND coverage_ratio <= 100")
+@Check(name = "ck_soft_skills_projection_score", constraints = "score >= 0 AND score <= 100")
 public class SoftSkillsProjectionEntity {
     @Id private UUID id;
     @Column(name = "candidate_id", nullable = false) private UUID candidateId;
-    @Column(nullable = false) private String module;
+    @Column(nullable = false, length = 50) private String module;
     @Column(nullable = false) private int score;
     /** F13/F15 — couverture du module (0-100, CdC §3.3 mécanisme 1). */
-    @Column(name = "coverage_ratio", nullable = false) private int coverageRatio;
+    @ColumnDefault("100") @Column(name = "coverage_ratio", nullable = false) private int coverageRatio;
     @Column(nullable = false) private Instant updatedAt;
 
     protected SoftSkillsProjectionEntity() {}

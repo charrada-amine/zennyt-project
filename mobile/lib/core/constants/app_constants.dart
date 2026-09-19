@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class AppConstants {
-  static const String jsonServerBaseUrl = 'http://192.168.100.4:8080';
   static bool get isCupertino =>
       defaultTargetPlatform == TargetPlatform.iOS ||
       defaultTargetPlatform != TargetPlatform.android;

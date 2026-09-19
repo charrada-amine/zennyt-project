@@ -764,6 +764,19 @@ class AppLocalizationsFr extends AppLocalizations {
   String get newProject => 'Nouveau projet';
 
   @override
+  String get composerPrompt => 'Partage un projet ou une actualité…';
+
+  @override
+  String get emptyFeedTitle => 'Ton fil est calme pour l’instant';
+
+  @override
+  String get emptyFeedBody =>
+      'Partage ton premier projet pour que les recruteurs et tes amis voient ce que tu construis.';
+
+  @override
+  String get shareAProject => 'Partager un projet';
+
+  @override
   String get noChats => 'Aucun chat';
 
   @override
@@ -814,7 +827,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get pollDisclaimer =>
-      '* Nous n\'autorisons pas les demandes liées aux opinions politiques, aux informations médicales ou à d\'autres données sensibles.\nCette option est uniquement destinée aux questions liées à Progress Careers.';
+      '* Nous n\'autorisons pas les demandes liées aux opinions politiques, aux informations médicales ou à d\'autres données sensibles.\nCette option est uniquement destinée aux questions liées à Zennyt.';
 
   @override
   String get poor => 'Mauvais';
@@ -858,6 +871,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get recruiter => 'Recruteur';
+
+  @override
+  String get counterpartCandidate => 'Candidat·e';
 
   @override
   String get rejectAction => 'Rejeter';

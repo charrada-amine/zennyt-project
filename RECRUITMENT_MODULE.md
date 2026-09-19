@@ -1,6 +1,6 @@
 # Module Recruitment
 
-**Dernière mise à jour :** 2026-09-16
+**Dernière mise à jour :** 2026-09-19
 
 ## 1. Rôle du module
 
@@ -393,9 +393,14 @@ Analytics est déjà branché.
 
 ## 9. Base de données et migrations
 
-Le module utilise le schéma PostgreSQL `recruitment`. Hibernate fonctionne avec
-`ddl-auto: validate` : toute évolution passe par une nouvelle migration Flyway ; aucune
-migration déjà appliquée n'est réécrite.
+Le module utilise le schéma PostgreSQL `recruitment`. Il n'y a plus de migrations : le
+schéma est généré par Hibernate depuis les entités JPA (`ddl-auto: update`), noms de
+contraintes et d'index compris ; les index partiels (`idx_job_offers_position`,
+`uq_job_positions_name_no_sector`, index de la file Fit Score), l'index unique
+`uq_fit_scores_candidate_job` et le trigger `trg_job_role_profiles_touch` sont dans
+`db/schema-complements.sql`, le référentiel des métiers et des pondérations dans
+`db/reference-data.sql`. `update` ne fait qu'ajouter : renommer, retyper ou supprimer une
+colonne, ou modifier une contrainte existante, demande un script de reprise explicite.
 
 ### 9.1 Tables actuelles (schéma `recruitment`)
 
@@ -517,7 +522,8 @@ GROQ_API_KEY=<optionnel>
   70 %, upsert/sous-scores Fit Score, parsing Groq, tri/dismissal, projection publique
   sans réponse, matrice `job_role_profiles`.
 - ArchUnit vérifie les frontières de couches et de modules.
-- Flyway valide toutes les migrations jusqu'à V43 sur PostgreSQL 16 avec `ddl-auto: validate`.
+- Les tests PostgreSQL s'exécutent sur le schéma généré par Hibernate, identique à celui des
+  anciennes migrations V1..V86 (vérifié objet par objet lors de l'abandon de Flyway).
 
 ## 14. Zones protégées
 
@@ -529,7 +535,8 @@ GROQ_API_KEY=<optionnel>
 - Propriété des ressources déduite du JWT.
 - Secret des callbacks et stockage hashé des OTP.
 - Matrice `job_role_profiles` (contraintes de somme 100/100).
-- Migrations Flyway existantes, en particulier V13.
+- Schéma défini par les entités : aucun renommage, changement de type ou suppression de
+  colonne/contrainte sans script de reprise écrit et appliqué sur chaque base.
 - Absence d'appel direct vers les couches internes d'Identity ou Engagement.
 
 ## 15. Décisions à valider et roadmap
@@ -553,8 +560,22 @@ GROQ_API_KEY=<optionnel>
    côté mobile. Décision explicite (2026-08-05) : câbler le champ sans construire l'écran
    dans cette itération plutôt que d'improviser un picker non maquetté — la création
    d'offre reste donc cassée de bout en bout depuis l'app tant que l'écran n'existe pas.
-   F30 (préremplissage des curseurs de pondération depuis `GET /job-role-profiles`) est
-   bloqué par le même trou : la pondération dépend du `profileType` du métier choisi.
+     F30 (préremplissage des curseurs de pondération depuis `GET /job-role-profiles`) est
+     bloqué par le même trou : la pondération dépend du `profileType` du métier choisi.
+11. **Onglets Fits « Job Offers | Professionnels » dépendants du rôle.** La maquette affiche
+    les deux onglets, mais le contrat n'expose pas de deck cross-rôle : un candidat n'a pas
+    de deck de professionnels, un recruteur n'a pas de deck d'offres. Décision (2026-09-19) :
+    afficher les deux libellés et activer uniquement celui du rôle connecté (candidat →
+    Job Offers, recruteur → Professionnels), l'autre restant visible mais inactif. À valider
+    si un vrai basculement bidirectionnel est attendu.
+12. **Filtre de l'écran Fits.** L'icône filtre (maquette, seule représentée) ouvre un choix
+    local, sans nouvel endpoint : recruteur = offre sourcée (remplace les chips
+    « Sourcing: … »), candidat = type de contrat. À confronter à une maquette de filtre
+    dédiée si elle existe.
+13. **Soft skills du détail candidat.** La maquette montre trois modules nommés (Decision
+    Making / Cognitive Flexibility / Emotional Regulation) ; le backend n'expose qu'un
+    agrégat. Décision : conserver une seule ligne honnête (« Overall »), conformément à F10 —
+    pas de valeurs inventées.
 9. **F32 — mode d'évaluation par métier reporté** (décision D-C, FITSCORE_REMEDIATION.md
    §3). Déplacer `type_evaluation_hard` de `job_role_profiles` vers `job_positions` change
    la signature du record `JobRoleProfile`, qui est aussi construit par deux fichiers de
@@ -774,3 +795,22 @@ GROQ_API_KEY=<optionnel>
     - Vérifié : `./mvnw test` recruitment (287 tests, 0 échec), ArchUnit et
       parité enum vertes sous JDK 21. Échec préexistant hors périmètre :
       `IdentitySecurityAnnotationTest` (module identity, non touché).
+
+16. 2026-09-19 — **Refonte de l'écran mobile Fits** (maquettes « Fits pro / Fits job »,
+    dossiers Desktop fournis). L'onglet Fits devient un écran unique : recherche + bouton
+    filtre, sélecteur « Job Offers | Professionnels », grille « Fit Scores » 2 colonnes
+    (badge Fit Score violet, menu contextuel, chips) sans défilement — seules les rangées
+    qui tiennent sont affichées — et « View more », qui bascule sur l'interface de swipe
+    (carte détaillée, boutons d'action circulaires qui la chevauchent, voile vert/rouge
+    progressif pendant le glissement) en gardant la barre de navigation. Nouvelles surfaces branchées sur des routes
+    existantes du contrat : `GET /candidates/{candidateId}/resume` (bouton **Resume AI**
+    recruteur, en bottom sheet) et `DELETE /fit-scores` (action **Remove from Fit Scores**
+    du menu contextuel ; le swipe candidat ne fait jamais partie de ces actions).
+    Côté data mobile : le mapper `JobOffer` de Fits lit désormais
+    `salaryCurrency`/`salaryPeriod` (le deck affichait auparavant « €X/Mo » par défaut
+    quelle que soit l'offre). Le détail candidat conserve **une seule ligne soft skills
+    agrégée** (F10) — la maquette montre trois modules que le backend n'expose pas (voir
+    §15.13). Décisions tracées : onglets dépendants du rôle (§15.11) et filtre local
+    (§15.12). `FitScoresGrid` étant partagé, la page Search recruteur adopte aussi les
+    cartes compactes. Aucun endpoint, contrat, migration ni dépendance modifiés.
+    Vérifié : `flutter analyze` sans nouvelle alerte, `flutter test` (907 tests) vert.

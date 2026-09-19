@@ -5,6 +5,8 @@ import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -17,7 +19,10 @@ public class CertificationEntity {
     @Getter(AccessLevel.PACKAGE)
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "profile_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "profile_id", nullable = false,
+        foreignKey = @ForeignKey(name = "certifications_profile_id_fkey"))
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private ProfileEntity profile;
     @Column(nullable = false, length = 150)
     private String title;

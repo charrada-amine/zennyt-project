@@ -21,7 +21,7 @@ class CommentModel extends Comment {
         (raw.toDouble() * 1000).toInt(),
       );
     } else if (raw is String) {
-      createdAt = DateTime.parse(raw);
+      createdAt = DateTime.parse(raw).toLocal();
     } else {
       createdAt = DateTime.now();
     }

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:stomp_dart_client/stomp_dart_client.dart';
+import '../config/app_config.dart';
 import '../storage/token_storage.dart';
 
 class WebSocketService {
@@ -8,14 +9,22 @@ class WebSocketService {
   factory WebSocketService() => _instance;
   WebSocketService._internal();
 
-  static String get _websocketUrl {
-    //final baseUrl = dotenv.env['API_BASE_URL'] ?? AppConstants.jsonServerBaseUrl;
-    // Remove /api/v1 prefix for WebSocket (it's at root level)
-    //final wsBase = baseUrl.replaceFirst(RegExp(r'^http'), 'ws').replaceFirst(RegExp(r'/api/v1/?$'), '');
-    return "ws://192.168.100.4:8080/ws-engagement";
+  /// Point STOMP dérivé de l'URL d'API configurée (`http(s)://hôte/api/v1` →
+  /// `ws(s)://hôte/ws-engagement`). Une adresse IP de réseau local figée ici
+  /// cassait le temps réel partout ailleurs (simulateur, autre Wi-Fi, prod).
+  @visibleForTesting
+  static String websocketUrlFor(String apiBaseUrl) {
+    final root = apiBaseUrl
+        .replaceFirst(RegExp(r'^http'), 'ws')
+        .replaceFirst(RegExp(r'/api/v\d+/?$'), '')
+        .replaceFirst(RegExp(r'/$'), '');
+    return '$root/ws-engagement';
   }
 
+  static String get _websocketUrl => websocketUrlFor(AppConfig.baseUrl);
+
   StompClient? _stompClient;
+  bool _connecting = false;
 
   final Map<String, Function(Map<String, dynamic>)> _subscriptions = {};
   final Map<String, StompUnsubscribe> _stompSubs = {};
@@ -34,6 +43,11 @@ class WebSocketService {
       onConnect?.call();
       return;
     }
+    // Une connexion est déjà en cours : en ouvrir une seconde remplaçait le
+    // client pendant la poignée de main, et la première tentait ensuite de
+    // s'abonner via un client non connecté (StompBadStateException).
+    if (_connecting) return;
+    _connecting = true;
 
     final effectiveToken = authToken ?? await defaultTokenStorage.readAccessToken();
 
@@ -48,6 +62,7 @@ class WebSocketService {
           if (effectiveToken != null) 'Authorization': 'Bearer $effectiveToken',
         },
         onConnect: (StompFrame frame) {
+          _connecting = false;
           debugPrint('✅ WebSocket connected! principal=$normalisedUserId');
           onConnect?.call();
           _subscribeToUserQueues(normalisedUserId);
@@ -57,6 +72,7 @@ class WebSocketService {
           onDisconnect?.call();
         },
         onWebSocketError: (dynamic error) {
+          _connecting = false;
           debugPrint('wsUrl: $_websocketUrl');
           debugPrint('❌ WebSocket error: $error');
           onError?.call(error);
@@ -146,7 +162,9 @@ class WebSocketService {
   }
 
   void _registerSub({required String key, required String destination}) {
-    final unsub = _stompClient?.subscribe(
+    final client = _stompClient;
+    if (client == null || !client.connected) return;
+    final unsub = client.subscribe(
       destination: destination,
       callback: (StompFrame frame) {
         debugPrint('📨 Received on $destination: ${frame.body}');
@@ -161,9 +179,7 @@ class WebSocketService {
       },
     );
 
-    if (unsub != null) {
-      _stompSubs[key] = unsub;
-    }
+    _stompSubs[key] = unsub;
   }
 
   void subscribe(String key, Function(Map<String, dynamic>) callback) {
@@ -198,6 +214,7 @@ class WebSocketService {
   bool get isConnected => _stompClient?.connected ?? false;
 
   void disconnect() {
+    _connecting = false;
     _stompSubs.clear();
     _subscriptions.clear();
     _stompClient?.deactivate();

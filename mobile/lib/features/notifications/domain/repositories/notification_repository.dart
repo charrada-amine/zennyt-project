@@ -5,12 +5,14 @@ import '../entities/app_notification.dart';
 
 abstract class NotificationRepository {
   Future<Either<Failure, List<AppNotification>>> getNotifications(
-      String userId);
+    String userId,
+  );
 
   Future<Either<Failure, void>> markAsRead(String id, String userId);
 
   Future<Either<Failure, void>> markAllAsRead(String userId);
 
   Future<Either<Failure, void>> createNotification(
-      AppNotification notification);
+    AppNotification notification,
+  );
 }
