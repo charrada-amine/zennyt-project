@@ -8,6 +8,7 @@ import 'package:zennyt/shared/icons/app_icons.dart';
 
 import '../../domain/card_input.dart';
 import 'payment_card_view.dart';
+import 'package:zennyt/shared/widgets/app_spinner.dart';
 
 /// Ajout / remplacement de la carte (maquettes 107/119).
 ///
@@ -264,7 +265,7 @@ class _CardFormSheetState extends ConsumerState<CardFormSheet> {
                         ? const SizedBox(
                             width: 22,
                             height: 22,
-                            child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white),
+                            child: AppSpinner(strokeWidth: 2.4, color: Colors.white),
                           )
                         : Text(
                             widget.hasCard ? 'Update card' : 'Save card',

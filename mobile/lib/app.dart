@@ -1,3 +1,5 @@
+import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -27,9 +29,22 @@ class ZennytApp extends ConsumerWidget {
 
     ref.watch(webSocketConnectionProvider);
 
-    return MaterialApp.router(
+    // Native UI par plateforme : CupertinoApp (Liquid Glass sur iOS 26+) sur
+    // iOS, MaterialApp sur Android.
+    return AdaptiveApp.router(
       builder: (context, child) {
-        final previewChild = DevicePreview.appBuilder(context, child);
+        // Sur iOS, AdaptiveApp construit une CupertinoApp qui n'installe pas de
+        // Theme Material : on le réinstalle pour que `context.colors`, les
+        // Scaffold et le mode sombre des écrans existants restent corrects.
+        final themed = PlatformInfo.isIOS
+            ? Theme(
+                data: _isDark(context, themeMode)
+                    ? AppTheme.dark
+                    : AppTheme.light,
+                child: child ?? const SizedBox.shrink(),
+              )
+            : child;
+        final previewChild = DevicePreview.appBuilder(context, themed);
         final scaledChild = MediaQuery(
           data: MediaQuery.of(context).copyWith(
             textScaler: a11y.textScaler(MediaQuery.textScalerOf(context)),
@@ -47,14 +62,30 @@ class ZennytApp extends ConsumerWidget {
         );
       },
       onGenerateTitle: (context) => context.l10n.appName,
-      debugShowCheckedModeBanner: false,
       locale: DevicePreview.locale(context) ?? locale,
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
+      materialLightTheme: AppTheme.light,
+      materialDarkTheme: AppTheme.dark,
+      cupertinoLightTheme: const CupertinoThemeData(
+        brightness: Brightness.light,
+        primaryColor: AppColors.brandNavy,
+        scaffoldBackgroundColor: AppColors.appBackground,
+      ),
+      cupertinoDarkTheme: const CupertinoThemeData(
+        brightness: Brightness.dark,
+        primaryColor: AppColors.brandIndigoDark,
+        scaffoldBackgroundColor: AppColors.appBackgroundDark,
+      ),
       themeMode: themeMode,
       routerConfig: router,
     );
   }
+
+  static bool _isDark(BuildContext context, ThemeMode mode) => switch (mode) {
+    ThemeMode.dark => true,
+    ThemeMode.light => false,
+    ThemeMode.system =>
+      MediaQuery.platformBrightnessOf(context) == Brightness.dark,
+  };
 }

@@ -19,6 +19,7 @@ import '../widgets/game_results_template.dart';
 import '../widgets/game_system_components.dart';
 
 import 'package:zennyt/shared/icons/app_icons.dart';
+import 'package:zennyt/shared/widgets/app_spinner.dart';
 
 /// BART — Balloon Analogue Risk Task (Lejuez et al., 2002).
 ///
@@ -287,7 +288,7 @@ class _BartScreenState extends ConsumerState<BartScreen>
         _BartStage.submitting => const DecisionGameplayFrame(
           children: [
             SizedBox(height: 200),
-            Center(child: CircularProgressIndicator(color: Colors.white)),
+            Center(child: AppSpinner(color: Colors.white)),
           ],
         ),
         _BartStage.results => _buildResults(),

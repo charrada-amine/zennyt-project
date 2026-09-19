@@ -8,6 +8,7 @@ import 'package:zennyt/features/jobs/presentation/providers/jobs_provider.dart';
 import 'package:zennyt/shared/widgets/custom_app_bar.dart';
 
 import 'package:zennyt/shared/icons/app_icons.dart';
+import 'package:zennyt/shared/widgets/app_dialog.dart';
 
 /// Full list of the recruiter's tests (design 197) with edit/delete and an
 /// "Add a test" action. The horizontal preview on the Careers home links here.
@@ -30,10 +31,10 @@ class ManageTestsPage extends ConsumerWidget {
           },
         ),
       ),
-      body: RefreshIndicator(
+      body: RefreshIndicator.adaptive(
         onRefresh: () => ref.read(assessmentsProvider.notifier).refresh(),
         child: async.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const Center(child: CircularProgressIndicator.adaptive()),
           error: (_, _) => ListView(
             children: [
               const SizedBox(height: 120),
@@ -89,21 +90,15 @@ class ManageTestsPage extends ConsumerWidget {
   }
 
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref, Assessment test) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete this test?'),
-        content: Text('"${test.title}" will be removed from your tests. This cannot be undone.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete', style: TextStyle(color: Color(0xFFE53935))),
-          ),
-        ],
-      ),
+    final confirmed = await AppDialog.confirm(
+      context,
+      title: 'Delete this test?',
+      message: '"${test.title}" will be removed from your tests. This cannot be undone.',
+      cancelLabel: 'Cancel',
+      confirmLabel: 'Delete',
+      destructive: true,
     );
-    if (confirmed != true) return;
+    if (!confirmed) return;
     try {
       await ref.read(assessmentsProvider.notifier).deleteAssessment(test.id);
     } catch (_) {

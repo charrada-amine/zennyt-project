@@ -8,6 +8,7 @@ import 'package:zennyt/features/jobs/presentation/providers/jobs_provider.dart';
 import 'package:zennyt/shared/widgets/custom_app_bar.dart';
 
 import 'package:zennyt/shared/icons/app_icons.dart';
+import 'package:zennyt/shared/widgets/app_dialog.dart';
 
 /// Recrutements du recruteur (maquette 258) : nom, poste, compte à rebours
 /// d'essai (D-xx) et annulation tant que la période d'essai court.
@@ -21,10 +22,10 @@ class HiredCandidatesPage extends ConsumerWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF9FBFF),
       appBar: CustomAppBar(title: 'Hired Candidates', onBack: () => context.pop()),
-      body: RefreshIndicator(
+      body: RefreshIndicator.adaptive(
         onRefresh: () => ref.read(hiredCandidatesProvider.notifier).refresh(),
         child: async.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const Center(child: CircularProgressIndicator.adaptive()),
           error: (_, _) => ListView(
             children: [
               const SizedBox(height: 120),
@@ -68,24 +69,16 @@ class HiredCandidatesPage extends ConsumerWidget {
   }
 
   Future<void> _confirmCancel(BuildContext context, WidgetRef ref, HiredCandidate hire) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Cancel this hire?'),
-        content: Text(
-          'Ending the recruitment of ${hire.displayName} for "${hire.title}". '
+    final confirmed = await AppDialog.confirm(
+      context,
+      title: 'Cancel this hire?',
+      message: 'Ending the recruitment of ${hire.displayName} for "${hire.title}". '
           'This is only possible during the probation period.',
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Keep')),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Cancel hire', style: TextStyle(color: Color(0xFFE53935))),
-          ),
-        ],
-      ),
+      cancelLabel: 'Keep',
+      confirmLabel: 'Cancel hire',
+      destructive: true,
     );
-    if (confirmed != true) return;
+    if (!confirmed) return;
     try {
       await ref.read(hiredCandidatesProvider.notifier).cancel(hire.id);
     } on ApiException catch (e) {

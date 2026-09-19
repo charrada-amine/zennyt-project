@@ -10,6 +10,7 @@ import 'share_bottom_sheet.dart';
 import 'test_card.dart';
 
 import 'package:zennyt/shared/icons/app_icons.dart';
+import 'package:zennyt/shared/widgets/app_spinner.dart';
 
 class TestsSection extends StatelessWidget {
   final AsyncValue<List<Assessment>> assessmentsAsync;
@@ -102,7 +103,7 @@ class _TestsBody extends StatelessWidget {
       height: 110,
       child: assessmentsAsync.isLoading
           ? const Center(
-              child: CircularProgressIndicator(
+              child: AppSpinner(
                 color: Color(0xFF21438A),
                 strokeWidth: 2.5,
               ),

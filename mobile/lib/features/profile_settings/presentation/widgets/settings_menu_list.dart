@@ -1,3 +1,5 @@
+import 'package:adaptive_platform_ui/adaptive_platform_ui.dart'
+    show AdaptiveSwitch;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -13,6 +15,7 @@ import '../../../../shared/widgets/app_motion.dart';
 import '../providers/preferences_provider.dart';
 
 import 'package:zennyt/shared/icons/app_icons.dart';
+import 'package:zennyt/shared/widgets/app_dialog.dart';
 
 /// The settings menu list matching the design screenshot.
 class SettingsMenuList extends ConsumerWidget {
@@ -66,20 +69,15 @@ class SettingsMenuList extends ConsumerWidget {
           icon: HugeIcons.strokeRoundedNotification01,
           boxColor: AppColors.iconBlue,
           label: l10n.notifications,
-          trailing: SizedBox(
-            height: 28,
-            child: FittedBox(
-              child: Switch.adaptive(
-                value: notifEnabled,
-                activeTrackColor: colors.primary,
-                onChanged: (val) {
-                  final current = preferences ?? UserPreferences.defaults;
-                  ref
-                      .read(preferencesProvider.notifier)
-                      .save(current.copyWith(notificationsEnabled: val));
-                },
-              ),
-            ),
+          trailing: AdaptiveSwitch(
+            value: notifEnabled,
+            activeColor: colors.primary,
+            onChanged: (val) {
+              final current = preferences ?? UserPreferences.defaults;
+              ref
+                  .read(preferencesProvider.notifier)
+                  .save(current.copyWith(notificationsEnabled: val));
+            },
           ),
           onTap: () {
             final current = preferences ?? UserPreferences.defaults;
@@ -95,19 +93,14 @@ class SettingsMenuList extends ConsumerWidget {
           icon: HugeIcons.strokeRoundedMoon02,
           boxColor: AppColors.iconBlack,
           label: l10n.theme,
-          trailing: SizedBox(
-            height: 28,
-            child: FittedBox(
-              child: Switch.adaptive(
-                value: isDark,
-                activeTrackColor: colors.primary,
-                onChanged: (val) {
-                  ref
-                      .read(themeProvider.notifier)
-                      .setMode(val ? ThemeMode.dark : ThemeMode.light);
-                },
-              ),
-            ),
+          trailing: AdaptiveSwitch(
+            value: isDark,
+            activeColor: colors.primary,
+            onChanged: (val) {
+              ref
+                  .read(themeProvider.notifier)
+                  .setMode(val ? ThemeMode.dark : ThemeMode.light);
+            },
           ),
           onTap: () {
             ref.read(themeProvider.notifier).toggle();
@@ -196,36 +189,20 @@ class SettingsMenuList extends ConsumerWidget {
     );
   }
 
-  void _showLogoutDialog(BuildContext context, WidgetRef ref) {
+  Future<void> _showLogoutDialog(BuildContext context, WidgetRef ref) async {
     final l10n = context.l10n;
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        ),
-        title: Text(l10n.logOut),
-        content: const Text('Are you sure you want to log out?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              // Clears tokens + revokes the refresh token; the router redirect
-              // then sends the user back to login on the session change.
-              ref.read(authControllerProvider.notifier).logout();
-            },
-            child: Text(
-              l10n.logOut,
-              style: TextStyle(color: context.colors.error),
-            ),
-          ),
-        ],
-      ),
+    final confirmed = await AppDialog.confirm(
+      context,
+      title: l10n.logOut,
+      message: 'Are you sure you want to log out?',
+      cancelLabel: 'Cancel',
+      confirmLabel: l10n.logOut,
+      destructive: true,
     );
+    if (!confirmed) return;
+    // Clears tokens + revokes the refresh token; the router redirect then
+    // sends the user back to login on the session change.
+    ref.read(authControllerProvider.notifier).logout();
   }
 }
 

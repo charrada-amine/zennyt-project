@@ -20,6 +20,7 @@ import '../../../auth/presentation/auth_controller.dart';
 import '../../../billing/presentation/widgets/video_interview_paywall.dart';
 
 import 'package:zennyt/shared/icons/app_icons.dart';
+import 'package:zennyt/shared/widgets/app_popup_menu.dart';
 
 class ChatDetailPage extends ConsumerStatefulWidget {
   final Conversation conversation;
@@ -243,44 +244,21 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
                 ),
               ),
             ),
-            PopupMenuButton(
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              icon: AppIcon(
-                HugeIcons.strokeRoundedMoreVertical,
-                color: context.colors.textMuted,
-                size: 22,
-              ),
-              itemBuilder: (context) => [
-                PopupMenuItem(
-                  value: 'report',
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const AppIcon(
-                        HugeIcons.strokeRoundedFlag02,
-                        size: 16,
-                        color: Color(0xFF214389),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(l10n.report),
-                    ],
-                  ),
+            AppPopupMenu.icon(
+              icon: HugeIcons.strokeRoundedMoreVertical,
+              iconColor: context.colors.textMuted,
+              iconSize: 22,
+              entries: [
+                AppMenuAction(
+                  label: l10n.report,
+                  sfSymbol: 'flag',
+                  icon: HugeIcons.strokeRoundedFlag02,
                 ),
-                PopupMenuItem(
-                  value: 'block',
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const AppIcon(
-                        HugeIcons.strokeRoundedBlocked,
-                        size: 16,
-                        color: Color(0xFF214389),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(l10n.block),
-                    ],
-                  ),
+                AppMenuAction(
+                  label: l10n.block,
+                  sfSymbol: 'nosign',
+                  icon: HugeIcons.strokeRoundedBlocked,
+                  destructive: true,
                 ),
               ],
             ),
@@ -325,7 +303,7 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
                   loading: () => Center(
                     child: AppConstants.isCupertino
                         ? const CupertinoActivityIndicator()
-                        : const CircularProgressIndicator(),
+                        : const CircularProgressIndicator.adaptive(),
                   ),
                   error: (error, _) => Center(child: Text('Erreur: $error')),
                 ),
@@ -404,7 +382,7 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
       loading: () => Center(
         child: AppConstants.isCupertino
             ? const CupertinoActivityIndicator()
-            : const CircularProgressIndicator(),
+            : const CircularProgressIndicator.adaptive(),
       ),
       error: (error, _) => Center(child: Text('Erreur: $error')),
     );

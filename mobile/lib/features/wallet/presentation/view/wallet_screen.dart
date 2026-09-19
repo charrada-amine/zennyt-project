@@ -29,13 +29,13 @@ class WalletScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: colors.scaffoldBg,
       appBar: CustomAppBar(title: 'Wallet', onBack: () => context.pop()),
-      body: RefreshIndicator(
+      body: RefreshIndicator.adaptive(
         onRefresh: () async {
           await ref.read(walletProvider.notifier).refresh();
           await ref.read(walletTransactionsProvider.future);
         },
         child: walletAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const Center(child: CircularProgressIndicator.adaptive()),
           error: (_, _) => _WalletError(
             onRetry: () => ref.read(walletProvider.notifier).refresh(),
           ),
@@ -95,7 +95,7 @@ class WalletScreen extends ConsumerWidget {
               transactionsAsync.when(
                 loading: () => const Padding(
                   padding: EdgeInsets.only(top: 24),
-                  child: Center(child: CircularProgressIndicator()),
+                  child: Center(child: CircularProgressIndicator.adaptive()),
                 ),
                 error: (_, _) => Padding(
                   padding: const EdgeInsets.only(top: 24),

@@ -33,7 +33,7 @@ class HomeScreen extends ConsumerWidget {
             NewProjectRow(hPadding: hPadding),
             Divider(height: 1, thickness: 1, color: colors.divider),
             Expanded(
-              child: RefreshIndicator(
+              child: RefreshIndicator.adaptive(
                 onRefresh: _onRefresh,
                 child: ListView.separated(
                   physics: const AlwaysScrollableScrollPhysics(),

@@ -1,3 +1,4 @@
+import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/theme/theme.dart';
@@ -18,6 +19,22 @@ class RoleTabs extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const roles = UserRole.values;
+
+    // iOS : contrôle segmenté natif (Liquid Glass sur iOS 26+, glissant
+    // Cupertino avant). Android garde la pilule de la marque.
+    if (PlatformInfo.isIOS) {
+      return AdaptiveSegmentedControl(
+        labels: [for (final role in roles) role.label],
+        selectedIndex: roles.indexOf(selected),
+        color: context.colors.accent,
+        onValueChanged: (index) {
+          if (roles[index] == selected) return;
+          SoundService.instance.vibrateSelection();
+          onChanged(roles[index]);
+        },
+      );
+    }
+
     return Container(
       padding: const EdgeInsets.all(5),
       decoration: BoxDecoration(

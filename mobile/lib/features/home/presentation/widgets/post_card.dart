@@ -23,6 +23,7 @@ import '../providers/home_providers.dart';
 import 'poll_post_widget.dart';
 
 import 'package:zennyt/shared/icons/app_icons.dart';
+import 'package:zennyt/shared/widgets/app_popup_menu.dart';
 
 class PostCard extends ConsumerStatefulWidget {
   final Post post;
@@ -189,7 +190,7 @@ class _PostCardState extends ConsumerState<PostCard> with SingleTickerProviderSt
             ),
             placeholder: (context, url) => const SizedBox(
               height: 200,
-              child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+              child: Center(child: CircularProgressIndicator.adaptive(strokeWidth: 2)),
             ),
           ),
         );
@@ -396,42 +397,22 @@ class _PostCardState extends ConsumerState<PostCard> with SingleTickerProviderSt
                   ],
                 ),
               ),
-              PopupMenuButton<String>(
-                icon: AppIcon(
-                  HugeIcons.strokeRoundedMoreHorizontal,
-                  color: colors.textMuted,
-                ),
-                color: colors.cardSurface,
-                elevation: 6,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                itemBuilder: (context) => [
-                  PopupMenuItem(
-                    onTap: blockAuthor,
-                    child: Row(
-                      children: [
-                        const AppIcon(HugeIcons.strokeRoundedBlocked,
-                            size: 16, color: Color(0xFF214389)),
-                        const SizedBox(width: 12),
-                        Text(l10n.block,
-                            style: TextStyle(
-                                fontSize: 14, color: colors.textPrimary)),
-                      ],
-                    ),
+              AppPopupMenu.icon(
+                icon: HugeIcons.strokeRoundedMoreHorizontal,
+                iconColor: colors.textMuted,
+                entries: [
+                  AppMenuAction(
+                    label: l10n.block,
+                    sfSymbol: 'nosign',
+                    icon: HugeIcons.strokeRoundedBlocked,
+                    destructive: true,
+                    onSelected: blockAuthor,
                   ),
-                  PopupMenuItem(
-                    onTap: hidePost,
-                    child: Row(
-                      children: [
-                        AppIcon(HugeIcons.strokeRoundedViewOff,
-                            color: colors.textMuted, size: 14),
-                        const SizedBox(width: 12),
-                        Text(l10n.hide,
-                            style: TextStyle(
-                                fontSize: 14, color: colors.textPrimary)),
-                      ],
-                    ),
+                  AppMenuAction(
+                    label: l10n.hide,
+                    sfSymbol: 'eye.slash',
+                    icon: HugeIcons.strokeRoundedViewOff,
+                    onSelected: hidePost,
                   ),
                 ],
               ),

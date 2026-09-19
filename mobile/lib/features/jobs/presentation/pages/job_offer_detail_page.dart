@@ -1,3 +1,5 @@
+import 'package:adaptive_platform_ui/adaptive_platform_ui.dart'
+    show AdaptiveCheckbox;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,6 +12,7 @@ import 'package:zennyt/features/jobs/presentation/providers/jobs_provider.dart';
 import 'package:zennyt/shared/widgets/custom_app_bar.dart';
 
 import 'package:zennyt/shared/icons/app_icons.dart';
+import 'package:zennyt/shared/widgets/app_spinner.dart';
 
 /// Détail d'une offre d'emploi, partagé candidat / recruteur — remplace le
 /// placeholder `_NotYetPortedPage` (`AppRoutes.jobDetail`, REC-04 non porté).
@@ -31,7 +34,7 @@ class JobOfferDetailPage extends ConsumerWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       body: async.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(child: CircularProgressIndicator.adaptive()),
         error: (e, _) => _ErrorBody(
           message: 'Failed to load this job offer.',
           onRetry: () => ref.invalidate(jobOfferDetailProvider(jobId)),
@@ -419,7 +422,7 @@ class _AssessmentCard extends ConsumerWidget {
       child: async.when(
         loading: () => const SizedBox(
           height: 52,
-          child: Center(child: CircularProgressIndicator(strokeWidth: 2.5)),
+          child: Center(child: CircularProgressIndicator.adaptive(strokeWidth: 2.5)),
         ),
         error: (_, _) => _startButton(context, ref, enabled: consent),
         data: (result) {
@@ -462,7 +465,7 @@ class _AssessmentCard extends ConsumerWidget {
               const SizedBox(height: 6),
               Row(
                 children: [
-                  Checkbox(
+                  AdaptiveCheckbox(
                     value: consent,
                     activeColor: const Color(0xFF11428D),
                     onChanged: (v) => onConsent(v ?? false),
@@ -725,7 +728,7 @@ class _BarButton extends StatelessWidget {
             ? const SizedBox(
                 width: 22,
                 height: 22,
-                child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white),
+                child: AppSpinner(strokeWidth: 2.4, color: Colors.white),
               )
             : Row(
                 mainAxisSize: MainAxisSize.min,

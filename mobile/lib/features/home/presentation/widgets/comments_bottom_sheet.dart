@@ -9,6 +9,7 @@ import 'package:zennyt/features/home/presentation/providers/home_providers.dart'
 import 'package:zennyt/core/avatar/avatar_service.dart';
 import 'package:zennyt/features/auth/presentation/auth_controller.dart';
 import 'package:zennyt/core/theme/theme.dart';
+import 'package:zennyt/shared/widgets/app_spinner.dart';
 
 class CommentsBottomSheet extends ConsumerStatefulWidget {
   final String postId;
@@ -150,7 +151,7 @@ class _CommentsBottomSheetState extends ConsumerState<CommentsBottomSheet> {
                 Expanded(
                   child: commentsAsync.when(
                     loading: () => Center(
-                      child: CircularProgressIndicator(color: colors.primary),
+                      child: AppSpinner(color: colors.primary),
                     ),
                     error: (err, stack) => Center(
                       child: Text(
@@ -282,7 +283,7 @@ class _CommentsBottomSheetState extends ConsumerState<CommentsBottomSheet> {
                             ? SizedBox(
                                 width: 20,
                                 height: 20,
-                                child: CircularProgressIndicator(
+                                child: AppSpinner(
                                   strokeWidth: 2,
                                   color: colors.primary,
                                 ),

@@ -3,7 +3,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:zennyt/l10n/gen/app_localizations.dart';
 import '../../../../core/constants.dart';
 import '../../../../shared/widgets/platform_scaffold.dart';
@@ -177,7 +176,6 @@ class _HelpChatDetailPageState extends ConsumerState<HelpChatDetailPage> {
           ],
         ),
         showBack: true,
-        onLeadingPressed: () => context.pop(),
       ),
       bottomNavigationBar: null,
       backgroundColor: AppColors.background,
@@ -220,7 +218,7 @@ class _HelpChatDetailPageState extends ConsumerState<HelpChatDetailPage> {
                     loading: () => Center(
                       child: AppConstants.isCupertino
                           ? const CupertinoActivityIndicator()
-                          : const CircularProgressIndicator(),
+                          : const CircularProgressIndicator.adaptive(),
                     ),
                     error: (error, _) => Center(child: Text('Erreur: $error')),
                   ),
@@ -462,7 +460,7 @@ class _HelpChatDetailPageState extends ConsumerState<HelpChatDetailPage> {
                     height: 26,
                     child: Padding(
                       padding: EdgeInsets.all(3),
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                      child: CircularProgressIndicator.adaptive(strokeWidth: 2),
                     ),
                   )
                 : GestureDetector(

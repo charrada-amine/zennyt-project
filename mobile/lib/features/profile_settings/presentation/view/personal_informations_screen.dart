@@ -16,6 +16,7 @@ import '../../../../core/avatar/avatar_service.dart';
 import '../widgets/account_change_otp_dialog.dart';
 
 import 'package:zennyt/shared/icons/app_icons.dart';
+import 'package:zennyt/shared/widgets/app_select.dart';
 
 class PersonalInformationsScreen extends ConsumerStatefulWidget {
   const PersonalInformationsScreen({super.key});
@@ -415,34 +416,45 @@ class _PersonalInformationsScreenState
             ),
           ),
           DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
+            child: AppSelect<String>(
               value: _country,
-              isExpanded: true,
-              isDense: true,
-              icon: Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: AppIcon(
-                  HugeIcons.strokeRoundedArrowDown01,
-                  color: colors.chevron,
-                ),
-              ),
+              options: AppLocations.countries,
+              labelOf: (country) => country,
               style: AppTypography.bodyMedium.copyWith(
                 color: colors.primary,
                 fontWeight: FontWeight.w600,
               ),
-              onChanged: (String? newValue) {
-                setState(() {
-                  _country = newValue;
-                });
-              },
-              items: AppLocations.countries.map<DropdownMenuItem<String>>((
-                String value,
-              ) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value),
-                );
-              }).toList(),
+              chevronColor: colors.chevron,
+              onChanged: (newValue) => setState(() => _country = newValue),
+              material: DropdownButton<String>(
+                value: _country,
+                isExpanded: true,
+                isDense: true,
+                icon: Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: AppIcon(
+                    HugeIcons.strokeRoundedArrowDown01,
+                    color: colors.chevron,
+                  ),
+                ),
+                style: AppTypography.bodyMedium.copyWith(
+                  color: colors.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _country = newValue;
+                  });
+                },
+                items: AppLocations.countries.map<DropdownMenuItem<String>>((
+                  String value,
+                ) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value),
+                  );
+                }).toList(),
+              ),
             ),
           ),
         ],

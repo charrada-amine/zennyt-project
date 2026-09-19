@@ -17,6 +17,7 @@ import '../widgets/game_results_template.dart';
 import '../widgets/game_system_components.dart';
 
 import 'package:zennyt/shared/icons/app_icons.dart';
+import 'package:zennyt/shared/widgets/app_spinner.dart';
 
 /// IST — Information Sampling Task (Clark et al., 2006).
 ///
@@ -259,7 +260,7 @@ class _IstScreenState extends ConsumerState<IstScreen>
         _IstStage.submitting => const DecisionGameplayFrame(
           children: [
             SizedBox(height: 200),
-            Center(child: CircularProgressIndicator(color: Colors.white)),
+            Center(child: AppSpinner(color: Colors.white)),
           ],
         ),
         _IstStage.results => _buildResults(),

@@ -183,7 +183,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
         data: (currentUser) => notificationsAsync.when(
           data: (notifications) {
             if (notifications.isEmpty) {
-              return RefreshIndicator(
+              return RefreshIndicator.adaptive(
                 onRefresh: _refreshNotifications,
                 child: LayoutBuilder(
                   builder: (context, constraints) => SingleChildScrollView(
@@ -227,10 +227,13 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
 
             final groups = groupNotificationsByDate(notifications);
 
-            return RefreshIndicator(
+            return RefreshIndicator.adaptive(
               onRefresh: _refreshNotifications,
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.paddingOf(context).bottom,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -261,14 +264,14 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
           loading: () => Center(
             child: AppConstants.isCupertino
                 ? const CupertinoActivityIndicator()
-                : const CircularProgressIndicator(),
+                : const CircularProgressIndicator.adaptive(),
           ),
           error: (error, _) => Center(child: Text('Error: $error')),
         ),
         loading: () => Center(
           child: AppConstants.isCupertino
               ? const CupertinoActivityIndicator()
-              : const CircularProgressIndicator(),
+              : const CircularProgressIndicator.adaptive(),
         ),
         error: (error, _) => Center(child: Text('Error: $error')),
       ),

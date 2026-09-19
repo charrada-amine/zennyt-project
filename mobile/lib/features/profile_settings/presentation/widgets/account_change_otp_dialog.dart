@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../core/theme/theme.dart';
+import 'package:zennyt/shared/widgets/app_spinner.dart';
 
 /// OTP confirmation dialog for an account change (e-mail or phone).
 ///
@@ -177,7 +178,7 @@ class _AccountChangeOtpDialogState extends State<AccountChangeOtpDialog> {
                     ? const SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white),
+                        child: AppSpinner(strokeWidth: 2.4, color: Colors.white),
                       )
                     : const Text(
                         'Continue',

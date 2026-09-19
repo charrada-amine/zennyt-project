@@ -142,7 +142,7 @@ class ChatsPage extends ConsumerWidget {
                   loading: () => Center(
                     child: AppConstants.isCupertino
                         ? const CupertinoActivityIndicator()
-                        : const CircularProgressIndicator(),
+                        : const CircularProgressIndicator.adaptive(),
                   ),
                   error: (error, _) => Center(child: Text('Erreur: $error')),
                 ),

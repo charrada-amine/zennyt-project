@@ -7,6 +7,7 @@ import '../../features/auth/presentation/auth_controller.dart';
 import '../../features/auth/presentation/current_user_provider.dart';
 
 import 'package:zennyt/shared/icons/app_icons.dart';
+import 'app_popup_menu.dart';
 
 /// Avatar de l'utilisateur connecté (photo ou initiales) avec le menu de
 /// session : identité + « Se déconnecter ».
@@ -23,43 +24,24 @@ class SessionAvatar extends ConsumerWidget {
                 (user.lastName.isNotEmpty ? user.lastName[0] : ''))
             .toUpperCase();
 
-    return PopupMenuButton<String>(
+    return AppPopupMenu(
       tooltip: 'Compte',
-      offset: const Offset(0, 48),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      onSelected: (value) async {
-        if (value == 'logout') {
-          await ref.read(authControllerProvider.notifier).logout();
-          if (context.mounted) context.go(AppRoutes.login);
-        }
-      },
-      itemBuilder: (context) => [
-        PopupMenuItem<String>(
+      entries: [
+        AppMenuAction(
+          label: user?.fullName ?? '',
+          subtitle: user?.email,
           enabled: false,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(user?.fullName ?? '',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w700, color: Color(0xFF1E1B4B))),
-              Text(user?.email ?? '',
-                  style:
-                      const TextStyle(fontSize: 12, color: Color(0xFF7A869A))),
-            ],
-          ),
         ),
-        const PopupMenuDivider(),
-        const PopupMenuItem<String>(
-          value: 'logout',
-          child: Row(
-            children: [
-              AppIcon(HugeIcons.strokeRoundedLogout01, size: 18, color: Color(0xFFE53935)),
-              SizedBox(width: 8),
-              Text('Se déconnecter',
-                  style: TextStyle(color: Color(0xFFE53935))),
-            ],
-          ),
+        const AppMenuDivider(),
+        AppMenuAction(
+          label: 'Se déconnecter',
+          sfSymbol: 'rectangle.portrait.and.arrow.right',
+          icon: HugeIcons.strokeRoundedLogout01,
+          destructive: true,
+          onSelected: () async {
+            await ref.read(authControllerProvider.notifier).logout();
+            if (context.mounted) context.go(AppRoutes.login);
+          },
         ),
       ],
       child: Stack(

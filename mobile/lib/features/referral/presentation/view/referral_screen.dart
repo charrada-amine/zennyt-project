@@ -11,6 +11,7 @@ import 'package:zennyt/features/referral/presentation/providers/referral_provide
 import 'package:zennyt/shared/widgets/custom_app_bar.dart';
 
 import 'package:zennyt/shared/icons/app_icons.dart';
+import 'package:zennyt/shared/widgets/app_dialog.dart';
 
 /// Parrainage (maquettes 115/117) : lien à partager + liste des filleuls avec
 /// leur statut (invité / en cours D-xx / recruté).
@@ -33,13 +34,13 @@ class ReferralScreen extends ConsumerWidget {
           onTap: () => _showInviteDialog(context, ref),
         ),
       ),
-      body: RefreshIndicator(
+      body: RefreshIndicator.adaptive(
         onRefresh: () => ref.read(referralsProvider.notifier).refresh(),
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
           children: [
             linkAsync.when(
-              loading: () => const SizedBox(height: 120, child: Center(child: CircularProgressIndicator())),
+              loading: () => const SizedBox(height: 120, child: Center(child: CircularProgressIndicator.adaptive())),
               error: (_, _) => const SizedBox.shrink(),
               data: (link) => _LinkCard(link: link),
             ),
@@ -47,7 +48,7 @@ class ReferralScreen extends ConsumerWidget {
             referralsAsync.when(
               loading: () => const Padding(
                 padding: EdgeInsets.only(top: 40),
-                child: Center(child: CircularProgressIndicator()),
+                child: Center(child: CircularProgressIndicator.adaptive()),
               ),
               error: (_, _) => const Padding(
                 padding: EdgeInsets.only(top: 40),
@@ -85,25 +86,14 @@ class ReferralScreen extends ConsumerWidget {
   }
 
   Future<void> _showInviteDialog(BuildContext context, WidgetRef ref) async {
-    final controller = TextEditingController();
-    final email = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Invite a friend'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          keyboardType: TextInputType.emailAddress,
-          decoration: const InputDecoration(labelText: 'Friend\'s e-mail', hintText: 'name@example.com'),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-            child: const Text('Send invite'),
-          ),
-        ],
-      ),
+    final email = await AppDialog.input(
+      context,
+      title: 'Invite a friend',
+      message: 'Friend\'s e-mail',
+      placeholder: 'name@example.com',
+      keyboardType: TextInputType.emailAddress,
+      cancelLabel: 'Cancel',
+      confirmLabel: 'Send invite',
     );
     if (email == null || email.isEmpty || !context.mounted) return;
     try {

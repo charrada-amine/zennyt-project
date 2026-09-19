@@ -11,6 +11,7 @@ import '../viewmodel/candidate_profile_viewmodel.dart';
 import 'profile_modals.dart';
 
 import 'package:zennyt/shared/icons/app_icons.dart';
+import 'package:zennyt/shared/widgets/app_dialog.dart';
 
 class CandidateOverviewTab extends ConsumerWidget {
   const CandidateOverviewTab({super.key});
@@ -21,7 +22,7 @@ class CandidateOverviewTab extends ConsumerWidget {
     final colors = context.colors;
 
     if (state.isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: CircularProgressIndicator.adaptive());
     }
 
     if (state.errorMessage != null) {
@@ -963,50 +964,43 @@ class CandidateOverviewTab extends ConsumerWidget {
     }
   }
 
-  void _onDeleteCv(BuildContext context, WidgetRef ref, AppColorScheme colors) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete CV?'),
-        content: const Text(
+  Future<void> _onDeleteCv(
+    BuildContext context,
+    WidgetRef ref,
+    AppColorScheme colors,
+  ) async {
+    final confirmed = await AppDialog.confirm(
+      context,
+      title: 'Delete CV?',
+      message:
           'Your CV will be removed from your profile. Recruiters will no longer be able to view it.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(ctx);
-              try {
-                await ref.read(candidateProfileProvider.notifier).deleteCv();
-                if (context.mounted) {
-                  _showSnackBar(
-                    context,
-                    colors,
-                    icon: HugeIcons.strokeRoundedCheckmarkCircle02,
-                    message: 'CV deleted.',
-                    isError: false,
-                  );
-                }
-              } on ApiException catch (apiErr) {
-                if (context.mounted) {
-                  _showSnackBar(
-                    context,
-                    colors,
-                    icon: HugeIcons.strokeRoundedAlertCircle,
-                    message: apiErr.message,
-                    isError: true,
-                  );
-                }
-              }
-            },
-            child: Text('Delete', style: TextStyle(color: colors.error)),
-          ),
-        ],
-      ),
+      cancelLabel: 'Cancel',
+      confirmLabel: 'Delete',
+      destructive: true,
     );
+    if (!confirmed) return;
+    try {
+      await ref.read(candidateProfileProvider.notifier).deleteCv();
+      if (context.mounted) {
+        _showSnackBar(
+          context,
+          colors,
+          icon: HugeIcons.strokeRoundedCheckmarkCircle02,
+          message: 'CV deleted.',
+          isError: false,
+        );
+      }
+    } on ApiException catch (apiErr) {
+      if (context.mounted) {
+        _showSnackBar(
+          context,
+          colors,
+          icon: HugeIcons.strokeRoundedAlertCircle,
+          message: apiErr.message,
+          isError: true,
+        );
+      }
+    }
   }
 
   void _showSnackBar(

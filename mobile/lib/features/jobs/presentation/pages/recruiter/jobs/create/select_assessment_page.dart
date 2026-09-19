@@ -8,6 +8,7 @@ import 'package:zennyt/features/jobs/presentation/providers/jobs_provider.dart';
 import 'widgets/assessment_preview_sheet.dart';
 
 import 'package:zennyt/shared/icons/app_icons.dart';
+import 'package:zennyt/shared/widgets/app_spinner.dart';
 
 /// Sélection d'un test à attacher à l'offre — porté depuis REC-04.
 class SelectAssessmentPage extends ConsumerStatefulWidget {
@@ -50,7 +51,7 @@ class _SelectAssessmentPageState extends ConsumerState<SelectAssessmentPage> {
       ),
       body: assessmentsAsync.when(
         loading: () => const Center(
-          child: CircularProgressIndicator(color: Color(0xFF21438A)),
+          child: AppSpinner(color: Color(0xFF21438A)),
         ),
         error: (e, _) => Center(
           child: Column(

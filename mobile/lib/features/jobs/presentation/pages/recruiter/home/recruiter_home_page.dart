@@ -20,7 +20,7 @@ class RecruiterHomePage extends ConsumerWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: const HomeAppBar(),
-      body: RefreshIndicator(
+      body: RefreshIndicator.adaptive(
         onRefresh: () async {
           await ref.read(jobOffersProvider.notifier).refresh();
           await ref.read(assessmentsProvider.notifier).refresh();

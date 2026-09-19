@@ -1,3 +1,5 @@
+import 'package:adaptive_platform_ui/adaptive_platform_ui.dart'
+    show AdaptiveDatePicker, PlatformInfo;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -17,6 +19,8 @@ import '../viewmodel/candidate_profile_viewmodel.dart';
 import '../widgets/profile_avatar.dart';
 
 import 'package:zennyt/shared/icons/app_icons.dart';
+import 'package:zennyt/core/widgets/zennyt_switch.dart';
+import 'package:zennyt/shared/widgets/app_select.dart';
 
 class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
@@ -256,7 +260,16 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
 
   Future<void> _pickDate() async {
     final colors = context.colors;
-    final picked = await showDatePicker(
+    // iOS : roue de date Cupertino dans une feuille ; Android garde le
+    // sélecteur Material aux couleurs de la marque.
+    final picked = PlatformInfo.isIOS
+        ? await AdaptiveDatePicker.show(
+            context: context,
+            initialDate: DateTime.now(),
+            firstDate: DateTime.now(),
+            lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
+          )
+        : await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
       firstDate: DateTime.now(),
@@ -578,25 +591,36 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
             ),
           ),
           DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
+            child: AppSelect<String>(
               value: options.contains(value) ? value : options.first,
-              isExpanded: true,
-              isDense: true,
-              icon: AppIcon(
-                HugeIcons.strokeRoundedArrowDown01,
-                color: colors.primary,
-                size: 22,
-              ),
+              options: options,
+              labelOf: (opt) => opt,
               style: AppTypography.bodyMedium.copyWith(
                 color: colors.textPrimary,
                 fontWeight: FontWeight.w500,
               ),
-              dropdownColor: colors.scaffoldBg,
-              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-              items: options.map((opt) {
-                return DropdownMenuItem(value: opt, child: Text(opt));
-              }).toList(),
+              chevronColor: colors.primary,
               onChanged: onChanged,
+              material: DropdownButton<String>(
+                value: options.contains(value) ? value : options.first,
+                isExpanded: true,
+                isDense: true,
+                icon: AppIcon(
+                  HugeIcons.strokeRoundedArrowDown01,
+                  color: colors.primary,
+                  size: 22,
+                ),
+                style: AppTypography.bodyMedium.copyWith(
+                  color: colors.textPrimary,
+                  fontWeight: FontWeight.w500,
+                ),
+                dropdownColor: colors.scaffoldBg,
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                items: options.map((opt) {
+                  return DropdownMenuItem(value: opt, child: Text(opt));
+                }).toList(),
+                onChanged: onChanged,
+              ),
             ),
           ),
         ],
@@ -623,24 +647,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
               ),
             ),
           ),
-          SizedBox(
-            height: 28,
-            child: Switch.adaptive(
-              value: _openToWorkInternationally,
-              thumbColor: WidgetStateProperty.resolveWith((states) {
-                if (states.contains(WidgetState.selected)) {
-                  return Colors.white;
-                }
-                return null;
-              }),
-              trackColor: WidgetStateProperty.resolveWith((states) {
-                if (states.contains(WidgetState.selected)) {
-                  return colors.success;
-                }
-                return colors.border;
-              }),
-              onChanged: (v) => setState(() => _openToWorkInternationally = v),
-            ),
+          ZennytSwitch(
+            value: _openToWorkInternationally,
+            onChanged: (v) => setState(() => _openToWorkInternationally = v),
           ),
         ],
       ),

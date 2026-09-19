@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:zennyt/features/jobs/presentation/widgets/app_text_field.dart';
 import 'package:zennyt/shared/icons/app_icons.dart';
+import 'package:zennyt/shared/widgets/app_select.dart';
 
 class AssessmentStep1Form extends StatelessWidget {
   final TextEditingController titleCtrl;
@@ -115,15 +116,27 @@ class _QuestionsDropdown extends StatelessWidget {
         border: Border.all(color: const Color(0xFFCBD5E1), width: 1),
       ),
       child: DropdownButtonHideUnderline(
-        child: DropdownButton<int>(
+        child: AppSelect<int>(
           value: value,
-          isExpanded: true,
-          icon: const AppIcon(HugeIcons.strokeRoundedArrowDown01, color: Color(0xFF64748B)),
-          style: const TextStyle(fontSize: 15, color: Color(0xFF1E293B), fontWeight: FontWeight.w500),
-          items: [1, 10, 15, 20, 25, 30].map((v) {
-            return DropdownMenuItem<int>(value: v, child: Text('Maximum $v questions'));
-          }).toList(),
+          options: const [1, 10, 15, 20, 25, 30],
+          labelOf: (v) => 'Maximum $v questions',
+          style: const TextStyle(
+            fontSize: 15,
+            color: Color(0xFF1E293B),
+            fontWeight: FontWeight.w500,
+          ),
+          chevronColor: const Color(0xFF64748B),
           onChanged: onChanged,
+          material: DropdownButton<int>(
+            value: value,
+            isExpanded: true,
+            icon: const AppIcon(HugeIcons.strokeRoundedArrowDown01, color: Color(0xFF64748B)),
+            style: const TextStyle(fontSize: 15, color: Color(0xFF1E293B), fontWeight: FontWeight.w500),
+            items: [1, 10, 15, 20, 25, 30].map((v) {
+              return DropdownMenuItem<int>(value: v, child: Text('Maximum $v questions'));
+            }).toList(),
+            onChanged: onChanged,
+          ),
         ),
       ),
     );

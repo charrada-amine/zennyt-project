@@ -15,6 +15,7 @@ import '../../widgets/auth_desktop_shell.dart';
 import '../../auth_providers.dart';
 
 import 'package:zennyt/shared/icons/app_icons.dart';
+import 'package:zennyt/shared/widgets/app_dialog.dart';
 
 class ForgotPasswordOtpScreen extends ConsumerStatefulWidget {
   const ForgotPasswordOtpScreen({super.key, required this.email});
@@ -107,70 +108,17 @@ class _ForgotPasswordOtpScreenState
     }
   }
 
-  void _showSuccessDialog() {
-    final colors = context.colors;
+  Future<void> _showSuccessDialog() async {
     final l10n = context.l10n;
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: colors.cardSurface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                color: const Color(0xFF4CAF50).withValues(alpha: 0.15),
-                shape: BoxShape.circle,
-              ),
-              child: const AppIcon(
-                HugeIcons.strokeRoundedCheckmarkCircle02,
-                color: Color(0xFF4CAF50),
-                size: 36,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Text(
-              l10n.passwordResetSuccess,
-              textAlign: TextAlign.center,
-              style: AppTypography.titleMedium.copyWith(
-                color: colors.textPrimary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: FilledButton(
-              onPressed: () {
-                Navigator.pop(ctx);
-                context.go(AppRoutes.login);
-              },
-              style: FilledButton.styleFrom(
-                backgroundColor: colors.primary,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: Text(
-                l10n.backToLogin,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
+    // Alerte native sur iOS ; la fermeture (bouton ou tap extérieur sur
+    // Android) ramène toujours à la connexion.
+    await AppDialog.success(
+      context,
+      title: l10n.passwordResetSuccess,
+      message: '',
+      buttonLabel: l10n.backToLogin,
     );
+    if (mounted) context.go(AppRoutes.login);
   }
 
   @override

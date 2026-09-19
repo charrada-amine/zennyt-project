@@ -7,6 +7,7 @@ import '../../domain/entities/feed_post.dart';
 import 'feed_avatar.dart';
 
 import 'package:zennyt/shared/icons/app_icons.dart';
+import 'package:zennyt/shared/widgets/app_popup_menu.dart';
 
 /// A single feed post: header (author / time / menu), optional text, link and
 /// image, the comments/shares line, and the like/comment/share action row.
@@ -159,56 +160,25 @@ class _PostMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<String>(
-      icon: AppIcon(HugeIcons.strokeRoundedMoreHorizontal, color: colors.textSecondary),
-      color: colors.cardSurface,
-      elevation: 6,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-      ),
-      position: PopupMenuPosition.under,
-      onSelected: (_) {},
-      itemBuilder: (context) => [
-        PopupMenuItem(
-          value: 'report',
-          child: _MenuRow(
-            icon: HugeIcons.strokeRoundedFlag02,
-            label: AppStrings.report,
-          ),
+    return AppPopupMenu.icon(
+      icon: HugeIcons.strokeRoundedMoreHorizontal,
+      iconColor: colors.textSecondary,
+      entries: const [
+        AppMenuAction(
+          label: AppStrings.report,
+          sfSymbol: 'flag',
+          icon: HugeIcons.strokeRoundedFlag02,
         ),
-        PopupMenuItem(
-          value: 'hide',
-          child: _MenuRow(
-            icon: HugeIcons.strokeRoundedViewOff,
-            label: AppStrings.hide,
-          ),
+        AppMenuAction(
+          label: AppStrings.hide,
+          sfSymbol: 'eye.slash',
+          icon: HugeIcons.strokeRoundedViewOff,
         ),
       ],
     );
   }
 }
 
-class _MenuRow extends StatelessWidget {
-  const _MenuRow({required this.icon, required this.label});
-
-  final AppIconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    return Row(
-      children: [
-        AppIcon(icon, size: AppSpacing.iconMd, color: colors.iconDefault),
-        const SizedBox(width: AppSpacing.md),
-        Text(
-          label,
-          style: AppTypography.bodyMedium.copyWith(color: colors.textPrimary),
-        ),
-      ],
-    );
-  }
-}
 
 class _PostActions extends StatelessWidget {
   const _PostActions({required this.likedBy, required this.colors});

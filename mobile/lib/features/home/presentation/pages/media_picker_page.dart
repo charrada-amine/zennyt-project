@@ -84,7 +84,7 @@ class MediaPickerPage extends ConsumerWidget {
     AppLocalizations l10n,
   ) {
     if (state.isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: CircularProgressIndicator.adaptive());
     }
 
     if (!state.hasPermission) {
