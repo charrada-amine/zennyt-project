@@ -1,3 +1,5 @@
+import 'package:adaptive_platform_ui/adaptive_platform_ui.dart'
+    show AdaptiveCheckbox;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -330,10 +332,10 @@ class _TermsCheckbox extends StatelessWidget {
             SizedBox(
               width: 24,
               height: 24,
-              child: Checkbox(
+              child: AdaptiveCheckbox(
                 value: value,
                 onChanged: onChanged,
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                activeColor: context.colors.primary,
               ),
             ),
             const SizedBox(width: AppSpacing.sm),

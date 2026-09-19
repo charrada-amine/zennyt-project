@@ -1,3 +1,5 @@
+import 'package:adaptive_platform_ui/adaptive_platform_ui.dart'
+    show AdaptiveCheckbox;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -462,7 +464,7 @@ class _AssessmentCard extends ConsumerWidget {
               const SizedBox(height: 6),
               Row(
                 children: [
-                  Checkbox(
+                  AdaptiveCheckbox(
                     value: consent,
                     activeColor: const Color(0xFF11428D),
                     onChanged: (v) => onConsent(v ?? false),

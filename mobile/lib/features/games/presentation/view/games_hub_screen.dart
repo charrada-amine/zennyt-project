@@ -1,3 +1,5 @@
+import 'package:adaptive_platform_ui/adaptive_platform_ui.dart'
+    show AdaptiveCheckbox;
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -1449,7 +1451,7 @@ Future<bool?> _showGamesConsentDialog(BuildContext context) {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Checkbox(
+                  AdaptiveCheckbox(
                     value: agreed,
                     activeColor: _hub(context).violet,
                     onChanged: (v) => setState(() => agreed = v ?? false),

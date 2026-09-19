@@ -1,3 +1,5 @@
+import 'package:adaptive_platform_ui/adaptive_platform_ui.dart'
+    show AdaptiveSlider;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -157,7 +159,7 @@ class _AccessibilityScreenState extends ConsumerState<AccessibilityScreen> {
                                       ),
                                       overlayShape: SliderComponentShape.noOverlay,
                                     ),
-                                    child: Slider(
+                                    child: AdaptiveSlider(
                                       value: a11y.textSizePx,
                                       min: 10,
                                       max: 30,

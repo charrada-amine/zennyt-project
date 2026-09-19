@@ -1,5 +1,5 @@
 import 'package:adaptive_platform_ui/adaptive_platform_ui.dart'
-    show AdaptiveSegmentedControl;
+    show AdaptiveSegmentedControl, AdaptiveSwitch;
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -2359,7 +2359,11 @@ class GamePauseSwitchTile extends StatelessWidget {
               letterSpacing: 0,
             ),
           ),
-          Switch(value: value, onChanged: onChanged),
+          AdaptiveSwitch(
+            value: value,
+            onChanged: onChanged,
+            activeColor: ZennytGamePalette.success,
+          ),
         ],
       ),
     );

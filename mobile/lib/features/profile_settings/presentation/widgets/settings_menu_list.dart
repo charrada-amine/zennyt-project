@@ -1,3 +1,5 @@
+import 'package:adaptive_platform_ui/adaptive_platform_ui.dart'
+    show AdaptiveSwitch;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -67,20 +69,15 @@ class SettingsMenuList extends ConsumerWidget {
           icon: HugeIcons.strokeRoundedNotification01,
           boxColor: AppColors.iconBlue,
           label: l10n.notifications,
-          trailing: SizedBox(
-            height: 28,
-            child: FittedBox(
-              child: Switch.adaptive(
-                value: notifEnabled,
-                activeTrackColor: colors.primary,
-                onChanged: (val) {
-                  final current = preferences ?? UserPreferences.defaults;
-                  ref
-                      .read(preferencesProvider.notifier)
-                      .save(current.copyWith(notificationsEnabled: val));
-                },
-              ),
-            ),
+          trailing: AdaptiveSwitch(
+            value: notifEnabled,
+            activeColor: colors.primary,
+            onChanged: (val) {
+              final current = preferences ?? UserPreferences.defaults;
+              ref
+                  .read(preferencesProvider.notifier)
+                  .save(current.copyWith(notificationsEnabled: val));
+            },
           ),
           onTap: () {
             final current = preferences ?? UserPreferences.defaults;
@@ -96,19 +93,14 @@ class SettingsMenuList extends ConsumerWidget {
           icon: HugeIcons.strokeRoundedMoon02,
           boxColor: AppColors.iconBlack,
           label: l10n.theme,
-          trailing: SizedBox(
-            height: 28,
-            child: FittedBox(
-              child: Switch.adaptive(
-                value: isDark,
-                activeTrackColor: colors.primary,
-                onChanged: (val) {
-                  ref
-                      .read(themeProvider.notifier)
-                      .setMode(val ? ThemeMode.dark : ThemeMode.light);
-                },
-              ),
-            ),
+          trailing: AdaptiveSwitch(
+            value: isDark,
+            activeColor: colors.primary,
+            onChanged: (val) {
+              ref
+                  .read(themeProvider.notifier)
+                  .setMode(val ? ThemeMode.dark : ThemeMode.light);
+            },
           ),
           onTap: () {
             ref.read(themeProvider.notifier).toggle();
