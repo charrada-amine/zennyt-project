@@ -11,6 +11,7 @@ import 'widgets/assessment_shareable_link_card.dart';
 import 'widgets/assessment_stats_card.dart';
 
 import 'package:zennyt/shared/icons/app_icons.dart';
+import 'package:zennyt/shared/widgets/app_dialog.dart';
 
 class AssessmentDetailPage extends ConsumerWidget {
   final String assessmentId;
@@ -122,21 +123,15 @@ class _AssessmentDetailBody extends ConsumerWidget {
   }
 
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete this test?'),
-        content: const Text('This removes the assessment from your tests. It cannot be undone.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete', style: TextStyle(color: Color(0xFFE53935))),
-          ),
-        ],
-      ),
+    final confirmed = await AppDialog.confirm(
+      context,
+      title: 'Delete this test?',
+      message: 'This removes the assessment from your tests. It cannot be undone.',
+      cancelLabel: 'Cancel',
+      confirmLabel: 'Delete',
+      destructive: true,
     );
-    if (confirmed != true) return;
+    if (!confirmed) return;
     try {
       await ref.read(assessmentsProvider.notifier).deleteAssessment(assessment.id);
       if (context.mounted) context.pop();

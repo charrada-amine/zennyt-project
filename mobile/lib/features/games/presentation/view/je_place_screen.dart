@@ -18,6 +18,7 @@ import '../widgets/game_system_components.dart';
 import '../widgets/je_place_pause_dialog.dart';
 import '../widgets/zennyt_loader.dart';
 import 'package:zennyt/shared/icons/app_icons.dart';
+import 'package:zennyt/shared/widgets/app_dialog.dart';
 
 const _logoAsset = 'assets/games icons/Je Place.png';
 const _canvas = ZennytGamePalette.mist;
@@ -645,23 +646,13 @@ class _JePlaceScreenState extends ConsumerState<JePlaceScreen>
   }
 
   Future<void> _showRules() {
-    return showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Rules / Help'),
-        content: const Text(
+    return AppDialog.info(
+      context,
+      title: 'Rules / Help',
+      message:
           'Memorize what appears and where it sits. After the blank pause, place every object back on the 4 × 4 board. You may move objects until you validate. No correctness feedback appears during measured levels.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              SoundService.instance.playSfx(GameSfx.buttonClick);
-              Navigator.of(context).pop();
-            },
-            child: const Text('Compris'),
-          ),
-        ],
-      ),
+      buttonLabel: 'Compris',
+      onDismissed: () => SoundService.instance.playSfx(GameSfx.buttonClick),
     );
   }
 

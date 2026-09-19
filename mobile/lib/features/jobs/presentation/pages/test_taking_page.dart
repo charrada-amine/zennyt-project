@@ -10,6 +10,7 @@ import 'package:zennyt/features/jobs/presentation/providers/jobs_provider.dart';
 import 'package:zennyt/shared/widgets/custom_app_bar.dart';
 
 import 'package:zennyt/shared/icons/app_icons.dart';
+import 'package:zennyt/shared/widgets/app_dialog.dart';
 
 /// Hard-skills test runner (maquettes 96, 306 / 138-139).
 ///
@@ -140,20 +141,15 @@ class _TestTakingPageState extends ConsumerState<TestTakingPage> {
       context.pop();
       return;
     }
-    final leave = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Leave the assessment?'),
-        content: const Text(
-          'Leaving now abandons your attempt. You only get one attempt per job offer.',
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Stay')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Leave')),
-        ],
-      ),
+    final leave = await AppDialog.confirm(
+      context,
+      title: 'Leave the assessment?',
+      message: 'Leaving now abandons your attempt. You only get one attempt per job offer.',
+      cancelLabel: 'Stay',
+      confirmLabel: 'Leave',
+      destructive: true,
     );
-    if (leave != true) return;
+    if (!leave) return;
     try {
       await ref.read(jobsRepositoryProvider).abandonTestAttempt(attempt.attemptId);
     } catch (_) {
