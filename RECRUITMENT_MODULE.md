@@ -393,9 +393,14 @@ Analytics est déjà branché.
 
 ## 9. Base de données et migrations
 
-Le module utilise le schéma PostgreSQL `recruitment`. Hibernate fonctionne avec
-`ddl-auto: validate` : toute évolution passe par une nouvelle migration Flyway ; aucune
-migration déjà appliquée n'est réécrite.
+Le module utilise le schéma PostgreSQL `recruitment`. Il n'y a plus de migrations : le
+schéma est généré par Hibernate depuis les entités JPA (`ddl-auto: update`), noms de
+contraintes et d'index compris ; les index partiels (`idx_job_offers_position`,
+`uq_job_positions_name_no_sector`, index de la file Fit Score), l'index unique
+`uq_fit_scores_candidate_job` et le trigger `trg_job_role_profiles_touch` sont dans
+`db/schema-complements.sql`, le référentiel des métiers et des pondérations dans
+`db/reference-data.sql`. `update` ne fait qu'ajouter : renommer, retyper ou supprimer une
+colonne, ou modifier une contrainte existante, demande un script de reprise explicite.
 
 ### 9.1 Tables actuelles (schéma `recruitment`)
 
@@ -517,7 +522,8 @@ GROQ_API_KEY=<optionnel>
   70 %, upsert/sous-scores Fit Score, parsing Groq, tri/dismissal, projection publique
   sans réponse, matrice `job_role_profiles`.
 - ArchUnit vérifie les frontières de couches et de modules.
-- Flyway valide toutes les migrations jusqu'à V43 sur PostgreSQL 16 avec `ddl-auto: validate`.
+- Les tests PostgreSQL s'exécutent sur le schéma généré par Hibernate, identique à celui des
+  anciennes migrations V1..V86 (vérifié objet par objet lors de l'abandon de Flyway).
 
 ## 14. Zones protégées
 
@@ -529,7 +535,8 @@ GROQ_API_KEY=<optionnel>
 - Propriété des ressources déduite du JWT.
 - Secret des callbacks et stockage hashé des OTP.
 - Matrice `job_role_profiles` (contraintes de somme 100/100).
-- Migrations Flyway existantes, en particulier V13.
+- Schéma défini par les entités : aucun renommage, changement de type ou suppression de
+  colonne/contrainte sans script de reprise écrit et appliqué sur chaque base.
 - Absence d'appel direct vers les couches internes d'Identity ou Engagement.
 
 ## 15. Décisions à valider et roadmap

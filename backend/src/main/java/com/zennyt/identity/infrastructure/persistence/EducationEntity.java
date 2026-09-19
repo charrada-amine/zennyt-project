@@ -2,9 +2,12 @@ package com.zennyt.identity.infrastructure.persistence;
 
 import com.zennyt.identity.domain.model.Education;
 import jakarta.persistence.*;
+import org.hibernate.Length;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -17,7 +20,10 @@ public class EducationEntity {
     @Getter(AccessLevel.PACKAGE)
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "profile_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "profile_id", nullable = false,
+        foreignKey = @ForeignKey(name = "education_profile_id_fkey"))
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private ProfileEntity profile;
     @Column(nullable = false, length = 150)
     private String degree;
@@ -25,7 +31,7 @@ public class EducationEntity {
     private String school;
     @Column(name = "field_of_study", length = 150)
     private String fieldOfStudy;
-    @Column(columnDefinition = "TEXT")
+    @Column(length = Length.LONG32)
     private String description;
     @Column(name = "start_date")
     private LocalDate startDate;

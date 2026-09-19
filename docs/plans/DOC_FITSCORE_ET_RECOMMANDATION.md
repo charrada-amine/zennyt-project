@@ -632,9 +632,9 @@ répondre, et il répond faux. Un test sur base réelle vérifie désormais que 
 la même famille et de la même ligne de pondération — *Photographe* et *UX/UI Designer* —
 reçoivent bien deux signaux différents.
 
-> **Références** — migrations `V42__job_role_profiles.sql`,
-> `V53__experience_level_back_to_cdc_scale.sql`, `V60__type_evaluation_hard_by_job_position.sql`,
-> `V26__job_positions_seed.sql`, `JobRoleProfile`, `JobPosition.typeEvaluationHard()`
+> **Références** — données de référence `backend/src/main/resources/db/reference-data.sql`
+> (sections `job_role_profiles` et `job_positions`, issues des anciennes migrations V42, V53,
+> V60 et V26), `JobRoleProfile`, `JobPosition.typeEvaluationHard()`
 
 ---
 
@@ -1121,7 +1121,7 @@ GROUP BY type_evaluation_hard;
 
 ⚠️ Sur une base de développement, les totaux dépassent 142 : les métiers proposés par les
 recruteurs pendant les démonstrations s'y accumulent. Pour retrouver le référentiel seul,
-lire `V26__job_positions_seed.sql`.
+lire la section `job_positions` de `backend/src/main/resources/db/reference-data.sql`.
 
 **Les notes d'un candidat, avec le détail des sous-scores :**
 

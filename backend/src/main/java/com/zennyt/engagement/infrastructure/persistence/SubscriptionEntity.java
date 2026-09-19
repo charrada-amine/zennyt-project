@@ -3,12 +3,16 @@ package com.zennyt.engagement.infrastructure.persistence;
 import com.zennyt.engagement.domain.vo.StorePlatform;
 import com.zennyt.engagement.domain.vo.SubscriptionStatus;
 import jakarta.persistence.*;
+import org.hibernate.annotations.Check;
+import org.hibernate.annotations.ColumnDefault;
 
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
 @Table(name = "subscriptions", schema = "engagement")
+@Check(name = "ck_subscriptions_status", constraints = "status IN ('ACTIVE', 'EXPIRED', 'CANCELLED')")
+@Check(name = "ck_subscriptions_store", constraints = "store IN ('APPLE', 'GOOGLE')")
 class SubscriptionEntity {
     @Id @Column(name = "user_id") private UUID userId;
     @Column(name = "plan_code", nullable = false, length = 60) private String planCode;
@@ -17,7 +21,7 @@ class SubscriptionEntity {
     @Column(name = "original_transaction_id", length = 200) private String originalTransactionId;
     @Column(name = "purchased_at") private Instant purchasedAt;
     @Column(name = "expires_at") private Instant expiresAt;
-    @Column(name = "auto_renewing", nullable = false) private boolean autoRenewing;
+    @ColumnDefault("false") @Column(name = "auto_renewing", nullable = false) private boolean autoRenewing;
     @Column(name = "updated_at", nullable = false) private Instant updatedAt;
 
     protected SubscriptionEntity() {}

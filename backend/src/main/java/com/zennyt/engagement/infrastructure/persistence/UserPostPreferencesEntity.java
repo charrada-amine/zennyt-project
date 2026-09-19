@@ -15,14 +15,22 @@ class UserPostPreferencesEntity {
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "hidden_posts", schema = "engagement",
-        joinColumns = @JoinColumn(name = "user_id"))
-    @Column(name = "post_id")
+        joinColumns = @JoinColumn(name = "user_id"),
+        // Ordre des colonnes de la clé primaire (user_id, post_id), fusionné dans hidden_posts_pkey.
+        uniqueConstraints = @UniqueConstraint(name = "hidden_posts_pkey", columnNames = {"user_id", "post_id"}),
+        // @OnDelete est refusé sur une @ElementCollection : la cascade est écrite dans la définition.
+        foreignKey = @ForeignKey(name = "hidden_posts_user_id_fkey", foreignKeyDefinition =
+            "FOREIGN KEY (user_id) REFERENCES engagement.user_post_preferences (user_id) ON DELETE CASCADE"))
+    @Column(name = "post_id", nullable = false)
     private Set<UUID> hiddenPostIds = new LinkedHashSet<>();
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "blocked_authors", schema = "engagement",
-        joinColumns = @JoinColumn(name = "user_id"))
-    @Column(name = "author_id")
+        joinColumns = @JoinColumn(name = "user_id"),
+        uniqueConstraints = @UniqueConstraint(name = "blocked_authors_pkey", columnNames = {"user_id", "author_id"}),
+        foreignKey = @ForeignKey(name = "blocked_authors_user_id_fkey", foreignKeyDefinition =
+            "FOREIGN KEY (user_id) REFERENCES engagement.user_post_preferences (user_id) ON DELETE CASCADE"))
+    @Column(name = "author_id", nullable = false)
     private Set<UUID> blockedAuthorIds = new LinkedHashSet<>();
 
     protected UserPostPreferencesEntity() {}

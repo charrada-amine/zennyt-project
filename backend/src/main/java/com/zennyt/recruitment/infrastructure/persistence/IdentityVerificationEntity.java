@@ -6,7 +6,8 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "identity_verifications", schema = "recruitment")
+@Table(name = "identity_verifications", schema = "recruitment",
+    indexes = @Index(name = "idx_identity_verif_target", columnList = "target_candidate_id"))
 public class IdentityVerificationEntity {
     @Id private UUID id;
     @Column(nullable = false) private UUID requestedByRecruiterId;

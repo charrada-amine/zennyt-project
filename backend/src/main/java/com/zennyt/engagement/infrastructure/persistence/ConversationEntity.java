@@ -1,24 +1,33 @@
 package com.zennyt.engagement.infrastructure.persistence;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.Check;
+import org.hibernate.annotations.ColumnDefault;
 
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "conversations", schema = "engagement")
+@Table(name = "conversations", schema = "engagement",
+    uniqueConstraints = @UniqueConstraint(name = "conversations_application_id_key", columnNames = {"application_id"}),
+    indexes = {
+        @Index(name = "idx_engagement_conversations_candidate", columnList = "candidate_id, last_message_at DESC"),
+        @Index(name = "idx_engagement_conversations_recruiter", columnList = "recruiter_id, last_message_at DESC")})
+@Check(name = "conversations_candidate_unread_count_check", constraints = "candidate_unread_count >= 0")
+@Check(name = "conversations_recruiter_unread_count_check", constraints = "recruiter_unread_count >= 0")
+@Check(name = "engagement_conversation_distinct_participants", constraints = "candidate_id <> recruiter_id")
 class ConversationEntity {
     @Id private UUID id;
-    @Column(nullable = false, unique = true) private UUID applicationId;
+    @Column(nullable = false) private UUID applicationId;
     @Column(nullable = false) private UUID jobOfferId;
     @Column(nullable = false) private UUID candidateId;
     @Column(nullable = false) private UUID recruiterId;
     private String jobTitle;
-    @Column(nullable = false, length = 103) private String lastMessagePreview;
+    @ColumnDefault("''") @Column(nullable = false, length = 103) private String lastMessagePreview;
     private Instant lastMessageAt;
-    @Column(nullable = false) private int candidateUnreadCount;
-    @Column(nullable = false) private int recruiterUnreadCount;
-    @Version private long version;
+    @ColumnDefault("0") @Column(nullable = false) private int candidateUnreadCount;
+    @ColumnDefault("0") @Column(nullable = false) private int recruiterUnreadCount;
+    @Version @ColumnDefault("0") private long version;
 
     protected ConversationEntity() {}
 

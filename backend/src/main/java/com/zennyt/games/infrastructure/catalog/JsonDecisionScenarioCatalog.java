@@ -39,7 +39,8 @@ import java.util.Optional;
  * banque vit désormais en base : c'est le seul moyen de SERVIR les vignettes et
  * les énoncés d'options au client, que ce chargeur laisse tomber. La classe est
  * conservée une release comme filet de secours et pour les tests hors base — elle
- * n'est plus un bean Spring. Le JSON, lui, reste la source du seed Flyway.
+ * n'est plus un bean Spring. Le JSON, lui, reste la source des données de référence
+ * ({@code db/reference-data.sql}).
  */
 @Deprecated(since = "V59", forRemoval = true)
 public class JsonDecisionScenarioCatalog implements DecisionScenarioCatalog {

@@ -3,25 +3,36 @@ package com.zennyt.engagement.infrastructure.persistence;
 import com.zennyt.engagement.domain.vo.CallStatus;
 import com.zennyt.engagement.domain.vo.CallType;
 import jakarta.persistence.*;
+import org.hibernate.Length;
+import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "call_sessions", schema = "engagement")
+@Table(name = "call_sessions", schema = "engagement",
+    indexes = @Index(name = "idx_engagement_calls_conversation", columnList = "conversation_id, started_at DESC"))
 class CallSessionEntity {
     @Id private UUID id;
-    @Column(nullable = false) private UUID conversationId;
-    @Enumerated(EnumType.STRING) @Column(nullable = false) private CallType type;
-    @Enumerated(EnumType.STRING) @Column(nullable = false) private CallStatus status;
+    @Column(name = "conversation_id", nullable = false) private UUID conversationId;
+    /** Clé étrangère {@code engagement.conversations(id) ON DELETE CASCADE} ; lecture seule, la colonne est écrite via {@link #conversationId}. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "conversation_id", insertable = false, updatable = false,
+        foreignKey = @ForeignKey(name = "call_sessions_conversation_id_fkey"))
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private ConversationEntity conversation;
+    @Enumerated(EnumType.STRING) @Column(nullable = false, length = 20) private CallType type;
+    @Enumerated(EnumType.STRING) @Column(nullable = false, length = 30) private CallStatus status;
     @Column(nullable = false) private UUID initiatorId;
     @Column(nullable = false) private UUID counterpartId;
-    @Column(nullable = false, columnDefinition = "TEXT") private String webrtcOffer;
-    @Column(columnDefinition = "TEXT") private String webrtcAnswer;
+    @Column(nullable = false, length = Length.LONG32) private String webrtcOffer;
+    @Column(length = Length.LONG32) private String webrtcAnswer;
     @Column(nullable = false) private Instant startedAt;
     private Instant endedAt;
     private Integer durationSeconds;
-    @Version private long version;
+    @Version @ColumnDefault("0") private long version;
     protected CallSessionEntity() {}
     CallSessionEntity(UUID id, UUID conversationId, CallType type, CallStatus status,
                       UUID initiatorId, UUID counterpartId, String webrtcOffer,

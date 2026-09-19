@@ -9,12 +9,21 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import org.hibernate.Length;
+import org.hibernate.annotations.Check;
+import org.hibernate.annotations.ColumnDefault;
 
 import java.util.UUID;
 
 /** Entité JPA d'une scène « Emotional Radar » (table {@code games.emotional_radar_scenes}). */
 @Entity
+// Index unique ux_er_scenes_order (scene_order) : db/schema-complements.sql (un index, pas une contrainte).
 @Table(name = "emotional_radar_scenes", schema = "games")
+@Check(name = "ck_er_scenes_alt_text", constraints = "media_type NOT IN ('IMAGE', 'VIDEO') OR alt_text IS NOT NULL AND alt_text <> ''")
+@Check(name = "ck_er_scenes_emotion", constraints = "expected_emotion IN ('JOY', 'SADNESS', 'ANGER', 'FEAR', 'DISGUST', 'SURPRISE')")
+@Check(name = "ck_er_scenes_intensity", constraints = "expected_intensity >= 1 AND expected_intensity <= 5")
+@Check(name = "ck_er_scenes_media_type", constraints = "media_type IN ('DIALOGUE', 'TEXT', 'IMAGE', 'VIDEO')")
+@Check(name = "ck_er_scenes_transcript", constraints = "media_type <> 'VIDEO' OR transcript IS NOT NULL AND transcript <> ''")
 public class EmotionalRadarSceneEntity {
 
     @Id
@@ -27,22 +36,22 @@ public class EmotionalRadarSceneEntity {
     @Column(name = "media_type", nullable = false, length = 16)
     private SceneMediaType mediaType;
 
-    @Column(name = "prompt_text", nullable = false)
+    @Column(name = "prompt_text", nullable = false, length = Length.LONG32)
     private String promptText;
 
-    @Column(name = "instruction_text", nullable = false)
+    @Column(name = "instruction_text", nullable = false, length = Length.LONG32)
     private String instructionText;
 
-    @Column(name = "media_url")
+    @Column(name = "media_url", length = Length.LONG32)
     private String mediaUrl;
 
-    @Column(name = "media_public_id")
+    @Column(name = "media_public_id", length = Length.LONG32)
     private String mediaPublicId;
 
-    @Column(name = "alt_text")
+    @Column(name = "alt_text", length = Length.LONG32)
     private String altText;
 
-    @Column(name = "transcript")
+    @Column(name = "transcript", length = Length.LONG32)
     private String transcript;
 
     @Enumerated(EnumType.STRING)
@@ -55,9 +64,10 @@ public class EmotionalRadarSceneEntity {
     @Column(name = "expected_intensity", nullable = false)
     private int expectedIntensity;
 
-    @Column(name = "explanation", nullable = false)
+    @Column(name = "explanation", nullable = false, length = Length.LONG32)
     private String explanation;
 
+    @ColumnDefault("true")
     @Column(name = "active", nullable = false)
     private boolean active;
 

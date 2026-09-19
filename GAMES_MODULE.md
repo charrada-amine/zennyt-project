@@ -102,11 +102,10 @@ Contexte **indépendant** : ne dépend que de `shared`, s'intègre au reste **un
 | | `domain/model/AdminConfigurationSchemaRegistry.java` | Source unique Java pure des 16 schémas `GameType × SETTINGS/MODIFIERS` : types, bornes, enums, valeurs par défaut et allowlist stricte hors scoring. |
 | | `domain/model/AdminModels.java` · `domain/repository/GameAdminRepository.java` | Modèle Java pur et port de persistance de l'administration. Rejette les clés de scoring dans les configurations modifiables. |
 | **infrastructure / admin** | `infrastructure/persistence/JdbcGameAdminRepository.java` | Projection unifiée des catalogues Je Décide / Emotional Radar, versions, rotations et audit via JDBC. |
-| **migration / admin** | `V69__games_admin_console.sql` | Tables de brouillons, banques/items, configurations hors scoring, assets et audit ; seed des catalogues existants, sans modifier les tables de score. |
-| | `V70__games_admin_full_control.sql` | Sépare SETTINGS/MODIFIERS, garantit une seule version publiée par jeu/type et une seule version publiée par code de question. |
-| | `V71__games_runtime_configuration_snapshot.sql` · `V72__games_runtime_bank_snapshot.sql` | Figent versions et JSON de settings/modifiers ainsi que banque/code/version/type sur chaque session, afin qu'une publication admin ne modifie jamais une partie en cours. |
-| | `V73__games_admin_radar_answer_reference.sql` | Autorise la référence d'une réponse Radar vers une scène système ou une scène administrée publiée/archivée, avec contrôle différé d'intégrité. |
-| | `V74__games_admin_configuration_defaults.sql` · `V75__games_admin_normalize_legacy_configurations.sql` | Garantissent 8 versions `SETTINGS` + 8 `MODIFIERS` publiées et normalisent les anciens blobs libres vers l'allowlist typée en archivant l'historique, sans toucher aux valeurs de score. |
+| **schéma / admin** | `infrastructure/persistence/Admin{Bank,BankItem,Configuration,Question,Asset,AuditLog}Entity.java` | Définition JPA des tables de brouillons, banques/items, configurations hors scoring, assets et audit (ex-V69), sans modifier les tables de score. Écriture et lecture restent en JDBC. |
+| | `resources/db/schema-complements.sql` | Index uniques partiels : une seule version publiée par jeu/type et une seule version publiée par code de question (ex-V70) ; trigger de contrainte autorisant la référence d'une réponse Radar vers une scène système ou une scène administrée publiée/archivée (ex-V73). |
+| | `infrastructure/persistence/GameSessionEntity.java` (colonnes `runtime_*`) | Figent versions et JSON de settings/modifiers ainsi que banque/code/version/type sur chaque session (ex-V71, V72), afin qu'une publication admin ne modifie jamais une partie en cours. |
+| | `resources/db/reference-data.sql` | Banques publiées et versions `SETTINGS` + `MODIFIERS` publiées de chaque jeu (ex-V69, V74, V75, V86), dans l'allowlist typée, sans valeur de score. |
 | **mobile / runtime** | `domain/entities/game_runtime_snapshot.dart` | Projection Dart du snapshot runtime exposé par Spring ; helpers typés et valeurs de repli sûres. |
 | **web admin** | `admin/apps/web/src/features/admin/admin-app.tsx` | Shell TanStack Start responsive : authentification JWT ADMIN, navigation, rafraîchissement et gestion d'erreurs. |
 | | `admin/apps/web/src/features/admin/admin-pages.tsx` | Dashboard réel avec catalogue mobile par catégories, fiche dédiée pour chacun des 13 jeux, accès contextualisé aux questions/banques/settings/modifiers/assets, catalogue paginé et audit ; les brouillons de configuration exposent leur écart exact avec la version publiée et passent par une revue d'impact avant publication. |
@@ -167,7 +166,7 @@ Contexte **indépendant** : ne dépend que de `shared`, s'intègre au reste **un
 | **Reflective Pause** | `domain/config/ReflectivePauseConfig.java` | Catalogue des 10 moments, pause minimale 3 s, réponses recommandées et poids **3 + 4 + 3 = 10**. Java pur ; miroir Dart obligatoire. |
 | | `domain/vo/ReflectivePause{Metrics,MomentMetric,Report,ResponseType}.java` | Mesures brutes auto-validantes (10 IDs uniques, timer cohérent), types de réponse et indicateurs serveur. |
 | | `domain/service/ReflectivePauseScoringService.java` | Calcule temps contrôlé /3 + non-impulsivité /4 + prise de recul /3 ; arrondit les sous-scores à 0,1 puis la somme une seule fois. |
-| | `resources/db/migration/V26__games_reflective_pause_minigame.sql` | Étend le CHECK `game_attempts.mini_game` avec `REFLECTIVE_PAUSE_CORE`, sans nouvelle table. |
+| | `infrastructure/persistence/GameSessionEntity.java` (`@Check ck_game_attempts_mini_game`) | Le CHECK `game_attempts.mini_game` autorise `REFLECTIVE_PAUSE_CORE`, sans nouvelle table (ex-V26). |
 | **Je continue** | `domain/config/ContinuousAttentionConfig.java` | Source de vérité du protocole **Long Rosvold X/AX** : `ROSVOLD_LONG_V1`, 44 blocs, 31 lettres/bloc, 690 ms + ISI 230 ms, fenêtre de réponse `[0,690)`, repos 2 min et tolérance technique provisoire 100 ms. Java pur ; miroir Dart obligatoire. |
 | | `domain/config/ContinuousAttentionProvisionalRules.java` | **Score /100 PROVISOIRE** isolé et remplaçable : moyenne des balanced accuracies X_TEST/AX_TEST avec un unique arrondi rationnel half-up, sans flottants ; d′, biais c et temps exclus. |
 | | `domain/service/ContinuousAttentionSequenceGenerator.java` | Génération/reconstruction déterministe FNV-1a 32 bits + xorshift32 + Fisher–Yates ; valide la séquence exacte depuis l'UUID de session. |
@@ -175,7 +174,7 @@ Contexte **indépendant** : ne dépend que de `shared`, s'intègre au reste **un
 | | `domain/vo/ContinuousAttention{Metrics,BlockMetric,TrialMetric,Phase,InputSource,Report,PhaseReport,EpochReport}.java` | Payload brut auto-validant et rapport serveur. Ordre, compteurs, continuité X puis AX, timeline nominale, tuples de réponse et monotonie des onsets sont vérifiés avant persistance. |
 | | `domain/repository/ContinuousAttentionMetricsRepository.java` | Port de remplacement transactionnel des données brutes d'une session, y compris l'audit-only invalide. |
 | | `infrastructure/persistence/ContinuousAttentionMetricsRepositoryAdapter.java` | Persistance JDBC batch des 1 364 essais après validation du domaine. |
-| | `resources/db/migration/V61__games_continuous_attention.sql` | Ajoute le type/mini-jeu, `continuous_attention_runs`, `continuous_attention_trials` et l'index unique partiel empêchant deux Attempts valides. |
+| | `infrastructure/persistence/ContinuousAttention{Run,Trial}Entity.java` · `resources/db/schema-complements.sql` | Tables `continuous_attention_runs` / `continuous_attention_trials` et index unique partiel `ux_ca_single_valid_attempt` empêchant deux Attempts valides (ex-V61). |
 | **Je coordonne** | `domain/config/CoordinationConfig.java` | Source de vérité de `FIXED_SQUARE_CW_V1` : carré fixed-point, 2 segments de pratique + 12 tests, durées 7000/2333 ms, tours lent/rapide, géométrie et fenêtres de validité. Java pur ; miroir Dart obligatoire. |
 | | `domain/config/CoordinationProvisionalRules.java` | **Score /100 PROVISOIRE** isolé et remplaçable : précision globale pondérée par le temps, unique arrondi half-up ; aucune sous-précision ni distance dans le score. |
 | | `domain/service/CoordinationTrajectoryService.java` | Reconstruit de manière déterministe la position de la cible sur le carré fixe horaire, sans easing ni saut aux changements de segment/vitesse. |
@@ -183,14 +182,14 @@ Contexte **indépendant** : ne dépend que de `shared`, s'intègre au reste **un
 | | `domain/vo/Coordination{Metrics,InputSource,Phase,PointerSample,Report,SegmentMetric,Speed}.java` | Trace brute auto-validante (14 segments contigus, positions fixed-point, source d'entrée, interruptions) et rapport descriptif serveur. Le client ne transmet ni cible, ni distance, ni score. |
 | | `domain/repository/CoordinationMetricsRepository.java` | Port de remplacement transactionnel du run et de ses échantillons bruts, y compris l'audit-only invalide. |
 | | `infrastructure/persistence/CoordinationMetricsRepositoryAdapter.java` | Persistance batch V28 de la trace après validation du domaine. |
-| | `resources/db/migration/V62__games_visuomotor_coordination.sql` | Autorise `VISUOMOTOR_COORDINATION` / `COORDINATION_TRACKING_CORE` et persiste le run, les segments/échantillons et leur audit de validité. |
+| | `infrastructure/persistence/CoordinationTracking{Run,Segment,Sample}Entity.java` · `resources/db/schema-complements.sql` | Tables du run, des segments/échantillons et de leur audit de validité ; index unique partiel `ux_coord_single_valid_attempt` (ex-V62). |
 | **Je place** | `domain/config/ObjectLocationConfig.java` | Source de vérité `OBJECT_LOCATION_FINE_V1` : grille 4×4, pratique 2 objets, charges test 3→8, timings, réserves et progression. Toutes les valeurs de protocole non fournies sont marquées provisoires ; miroir Dart obligatoire. |
 | | `domain/config/ObjectLocationProvisionalRules.java` | **Score /100 PROVISOIRE** isolé et remplaçable : placements exacts / objets administrés, unique arrondi half-up ; temps, swaps, distances et pente de charge exclus. |
 | | `domain/service/ObjectLocationLayoutGenerator.java` | Reconstruit depuis `sessionId|OBJECT_LOCATION_FINE_V1` le catalogue, les objets, leurs cellules et leur ordre de réserve avec FNV-1a 32 bits, xorshift32 et Fisher–Yates. |
 | | `domain/service/ObjectLocationActionReplayer.java` · `ObjectLocationScoringService.java` | Rejoue les poses/retours/éjections, classe chaque objet de façon exclusive (`EXACT`, `SWAP`, `LOCAL`, `GLOBAL`, `UNPLACED`), dérive les indicateurs et valide timing/progression côté serveur. |
 | | `domain/vo/ObjectLocation*.java` | Actions et niveaux bruts auto-validants, enums de phase/réserve/fin, rapports descriptifs ; aucune origine, catégorie d'erreur ou note n'est acceptée du client. |
 | | `domain/repository/ObjectLocationMetricsRepository.java` · `infrastructure/persistence/ObjectLocationMetricsRepositoryAdapter.java` | Port + adaptateur JDBC de remplacement transactionnel d'un run, de ses niveaux et de ses actions, y compris l'audit-only invalide. |
-| | `resources/db/migration/V63__games_object_location_memory.sql` | Autorise `VISUOSPATIAL_MEMORY` / `OBJECT_LOCATION_BINDING_CORE`, crée les trois tables d'audit et protège l'unique Attempt valide par session. |
+| | `infrastructure/persistence/ObjectLocation{Run,Level,Action}Entity.java` · `resources/db/schema-complements.sql` | Les trois tables d'audit ; l'index unique partiel `ux_object_location_single_valid_attempt` protège l'unique Attempt valide par session (ex-V63). |
 | **domain / event** | `domain/event/GameResultRecordedEvent.java` | `games.result.recorded` — **seul** point d'intégration inter-contextes. |
 | **domain / repo** | `domain/repository/GameSessionRepository.java` | Port (interface) — le domaine ne connaît jamais JPA ; expose un chargement sérialisé pour empêcher deux soumissions concurrentes d'écraser un audit validé. |
 | | `domain/repository/DeviceCalibrationRepository.java` | Port du calibrage (upsert par `sessionId`). |
@@ -200,7 +199,7 @@ Contexte **indépendant** : ne dépend que de `shared`, s'intègre au reste **un
 | | `infrastructure/persistence/JpaGameSessionRepository.java` | Spring Data JPA technique ; `findByIdForUpdate` applique un verrou pessimiste pendant la soumission. |
 | | `infrastructure/persistence/DeviceCalibrationEntity.java` + `JpaDeviceCalibrationRepository` + `DeviceCalibrationRepositoryAdapter` | Persistance du calibrage (table `games.device_calibrations`). |
 | **intégration** | `../analytics/application/listener/GameResultRecordedListener.java` | Consomme l'event via `@TransactionalEventListener` (Analytics). |
-| **DB** | `resources/db/migration/V9__games_schema.sql` | Schéma `games` : tables `game_sessions`, `game_attempts`, index, contraintes `CHECK`. |
+| **DB** | `infrastructure/persistence/*Entity.java` · `resources/db/schema-complements.sql` · `resources/db/reference-data.sql` | Schéma `games` généré par Hibernate depuis les entités (tables, index, contraintes `CHECK` nommées) ; fonctions, triggers et index partiels dans les compléments SQL ; catalogues et réglages initiaux dans les données de référence. |
 | **test** | `test/java/com/zennyt/games/domain/GameSessionTest.java` | Tests unitaires de l'agrégat + scoring (Java pur, sans Spring). |
 | | `test/java/com/zennyt/games/domain/MoveFastMetricsTest.java` | Tests validation métriques + indicateurs de flexibilité + bandes d'interprétation. |
 | | `test/java/com/zennyt/games/domain/OptimalPathConfigTest.java` | Verrouille les constantes « Chemin Optimal » (tolérance, `max_attempts`, barème essais). |
@@ -828,7 +827,7 @@ Méthode **« technique » pure** (fiche « JE BOUGE » Tableau 2 révisé + gui
 
 Chaque critère affiche la **valeur mesurée entre parenthèses** et les **points/max**. Libellés fidèles aux barèmes ci-dessus. La décomposition Move Fast (points de jeu vs bonus) provient de `MoveFastConfig.replay` — même source que le score.
 
-### Schéma DB (`V9__games_schema.sql`, `V11__games_device_calibrations.sql`, `V12__games_memory_quest_minigame.sql`, `V24__games_decision_minigame.sql`, `V26__games_reflective_pause_minigame.sql`, `V61__games_continuous_attention.sql`, `V62__games_visuomotor_coordination.sql`, `V63__games_object_location_memory.sql`)
+### Schéma DB (entités `infrastructure/persistence/*Entity.java` et `db/schema-complements.sql` ; historique : migrations Flyway V9, V11, V12, V24, V26, V61, V62, V63)
 
 - `games.game_sessions` : `id`, `player_id`, `game_type`, `status`, `started_at`, `completed_at` + `CHECK` sur type/status, index `(player_id)` et `(game_type, status)`.
 - **V12** (« J'investigue ») : la contrainte `ck_game_attempts_mini_game` autorise désormais `MEMORY_QUEST_CORE` (aucune nouvelle table — le composite est un `Attempt` /100).
@@ -2052,7 +2051,7 @@ Ce fichier doit rester **synchronisé** avec le code. **Mettez-le à jour dans l
 vous touchez à l'un de ces chemins :
 
 - `backend/src/main/java/com/zennyt/games/**`
-- `backend/src/main/resources/db/migration/V9__games_schema.sql` (ou migrations games ultérieures)
+- `backend/src/main/resources/db/schema-complements.sql` et `db/reference-data.sql` (parties `games`)
 - `backend/src/main/java/com/zennyt/analytics/application/listener/GameResultRecordedListener.java`
 - `mobile/lib/features/games/**`
 - `mobile/lib/core/router/app_router.dart` (routes `/games*`)
@@ -3182,7 +3181,16 @@ Backend/API/contrat, score, migration, pubspec/pom, core/shared et modules tiers
 inchangés ; zones protégées intactes. Modifications préexistantes conservées.
 Backend/ArchUnit non relancés ; contrôle sur appareil réel ouvert.
 
-**Dernière mise à jour** : 2026-09-18 — **(103)** logo original Optimal Path dans hub/picker, sans pastille mauve ;
+**Changelog (104)** — 2026-09-18 : **Flyway retiré, schéma généré par Hibernate** — les tables
+`games` sont définies par les entités JPA (`ddl-auto: update`) ; 22 entités créées pour les tables
+jusque-là accessibles seulement en JDBC (admin, runs/essais des jeux, `player_game_completions`,
+`emotional_radar_nuances`), sans changer l'accès JDBC. Index partiels, fonctions et triggers dans
+`db/schema-complements.sql` ; banque « Je Décide », scènes/nuances Radar, banques et réglages
+publiés dans `db/reference-data.sql` (lot unique, jamais rejoué). Schéma et données vérifiés
+identiques, objet par objet, à ceux des migrations V1..V86. Barèmes, API, contrat et mock inchangés.
+
+**Dernière mise à jour** : 2026-09-18 — **(104)** Flyway retiré, schéma `games` généré depuis les entités JPA ;
+**(103)** logo original Optimal Path dans hub/picker, sans pastille mauve ;
 **(102)** logo Optimal Path sur badge mauve dans hub/picker ;
 **(101)** logo Optimal Path généré et approuvé intégré ;
 **(100)** logo d’accueil Optimal Path agrandi de 15 % ;

@@ -2,13 +2,16 @@ package com.zennyt.engagement.infrastructure.persistence;
 
 import com.zennyt.engagement.domain.vo.ReferralStatus;
 import jakarta.persistence.*;
+import org.hibernate.annotations.Check;
 
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
 @Table(name = "referrals", schema = "engagement",
-    uniqueConstraints = @UniqueConstraint(columnNames = {"referrer_user_id", "invitee_email"}))
+    uniqueConstraints = @UniqueConstraint(name = "uq_referrals_referrer_email", columnNames = {"referrer_user_id", "invitee_email"}),
+    indexes = @Index(name = "idx_referrals_referrer", columnList = "referrer_user_id"))
+@Check(name = "ck_referrals_status", constraints = "status IN ('INVITED', 'REGISTERED', 'HIRED', 'CANCELLED')")
 class ReferralEntity {
     @Id private UUID id;
     @Column(name = "referrer_user_id", nullable = false) private UUID referrerUserId;

@@ -7,12 +7,16 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Index;
+import org.hibernate.annotations.Check;
 
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "otp_challenges", schema = "recruitment")
+@Table(name = "otp_challenges", schema = "recruitment",
+    indexes = @Index(name = "idx_otp_challenges_resource_purpose_created", columnList = "resource_id, purpose, created_at DESC"))
+@Check(name = "otp_challenges_attempts_remaining_check", constraints = "attempts_remaining >= 0")
 public class OtpChallengeEntity {
     @Id private UUID id;
     @Column(name = "resource_id", nullable = false) private UUID resourceId;

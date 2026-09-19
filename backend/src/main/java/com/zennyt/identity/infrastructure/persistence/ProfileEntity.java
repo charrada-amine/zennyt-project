@@ -2,9 +2,14 @@ package com.zennyt.identity.infrastructure.persistence;
 
 import com.zennyt.identity.domain.model.*;
 import jakarta.persistence.*;
+import org.hibernate.Length;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Check;
+import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -13,15 +18,26 @@ import java.util.List;
 import java.util.Objects;
 
 @Entity
-@Table(name = "profiles")
+@Table(name = "profiles", uniqueConstraints =
+    @UniqueConstraint(name = "profiles_user_id_key", columnNames = {"user_id"}))
+@Check(name = "ck_profile_experience", constraints = "years_of_experience IS NULL OR years_of_experience >= 0")
+@Check(name = "ck_soft_skills_score", constraints = "soft_skills_score >= 0 AND soft_skills_score <= 100")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ProfileEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column(name = "user_id", nullable = false, unique = true)
+    @Column(name = "user_id", nullable = false)
     private Long userId;
+
+    /** Clé étrangère {@code users(id)} ; lecture seule, la colonne est écrite via {@link #userId}. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", insertable = false, updatable = false,
+        foreignKey = @ForeignKey(name = "profiles_user_id_fkey"))
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @Getter(AccessLevel.NONE)
+    private UserEntity user;
     @Column(name = "current_position", length = 150)
     private String currentPosition;
     @Column(name = "looking_for", length = 150)
@@ -36,10 +52,12 @@ public class ProfileEntity {
     private String targetJobLocation;
     @Column(name = "years_of_experience")
     private Integer yearsOfExperience;
-    @Column(name = "soft_skills_score")
+    @ColumnDefault("0")
+    @Column(name = "soft_skills_score", nullable = false)
     private Integer softSkillsScore;
-    @Column(name = "about_me", columnDefinition = "TEXT")
+    @Column(name = "about_me", length = Length.LONG32)
     private String aboutMe;
+    @ColumnDefault("false")
     @Column(name = "is_open_internationally", nullable = false)
     private boolean openInternationally;
     @Enumerated(EnumType.STRING)

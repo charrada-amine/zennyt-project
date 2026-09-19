@@ -1,16 +1,28 @@
 package com.zennyt.engagement.infrastructure.persistence;
 
 import jakarta.persistence.*;
+import org.hibernate.Length;
+import org.hibernate.annotations.Check;
+import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.util.UUID;
 
 @Entity
 @Table(name = "poll_options", schema = "engagement")
+@Check(name = "poll_options_vote_count_check", constraints = "vote_count >= 0")
 class PollOptionEntity {
     @Id private UUID id;
-    @Column(nullable = false) private UUID postId;
-    @Column(nullable = false, columnDefinition = "TEXT") private String text;
-    @Column(nullable = false) private int voteCount;
+    @Column(name = "post_id", nullable = false) private UUID postId;
+    /** Clé étrangère {@code engagement.posts(id) ON DELETE CASCADE} ; lecture seule, la colonne est écrite via {@link #postId}. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "post_id", insertable = false, updatable = false,
+        foreignKey = @ForeignKey(name = "poll_options_post_id_fkey"))
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private PostEntity post;
+    @Column(nullable = false, length = Length.LONG32) private String text;
+    @ColumnDefault("0") @Column(nullable = false) private int voteCount;
     protected PollOptionEntity() {}
     PollOptionEntity(UUID id, UUID postId, String text, int voteCount) {
         this.id = id; this.postId = postId; this.text = text; this.voteCount = voteCount;

@@ -4,6 +4,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import org.hibernate.Length;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -12,7 +13,7 @@ import java.util.UUID;
 @Table(name = "cv_profile_projection", schema = "recruitment")
 public class CvProfileProjectionEntity {
     @Id private UUID candidateId;
-    @Column(nullable = false, columnDefinition = "TEXT") private String cvText;
+    @Column(nullable = false, length = Length.LONG32) private String cvText;
     @Column(nullable = false) private Instant updatedAt;
 
     protected CvProfileProjectionEntity() {}

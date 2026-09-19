@@ -23,29 +23,26 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * la {@code OptionQuality} de l'option choisie. Si le seed SQL porte exactement le
  * même triplet que la ressource JSON, alors <b>aucun score ne peut changer</b> —
  * quel que soit le catalogue branché. C'est ce que vérifie ce test, sans base :
- * il compare la source du seed au SQL généré.
+ * il compare la source du seed au SQL des données de référence.
  *
  * <p>Les cardinalités (120 items, 24 par dimension, 66 provisoires, paires CS
- * complètes, composition de la forme A) sont vérifiées par le bloc {@code DO $$} de
- * la migration elle-même : elles échouent au déploiement, pas ici.
+ * complètes, composition de la forme A) sont vérifiées par le script de données de
+ * référence lui-même, juste après l'insertion : elles échouent au démarrage, pas ici.
  */
 class DecisionSeedParityTest {
 
     private static final String JSON = "games/decision_scenarios.json";
-    // Renumérotée V59 -> V67 par le merge de la PR #8, qui a décalé tout le bloc
-    // de migrations « games ». Le test cherchait encore l'ancien nom.
-    private static final String SQL = "db/migration/V67__games_decision_scenarios.sql";
+    private static final String SQL = "db/reference-data.sql";
 
     /** `('uuid', 'II-1', 'II', 'STANDARD', …` — en-tête d'une ligne de scénario. */
     private static final Pattern SCENARIO_ROW = Pattern.compile(
         "\\('[0-9a-f-]{36}', '([^']+)', '(II|ER|DT|CS|RE)', "
             + "'(STANDARD|TEMPORAL_DECISION|COHERENCE_PAIR)', ");
 
-    /** `('uuid', 'uuid', 'II-1-o1', $t$…$t$, 'OPTIMAL', 1)` — ligne d'option. */
+    /** `('uuid', 'uuid', 'II-1-o1', 'libellé', 'OPTIMAL', 1)` — ligne d'option. */
     private static final Pattern OPTION_ROW = Pattern.compile(
-        "\\('[0-9a-f-]{36}', '[0-9a-f-]{36}', '([^']+)', \\$t\\$.*?\\$t\\$, "
-            + "'(OPTIMAL|SATISFACTORY|PARTIAL|DEFICIENT)', \\d+\\)",
-        Pattern.DOTALL);
+        "\\('[0-9a-f-]{36}', '[0-9a-f-]{36}', '([^']+)', '(?:[^']|'')*', "
+            + "'(OPTIMAL|SATISFACTORY|PARTIAL|DEFICIENT)', \\d+\\)");
 
     private static String read(String path) throws IOException {
         try (InputStream in = new ClassPathResource(path).getInputStream()) {
@@ -70,7 +67,7 @@ class DecisionSeedParityTest {
 
         assertEquals(120, fromJson.size(), "La banque JSON n'a plus 120 items.");
         assertEquals(fromJson, fromSql,
-            "Le seed SQL a divergé de la banque JSON : régénérer V59 depuis le JSON.");
+            "Le seed SQL a divergé de la banque JSON : régénérer db/reference-data.sql depuis le JSON.");
     }
 
     @Test

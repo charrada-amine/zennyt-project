@@ -1,6 +1,7 @@
 package com.zennyt.engagement.infrastructure.persistence;
 
 import jakarta.persistence.*;
+import org.hibernate.Length;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -9,10 +10,10 @@ import java.util.UUID;
 @Table(name = "actors", schema = "engagement")
 class EngagementActorEntity {
     @Id @Column(name = "public_user_id") private UUID userId;
-    @Column(nullable = false) private String role;
+    @Column(nullable = false, length = 30) private String role;
     @Column(nullable = false) private boolean active;
     private String displayName;
-    @Column(columnDefinition = "TEXT") private String photoUrl;
+    @Column(length = Length.LONG32) private String photoUrl;
     @Column(nullable = false) private Instant lastEventAt;
     @Column(nullable = false) private UUID lastEventId;
 
