@@ -121,7 +121,7 @@ class TermsOfUseScreen extends ConsumerWidget {
 const List<(String, String)> _sections = [
   (
     '1. Legal Notice',
-    '- Company Name: Progress Careers, Inc.\n'
+    '- Company Name: Zennyt, Inc.\n'
         '- Registered Office: [Insert Address]\n'
         '- Incorporation & Tax ID: [Insert State of Incorporation, EIN]\n'
         '- Contact: [Insert legal contact email]\n'
@@ -129,7 +129,7 @@ const List<(String, String)> _sections = [
   ),
   (
     '2. Introduction',
-    'Progress Careers provides recruitment, assessment, and networking solutions. '
+    'Zennyt provides recruitment, assessment, and networking solutions. '
         'By creating an account, completing assessments, or using the Platform, candidates '
         'and students ("you," "your") agree to these Terms of Use & Conditions.',
   ),
@@ -141,14 +141,14 @@ const List<(String, String)> _sections = [
   ),
   (
     '4. Social Network Features',
-    'Progress Careers also provides social networking functionalities, including but not '
+    'Zennyt also provides social networking functionalities, including but not '
         'limited to user walls, posts, comments, likes, and follower connections.\n'
         '- Users are solely responsible for the content they publish and agree not to post '
         'unlawful, defamatory, discriminatory, offensive, or misleading material.\n'
-        '- Users remain the owners of their content but grant Progress Careers a '
+        '- Users remain the owners of their content but grant Zennyt a '
         'non-exclusive, worldwide, royalty-free license to display, host, and distribute such '
         'content within the Platform solely for the purpose of operating and improving the services.\n'
-        '- Progress Careers reserves the right to moderate, remove, or restrict access to any '
+        '- Zennyt reserves the right to moderate, remove, or restrict access to any '
         'content or account that violates these Terms or applicable law.',
   ),
   (
@@ -161,14 +161,14 @@ const List<(String, String)> _sections = [
   ),
   (
     '6. Psychometric Assessments',
-    'Progress Careers provides psychometric games (soft skills) and technical skill tests '
+    'Zennyt provides psychometric games (soft skills) and technical skill tests '
         '(hard skills) designed to comply with recognized psychological and scientific standards '
         '(APA) and aligned with the Americans with Disabilities Act (ADA). These tools are '
         'recruitment-focused and not intended for clinical diagnosis.',
   ),
   (
     '7. Fraud Prevention & Monitoring',
-    '- To ensure the integrity of assessments, Progress Careers may collect anti-fraud data, '
+    '- To ensure the integrity of assessments, Zennyt may collect anti-fraud data, '
         'including but not limited to screenshots, webcam images, keystroke dynamics, and '
         'behavioral patterns during the tests.\n'
         '- These measures are used solely to detect impersonation, cheating, or identity fraud.\n'
@@ -177,7 +177,7 @@ const List<(String, String)> _sections = [
   ),
   (
     '8. Artificial Intelligence and Automated Processing',
-    'Progress Careers uses artificial intelligence (AI) to process results from psychometric '
+    'Zennyt uses artificial intelligence (AI) to process results from psychometric '
         'games (soft skills) and technical skill tests (hard skills) completed by candidates.\n'
         '- The AI system analyzes raw performance data and generates a summary report '
         'highlighting key skills, behavioral indicators, and potential areas of strength.\n'
@@ -189,7 +189,7 @@ const List<(String, String)> _sections = [
   ),
   (
     '9. Accessibility Commitment',
-    'Progress Careers is committed to accessibility and strives to conform to the WCAG 2.1 '
+    'Zennyt is committed to accessibility and strives to conform to the WCAG 2.1 '
         'Level AA and ADA requirements. While reasonable efforts are made, full accessibility '
         'of all content cannot be guaranteed.',
   ),
@@ -207,11 +207,11 @@ const List<(String, String)> _sections = [
     '- Candidates may request access, correction, or deletion of their personal data.\n'
         '- Data is retained only for recruitment and HR purposes and in compliance with '
         'applicable law.\n'
-        '- Progress Careers complies with applicable data protection regulations, including but '
+        '- Zennyt complies with applicable data protection regulations, including but '
         'not limited to the General Data Protection Regulation (GDPR) for users located in the '
         'European Union and relevant state privacy laws in the United States (such as the '
         'CCPA/CPRA in California).\n'
-        'Progress Careers is authorized to collect candidates\' and students\' contact details, as '
+        'Zennyt is authorized to collect candidates\' and students\' contact details, as '
         'well as the results of their behavioral (soft skills) and technical (hard skills) '
         'assessments. Such data may be processed, analyzed, and made available to third-party '
         'companies exclusively for the purposes of recruitment, human resources management, and '
@@ -220,7 +220,7 @@ const List<(String, String)> _sections = [
   (
     '12. Ambassador Program and Compensation',
     'Definition\n'
-        'The Ambassador Program allows any candidate registered on the Progress Careers platform '
+        'The Ambassador Program allows any candidate registered on the Zennyt platform '
         '(hereinafter the "Ambassador") to invite new candidates to join the platform '
         '(hereinafter the "Affiliates").\n\n'
         'Nature of the Program\n'
@@ -229,7 +229,7 @@ const List<(String, String)> _sections = [
         '(MLM) or pyramid scheme.\n\n'
         'Compensation Principle\n'
         'The Ambassador shall receive a bonus of eight hundred US dollars (USD 800) for each '
-        'effective recruitment of one of their Affiliates, provided that Progress Careers has '
+        'effective recruitment of one of their Affiliates, provided that Zennyt has '
         'effectively collected the commission owed by the client company in connection with said '
         'recruitment.\n\n'
         'Validity of Recruitment\n'
@@ -243,29 +243,29 @@ const List<(String, String)> _sections = [
         '- The bonus shall only be granted for Affiliates directly invited by the Ambassador '
         'through the referral tools provided by the platform (personalized link, unique code, etc.).\n'
         '- The bonus shall only be due if the invited Affiliate is recruited by a client company '
-        'via the Progress Careers platform and such recruitment is validated pursuant to the '
+        'via the Zennyt platform and such recruitment is validated pursuant to the '
         'rules above.\n'
-        '- The bonus shall only be payable once Progress Careers has fully collected the '
+        '- The bonus shall only be payable once Zennyt has fully collected the '
         'corresponding commission.\n\n'
         'Payment Terms\n'
         '- Bonuses earned shall be accumulated in the Ambassador\'s personal account and may be '
         'consulted at any time through the tracking dashboard.\n'
-        '- Payment of bonuses shall be made by Progress Careers within a maximum period of '
+        '- Payment of bonuses shall be made by Zennyt within a maximum period of '
         'thirty (30) days following the validation of the recruitment (after the probationary '
         'period) and the collection of the corresponding commissions.\n'
         '- Payments shall be made to the bank account (IBAN/RIB) or credit card information '
         'provided by the Ambassador, or by any other method of payment accepted by the Platform.\n'
         '- The Ambassador acknowledges and agrees that they are solely responsible for reporting '
         'and paying any taxes or social contributions arising from the bonuses received under the '
-        'Ambassador Program. Progress Careers shall in no event be held liable in this respect.\n\n'
+        'Ambassador Program. Zennyt shall in no event be held liable in this respect.\n\n'
         'Limitations and Verification\n'
-        'Progress Careers reserves the right to verify the authenticity of invitations and '
+        'Zennyt reserves the right to verify the authenticity of invitations and '
         'invited profiles to prevent fraud, misuse, or fictitious registrations. Any attempt at '
         'manipulation, fraud, or misuse contrary to these conditions shall result in the '
         'immediate suspension of the Ambassador\'s account and the cancellation of bonuses in '
         'progress.\n\n'
         'Amendments\n'
-        'Progress Careers reserves the right to modify, at any time, the amount of the bonus, the '
+        'Zennyt reserves the right to modify, at any time, the amount of the bonus, the '
         'payment conditions, or the technical modalities of the Ambassador Program, subject to '
         'informing users through any appropriate means (website, e-mail, personal dashboard).',
   ),
@@ -278,19 +278,19 @@ const List<(String, String)> _sections = [
   (
     '14. Limitation of Liability',
     '- The Platform is provided "as is".\n'
-        '- Progress Careers provides tools and services to support recruitment processes but does '
+        '- Zennyt provides tools and services to support recruitment processes but does '
         'not act as an employer or employment agency, and makes no guarantee of securing '
         'employment opportunities.\n'
         '- Liability is limited to the extent permitted by law.',
   ),
   (
     '15. Termination & Suspension',
-    'Progress Careers reserves the right to suspend or terminate candidate accounts in case of '
+    'Zennyt reserves the right to suspend or terminate candidate accounts in case of '
         'fraud, violation of these Terms, or abusive behavior.',
   ),
   (
     '16. Force Majeure',
-    'Progress Careers shall not be liable for delays or failures due to circumstances beyond '
+    'Zennyt shall not be liable for delays or failures due to circumstances beyond '
         'reasonable control (e.g., natural disasters, outages, cyberattacks, government '
         'restrictions).',
   ),

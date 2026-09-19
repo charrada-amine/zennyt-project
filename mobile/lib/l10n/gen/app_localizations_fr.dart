@@ -827,7 +827,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get pollDisclaimer =>
-      '* Nous n\'autorisons pas les demandes liées aux opinions politiques, aux informations médicales ou à d\'autres données sensibles.\nCette option est uniquement destinée aux questions liées à Progress Careers.';
+      '* Nous n\'autorisons pas les demandes liées aux opinions politiques, aux informations médicales ou à d\'autres données sensibles.\nCette option est uniquement destinée aux questions liées à Zennyt.';
 
   @override
   String get poor => 'Mauvais';

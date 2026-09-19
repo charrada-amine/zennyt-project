@@ -122,6 +122,19 @@ résultats : cherche s'il existe déjà.**
 source de vérité. Si une valeur est dupliquée entre deux fichiers, **centralise-la** au lieu de la
 copier.
 
+### 5 bis. Marque : le produit s'appelle **Zennyt**
+
+- Le seul nom de marque est **Zennyt** (écrans, textes, mentions légales, e-mails, notifications).
+- « **Progress Careers** » (et `progresscareers.com`, `progress_logo.png`) était un **nom provisoire** :
+  il ne doit plus apparaître nulle part. Si tu en croises un reste, remplace-le par Zennyt.
+- Logo : utilise **toujours** le widget partagé `ZennytLogo`
+  (`mobile/lib/shared/widgets/zennyt_logo.dart`, assets `assets/images/Logo.svg` / `Logo.png`).
+  N'ajoute pas d'autre image de logo et ne dessine pas de logo « maison ».
+- Domaine : `zennyt.com` (liens publics `https://www.zennyt.com/...`, contact
+  `privacy@zennyt.com`). N'invente pas d'autre domaine ou adresse.
+- ⚠️ L'onglet « **Progress** » de l'app (hub des jeux côté candidat) est un **nom de fonctionnalité**,
+  pas une marque : ne le renomme pas.
+
 ---
 
 ## 6. Intégrations entre modules : analyse avant, plan d'abord

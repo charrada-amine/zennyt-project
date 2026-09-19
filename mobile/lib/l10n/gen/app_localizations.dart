@@ -1565,7 +1565,7 @@ abstract class AppLocalizations {
   /// No description provided for @pollDisclaimer.
   ///
   /// In en, this message translates to:
-  /// **'* We do not allow requests related to political opinions, medical information, or other sensitive data.\nThis option is only intended for questions related to Progress Careers.'**
+  /// **'* We do not allow requests related to political opinions, medical information, or other sensitive data.\nThis option is only intended for questions related to Zennyt.'**
   String get pollDisclaimer;
 
   /// No description provided for @poor.

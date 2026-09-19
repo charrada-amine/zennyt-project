@@ -66,7 +66,7 @@ class PrivacyPolicyScreen extends ConsumerWidget {
                       child: Column(
                         children: [
                           Text(
-                            'Progress Careers',
+                            'Zennyt',
                             style: AppTypography.titleLarge.copyWith(
                               color: colors.primary,
                               fontWeight: FontWeight.w700,
@@ -108,12 +108,12 @@ class PrivacyPolicyScreen extends ConsumerWidget {
                     _buildSection(
                       colors,
                       '1. DATA CONTROLLER',
-                      'Progress Careers operates through affiliated entities established in:\n'
+                      'Zennyt operates through affiliated entities established in:\n'
                           '- France (Paris)\n'
                           '- United States (Delaware)\n'
                           '- United Arab Emirates (Dubai)\n'
                           'The relevant entity acting as Data Controller depends on the user\'s location and the contractual relationship established.\n'
-                          'For all privacy-related matters: privacy@progresscareers.com',
+                          'For all privacy-related matters: privacy@zennyt.com',
                     ),
 
                     _buildSection(
@@ -166,7 +166,7 @@ class PrivacyPolicyScreen extends ConsumerWidget {
                     _buildSection(
                       colors,
                       '6. ARTIFICIAL INTELLIGENCE & PROFILING',
-                      'Progress Careers uses AI systems to analyze performance data and generate decision-support summaries.\n'
+                      'Zennyt uses AI systems to analyze performance data and generate decision-support summaries.\n'
                           'AI does not replace human hiring decisions.\n'
                           'Users in the European Union have the right to:\n'
                           '- Request meaningful information about the logic involved\n'
@@ -209,7 +209,7 @@ class PrivacyPolicyScreen extends ConsumerWidget {
                       'EU (GDPR): access, rectification, erasure, restriction, portability, objection.\n'
                           'California (CCPA/CPRA): right to know, delete, opt-out of sale (no sale of data occurs).\n'
                           'UAE: rights under UAE Federal Data Protection Law.\n'
-                          'Requests may be submitted to privacy@progresscareers.com',
+                          'Requests may be submitted to privacy@zennyt.com',
                     ),
 
                     _buildSection(
@@ -252,7 +252,7 @@ class PrivacyPolicyScreen extends ConsumerWidget {
                       colors,
                       '15. DATA PROTECTION IMPACT ASSESSMENT (DPIA)',
                       'Given the use of psychometric profiling, AI processing, and monitoring technologies,\n'
-                          'Progress Careers conducts periodic Data Protection Impact Assessments to evaluate risks and implement mitigation measures.',
+                          'Zennyt conducts periodic Data Protection Impact Assessments to evaluate risks and implement mitigation measures.',
                     ),
 
                     _buildSection(

@@ -1,6 +1,7 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
+import 'package:zennyt/shared/widgets/zennyt_logo.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:zennyt/core/constants.dart';
@@ -56,13 +57,11 @@ class _HomePageState extends ConsumerState<HomePage> {
     return PlatformScaffold(
       backgroundColor: context.colors.panelBackground,
       appBar: PlatformAppBar(
-        title: SizedBox(
-          height: 48,
-          width: 150,
-          child: Image.asset(
-            'assets/images/progress_logo.png',
-            fit: BoxFit.contain,
-          ),
+        // Marque : Zennyt (« Progress Careers » n'était qu'un nom provisoire).
+        title: const ZennytLogo(
+          axis: Axis.horizontal,
+          showTagline: true,
+          size: 30,
         ),
         showBack: false,
         leading: GestureDetector(

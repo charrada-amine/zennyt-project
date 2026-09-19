@@ -202,7 +202,7 @@ class _HeroPanelState extends State<_HeroPanel> {
                 ),
                 const SizedBox(height: AppSpacing.xxs),
                 Text(
-                  'Progress Careers',
+                  'Zennyt',
                   style: AppTypography.displaySmall.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,
