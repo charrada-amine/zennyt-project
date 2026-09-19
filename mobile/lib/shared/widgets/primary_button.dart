@@ -1,3 +1,4 @@
+import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/theme/theme.dart';
@@ -58,6 +59,35 @@ class PrimaryButton extends StatelessWidget {
               Flexible(child: Text(label, overflow: TextOverflow.ellipsis)),
             ],
           );
+
+    // iOS 26+ : bouton natif Liquid Glass ; le contenu Flutter (libellé,
+    // icône, loader) est superposé, donc l'état de chargement est conservé.
+    if (PlatformInfo.isIOS26OrHigher()) {
+      final contentColor = outlined
+          ? (foregroundColor ?? colors.primary)
+          : (foregroundColor ?? Colors.white);
+      final native = AdaptiveButton.child(
+        onPressed: activate,
+        enabled: enabled,
+        style: outlined
+            ? AdaptiveButtonStyle.bordered
+            : AdaptiveButtonStyle.prominentGlass,
+        size: AdaptiveButtonSize.large,
+        color: outlined
+            ? (foregroundColor ?? colors.primary)
+            : (backgroundColor ?? colors.primary),
+        child: IconTheme.merge(
+          data: IconThemeData(color: contentColor),
+          child: DefaultTextStyle.merge(
+            style: AppTypography.labelLarge.copyWith(color: contentColor),
+            child: child,
+          ),
+        ),
+      );
+      return expanded
+          ? SizedBox(width: double.infinity, child: native)
+          : native;
+    }
 
     final Widget button = outlined
         ? OutlinedButton(

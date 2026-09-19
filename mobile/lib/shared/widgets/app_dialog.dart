@@ -1,3 +1,4 @@
+import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/theme/theme.dart';
@@ -20,6 +21,7 @@ class AppDialog {
     return _show(
       context,
       icon: HugeIcons.strokeRoundedCancel01,
+      sfSymbol: 'xmark.circle.fill',
       iconColor: context.colors.error,
       title: title,
       message: message,
@@ -37,6 +39,7 @@ class AppDialog {
     return _show(
       context,
       icon: HugeIcons.strokeRoundedCancel01,
+      sfSymbol: 'wifi.exclamationmark',
       iconColor: context.colors.error,
       title: title,
       message: message,
@@ -54,6 +57,7 @@ class AppDialog {
     return _show(
       context,
       icon: HugeIcons.strokeRoundedTick02,
+      sfSymbol: 'checkmark.circle.fill',
       iconColor: context.colors.success,
       title: title,
       message: message,
@@ -64,12 +68,35 @@ class AppDialog {
   static Future<void> _show(
     BuildContext context, {
     required AppIconData icon,
+    required String sfSymbol,
     required Color iconColor,
     required String title,
     required String message,
     required String buttonLabel,
     bool showButton = true,
   }) {
+    // iOS : alerte native (Liquid Glass sur iOS 26+, CupertinoAlertDialog
+    // avant). Une alerte native ne se ferme pas d'un tap à l'extérieur, d'où
+    // un bouton OK quand la version Material n'en a pas.
+    if (PlatformInfo.isIOS) {
+      return AdaptiveAlertDialog.show(
+        context: context,
+        title: title,
+        message: message,
+        icon: sfSymbol,
+        iconColor: iconColor,
+        actions: [
+          AlertAction(
+            title: showButton
+                ? buttonLabel
+                : MaterialLocalizations.of(context).okButtonLabel,
+            style: AlertActionStyle.primary,
+            onPressed: () {},
+          ),
+        ],
+      );
+    }
+
     final colors = context.colors;
     return showDialog<void>(
       context: context,

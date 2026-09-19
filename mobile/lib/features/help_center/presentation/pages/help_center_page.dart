@@ -72,7 +72,6 @@ class _HelpCenterPageState extends ConsumerState<HelpCenterPage> {
           ],
         ),
         showBack: true,
-        onLeadingPressed: () => context.pop(),
       ),
       backgroundColor: AppColors.panelBackground,
       body: Container(

@@ -23,6 +23,16 @@ class PlatformAppBar extends StatelessWidget
     this.onLeadingPressed,
   });
 
+  /// Whether iOS 26+ can render this bar as the native Liquid Glass toolbar
+  /// (see [PlatformScaffold]). The native toolbar only takes SF Symbol actions
+  /// and its own back button, so bars with custom leading, actions or back
+  /// handling keep the Flutter implementation below.
+  bool get supportsNativeToolbar =>
+      showBack &&
+      leading == null &&
+      onLeadingPressed == null &&
+      (actions == null || actions!.isEmpty);
+
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
