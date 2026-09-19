@@ -16,6 +16,7 @@ import '../../../../core/enums/user_role.dart';
 import '../../cv_autofill/presentation/widgets/cv_source_bottom_sheet.dart';
 
 import 'package:zennyt/shared/icons/app_icons.dart';
+import 'package:zennyt/shared/widgets/app_popup_menu.dart';
 
 class UserProfileScreen extends ConsumerStatefulWidget {
   const UserProfileScreen({super.key});
@@ -151,12 +152,21 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
             icon: const AppIcon(HugeIcons.strokeRoundedPencilEdit01, size: 18),
             label: const Text('Edit Profile'),
           ),
-          PopupMenuButton<bool>(
+          AppPopupMenu(
             tooltip: 'Resume AI visibility',
-            onSelected: viewModel.toggleResumeAiVisibility,
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: true, child: Text('Show')),
-              PopupMenuItem(value: false, child: Text('Hide')),
+            entries: [
+              AppMenuAction(
+                label: 'Show',
+                sfSymbol: 'eye',
+                icon: HugeIcons.strokeRoundedView,
+                onSelected: () => viewModel.toggleResumeAiVisibility(true),
+              ),
+              AppMenuAction(
+                label: 'Hide',
+                sfSymbol: 'eye.slash',
+                icon: HugeIcons.strokeRoundedViewOff,
+                onSelected: () => viewModel.toggleResumeAiVisibility(false),
+              ),
             ],
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
@@ -196,12 +206,21 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          PopupMenuButton<bool>(
+          AppPopupMenu(
             tooltip: 'Soft skills visibility',
-            onSelected: viewModel.toggleSoftSkillsVisibility,
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: true, child: Text('Show')),
-              PopupMenuItem(value: false, child: Text('Hide')),
+            entries: [
+              AppMenuAction(
+                label: 'Show',
+                sfSymbol: 'eye',
+                icon: HugeIcons.strokeRoundedView,
+                onSelected: () => viewModel.toggleSoftSkillsVisibility(true),
+              ),
+              AppMenuAction(
+                label: 'Hide',
+                sfSymbol: 'eye.slash',
+                icon: HugeIcons.strokeRoundedViewOff,
+                onSelected: () => viewModel.toggleSoftSkillsVisibility(false),
+              ),
             ],
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),

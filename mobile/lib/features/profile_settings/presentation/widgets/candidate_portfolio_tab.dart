@@ -8,6 +8,7 @@ import '../../../../core/utils/responsive.dart';
 import '../viewmodel/candidate_profile_viewmodel.dart';
 
 import 'package:zennyt/shared/icons/app_icons.dart';
+import 'package:zennyt/shared/widgets/app_popup_menu.dart';
 
 class CandidatePortfolioTab extends ConsumerWidget {
   const CandidatePortfolioTab({super.key});
@@ -161,55 +162,21 @@ class _PortfolioCard extends StatelessWidget {
                   ),
                 ),
               ),
-              PopupMenuButton<String>(
-                icon: AppIcon(HugeIcons.strokeRoundedMoreVertical, color: colors.textSecondary),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                color: colors.scaffoldBg,
-                onSelected: (val) {
-                  if (val == 'delete') {
-                    onDelete();
-                  }
-                },
-                itemBuilder: (context) => [
-                  PopupMenuItem(
-                    value: 'delete',
-                    child: Row(
-                      children: [
-                        AppIcon(
-                          HugeIcons.strokeRoundedDelete02,
-                          color: colors.error,
-                          size: 20,
-                        ),
-                        const SizedBox(width: AppSpacing.sm),
-                        Text(
-                          'Delete',
-                          style: AppTypography.bodyMedium.copyWith(
-                            color: colors.error,
-                          ),
-                        ),
-                      ],
-                    ),
+              AppPopupMenu.icon(
+                icon: HugeIcons.strokeRoundedMoreVertical,
+                iconColor: colors.textSecondary,
+                entries: [
+                  AppMenuAction(
+                    label: 'Delete',
+                    sfSymbol: 'trash',
+                    icon: HugeIcons.strokeRoundedDelete02,
+                    destructive: true,
+                    onSelected: onDelete,
                   ),
-                  PopupMenuItem(
-                    value: 'share',
-                    child: Row(
-                      children: [
-                        AppIcon(
-                          HugeIcons.strokeRoundedShare01,
-                          color: colors.primary,
-                          size: 20,
-                        ),
-                        const SizedBox(width: AppSpacing.sm),
-                        Text(
-                          'Share',
-                          style: AppTypography.bodyMedium.copyWith(
-                            color: colors.primary,
-                          ),
-                        ),
-                      ],
-                    ),
+                  const AppMenuAction(
+                    label: 'Share',
+                    sfSymbol: 'square.and.arrow.up',
+                    icon: HugeIcons.strokeRoundedShare01,
                   ),
                 ],
               ),
