@@ -2359,11 +2359,7 @@ class GamePauseSwitchTile extends StatelessWidget {
               letterSpacing: 0,
             ),
           ),
-          AdaptiveSwitch(
-            value: value,
-            onChanged: onChanged,
-            activeColor: ZennytGamePalette.success,
-          ),
+          AdaptiveSwitch(value: value, onChanged: onChanged),
         ],
       ),
     );
