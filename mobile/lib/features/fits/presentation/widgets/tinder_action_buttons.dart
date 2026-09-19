@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import '../../../../core/audio/sound_service.dart';
 import '../../../../core/theme/theme.dart';
 import '../../../../shared/widgets/app_motion.dart';
+import 'fits_palette.dart';
 
 import 'package:zennyt/shared/icons/app_icons.dart';
 
+/// Undo · Pass · Like · Skip, as in the maquettes: white floating circles, the
+/// two main ones large, overlapping the bottom of the swipe card.
 class TinderActionButtons extends StatelessWidget {
   const TinderActionButtons({
     super.key,
@@ -19,78 +22,131 @@ class TinderActionButtons extends StatelessWidget {
   final bool canUndo;
   final bool enabled;
 
+  static const double bigSize = 74;
+  static const double smallSize = 48;
+
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 14),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+  Widget build(BuildContext context) {
+    final palette = FitsPalette.of(context);
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _action(
-          context,
-          'Undo',
-          HugeIcons.strokeRoundedUndo02,
-          context.colors.primary,
-          canUndo ? onUndo : null,
+        _CircleAction(
+          label: 'Undo',
+          size: smallSize,
+          onPressed: canUndo ? onUndo : null,
+          child: AppIcon(
+            HugeIcons.strokeRoundedReload,
+            size: 24,
+            strokeWidth: 2,
+            color: palette.dark ? const Color(0xFF7FA6F5) : const Color(0xFF1A5BB0),
+          ),
         ),
-        _action(
-          context,
-          'Pass',
-          HugeIcons.strokeRoundedCancel01,
-          context.colors.accent,
-          enabled ? onReject : null,
-          prominent: true,
+        const SizedBox(width: 22),
+        _CircleAction(
+          label: 'Pass',
+          size: bigSize,
+          onPressed: enabled ? onReject : null,
+          child: const AppIcon(
+            HugeIcons.strokeRoundedCancel01,
+            size: 42,
+            strokeWidth: 1.8,
+            color: FitsPalette.magenta,
+          ),
         ),
-        _action(
-          context,
-          'Like',
-          HugeIcons.strokeRoundedTick02,
-          context.colors.success,
-          enabled ? onApprove : null,
-          prominent: true,
+        const SizedBox(width: 46),
+        _CircleAction(
+          label: 'Like',
+          size: bigSize,
+          onPressed: enabled ? onApprove : null,
+          child: const AppIcon(
+            HugeIcons.strokeRoundedTick02,
+            size: 44,
+            strokeWidth: 2.4,
+            color: FitsPalette.green,
+          ),
         ),
-        _action(
-          context,
-          'Skip',
-          HugeIcons.strokeRoundedNext,
-          context.colors.primary,
-          enabled ? onForward : null,
+        const SizedBox(width: 22),
+        _CircleAction(
+          label: 'Skip',
+          size: smallSize,
+          onPressed: enabled ? onForward : null,
+          child: ShaderMask(
+            blendMode: BlendMode.srcIn,
+            shaderCallback: (rect) => const LinearGradient(
+              begin: Alignment.bottomLeft,
+              end: Alignment.topRight,
+              colors: [Color(0xFF3B2A8C), FitsPalette.magenta],
+            ).createShader(rect),
+            child: const AppIcon(
+              HugeIcons.strokeRoundedSent,
+              size: 24,
+              filled: true,
+              color: Colors.white,
+            ),
+          ),
         ),
       ],
-    ),
-  );
+    );
+  }
+}
 
-  Widget _action(
-    BuildContext context,
-    String label,
-    AppIconData icon,
-    Color color,
-    VoidCallback? callback, {
-    bool prominent = false,
-  }) => AppPressScale(
-    enabled: callback != null,
-    child: IconButton(
-      tooltip: label,
-      onPressed: callback == null
-          ? null
-          : () {
-              SoundService.instance.vibrateSelection();
-              callback();
-            },
-      style: IconButton.styleFrom(
-        minimumSize: Size.square(prominent ? 62 : 48),
-        backgroundColor: context.colors.cardSurface,
-        foregroundColor: color,
-        disabledForegroundColor: context.colors.textMuted.withValues(alpha: .4),
-        side: BorderSide(
-          color: prominent
-              ? color.withValues(alpha: .2)
-              : context.colors.border,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(prominent ? 24 : 18),
+class _CircleAction extends StatelessWidget {
+  const _CircleAction({
+    required this.label,
+    required this.size,
+    required this.onPressed,
+    required this.child,
+  });
+
+  final String label;
+  final double size;
+  final VoidCallback? onPressed;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onPressed != null;
+    return AppPressScale(
+      enabled: enabled,
+      child: Tooltip(
+        message: label,
+        child: Semantics(
+          button: true,
+          enabled: enabled,
+          label: label,
+          child: Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: .10),
+                  blurRadius: 18,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Material(
+              color: context.colors.cardSurface,
+              shape: const CircleBorder(),
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: !enabled
+                    ? null
+                    : () {
+                        SoundService.instance.vibrateSelection();
+                        onPressed!();
+                      },
+                child: Center(
+                  child: Opacity(opacity: enabled ? 1 : .35, child: child),
+                ),
+              ),
+            ),
+          ),
         ),
       ),
-      icon: AppIcon(icon, size: prominent ? 30 : 22),
-    ),
-  );
+    );
+  }
 }

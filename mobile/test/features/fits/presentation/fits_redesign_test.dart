@@ -9,7 +9,9 @@ import 'package:zennyt/features/fits/domain/entities/swipe_result.dart';
 import 'package:zennyt/features/fits/domain/repositories/fits_repository.dart';
 import 'package:zennyt/features/fits/presentation/providers/swipe_deck_provider.dart';
 import 'package:zennyt/features/fits/presentation/view/fits_screen.dart';
+import 'package:zennyt/features/fits/presentation/view/fits_swipe_view.dart';
 import 'package:zennyt/features/fits/presentation/widgets/fit_card_data.dart';
+import 'package:zennyt/features/fits/presentation/widgets/fit_scores_grid.dart';
 import 'package:zennyt/features/fits/presentation/widgets/tinder_card.dart';
 import 'package:zennyt/features/jobs/domain/entities/job.dart';
 import 'package:zennyt/features/search/presentation/pages/candidate_filter_page.dart';
@@ -112,13 +114,33 @@ void main() {
     (tester) async {
       final repo = _Repository();
       await _pump(tester, const FitsScreen(), repo: repo);
-      expect(find.text('Product designer'), findsOneWidget);
+      final grid = find.byType(FitScoresGrid);
+      expect(
+        find.descendant(of: grid, matching: find.text('Product designer')),
+        findsOneWidget,
+      );
       await tester.enterText(find.byType(TextFormField), 'engineer');
       await tester.pumpAndSettle();
-      expect(find.text('Product designer'), findsNothing);
-      expect(find.text('Software engineer'), findsOneWidget);
-      await tester.tap(find.text('Match'));
+      expect(
+        find.descendant(of: grid, matching: find.text('Product designer')),
+        findsNothing,
+      );
+      expect(
+        find.descendant(of: grid, matching: find.text('Software engineer')),
+        findsOneWidget,
+      );
+      // The grid doesn't scroll: « View more » opens the swipe interface.
+      for (final scrollable in tester.widgetList<Scrollable>(
+        find.byType(Scrollable),
+      )) {
+        if (scrollable.axisDirection == AxisDirection.down) {
+          expect(scrollable.physics, isA<NeverScrollableScrollPhysics>());
+        }
+      }
+      expect(find.byTooltip('Like'), findsNothing);
+      await tester.tap(find.text('View more'));
       await tester.pumpAndSettle();
+      expect(find.byType(FitsSwipeView), findsOneWidget);
       await tester.tap(find.byTooltip('Like'));
       await tester.pumpAndSettle();
       expect(repo.swipes, ['a']);
@@ -136,10 +158,19 @@ void main() {
         scale: 1.4,
         repo: _Repository(),
       );
-      await tester.tap(find.text('Product designer'));
+      final before = tester.widgetList(find.byType(FitCardContent)).length;
+      await tester.tap(
+        find.descendant(
+          of: find.byType(FitScoresGrid),
+          matching: find.text('Product designer'),
+        ),
+      );
       await tester.pumpAndSettle();
-      expect(find.byType(FitCardContent), findsOneWidget);
-      expect(find.text('Job Details'), findsOneWidget);
+      expect(
+        tester.widgetList(find.byType(FitCardContent)).length,
+        greaterThan(before),
+      );
+      expect(find.text('Salary'), findsWidgets);
       expect(tester.takeException(), isNull);
     },
   );

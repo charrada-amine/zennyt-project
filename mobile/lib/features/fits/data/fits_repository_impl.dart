@@ -5,6 +5,7 @@ import '../../../core/error/api_exception.dart';
 import '../../auth/domain/entities/app_user.dart';
 import '../../jobs/domain/entities/job.dart';
 import '../domain/entities/candidate_profile.dart';
+import '../domain/entities/fit_resume.dart';
 import '../domain/entities/match_entity.dart';
 import '../domain/entities/swipe_result.dart';
 import '../domain/repositories/fits_repository.dart';
@@ -228,6 +229,33 @@ class FitsRepositoryImpl implements FitsRepository {
     });
   }
 
+  @override
+  Future<FitResume> getCandidateResume({
+    required String candidateId,
+    required String jobOfferId,
+  }) {
+    return _guard(() async {
+      final res = await _dio.get<Map<String, dynamic>>(
+        '/candidates/$candidateId/resume',
+        queryParameters: {'jobOfferId': jobOfferId},
+      );
+      return FitResume.fromJson(res.data ?? const {});
+    });
+  }
+
+  @override
+  Future<void> dismissFitScore({
+    required String candidateId,
+    required String jobOfferId,
+  }) {
+    return _guard(() {
+      return _dio.delete<void>('/fit-scores', queryParameters: {
+        'candidateId': candidateId,
+        'jobOfferId': jobOfferId,
+      });
+    });
+  }
+
   // --- mappers -------------------------------------------------------------
 
   static JobOffer _jobOfferFromJson(Map<String, dynamic> json) => JobOffer(
@@ -240,6 +268,11 @@ class FitsRepositoryImpl implements FitsRepository {
         remote: json['remote'] as bool? ?? false,
         salaryMin: (json['salaryMin'] as num?)?.toDouble() ?? 0,
         salaryMax: (json['salaryMax'] as num?)?.toDouble() ?? 0,
+        // Le contrat porte devise + périodicité depuis la maquette 213 ; sans
+        // ces deux champs la chip salaire du deck affichait « €15K/Mo » par
+        // défaut même pour une offre en USD annuelle.
+        salaryCurrency: json['salaryCurrency'] as String? ?? 'EUR',
+        salaryPeriod: SalaryPeriod.fromString(json['salaryPeriod'] as String?),
         currency: json['currency'] as String? ?? '',
         contractType: ContractType.fromString(json['contractType'] as String? ?? ''),
         workplaceType: WorkplaceType.fromString(json['workplaceType'] as String? ?? ''),
@@ -258,7 +291,8 @@ class FitsRepositoryImpl implements FitsRepository {
         openToInternational: json['openToInternational'] as bool? ?? false,
         status: JobStatus.fromString(json['status'] as String? ?? 'ACTIVE'),
         postedAt: json['postedAt'] != null
-            ? DateTime.tryParse(json['postedAt'] as String) ?? DateTime.now()
+            ? (DateTime.tryParse(json['postedAt'] as String) ?? DateTime.now())
+                .toLocal()
             : DateTime.now(),
         // F17 (FITSCORE_REMEDIATION.md §3 index F17): the candidate's Fit Score
         // for this offer — this mapper only ever backs candidate-facing calls
