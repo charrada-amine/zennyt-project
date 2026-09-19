@@ -300,6 +300,7 @@
   "read": "Lu",
   "recipientId": "ID destinataire (UUID)",
   "recruiter": "Recruteur",
+  "counterpartCandidate": "Candidat·e",
   "rejectAction": "Rejeter",
   "rejectOffer": "Refuser l'offre",
   "remoteLabel": "Distant",

@@ -2,6 +2,7 @@
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import '../../domain/entities/message.dart' show SenderRole;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:zennyt/shared/widgets/platform_app_bar.dart';
@@ -147,8 +148,18 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
+                    // Qui est en face (selon mon rôle) et pour quelle offre : une
+                    // conversation est ouverte par match, donc par poste.
                     Text(
-                      l10n.recruiter,
+                      [
+                        conversation.myRole == SenderRole.recruiter
+                            ? l10n.counterpartCandidate
+                            : l10n.recruiter,
+                        if (conversation.jobTitle?.trim().isNotEmpty ?? false)
+                          conversation.jobTitle!.trim(),
+                      ].join(' · '),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w400,

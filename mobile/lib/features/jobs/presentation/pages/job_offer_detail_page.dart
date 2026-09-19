@@ -153,7 +153,7 @@ class _HeaderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 16),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: const Color(0xFFF8FAFF),

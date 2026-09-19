@@ -871,6 +871,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get recruiter => 'Recruiter';
 
   @override
+  String get counterpartCandidate => 'Candidate';
+
+  @override
   String get rejectAction => 'Reject';
 
   @override

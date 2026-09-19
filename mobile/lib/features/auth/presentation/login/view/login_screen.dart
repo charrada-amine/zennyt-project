@@ -152,14 +152,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
         ],
         const SizedBox(height: AppSpacing.xl),
-        Center(
-          child: SizedBox(
-            width: 190,
-            child: PrimaryButton(
-              label: context.l10n.signIn,
-              loading: state.isLoading,
-              onPressed: _submit,
-            ),
+        // Pleine largeur, alignée sur les champs et les boutons Google / GitHub.
+        SizedBox(
+          width: double.infinity,
+          child: PrimaryButton(
+            label: context.l10n.signIn,
+            loading: state.isLoading,
+            onPressed: _submit,
           ),
         ),
         const SizedBox(height: AppSpacing.md),

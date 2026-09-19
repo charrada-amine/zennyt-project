@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:zennyt/core/router/app_routes.dart';
+import 'package:zennyt/core/theme/theme.dart';
 import 'package:zennyt/features/jobs/domain/entities/job.dart';
 import 'package:zennyt/shared/icons/app_icons.dart';
 
@@ -128,120 +129,124 @@ class _JobOfferCard extends StatelessWidget {
     return 'Just now';
   }
 
-  String _salaryShort() {
-    final v = job.salaryMin >= 1000
-        ? '${(job.salaryMin / 1000).toStringAsFixed(0)}K'
-        : job.salaryMin.toInt().toString();
-    return '${salaryCurrencySymbol(job.salaryCurrency)}$v${job.salaryPeriod.shortSuffix}';
-  }
-
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 14, left: 24, right: 24),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFF1F5F9), width: 1.2),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF1E293B).withValues(alpha: 0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+    final colors = context.colors;
+    final location = [job.city, job.country].where((p) => p.trim().isNotEmpty).join(', ');
+    final subtitle = [job.companyName, location].where((p) => p.trim().isNotEmpty).join(' · ');
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14, left: 24, right: 24),
+      child: Material(
+        color: colors.cardSurface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+          side: BorderSide(color: colors.border),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(18),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: const Color(0xFFF1F5F9)),
-                  ),
-                  child: Center(
-                    child: Text(
-                      job.companyName.isNotEmpty
-                          ? job.companyName[0].toUpperCase()
-                          : 'G',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF4285F4),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: colors.primary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Center(
+                        child: Text(
+                          (job.companyName.isNotEmpty ? job.companyName : job.title)[0].toUpperCase(),
+                          style: TextStyle(
+                            fontSize: 19,
+                            fontWeight: FontWeight.w900,
+                            color: colors.primary,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        job.title,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF1E1B4B),
-                        ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            job.title,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: colors.textPrimary,
+                            ),
+                          ),
+                          if (subtitle.isNotEmpty) ...[
+                            const SizedBox(height: 3),
+                            Text(
+                              subtitle,
+                              style: TextStyle(fontSize: 12.5, color: colors.textSecondary),
+                            ),
+                          ],
+                          // Fourchette complète (l'ancienne carte n'affichait que le minimum).
+                          if (job.salaryDisplay.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              job.salaryDisplay,
+                              style: TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w800,
+                                color: colors.primary,
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${job.companyName} • ${job.city}, ${job.country}',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF64748B),
-                          fontWeight: FontWeight.w500,
-                        ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    _TagChip(label: job.workplaceType.label),
+                    _TagChip(label: job.contractType.label),
+                    if (job.fieldOfWork.trim().isNotEmpty) _TagChip(label: job.fieldOfWork),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    AppIcon(HugeIcons.strokeRoundedUserMultiple, size: 15, color: colors.textSecondary),
+                    const SizedBox(width: 5),
+                    Text(
+                      job.applicantCount == 1 ? '1 applicant' : '${job.applicantCount} applicants',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: colors.textSecondary,
                       ),
-                    ],
-                  ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      _timeAgo(),
+                      style: TextStyle(fontSize: 12, color: colors.textSecondary),
+                    ),
+                  ],
                 ),
-                Text(
-                  _salaryShort(),
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF1D4ED8),
-                  ),
-                ),
+                // F16/F19/F29 (FITSCORE_REMEDIATION.md §3) : signal « QCM manquant ».
+                if (job.hardSkillsAlert != HardSkillsAlertLevel.none) ...[
+                  const SizedBox(height: 10),
+                  _HardSkillsAlertBanner(level: job.hardSkillsAlert),
+                ],
               ],
             ),
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                Text(
-                  _timeAgo(),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF94A3B8),
-                  ),
-                ),
-                const Spacer(),
-                _TagChip(label: job.fieldOfWork),
-                const SizedBox(width: 6),
-                _TagChip(label: job.contractType.label),
-              ],
-            ),
-            // F16/F19/F29 (FITSCORE_REMEDIATION.md §3): the backend already
-            // computes/contracts hardSkillsAlert but no client read it before —
-            // a recruiter saw a bare offer card with no signal at all, whether
-            // this senior technical role was missing a QCM or was a creative
-            // role correctly evaluated by portfolio.
-            if (job.hardSkillsAlert != HardSkillsAlertLevel.none) ...[
-              const SizedBox(height: 10),
-              _HardSkillsAlertBanner(level: job.hardSkillsAlert),
-            ],
-          ],
+          ),
         ),
       ),
     );
@@ -309,18 +314,20 @@ class _TagChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
-        borderRadius: BorderRadius.circular(8),
+        color: colors.inputFill,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: colors.border),
       ),
       child: Text(
         label,
-        style: const TextStyle(
-          fontSize: 11,
+        style: TextStyle(
+          fontSize: 11.5,
           fontWeight: FontWeight.w600,
-          color: Color(0xFF64748B),
+          color: colors.textSecondary,
         ),
       ),
     );

@@ -70,13 +70,39 @@ class FitsRepositoryImpl implements FitsRepository {
   @override
   Future<List<CandidateProfile>> getCandidateMatchingDeck(String jobOfferId) {
     return _guard(() async {
-      final res = await _dio.get<Map<String, dynamic>>(
-        '/job-offers/$jobOfferId/candidates/matching-deck',
-      );
-      final content = res.data!['content'] as List<dynamic>;
-      return content
-          .map((e) => _candidateFromDeckJson(e as Map<String, dynamic>))
-          .toList();
+      // Le deck ne porte que l'identité ; le Fit Score, le lieu et les scores
+      // viennent du flux candidat de la même offre. Sans cette fusion, chaque
+      // carte affichait « 0 % », un lieu vide et un rôle vide.
+      final results = await Future.wait([
+        _dio.get<Object>('/job-offers/$jobOfferId/candidates/matching-deck',
+            queryParameters: {'size': 50}),
+        _dio
+            .get<Object>('/recruiters/me/candidate-feed',
+                queryParameters: {'jobOfferId': jobOfferId, 'size': 100})
+            .then<Response<Object>?>((r) => r)
+            .catchError((Object _) => null),
+      ]);
+      final feed = {
+        for (final json in pageItems(results[1]?.data))
+          json['candidateId']?.toString() ?? '': _candidateFromFeedJson(json),
+      };
+      return pageItems(results[0]!.data).map((json) {
+        final deck = _candidateFromDeckJson(json);
+        final scored = feed[deck.user.id];
+        if (scored == null) return deck;
+        return CandidateProfile(
+          user: deck.user,
+          targetRole: deck.targetRole.isNotEmpty ? deck.targetRole : scored.targetRole,
+          seniority: scored.seniority,
+          fitScore: scored.fitScore,
+          location: scored.location,
+          softSkillsLevel: scored.softSkillsLevel,
+          hardSkills: scored.hardSkills,
+          partialData: scored.partialData,
+          contractTypes: scored.contractTypes,
+          isImmediate: scored.isImmediate,
+        );
+      }).toList();
     });
   }
 
@@ -255,8 +281,12 @@ class FitsRepositoryImpl implements FitsRepository {
     final lastName = spaceIndex == -1 ? '' : fullName.substring(spaceIndex + 1);
     final softSkills = (json['softSkillsScore'] as num?)?.toInt();
     final hardSkillScore = (json['hardSkillScore'] as num?)?.toInt();
+    // Le flux renvoie `city` / `country` à plat (l'ancien objet `location` reste lu).
     final locationJson = json['location'] as Map<String, dynamic>?;
-    final location = [locationJson?['city'], locationJson?['country']]
+    final location = [
+      json['city'] ?? locationJson?['city'],
+      json['country'] ?? locationJson?['country'],
+    ]
         .whereType<String>()
         .where((p) => p.isNotEmpty)
         .join(', ');
@@ -264,9 +294,10 @@ class FitsRepositoryImpl implements FitsRepository {
     return CandidateProfile(
       user: AppUser(
         id: json['candidateId'] as String,
-        firstName: firstName,
+        firstName: firstName.isEmpty ? 'Candidate' : firstName,
         lastName: lastName,
         email: '',
+        profileImageUrl: json['avatarUrl'] as String?,
       ),
       targetRole: json['targetRole'] as String? ?? '',
       seniority: '',

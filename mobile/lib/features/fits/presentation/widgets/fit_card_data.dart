@@ -52,7 +52,7 @@ class FitCardData {
         title: c.name,
         subtitle: c.location,
         primaryLabel: 'Target role',
-        primaryValue: '${c.targetRole} | ${c.seniority}',
+        primaryValue: _joinParts([c.targetRole, c.seniority], empty: 'Not specified yet'),
         // F10 (FITSCORE_REMEDIATION.md §3 index F10): one honest row from the
         // real aggregate score, not three fabricated per-module rows the
         // backend doesn't provide (see CandidateProfile.softSkillsLevel).
@@ -75,7 +75,9 @@ class FitCardData {
           // computed and contracted but was never surfaced by any client.
           if (c.partialData) 'Partial data',
         ],
-        badgeText: '${c.fitScore}% Fit score',
+        // Pas encore de score (aucun jeu joué) ≠ un score de 0 % : ne pas afficher
+        // un « 0 % » qui se lit comme un très mauvais profil.
+        badgeText: c.fitScore > 0 ? '${c.fitScore}% Fit score' : 'No Fit Score yet',
       );
 
   factory FitCardData.fromJobOffer(JobOffer j) => FitCardData(
@@ -87,16 +89,16 @@ class FitCardData {
         title: j.title,
         subtitle: j.locationDisplay,
         primaryLabel: 'Company',
-        primaryValue: '${j.companyName} | ${j.experienceLevel.label}',
+        primaryValue: _joinParts([j.companyName, j.experienceLevel.label]),
         section1Title: 'Job Details',
         section1Stats: [
           FitCardStat('Workplace', j.workplaceType.label),
           FitCardStat('Employment', j.contractType.label),
-          FitCardStat('Field', j.fieldOfWork),
+          if (j.fieldOfWork.trim().isNotEmpty) FitCardStat('Field', j.fieldOfWork),
         ],
         section2Title: 'Compensation',
         section2Stats: [
-          FitCardStat('Salary', j.salaryDisplay),
+          FitCardStat('Salary', j.salaryDisplay.isEmpty ? 'Not disclosed' : j.salaryDisplay),
         ],
         tags: [
           j.workplaceType.label,
@@ -110,4 +112,11 @@ class FitCardData {
         // fitScore on this response.
         badgeText: j.fitScore != null ? '${j.fitScore}% Fit score' : null,
       );
+}
+
+/// Assemble les morceaux non vides (« Nexa Digital · Senior ») : un champ vide
+/// laissait sinon un séparateur orphelin (« | Manager »).
+String _joinParts(List<String?> parts, {String empty = '—'}) {
+  final kept = parts.whereType<String>().map((p) => p.trim()).where((p) => p.isNotEmpty);
+  return kept.isEmpty ? empty : kept.join(' · ');
 }

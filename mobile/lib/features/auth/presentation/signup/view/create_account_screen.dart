@@ -207,7 +207,7 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
           const SizedBox(height: AppSpacing.xl),
           Center(
             child: SizedBox(
-              width: 190,
+              width: double.infinity,
               child: PrimaryButton(
                 label: context.l10n.continueLabel,
                 loading: isLoading,

@@ -363,6 +363,7 @@
   "read": "Read",
   "recipientId": "Recipient ID (UUID)",
   "recruiter": "Recruiter",
+  "counterpartCandidate": "Candidate",
   "rejectAction": "Reject",
   "rejectOffer": "Reject offer",
   "remoteLabel": "Remote",

@@ -289,7 +289,7 @@ class _FitsScreenState extends ConsumerState<FitsScreen> {
                 children: [
                   for (final (index, label, icon) in [
                     (0, 'Discover', HugeIcons.strokeRoundedGridView),
-                    (1, 'Match', HugeIcons.strokeRoundedPaintBrush01),
+                    (1, 'Match', HugeIcons.strokeRoundedCards01),
                   ])
                     Expanded(
                       child: Semantics(

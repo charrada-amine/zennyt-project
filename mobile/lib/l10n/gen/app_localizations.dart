@@ -1652,6 +1652,12 @@ abstract class AppLocalizations {
   /// **'Recruiter'**
   String get recruiter;
 
+  /// No description provided for @counterpartCandidate.
+  ///
+  /// In en, this message translates to:
+  /// **'Candidate'**
+  String get counterpartCandidate;
+
   /// No description provided for @rejectAction.
   ///
   /// In en, this message translates to:
